@@ -3,212 +3,297 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="theme-color" content="#f7dce7" />
-  <title>Life RPG — Sakura Base Camp</title>
+  <meta name="theme-color" content="#f5dce6" />
+  <title>Life RPG — Base Camp</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
+  <div class="ambient ambient-one"></div>
+  <div class="ambient ambient-two"></div>
+
   <div class="app-shell">
     <header class="topbar">
-      <div>
-        <p class="eyebrow">LIFE RPG</p>
-        <h1>Sakura Base Camp</h1>
-      </div>
+      <button class="brand-button" data-view-target="basecamp" aria-label="Go to Base Camp">
+        <span class="brand-mark">✦</span>
+        <span>
+          <span class="eyebrow">LIFE RPG</span>
+          <strong>Base Camp</strong>
+        </span>
+      </button>
 
-      <div class="top-stats" aria-label="Character resources">
-        <div class="stat-pill">
-          <span class="stat-icon">⚔️</span>
-          <span><strong id="levelValue">1</strong><small>Level</small></span>
+      <div class="top-resources" aria-label="Character resources">
+        <div class="resource-pill">
+          <span>Lv.</span>
+          <strong id="levelValue">1</strong>
         </div>
-        <div class="stat-pill">
-          <span class="stat-icon">🔥</span>
-          <span><strong id="storyEnergyValue">0</strong><small>Story</small></span>
+        <div class="resource-pill story">
+          <span>🔥</span>
+          <strong id="storyEnergyValue">0</strong>
         </div>
-        <div class="stat-pill">
-          <span class="stat-icon">🪙</span>
-          <span><strong id="coinsValue">0</strong><small>Coins</small></span>
+        <div class="resource-pill coins">
+          <span>🪙</span>
+          <strong id="coinsValue">0</strong>
         </div>
       </div>
     </header>
 
     <main>
+      <!-- BASE CAMP -->
       <section id="view-basecamp" class="view active">
-        <div class="hero-card">
-          <div>
+        <section class="home-hero">
+          <div class="home-copy">
             <p class="eyebrow" id="dateLine"></p>
-            <h2 id="greeting">Welcome home.</h2>
-            <p class="hero-copy">
-              Small quests still move the story forward. Pick what fits the day you actually have.
+            <h1 id="greeting">Welcome home.</h1>
+            <p id="homeSubtitle" class="hero-copy">
+              You do not have to win the whole day. Pick the next thing that fits the life you actually have.
             </p>
-          </div>
-          <div class="level-panel">
-            <div class="level-row">
-              <span>Character XP</span>
-              <strong id="xpLabel">0 / 100</strong>
+
+            <div class="hero-actions">
+              <button class="primary-button" data-view-target="quests">Choose today's quests</button>
+              <button class="ghost-button" data-view-target="story">Open story</button>
             </div>
-            <div class="progress"><span id="xpBar"></span></div>
-            <p id="rhythmLine" class="muted">No pressure. One meaningful action counts.</p>
           </div>
-        </div>
 
-        <div class="section-heading">
-          <div>
-            <p class="eyebrow">TODAY</p>
-            <h2>Today's Loadout</h2>
+          <div class="character-card">
+            <div class="avatar-ring">
+              <div class="avatar-core">L</div>
+            </div>
+            <div>
+              <p class="eyebrow">PLAYER CHARACTER</p>
+              <h2>Luca</h2>
+              <p class="muted" id="characterStatusLine">Civilian · Teacher · Level 1</p>
+            </div>
+
+            <div class="xp-card">
+              <div class="row-between">
+                <span>Character XP</span>
+                <strong id="xpLabel">0 / 100</strong>
+              </div>
+              <div class="progress large"><span id="xpBar"></span></div>
+              <small id="rhythmLine">One meaningful action is enough to make today count.</small>
+            </div>
           </div>
-          <button class="secondary-button" id="addQuestButton">+ Quick Quest</button>
-        </div>
+        </section>
 
-        <div id="loadout" class="quest-stack"></div>
-
-        <div class="two-column">
-          <section class="panel">
+        <section class="dashboard-grid">
+          <section class="panel loadout-panel">
             <div class="panel-heading">
               <div>
-                <p class="eyebrow">HOME</p>
-                <h3>Shared Apartment</h3>
+                <p class="eyebrow">TODAY'S RUN</p>
+                <h2>Loadout</h2>
               </div>
-              <span class="tiny-badge">Hub</span>
+              <span class="count-badge" id="loadoutCount">0 selected</span>
             </div>
-            <p class="muted">The household will become more alive as social content unlocks.</p>
-            <div class="room-grid">
-              <button class="room-card" data-room="living-room">
-                <span>🛋️</span><strong>Living Room</strong><small>Available</small>
-              </button>
-              <button class="room-card" data-room="kitchen">
-                <span>☕</span><strong>Kitchen</strong><small>Available</small>
-              </button>
-              <button class="room-card" data-room="bedroom">
-                <span>🌸</span><strong>Your Room</strong><small>Available</small>
-              </button>
-              <button class="room-card" data-room="balcony">
-                <span>🌿</span><strong>Balcony</strong><small>Available</small>
-              </button>
+
+            <div id="loadout" class="quest-stack"></div>
+
+            <div id="emptyLoadout" class="empty-state hidden">
+              <span class="empty-icon">🎒</span>
+              <strong>Your loadout is empty.</strong>
+              <p>Choose a few quests that actually fit today. Optional and Recovery quests count too.</p>
+              <button class="secondary-button" data-view-target="quests">Choose quests</button>
             </div>
-            <div id="roomMessage" class="soft-callout hidden"></div>
           </section>
 
-          <section class="panel">
-            <div class="panel-heading">
-              <div>
-                <p class="eyebrow">GROWTH</p>
-                <h3>Character Stats</h3>
+          <aside class="side-stack">
+            <section class="panel home-panel">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">HOME</p>
+                  <h3 id="homeName">Current Apartment</h3>
+                </div>
+                <span class="status-dot"></span>
               </div>
-              <button class="text-button" data-nav-target="profile">View all</button>
+
+              <p id="homeDescription" class="muted">
+                Small, familiar, and unfortunately much too far from work.
+              </p>
+
+              <div id="roomGrid" class="room-grid"></div>
+              <div id="roomMessage" class="soft-callout hidden"></div>
+            </section>
+
+            <section class="panel pulse-panel">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">SOCIAL</p>
+                  <h3>Life around you</h3>
+                </div>
+              </div>
+              <div id="socialPulse"></div>
+            </section>
+          </aside>
+        </section>
+
+        <section class="section-block">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">GROWTH</p>
+              <h2>What is changing?</h2>
             </div>
-            <div id="miniStats" class="mini-stats"></div>
-          </section>
-        </div>
+            <button class="text-button" data-view-target="growth">View all stats</button>
+          </div>
+          <div id="miniStats" class="stat-strip"></div>
+        </section>
       </section>
 
+      <!-- QUESTS -->
       <section id="view-quests" class="view">
-        <div class="section-heading">
+        <header class="page-heading">
           <div>
             <p class="eyebrow">REAL LIFE → GAME PROGRESS</p>
-            <h2>Quest Library</h2>
+            <h1>Quest Board</h1>
+            <p class="lead">
+              Build today's loadout, then log what you actually did. Real actions grow Luca's RPG stats.
+            </p>
           </div>
-          <button class="secondary-button" id="resetDemoButton">Reset demo data</button>
-        </div>
-        <p class="lead">
-          A quest can reward Character XP, Realm XP, Story Energy, Coins and real character-stat growth at the same time.
-        </p>
+          <button class="primary-button" id="addQuestButton">+ New Quest</button>
+        </header>
+
+        <section class="panel quest-toolbar">
+          <div class="filter-group" id="realmFilters">
+            <button class="filter-chip active" data-realm-filter="All">All</button>
+          </div>
+          <label class="search-field">
+            <span>⌕</span>
+            <input type="search" id="questSearch" placeholder="Search quests..." />
+          </label>
+        </section>
+
         <div id="questLibrary" class="quest-library"></div>
       </section>
 
+      <!-- WORLD -->
       <section id="view-world" class="view">
-        <div class="section-heading">
+        <header class="page-heading">
           <div>
             <p class="eyebrow">DISCOVERY</p>
-            <h2>World</h2>
+            <h1>Your World</h1>
+            <p class="lead">
+              Places become available because Luca has a reason to know them. The world grows with the story.
+            </p>
           </div>
-        </div>
-        <p class="lead">
-          Locations unlock because Luca gains a narrative reason to know them — not because an arbitrary account level ticks upward.
-        </p>
+        </header>
+
         <div id="locationGrid" class="location-grid"></div>
       </section>
 
+      <!-- STORY -->
       <section id="view-story" class="view">
-        <div class="section-heading">
+        <header class="page-heading story-page-heading">
           <div>
-            <p class="eyebrow">SPOILER-SAFE</p>
-            <h2>Story</h2>
+            <p class="eyebrow">SLOW BURN / LIFE SIM</p>
+            <h1>Story</h1>
+            <p class="lead">
+              Story Energy unlocks substantial scenes. Choices inside scenes stay free.
+            </p>
           </div>
-          <span class="resource-chip">🔥 <strong id="storyEnergyValueLarge">0</strong> Energy</span>
-        </div>
+          <div class="big-resource">🔥 <strong id="storyEnergyValueLarge">0</strong></div>
+        </header>
 
-        <div class="story-hero">
-          <div>
+        <section class="story-banner">
+          <div class="story-banner-copy">
             <span class="story-seal">✦</span>
-            <p class="eyebrow">CONTENT ENGINE</p>
-            <h3>The story system is armed.</h3>
-            <p>
-              V0.1 contains the progression engine, but no real story pack yet. Future scenes can be loaded behind opaque IDs so development does not spoil them for you.
+            <p class="eyebrow">CURRENT STORY</p>
+            <h2 id="storyTitle">A new chapter is waiting.</h2>
+            <p id="storyDescription">
+              The engine is ready for the first private story pack. Until then, no future scene text is stored in the public app.
             </p>
           </div>
-          <div class="story-status">
-            <div><span>Choices cost</span><strong>0</strong></div>
-            <div><span>Scene access</span><strong>Story Energy</strong></div>
-            <div><span>Secret feelings</span><strong>Hidden</strong></div>
-          </div>
-        </div>
 
-        <div class="two-column">
+          <div class="story-rules">
+            <div>
+              <small>Scene access</small>
+              <strong>Story Energy</strong>
+            </div>
+            <div>
+              <small>Choices</small>
+              <strong>Always free</strong>
+            </div>
+            <div>
+              <small>Secret feelings</small>
+              <strong>Never shown as %</strong>
+            </div>
+          </div>
+        </section>
+
+        <section class="dashboard-grid">
           <section class="panel">
-            <p class="eyebrow">NEXT</p>
-            <h3>New scene</h3>
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">NEXT SCENE</p>
+                <h3>Story slot</h3>
+              </div>
+              <span class="tiny-badge">Spoiler-safe</span>
+            </div>
             <p class="muted">
-              When the first private story pack is installed, this card will reveal only what Luca would actually know.
+              This slot will eventually show only information Luca currently knows. Hidden triggers and future content remain outside the normal interface.
             </p>
-            <button class="primary-button" id="storyTestButton">Test unlock flow — 10 🔥</button>
+            <button class="primary-button" id="storyTestButton">Test unlock flow · 10 🔥</button>
             <div id="storyTestResult" class="soft-callout hidden"></div>
           </section>
 
           <section class="panel">
-            <p class="eyebrow">MEMORIES</p>
-            <h3>Unlocked moments</h3>
-            <div id="memoryList" class="empty-state">No memories unlocked yet.</div>
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">MEMORIES</p>
+                <h3>Unlocked moments</h3>
+              </div>
+            </div>
+            <div id="memoryList" class="empty-state compact">Nothing has been added to Memories yet.</div>
           </section>
-        </div>
+        </section>
       </section>
 
-      <section id="view-profile" class="view">
-        <div class="section-heading">
+      <!-- GROWTH -->
+      <section id="view-growth" class="view">
+        <header class="page-heading">
           <div>
-            <p class="eyebrow">CHARACTER</p>
-            <h2>Growth</h2>
+            <p class="eyebrow">CHARACTER DEVELOPMENT</p>
+            <h1>Growth</h1>
+            <p class="lead">
+              Realm XP describes where life is happening. Character stats describe what Luca is becoming capable of.
+            </p>
           </div>
-        </div>
+        </header>
 
-        <div class="profile-grid">
-          <section class="panel profile-card">
-            <div class="avatar-orb">L</div>
-            <div>
-              <p class="eyebrow">PLAYER CHARACTER</p>
-              <h3>Luca</h3>
-              <p class="muted">Civilian · Teacher · Level <span id="profileLevel">1</span></p>
-            </div>
-          </section>
-
-          <section class="panel">
-            <p class="eyebrow">RESOURCES</p>
-            <div class="resource-list">
-              <div><span>Character XP</span><strong id="profileXP">0</strong></div>
-              <div><span>Story Energy</span><strong id="profileEnergy">0</strong></div>
-              <div><span>Sakura Coins</span><strong id="profileCoins">0</strong></div>
-              <div><span>Adventure Days</span><strong id="profileDays">0</strong></div>
-            </div>
-          </section>
-        </div>
+        <section class="resource-overview">
+          <article class="resource-card">
+            <small>Character Level</small>
+            <strong id="profileLevel">1</strong>
+          </article>
+          <article class="resource-card">
+            <small>Total XP</small>
+            <strong id="profileXP">0</strong>
+          </article>
+          <article class="resource-card">
+            <small>Story Energy</small>
+            <strong id="profileEnergy">0</strong>
+          </article>
+          <article class="resource-card">
+            <small>Adventure Days</small>
+            <strong id="profileDays">0</strong>
+          </article>
+        </section>
 
         <section class="panel">
           <div class="panel-heading">
             <div>
               <p class="eyebrow">REAL-LIFE STATS</p>
-              <h3>Character Development</h3>
+              <h2>Character Stats</h2>
             </div>
           </div>
           <div id="fullStats" class="full-stats"></div>
+        </section>
+
+        <section class="panel realms-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">LIFE DOMAINS</p>
+              <h2>Realms</h2>
+            </div>
+          </div>
+          <div id="realmCards" class="realm-cards"></div>
         </section>
 
         <section class="panel dev-panel">
@@ -223,49 +308,46 @@
             </label>
           </div>
           <p class="muted">
-            Developer mode may show opaque event IDs and engine state, but never future narrative text.
+            Shows engine state and opaque IDs only. It should never print unrevealed narrative text.
           </p>
+          <div id="devControls" class="dev-controls hidden">
+            <button class="secondary-button" id="testHomeUpgrade">Simulate narrative home unlock</button>
+            <button class="secondary-button" id="testMinaContact">Simulate contact unlock</button>
+          </div>
           <pre id="devOutput" class="dev-output hidden"></pre>
         </section>
       </section>
     </main>
 
-    <nav class="bottom-nav" aria-label="Primary">
+    <nav class="bottom-nav" aria-label="Primary navigation">
       <button class="nav-button active" data-view="basecamp"><span>🌸</span><small>Base Camp</small></button>
       <button class="nav-button" data-view="quests"><span>🎯</span><small>Quests</small></button>
       <button class="nav-button" data-view="world"><span>🗺️</span><small>World</small></button>
       <button class="nav-button" data-view="story"><span>❤️</span><small>Story</small></button>
-      <button class="nav-button" data-view="profile"><span>✨</span><small>Growth</small></button>
+      <button class="nav-button" data-view="growth"><span>✨</span><small>Growth</small></button>
     </nav>
   </div>
 
+  <!-- CREATE QUEST -->
   <dialog id="questDialog">
     <form method="dialog" id="questForm">
       <div class="dialog-heading">
         <div>
-          <p class="eyebrow">QUICK QUEST</p>
-          <h3>Add something you actually want to do</h3>
+          <p class="eyebrow">NEW QUEST</p>
+          <h2>Create a real-life quest</h2>
         </div>
         <button class="close-button" value="cancel" aria-label="Close">×</button>
       </div>
 
       <label>
         Quest name
-        <input id="newQuestName" required maxlength="60" placeholder="e.g. Prepare tomorrow's lesson" />
+        <input id="newQuestName" required maxlength="70" placeholder="e.g. Prepare tomorrow's lesson" />
       </label>
 
       <div class="form-grid">
         <label>
           Realm
-          <select id="newQuestRealm">
-            <option>Work</option>
-            <option>Health</option>
-            <option>Recovery</option>
-            <option>Home</option>
-            <option>Japanese</option>
-            <option>Knowledge</option>
-            <option>Hobbies</option>
-          </select>
+          <select id="newQuestRealm"></select>
         </label>
 
         <label>
@@ -283,63 +365,71 @@
       <div class="form-grid">
         <label>
           Target units
-          <input id="newQuestTarget" type="number" min="1" value="1" />
+          <input id="newQuestTarget" type="number" min="0.1" step="0.1" value="1" required />
         </label>
 
         <label>
           Unit label
-          <input id="newQuestUnitLabel" maxlength="20" value="task" />
+          <input id="newQuestUnitLabel" maxlength="24" value="task" required />
         </label>
       </div>
 
       <div class="form-grid">
         <label>
           XP at target
-          <input id="newQuestXP" type="number" min="1" value="20" />
+          <input id="newQuestXP" type="number" min="1" value="20" required />
         </label>
 
         <label>
           Growth stat
-          <select id="newQuestStat">
-            <option value="confidence">Confidence</option>
-            <option value="strength">Strength</option>
-            <option value="knowledge">Knowledge</option>
-            <option value="creativity">Creativity</option>
-            <option value="social">Social</option>
-            <option value="wellbeing">Wellbeing</option>
-            <option value="japanese">Japanese</option>
-          </select>
+          <select id="newQuestStat"></select>
         </label>
       </div>
 
       <menu>
         <button class="secondary-button" value="cancel">Cancel</button>
-        <button class="primary-button" id="saveQuestButton" value="default">Add quest</button>
+        <button class="primary-button" id="saveQuestButton" value="default">Create quest</button>
       </menu>
     </form>
   </dialog>
 
+  <!-- COMPLETE QUEST -->
   <dialog id="completeDialog">
     <form method="dialog" id="completeForm">
       <input type="hidden" id="completeQuestId" />
+
       <div class="dialog-heading">
         <div>
           <p class="eyebrow">QUEST CLEAR</p>
-          <h3 id="completeQuestTitle">Complete quest</h3>
+          <h2 id="completeQuestTitle">Complete quest</h2>
         </div>
         <button class="close-button" value="cancel" aria-label="Close">×</button>
       </div>
+
       <label>
-        Actual units
+        Actual units completed
         <input id="actualUnits" type="number" min="0.1" step="0.1" required />
       </label>
-      <p id="completePreview" class="soft-callout"></p>
+
+      <div id="completePreview" class="reward-preview"></div>
+
       <menu>
         <button class="secondary-button" value="cancel">Cancel</button>
         <button class="primary-button" id="confirmCompleteButton" value="default">Clear quest</button>
       </menu>
     </form>
   </dialog>
+
+  <!-- QUEST CLEAR OVERLAY -->
+  <div id="clearOverlay" class="clear-overlay hidden" aria-live="polite">
+    <div class="clear-card">
+      <span class="clear-spark">✦</span>
+      <p class="eyebrow">QUEST CLEAR</p>
+      <h2 id="clearQuestName">Done.</h2>
+      <div id="clearRewards" class="clear-rewards"></div>
+      <button class="primary-button" id="closeClearOverlay">Nice ✨</button>
+    </div>
+  </div>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
