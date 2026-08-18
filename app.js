@@ -23,13 +23,137 @@
     Hobbies: { icon: "🎨" }
   };
 
-  const PRIORITY_RANK = {
-    "Must Do": 0,
-    "Main": 1,
-    "Low Energy": 2,
-    "Optional": 3,
-    "Bonus": 4
+  const ENERGY_RANK = {
+    "Low Energy": 0,
+    "Normal": 1,
+    "Boss": 2
   };
+
+  const IMPORTED_QUESTS = (window.LIFE_RPG_QUESTS || []).map(normalizeImportedQuest);
+
+  const LEGACY_QUEST_ID_MAP = {
+    "q-work-focus": "🧠 Focus Work",
+    "q-recovery-gaming": "🎮 Intentional Gaming Session",
+    "q-home-clean": "🧹 10-Minute Clean",
+    "q-japanese-grammar": "🧠 Grammar Echo",
+    "q-read": "📖 Read 10 Pages",
+    "q-music-reset": "🎵 Music Reset",
+    "q-creative": "🎨 25-Minute Aesthetic Build"
+  };
+
+  function normalizeImportedQuest(quest) {
+    const stat = deriveImportedStat(quest);
+
+    return {
+      ...quest,
+      custom: false,
+      stat,
+      statAtTarget: Math.max(1, Math.round(Number(quest.xp || 0) * .35))
+    };
+  }
+
+  function deriveImportedStat(quest) {
+    const name = String(quest.name || "").toLowerCase();
+
+    if (quest.realm === "Japanese") return "japanese";
+    if (quest.realm === "Knowledge") return "knowledge";
+    if (quest.realm === "Work") return "confidence";
+    if (quest.realm === "Recovery" || quest.realm === "Home") return "wellbeing";
+
+    if (quest.realm === "Health") {
+      return /(walk|workout|training|exercise|gym)/i.test(name)
+        ? "strength"
+        : "wellbeing";
+    }
+
+    if (quest.realm === "Hobbies") {
+      if (quest.realmXpSource === "Book" || quest.hobbyLane === "Reading" || /(book|read|reading)/i.test(name)) {
+        return "knowledge";
+      }
+
+      if (quest.hobbyLane === "Gaming" || /(game|gaming)/i.test(name)) {
+        return "wellbeing";
+      }
+
+      return "creativity";
+    }
+
+    return "knowledge";
+  }
+
+  function importedQuestIdByName(name) {
+    return IMPORTED_QUESTS.find(quest => quest.name === name)?.id || null;
+  }
+
+  function migrateLegacyQuestId(id) {
+    const mappedName = LEGACY_QUEST_ID_MAP[id];
+    return mappedName ? importedQuestIdByName(mappedName) || id : id;
+  }
+
+  function migrateLegacyCustomQuest(quest) {
+    if (!quest || !String(quest.id || "").startsWith("q-custom-")) return null;
+
+    return {
+      id: quest.id,
+      custom: true,
+      name: quest.name || "Custom Quest",
+      realm: quest.realm || "Hobbies",
+      xpMode: quest.xpMode || (quest.mode === "variable" ? "Variable by Units" : "Fixed"),
+      units: Number(quest.units ?? quest.target ?? 1),
+      unitLabel: quest.unitLabel || "task",
+      xp: Number(quest.xp ?? quest.xpAtTarget ?? 20),
+      frequency: quest.frequency || "Repeatable",
+      cooldownDays: Number(quest.cooldownDays || 0) || null,
+      energy: quest.energy || legacyPriorityToEnergy(quest.priority),
+      manualStatus: "Available",
+      sessionSize: null,
+      offDutyDeck: false,
+      hobbyLane: null,
+      planningThemes: [],
+      coinMultiplier: Number(quest.coinMultiplier || 1),
+      questType: null,
+      realmXpSource: "Quest",
+      stat: quest.stat || "knowledge",
+      statAtTarget: Number(quest.statAtTarget || Math.max(1, Math.round(Number(quest.xpAtTarget || 20) * .35)))
+    };
+  }
+
+  function legacyPriorityToEnergy(priority) {
+    if (priority === "Low Energy") return "Low Energy";
+    if (priority === "Main" || priority === "Must Do") return "Boss";
+    return "Normal";
+  }
+
+  function getAllQuests() {
+    return [...IMPORTED_QUESTS, ...(state.customQuests || [])];
+  }
+
+  function getQuestById(questId) {
+    return getAllQuests().find(quest => quest.id === questId) || null;
+  }
+
+  function questTarget(quest) {
+    const value = Number(quest.units);
+    return Number.isFinite(value) && value > 0 ? value : 1;
+  }
+
+  function questUnitLabel(quest) {
+    return quest.unitLabel || (quest.xpMode === "Variable by Units" ? "units" : "completion");
+  }
+
+  function questCoinBase(quest) {
+    const hasMultiplier = quest.coinMultiplier !== null && quest.coinMultiplier !== undefined && quest.coinMultiplier !== "";
+    const multiplier = hasMultiplier && Number.isFinite(Number(quest.coinMultiplier))
+      ? Number(quest.coinMultiplier)
+      : 1;
+    return Math.max(1, Math.round((Number(quest.xp || 0) / 10) * multiplier));
+  }
+
+  function energyStyleKey(quest) {
+    if (quest.energy === "Boss") return "Main";
+    if (quest.energy === "Low Energy") return "Low Energy";
+    return "Optional";
+  }
 
   const LOCATION_META = {
     currentHome: {
@@ -69,116 +193,10 @@
     }
   };
 
-  const DEMO_QUESTS = [
-    {
-      id: "q-work-focus",
-      name: "🧠 Focus Work",
-      realm: "Work",
-      priority: "Main",
-      mode: "variable",
-      target: 20,
-      unitLabel: "minutes",
-      xpAtTarget: 20,
-      coinReward: 2,
-      stat: "confidence",
-      statAtTarget: 8
-    },
-    {
-      id: "q-recovery-gaming",
-      name: "🎮 Intentional Gaming Session",
-      realm: "Recovery",
-      priority: "Optional",
-      mode: "fixed",
-      target: 45,
-      unitLabel: "minutes",
-      xpAtTarget: 15,
-      coinReward: 2,
-      stat: "wellbeing",
-      statAtTarget: 7
-    },
-    {
-      id: "q-home-clean",
-      name: "🧹 10-Minute Clean",
-      realm: "Home",
-      priority: "Low Energy",
-      mode: "variable",
-      target: 10,
-      unitLabel: "minutes",
-      xpAtTarget: 15,
-      coinReward: 1,
-      stat: "wellbeing",
-      statAtTarget: 5
-    },
-    {
-      id: "q-japanese-grammar",
-      name: "🧠 Grammar Echo",
-      realm: "Japanese",
-      priority: "Bonus",
-      mode: "fixed",
-      target: 1,
-      unitLabel: "session",
-      xpAtTarget: 20,
-      coinReward: 2,
-      stat: "japanese",
-      statAtTarget: 10
-    },
-    {
-      id: "q-read",
-      name: "📚 Read Something You Want To Read",
-      realm: "Hobbies",
-      priority: "Optional",
-      mode: "variable",
-      target: 20,
-      unitLabel: "pages",
-      xpAtTarget: 20,
-      coinReward: 2,
-      stat: "knowledge",
-      statAtTarget: 7
-    },
-    {
-      id: "q-workout",
-      name: "🏋️ Real-World Workout",
-      realm: "Health",
-      priority: "Main",
-      mode: "variable",
-      target: 30,
-      unitLabel: "minutes",
-      xpAtTarget: 30,
-      coinReward: 3,
-      stat: "strength",
-      statAtTarget: 12
-    },
-    {
-      id: "q-music-reset",
-      name: "🎵 Music Reset",
-      realm: "Recovery",
-      priority: "Low Energy",
-      mode: "variable",
-      target: 10,
-      unitLabel: "minutes",
-      xpAtTarget: 10,
-      coinReward: 1,
-      stat: "wellbeing",
-      statAtTarget: 5
-    },
-    {
-      id: "q-creative",
-      name: "🎨 Creative Session",
-      realm: "Hobbies",
-      priority: "Optional",
-      mode: "variable",
-      target: 25,
-      unitLabel: "minutes",
-      xpAtTarget: 25,
-      coinReward: 2,
-      stat: "creativity",
-      statAtTarget: 10
-    }
-  ];
 
   function defaultState() {
     return {
-      version: 2,
+      version: 3,
       characterXP: 0,
       coins: 0,
       storyEnergy: 0,
@@ -200,8 +218,12 @@
         Knowledge: 0,
         Hobbies: 0
       },
-      quests: clone(DEMO_QUESTS),
-      selectedQuestIds: ["q-work-focus", "q-home-clean", "q-recovery-gaming"],
+      customQuests: [],
+      selectedQuestIds: [
+        importedQuestIdByName("🧠 Focus Work"),
+        importedQuestIdByName("🧹 10-Minute Clean"),
+        importedQuestIdByName("🎮 Intentional Gaming Session")
+      ].filter(Boolean),
       completionLog: [],
       memories: [],
       flags: {
@@ -221,9 +243,6 @@
     };
   }
 
-  function clone(value) {
-    return JSON.parse(JSON.stringify(value));
-  }
 
   let state = loadState();
   let activeRealmFilter = "All";
@@ -314,16 +333,28 @@
   }
 
   function mergeState(base, saved) {
+    const legacyCustomQuests = Array.isArray(saved.quests)
+      ? saved.quests.map(migrateLegacyCustomQuest).filter(Boolean)
+      : [];
+
+    const {
+      quests: _legacyQuestLibrary,
+      customQuests: savedCustomQuests,
+      ...savedWithoutQuestLibrary
+    } = saved;
+
     return {
       ...base,
-      ...saved,
-      version: 2,
+      ...savedWithoutQuestLibrary,
+      version: 3,
       stats: { ...base.stats, ...(saved.stats || {}) },
       realms: { ...base.realms, ...(saved.realms || {}) },
       flags: { ...base.flags, ...(saved.flags || {}) },
       contacts: { ...base.contacts, ...(saved.contacts || {}) },
       locations: { ...base.locations, ...(saved.locations || {}) },
-      quests: Array.isArray(saved.quests) ? saved.quests : base.quests,
+      customQuests: Array.isArray(savedCustomQuests)
+        ? savedCustomQuests.map(migrateLegacyCustomQuest).filter(Boolean)
+        : legacyCustomQuests,
       selectedQuestIds: Array.isArray(saved.selectedQuestIds)
         ? saved.selectedQuestIds
         : base.selectedQuestIds,
@@ -334,7 +365,7 @@
 
   function migrateLegacyState() {
     // V0.1 used "apartment" for an already-shared home.
-    // V0.2 intentionally starts from Luca's current apartment unless a narrative flag says otherwise.
+    // V0.2 corrected that story state; V0.3 preserves the correction.
     if ("apartment" in state.locations) {
       delete state.locations.apartment;
     }
@@ -343,10 +374,19 @@
       state.locations.sharedApartment = true;
     }
 
-    if (!Array.isArray(state.selectedQuestIds)) {
-      state.selectedQuestIds = ["q-work-focus", "q-home-clean", "q-recovery-gaming"];
-    }
+    state.selectedQuestIds = (Array.isArray(state.selectedQuestIds)
+      ? state.selectedQuestIds
+      : defaultState().selectedQuestIds)
+      .map(migrateLegacyQuestId)
+      .filter((id, index, ids) => id && ids.indexOf(id) === index)
+      .filter(id => Boolean(getQuestById(id)));
 
+    state.completionLog = (state.completionLog || []).map(log => ({
+      ...log,
+      questId: migrateLegacyQuestId(log.questId)
+    }));
+
+    state.version = 3;
     saveState();
   }
 
@@ -513,9 +553,9 @@
   }
 
   function renderLoadout() {
-    const selected = state.quests
+    const selected = getAllQuests()
       .filter(quest => state.selectedQuestIds.includes(quest.id))
-      .sort((a, b) => (PRIORITY_RANK[a.priority] ?? 99) - (PRIORITY_RANK[b.priority] ?? 99));
+      .sort((a, b) => (ENERGY_RANK[a.energy] ?? 99) - (ENERGY_RANK[b.energy] ?? 99));
 
     els.loadoutCount.textContent = `${selected.length} selected`;
     els.emptyLoadout.classList.toggle("hidden", selected.length > 0);
@@ -532,24 +572,29 @@
 
   function loadoutQuestHtml(quest) {
     const todayUnits = getTodayUnitsForQuest(quest.id);
-    const progress = Math.min(100, (todayUnits / quest.target) * 100);
+    const target = questTarget(quest);
+    const progress = Math.min(100, (todayUnits / target) * 100);
+    const availability = getQuestAvailability(quest);
+    const stat = quest.stat;
 
     return `
-      <article class="quest-row" data-priority="${escapeHtml(quest.priority)}">
+      <article class="quest-row" data-priority="${escapeHtml(energyStyleKey(quest))}">
         <div class="quest-accent"></div>
 
         <div class="quest-main">
           <div class="quest-meta">
-            <span>${escapeHtml(quest.priority)}</span>
+            <span>${escapeHtml(quest.energy || "Normal")}</span>
             <span>${escapeHtml(quest.realm)}</span>
+            <span>${escapeHtml(quest.frequency || "Repeatable")}</span>
           </div>
 
           <div class="quest-title">${escapeHtml(quest.name)}</div>
 
           <div class="quest-reward-line">
-            <span>${trimNumber(todayUnits)} / ${trimNumber(quest.target)} ${escapeHtml(quest.unitLabel)}</span>
-            <span>⚔️ ${quest.xpAtTarget} XP</span>
-            <span>${STAT_META[quest.stat]?.icon || "✨"} ${escapeHtml(STAT_META[quest.stat]?.label || quest.stat)}</span>
+            <span>${trimNumber(todayUnits)} / ${trimNumber(target)} ${escapeHtml(questUnitLabel(quest))}</span>
+            <span>⚔️ ${Number(quest.xp || 0)} XP</span>
+            <span>${STAT_META[stat]?.icon || "✨"} ${escapeHtml(STAT_META[stat]?.label || stat)}</span>
+            ${availability.available ? "" : `<span>⏳ ${escapeHtml(availability.reason)}</span>`}
           </div>
 
           <div class="progress" style="margin-top:9px">
@@ -558,7 +603,7 @@
         </div>
 
         <div class="quest-actions">
-          <button class="primary-button complete-quest-button" data-quest-id="${quest.id}">Log</button>
+          <button class="primary-button complete-quest-button" data-quest-id="${quest.id}" ${availability.available ? "" : "disabled"}>${availability.available ? "Log" : "Waiting"}</button>
           <button class="secondary-button remove-loadout-button" data-quest-id="${quest.id}">Remove</button>
         </div>
       </article>
@@ -717,10 +762,14 @@
   }
 
   function renderQuestLibrary() {
-    const filtered = state.quests
+    const filtered = getAllQuests()
+      .filter(quest => quest.manualStatus !== "Archived")
       .filter(quest => activeRealmFilter === "All" || quest.realm === activeRealmFilter)
       .filter(quest => !activeQuestSearch || quest.name.toLowerCase().includes(activeQuestSearch))
-      .sort((a, b) => (PRIORITY_RANK[a.priority] ?? 99) - (PRIORITY_RANK[b.priority] ?? 99));
+      .sort((a, b) => {
+        const energyDiff = (ENERGY_RANK[a.energy] ?? 99) - (ENERGY_RANK[b.energy] ?? 99);
+        return energyDiff || a.name.localeCompare(b.name);
+      });
 
     if (!filtered.length) {
       els.questLibrary.innerHTML = `
@@ -736,38 +785,49 @@
     els.questLibrary.innerHTML = filtered.map(quest => {
       const selected = state.selectedQuestIds.includes(quest.id);
       const todayUnits = getTodayUnitsForQuest(quest.id);
+      const target = questTarget(quest);
+      const availability = getQuestAvailability(quest);
+      const variable = quest.xpMode === "Variable by Units";
+      const coinPreview = questCoinBase(quest);
+      const extraMeta = [quest.sessionSize, quest.hobbyLane, quest.questType].filter(Boolean);
 
       return `
         <article class="library-card ${selected ? "selected" : ""}">
           <div class="quest-meta">
-            <span>${escapeHtml(quest.priority)}</span>
+            <span>${escapeHtml(quest.energy || "Normal")}</span>
             <span>${escapeHtml(quest.realm)}</span>
-            <span>${quest.mode === "variable" ? "Variable Units" : "Fixed"}</span>
+            <span>${escapeHtml(quest.frequency || "Repeatable")}</span>
+            <span>${variable ? "Variable by Units" : "Fixed"}</span>
           </div>
 
           <h3>${escapeHtml(quest.name)}</h3>
 
           <p class="card-copy">
-            ${quest.mode === "variable"
-              ? `${quest.xpAtTarget} XP at ${trimNumber(quest.target)} ${escapeHtml(quest.unitLabel)}. Actual reward scales with units.`
-              : `${quest.xpAtTarget} XP for completing the quest.`}
+            ${variable
+              ? `${Number(quest.xp || 0)} XP at ${trimNumber(target)} ${escapeHtml(questUnitLabel(quest))}. Actual XP scales with the units you log.`
+              : `${Number(quest.xp || 0)} XP for completing the quest.`}
+            ${quest.cooldownDays ? ` Cooldown: ${trimNumber(quest.cooldownDays)} day${Number(quest.cooldownDays) === 1 ? "" : "s"}.` : ""}
+            ${extraMeta.length ? ` ${escapeHtml(extraMeta.join(" · "))}.` : ""}
           </p>
 
           <div class="quest-reward-line">
-            <span>Today: ${trimNumber(todayUnits)} ${escapeHtml(quest.unitLabel)}</span>
-            <span>🪙 ${quest.coinReward}</span>
+            <span>Today: ${trimNumber(todayUnits)} ${escapeHtml(questUnitLabel(quest))}</span>
+            <span>🪙 ~${coinPreview}</span>
             <span>${STAT_META[quest.stat]?.icon || "✨"} ${escapeHtml(STAT_META[quest.stat]?.label || quest.stat)}</span>
+            ${quest.offDutyDeck ? `<span>🌙 Off-Duty</span>` : ""}
           </div>
 
           <footer>
-            <small class="muted">${selected ? "In today's loadout" : "Not planned today"}</small>
+            <small class="muted">${availability.available
+              ? (selected ? "In today's loadout" : "Ready")
+              : escapeHtml(availability.reason)}</small>
             <div class="library-actions">
               <button
                 class="secondary-button toggle-loadout-button ${selected ? "selected-button" : ""}"
                 data-quest-id="${quest.id}">
                 ${selected ? "✓ Today" : "+ Today"}
               </button>
-              <button class="primary-button complete-quest-button" data-quest-id="${quest.id}">Log</button>
+              <button class="primary-button complete-quest-button" data-quest-id="${quest.id}" ${availability.available ? "" : "disabled"}>${availability.available ? "Log" : "Waiting"}</button>
             </div>
           </footer>
         </article>
@@ -813,6 +873,9 @@
     byId("newQuestTarget").value = 1;
     byId("newQuestXP").value = 20;
     byId("newQuestUnitLabel").value = "task";
+    byId("newQuestEnergy").value = "Normal";
+    byId("newQuestFrequency").value = "Repeatable";
+    byId("newQuestXPMode").value = "Fixed";
     els.questDialog.showModal();
   }
 
@@ -824,19 +887,29 @@
 
     const quest = {
       id: `q-custom-${Date.now()}`,
+      custom: true,
       name: byId("newQuestName").value.trim(),
       realm: byId("newQuestRealm").value,
-      priority: byId("newQuestPriority").value,
-      mode: target === 1 ? "fixed" : "variable",
-      target,
+      xpMode: byId("newQuestXPMode").value,
+      units: target,
       unitLabel: byId("newQuestUnitLabel").value.trim(),
-      xpAtTarget: xp,
-      coinReward: Math.max(1, Math.round(xp / 10)),
+      xp,
+      frequency: byId("newQuestFrequency").value,
+      cooldownDays: null,
+      energy: byId("newQuestEnergy").value,
+      manualStatus: "Available",
+      sessionSize: null,
+      offDutyDeck: false,
+      hobbyLane: null,
+      planningThemes: [],
+      coinMultiplier: 1,
+      questType: null,
+      realmXpSource: "Quest",
       stat: byId("newQuestStat").value,
-      statAtTarget: Math.max(3, Math.round(xp * .35))
+      statAtTarget: Math.max(1, Math.round(xp * .35))
     };
 
-    state.quests.push(quest);
+    state.customQuests.push(quest);
     state.selectedQuestIds.push(quest.id);
 
     saveState();
@@ -846,23 +919,34 @@
   }
 
   function openCompleteDialog(questId) {
-    const quest = state.quests.find(item => item.id === questId);
+    const quest = getQuestById(questId);
     if (!quest) return;
+
+    const availability = getQuestAvailability(quest);
+    if (!availability.available) {
+      showToast(availability.reason);
+      return;
+    }
+
+    const target = questTarget(quest);
+    const isVariable = quest.xpMode === "Variable by Units";
 
     els.completeQuestId.value = quest.id;
     els.completeQuestTitle.textContent = quest.name;
-    els.actualUnits.value = quest.target;
-    els.actualUnits.step = quest.target < 1 ? "0.1" : "1";
+    els.actualUnits.value = target;
+    els.actualUnits.step = target < 1 ? "0.1" : "1";
+    els.actualUnits.disabled = !isVariable;
 
     updateCompletePreview();
     els.completeDialog.showModal();
   }
 
   function updateCompletePreview() {
-    const quest = state.quests.find(item => item.id === els.completeQuestId.value);
+    const quest = getQuestById(els.completeQuestId.value);
     if (!quest) return;
 
-    const units = Math.max(.1, Number(els.actualUnits.value) || quest.target);
+    const target = questTarget(quest);
+    const units = Math.max(.1, Number(els.actualUnits.value) || target);
     const reward = calculateQuestReward(quest, units, getTodayCompletions().length);
 
     els.completePreview.innerHTML = `
@@ -874,16 +958,17 @@
   }
 
   function calculateQuestReward(quest, units, completedTodayCount) {
-    const multiplier = quest.mode === "variable"
-      ? Math.max(0, units / quest.target)
+    const target = questTarget(quest);
+    const multiplier = quest.xpMode === "Variable by Units"
+      ? Math.max(0, units / target)
       : 1;
 
-    const xp = Math.max(1, Math.round(quest.xpAtTarget * multiplier));
-    const statXP = Math.max(1, Math.round(quest.statAtTarget * multiplier));
-    const coins = Math.max(1, Math.round(quest.coinReward * Math.min(multiplier, 2)));
+    const xp = Math.max(1, Math.round(Number(quest.xp || 0) * multiplier));
+    const statXP = Math.max(1, Math.round(Number(quest.statAtTarget || 1) * multiplier));
+    const coins = Math.max(1, Math.round(questCoinBase(quest) * Math.min(multiplier, 2)));
 
     // Story Energy deliberately has diminishing daily returns.
-    // Recovery / hobby quests are not penalized.
+    // Recovery, hobby, health and low-energy quests use the same schedule.
     const schedule = [6, 5, 4];
     const storyEnergy = schedule[completedTodayCount] ?? 2;
 
@@ -891,12 +976,22 @@
   }
 
   function completeQuest(questId, units) {
-    const quest = state.quests.find(item => item.id === questId);
+    const quest = getQuestById(questId);
     if (!quest) return;
+
+    const availability = getQuestAvailability(quest);
+    if (!availability.available) {
+      showToast(availability.reason);
+      return;
+    }
+
+    const normalizedUnits = quest.xpMode === "Variable by Units"
+      ? Math.max(.1, Number(units) || questTarget(quest))
+      : questTarget(quest);
 
     const reward = calculateQuestReward(
       quest,
-      units,
+      normalizedUnits,
       getTodayCompletions().length
     );
 
@@ -911,8 +1006,8 @@
       questId: quest.id,
       questName: quest.name,
       realm: quest.realm,
-      units,
-      unitLabel: quest.unitLabel,
+      units: normalizedUnits,
+      unitLabel: questUnitLabel(quest),
       xp: reward.xp,
       stat: quest.stat,
       statXP: reward.statXP,
@@ -928,11 +1023,11 @@
   }
 
   function applyHiddenEngineChecks() {
-    const workoutCount = state.completionLog
-      .filter(log => log.questId === "q-workout")
+    const strengthActivityCount = state.completionLog
+      .filter(log => log.stat === "strength")
       .length;
 
-    if (workoutCount >= 3) {
+    if (strengthActivityCount >= 3) {
       state.flags.ACTIVITY_PATTERN_A = true;
     }
 
@@ -1060,6 +1155,9 @@
       locations: state.locations,
       contacts: state.contacts,
       opaqueMemories: state.memories,
+      questCatalogCount: getAllQuests().length,
+      importedQuestCount: IMPORTED_QUESTS.length,
+      customQuestCount: state.customQuests.length,
       selectedQuestIds: state.selectedQuestIds,
       completionCount: state.completionLog.length,
       todayCompletionCount: getTodayCompletions().length
@@ -1069,6 +1167,58 @@
   function renderQuestLibraryAfterAction() {
     renderQuestLibrary();
     renderLoadout();
+  }
+
+  function getQuestAvailability(quest) {
+    if (!quest) return { available: false, reason: "Quest unavailable" };
+    if (quest.manualStatus && quest.manualStatus !== "Available") {
+      return { available: false, reason: quest.manualStatus };
+    }
+
+    const logs = state.completionLog
+      .filter(log => log.questId === quest.id)
+      .sort((a, b) => new Date(b.at) - new Date(a.at));
+
+    if (quest.frequency === "One-Time" && logs.length > 0) {
+      return { available: false, reason: "Completed" };
+    }
+
+    if (quest.frequency === "Daily" && logs.some(log => isSameLocalDay(new Date(log.at), new Date()))) {
+      return { available: false, reason: "Done today" };
+    }
+
+    if (quest.frequency === "Weekly" && logs.some(log => localWeekKey(new Date(log.at)) === localWeekKey(new Date()))) {
+      return { available: false, reason: "Done this week" };
+    }
+
+    if (Number(quest.cooldownDays) > 0 && logs.length > 0) {
+      const ready = startOfLocalDay(new Date(logs[0].at));
+      ready.setDate(ready.getDate() + Number(quest.cooldownDays));
+
+      if (startOfLocalDay(new Date()) < ready) {
+        const label = new Intl.DateTimeFormat("en", { month: "short", day: "numeric" }).format(ready);
+        return { available: false, reason: `Ready ${label}` };
+      }
+    }
+
+    return { available: true, reason: "Ready" };
+  }
+
+  function isSameLocalDay(a, b) {
+    return localDateKey(a) === localDateKey(b);
+  }
+
+  function startOfLocalDay(date) {
+    return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  }
+
+  function localWeekKey(date) {
+    const d = startOfLocalDay(date);
+    const day = d.getDay() || 7;
+    d.setDate(d.getDate() + 4 - day);
+    const yearStart = new Date(d.getFullYear(), 0, 1);
+    const week = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+    return `${d.getFullYear()}-W${String(week).padStart(2, "0")}`;
   }
 
   function getLevelInfo(totalXP) {

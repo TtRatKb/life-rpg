@@ -351,13 +351,31 @@
         </label>
 
         <label>
-          Priority
-          <select id="newQuestPriority">
-            <option>Main</option>
-            <option>Must Do</option>
+          Energy
+          <select id="newQuestEnergy">
             <option>Low Energy</option>
-            <option>Optional</option>
-            <option>Bonus</option>
+            <option selected>Normal</option>
+            <option>Boss</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="form-grid">
+        <label>
+          Frequency
+          <select id="newQuestFrequency">
+            <option>Repeatable</option>
+            <option>Daily</option>
+            <option>Weekly</option>
+            <option>One-Time</option>
+          </select>
+        </label>
+
+        <label>
+          XP mode
+          <select id="newQuestXPMode">
+            <option>Fixed</option>
+            <option>Variable by Units</option>
           </select>
         </label>
       </div>
@@ -433,6 +451,7 @@
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
+  <script src="data/quests.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
