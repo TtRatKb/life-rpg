@@ -4156,3 +4156,64 @@ body.story-mode-open {
     max-width: 88%;
   }
 }
+
+
+/* =========================================================
+   V0.10.1 · Social Layer Rework
+   Talk = random everyday conversation
+   Messages = persistent story-linked threads with replies
+   ========================================================= */
+.story-person-social-note {
+  line-height: 1.35;
+}
+
+.story-message-replies {
+  display: grid;
+  gap: 7px;
+  width: min(86%, 540px);
+  margin: 5px 0 2px auto;
+  padding: 11px;
+  border: 1px solid rgba(190, 99, 145, .13);
+  border-radius: 15px;
+  background: rgba(255, 246, 251, .84);
+}
+
+.story-message-replies > small {
+  margin-bottom: 1px;
+  color: #9b6681;
+  font-size: .64rem;
+  font-weight: 850;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.story-message-reply {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid rgba(167, 78, 124, .14);
+  border-radius: 12px;
+  color: #523947;
+  text-align: left;
+  background: rgba(255,255,255,.94);
+  font-size: .78rem;
+  font-weight: 720;
+  line-height: 1.4;
+  transition: transform .14s ease, border-color .14s ease, background .14s ease;
+}
+
+.story-message-reply:hover {
+  transform: translateX(-2px);
+  border-color: rgba(194, 82, 139, .32);
+  background: #fff0f7;
+}
+
+.story-message-group + .story-message-group {
+  padding-top: 12px;
+  border-top: 1px dashed rgba(112, 70, 94, .08);
+}
+
+@media (max-width: 680px) {
+  .story-message-replies {
+    width: 94%;
+  }
+}

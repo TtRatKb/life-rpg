@@ -125,6 +125,12 @@
       selectPhonePerson(button.dataset.phonePerson, { markRead: true });
     });
 
+    els.phoneThread?.addEventListener("click", event => {
+      const button = event.target.closest("[data-message-reply-group][data-message-reply-id]");
+      if (!button) return;
+      chooseMessageReply(button.dataset.messageReplyGroup, button.dataset.messageReplyId);
+    });
+
     window.addEventListener("life-rpg:render", () => {
       if (pack) {
         migrateLegacyStoryIfNeeded();
@@ -194,6 +200,7 @@
       talkCounts: {},
       choiceSelections: {},
       readMessageIds: [],
+      messageReplies: {},
       activeTalkId: null,
       talkStep: 0,
       lastTalkId: null,
@@ -204,6 +211,7 @@
     state.story.social.talkCounts = object(state.story.social.talkCounts);
     state.story.social.choiceSelections = object(state.story.social.choiceSelections);
     state.story.social.readMessageIds = array(state.story.social.readMessageIds);
+    state.story.social.messageReplies = object(state.story.social.messageReplies);
   }
 
   function migrateLegacyStoryIfNeeded() {
@@ -441,7 +449,7 @@
       const avatar = person.cardAsset
         ? `<span class="story-person-avatar"><img src="${escapeHtml(person.cardAsset)}" alt="" /></span>`
         : `<span class="story-person-initial">${escapeHtml(person.name?.charAt(0) || "✦")}</span>`;
-      const talkLabel = talk ? (talk.once && !app.getState().story.social.seenTalkIds.includes(talk.id) ? "Talk · New" : "Talk") : "Talk";
+      const talkLabel = talk ? "Talk" : "Talk";
 
       return `
         <article class="story-person-card ${escapeClass(person.tone || "default")}">
@@ -449,7 +457,7 @@
           <div class="story-person-copy">
             <strong>${escapeHtml(person.name)}</strong>
             <small>${escapeHtml(person.role || "Known person")}</small>
-            <span class="story-person-social-note">Talk and messages are free.</span>
+            <span class="story-person-social-note">Talk = random everyday chat · Messages = story-linked.</span>
           </div>
           <div class="story-person-actions">
             <button class="secondary-button" type="button" data-talk-person="${escapeHtml(person.id)}" ${talk ? "" : "disabled"}>${escapeHtml(talkLabel)}</button>
@@ -514,13 +522,20 @@
     const state = app.getState();
     const social = state.story.social;
     const eligible = socialTalks().filter(talk => talk.personId === personId && conditionMatches(talk));
-    const unseenOnce = eligible.find(talk => talk.once && !social.seenTalkIds.includes(talk.id));
-    if (unseenOnce) return unseenOnce;
+
+    if (social.activeTalkId) {
+      const active = eligible.find(talk => talk.id === social.activeTalkId);
+      if (active) return active;
+    }
+
+    const unseenOnce = eligible.filter(talk => talk.once && !social.seenTalkIds.includes(talk.id));
+    if (unseenOnce.length) return unseenOnce[Math.floor(Math.random() * unseenOnce.length)];
 
     const repeatable = eligible.filter(talk => !talk.once);
     if (!repeatable.length) return null;
-    const repeatCount = repeatable.reduce((sum, talk) => sum + Number(social.talkCounts[talk.id] || 0), 0);
-    return repeatable[repeatCount % repeatable.length];
+    const alternatives = repeatable.filter(talk => talk.id !== social.lastTalkId);
+    const pool = alternatives.length ? alternatives : repeatable;
+    return pool[Math.floor(Math.random() * pool.length)];
   }
 
   function openNextTalk(personId) {
@@ -617,7 +632,7 @@
         <span class="phone-preview-icon">💬</span>
         <div class="phone-preview-copy">
           <strong>${escapeHtml(people[0].name)} is in your contacts.</strong>
-          <p>No new messages right now. Talk is still available for free.</p>
+          <p>No new story-linked messages right now. You can still start a random Talk anytime.</p>
         </div>
       `;
       return;
@@ -679,6 +694,7 @@
   }
 
   function renderPhoneThread(personId) {
+    const state = app.getState();
     const person = knownPeople().find(item => item.id === personId);
     if (!person) return;
     const messages = eligibleMessagesForPerson(personId);
@@ -687,25 +703,70 @@
         <small>Messages with</small>
         <strong>${escapeHtml(person.name)}</strong>
       </div>
-      <span class="story-phone-thread-status">No Story Energy</span>
+      <span class="story-phone-thread-status">Story-linked · no expiry</span>
     `;
 
     if (!messages.length) {
-      els.phoneThread.innerHTML = `<div class="story-phone-empty">No messages yet. People text when they have a reason to.</div>`;
+      els.phoneThread.innerHTML = `<div class="story-phone-empty">No messages yet. Story moments can unlock threads later; once unlocked, they wait here until you want to read them.</div>`;
       return;
     }
 
-    els.phoneThread.innerHTML = messages.map(message => `
-      <section class="story-message-group">
-        <div class="story-message-date">${escapeHtml(message.label || "Earlier")}</div>
-        ${array(message.messages).map(bubble => `
-          <div class="story-message-bubble ${bubble.from === "luca" ? "outgoing" : "incoming"}">
-            ${escapeHtml(bubble.text || "")}
-          </div>
-        `).join("")}
-      </section>
-    `).join("");
+    const replies = state.story.social.messageReplies || {};
+    els.phoneThread.innerHTML = messages.map(message => {
+      const selectedId = replies[messageReadKey(message)];
+      const selected = array(message.replyOptions).find(option => option.id === selectedId);
+      const replyUi = !selected && array(message.replyOptions).length
+        ? `<div class="story-message-replies">
+            <small>Reply when you want</small>
+            ${array(message.replyOptions).map(option => `
+              <button type="button" class="story-message-reply" data-message-reply-group="${escapeHtml(messageReadKey(message))}" data-message-reply-id="${escapeHtml(option.id)}">${escapeHtml(option.text)}</button>
+            `).join("")}
+          </div>`
+        : "";
+      const selectedUi = selected
+        ? `<div class="story-message-bubble outgoing">${escapeHtml(selected.text)}</div>
+           ${array(selected.after).map(bubble => `<div class="story-message-bubble ${bubble.from === "luca" ? "outgoing" : "incoming"}">${escapeHtml(bubble.text || "")}</div>`).join("")}`
+        : "";
+
+      return `
+        <section class="story-message-group">
+          <div class="story-message-date">${escapeHtml(message.label || "Earlier")}</div>
+          ${array(message.messages).map(bubble => `
+            <div class="story-message-bubble ${bubble.from === "luca" ? "outgoing" : "incoming"}">
+              ${escapeHtml(bubble.text || "")}
+            </div>
+          `).join("")}
+          ${selectedUi}
+          ${replyUi}
+        </section>
+      `;
+    }).join("");
     requestAnimationFrame(() => { els.phoneThread.scrollTop = els.phoneThread.scrollHeight; });
+  }
+
+  function chooseMessageReply(groupId, optionId) {
+    const state = app.getState();
+    ensureStoryState();
+    if (state.story.social.messageReplies[groupId]) return;
+
+    const message = knownPeople()
+      .flatMap(person => eligibleMessagesForPerson(person.id))
+      .find(item => messageReadKey(item) === groupId);
+    if (!message) return;
+
+    const option = array(message.replyOptions).find(item => item.id === optionId);
+    if (!option) return;
+
+    state.story.social.messageReplies[groupId] = option.id;
+    applyEffects(option.effects || []);
+    const read = new Set(state.story.social.readMessageIds || []);
+    read.add(groupId);
+    state.story.social.readMessageIds = [...read];
+    app.saveState({ source: "social-message-reply" });
+    app.renderAll();
+    renderPhoneDialog(state.story.social.selectedPhonePersonId || message.personId);
+    renderPhonePreview();
+    renderPeople();
   }
 
   function handleStoryAction() {
