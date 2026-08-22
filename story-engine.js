@@ -1,8 +1,8 @@
 (() => {
   "use strict";
 
-  const PACK_URL = "content/SP_002.dat";
-  const KEY = new TextEncoder().encode("LifeRPG-SP2-accidental-spoiler-shield-v2");
+  const PACK_URL = "content/SP_003.dat?v=0.9.3";
+  const KEY = new TextEncoder().encode("LifeRPG-SP3-accidental-spoiler-shield-v3");
   let cache = null;
 
   async function loadPack() {
@@ -22,7 +22,7 @@
     }
 
     const parsed = JSON.parse(new TextDecoder().decode(decoded));
-    if (!parsed || parsed.packId !== "SP_002" || Number(parsed.schema || 0) < 2) {
+    if (!parsed || parsed.packId !== "SP_003" || Number(parsed.schema || 0) < 3) {
       throw new Error("Story pack format is not supported.");
     }
 
@@ -50,12 +50,8 @@
     return orderedScenes(pack).find(scene => !completed.has(scene.id)) || null;
   }
 
-  function playableNodes(scene, conditionMatches = () => true) {
-    return (scene?.nodes || []).filter(conditionMatches);
-  }
-
-  function beatCount(scene, conditionMatches = () => true) {
-    return playableNodes(scene, conditionMatches).length;
+  function beatCount(scene) {
+    return (scene?.nodes || []).length;
   }
 
   window.LifeRPGStoryEngine = {
@@ -63,7 +59,6 @@
     orderedScenes,
     sceneById,
     nextScene,
-    playableNodes,
     beatCount
   };
 })();
