@@ -196,7 +196,7 @@
 
   function defaultState() {
     return {
-      version: 3,
+      version: 4,
       characterXP: 0,
       coins: 0,
       storyEnergy: 0,
@@ -346,7 +346,7 @@
     return {
       ...base,
       ...savedWithoutQuestLibrary,
-      version: 3,
+      version: 4,
       stats: { ...base.stats, ...(saved.stats || {}) },
       realms: { ...base.realms, ...(saved.realms || {}) },
       flags: { ...base.flags, ...(saved.flags || {}) },
@@ -386,7 +386,7 @@
       questId: migrateLegacyQuestId(log.questId)
     }));
 
-    state.version = 3;
+    state.version = 4;
     saveState();
   }
 
@@ -476,8 +476,6 @@
       showToast("Opaque contact flag simulated.");
     });
 
-    byId("storyTestButton").addEventListener("click", testStoryUnlockFlow);
-
     byId("closeClearOverlay").addEventListener("click", () => {
       els.clearOverlay.classList.add("hidden");
     });
@@ -522,6 +520,7 @@
     renderMemories();
     renderGrowthOverview();
     renderDevArea();
+    window.dispatchEvent(new CustomEvent("life-rpg:render"));
   }
 
   function renderResources() {
@@ -1308,4 +1307,13 @@
       els.toast.classList.remove("show");
     }, 2600);
   }
+
+  window.LifeRPGApp = {
+    getState: () => state,
+    saveState,
+    renderAll,
+    showView,
+    showToast,
+    escapeHtml
+  };
 })();

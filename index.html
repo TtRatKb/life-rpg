@@ -182,174 +182,96 @@
       <section id="view-story" class="view">
         <header class="page-heading story-page-heading">
           <div>
-            <p class="eyebrow">SLOW BURN / LIFE SIM</p>
+            <p class="eyebrow">MAIN STORY</p>
             <h1>Story</h1>
             <p class="lead">
-              Story Energy unlocks substantial scenes. Choices inside scenes stay free.
+              Live your real life, earn Story Energy, then come back here to see what happens next.
             </p>
           </div>
           <div class="big-resource">🔥 <strong id="storyEnergyValueLarge">0</strong></div>
         </header>
 
-        <section class="story-banner">
+        <section class="story-banner playable-story-banner">
           <div class="story-banner-copy">
             <span class="story-seal">✦</span>
-            <p class="eyebrow">CURRENT STORY</p>
-            <h2 id="storyTitle">A new chapter is waiting.</h2>
-            <p id="storyDescription">
-              The engine is ready for the first private story pack. Until then, no future scene text is stored in the public app.
-            </p>
+            <p class="eyebrow" id="storyStatusEyebrow">CURRENT ARC</p>
+            <h2 id="storyArcTitle">Loading story...</h2>
+            <p id="storyArcDescription">Your story pack is being prepared.</p>
           </div>
 
-          <div class="story-rules">
-            <div>
-              <small>Scene access</small>
-              <strong>Story Energy</strong>
+          <div class="story-progress-card">
+            <div class="row-between">
+              <span>Story progress</span>
+              <strong id="storyProgressLabel">—</strong>
             </div>
-            <div>
-              <small>Choices</small>
-              <strong>Always free</strong>
-            </div>
-            <div>
-              <small>Secret feelings</small>
-              <strong>Never shown as %</strong>
-            </div>
+            <div id="storyProgressDots" class="story-progress-dots"></div>
+            <small id="storyProgressHint">Completed scenes become Memories.</small>
           </div>
         </section>
 
-        <section class="story-hub-grid">
-          <section class="panel route-panel">
+        <section class="story-play-grid">
+          <section class="panel next-story-panel">
             <div class="panel-heading">
               <div>
-                <p class="eyebrow">ROUTE PRESENCE</p>
-                <h3>Character routes</h3>
+                <p class="eyebrow">NEXT</p>
+                <h3 id="storyNextTitle">Next story scene</h3>
               </div>
-              <span class="tiny-badge">Slow burn</span>
+              <span class="tiny-badge" id="storyNextBadge">Checking...</span>
             </div>
 
-            <div class="route-grid">
-              <article class="route-card route-card-bakugo">
-                <div class="route-card-top">
-                  <span class="route-emblem">💥</span>
-                  <span class="route-state">Active route</span>
-                </div>
-                <h4>Katsuki Bakugo</h4>
-                <p>Sharp edges, restrained attention, friction that absolutely means nothing. Obviously.</p>
-                <div class="route-tags">
-                  <span>Tension</span>
-                  <span>Denial</span>
-                  <span>Explosive chemistry</span>
-                </div>
-              </article>
-
-              <article class="route-card route-card-kirishima">
-                <div class="route-card-top">
-                  <span class="route-emblem">🪨</span>
-                  <span class="route-state">Active route</span>
-                </div>
-                <h4>Eijiro Kirishima</h4>
-                <p>Warmth, loyalty, easy closeness, and the kind of kindness that can get dangerous when feelings are involved.</p>
-                <div class="route-tags">
-                  <span>Comfort</span>
-                  <span>Pining</span>
-                  <span>Protective energy</span>
-                </div>
-              </article>
-
-              <article class="route-card route-card-secret">
-                <div class="route-card-top">
-                  <span class="route-emblem">♡</span>
-                  <span class="route-state">Future state</span>
-                </div>
-                <h4>Route Convergence</h4>
-                <p>Not every story has to be a choice between one person and another. The app remembers that, even if nobody else does yet.</p>
-                <div class="route-tags">
-                  <span>Poly possibility</span>
-                  <span>Hidden trigger logic</span>
-                  <span>No spoilers</span>
-                </div>
-              </article>
+            <div class="story-next-card">
+              <div class="story-next-icon" id="storyNextIcon">✦</div>
+              <div>
+                <p id="storyNextTeaser" class="story-next-teaser">Loading...</p>
+                <div id="storyEnergyNeed" class="story-energy-need"></div>
+              </div>
             </div>
+
+            <button class="primary-button story-main-button" id="storyActionButton" disabled>Loading...</button>
+            <p id="storyActionHint" class="muted story-action-hint"></p>
           </section>
 
-          <section class="panel heartbeat-panel">
+          <section class="panel story-people-panel">
             <div class="panel-heading">
               <div>
-                <p class="eyebrow">ROMANCE ENGINE</p>
-                <h3>What counts as payoff?</h3>
+                <p class="eyebrow">YOUR ORBIT</p>
+                <h3>People you know</h3>
               </div>
             </div>
-
-            <div class="heartbeat-list">
-              <div class="heartbeat-item">
-                <span>⚡</span>
-                <div>
-                  <strong>Every unlock should feel rewarding.</strong>
-                  <p>Scene progress should almost always deliver closeness, tension, intimacy, jealousy, vulnerability, or some other emotional beat.</p>
-                </div>
-              </div>
-              <div class="heartbeat-item">
-                <span>🫣</span>
-                <div>
-                  <strong>Slow burn does not mean nothing happens.</strong>
-                  <p>Things keep happening. They just keep being denied, misunderstood, interrupted, forgotten, or rationalized.</p>
-                </div>
-              </div>
-              <div class="heartbeat-item">
-                <span>🎭</span>
-                <div>
-                  <strong>Choices stay inside the scene.</strong>
-                  <p>No premium answer nonsense. Story Energy unlocks the scene itself, not the good dialogue option.</p>
-                </div>
-              </div>
+            <div id="storyPeopleList" class="story-people-list">
+              <div class="empty-state compact">Your social world is still small.</div>
             </div>
           </section>
         </section>
 
-        <section class="dashboard-grid story-dashboard-grid">
-          <section class="panel story-scene-panel">
-            <div class="panel-heading">
-              <div>
-                <p class="eyebrow">NEXT SCENE</p>
-                <h3>Scene terminal</h3>
-              </div>
-              <span class="tiny-badge">Spoiler-safe</span>
-            </div>
-
-            <div class="scene-terminal">
-              <div class="scene-terminal-header">
-                <span class="scene-ping"></span>
-                <span>Awaiting unlock condition...</span>
-              </div>
-              <div class="scene-tease-list">
-                <article class="scene-tease-card">
-                  <small>Possible rewards</small>
-                  <strong>Forced proximity · accidental intimacy · emotional fallout</strong>
-                </article>
-                <article class="scene-tease-card">
-                  <small>Scene rules</small>
-                  <strong>Only current knowledge is shown here. Hidden triggers stay hidden.</strong>
-                </article>
-              </div>
-            </div>
-
-            <p class="muted story-terminal-copy">
-              This slot will eventually show only information Luca currently knows. Hidden triggers and future content remain outside the normal interface.
-            </p>
-            <button class="primary-button" id="storyTestButton">Test unlock flow · 10 🔥</button>
-            <div id="storyTestResult" class="soft-callout hidden"></div>
-          </section>
-
+        <section class="story-secondary-grid">
           <section class="panel memory-panel">
             <div class="panel-heading">
               <div>
                 <p class="eyebrow">MEMORIES</p>
                 <h3>Unlocked moments</h3>
               </div>
-              <span class="tiny-badge">Archive</span>
+              <span class="tiny-badge">Replay archive</span>
             </div>
-            <p class="muted memory-copy">Important moments should feel collectible — less like plain logs, more like scenes and emotional keepsakes.</p>
+            <p class="muted memory-copy">Completed scenes are saved here as moments Luca actually remembers.</p>
             <div id="memoryList" class="empty-state compact">Nothing has been added to Memories yet.</div>
+          </section>
+
+          <section class="panel messages-preview-panel">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">MESSAGES</p>
+                <h3>Phone</h3>
+              </div>
+              <span class="tiny-badge">Soon</span>
+            </div>
+            <div class="phone-preview">
+              <span class="phone-preview-icon">💬</span>
+              <div>
+                <strong>Messages unlock through relationships.</strong>
+                <p>Once someone has a reason to text Luca, this becomes a real social system rather than a static menu.</p>
+              </div>
+            </div>
           </section>
         </section>
       </section>
@@ -420,8 +342,8 @@
             Shows engine state and opaque IDs only. It should never print unrevealed narrative text.
           </p>
           <div id="devControls" class="dev-controls hidden">
-            <button class="secondary-button" id="testHomeUpgrade">Simulate narrative home unlock</button>
-            <button class="secondary-button" id="testMinaContact">Simulate contact unlock</button>
+            <button class="secondary-button" id="testHomeUpgrade">Simulate narrative flag A</button>
+            <button class="secondary-button" id="testMinaContact">Simulate contact flag A</button>
           </div>
           <pre id="devOutput" class="dev-output hidden"></pre>
         </section>
@@ -558,9 +480,41 @@
     </div>
   </div>
 
+  <!-- STORY READER -->
+  <div id="storyReaderOverlay" class="story-reader-overlay hidden" aria-live="polite">
+    <section class="story-reader-shell" id="storyReaderShell" data-mood="default">
+      <header class="story-reader-topbar">
+        <div>
+          <p class="eyebrow" id="storyReaderLocation">STORY</p>
+          <h2 id="storyReaderSceneTitle">Scene</h2>
+        </div>
+        <button class="story-reader-close" id="storyReaderClose" aria-label="Close story">×</button>
+      </header>
+
+      <div class="story-stage">
+        <div class="story-stage-mark" id="storyStageMark">✦</div>
+        <div class="story-stage-caption" id="storyStageCaption"></div>
+      </div>
+
+      <div class="story-dialogue-card">
+        <div class="story-speaker-row">
+          <span id="storySpeaker" class="story-speaker">Narration</span>
+          <span id="storyNodeType" class="story-node-type"></span>
+        </div>
+        <p id="storyDialogueText" class="story-dialogue-text"></p>
+        <div id="storyChoices" class="story-choices hidden"></div>
+        <button id="storyAdvanceButton" class="story-advance-button" type="button">
+          Continue <span>›</span>
+        </button>
+      </div>
+    </section>
+  </div>
+
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <script src="data/quests.js"></script>
+  <script src="story-engine.js"></script>
   <script src="app.js"></script>
+  <script src="story-ui.js"></script>
 </body>
 </html>
