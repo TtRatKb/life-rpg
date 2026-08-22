@@ -32,6 +32,13 @@
     actionHint: byId("storyActionHint"),
     peopleList: byId("storyPeopleList"),
     memoryList: byId("memoryList"),
+    phoneBadge: byId("storyPhoneBadge"),
+    phonePreview: byId("storyPhonePreview"),
+    phoneOpen: byId("storyOpenPhoneButton"),
+    phoneDialog: byId("storyPhoneDialog"),
+    phoneContacts: byId("storyPhoneContacts"),
+    phoneThreadHeader: byId("storyPhoneThreadHeader"),
+    phoneThread: byId("storyPhoneThread"),
 
     readerPage: byId("storyReaderPage"),
     shell: byId("storyReaderShell"),
@@ -100,6 +107,24 @@
       openScene(button.dataset.replayScene, { replay: true });
     });
 
+    els.peopleList?.addEventListener("click", event => {
+      const talkButton = event.target.closest("[data-talk-person]");
+      if (talkButton) {
+        openNextTalk(talkButton.dataset.talkPerson);
+        return;
+      }
+
+      const phoneButton = event.target.closest("[data-message-person]");
+      if (phoneButton) openPhone(phoneButton.dataset.messagePerson);
+    });
+
+    els.phoneOpen?.addEventListener("click", () => openPhone());
+    els.phoneContacts?.addEventListener("click", event => {
+      const button = event.target.closest("[data-phone-person]");
+      if (!button) return;
+      selectPhonePerson(button.dataset.phonePerson, { markRead: true });
+    });
+
     window.addEventListener("life-rpg:render", () => {
       if (pack) {
         migrateLegacyStoryIfNeeded();
@@ -146,6 +171,7 @@
       bonds: {},
       relationships: {},
       traits: {},
+      social: {},
       activeSceneId: null,
       readerStep: 0,
       ...previous
@@ -157,6 +183,27 @@
     state.story.bonds = object(state.story.bonds);
     state.story.relationships = object(state.story.relationships);
     state.story.traits = object(state.story.traits);
+    ensureSocialState();
+  }
+
+  function ensureSocialState() {
+    const state = app.getState();
+    const previous = object(state.story?.social);
+    state.story.social = {
+      seenTalkIds: [],
+      talkCounts: {},
+      choiceSelections: {},
+      readMessageIds: [],
+      activeTalkId: null,
+      talkStep: 0,
+      lastTalkId: null,
+      selectedPhonePersonId: null,
+      ...previous
+    };
+    state.story.social.seenTalkIds = array(state.story.social.seenTalkIds);
+    state.story.social.talkCounts = object(state.story.social.talkCounts);
+    state.story.social.choiceSelections = object(state.story.social.choiceSelections);
+    state.story.social.readMessageIds = array(state.story.social.readMessageIds);
   }
 
   function migrateLegacyStoryIfNeeded() {
@@ -306,6 +353,7 @@
     renderNextScene(next);
     renderPeople();
     renderMemories();
+    renderPhonePreview();
   }
 
   function renderNextScene(scene) {
@@ -380,23 +428,36 @@
   }
 
   function renderPeople() {
-    const state = app.getState();
-    const visible = Object.values(pack.people || {}).filter(person => Boolean(state.flags?.[person.revealFlag]));
+    const visible = knownPeople();
 
     if (!visible.length) {
       els.peopleList.innerHTML = `<div class="empty-state compact">For now, my social orbit is still my ordinary life.</div>`;
       return;
     }
 
-    els.peopleList.innerHTML = visible.map(person => `
-      <article class="story-person-card ${escapeClass(person.tone || "default")}">
-        <span class="story-person-initial">${escapeHtml(person.name?.charAt(0) || "✦")}</span>
-        <div>
-          <strong>${escapeHtml(person.name)}</strong>
-          <small>${escapeHtml(person.role || "Known person")}</small>
-        </div>
-      </article>
-    `).join("");
+    els.peopleList.innerHTML = visible.map(person => {
+      const talk = nextTalkForPerson(person.id);
+      const unread = unreadMessageCount(person.id);
+      const avatar = person.cardAsset
+        ? `<span class="story-person-avatar"><img src="${escapeHtml(person.cardAsset)}" alt="" /></span>`
+        : `<span class="story-person-initial">${escapeHtml(person.name?.charAt(0) || "✦")}</span>`;
+      const talkLabel = talk ? (talk.once && !app.getState().story.social.seenTalkIds.includes(talk.id) ? "Talk · New" : "Talk") : "Talk";
+
+      return `
+        <article class="story-person-card ${escapeClass(person.tone || "default")}">
+          ${avatar}
+          <div class="story-person-copy">
+            <strong>${escapeHtml(person.name)}</strong>
+            <small>${escapeHtml(person.role || "Known person")}</small>
+            <span class="story-person-social-note">Talk and messages are free.</span>
+          </div>
+          <div class="story-person-actions">
+            <button class="secondary-button" type="button" data-talk-person="${escapeHtml(person.id)}" ${talk ? "" : "disabled"}>${escapeHtml(talkLabel)}</button>
+            <button class="ghost-button" type="button" data-message-person="${escapeHtml(person.id)}">Messages${unread ? ` · ${unread}` : ""}</button>
+          </div>
+        </article>
+      `;
+    }).join("");
   }
 
   function renderMemories() {
@@ -428,6 +489,223 @@
         </article>
       `;
     }).join("");
+  }
+
+  function knownPeople() {
+    const state = app.getState();
+    return Object.entries(pack?.people || {})
+      .map(([id, person]) => ({ id, ...person }))
+      .filter(person => !person.revealFlag || Boolean(state.flags?.[person.revealFlag]));
+  }
+
+  function socialTalks() {
+    return Array.isArray(pack?.social?.talks) ? pack.social.talks : [];
+  }
+
+  function socialMessages() {
+    return Array.isArray(pack?.social?.messages) ? pack.social.messages : [];
+  }
+
+  function talkById(talkId) {
+    return socialTalks().find(talk => talk.id === talkId) || null;
+  }
+
+  function nextTalkForPerson(personId) {
+    const state = app.getState();
+    const social = state.story.social;
+    const eligible = socialTalks().filter(talk => talk.personId === personId && conditionMatches(talk));
+    const unseenOnce = eligible.find(talk => talk.once && !social.seenTalkIds.includes(talk.id));
+    if (unseenOnce) return unseenOnce;
+
+    const repeatable = eligible.filter(talk => !talk.once);
+    if (!repeatable.length) return null;
+    const repeatCount = repeatable.reduce((sum, talk) => sum + Number(social.talkCounts[talk.id] || 0), 0);
+    return repeatable[repeatCount % repeatable.length];
+  }
+
+  function openNextTalk(personId) {
+    if (!pack) return false;
+    const talk = nextTalkForPerson(personId);
+    if (!talk) return false;
+    return openTalk(talk.id);
+  }
+
+  function openTalk(talkId) {
+    const talk = talkById(talkId);
+    if (!talk || !conditionMatches(talk)) return false;
+    const state = app.getState();
+    ensureStoryState();
+
+    runtime = {
+      kind: "talk",
+      sceneId: talk.id,
+      replay: false,
+      scene: talk,
+      replaySelections: {},
+      step: 0,
+      sequence: [],
+      finished: false
+    };
+    runtime.sequence = buildSequence(runtime);
+    const savedStep = state.story.social.activeTalkId === talk.id
+      ? Math.max(0, Number(state.story.social.talkStep || 0))
+      : 0;
+    runtime.step = Math.min(savedStep, Math.max(0, runtime.sequence.length - 1));
+    state.story.social.activeTalkId = talk.id;
+    state.story.social.talkStep = runtime.step;
+    app.saveState({ source: "social-talk-open" });
+
+    els.readerPage.classList.remove("hidden");
+    document.body.classList.add("story-mode-open");
+    window.scrollTo({ top: 0, behavior: "instant" });
+    renderReaderNode();
+    return true;
+  }
+
+  function eligibleMessagesForPerson(personId) {
+    const messages = socialMessages().filter(message => message.personId === personId && conditionMatches(message));
+    const seenGroups = new Set();
+    return messages.filter(message => {
+      const key = message.groupId || message.id;
+      if (seenGroups.has(key)) return false;
+      seenGroups.add(key);
+      return true;
+    }).sort((a, b) => Number(a.order || 0) - Number(b.order || 0));
+  }
+
+  function messageReadKey(message) {
+    return message.groupId || message.id;
+  }
+
+  function unreadMessageCount(personId = null) {
+    const state = app.getState();
+    const read = new Set(state.story.social.readMessageIds || []);
+    const people = personId ? [personId] : knownPeople().map(person => person.id);
+    return people.reduce((count, id) => count + eligibleMessagesForPerson(id).filter(message => !read.has(messageReadKey(message))).length, 0);
+  }
+
+  function renderPhonePreview() {
+    if (!els.phonePreview || !els.phoneOpen || !els.phoneBadge) return;
+    const people = knownPeople();
+    const unread = unreadMessageCount();
+
+    if (!people.length) {
+      els.phoneBadge.textContent = "Locked";
+      els.phonePreview.innerHTML = `
+        <span class="phone-preview-icon">💬</span>
+        <div class="phone-preview-copy">
+          <strong>Messages unlock through relationships.</strong>
+          <p>Your phone stays quiet until someone has a reason to text.</p>
+        </div>
+      `;
+      els.phoneOpen.disabled = true;
+      els.phoneOpen.textContent = "Open phone";
+      return;
+    }
+
+    const latest = people
+      .flatMap(person => eligibleMessagesForPerson(person.id).map(message => ({ person, message })))
+      .at(-1);
+
+    els.phoneBadge.textContent = unread ? `${unread} new` : "Online";
+    els.phoneBadge.classList.toggle("has-unread", Boolean(unread));
+    els.phoneOpen.disabled = false;
+    els.phoneOpen.textContent = unread ? `Open phone · ${unread} new` : "Open phone";
+
+    if (!latest) {
+      els.phonePreview.innerHTML = `
+        <span class="phone-preview-icon">💬</span>
+        <div class="phone-preview-copy">
+          <strong>${escapeHtml(people[0].name)} is in your contacts.</strong>
+          <p>No new messages right now. Talk is still available for free.</p>
+        </div>
+      `;
+      return;
+    }
+
+    const lastBubble = array(latest.message.messages).at(-1);
+    els.phonePreview.innerHTML = `
+      <span class="phone-preview-icon">💬</span>
+      <div class="phone-preview-copy">
+        <strong>${escapeHtml(latest.person.name)}</strong>
+        <p>${escapeHtml(lastBubble?.text || "A new message is waiting.")}</p>
+      </div>
+    `;
+  }
+
+  function openPhone(personId = null) {
+    if (!els.phoneDialog) return;
+    const people = knownPeople();
+    if (!people.length) return;
+    const state = app.getState();
+    const preferred = personId || state.story.social.selectedPhonePersonId || people.find(person => unreadMessageCount(person.id))?.id || people[0].id;
+    renderPhoneDialog(preferred);
+    if (!els.phoneDialog.open) els.phoneDialog.showModal();
+    selectPhonePerson(preferred, { markRead: true });
+  }
+
+  function renderPhoneDialog(selectedPersonId) {
+    if (!els.phoneContacts || !els.phoneThreadHeader || !els.phoneThread) return;
+    const people = knownPeople();
+    els.phoneContacts.innerHTML = people.map(person => {
+      const unread = unreadMessageCount(person.id);
+      const active = person.id === selectedPersonId;
+      return `
+        <button class="story-phone-contact ${active ? "active" : ""}" type="button" data-phone-person="${escapeHtml(person.id)}">
+          <span class="story-phone-contact-avatar">${person.cardAsset ? `<img src="${escapeHtml(person.cardAsset)}" alt="" />` : escapeHtml(person.name?.charAt(0) || "✦")}</span>
+          <span><strong>${escapeHtml(person.name)}</strong><small>${unread ? `${unread} unread` : "Messages"}</small></span>
+        </button>
+      `;
+    }).join("");
+    renderPhoneThread(selectedPersonId);
+  }
+
+  function selectPhonePerson(personId, { markRead = false } = {}) {
+    const state = app.getState();
+    const person = knownPeople().find(item => item.id === personId);
+    if (!person) return;
+    state.story.social.selectedPhonePersonId = personId;
+
+    if (markRead) {
+      const read = new Set(state.story.social.readMessageIds || []);
+      eligibleMessagesForPerson(personId).forEach(message => read.add(messageReadKey(message)));
+      state.story.social.readMessageIds = [...read];
+      app.saveState({ source: "social-message-read" });
+    }
+
+    renderPhoneDialog(personId);
+    renderPhonePreview();
+    renderPeople();
+  }
+
+  function renderPhoneThread(personId) {
+    const person = knownPeople().find(item => item.id === personId);
+    if (!person) return;
+    const messages = eligibleMessagesForPerson(personId);
+    els.phoneThreadHeader.innerHTML = `
+      <div>
+        <small>Messages with</small>
+        <strong>${escapeHtml(person.name)}</strong>
+      </div>
+      <span class="story-phone-thread-status">No Story Energy</span>
+    `;
+
+    if (!messages.length) {
+      els.phoneThread.innerHTML = `<div class="story-phone-empty">No messages yet. People text when they have a reason to.</div>`;
+      return;
+    }
+
+    els.phoneThread.innerHTML = messages.map(message => `
+      <section class="story-message-group">
+        <div class="story-message-date">${escapeHtml(message.label || "Earlier")}</div>
+        ${array(message.messages).map(bubble => `
+          <div class="story-message-bubble ${bubble.from === "luca" ? "outgoing" : "incoming"}">
+            ${escapeHtml(bubble.text || "")}
+          </div>
+        `).join("")}
+      </section>
+    `).join("");
+    requestAnimationFrame(() => { els.phoneThread.scrollTop = els.phoneThread.scrollHeight; });
   }
 
   function handleStoryAction() {
@@ -487,6 +765,7 @@
     if (!els.readerPage) throw new Error("Story reader markup is missing. Please refresh the updated index.html.");
 
     runtime = {
+      kind: "main",
       sceneId,
       replay,
       scene,
@@ -534,9 +813,10 @@
       if (node.type !== "choice") continue;
 
       const key = choiceKey(activeRuntime.sceneId, node.id);
+      const selectionStore = activeRuntime.kind === "talk" ? state.story.social.choiceSelections : state.story.choiceSelections;
       const selectionId = activeRuntime.replay
         ? activeRuntime.replaySelections[key]
-        : state.story.choiceSelections[key];
+        : selectionStore[key];
       const option = (node.options || []).find(item => item.id === selectionId);
 
       for (const extra of option?.after || []) {
@@ -554,10 +834,15 @@
     const relationships = state.story?.relationships || {};
 
     if (node.when?.trait && !traits[node.when.trait]) return false;
+    if (Array.isArray(node.when?.traits) && node.when.traits.some(key => !traits[key])) return false;
+    if (Array.isArray(node.when?.anyTrait) && !node.when.anyTrait.some(key => Boolean(traits[key]))) return false;
     if (node.when?.traitEquals && traits[node.when.traitEquals.key] !== node.when.traitEquals.value) return false;
     if (node.when?.flag && !flags[node.when.flag]) return false;
+    if (Array.isArray(node.when?.flags) && node.when.flags.some(key => !flags[key])) return false;
     if (node.unless?.trait && traits[node.unless.trait]) return false;
+    if (Array.isArray(node.unless?.traits) && node.unless.traits.some(key => Boolean(traits[key]))) return false;
     if (node.unless?.flag && flags[node.unless.flag]) return false;
+    if (Array.isArray(node.unless?.flags) && node.unless.flags.some(key => Boolean(flags[key]))) return false;
 
     if (node.when?.relationship) {
       const requirement = node.when.relationship;
@@ -621,19 +906,21 @@
     const current = runtime.finished ? total : Math.min(total, runtime.step + 1);
     const percent = runtime.finished ? 100 : Math.max(2, Math.min(100, (current / total) * 100));
 
+    const isTalk = runtime.kind === "talk";
     els.shell.dataset.mood = runtime.scene.mood || "default";
     els.shell.dataset.replay = runtime.replay ? "true" : "false";
-    els.chapterLabel.textContent = runtime.scene.chapterLabel || `Chapter ${String(runtime.scene.order || 1).padStart(2, "0")}`;
-    els.sceneTitle.textContent = runtime.scene.title || "Story";
-    els.location.textContent = runtime.scene.location || "Story";
-    els.beatLabel.textContent = runtime.finished ? "Complete" : `Scene ${current}`;
-    els.energy.textContent = state.storyEnergy;
-    els.energySide.textContent = state.storyEnergy;
+    els.shell.dataset.kind = isTalk ? "talk" : "main";
+    els.chapterLabel.textContent = isTalk ? (runtime.scene.chapterLabel || "TALK") : (runtime.scene.chapterLabel || `Chapter ${String(runtime.scene.order || 1).padStart(2, "0")}`);
+    els.sceneTitle.textContent = runtime.scene.title || (isTalk ? "Talk" : "Story");
+    els.location.textContent = runtime.scene.location || (isTalk ? "Somewhere nearby" : "Story");
+    els.beatLabel.textContent = runtime.finished ? "Complete" : `${isTalk ? "Talk" : "Scene"} ${current}`;
+    els.energy.textContent = isTalk ? "Free" : state.storyEnergy;
+    els.energySide.textContent = isTalk ? "Free" : state.storyEnergy;
     els.progressReaderLabel.textContent = `${current} / ${total}`;
     els.progressReaderBar.style.width = `${percent}%`;
     els.saveStatus.textContent = runtime.replay
       ? "Replay mode · choices do not alter canon"
-      : "Autosaved to local + cloud";
+      : isTalk ? "Free social interaction · autosaved" : "Autosaved to local + cloud";
 
     if (els.previous) {
       els.previous.disabled = !runtime.finished && runtime.step <= 0;
@@ -669,7 +956,8 @@
   function renderChoiceNode(node) {
     const state = app.getState();
     const key = choiceKey(runtime.sceneId, node.id);
-    const canonSelectedId = state.story.choiceSelections[key];
+    const selectionStore = runtime.kind === "talk" ? state.story.social.choiceSelections : state.story.choiceSelections;
+    const canonSelectedId = selectionStore[key];
     const replaySelectedId = runtime.replaySelections[key];
 
     els.beatContent.innerHTML = "";
@@ -733,15 +1021,21 @@
     }
 
     const state = app.getState();
-    if (state.story.choiceSelections[key]) return;
+    const selectionStore = runtime.kind === "talk" ? state.story.social.choiceSelections : state.story.choiceSelections;
+    if (selectionStore[key]) return;
 
-    state.story.choiceSelections[key] = option.id;
+    selectionStore[key] = option.id;
     applyEffects(option.effects || []);
     runtime.sequence = buildSequence(runtime);
     const newIndex = runtime.sequence.findIndex(item => item.id === node.id);
     runtime.step = Math.max(0, newIndex + 1);
-    state.story.readerStep = runtime.step;
-    app.saveState({ source: "story-choice" });
+    if (runtime.kind === "talk") {
+      state.story.social.talkStep = runtime.step;
+      state.story.social.activeTalkId = runtime.sceneId;
+    } else {
+      state.story.readerStep = runtime.step;
+    }
+    app.saveState({ source: runtime.kind === "talk" ? "social-talk-choice" : "story-choice" });
     app.renderAll();
     renderReaderNode();
   }
@@ -779,6 +1073,13 @@
   function persistReaderStep() {
     if (!runtime || runtime.replay) return;
     const state = app.getState();
+    if (runtime.kind === "talk") {
+      state.story.social.talkStep = runtime.step;
+      state.story.social.activeTalkId = runtime.sceneId;
+      app.saveState({ source: "social-talk-reading" });
+      els.saveStatus.textContent = "Free social interaction · autosaved";
+      return;
+    }
     state.story.readerStep = runtime.step;
     state.story.activeSceneId = runtime.sceneId;
     app.saveState({ source: "story-reading" });
@@ -796,8 +1097,24 @@
 
     const state = app.getState();
     const scene = runtime.scene;
-    const alreadyComplete = state.story.completedSceneIds.includes(scene.id);
 
+    if (runtime.kind === "talk") {
+      const social = state.story.social;
+      const alreadySeen = social.seenTalkIds.includes(scene.id);
+      if (!alreadySeen || !scene.once) applyEffects(scene.onComplete || []);
+      if (!alreadySeen) social.seenTalkIds.push(scene.id);
+      social.talkCounts[scene.id] = Number(social.talkCounts[scene.id] || 0) + 1;
+      social.lastTalkId = scene.id;
+      social.activeTalkId = null;
+      social.talkStep = 0;
+      app.saveState({ source: "social-talk-complete" });
+      app.renderAll();
+      runtime.finished = true;
+      renderFinishedState(false);
+      return;
+    }
+
+    const alreadyComplete = state.story.completedSceneIds.includes(scene.id);
     if (!alreadyComplete) {
       applyEffects(scene.onComplete || []);
       state.story.completedSceneIds.push(scene.id);
@@ -815,22 +1132,25 @@
 
   function renderFinishedState(replay = false) {
     const memory = runtime?.scene?.memory;
+    const isTalk = runtime?.kind === "talk";
     renderReaderChrome();
     els.beatContent.innerHTML = "";
 
     const kicker = document.createElement("p");
     kicker.className = "story-completion-kicker";
-    kicker.textContent = replay ? "Memory replay complete" : "Chapter complete";
+    kicker.textContent = replay ? "Memory replay complete" : isTalk ? "Talk complete" : "Chapter complete";
 
     const title = document.createElement("h2");
     title.className = "story-completion-title";
-    title.textContent = replay ? runtime.scene.title : (memory?.title || runtime.scene.title);
+    title.textContent = replay ? runtime.scene.title : isTalk ? (runtime.scene.completeTitle || "A little more familiar") : (memory?.title || runtime.scene.title);
 
     const copy = document.createElement("p");
     copy.className = "story-prose-paragraph";
     copy.textContent = replay
       ? "This was a sandboxed replay. Any different answers you tried here were not written into your canon save."
-      : "My choices and hidden relationship state have been saved. This chapter is now available in Memories.";
+      : isTalk
+        ? "That conversation is now part of your social history. Talk never costs Story Energy."
+        : "My choices and hidden relationship state have been saved. This chapter is now available in Memories.";
 
     els.beatContent.append(kicker, title, copy);
     els.choices.classList.add("hidden");
@@ -839,7 +1159,7 @@
     els.advance.innerHTML = `${replay ? "Return to Memories" : "Return to Story Hub"} <span>›</span>`;
     els.beatLabel.textContent = "Complete";
     els.progressReaderBar.style.width = "100%";
-    els.saveStatus.textContent = replay ? "Replay only · canon unchanged" : "Saved";
+    els.saveStatus.textContent = replay ? "Replay only · canon unchanged" : isTalk ? "Social history saved" : "Saved";
   }
 
   function applyEffects(effects) {
@@ -1092,6 +1412,8 @@
   }
 
   window.LifeRPGStoryUI = {
-    beginOrContinue: handleStoryAction
+    beginOrContinue: handleStoryAction,
+    openTalk: openNextTalk,
+    openPhone
   };
 })();

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#f0642c" />
   <title>Life RPG — Base Camp</title>
-  <link rel="stylesheet" href="styles.css?v=0.9.6" />
+  <link rel="stylesheet" href="styles.css?v=0.10.0" />
 </head>
 <body>
   <div class="ambient ambient-one"></div>
@@ -282,15 +282,16 @@
                 <p class="eyebrow">MESSAGES</p>
                 <h3>Phone</h3>
               </div>
-              <span class="tiny-badge">Soon</span>
+              <span class="tiny-badge" id="storyPhoneBadge">Locked</span>
             </div>
-            <div class="phone-preview">
+            <div id="storyPhonePreview" class="phone-preview">
               <span class="phone-preview-icon">💬</span>
-              <div>
+              <div class="phone-preview-copy">
                 <strong>Messages unlock through relationships.</strong>
-                <p>Once someone has a reason to text Luca, this becomes a real social system rather than a static menu.</p>
+                <p>Your phone stays quiet until someone has a reason to text.</p>
               </div>
             </div>
+            <button class="secondary-button story-phone-open-button" id="storyOpenPhoneButton" type="button" disabled>Open phone</button>
           </section>
         </section>
       </section>
@@ -623,6 +624,28 @@
     </div>
   </div>
 
+
+  <!-- STORY PHONE -->
+  <dialog id="storyPhoneDialog" class="story-phone-dialog">
+    <form method="dialog">
+      <div class="dialog-heading story-phone-heading">
+        <div>
+          <p class="eyebrow">SOCIAL</p>
+          <h2>Messages</h2>
+          <p class="muted story-phone-subtitle">Small conversations become part of the story too.</p>
+        </div>
+        <button class="close-button" value="cancel" aria-label="Close messages">×</button>
+      </div>
+      <div class="story-phone-layout">
+        <nav id="storyPhoneContacts" class="story-phone-contacts" aria-label="Message contacts"></nav>
+        <section class="story-phone-thread-shell">
+          <header id="storyPhoneThreadHeader" class="story-phone-thread-header"></header>
+          <div id="storyPhoneThread" class="story-phone-thread"></div>
+        </section>
+      </div>
+    </form>
+  </dialog>
+
   <!-- FULL-PAGE STORY READER -->
   <section id="storyReaderPage" class="story-reader-page hidden" aria-live="polite">
     <header class="story-reader-commandbar">
@@ -696,9 +719,9 @@
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <script src="data/quests.js"></script>
-  <script src="story-engine.js?v=0.9.6"></script>
+  <script src="story-engine.js?v=0.10.0"></script>
   <script src="app.js?v=0.9.3"></script>
-  <script src="story-ui.js?v=0.9.6"></script>
+  <script src="story-ui.js?v=0.10.0"></script>
   <script type="module" src="cloud-save.js?v=0.9.3"></script>
 </body>
 </html>
