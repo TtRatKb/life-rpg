@@ -307,14 +307,19 @@
     const story = state.story;
 
     if (!scene) {
+      const completedScenes = engine.orderedScenes(pack).filter(item => story.completedSceneIds.includes(item.id));
+      const latestCompleted = completedScenes.at(-1) || null;
+
       els.nextTitle.textContent = "Current arc complete";
       els.nextBadge.textContent = "Complete";
       els.nextIcon.textContent = "✓";
-      els.nextTeaser.textContent = "You have reached the end of the story currently installed in Life RPG.";
+      els.nextTeaser.textContent = "You have reached the end of the story currently installed in Life RPG. Finished chapters remain replayable at any time.";
       els.energyNeed.innerHTML = `<span class="story-energy-pill ready">Choices saved</span><span class="story-energy-pill ready">Memories unlocked</span>`;
-      els.actionButton.disabled = true;
-      els.actionButton.textContent = "More story coming later";
-      els.actionHint.textContent = "Real-life progress can keep accumulating while the story grows.";
+      els.actionButton.disabled = !latestCompleted;
+      els.actionButton.textContent = latestCompleted ? "Replay latest chapter" : "No chapter available";
+      els.actionHint.textContent = latestCompleted
+        ? "Replay mode is sandboxed: rereading or trying different choices will never overwrite your canon save."
+        : "Real-life progress can keep accumulating while the story grows.";
       return;
     }
 
@@ -424,7 +429,12 @@
 
     const state = app.getState();
     const next = engine.nextScene(pack, state.story.completedSceneIds);
-    if (!next) return;
+    if (!next) {
+      const completedScenes = engine.orderedScenes(pack).filter(scene => state.story.completedSceneIds.includes(scene.id));
+      const latestCompleted = completedScenes.at(-1);
+      if (latestCompleted) openScene(latestCompleted.id, { replay: true });
+      return;
+    }
 
     if (!state.story.unlockedSceneIds.includes(next.id)) {
       const cost = Number(next.cost || 0);
