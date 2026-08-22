@@ -9,8 +9,8 @@
     return;
   }
 
-  const CURRENT_PACK_ID = "SP_002";
-  const PROTOTYPE_PACK_ID = "SP_001";
+  const CURRENT_PACK_ID = "SP_003";
+  const LEGACY_PACK_IDS = new Set(["SP_001", "SP_002"]);
 
   let pack = null;
   let runtime = null;
@@ -43,6 +43,7 @@
     beatLabel: byId("storyBeatLabel"),
     beatContent: byId("storyBeatContent"),
     choices: byId("storyChoices"),
+    previous: byId("storyPreviousButton"),
     advance: byId("storyAdvanceButton"),
     saveStatus: byId("storyReaderSaveStatus"),
     energy: byId("storyReaderEnergy"),
@@ -52,7 +53,10 @@
     visualStage: byId("storyVisualStage"),
     visualBackdrop: byId("storyVisualBackdrop"),
     spriteLeft: byId("storySpriteLeft"),
-    spriteRight: byId("storySpriteRight")
+    spriteCenter: byId("storySpriteCenter"),
+    spriteRight: byId("storySpriteRight"),
+    textboxPortrait: byId("storyTextboxPortrait"),
+    textboxPortraitImg: byId("storyTextboxPortraitImg")
   };
 
   init();
@@ -67,7 +71,7 @@
 
     try {
       pack = await engine.loadPack();
-      migratePrototypeStoryIfNeeded();
+      migrateLegacyStoryIfNeeded();
       ensurePackState();
     } catch (error) {
       loadError = error;
@@ -81,6 +85,7 @@
     els.actionButton?.addEventListener("click", handleStoryAction);
     els.close?.addEventListener("click", closeReader);
     els.exitSide?.addEventListener("click", closeReader);
+    els.previous?.addEventListener("click", previousReader);
     els.advance?.addEventListener("click", advanceReader);
 
     els.memoryList?.addEventListener("click", event => {
@@ -91,12 +96,8 @@
 
     window.addEventListener("life-rpg:render", () => {
       if (pack) {
-        const currentPackId = app.getState().story?.packId;
-        if (currentPackId === PROTOTYPE_PACK_ID) {
-          migratePrototypeStoryIfNeeded();
-        } else if (currentPackId && currentPackId !== CURRENT_PACK_ID) {
-          ensurePackState();
-        }
+        migrateLegacyStoryIfNeeded();
+        ensurePackState();
       }
       renderStoryHub();
       if (runtime) renderReaderChrome();
@@ -104,13 +105,23 @@
 
     document.addEventListener("keydown", event => {
       if (!runtime || els.readerPage?.classList.contains("hidden")) return;
+
       if (event.key === "Escape") {
         closeReader();
         return;
       }
+
+      if (event.key === "ArrowLeft") {
+        const tag = document.activeElement?.tagName;
+        if (["INPUT", "SELECT", "TEXTAREA"].includes(tag)) return;
+        event.preventDefault();
+        previousReader();
+        return;
+      }
+
       if ((event.key === "Enter" || event.key === " ") && !els.advance?.classList.contains("hidden")) {
         const tag = document.activeElement?.tagName;
-        if (tag === "BUTTON" || tag === "INPUT" || tag === "SELECT" || tag === "TEXTAREA") return;
+        if (["BUTTON", "INPUT", "SELECT", "TEXTAREA"].includes(tag)) return;
         event.preventDefault();
         advanceReader();
       }
@@ -119,6 +130,7 @@
 
   function ensureStoryState() {
     const state = app.getState();
+    const previous = state.story || {};
 
     state.story = {
       packId: CURRENT_PACK_ID,
@@ -126,68 +138,101 @@
       completedSceneIds: [],
       choiceSelections: {},
       bonds: {},
+      relationships: {},
       traits: {},
       activeSceneId: null,
       readerStep: 0,
-      prototypeMigrated: false,
-      ...(state.story || {})
+      ...previous
     };
 
-    state.story.unlockedSceneIds = Array.isArray(state.story.unlockedSceneIds) ? state.story.unlockedSceneIds : [];
-    state.story.completedSceneIds = Array.isArray(state.story.completedSceneIds) ? state.story.completedSceneIds : [];
-    state.story.choiceSelections = state.story.choiceSelections || {};
-    state.story.bonds = state.story.bonds || {};
-    state.story.traits = state.story.traits || {};
+    state.story.unlockedSceneIds = array(state.story.unlockedSceneIds);
+    state.story.completedSceneIds = array(state.story.completedSceneIds);
+    state.story.choiceSelections = object(state.story.choiceSelections);
+    state.story.bonds = object(state.story.bonds);
+    state.story.relationships = object(state.story.relationships);
+    state.story.traits = object(state.story.traits);
   }
 
-  function migratePrototypeStoryIfNeeded() {
+  function migrateLegacyStoryIfNeeded() {
     const state = app.getState();
-    if (!state.story || state.story.prototypeMigrated) return;
-    if (state.story.packId !== PROTOTYPE_PACK_ID) return;
+    const oldPackId = state.story?.packId;
+    if (!oldPackId || oldPackId === CURRENT_PACK_ID) return;
 
-    // V0.4/V0.5 story content was a non-canon reader prototype. Preserve all
-    // real-life resources/logs, but remove the prototype's story-only effects.
-    const prototypeFlags = [
-      "HOME_SHARED_APARTMENT_ACTIVE",
-      "HOUSING_LEAD_EXISTS",
-      "HOUSING_VIEWING_ACCEPTED",
-      "LOCATION_SHARED_APARTMENT_INTRODUCED",
-      "PERSON_A_KNOWN",
-      "PERSON_B_KNOWN",
-      "PERSON_C_KNOWN",
-      "ROOMMATES_MET",
-      "SCHOOL_OUTREACH_COMPLETE"
-    ];
-    prototypeFlags.forEach(key => delete state.flags?.[key]);
+    if (LEGACY_PACK_IDS.has(oldPackId)) {
+      const oldCompleted = array(state.story.completedSceneIds).length;
 
-    ["CONTACT_A", "CONTACT_B", "CONTACT_C"].forEach(key => delete state.contacts?.[key]);
-    if (state.locations) state.locations.sharedApartment = false;
+      // V0.4–V0.6 were story-reader prototypes. Keep real-life progress and
+      // currencies, but remove effects created by those obsolete story packs.
+      [
+        "HOME_SHARED_APARTMENT_ACTIVE",
+        "HOUSING_LEAD_EXISTS",
+        "HOUSING_VIEWING_ACCEPTED",
+        "LOCATION_SHARED_APARTMENT_INTRODUCED",
+        "PERSON_A_KNOWN",
+        "PERSON_B_KNOWN",
+        "PERSON_C_KNOWN",
+        "ROOMMATES_MET",
+        "SCHOOL_OUTREACH_COMPLETE",
+        "STORY_INTRO_COMPLETE",
+        "STORY_MET_MINA",
+        "STORY_MET_KIRISHIMA",
+        "STORY_MET_BAKUGO",
+        "STORY_MINA_FRIENDSHIP_STARTED",
+        "STORY_MINA_KNOWS_HOUSING",
+        "STORY_APARTMENT_VIEWING_PENDING",
+        "LOCATION_AGENCY_INTRODUCED"
+      ].forEach(key => delete state.flags?.[key]);
 
-    const oldStory = state.story;
-    state.story = {
-      packId: CURRENT_PACK_ID,
-      unlockedSceneIds: [],
-      completedSceneIds: [],
-      choiceSelections: {},
-      bonds: {},
-      traits: {},
-      activeSceneId: null,
-      readerStep: 0,
-      prototypeMigrated: true,
-      prototypeSummary: {
-        completedCount: Array.isArray(oldStory.completedSceneIds) ? oldStory.completedSceneIds.length : 0,
-        migratedAt: new Date().toISOString()
+      ["mina", "CONTACT_A", "CONTACT_B", "CONTACT_C"].forEach(key => delete state.contacts?.[key]);
+      if (state.locations) {
+        state.locations.agency = false;
+        state.locations.sharedApartment = false;
       }
-    };
 
-    state.memories = (state.memories || []).filter(id => !["M001", "M002", "M003", "M004"].includes(String(id)) && !String(id).startsWith("MEM_SP1_") && !String(id).startsWith("MEMORY_"));
-    app.saveState({ source: "story-reader-v2-migration" });
-    app.renderAll();
+      state.memories = array(state.memories).filter(id => {
+        const value = String(id);
+        return !/^MEM_(00[1-5]|SP1_|SP2_)/.test(value) && !value.startsWith("MEMORY_");
+      });
+
+      state.story = {
+        packId: CURRENT_PACK_ID,
+        unlockedSceneIds: [],
+        completedSceneIds: [],
+        choiceSelections: {},
+        bonds: {},
+        relationships: {},
+        traits: {},
+        activeSceneId: null,
+        readerStep: 0,
+        migratedFrom: oldPackId,
+        legacySummary: {
+          completedCount: oldCompleted,
+          migratedAt: new Date().toISOString()
+        }
+      };
+
+      app.saveState({ source: "story-v07-migration" });
+      app.renderAll();
+      return;
+    }
+
+    state.story.packId = CURRENT_PACK_ID;
+    state.story.unlockedSceneIds = [];
+    state.story.completedSceneIds = [];
+    state.story.choiceSelections = {};
+    state.story.bonds = {};
+    state.story.relationships = {};
+    state.story.traits = {};
+    state.story.activeSceneId = null;
+    state.story.readerStep = 0;
+    app.saveState({ source: "story-pack-reset" });
   }
 
   function ensurePackState() {
     const state = app.getState();
     if (!pack) return;
+
+    ensureStoryState();
 
     if (state.story.packId !== pack.packId) {
       state.story.packId = pack.packId;
@@ -195,6 +240,7 @@
       state.story.completedSceneIds = [];
       state.story.choiceSelections = {};
       state.story.bonds = {};
+      state.story.relationships = {};
       state.story.traits = {};
       state.story.activeSceneId = null;
       state.story.readerStep = 0;
@@ -207,8 +253,6 @@
       state.story.activeSceneId = null;
       state.story.readerStep = 0;
     }
-
-    app.saveState({ source: "story-pack-ready" });
   }
 
   function renderStoryHub() {
@@ -243,9 +287,7 @@
     els.progressLabel.textContent = story.completedSceneIds.length
       ? `${story.completedSceneIds.length} chapter${story.completedSceneIds.length === 1 ? "" : "s"} completed`
       : "Story beginning";
-    els.progressHint.textContent = next
-      ? "Your reading position and choices autosave as you go."
-      : "The currently installed story arc is complete. Your state is saved.";
+    els.progressHint.textContent = "Reading position autosaves. Completed chapters can be replayed from Memories.";
 
     els.progressDots.innerHTML = scenes.map(scene => {
       const isComplete = completed.has(scene.id);
@@ -292,7 +334,7 @@
       els.energyNeed.innerHTML = `<span class="story-energy-pill ready">✓ Whole chapter unlocked</span>`;
       els.actionButton.disabled = false;
       els.actionButton.textContent = active && step > 0 ? "Continue chapter" : "Read chapter";
-      els.actionHint.textContent = "The chapter reads as longer story beats. Choices do not cost extra energy.";
+      els.actionHint.textContent = "Choices change hidden story state. There is no paid 'correct' answer.";
       return;
     }
 
@@ -301,7 +343,7 @@
     els.nextBadge.textContent = cost === 0 ? "Free" : `${cost} 🔥`;
     els.nextIcon.textContent = first ? "01" : "?";
     els.nextTeaser.textContent = first
-      ? "Start at the actual beginning of Luca's ordinary life before anything changes."
+      ? "Start at the beginning of my ordinary life, before anything changes."
       : "The next chapter stays spoiler-free until you unlock it.";
 
     if (cost === 0) {
@@ -316,13 +358,13 @@
       els.energyNeed.innerHTML = `<span class="story-energy-pill ready">${state.storyEnergy} 🔥 available</span><span class="story-energy-pill">${cost} 🔥 to unlock chapter</span>`;
       els.actionButton.disabled = false;
       els.actionButton.textContent = `Unlock next chapter · ${cost} 🔥`;
-      els.actionHint.textContent = "Unlocking pays for the complete chapter. Reading and choices are free after that.";
+      els.actionHint.textContent = "Unlocking pays for the complete chapter. Reading, Previous and choices are free after that.";
     } else {
       const missing = Math.max(0, cost - state.storyEnergy);
       els.energyNeed.innerHTML = `<span class="story-energy-pill">${state.storyEnergy} 🔥 available</span><span class="story-energy-pill locked">Need ${missing} more</span>`;
       els.actionButton.disabled = true;
       els.actionButton.textContent = `Need ${missing} more Story Energy`;
-      els.actionHint.textContent = "Real-life quests, Recovery and external task clears can all help fund the next chapter.";
+      els.actionHint.textContent = "Real-life quests, Recovery and external task clears can fund the next chapter.";
     }
   }
 
@@ -331,7 +373,7 @@
     const visible = Object.values(pack.people || {}).filter(person => Boolean(state.flags?.[person.revealFlag]));
 
     if (!visible.length) {
-      els.peopleList.innerHTML = `<div class="empty-state compact">For now, Luca's social orbit is still her ordinary life.</div>`;
+      els.peopleList.innerHTML = `<div class="empty-state compact">For now, my social orbit is still my ordinary life.</div>`;
       return;
     }
 
@@ -366,9 +408,10 @@
         <article class="story-memory-card">
           <div class="story-memory-mark">${String(scene.order || 0).padStart(2, "0")}</div>
           <div class="story-memory-copy">
-            <small>Memory</small>
+            <small>Memory · Replay</small>
             <strong>${escapeHtml(memory.title)}</strong>
             <p>${escapeHtml(memory.subtitle || "")}</p>
+            <span class="memory-replay-note">Replay choices are sandboxed and never overwrite your canon save.</span>
           </div>
           <button class="secondary-button" data-replay-scene="${escapeHtml(scene.id)}">Replay</button>
         </article>
@@ -406,19 +449,21 @@
     if (!replay && !state.story.unlockedSceneIds.includes(sceneId)) return;
     if (replay && !state.story.completedSceneIds.includes(sceneId)) return;
 
-    const sequence = buildSequence(scene);
-    const savedStep = !replay && state.story.activeSceneId === sceneId
-      ? Math.max(0, Number(state.story.readerStep || 0))
-      : 0;
-
     runtime = {
       sceneId,
       replay,
       scene,
-      sequence,
-      step: Math.min(savedStep, Math.max(0, sequence.length - 1)),
+      replaySelections: {},
+      step: 0,
+      sequence: [],
       finished: false
     };
+
+    runtime.sequence = buildSequence(runtime);
+    const savedStep = !replay && state.story.activeSceneId === sceneId
+      ? Math.max(0, Number(state.story.readerStep || 0))
+      : 0;
+    runtime.step = Math.min(savedStep, Math.max(0, runtime.sequence.length - 1));
 
     if (!replay) {
       state.story.activeSceneId = sceneId;
@@ -440,20 +485,24 @@
     renderStoryHub();
   }
 
-  function buildSequence(scene) {
+  function buildSequence(activeRuntime) {
     const state = app.getState();
     const sequence = [];
 
-    for (const node of scene.nodes || []) {
+    for (const node of activeRuntime.scene.nodes || []) {
       if (!conditionMatches(node)) continue;
       sequence.push(node);
 
-      if (node.type === "choice") {
-        const selectionId = state.story.choiceSelections[choiceKey(scene.id, node.id)];
-        const option = (node.options || []).find(item => item.id === selectionId);
-        for (const extra of option?.after || []) {
-          if (conditionMatches(extra)) sequence.push(extra);
-        }
+      if (node.type !== "choice") continue;
+
+      const key = choiceKey(activeRuntime.sceneId, node.id);
+      const selectionId = activeRuntime.replay
+        ? activeRuntime.replaySelections[key]
+        : state.story.choiceSelections[key];
+      const option = (node.options || []).find(item => item.id === selectionId);
+
+      for (const extra of option?.after || []) {
+        if (conditionMatches(extra)) sequence.push(extra);
       }
     }
 
@@ -464,11 +513,21 @@
     const state = app.getState();
     const traits = state.story?.traits || {};
     const flags = state.flags || {};
+    const relationships = state.story?.relationships || {};
 
     if (node.when?.trait && !traits[node.when.trait]) return false;
+    if (node.when?.traitEquals && traits[node.when.traitEquals.key] !== node.when.traitEquals.value) return false;
     if (node.when?.flag && !flags[node.when.flag]) return false;
     if (node.unless?.trait && traits[node.unless.trait]) return false;
     if (node.unless?.flag && flags[node.unless.flag]) return false;
+
+    if (node.when?.relationship) {
+      const requirement = node.when.relationship;
+      const value = Number(relationships?.[requirement.key]?.[requirement.stat] || 0);
+      if (requirement.min != null && value < Number(requirement.min)) return false;
+      if (requirement.max != null && value > Number(requirement.max)) return false;
+    }
+
     return true;
   }
 
@@ -476,7 +535,7 @@
     if (!runtime) return;
 
     if (runtime.finished) {
-      renderFinishedState();
+      renderFinishedState(runtime.replay);
       return;
     }
 
@@ -505,19 +564,27 @@
     if (!runtime) return;
     const state = app.getState();
     const total = Math.max(1, runtime.sequence.length);
-    const current = Math.min(total, runtime.step + 1);
-    const percent = Math.max(2, Math.min(100, (current / total) * 100));
+    const current = runtime.finished ? total : Math.min(total, runtime.step + 1);
+    const percent = runtime.finished ? 100 : Math.max(2, Math.min(100, (current / total) * 100));
 
     els.shell.dataset.mood = runtime.scene.mood || "default";
+    els.shell.dataset.replay = runtime.replay ? "true" : "false";
     els.chapterLabel.textContent = runtime.scene.chapterLabel || `Chapter ${String(runtime.scene.order || 1).padStart(2, "0")}`;
     els.sceneTitle.textContent = runtime.scene.title || "Story";
     els.location.textContent = runtime.scene.location || "Story";
-    els.beatLabel.textContent = runtime.finished ? "Complete" : `Part ${current}`;
+    els.beatLabel.textContent = runtime.finished ? "Complete" : `Scene ${current}`;
     els.energy.textContent = state.storyEnergy;
     els.energySide.textContent = state.storyEnergy;
     els.progressReaderLabel.textContent = `${current} / ${total}`;
     els.progressReaderBar.style.width = `${percent}%`;
-    els.saveStatus.textContent = runtime.replay ? "Memory replay" : "Autosaved";
+    els.saveStatus.textContent = runtime.replay
+      ? "Replay mode · choices do not alter canon"
+      : "Autosaved to local + cloud";
+
+    if (els.previous) {
+      els.previous.disabled = !runtime.finished && runtime.step <= 0;
+      els.previous.classList.toggle("hidden", false);
+    }
   }
 
   function renderBeatNode(node) {
@@ -548,37 +615,23 @@
   function renderChoiceNode(node) {
     const state = app.getState();
     const key = choiceKey(runtime.sceneId, node.id);
-    const selectedId = state.story.choiceSelections[key];
+    const canonSelectedId = state.story.choiceSelections[key];
+    const replaySelectedId = runtime.replaySelections[key];
 
     els.beatContent.innerHTML = "";
     const prompt = document.createElement("p");
     prompt.className = "story-choice-prompt";
-    prompt.textContent = node.prompt || "Choose a response.";
+    prompt.textContent = node.prompt || "What do I do?";
     els.beatContent.appendChild(prompt);
 
     els.advance.classList.add("hidden");
     els.choices.classList.remove("hidden");
 
-    if (runtime.replay && selectedId) {
-      const selected = (node.options || []).find(option => option.id === selectedId);
+    if (!runtime.replay && canonSelectedId) {
+      const selected = (node.options || []).find(option => option.id === canonSelectedId);
       els.choices.innerHTML = `
-        <button class="story-choice remembered" type="button" data-choice-replay="true">
-          <span>Remembered choice</span>
-          <strong>${escapeHtml(selected?.text || "Continue")}</strong>
-        </button>
-      `;
-      els.choices.querySelector("button")?.addEventListener("click", () => {
-        runtime.step += 1;
-        renderReaderNode();
-      });
-      return;
-    }
-
-    if (selectedId) {
-      const selected = (node.options || []).find(option => option.id === selectedId);
-      els.choices.innerHTML = `
-        <button class="story-choice remembered" type="button">
-          <span>Chosen</span>
+        <button class="story-choice remembered" type="button" data-choice-continue="true">
+          <span>Your choice</span>
           <strong>${escapeHtml(selected?.text || "Continue")}</strong>
         </button>
       `;
@@ -590,11 +643,16 @@
       return;
     }
 
-    els.choices.innerHTML = (node.options || []).map(option => `
-      <button class="story-choice" type="button" data-choice-id="${escapeHtml(option.id)}">
-        ${escapeHtml(option.text)}
-      </button>
-    `).join("");
+    els.choices.innerHTML = (node.options || []).map(option => {
+      const isCanon = runtime.replay && canonSelectedId === option.id;
+      const isReplaySelected = runtime.replay && replaySelectedId === option.id;
+      return `
+        <button class="story-choice ${isReplaySelected ? "replay-selected" : ""}" type="button" data-choice-id="${escapeHtml(option.id)}">
+          <span class="story-choice-copy">${escapeHtml(option.text)}</span>
+          ${isCanon ? '<small class="choice-canon-mark">Original choice</small>' : ""}
+        </button>
+      `;
+    }).join("");
 
     els.choices.querySelectorAll("[data-choice-id]").forEach(button => {
       button.addEventListener("click", () => chooseOption(node, button.dataset.choiceId));
@@ -602,22 +660,32 @@
   }
 
   function chooseOption(node, optionId) {
-    if (!runtime || runtime.replay) return;
+    if (!runtime) return;
 
     const option = (node.options || []).find(item => item.id === optionId);
     if (!option) return;
 
-    const state = app.getState();
     const key = choiceKey(runtime.sceneId, node.id);
+    const choiceIndex = runtime.sequence.findIndex(item => item === node || item.id === node.id);
+
+    if (runtime.replay) {
+      runtime.replaySelections[key] = option.id;
+      runtime.sequence = buildSequence(runtime);
+      const newIndex = runtime.sequence.findIndex(item => item.id === node.id);
+      runtime.step = Math.max(0, newIndex + 1);
+      runtime.finished = false;
+      renderReaderNode();
+      return;
+    }
+
+    const state = app.getState();
     if (state.story.choiceSelections[key]) return;
 
     state.story.choiceSelections[key] = option.id;
     applyEffects(option.effects || []);
-
-    const extras = (option.after || []).filter(conditionMatches);
-    if (extras.length) runtime.sequence.splice(runtime.step + 1, 0, ...extras);
-
-    runtime.step += 1;
+    runtime.sequence = buildSequence(runtime);
+    const newIndex = runtime.sequence.findIndex(item => item.id === node.id);
+    runtime.step = Math.max(0, newIndex + 1);
     state.story.readerStep = runtime.step;
     app.saveState({ source: "story-choice" });
     app.renderAll();
@@ -637,13 +705,30 @@
     renderReaderNode();
   }
 
-  function persistReaderStep() {
+  function previousReader() {
     if (!runtime) return;
+
+    if (runtime.finished) {
+      runtime.finished = false;
+      runtime.step = Math.max(0, runtime.sequence.length - 1);
+      if (!runtime.replay) persistReaderStep();
+      renderReaderNode();
+      return;
+    }
+
+    if (runtime.step <= 0) return;
+    runtime.step -= 1;
+    if (!runtime.replay) persistReaderStep();
+    renderReaderNode();
+  }
+
+  function persistReaderStep() {
+    if (!runtime || runtime.replay) return;
     const state = app.getState();
     state.story.readerStep = runtime.step;
     state.story.activeSceneId = runtime.sceneId;
     app.saveState({ source: "story-reading" });
-    els.saveStatus.textContent = "Autosaved";
+    els.saveStatus.textContent = "Autosaved to local + cloud";
   }
 
   function finishScene() {
@@ -677,7 +762,6 @@
   function renderFinishedState(replay = false) {
     const memory = runtime?.scene?.memory;
     renderReaderChrome();
-    hideVisualStage();
     els.beatContent.innerHTML = "";
 
     const kicker = document.createElement("p");
@@ -691,8 +775,8 @@
     const copy = document.createElement("p");
     copy.className = "story-prose-paragraph";
     copy.textContent = replay
-      ? "You have reached the end of this remembered chapter."
-      : "Your choices and hidden relationship state have been saved. This chapter is now available in Memories.";
+      ? "This was a sandboxed replay. Any different answers you tried here were not written into your canon save."
+      : "My choices and hidden relationship state have been saved. This chapter is now available in Memories.";
 
     els.beatContent.append(kicker, title, copy);
     els.choices.classList.add("hidden");
@@ -701,17 +785,25 @@
     els.advance.innerHTML = `${replay ? "Return to Memories" : "Return to Story Hub"} <span>›</span>`;
     els.beatLabel.textContent = "Complete";
     els.progressReaderBar.style.width = "100%";
-    els.saveStatus.textContent = replay ? "Replay only" : "Saved";
+    els.saveStatus.textContent = replay ? "Replay only · canon unchanged" : "Saved";
   }
 
   function applyEffects(effects) {
     const state = app.getState();
+    state.story.relationships = object(state.story.relationships);
 
     for (const effect of effects || []) {
       switch (effect.type) {
         case "bond":
           state.story.bonds[effect.key] = Number(state.story.bonds[effect.key] || 0) + Number(effect.delta || 0);
           break;
+        case "relationship": {
+          const who = effect.key;
+          const stat = effect.stat || "affinity";
+          state.story.relationships[who] = object(state.story.relationships[who]);
+          state.story.relationships[who][stat] = Number(state.story.relationships[who][stat] || 0) + Number(effect.delta || 0);
+          break;
+        }
         case "trait":
           state.story.traits[effect.key] = effect.value ?? true;
           break;
@@ -733,46 +825,153 @@
   function applyVisual(visual) {
     const characterAssets = pack?.assets?.characters || {};
     const backgroundAssets = pack?.assets?.backgrounds || {};
-    const bg = visual?.background ? backgroundAssets[visual.background] : null;
+    const mode = visual?.mode || "dialogue";
+    const bg = visual?.cg ? { src: visual.cg } : (visual?.background ? backgroundAssets[visual.background] : null);
     const characters = Array.isArray(visual?.characters) ? visual.characters : [];
+    const focusId = visual?.focus || null;
+    const portraitSpec = resolvePortraitSpec(visual, characters, characterAssets);
 
-    hideVisualStage();
+    clearSprites();
+    renderTextboxPortrait(portraitSpec, characterAssets);
 
-    let hasVisual = false;
     if (bg?.src) {
       els.visualBackdrop.style.backgroundImage = `url("${String(bg.src).replace(/"/g, "%22")}")`;
-      hasVisual = true;
+      els.visualStage.classList.remove("hidden");
+      els.visualStage.setAttribute("aria-hidden", "false");
     } else {
       els.visualBackdrop.style.backgroundImage = "none";
+      els.visualStage.classList.add("hidden");
+      els.visualStage.setAttribute("aria-hidden", "true");
     }
 
-    for (const item of characters) {
-      const asset = characterAssets?.[item.id]?.[item.expression] || characterAssets?.[item.id]?.default;
+    if (mode === "cg") {
+      els.visualStage.dataset.mode = "cg";
+    } else {
+      delete els.visualStage.dataset.mode;
+    }
+
+    const stageCharacters = characters.filter(item => {
+      if (!item?.id) return false;
+      if (item.stage === false) return false;
+      if (portraitSpec && item.id === portraitSpec.id && mode !== "cg") return Boolean(item.allowSceneDuplicate);
+      return true;
+    });
+
+    for (const item of stageCharacters) {
+      const asset = resolveCharacterAsset(characterAssets?.[item.id], item);
       if (!asset?.src) continue;
-      const target = item.side === "left" ? els.spriteLeft : els.spriteRight;
-      target.innerHTML = `<img src="${escapeHtml(asset.src)}" alt="" />`;
-      target.classList.remove("hidden");
-      hasVisual = true;
-    }
 
-    if (hasVisual) {
+      const target = item.side === "left"
+        ? els.spriteLeft
+        : item.side === "center"
+          ? els.spriteCenter
+          : els.spriteRight;
+      if (!target) continue;
+
+      const label = characterAssets?.[item.id]?.name || item.id || "Character";
+      target.dataset.characterId = item.id || "";
+      target.classList.toggle("is-active", !focusId || focusId === item.id);
+      target.classList.toggle("is-muted", Boolean(focusId && focusId !== item.id));
+      target.innerHTML = `<img src="${escapeHtml(asset.src)}" alt="${escapeHtml(label)}" />`;
+      target.classList.remove("hidden");
       els.visualStage.classList.remove("hidden");
       els.visualStage.setAttribute("aria-hidden", "false");
     }
   }
 
-  function hideVisualStage() {
-    els.visualStage?.classList.add("hidden");
-    els.visualStage?.setAttribute("aria-hidden", "true");
-    [els.spriteLeft, els.spriteRight].forEach(el => {
+  function resolvePortraitSpec(visual, characters, characterAssets) {
+    if (visual?.portrait && visual.portrait.id) {
+      return {
+        id: visual.portrait.id,
+        outfit: visual.portrait.outfit || characterAssets?.[visual.portrait.id]?.defaultOutfit,
+        expression: visual.portrait.expression || "neutral"
+      };
+    }
+
+    const selfCharacter = characters.find(item => item.id === "luca");
+    if (selfCharacter) {
+      return {
+        id: "luca",
+        outfit: selfCharacter.outfit || characterAssets?.luca?.defaultOutfit,
+        expression: selfCharacter.expression || "neutral"
+      };
+    }
+
+    return {
+      id: "luca",
+      outfit: characterAssets?.luca?.defaultOutfit,
+      expression: visual?.portraitExpression || "neutral"
+    };
+  }
+
+  function renderTextboxPortrait(spec, characterAssets) {
+    if (!els.textboxPortrait || !els.textboxPortraitImg) return;
+    if (!spec?.id) {
+      els.textboxPortrait.classList.add("hidden");
+      els.textboxPortraitImg.removeAttribute("src");
+      els.textboxPortraitImg.alt = "";
+      return;
+    }
+
+    const asset = resolveCharacterAsset(characterAssets?.[spec.id], spec);
+    if (!asset?.src) {
+      els.textboxPortrait.classList.add("hidden");
+      els.textboxPortraitImg.removeAttribute("src");
+      els.textboxPortraitImg.alt = "";
+      return;
+    }
+
+    const label = characterAssets?.[spec.id]?.name || spec.id;
+    els.textboxPortrait.classList.remove("hidden");
+    els.textboxPortrait.dataset.characterId = spec.id;
+    els.textboxPortrait.dataset.expression = spec.expression || "neutral";
+    els.textboxPortraitImg.src = asset.src;
+    els.textboxPortraitImg.alt = label;
+  }
+
+  function resolveCharacterAsset(character, item) {
+    if (!character) return null;
+
+    // V0.8 supports explicit outfit + expression while remaining compatible
+    // with the older flat expression map.
+    const outfitName = item?.outfit || character.defaultOutfit;
+    const outfit = outfitName ? character.outfits?.[outfitName] : null;
+    if (outfit) {
+      return outfit?.[item?.expression] || outfit?.neutral || outfit?.default || null;
+    }
+
+    return character?.[item?.expression] || character?.default || null;
+  }
+
+  function clearSprites() {
+    [els.spriteLeft, els.spriteCenter, els.spriteRight].forEach(el => {
       if (!el) return;
       el.classList.add("hidden");
+      el.classList.remove("is-active", "is-muted");
+      delete el.dataset.characterId;
       el.innerHTML = "";
     });
+    if (els.textboxPortrait) {
+      els.textboxPortrait.classList.add("hidden");
+      delete els.textboxPortrait.dataset.characterId;
+      delete els.textboxPortrait.dataset.expression;
+    }
+    if (els.textboxPortraitImg) {
+      els.textboxPortraitImg.removeAttribute("src");
+      els.textboxPortraitImg.alt = "";
+    }
   }
 
   function choiceKey(sceneId, choiceId) {
     return `${sceneId}:${choiceId}`;
+  }
+
+  function array(value) {
+    return Array.isArray(value) ? value : [];
+  }
+
+  function object(value) {
+    return value && typeof value === "object" && !Array.isArray(value) ? value : {};
   }
 
   function escapeHtml(value) {

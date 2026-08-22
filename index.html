@@ -639,10 +639,15 @@
         <section id="storyVisualStage" class="story-visual-stage hidden" aria-hidden="true">
           <div id="storyVisualBackdrop" class="story-visual-backdrop"></div>
           <div id="storySpriteLeft" class="story-sprite story-sprite-left hidden"></div>
+          <div id="storySpriteCenter" class="story-sprite story-sprite-center hidden"></div>
           <div id="storySpriteRight" class="story-sprite story-sprite-right hidden"></div>
         </section>
 
         <article class="story-reading-card">
+          <div id="storyTextboxPortrait" class="story-textbox-portrait hidden" aria-hidden="true">
+            <img id="storyTextboxPortraitImg" src="" alt="" />
+          </div>
+
           <div class="story-reading-meta">
             <span id="storyReaderLocation">Story</span>
             <span id="storyBeatLabel">Part 1</span>
@@ -652,6 +657,9 @@
           <div id="storyChoices" class="story-choices story-page-choices hidden"></div>
 
           <footer class="story-reading-footer">
+            <button id="storyPreviousButton" class="story-previous-button" type="button">
+              <span>‹</span> Previous
+            </button>
             <span id="storyReaderSaveStatus" class="story-reader-save-status">Autosaved</span>
             <button id="storyAdvanceButton" class="story-advance-button" type="button">
               Continue <span>›</span>
@@ -677,9 +685,9 @@
         </section>
 
         <section class="reader-side-card">
-          <p class="eyebrow">READING</p>
-          <p>Longer passages are grouped into natural story beats, so you can actually read instead of clicking after every sentence.</p>
-          <button class="secondary-button reader-side-exit" id="storyReaderExitSide" type="button">Exit to Story Hub</button>
+          <p class="eyebrow">STORY MODE</p>
+          <p>Use Previous whenever you clicked too quickly. Choices alter hidden story state; replay choices are safely sandboxed.</p>
+          <button class="secondary-button reader-side-exit" id="storyReaderExitSide" type="button">Save & Exit to Story Hub</button>
         </section>
       </aside>
     </div>
