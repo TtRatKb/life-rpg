@@ -598,7 +598,7 @@
     }
 
     try {
-      applyVisual(node.visual || {});
+      applyVisual(resolveVisualStateAtStep(runtime.step));
     } catch (error) {
       console.error("Story visual failed; continuing in text-only mode", error);
       try {
@@ -874,6 +874,61 @@
           break;
       }
     }
+  }
+
+  function resolveVisualStateAtStep(step) {
+    const base = {
+      mode: "dialogue",
+      background: null,
+      cg: null,
+      characters: [],
+      focus: null,
+      portrait: null,
+      portraitExpression: null
+    };
+
+    if (!runtime?.sequence?.length) return base;
+
+    const max = Math.min(Math.max(0, Number(step || 0)), runtime.sequence.length - 1);
+    let state = base;
+
+    for (let index = 0; index <= max; index += 1) {
+      const patch = runtime.sequence[index]?.visual;
+      if (!patch || typeof patch !== "object") continue;
+      state = mergeVisualState(state, patch);
+    }
+
+    return state;
+  }
+
+  function mergeVisualState(previous, patch) {
+    const next = {
+      ...previous,
+      characters: Array.isArray(previous.characters) ? [...previous.characters] : []
+    };
+
+    if (Object.prototype.hasOwnProperty.call(patch, "mode")) next.mode = patch.mode || "dialogue";
+    if (Object.prototype.hasOwnProperty.call(patch, "background")) {
+      next.background = patch.background || null;
+      if (patch.background) next.cg = null;
+    }
+    if (Object.prototype.hasOwnProperty.call(patch, "cg")) {
+      next.cg = patch.cg || null;
+      if (patch.cg) next.background = null;
+    }
+    if (Object.prototype.hasOwnProperty.call(patch, "characters")) {
+      next.characters = Array.isArray(patch.characters) ? [...patch.characters] : [];
+    }
+    if (Object.prototype.hasOwnProperty.call(patch, "focus")) next.focus = patch.focus || null;
+    if (Object.prototype.hasOwnProperty.call(patch, "portrait")) next.portrait = patch.portrait || null;
+    if (Object.prototype.hasOwnProperty.call(patch, "portraitExpression")) {
+      next.portraitExpression = patch.portraitExpression || null;
+      if (next.portrait && next.portraitExpression) {
+        next.portrait = { ...next.portrait, expression: next.portraitExpression };
+      }
+    }
+
+    return next;
   }
 
   function applyVisual(visual) {
