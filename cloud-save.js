@@ -28,7 +28,7 @@ const firebaseConfig = {
 
 const CLOUD_META_KEY = "lifeRpgCloudMetaV01";
 const LOCAL_ROLLBACK_KEY = "lifeRpgLocalRollbackV01";
-const SAVE_SCHEMA_VERSION = 5;
+const SAVE_SCHEMA_VERSION = 6;
 const SAVE_DEBOUNCE_MS = 900;
 
 const firebaseApp = initializeApp(firebaseConfig);

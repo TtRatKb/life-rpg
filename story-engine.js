@@ -1,8 +1,8 @@
 (() => {
   "use strict";
 
-  const PACK_URL = "content/SP_001.dat";
-  const KEY = new TextEncoder().encode("LifeRPG-SP1-accidental-spoiler-shield");
+  const PACK_URL = "content/SP_002.dat";
+  const KEY = new TextEncoder().encode("LifeRPG-SP2-accidental-spoiler-shield-v2");
   let cache = null;
 
   async function loadPack() {
@@ -21,27 +21,28 @@
       decoded[i] = encrypted[i] ^ KEY[i % KEY.length];
     }
 
-    cache = JSON.parse(new TextDecoder().decode(decoded));
+    const parsed = JSON.parse(new TextDecoder().decode(decoded));
+    if (!parsed || parsed.packId !== "SP_002" || Number(parsed.schema || 0) < 2) {
+      throw new Error("Story pack format is not supported.");
+    }
+
+    cache = parsed;
     return cache;
   }
 
   function base64ToBytes(value) {
     const binary = atob(value);
     const bytes = new Uint8Array(binary.length);
-
-    for (let i = 0; i < binary.length; i += 1) {
-      bytes[i] = binary.charCodeAt(i);
-    }
-
+    for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
     return bytes;
-  }
-
-  function sceneById(pack, sceneId) {
-    return pack?.scenes?.find(scene => scene.id === sceneId) || null;
   }
 
   function orderedScenes(pack) {
     return [...(pack?.scenes || [])].sort((a, b) => Number(a.order || 0) - Number(b.order || 0));
+  }
+
+  function sceneById(pack, sceneId) {
+    return orderedScenes(pack).find(scene => scene.id === sceneId) || null;
   }
 
   function nextScene(pack, completedSceneIds = []) {
@@ -49,15 +50,20 @@
     return orderedScenes(pack).find(scene => !completed.has(scene.id)) || null;
   }
 
-  function memoryBySceneId(pack, sceneId) {
-    return sceneById(pack, sceneId)?.memory || null;
+  function playableNodes(scene, conditionMatches = () => true) {
+    return (scene?.nodes || []).filter(conditionMatches);
+  }
+
+  function beatCount(scene, conditionMatches = () => true) {
+    return playableNodes(scene, conditionMatches).length;
   }
 
   window.LifeRPGStoryEngine = {
     loadPack,
-    sceneById,
     orderedScenes,
+    sceneById,
     nextScene,
-    memoryBySceneId
+    playableNodes,
+    beatCount
   };
 })();

@@ -204,7 +204,7 @@
             <p class="eyebrow">MAIN STORY</p>
             <h1>Story</h1>
             <p class="lead">
-              Live your real life, earn Story Energy, then come back here to see what happens next.
+              Read it like a chapter, play it like an otome game. Story Energy unlocks scenes; choices inside them stay free.
             </p>
           </div>
           <div class="big-resource">🔥 <strong id="storyEnergyValueLarge">0</strong></div>
@@ -272,7 +272,7 @@
               </div>
               <span class="tiny-badge">Replay archive</span>
             </div>
-            <p class="muted memory-copy">Completed scenes are saved here as moments Luca actually remembers.</p>
+            <p class="muted memory-copy">Completed chapters become replayable memories. Your exact story position is autosaved while you read.</p>
             <div id="memoryList" class="empty-state compact">Nothing has been added to Memories yet.</div>
           </section>
 
@@ -623,35 +623,67 @@
     </div>
   </div>
 
-  <!-- STORY READER -->
-  <div id="storyReaderOverlay" class="story-reader-overlay hidden" aria-live="polite">
-    <section class="story-reader-shell" id="storyReaderShell" data-mood="default">
-      <header class="story-reader-topbar">
-        <div>
-          <p class="eyebrow" id="storyReaderLocation">STORY</p>
-          <h2 id="storyReaderSceneTitle">Scene</h2>
-        </div>
-        <button class="story-reader-close" id="storyReaderClose" aria-label="Close story">×</button>
-      </header>
-
-      <div class="story-stage">
-        <div class="story-stage-mark" id="storyStageMark">✦</div>
-        <div class="story-stage-caption" id="storyStageCaption"></div>
+  <!-- FULL-PAGE STORY READER -->
+  <section id="storyReaderPage" class="story-reader-page hidden" aria-live="polite">
+    <header class="story-reader-commandbar">
+      <button class="story-reader-back" id="storyReaderClose" type="button" aria-label="Leave story reader">← Back to Story</button>
+      <div class="story-reader-command-title">
+        <span id="storyReaderChapterLabel">Chapter</span>
+        <strong id="storyReaderSceneTitle">Story</strong>
       </div>
+      <div class="story-reader-command-energy">🔥 <strong id="storyReaderEnergy">0</strong></div>
+    </header>
 
-      <div class="story-dialogue-card">
-        <div class="story-speaker-row">
-          <span id="storySpeaker" class="story-speaker">Narration</span>
-          <span id="storyNodeType" class="story-node-type"></span>
-        </div>
-        <p id="storyDialogueText" class="story-dialogue-text"></p>
-        <div id="storyChoices" class="story-choices hidden"></div>
-        <button id="storyAdvanceButton" class="story-advance-button" type="button">
-          Continue <span>›</span>
-        </button>
-      </div>
-    </section>
-  </div>
+    <div class="story-reader-layout" id="storyReaderShell" data-mood="default">
+      <main class="story-reader-main">
+        <section id="storyVisualStage" class="story-visual-stage hidden" aria-hidden="true">
+          <div id="storyVisualBackdrop" class="story-visual-backdrop"></div>
+          <div id="storySpriteLeft" class="story-sprite story-sprite-left hidden"></div>
+          <div id="storySpriteRight" class="story-sprite story-sprite-right hidden"></div>
+        </section>
+
+        <article class="story-reading-card">
+          <div class="story-reading-meta">
+            <span id="storyReaderLocation">Story</span>
+            <span id="storyBeatLabel">Part 1</span>
+          </div>
+
+          <div id="storyBeatContent" class="story-prose"></div>
+          <div id="storyChoices" class="story-choices story-page-choices hidden"></div>
+
+          <footer class="story-reading-footer">
+            <span id="storyReaderSaveStatus" class="story-reader-save-status">Autosaved</span>
+            <button id="storyAdvanceButton" class="story-advance-button" type="button">
+              Continue <span>›</span>
+            </button>
+          </footer>
+        </article>
+      </main>
+
+      <aside class="story-reader-sidebar">
+        <section class="reader-side-card reader-side-progress">
+          <p class="eyebrow">CHAPTER PROGRESS</p>
+          <div class="row-between">
+            <span>Current chapter</span>
+            <strong id="storyReaderProgressLabel">1 / 1</strong>
+          </div>
+          <div class="progress large"><span id="storyReaderProgressBar"></span></div>
+        </section>
+
+        <section class="reader-side-card">
+          <p class="eyebrow">STORY ENERGY</p>
+          <strong class="reader-side-energy">🔥 <span id="storyReaderEnergySide">0</span></strong>
+          <p>Energy unlocks whole chapters. Reading and choices never consume extra energy.</p>
+        </section>
+
+        <section class="reader-side-card">
+          <p class="eyebrow">READING</p>
+          <p>Longer passages are grouped into natural story beats, so you can actually read instead of clicking after every sentence.</p>
+          <button class="secondary-button reader-side-exit" id="storyReaderExitSide" type="button">Exit to Story Hub</button>
+        </section>
+      </aside>
+    </div>
+  </section>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 

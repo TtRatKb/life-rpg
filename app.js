@@ -196,7 +196,7 @@
 
   function defaultState() {
     return {
-      version: 5,
+      version: 6,
       characterXP: 0,
       coins: 0,
       storyEnergy: 0,
@@ -355,7 +355,7 @@
     return {
       ...base,
       ...savedWithoutQuestLibrary,
-      version: 5,
+      version: 6,
       stats: { ...base.stats, ...(saved.stats || {}) },
       realms: { ...base.realms, ...(saved.realms || {}) },
       flags: { ...base.flags, ...(saved.flags || {}) },
@@ -396,7 +396,7 @@
       questId: migrateLegacyQuestId(log.questId)
     }));
 
-    state.version = 5;
+    state.version = 6;
     saveState();
   }
 
@@ -424,7 +424,7 @@
     if (state.flags.LOCATION_GYM_INTRODUCED) state.locations.gym = true;
     if (state.flags.LOCATION_AGENCY_INTRODUCED) state.locations.agency = true;
 
-    state.version = 5;
+    state.version = 6;
     saveState({ suppressCloud: Boolean(options.suppressCloud), source: options.source || "replace" });
     renderAll();
     return true;
