@@ -3860,7 +3860,7 @@ body.story-mode-open {
 .story-person-actions {
   grid-column: 1 / -1;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
   width: 100%;
 }
@@ -4215,5 +4215,28 @@ body.story-mode-open {
 @media (max-width: 680px) {
   .story-message-replies {
     width: 94%;
+  }
+}
+
+
+/* V0.11.0 — story-gated Hang Out action */
+.story-person-actions .hangout-button.locked {
+  color: #8c7b85;
+  border-color: rgba(91,63,78,.10);
+  background: rgba(242,235,239,.72);
+}
+
+.story-person-actions .hangout-button.ready {
+  color: #7d315c;
+  border-color: rgba(199,100,148,.22);
+  background: linear-gradient(180deg, rgba(255,250,252,.98), rgba(248,220,234,.52));
+}
+
+@media (max-width: 620px) {
+  .story-person-actions {
+    grid-template-columns: 1fr 1fr;
+  }
+  .story-person-actions .hangout-button {
+    grid-column: 1 / -1;
   }
 }
