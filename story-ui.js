@@ -82,7 +82,13 @@
   }
 
   function bindEvents() {
-    els.actionButton?.addEventListener("click", handleStoryAction);
+    document.addEventListener("click", event => {
+      const action = event.target.closest?.("#storyActionButton");
+      if (!action) return;
+      event.preventDefault();
+      event.stopPropagation();
+      handleStoryAction();
+    });
     els.close?.addEventListener("click", closeReader);
     els.exitSide?.addEventListener("click", closeReader);
     els.previous?.addEventListener("click", previousReader);
@@ -427,37 +433,58 @@
   function handleStoryAction() {
     if (!pack) return;
 
-    const state = app.getState();
-    const next = engine.nextScene(pack, state.story.completedSceneIds);
-    if (!next) {
-      const completedScenes = engine.orderedScenes(pack).filter(scene => state.story.completedSceneIds.includes(scene.id));
-      const latestCompleted = completedScenes.at(-1);
-      if (latestCompleted) openScene(latestCompleted.id, { replay: true });
-      return;
+    try {
+      const state = app.getState();
+      const next = engine.nextScene(pack, state.story.completedSceneIds);
+
+      if (!next) {
+        const completedScenes = engine.orderedScenes(pack).filter(scene => state.story.completedSceneIds.includes(scene.id));
+        const latestCompleted = completedScenes.at(-1);
+        if (latestCompleted) openScene(latestCompleted.id, { replay: true });
+        return;
+      }
+
+      if (!state.story.unlockedSceneIds.includes(next.id)) {
+        const cost = Number(next.cost || 0);
+        if (state.storyEnergy < cost) return;
+
+        state.storyEnergy -= cost;
+        state.story.unlockedSceneIds.push(next.id);
+        state.story.activeSceneId = next.id;
+        state.story.readerStep = 0;
+        app.saveState({ source: "story-unlock" });
+      }
+
+      // Open first. A later dashboard render must never be able to block Story Mode.
+      const opened = openScene(next.id, { replay: false });
+      if (!opened) throw new Error("The story reader could not be opened.");
+
+      // Refresh hub/resource chrome after the reader is already visible. If another
+      // panel has a rendering problem, the story itself remains usable.
+      queueMicrotask(() => {
+        try {
+          app.renderAll();
+        } catch (error) {
+          console.error("Non-critical dashboard render failed after opening Story Mode", error);
+        }
+      });
+    } catch (error) {
+      console.error("Story start failed", error);
+      if (els.actionHint) {
+        els.actionHint.textContent = "Story start hit a UI error. Reload once; your save is safe. If this persists, the reader will fall back to text-only mode.";
+      }
+      if (els.actionButton) els.actionButton.disabled = false;
     }
-
-    if (!state.story.unlockedSceneIds.includes(next.id)) {
-      const cost = Number(next.cost || 0);
-      if (state.storyEnergy < cost) return;
-
-      state.storyEnergy -= cost;
-      state.story.unlockedSceneIds.push(next.id);
-      state.story.activeSceneId = next.id;
-      state.story.readerStep = 0;
-      app.saveState({ source: "story-unlock" });
-      app.renderAll();
-    }
-
-    openScene(next.id, { replay: false });
   }
 
   function openScene(sceneId, { replay = false } = {}) {
     const scene = engine.sceneById(pack, sceneId);
-    if (!scene) return;
+    if (!scene) return false;
 
     const state = app.getState();
-    if (!replay && !state.story.unlockedSceneIds.includes(sceneId)) return;
-    if (replay && !state.story.completedSceneIds.includes(sceneId)) return;
+    if (!replay && !state.story.unlockedSceneIds.includes(sceneId)) return false;
+    if (replay && !state.story.completedSceneIds.includes(sceneId)) return false;
+    if (!els.readerPage) throw new Error("Story reader markup is missing. Please refresh the updated index.html.");
 
     runtime = {
       sceneId,
@@ -485,6 +512,7 @@
     document.body.classList.add("story-mode-open");
     window.scrollTo({ top: 0, behavior: "instant" });
     renderReaderNode();
+    return true;
   }
 
   function closeReader() {
@@ -556,17 +584,33 @@
 
     const node = runtime.sequence[runtime.step];
     renderReaderChrome();
-    applyVisual(node.visual || {});
 
     els.choices.classList.add("hidden");
     els.choices.innerHTML = "";
     els.advance.classList.remove("hidden");
     els.advance.innerHTML = `Continue <span>›</span>`;
 
+    // Text and choices are the critical layer. Render them before optional art.
     if (node.type === "choice") {
       renderChoiceNode(node);
     } else {
       renderBeatNode(node);
+    }
+
+    try {
+      applyVisual(node.visual || {});
+    } catch (error) {
+      console.error("Story visual failed; continuing in text-only mode", error);
+      try {
+        clearSprites();
+        if (els.visualBackdrop) els.visualBackdrop.style.backgroundImage = "none";
+        if (els.visualStage) {
+          els.visualStage.classList.add("hidden");
+          els.visualStage.setAttribute("aria-hidden", "true");
+        }
+      } catch (_) {
+        // Text remains readable even if the optional visual layer is unavailable.
+      }
     }
   }
 
@@ -991,4 +1035,8 @@
   function escapeClass(value) {
     return String(value || "").replace(/[^a-z0-9_-]/gi, "");
   }
+
+  window.LifeRPGStoryUI = {
+    beginOrContinue: handleStoryAction
+  };
 })();
