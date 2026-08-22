@@ -217,29 +217,138 @@
           </div>
         </section>
 
-        <section class="dashboard-grid">
-          <section class="panel">
+        <section class="story-hub-grid">
+          <section class="panel route-panel">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">ROUTE PRESENCE</p>
+                <h3>Character routes</h3>
+              </div>
+              <span class="tiny-badge">Slow burn</span>
+            </div>
+
+            <div class="route-grid">
+              <article class="route-card route-card-bakugo">
+                <div class="route-card-top">
+                  <span class="route-emblem">💥</span>
+                  <span class="route-state">Active route</span>
+                </div>
+                <h4>Katsuki Bakugo</h4>
+                <p>Sharp edges, restrained attention, friction that absolutely means nothing. Obviously.</p>
+                <div class="route-tags">
+                  <span>Tension</span>
+                  <span>Denial</span>
+                  <span>Explosive chemistry</span>
+                </div>
+              </article>
+
+              <article class="route-card route-card-kirishima">
+                <div class="route-card-top">
+                  <span class="route-emblem">🪨</span>
+                  <span class="route-state">Active route</span>
+                </div>
+                <h4>Eijiro Kirishima</h4>
+                <p>Warmth, loyalty, easy closeness, and the kind of kindness that can get dangerous when feelings are involved.</p>
+                <div class="route-tags">
+                  <span>Comfort</span>
+                  <span>Pining</span>
+                  <span>Protective energy</span>
+                </div>
+              </article>
+
+              <article class="route-card route-card-secret">
+                <div class="route-card-top">
+                  <span class="route-emblem">♡</span>
+                  <span class="route-state">Future state</span>
+                </div>
+                <h4>Route Convergence</h4>
+                <p>Not every story has to be a choice between one person and another. The app remembers that, even if nobody else does yet.</p>
+                <div class="route-tags">
+                  <span>Poly possibility</span>
+                  <span>Hidden trigger logic</span>
+                  <span>No spoilers</span>
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <section class="panel heartbeat-panel">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">ROMANCE ENGINE</p>
+                <h3>What counts as payoff?</h3>
+              </div>
+            </div>
+
+            <div class="heartbeat-list">
+              <div class="heartbeat-item">
+                <span>⚡</span>
+                <div>
+                  <strong>Every unlock should feel rewarding.</strong>
+                  <p>Scene progress should almost always deliver closeness, tension, intimacy, jealousy, vulnerability, or some other emotional beat.</p>
+                </div>
+              </div>
+              <div class="heartbeat-item">
+                <span>🫣</span>
+                <div>
+                  <strong>Slow burn does not mean nothing happens.</strong>
+                  <p>Things keep happening. They just keep being denied, misunderstood, interrupted, forgotten, or rationalized.</p>
+                </div>
+              </div>
+              <div class="heartbeat-item">
+                <span>🎭</span>
+                <div>
+                  <strong>Choices stay inside the scene.</strong>
+                  <p>No premium answer nonsense. Story Energy unlocks the scene itself, not the good dialogue option.</p>
+                </div>
+              </div>
+            </div>
+          </section>
+        </section>
+
+        <section class="dashboard-grid story-dashboard-grid">
+          <section class="panel story-scene-panel">
             <div class="panel-heading">
               <div>
                 <p class="eyebrow">NEXT SCENE</p>
-                <h3>Story slot</h3>
+                <h3>Scene terminal</h3>
               </div>
               <span class="tiny-badge">Spoiler-safe</span>
             </div>
-            <p class="muted">
+
+            <div class="scene-terminal">
+              <div class="scene-terminal-header">
+                <span class="scene-ping"></span>
+                <span>Awaiting unlock condition...</span>
+              </div>
+              <div class="scene-tease-list">
+                <article class="scene-tease-card">
+                  <small>Possible rewards</small>
+                  <strong>Forced proximity · accidental intimacy · emotional fallout</strong>
+                </article>
+                <article class="scene-tease-card">
+                  <small>Scene rules</small>
+                  <strong>Only current knowledge is shown here. Hidden triggers stay hidden.</strong>
+                </article>
+              </div>
+            </div>
+
+            <p class="muted story-terminal-copy">
               This slot will eventually show only information Luca currently knows. Hidden triggers and future content remain outside the normal interface.
             </p>
             <button class="primary-button" id="storyTestButton">Test unlock flow · 10 🔥</button>
             <div id="storyTestResult" class="soft-callout hidden"></div>
           </section>
 
-          <section class="panel">
+          <section class="panel memory-panel">
             <div class="panel-heading">
               <div>
                 <p class="eyebrow">MEMORIES</p>
                 <h3>Unlocked moments</h3>
               </div>
+              <span class="tiny-badge">Archive</span>
             </div>
+            <p class="muted memory-copy">Important moments should feel collectible — less like plain logs, more like scenes and emotional keepsakes.</p>
             <div id="memoryList" class="empty-state compact">Nothing has been added to Memories yet.</div>
           </section>
         </section>
