@@ -196,7 +196,7 @@
 
   function defaultState() {
     return {
-      version: 4,
+      version: 5,
       characterXP: 0,
       coins: 0,
       storyEnergy: 0,
@@ -225,6 +225,7 @@
         importedQuestIdByName("🎮 Intentional Gaming Session")
       ].filter(Boolean),
       completionLog: [],
+      externalCompletionLog: [],
       memories: [],
       flags: {
         STORY_ENGINE_READY: true
@@ -270,6 +271,7 @@
     roomGrid: byId("roomGrid"),
     roomMessage: byId("roomMessage"),
     socialPulse: byId("socialPulse"),
+    externalTaskTodaySummary: byId("externalTaskTodaySummary"),
 
     miniStats: byId("miniStats"),
     questLibrary: byId("questLibrary"),
@@ -297,6 +299,13 @@
     completeQuestTitle: byId("completeQuestTitle"),
     actualUnits: byId("actualUnits"),
     completePreview: byId("completePreview"),
+
+    externalTaskDialog: byId("externalTaskDialog"),
+    externalTaskForm: byId("externalTaskForm"),
+    externalTaskName: byId("externalTaskName"),
+    externalTaskEffort: byId("externalTaskEffort"),
+    externalTaskRealm: byId("externalTaskRealm"),
+    externalTaskPreview: byId("externalTaskPreview"),
 
     storyTestResult: byId("storyTestResult"),
 
@@ -346,7 +355,7 @@
     return {
       ...base,
       ...savedWithoutQuestLibrary,
-      version: 4,
+      version: 5,
       stats: { ...base.stats, ...(saved.stats || {}) },
       realms: { ...base.realms, ...(saved.realms || {}) },
       flags: { ...base.flags, ...(saved.flags || {}) },
@@ -359,6 +368,7 @@
         ? saved.selectedQuestIds
         : base.selectedQuestIds,
       completionLog: Array.isArray(saved.completionLog) ? saved.completionLog : [],
+      externalCompletionLog: Array.isArray(saved.externalCompletionLog) ? saved.externalCompletionLog : [],
       memories: Array.isArray(saved.memories) ? saved.memories : []
     };
   }
@@ -386,13 +396,38 @@
       questId: migrateLegacyQuestId(log.questId)
     }));
 
-    state.version = 4;
+    state.version = 5;
     saveState();
   }
 
-  function saveState() {
+  function saveState(options = {}) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     renderDevOutput();
+
+    if (!options.suppressCloud) {
+      window.dispatchEvent(new CustomEvent("life-rpg:state-saved", {
+        detail: { source: options.source || "app" }
+      }));
+    }
+  }
+
+  function replaceState(nextState, options = {}) {
+    if (!nextState || typeof nextState !== "object") return false;
+
+    state = mergeState(defaultState(), nextState);
+
+    if ("apartment" in state.locations) {
+      delete state.locations.apartment;
+    }
+
+    if (state.flags.LOCATION_SHARED_APARTMENT_INTRODUCED) state.locations.sharedApartment = true;
+    if (state.flags.LOCATION_GYM_INTRODUCED) state.locations.gym = true;
+    if (state.flags.LOCATION_AGENCY_INTRODUCED) state.locations.agency = true;
+
+    state.version = 5;
+    saveState({ suppressCloud: Boolean(options.suppressCloud), source: options.source || "replace" });
+    renderAll();
+    return true;
   }
 
   function populateFormOptions() {
@@ -405,6 +440,13 @@
     statSelect.innerHTML = Object.entries(STAT_META)
       .map(([key, meta]) => `<option value="${key}">${meta.icon} ${meta.label}</option>`)
       .join("");
+
+    if (els.externalTaskRealm) {
+      els.externalTaskRealm.innerHTML = Object.keys(REALM_META)
+        .map(realm => `<option>${escapeHtml(realm)}</option>`)
+        .join("");
+      els.externalTaskRealm.value = "Work";
+    }
   }
 
   function bindNavigation() {
@@ -476,6 +518,16 @@
       showToast("Opaque contact flag simulated.");
     });
 
+    byId("externalTaskButton")?.addEventListener("click", openExternalTaskDialog);
+    els.externalTaskEffort?.addEventListener("change", updateExternalTaskPreview);
+    els.externalTaskRealm?.addEventListener("change", updateExternalTaskPreview);
+    byId("confirmExternalTaskButton")?.addEventListener("click", event => {
+      event.preventDefault();
+      if (!els.externalTaskForm?.reportValidity()) return;
+      completeExternalTask();
+      els.externalTaskDialog?.close();
+    });
+
     byId("closeClearOverlay").addEventListener("click", () => {
       els.clearOverlay.classList.add("hidden");
     });
@@ -512,6 +564,7 @@
     renderLoadout();
     renderHome();
     renderSocialPulse();
+    renderExternalTaskSummary();
     renderStats();
     renderRealmCards();
     renderRealmFilters();
@@ -525,7 +578,7 @@
 
   function renderResources() {
     const levelInfo = getLevelInfo(state.characterXP);
-    const todayCount = getTodayCompletions().length;
+    const todayCount = getTodayRewardActionCount();
 
     els.levelValue.textContent = levelInfo.level;
     els.storyEnergyValue.textContent = state.storyEnergy;
@@ -543,7 +596,7 @@
     } else if (todayCount === 1) {
       els.rhythmLine.textContent = "Today already counts. Everything after this is extra.";
     } else {
-      els.rhythmLine.textContent = `${todayCount} quest clears today. You do not need to maximize the bar.`;
+      els.rhythmLine.textContent = `${todayCount} meaningful clears today. You do not need to maximize the bar.`;
     }
 
     els.homeSubtitle.textContent = state.locations.sharedApartment
@@ -946,7 +999,7 @@
 
     const target = questTarget(quest);
     const units = Math.max(.1, Number(els.actualUnits.value) || target);
-    const reward = calculateQuestReward(quest, units, getTodayCompletions().length);
+    const reward = calculateQuestReward(quest, units, getTodayRewardActionCount());
 
     els.completePreview.innerHTML = `
       <div class="reward-box"><strong>${reward.xp}</strong><small>⚔️ XP</small></div>
@@ -991,7 +1044,7 @@
     const reward = calculateQuestReward(
       quest,
       normalizedUnits,
-      getTodayCompletions().length
+      getTodayRewardActionCount()
     );
 
     state.characterXP += reward.xp;
@@ -1019,6 +1072,102 @@
     saveState();
     renderAll();
     showQuestClear(quest, reward);
+  }
+
+  function openExternalTaskDialog() {
+    if (!els.externalTaskDialog) return;
+    els.externalTaskName.value = "";
+    els.externalTaskEffort.value = "Normal";
+    els.externalTaskRealm.value = "Work";
+    updateExternalTaskPreview();
+    els.externalTaskDialog.showModal();
+  }
+
+  function externalTaskStatForRealm(realm) {
+    const map = {
+      Work: "confidence",
+      Health: "wellbeing",
+      Recovery: "wellbeing",
+      Home: "wellbeing",
+      Japanese: "japanese",
+      Knowledge: "knowledge",
+      Hobbies: "creativity"
+    };
+    return map[realm] || "confidence";
+  }
+
+  function calculateExternalTaskReward(effort, completedTodayCount) {
+    const base = {
+      "Low Energy": { xp: 10, statXP: 3, coins: 1 },
+      "Normal": { xp: 20, statXP: 7, coins: 2 },
+      "Boss": { xp: 35, statXP: 12, coins: 4 }
+    }[effort] || { xp: 20, statXP: 7, coins: 2 };
+
+    const storySchedule = [6, 5, 4];
+    return {
+      ...base,
+      storyEnergy: storySchedule[completedTodayCount] ?? 2
+    };
+  }
+
+  function updateExternalTaskPreview() {
+    if (!els.externalTaskPreview) return;
+    const effort = els.externalTaskEffort?.value || "Normal";
+    const realm = els.externalTaskRealm?.value || "Work";
+    const stat = externalTaskStatForRealm(realm);
+    const reward = calculateExternalTaskReward(effort, getTodayRewardActionCount());
+
+    els.externalTaskPreview.innerHTML = `
+      <div class="reward-box"><strong>${reward.xp}</strong><small>⚔️ XP</small></div>
+      <div class="reward-box"><strong>${reward.storyEnergy}</strong><small>🔥 Story</small></div>
+      <div class="reward-box"><strong>${reward.coins}</strong><small>🪙 Coins</small></div>
+      <div class="reward-box"><strong>${reward.statXP}</strong><small>${STAT_META[stat]?.icon || "✨"} Stat XP</small></div>
+    `;
+  }
+
+  function completeExternalTask() {
+    const effort = els.externalTaskEffort?.value || "Normal";
+    const realm = els.externalTaskRealm?.value || "Work";
+    const stat = externalTaskStatForRealm(realm);
+    const reward = calculateExternalTaskReward(effort, getTodayRewardActionCount());
+    const label = els.externalTaskName?.value.trim() || `${effort} external task`;
+
+    state.characterXP += reward.xp;
+    state.coins += reward.coins;
+    state.storyEnergy += reward.storyEnergy;
+    state.stats[stat] = (state.stats[stat] || 0) + reward.statXP;
+    state.realms[realm] = (state.realms[realm] || 0) + reward.xp;
+
+    state.externalCompletionLog.push({
+      id: `external-${Date.now()}`,
+      name: label,
+      effort,
+      realm,
+      xp: reward.xp,
+      stat,
+      statXP: reward.statXP,
+      storyEnergy: reward.storyEnergy,
+      coins: reward.coins,
+      source: "manual-external",
+      at: new Date().toISOString()
+    });
+
+    saveState();
+    renderAll();
+    showQuestClear({ name: label, stat }, reward);
+  }
+
+  function renderExternalTaskSummary() {
+    if (!els.externalTaskTodaySummary) return;
+    const today = getTodayExternalCompletions();
+
+    if (!today.length) {
+      els.externalTaskTodaySummary.innerHTML = `<span class="external-task-zero">No external task rewards claimed today.</span>`;
+      return;
+    }
+
+    const xp = today.reduce((sum, item) => sum + Number(item.xp || 0), 0);
+    els.externalTaskTodaySummary.innerHTML = `<strong>${today.length} task${today.length === 1 ? "" : "s"}</strong><span> · +${xp} XP claimed today</span>`;
   }
 
   function applyHiddenEngineChecks() {
@@ -1159,7 +1308,9 @@
       customQuestCount: state.customQuests.length,
       selectedQuestIds: state.selectedQuestIds,
       completionCount: state.completionLog.length,
-      todayCompletionCount: getTodayCompletions().length
+      externalCompletionCount: state.externalCompletionLog.length,
+      todayCompletionCount: getTodayCompletions().length,
+      todayExternalCompletionCount: getTodayExternalCompletions().length
     }, null, 2);
   }
 
@@ -1264,6 +1415,17 @@
     );
   }
 
+  function getTodayExternalCompletions() {
+    const today = localDateKey(new Date());
+    return state.externalCompletionLog.filter(log =>
+      localDateKey(new Date(log.at)) === today
+    );
+  }
+
+  function getTodayRewardActionCount() {
+    return getTodayCompletions().length + getTodayExternalCompletions().length;
+  }
+
   function getTodayUnitsForQuest(questId) {
     return getTodayCompletions()
       .filter(log => log.questId === questId)
@@ -1272,7 +1434,8 @@
 
   function getAdventureDayCount() {
     return new Set(
-      state.completionLog.map(log => localDateKey(new Date(log.at)))
+      [...state.completionLog, ...state.externalCompletionLog]
+        .map(log => localDateKey(new Date(log.at)))
     ).size;
   }
 
@@ -1310,7 +1473,9 @@
 
   window.LifeRPGApp = {
     getState: () => state,
+    getStorageKey: () => STORAGE_KEY,
     saveState,
+    replaceState,
     renderAll,
     showView,
     showToast,

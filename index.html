@@ -34,6 +34,10 @@
           <span>🪙</span>
           <strong id="coinsValue">0</strong>
         </div>
+        <button class="resource-pill cloud-resource-button" id="cloudStatusButton" type="button" aria-label="Open cloud save settings">
+          <span>☁️</span>
+          <strong id="cloudStatusShort">Local</strong>
+        </button>
       </div>
     </header>
 
@@ -121,6 +125,21 @@
                 </div>
               </div>
               <div id="socialPulse"></div>
+            </section>
+
+            <section class="panel external-task-panel">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">TODOIST / EXTERNAL</p>
+                  <h3>Task Clear</h3>
+                </div>
+                <span class="tiny-badge">Reward layer</span>
+              </div>
+              <p class="muted external-task-copy">
+                Keep deadlines and important tasks in Todoist. When you finish one, claim the game reward here — without copying the task into Life RPG.
+              </p>
+              <div id="externalTaskTodaySummary" class="external-task-summary"></div>
+              <button class="secondary-button external-task-button" id="externalTaskButton" type="button">Claim completed task</button>
             </section>
           </aside>
         </section>
@@ -327,6 +346,55 @@
           <div id="realmCards" class="realm-cards"></div>
         </section>
 
+        <section class="panel save-panel" id="savePanel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">SAVE SYSTEM</p>
+              <h2>Cloud & Backups</h2>
+            </div>
+            <span class="cloud-status-badge" id="cloudStatusBadge" data-state="local">Local only</span>
+          </div>
+
+          <div class="save-account-row">
+            <div class="save-account-avatar" id="cloudAccountAvatar">☁️</div>
+            <div class="save-account-copy">
+              <strong id="cloudAccountName">Not signed in</strong>
+              <span id="cloudAccountDetail">Your current save is safe in this browser. Sign in to sync it across devices.</span>
+            </div>
+          </div>
+
+          <div class="save-safety-grid">
+            <article>
+              <small>Local save</small>
+              <strong id="localSaveStatus">Active</strong>
+              <span>Every game action is saved immediately in this browser.</span>
+            </article>
+            <article>
+              <small>Cloud save</small>
+              <strong id="cloudSaveStatus">Signed out</strong>
+              <span id="cloudSaveDetail">Google sign-in enables cross-device sync.</span>
+            </article>
+            <article>
+              <small>Last cloud sync</small>
+              <strong id="cloudLastSync">—</strong>
+              <span>Cloud writes are versioned and protected from empty-save overwrites.</span>
+            </article>
+          </div>
+
+          <div class="save-actions">
+            <button class="primary-button" id="cloudSignInButton" type="button">Sign in with Google</button>
+            <button class="secondary-button hidden" id="cloudSyncButton" type="button">Sync now</button>
+            <button class="secondary-button" id="exportSaveButton" type="button">Export save</button>
+            <button class="secondary-button" id="importSaveButton" type="button">Import save</button>
+            <button class="text-button hidden" id="cloudSignOutButton" type="button">Sign out</button>
+            <input class="hidden" id="importSaveFile" type="file" accept="application/json,.json" />
+          </div>
+
+          <p class="muted save-help-text" id="cloudHelpText">
+            Local save stays enabled even when cloud sync is active. If cloud and local progress ever diverge, Life RPG asks before replacing either one.
+          </p>
+        </section>
+
         <section class="panel dev-panel">
           <div class="panel-heading">
             <div>
@@ -469,6 +537,81 @@
     </form>
   </dialog>
 
+  <!-- EXTERNAL TASK CLEAR -->
+  <dialog id="externalTaskDialog">
+    <form method="dialog" id="externalTaskForm">
+      <div class="dialog-heading">
+        <div>
+          <p class="eyebrow">EXTERNAL TASK CLEAR</p>
+          <h2>Claim a Todoist reward</h2>
+        </div>
+        <button class="close-button" value="cancel" aria-label="Close">×</button>
+      </div>
+
+      <p class="muted external-dialog-copy">
+        The actual task stays in Todoist. A label is optional and only becomes part of your private Life RPG save.
+      </p>
+
+      <label>
+        Task label (optional)
+        <input id="externalTaskName" maxlength="90" placeholder="e.g. Finish lesson plan" />
+      </label>
+
+      <div class="form-grid">
+        <label>
+          Effort
+          <select id="externalTaskEffort">
+            <option>Low Energy</option>
+            <option selected>Normal</option>
+            <option>Boss</option>
+          </select>
+        </label>
+
+        <label>
+          Realm
+          <select id="externalTaskRealm"></select>
+        </label>
+      </div>
+
+      <div id="externalTaskPreview" class="reward-preview"></div>
+
+      <p class="muted external-reward-note">Story Energy uses the same diminishing daily schedule as normal quests, so important work helps without making overwork the optimal strategy.</p>
+
+      <menu>
+        <button class="secondary-button" value="cancel">Cancel</button>
+        <button class="primary-button" id="confirmExternalTaskButton" value="default">Claim reward</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <!-- CLOUD CONFLICT -->
+  <dialog id="cloudConflictDialog" class="cloud-conflict-dialog">
+    <form method="dialog">
+      <div class="dialog-heading">
+        <div>
+          <p class="eyebrow">SAVE CONFLICT</p>
+          <h2>Two different saves exist</h2>
+        </div>
+      </div>
+      <p class="muted">Life RPG will not guess which progress to delete. Choose the save you want to keep.</p>
+      <div class="conflict-grid">
+        <article class="conflict-card">
+          <span class="conflict-label">THIS DEVICE</span>
+          <strong id="conflictLocalTitle">Local save</strong>
+          <p id="conflictLocalSummary">—</p>
+          <button class="secondary-button" id="conflictUseLocalButton" type="button">Keep this device</button>
+        </article>
+        <article class="conflict-card cloud">
+          <span class="conflict-label">CLOUD</span>
+          <strong id="conflictCloudTitle">Cloud save</strong>
+          <p id="conflictCloudSummary">—</p>
+          <button class="primary-button" id="conflictUseCloudButton" type="button">Use cloud save</button>
+        </article>
+      </div>
+      <p class="muted conflict-footnote">The save you replace is backed up first when possible.</p>
+    </form>
+  </dialog>
+
   <!-- QUEST CLEAR OVERLAY -->
   <div id="clearOverlay" class="clear-overlay hidden" aria-live="polite">
     <div class="clear-card">
@@ -516,5 +659,6 @@
   <script src="story-engine.js"></script>
   <script src="app.js"></script>
   <script src="story-ui.js"></script>
+  <script type="module" src="cloud-save.js"></script>
 </body>
 </html>
