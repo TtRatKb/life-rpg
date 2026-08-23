@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#321d34" />
   <title>Life RPG — Base Camp</title>
-  <link rel="stylesheet" href="styles.css?v=0.12.3" />
+  <link rel="stylesheet" href="styles.css?v=0.12.4" />
 </head>
 <body>
   <div class="ambient ambient-one"></div>
@@ -170,29 +170,69 @@
       </section>
 
       <!-- QUESTS -->
-      <section id="view-quests" class="view">
-        <header class="page-heading">
-          <div>
+      <section id="view-quests" class="view quest-view-v4">
+        <section class="quest-hero-v4">
+          <div class="quest-hero-copy-v4">
+            <div class="quest-board-stamp">✦ DAILY ADVENTURE BOARD ✦</div>
             <p class="eyebrow">REAL LIFE → GAME PROGRESS</p>
             <h1>Quest Board</h1>
             <p class="lead">
-              Build today's loadout, then log what you actually did. Real actions grow Luca's RPG stats.
+              Pick what fits the life you actually have today. Habits, hobbies, recovery and meaningful work all count as progress.
             </p>
-          </div>
-          <button class="primary-button" id="addQuestButton">+ New Quest</button>
-        </header>
 
-        <section class="panel quest-toolbar">
-          <div class="filter-group" id="realmFilters">
-            <button class="filter-chip active" data-realm-filter="All">All</button>
+            <div class="quest-loop-v4" aria-label="Quest flow">
+              <span><b>1</b> Choose</span>
+              <i>→</i>
+              <span><b>2</b> Do</span>
+              <i>→</i>
+              <span><b>3</b> Clear</span>
+              <i>→</i>
+              <span><b>4</b> Grow</span>
+            </div>
           </div>
-          <label class="search-field">
-            <span>⌕</span>
-            <input type="search" id="questSearch" placeholder="Search quests..." />
-          </label>
+
+          <aside class="quest-briefing-v4">
+            <div class="quest-briefing-mark">🌸</div>
+            <div>
+              <span class="quest-briefing-label">TODAY'S RULE</span>
+              <strong>Progress does not have to look productive.</strong>
+              <p>Recovery and Hobbies are real progression. Variable quests reward what you actually completed, not an imaginary perfect target.</p>
+            </div>
+            <button class="primary-button quest-create-v4" id="addQuestButton">＋ Create a Quest</button>
+          </aside>
         </section>
 
-        <div id="questLibrary" class="quest-library"></div>
+        <section class="panel quest-toolbar quest-toolbar-v4">
+          <div class="quest-toolbar-heading-v4">
+            <div>
+              <p class="eyebrow">BROWSE BY REALM</p>
+              <h2>Find your next quest</h2>
+            </div>
+            <label class="search-field quest-search-v4">
+              <span>⌕</span>
+              <input type="search" id="questSearch" placeholder="Search the quest library..." />
+            </label>
+          </div>
+          <div class="filter-group quest-filter-scroll-v4" id="realmFilters">
+            <button class="filter-chip active" data-realm-filter="All">All</button>
+          </div>
+        </section>
+
+        <section class="quest-library-shell-v4">
+          <div class="quest-library-heading-v4">
+            <div>
+              <p class="eyebrow">AVAILABLE QUESTS</p>
+              <h2>Quest Library</h2>
+              <p>Build a small loadout or simply clear something when it happens. Nothing here needs to become a daily obligation.</p>
+            </div>
+            <div class="quest-legend-v4" aria-label="Quest reward legend">
+              <span>✦ Character XP</span>
+              <span>🌸 Realm XP</span>
+              <span>🔥 Story Energy</span>
+            </div>
+          </div>
+          <div id="questLibrary" class="quest-library quest-library-v4"></div>
+        </section>
       </section>
 
       <!-- WORLD -->
