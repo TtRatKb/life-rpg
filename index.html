@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#321d34" />
   <title>Life RPG — Base Camp</title>
-  <link rel="stylesheet" href="styles.css?v=0.12.5" />
+  <link rel="stylesheet" href="styles.css?v=0.12.6" />
 </head>
 <body>
   <div class="ambient ambient-one"></div>
@@ -34,7 +34,7 @@
           <span>🪙</span>
           <strong id="coinsValue">0</strong>
         </div>
-        <button class="resource-pill cloud-resource-button" id="cloudStatusButton" type="button" aria-label="Open cloud save settings">
+        <button class="resource-pill cloud-resource-button" id="cloudStatusButton" data-view-target="settings" type="button" aria-label="Open cloud save settings">
           <span>☁️</span>
           <strong id="cloudStatusShort">Local</strong>
         </button>
@@ -551,7 +551,33 @@
           </section>
         </section>
 
-        <section class="panel save-panel" id="savePanel">
+      </section>
+
+      <!-- SETTINGS & SAVE SYSTEM -->
+      <section id="view-settings" class="view settings-view-v6">
+        <section class="settings-hero-v6">
+          <div class="settings-hero-copy-v6">
+            <p class="eyebrow">SYSTEM SANCTUARY</p>
+            <h1>Settings & Saves</h1>
+            <p class="lead">Keep the game pretty, the data boringly safe, and every bit of progress under your control.</p>
+            <div class="settings-principles-v6" aria-label="Save principles">
+              <span>✦ Local-first</span>
+              <span>☁ Cloud optional</span>
+              <span>◇ Export anytime</span>
+            </div>
+          </div>
+          <aside class="settings-hero-card-v6" aria-label="Save system summary">
+            <span class="settings-hero-icon-v6">☁</span>
+            <div>
+              <small>YOUR PROGRESS</small>
+              <strong>It stays yours.</strong>
+              <p>Life RPG keeps local saving active, can sync through Google, and asks before resolving divergent saves.</p>
+            </div>
+          </aside>
+        </section>
+
+        <section class="settings-grid-v6">
+        <section class="panel save-panel settings-save-panel-v6" id="savePanel">
           <div class="panel-heading">
             <div>
               <p class="eyebrow">SAVE SYSTEM</p>
@@ -599,6 +625,44 @@
             Local save stays enabled even when cloud sync is active. If cloud and local progress ever diverge, Life RPG asks before replacing either one.
           </p>
         </section>
+
+          <aside class="settings-side-v6">
+            <section class="panel settings-content-panel-v6">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">GAME DATA</p>
+                  <h2>Content stays separate</h2>
+                  <p class="panel-subcopy">UI updates should never quietly replace your real quests, story, or save data.</p>
+                </div>
+                <span class="settings-panel-mark-v6">✿</span>
+              </div>
+              <div class="settings-data-list-v6">
+                <article><span>☷</span><div><strong>Quest library</strong><small>Loaded from <code>data/quests.js</code>; visual redesigns do not rewrite it.</small></div></article>
+                <article><span>♡</span><div><strong>Story & social</strong><small>Main Story, Talks, Messages and Hangouts remain in the spoiler-safe story pack.</small></div></article>
+                <article><span>☁</span><div><strong>Save state</strong><small>Local and cloud progress keep the same save structure across this visual pass.</small></div></article>
+              </div>
+            </section>
+
+            <section class="panel dev-panel settings-dev-panel-v6">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">DEVELOPMENT</p>
+                  <h3>Spoiler-safe test mode</h3>
+                </div>
+                <label class="switch" aria-label="Toggle spoiler-safe developer mode">
+                  <input type="checkbox" id="devModeToggle" />
+                  <span></span>
+                </label>
+              </div>
+              <p class="muted">Shows engine state and opaque IDs only. It should never print unrevealed narrative text.</p>
+              <div id="devControls" class="dev-controls hidden">
+                <button class="secondary-button" id="testHomeUpgrade" type="button">Simulate narrative flag A</button>
+                <button class="secondary-button" id="testMinaContact" type="button">Simulate contact flag A</button>
+              </div>
+              <pre id="devOutput" class="dev-output hidden"></pre>
+            </section>
+          </aside>
+        </section>
       </section>
 
     </main>
@@ -615,6 +679,8 @@
       <div class="nav-section-label nav-section-social">SOCIAL</div>
       <button class="nav-button" data-view="people"><span>♧</span><small>People</small></button>
       <button class="nav-button" data-view="phone"><span>▣</span><small>Phone</small><b id="navPhoneUnread" class="nav-unread-badge hidden">0</b></button>
+      <div class="nav-section-label nav-section-system">SYSTEM</div>
+      <button class="nav-button" data-view="settings"><span>⚙</span><small>Settings</small></button>
       <div class="nav-profile-card" aria-hidden="true">
         <img src="assets/story/portraits/luca_neutral.png" alt="" />
         <div><strong>Luca</strong><span>30 · Math Teacher</span></div>
@@ -623,8 +689,8 @@
   </div>
 
   <!-- CREATE QUEST -->
-  <dialog id="questDialog">
-    <form method="dialog" id="questForm">
+  <dialog id="questDialog" class="rpg-dialog quest-create-dialog">
+    <form method="dialog" id="questForm" class="rpg-dialog-form">
       <div class="dialog-heading">
         <div>
           <p class="eyebrow">NEW QUEST</p>
@@ -706,8 +772,8 @@
   </dialog>
 
   <!-- COMPLETE QUEST -->
-  <dialog id="completeDialog">
-    <form method="dialog" id="completeForm">
+  <dialog id="completeDialog" class="rpg-dialog quest-complete-dialog">
+    <form method="dialog" id="completeForm" class="rpg-dialog-form">
       <input type="hidden" id="completeQuestId" />
 
       <div class="dialog-heading">
@@ -733,8 +799,8 @@
   </dialog>
 
   <!-- EXTERNAL TASK CLEAR -->
-  <dialog id="externalTaskDialog">
-    <form method="dialog" id="externalTaskForm">
+  <dialog id="externalTaskDialog" class="rpg-dialog external-task-dialog">
+    <form method="dialog" id="externalTaskForm" class="rpg-dialog-form">
       <div class="dialog-heading">
         <div>
           <p class="eyebrow">EXTERNAL TASK CLEAR</p>
@@ -780,7 +846,7 @@
   </dialog>
 
   <!-- CLOUD CONFLICT -->
-  <dialog id="cloudConflictDialog" class="cloud-conflict-dialog">
+  <dialog id="cloudConflictDialog" class="cloud-conflict-dialog rpg-dialog">
     <form method="dialog">
       <div class="dialog-heading">
         <div>
@@ -809,12 +875,14 @@
 
   <!-- QUEST CLEAR OVERLAY -->
   <div id="clearOverlay" class="clear-overlay hidden" aria-live="polite">
-    <div class="clear-card">
+    <div class="clear-card clear-card-v6">
+      <div class="clear-blossoms-v6" aria-hidden="true">✿　✦　✿</div>
       <span class="clear-spark">✦</span>
       <p class="eyebrow">QUEST CLEAR</p>
       <h2 id="clearQuestName">Done.</h2>
+      <p class="clear-subcopy-v6">Progress recorded. Your rewards are already part of the run.</p>
       <div id="clearRewards" class="clear-rewards"></div>
-      <button class="primary-button" id="closeClearOverlay">Nice ✨</button>
+      <button class="primary-button" id="closeClearOverlay" type="button">Continue ✨</button>
     </div>
   </div>
 

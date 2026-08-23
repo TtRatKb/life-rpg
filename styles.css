@@ -6180,3 +6180,499 @@ dialog:not(.story-phone-dialog)::backdrop { background: rgba(49,29,50,.44); }
   .memory-archive-v5 .story-memory-card { grid-template-columns: 48px minmax(0,1fr); }
   .memory-archive-v5 .story-memory-mark { width: 48px; height: 48px; border-radius: 15px; }
 }
+
+/* ============================================================
+   V0.12.6 — Settings, Dialogs & Consistency Polish
+   ============================================================ */
+
+/* Settings becomes a first-class destination instead of being buried in Growth. */
+.settings-view-v6 {
+  display: grid;
+  gap: 22px;
+}
+
+.settings-hero-v6 {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(300px, .75fr);
+  gap: 22px;
+  min-height: 250px;
+  padding: 34px 36px;
+  overflow: hidden;
+  border: 1px solid rgba(102, 63, 95, .11);
+  border-radius: 30px;
+  background:
+    radial-gradient(circle at 8% 18%, rgba(237, 147, 181, .17), transparent 19rem),
+    radial-gradient(circle at 92% 12%, rgba(126, 89, 132, .10), transparent 15rem),
+    linear-gradient(135deg, rgba(255, 252, 249, .98), rgba(251, 233, 241, .90));
+  box-shadow: 0 18px 48px rgba(74, 42, 69, .08);
+}
+.settings-hero-v6::before,
+.settings-hero-v6::after {
+  position: absolute;
+  color: rgba(203, 92, 137, .11);
+  font-family: Georgia, serif;
+  pointer-events: none;
+}
+.settings-hero-v6::before { content: "✿"; left: -22px; bottom: -42px; font-size: 8rem; transform: rotate(-18deg); }
+.settings-hero-v6::after { content: "✿  ·  ✧"; right: 32px; top: 18px; font-size: 1.35rem; letter-spacing: 7px; }
+.settings-hero-copy-v6 {
+  position: relative;
+  z-index: 1;
+  align-self: center;
+  max-width: 720px;
+}
+.settings-hero-copy-v6 h1 { margin: 5px 0 12px; }
+.settings-hero-copy-v6 .lead { max-width: 670px; margin-bottom: 20px; }
+.settings-principles-v6 {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.settings-principles-v6 span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 6px 11px;
+  border: 1px solid rgba(111, 69, 103, .10);
+  border-radius: 999px;
+  color: #8e4b69;
+  background: rgba(255, 255, 255, .68);
+  font-size: .72rem;
+  font-weight: 720;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.85);
+}
+.settings-hero-card-v6 {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 68px minmax(0,1fr);
+  align-items: center;
+  gap: 15px;
+  align-self: center;
+  padding: 21px;
+  border: 1px solid rgba(105, 65, 98, .11);
+  border-radius: 22px;
+  background: rgba(255, 252, 250, .77);
+  box-shadow: 0 12px 30px rgba(73, 43, 69, .07), inset 0 1px 0 rgba(255,255,255,.86);
+  backdrop-filter: blur(14px);
+}
+.settings-hero-icon-v6 {
+  display: grid;
+  width: 68px;
+  height: 68px;
+  place-items: center;
+  border-radius: 22px;
+  color: #fff;
+  background: linear-gradient(145deg, #8f688c, #b96c91 55%, #db91aa);
+  box-shadow: 0 11px 24px rgba(118, 65, 103, .20);
+  font-size: 1.75rem;
+}
+.settings-hero-card-v6 small {
+  display: block;
+  margin-bottom: 4px;
+  color: #b35b7d;
+  font-size: .64rem;
+  font-weight: 800;
+  letter-spacing: .13em;
+}
+.settings-hero-card-v6 strong {
+  display: block;
+  color: var(--plum);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.42rem;
+  font-weight: 600;
+}
+.settings-hero-card-v6 p { margin: 7px 0 0; color: #7f6978; font-size: .77rem; line-height: 1.55; }
+
+.settings-grid-v6 {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(310px, .75fr);
+  gap: 20px;
+  align-items: start;
+}
+.settings-save-panel-v6 { margin: 0 !important; }
+.settings-save-panel-v6::after {
+  content: "☁";
+  position: absolute;
+  right: 18px;
+  bottom: 5px;
+  color: rgba(133, 91, 130, .055);
+  font-size: 6rem;
+  pointer-events: none;
+}
+.settings-side-v6 { display: grid; gap: 20px; }
+.settings-content-panel-v6,
+.settings-dev-panel-v6 { margin: 0 !important; }
+.settings-panel-mark-v6 {
+  color: #d16d92;
+  font-family: Georgia, serif;
+  font-size: 1.45rem;
+}
+.settings-data-list-v6 { display: grid; gap: 9px; }
+.settings-data-list-v6 article {
+  display: grid;
+  grid-template-columns: 40px minmax(0,1fr);
+  align-items: center;
+  gap: 10px;
+  padding: 11px 12px;
+  border: 1px solid rgba(107, 67, 100, .08);
+  border-radius: 16px;
+  background: rgba(255,255,255,.61);
+}
+.settings-data-list-v6 article > span {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border-radius: 13px;
+  color: #aa4f76;
+  background: #fbe7ed;
+  font-family: Georgia, serif;
+  font-size: 1.08rem;
+}
+.settings-data-list-v6 strong { display: block; color: #52384d; font-size: .78rem; }
+.settings-data-list-v6 small { display: block; margin-top: 3px; color: #8d7785; font-size: .66rem; line-height: 1.45; }
+.settings-data-list-v6 code {
+  padding: 1px 4px;
+  border-radius: 5px;
+  color: #744b69;
+  background: #f7edf1;
+  font-size: .62rem;
+}
+
+/* Save area: make status readable at a glance without changing cloud behavior. */
+.settings-save-panel-v6 .save-account-row {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(105, 65, 98, .09);
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(255,255,255,.78), rgba(250,236,242,.67));
+}
+.settings-save-panel-v6 .save-account-row::after {
+  content: "✿";
+  position: absolute;
+  right: 14px;
+  top: -12px;
+  color: rgba(206, 99, 141, .09);
+  font-size: 4.5rem;
+  pointer-events: none;
+}
+.settings-save-panel-v6 .save-account-avatar {
+  position: relative;
+  z-index: 1;
+  border: 1px solid rgba(120, 74, 111, .11);
+  background: linear-gradient(145deg, #fff, #f5e6ee);
+  box-shadow: 0 8px 20px rgba(77, 45, 71, .07);
+}
+.settings-save-panel-v6 .save-safety-grid article {
+  position: relative;
+  overflow: hidden;
+  min-height: 132px;
+  border: 1px solid rgba(107, 67, 100, .09);
+  border-radius: 17px;
+  background: rgba(255,255,255,.64);
+}
+.settings-save-panel-v6 .save-safety-grid article::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: linear-gradient(180deg, #e2789e, #b888ae);
+}
+.settings-save-panel-v6 .save-actions {
+  padding-top: 14px;
+  border-top: 1px solid rgba(105, 65, 98, .08);
+}
+.cloud-resource-button[data-view-target="settings"] { cursor: pointer; }
+.cloud-resource-button[data-view-target="settings"]:hover { border-color: rgba(195, 91, 132, .21); background: #fff7fa; }
+
+/* Restored spoiler-safe development controls receive the same visual language. */
+.settings-dev-panel-v6 .switch span { background: #eadde5; }
+.settings-dev-panel-v6 .switch input:checked + span { background: #d96f98; }
+.settings-dev-panel-v6 .dev-controls {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+}
+.settings-dev-panel-v6 .dev-controls.hidden,
+.settings-dev-panel-v6 .dev-output.hidden { display: none; }
+.settings-dev-panel-v6 .dev-output {
+  max-height: 220px;
+  margin-top: 12px;
+  padding: 12px;
+  overflow: auto;
+  border: 1px solid rgba(105,65,98,.10);
+  border-radius: 14px;
+  color: #6e5569;
+  background: #f8f1f4;
+  font-size: .65rem;
+}
+
+/* Dialog framework ------------------------------------------------ */
+.rpg-dialog:not(.story-phone-dialog) {
+  width: min(650px, calc(100vw - 28px));
+  max-height: min(88vh, 860px);
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid rgba(100, 60, 94, .14);
+  border-radius: 25px;
+  background:
+    radial-gradient(circle at 100% 0, rgba(231, 135, 170, .13), transparent 14rem),
+    #fffaf8;
+  box-shadow: 0 34px 90px rgba(53, 29, 50, .28);
+}
+.rpg-dialog:not(.story-phone-dialog)::backdrop {
+  background: rgba(43, 24, 43, .52);
+  backdrop-filter: blur(5px);
+}
+.rpg-dialog-form {
+  position: relative;
+  max-height: min(88vh, 860px);
+  padding: 0 !important;
+  overflow: auto;
+}
+.rpg-dialog-form::before {
+  content: "✿   ✧";
+  position: absolute;
+  z-index: 0;
+  right: 22px;
+  top: 14px;
+  color: rgba(202, 92, 136, .12);
+  font-family: Georgia, serif;
+  font-size: 1.25rem;
+  letter-spacing: 6px;
+  pointer-events: none;
+}
+.rpg-dialog .dialog-heading {
+  position: sticky;
+  z-index: 4;
+  top: 0;
+  margin: 0 !important;
+  padding: 22px 24px 18px;
+  border-bottom: 1px solid rgba(102, 63, 95, .09);
+  background: rgba(255, 249, 247, .92);
+  backdrop-filter: blur(18px);
+}
+.rpg-dialog .dialog-heading h2,
+.rpg-dialog .dialog-heading h3 {
+  margin-top: 3px;
+  color: var(--plum);
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: 600;
+}
+.rpg-dialog .dialog-heading .close-button {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border: 1px solid rgba(104, 64, 97, .10);
+  border-radius: 50%;
+  color: #8d607b;
+  background: rgba(255,255,255,.72);
+}
+.rpg-dialog .dialog-heading .close-button:hover { color: #a54069; background: #fbe5ec; }
+.rpg-dialog-form > label,
+.rpg-dialog-form > .form-grid,
+.rpg-dialog-form > .reward-preview,
+.rpg-dialog-form > .muted,
+.rpg-dialog-form > menu {
+  position: relative;
+  z-index: 1;
+  margin-left: 24px;
+  margin-right: 24px;
+}
+.rpg-dialog-form > label:first-of-type { margin-top: 21px; }
+.rpg-dialog label {
+  color: #624b5c;
+  font-size: .72rem;
+  font-weight: 720;
+}
+.rpg-dialog input,
+.rpg-dialog select {
+  min-height: 43px;
+  border: 1px solid rgba(107, 67, 100, .13);
+  border-radius: 13px;
+  color: #4d3749;
+  background: rgba(255,255,255,.86);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.92);
+}
+.rpg-dialog input:focus,
+.rpg-dialog select:focus {
+  border-color: rgba(204, 89, 133, .45);
+  outline: 3px solid rgba(225, 112, 154, .10);
+}
+.rpg-dialog .form-grid { gap: 11px; }
+.rpg-dialog .reward-preview {
+  gap: 8px;
+  margin-top: 15px;
+  margin-bottom: 16px;
+}
+.rpg-dialog .reward-preview > * {
+  border: 1px solid rgba(107, 67, 100, .09);
+  border-radius: 14px;
+  background: linear-gradient(150deg, #fff, #f9edf2);
+}
+.rpg-dialog menu {
+  position: sticky !important;
+  z-index: 5 !important;
+  bottom: 0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 9px;
+  margin: 22px 0 0 !important;
+  padding: 16px 24px 20px;
+  border-top: 1px solid rgba(102, 63, 95, .09);
+  background: rgba(255, 249, 247, .94);
+  backdrop-filter: blur(18px);
+}
+.quest-complete-dialog { width: min(520px, calc(100vw - 28px)) !important; }
+.quest-complete-dialog .reward-preview { grid-template-columns: repeat(2, minmax(0,1fr)); }
+.external-task-dialog .external-dialog-copy { margin-top: 20px; }
+.external-task-dialog .external-reward-note {
+  padding: 11px 13px;
+  border: 1px solid rgba(109, 75, 102, .08);
+  border-radius: 13px;
+  background: #f8f0f4;
+}
+
+/* Conflict dialog: still explicit and safety-first, but now visually balanced. */
+.cloud-conflict-dialog.rpg-dialog { width: min(720px, calc(100vw - 28px)); padding: 22px !important; }
+.cloud-conflict-dialog.rpg-dialog form { padding: 0 !important; }
+.cloud-conflict-dialog.rpg-dialog .dialog-heading {
+  position: static;
+  margin: -22px -22px 18px !important;
+  padding: 22px;
+}
+.cloud-conflict-dialog.rpg-dialog > form > .muted { margin-left: 0; margin-right: 0; }
+.cloud-conflict-dialog .conflict-card {
+  min-height: 190px;
+  border-radius: 18px;
+  box-shadow: 0 8px 20px rgba(72, 41, 68, .04);
+}
+.cloud-conflict-dialog .conflict-card.cloud {
+  border-color: rgba(203, 89, 132, .18);
+  background: linear-gradient(150deg, #fff, #fbeaf0);
+}
+
+/* Quest-clear celebration overlay -------------------------------- */
+.clear-overlay {
+  background:
+    radial-gradient(circle at 50% 45%, rgba(229, 117, 159, .16), transparent 24rem),
+    rgba(49, 28, 48, .58);
+  backdrop-filter: blur(7px);
+}
+.clear-card-v6 {
+  position: relative;
+  width: min(500px, calc(100vw - 28px));
+  padding: 35px 30px 30px;
+  overflow: hidden;
+  border: 1px solid rgba(108, 66, 101, .13);
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at 50% -10%, rgba(235, 134, 171, .20), transparent 15rem),
+    linear-gradient(160deg, #fffdfb, #fbeaf0);
+  box-shadow: 0 34px 90px rgba(48, 25, 45, .30), inset 0 1px 0 rgba(255,255,255,.95);
+}
+.clear-card-v6::before,
+.clear-card-v6::after {
+  content: "✿";
+  position: absolute;
+  color: rgba(205, 89, 134, .10);
+  font-family: Georgia, serif;
+  font-size: 6.5rem;
+  pointer-events: none;
+}
+.clear-card-v6::before { left: -30px; bottom: -48px; transform: rotate(-24deg); }
+.clear-card-v6::after { right: -28px; top: -45px; transform: rotate(22deg); }
+.clear-blossoms-v6 {
+  margin: -6px 0 8px;
+  color: #dc789e;
+  font-size: .9rem;
+  letter-spacing: 3px;
+}
+.clear-card-v6 .clear-spark {
+  display: grid;
+  width: 62px;
+  height: 62px;
+  margin: 0 auto 14px;
+  place-items: center;
+  border: 1px solid rgba(194, 79, 123, .13);
+  border-radius: 20px;
+  color: #fff;
+  background: linear-gradient(145deg, #e780a5, #c95883);
+  box-shadow: 0 12px 26px rgba(190, 75, 118, .23);
+}
+.clear-card-v6 h2 {
+  margin: 3px 0 8px;
+  color: var(--plum);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(1.8rem, 5vw, 2.55rem);
+}
+.clear-subcopy-v6 { margin: 0 auto 17px; max-width: 360px; color: #846d7c; font-size: .76rem; line-height: 1.5; }
+.clear-card-v6 .clear-rewards {
+  position: relative;
+  z-index: 1;
+  gap: 8px;
+  margin-bottom: 19px;
+}
+.clear-card-v6 .clear-rewards > * {
+  border: 1px solid rgba(107, 67, 100, .09);
+  border-radius: 14px;
+  background: rgba(255,255,255,.70);
+  box-shadow: 0 6px 16px rgba(75,42,70,.04);
+}
+.clear-card-v6 #closeClearOverlay { position: relative; z-index: 1; min-width: 170px; }
+
+/* Cross-app micro-polish ------------------------------------------ */
+:focus-visible {
+  outline: 3px solid rgba(222, 105, 149, .24);
+  outline-offset: 2px;
+}
+::selection { color: #442f40; background: #f5cbd9; }
+.app-shell button,
+.rpg-dialog button { transition: transform .16s ease, box-shadow .16s ease, background .16s ease, border-color .16s ease; }
+.app-shell button:active:not(:disabled),
+.rpg-dialog button:active:not(:disabled) { transform: translateY(1px); }
+.app-shell .empty-state {
+  border-color: rgba(108, 66, 101, .09);
+  border-radius: 18px;
+  background: linear-gradient(145deg, rgba(255,255,255,.66), rgba(250,238,243,.58));
+}
+
+/* Nine destinations = balanced 3x3 dock on phones. */
+@media (max-width: 980px) {
+  .settings-hero-v6 { grid-template-columns: 1fr; }
+  .settings-grid-v6 { grid-template-columns: 1fr; }
+  .settings-hero-card-v6 { width: 100%; }
+}
+
+@media (max-width: 720px) {
+  .app-shell { padding-bottom: 164px; }
+  .bottom-nav { grid-template-columns: repeat(3, 1fr); }
+  .settings-hero-v6 { padding: 24px 20px; border-radius: 23px; }
+  .settings-hero-card-v6 { grid-template-columns: 56px minmax(0,1fr); padding: 16px; border-radius: 18px; }
+  .settings-hero-icon-v6 { width: 56px; height: 56px; border-radius: 18px; font-size: 1.35rem; }
+  .settings-save-panel-v6 .save-safety-grid { grid-template-columns: 1fr; }
+  .rpg-dialog .dialog-heading { padding: 18px 18px 15px; }
+  .rpg-dialog-form > label,
+  .rpg-dialog-form > .form-grid,
+  .rpg-dialog-form > .reward-preview,
+  .rpg-dialog-form > .muted { margin-left: 18px; margin-right: 18px; }
+  .rpg-dialog menu { padding: 14px 18px 17px; }
+  .rpg-dialog .form-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 480px) {
+  .settings-principles-v6 { gap: 6px; }
+  .settings-principles-v6 span { font-size: .65rem; }
+  .settings-hero-card-v6 { grid-template-columns: 1fr; }
+  .settings-hero-icon-v6 { width: 48px; height: 48px; }
+  .rpg-dialog menu { flex-direction: column-reverse; }
+  .rpg-dialog menu button { width: 100%; }
+  .clear-card-v6 { padding: 29px 18px 24px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-shell *, .rpg-dialog *, .clear-overlay * { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
+}
