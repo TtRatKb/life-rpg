@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#321d34" />
   <title>Life RPG — Base Camp</title>
-  <link rel="stylesheet" href="styles.css?v=0.15.0" />
+  <link rel="stylesheet" href="styles.css?v=0.16.0" />
 </head>
 <body>
   <div class="ambient ambient-one"></div>
@@ -93,6 +93,7 @@
           <button data-view-target="habits"><span class="command-strip-icon">❀</span><span><strong>Habits</strong><small>Build consistency without punishment.</small></span><b>›</b></button>
           <button data-view-target="quests"><span class="command-strip-icon">☷</span><span><strong>Quest Board</strong><small>Choose what fits today.</small></span><b>›</b></button>
           <button data-view-target="adventures"><span class="command-strip-icon">✧</span><span><strong>Side Adventures</strong><small>Come back to things you actually want.</small></span><b>›</b></button>
+          <button data-view-target="library"><span class="command-strip-icon">📚</span><span><strong>Library</strong><small>Your books, without database homework.</small></span><b>›</b></button>
           <button data-view-target="people"><span class="command-strip-icon">♧</span><span><strong>People</strong><small>Talk, message, connect.</small></span><b>›</b></button>
           <button data-view-target="story"><span class="command-strip-icon">♡</span><span><strong>Main Story</strong><small>Spend energy when you're ready.</small></span><b>›</b></button>
         </section>
@@ -140,9 +141,10 @@
               <div id="dailyPicksEmpty" class="daily-picks-empty-v14">
                 <span>✿</span>
                 <strong>No giant menu yet.</strong>
-                <p>Do the short briefing first. Life RPG will narrow the Quest Board down to a tiny plan for today.</p>
+                <p>Do the short briefing first. Life RPG will narrow your Quests, Side Adventures and current books down to a tiny plan for today.</p>
               </div>
               <footer class="daily-picks-footer-v14 daily-picks-footer-v15">
+                <button class="text-button" data-view-target="library" type="button">Open Library →</button>
                 <button class="text-button" data-view-target="adventures" type="button">Open Side Adventures →</button>
                 <button class="text-button" data-view-target="quests" type="button">Browse the Quest Board →</button>
               </footer>
@@ -342,6 +344,81 @@
             <h3>No Side Adventures here yet.</h3>
             <p>Add something you genuinely want to return to. Books and games will get their own smarter libraries later; this version starts with projects and open-ended hobbies.</p>
             <button class="primary-button" id="adventureEmptyCreate" type="button">Create the first one</button>
+          </div>
+        </section>
+      </section>
+
+      <!-- LIBRARY -->
+      <section id="view-library" class="view library-view-v16">
+        <section class="library-hero-v16">
+          <div class="library-hero-copy-v16">
+            <span class="library-kicker-v16">📚 ONE ENTRY. THEN LET THE APP REMEMBER IT.</span>
+            <p class="eyebrow">YOUR LIBRARY</p>
+            <h1>Books without database homework.</h1>
+            <p class="lead">A title is enough to start. Categorize it in a few taps, add pages only when they become useful, and let Life RPG remember what you are actually reading.</p>
+            <div class="library-rule-row-v16" aria-label="Library rules">
+              <span><b>1</b> Add the title</span>
+              <span><b>2</b> Tap why it belongs here</span>
+              <span><b>3</b> Log reading, not metadata</span>
+              <span><b>4</b> Let the planner bring it back</span>
+            </div>
+          </div>
+          <aside class="library-hero-card-v16">
+            <div class="library-hero-symbol-v16">📖</div>
+            <div>
+              <small>QUICK ADD BY DEFAULT</small>
+              <strong>Only the title is required.</strong>
+              <p>Status, purpose and source are one-tap choices. Pages, series and notes stay optional until they are actually useful.</p>
+            </div>
+            <div class="library-hero-actions-v16">
+              <button class="primary-button" id="addBookButton" type="button">＋ Add a book</button>
+              <button class="secondary-button" id="bulkAddBooksButton" type="button">Paste a list</button>
+            </div>
+          </aside>
+        </section>
+
+        <section class="library-summary-grid-v16" aria-label="Library summary">
+          <article class="library-summary-card-v16"><span>📖</span><div><small>READING NOW</small><strong id="librarySummaryReading">0</strong></div></article>
+          <article class="library-summary-card-v16"><span>✦</span><div><small>WANT TO READ</small><strong id="librarySummaryWant">0</strong></div></article>
+          <article class="library-summary-card-v16"><span>✓</span><div><small>FINISHED</small><strong id="librarySummaryFinished">0</strong></div></article>
+        </section>
+
+        <section class="library-shell-v16">
+          <div class="library-heading-v16">
+            <div>
+              <p class="eyebrow">YOUR SHELVES</p>
+              <h2>What is actually in rotation?</h2>
+              <p class="panel-subcopy">“Reading” books can enter Today's Picks. Want-to-read books stay safely on the shelf until you deliberately start them.</p>
+            </div>
+            <div class="library-controls-v16">
+              <input id="librarySearch" type="search" placeholder="Search title, author, series…" aria-label="Search Library" />
+              <select id="libraryStatusFilter" aria-label="Filter Library by status">
+                <option value="reading">Reading now</option>
+                <option value="want">Want to Read</option>
+                <option value="paused">Paused</option>
+                <option value="finished">Finished</option>
+                <option value="dnf">DNF</option>
+                <option value="all">All books</option>
+              </select>
+              <button class="secondary-button" id="addBookButtonSecondary" type="button">＋ New book</button>
+            </div>
+          </div>
+
+          <div id="libraryRoleFilters" class="library-role-filters-v16" aria-label="Filter books by purpose">
+            <button class="active" type="button" data-library-role="all">All</button>
+            <button type="button" data-library-role="fun">🌸 For Fun</button>
+            <button type="button" data-library-role="knowledge">📚 Knowledge</button>
+            <button type="button" data-library-role="growth">✨ Personal Growth</button>
+            <button type="button" data-library-role="japanese">あ Japanese</button>
+            <button type="button" data-library-role="work">📎 Work</button>
+          </div>
+
+          <div id="libraryBoard" class="library-board-v16"></div>
+          <div id="libraryEmpty" class="library-empty-v16 hidden">
+            <span>📚</span>
+            <h3>Your Library is empty.</h3>
+            <p>Add one book in a few taps, or paste a whole list at once. Details like pages and series can wait until they are useful.</p>
+            <button class="primary-button" id="libraryEmptyCreate" type="button">Add the first book</button>
           </div>
         </section>
       </section>
@@ -815,6 +892,7 @@
               </div>
               <div class="settings-data-list-v6">
                 <article><span>☷</span><div><strong>Quest library</strong><small>Loaded from <code>data/quests.js</code>; visual redesigns do not rewrite it.</small></div></article>
+                <article><span>📚</span><div><strong>Books & reading logs</strong><small>Library items live inside the same save state, so local/cloud save and export carry them with the rest of the run.</small></div></article>
                 <article><span>♡</span><div><strong>Story & social</strong><small>Main Story, Talks, Messages and Hangouts remain in the spoiler-safe story pack.</small></div></article>
                 <article><span>☁</span><div><strong>Save state</strong><small>Local and cloud progress keep the same save structure across this visual pass.</small></div></article>
               </div>
@@ -850,6 +928,7 @@
       <button class="nav-button" data-view="habits"><span>❀</span><small>Habits</small></button>
       <button class="nav-button" data-view="quests"><span>☷</span><small>Quests</small></button>
       <button class="nav-button" data-view="adventures"><span>✧</span><small>Adventures</small></button>
+      <button class="nav-button" data-view="library"><span>📚</span><small>Library</small></button>
       <button class="nav-button" data-view="growth"><span>✦</span><small>Growth</small></button>
       <button class="nav-button" data-view="world"><span>◇</span><small>World</small></button>
       <div class="nav-section-label nav-section-story">STORY</div>
@@ -867,6 +946,139 @@
     </nav>
   </div>
 
+
+  <div id="libraryToast" class="library-toast-v16 hidden" role="status" aria-live="polite">
+    <span class="library-toast-mark-v16">📚</span>
+    <div><small>LIBRARY</small><strong id="libraryToastTitle">Saved.</strong><span id="libraryToastDetail">—</span></div>
+  </div>
+
+  <!-- ADD / EDIT BOOK -->
+  <dialog id="bookDialog" class="rpg-dialog book-dialog-v16">
+    <form id="bookForm" class="rpg-dialog-form book-form-v16">
+      <input type="hidden" id="bookEditId" />
+      <div class="dialog-heading">
+        <div><p class="eyebrow">LIBRARY QUICK ADD</p><h2 id="bookDialogTitle">Add a book</h2></div>
+        <button class="close-button" id="bookDialogClose" type="button" aria-label="Close">×</button>
+      </div>
+
+      <div class="library-minimal-note-v16"><span>✦</span><div><strong>Only the title is required.</strong><p>Everything below is there to make recommendations smarter — not to give you another admin job.</p></div></div>
+
+      <div class="form-grid library-title-row-v16">
+        <label>Title<input id="bookTitle" maxlength="180" placeholder="A Court of Thorns and Roses" required /></label>
+        <label>Author <span class="optional-label-v16">optional</span><input id="bookAuthor" maxlength="120" placeholder="Sarah J. Maas" /></label>
+      </div>
+
+      <fieldset class="library-choice-fieldset-v16">
+        <legend>Where is it right now?</legend>
+        <div class="library-choice-grid-v16 status">
+          <label><input type="radio" name="bookStatus" value="reading" /><span>📖<b>Reading</b></span></label>
+          <label><input type="radio" name="bookStatus" value="want" checked /><span>✦<b>Want to Read</b></span></label>
+          <label><input type="radio" name="bookStatus" value="paused" /><span>◷<b>Paused</b></span></label>
+          <label><input type="radio" name="bookStatus" value="finished" /><span>✓<b>Finished</b></span></label>
+          <label><input type="radio" name="bookStatus" value="dnf" /><span>×<b>DNF</b></span></label>
+        </div>
+      </fieldset>
+
+      <fieldset class="library-choice-fieldset-v16">
+        <legend>Why is this book in your life?</legend>
+        <p class="library-field-hint-v16">This is what lets the planner know whether a book belongs in Joy, Focus, Japanese, or Work — without duplicating it as a separate database entry.</p>
+        <div class="library-choice-grid-v16 roles">
+          <label><input type="radio" name="bookRole" value="fun" checked /><span>🌸<b>For Fun</b><small>fiction, comfort, because I want to</small></span></label>
+          <label><input type="radio" name="bookRole" value="knowledge" /><span>📚<b>Knowledge</b><small>nonfiction, learning, ideas</small></span></label>
+          <label><input type="radio" name="bookRole" value="growth" /><span>✨<b>Personal Growth</b><small>reflection, self-development</small></span></label>
+          <label><input type="radio" name="bookRole" value="japanese" /><span>あ<b>Japanese</b><small>study or immersion</small></span></label>
+          <label><input type="radio" name="bookRole" value="work" /><span>📎<b>Work</b><small>school / professional reading</small></span></label>
+        </div>
+      </fieldset>
+
+      <label>Where do you have it?
+        <select id="bookSource">
+          <option value="physical">📕 Physical</option>
+          <option value="kindle">▣ Kindle</option>
+          <option value="ku">∞ Kindle Unlimited</option>
+          <option value="borrowed">↗ Borrowed</option>
+          <option value="audio">🎧 Audiobook</option>
+          <option value="other">✦ Other</option>
+        </select>
+      </label>
+
+      <div id="bookQuickPreview" class="library-quick-preview-v16"></div>
+
+      <details id="bookAdvancedDetails" class="library-advanced-v16">
+        <summary><span>＋</span> Add useful details <small>pages, series, planner style, notes</small></summary>
+        <div class="library-advanced-body-v16">
+          <div class="form-grid">
+            <label>Total pages <span class="optional-label-v16">optional</span><input id="bookTotalPages" type="number" min="1" step="1" placeholder="496" /></label>
+            <label>Current page <span class="optional-label-v16">optional</span><input id="bookCurrentPage" type="number" min="0" step="1" placeholder="0" /></label>
+          </div>
+          <div class="form-grid">
+            <label>Series <span class="optional-label-v16">optional</span><input id="bookSeries" maxlength="140" placeholder="A Court of Thorns and Roses" /></label>
+            <label>Book # <span class="optional-label-v16">optional</span><input id="bookSeriesNumber" maxlength="12" placeholder="1" /></label>
+          </div>
+          <label class="library-check-v16"><input id="bookContinueSeries" type="checkbox" /><span><strong>I want to continue this series.</strong><small>The planner may use that as a reason to bring the current book back.</small></span></label>
+          <label>How should Today's Picks phrase a reading step?
+            <select id="bookPreferredGoal">
+              <option value="auto">Auto — choose a sensible small step</option>
+              <option value="pages">Pages</option>
+              <option value="chapter">One chapter</option>
+              <option value="minutes">Reading time</option>
+            </select>
+          </label>
+          <label>Private note <span class="optional-label-v16">optional</span><textarea id="bookNotes" rows="3" maxlength="600" placeholder="Anything worth remembering — not required for recommendations."></textarea></label>
+        </div>
+      </details>
+
+      <menu>
+        <button class="text-button danger-button hidden" id="deleteBookButton" type="button">Remove book</button>
+        <span class="menu-spacer"></span>
+        <button class="secondary-button" id="cancelBookButton" type="button">Cancel</button>
+        <button class="primary-button" type="submit">Save to Library</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <!-- BULK ADD BOOKS -->
+  <dialog id="bookBulkDialog" class="rpg-dialog book-bulk-dialog-v16">
+    <form id="bookBulkForm" class="rpg-dialog-form book-bulk-form-v16">
+      <div class="dialog-heading">
+        <div><p class="eyebrow">FAST TRANSFER</p><h2>Paste a whole shelf.</h2></div>
+        <button class="close-button" id="bookBulkClose" type="button" aria-label="Close">×</button>
+      </div>
+      <p class="muted">One book per line. Use <b>Title — Author</b>, <b>Title | Author</b>, or paste tab-separated title/author from a table. The whole batch gets the same three quick categories; details can wait.</p>
+      <label>Books<textarea id="bookBulkText" rows="10" placeholder="A Court of Thorns and Roses — Sarah J. Maas
+Project Hail Mary — Andy Weir
+..." required></textarea></label>
+      <div class="form-grid library-bulk-category-grid-v16">
+        <label>Status<select id="bookBulkStatus"><option value="want">Want to Read</option><option value="reading">Reading</option><option value="paused">Paused</option><option value="finished">Finished</option></select></label>
+        <label>Purpose<select id="bookBulkRole"><option value="fun">🌸 For Fun</option><option value="knowledge">📚 Knowledge</option><option value="growth">✨ Personal Growth</option><option value="japanese">あ Japanese</option><option value="work">📎 Work</option></select></label>
+        <label>Source<select id="bookBulkSource"><option value="physical">📕 Physical</option><option value="kindle">▣ Kindle</option><option value="ku">∞ Kindle Unlimited</option><option value="borrowed">↗ Borrowed</option><option value="audio">🎧 Audiobook</option><option value="other">✦ Other</option></select></label>
+      </div>
+      <div id="bookBulkPreview" class="library-bulk-preview-v16"></div>
+      <menu><button class="secondary-button" id="bookBulkCancel" type="button">Cancel</button><button class="primary-button" type="submit">Add all books</button></menu>
+    </form>
+  </dialog>
+
+  <!-- LOG READING -->
+  <dialog id="bookLogDialog" class="rpg-dialog book-log-dialog-v16">
+    <form id="bookLogForm" class="rpg-dialog-form book-log-form-v16">
+      <input id="bookLogId" type="hidden" />
+      <div class="dialog-heading">
+        <div><p class="eyebrow">READING LOG</p><h2 id="bookLogTitle">Book</h2></div>
+        <button class="close-button" id="bookLogClose" type="button" aria-label="Close">×</button>
+      </div>
+      <div id="bookLogPagesWrap" class="book-log-unit-v16">
+        <label>Pages read this time<input id="bookLogPages" type="number" min="0" step="1" placeholder="e.g. 17" /></label>
+        <div class="book-log-nudges-v16"><button type="button" data-book-log-field="pages" data-book-log-nudge="10">+10</button><button type="button" data-book-log-field="pages" data-book-log-nudge="25">+25</button><button type="button" data-book-log-field="pages" data-book-log-nudge="50">+50</button></div>
+      </div>
+      <div id="bookLogMinutesWrap" class="book-log-unit-v16 hidden">
+        <label>Minutes listened<input id="bookLogMinutes" type="number" min="0" step="1" placeholder="e.g. 30" /></label>
+        <div class="book-log-nudges-v16"><button type="button" data-book-log-field="minutes" data-book-log-nudge="15">+15</button><button type="button" data-book-log-field="minutes" data-book-log-nudge="30">+30</button><button type="button" data-book-log-field="minutes" data-book-log-nudge="60">+60</button></div>
+      </div>
+      <label class="library-check-v16"><input id="bookLogChapter" type="checkbox" /><span><strong>I finished a chapter.</strong><small>Useful when Today's Pick was “read one chapter”; page count can still stay optional.</small></span></label>
+      <div id="bookLogPreview" class="book-log-preview-v16"></div>
+      <menu><button class="secondary-button" id="bookLogCancel" type="button">Cancel</button><button class="primary-button" type="submit">Log reading</button></menu>
+    </form>
+  </dialog>
 
   <!-- DAILY BRIEFING -->
   <dialog id="dailyBriefingDialog" class="rpg-dialog daily-briefing-dialog-v14">
@@ -1406,7 +1618,8 @@
   <script src="app.js?v=0.9.3"></script>
   <script src="habits.js?v=0.13.1"></script>
   <script src="adventures.js?v=0.15.0"></script>
-  <script src="daily.js?v=0.15.0"></script>
+  <script src="library.js?v=0.16.0"></script>
+  <script src="daily.js?v=0.16.0"></script>
   <script src="story-ui.js?v=0.12.2"></script>
   <script type="module" src="cloud-save.js?v=0.9.3"></script>
 </body>
