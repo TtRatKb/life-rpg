@@ -241,12 +241,13 @@
         if (!entries.length) return "";
         const meta = DAYPARTS[key];
         const ready = entries.filter(snapshot => snapshot.canComplete).length;
+        const clear = daypartClearInfo(key, entries);
         return `
-          <section class="habit-daypart-section-v131" data-daypart="${key}">
+          <section class="habit-daypart-section-v131 ${clear.awarded ? "bonus-cleared-v23" : ""}" data-daypart="${key}">
             <header class="habit-daypart-heading-v131">
               <span class="habit-daypart-icon-v131">${meta.icon}</span>
               <div><small>${escapeHtml(daypartEyebrow(key))}</small><h3>${escapeHtml(meta.label)}</h3></div>
-              <span class="habit-daypart-count-v131">${ready ? `${ready} ready` : "clear"}</span>
+              <span class="habit-daypart-count-v131">${daypartStatusLabel(clear, ready)}</span>
             </header>
             <div class="habit-daypart-grid-v131">${entries.map(renderHabitCard).join("")}</div>
           </section>`;
@@ -282,6 +283,7 @@
         if (!entries.length) return "";
         const meta = DAYPARTS[key];
         const ready = entries.filter(snapshot => snapshot.canComplete).length;
+        const clear = daypartClearInfo(key, entries);
         const allDone = entries.every(snapshot => snapshot.completedToday || snapshot.periodComplete || !snapshot.canComplete);
         const isPast = key !== "anytime" && DAYPARTS[key].order < DAYPARTS[current].order;
         const compact = isPast && allDone;
@@ -290,7 +292,7 @@
             <header>
               <span>${meta.icon}</span>
               <strong>${escapeHtml(meta.label)}</strong>
-              <small>${compact ? "Done ✓" : ready ? `${ready} ready` : "Clear"}</small>
+              <small>${clear.awarded ? `Cleared +${formatEnergy(clear.rewardStoryEnergy)} 🔥` : compact ? "Done ✓" : clear.eligible ? `${clear.done}/${clear.total} · clear bonus` : ready ? `${ready} ready` : "Clear"}</small>
             </header>
             ${compact ? "" : `<div class="dashboard-habit-timeline-v131">${entries.map(renderDashboardHabit).join("")}</div>`}
           </section>`;
@@ -530,10 +532,11 @@
     provisional.deduped = Boolean(reward.deduped);
 
     state.habits.completions.push(provisional);
+    const daypartBonus = maybeAwardDaypartClear(normalizedDaypart(habit));
 
     persist("habit-complete");
     app.renderAll?.();
-    showHabitToast(habit, reward, streakAfter);
+    showHabitToast(habit, reward, streakAfter, daypartBonus);
 
     try {
       window.dispatchEvent(new CustomEvent("life-rpg:habit-complete", {
@@ -545,12 +548,13 @@
   }
 
 
-  function showHabitToast(habit, reward, streakAfter) {
+  function showHabitToast(habit, reward, streakAfter, daypartBonus = null) {
     if (!els.toast) return;
     if (els.toastTitle) els.toastTitle.textContent = habit.name;
     if (els.toastReward) {
       const streakText = streakAfter > 1 ? ` · ${streakAfter}-${streakUnitLabel(habit, 1)} streak` : "";
-      els.toastReward.textContent = `+${formatEnergy(reward.storyEnergy)} Story Energy · +${Number(reward.xp || 0)} XP${streakText}`;
+      const clearText = daypartBonus?.awarded ? ` · ${DAYPARTS[daypartBonus.daypart].label} cleared +${formatEnergy(daypartBonus.storyEnergy)} 🔥` : "";
+      els.toastReward.textContent = `+${formatEnergy(reward.storyEnergy)} Story Energy · +${Number(reward.xp || 0)} XP${streakText}${clearText}`;
     }
     els.toast.classList.remove("hidden");
     els.toast.classList.add("show");
@@ -559,6 +563,56 @@
       els.toast?.classList.remove("show");
       window.setTimeout(() => els.toast?.classList.add("hidden"), 180);
     }, 2400);
+  }
+
+
+  function daypartRewardEvent(daypart) {
+    const sourceId = `${todayKey()}:${daypart}`;
+    return (app.getState().rewardLedger?.events || []).find(event => event.source === "habit-daypart-clear" && event.sourceId === sourceId) || null;
+  }
+
+  function daypartClearInfo(daypart, snapshots = null) {
+    const source = Array.isArray(snapshots)
+      ? snapshots
+      : habitState().items.filter(habit => habit.active !== false && normalizedDaypart(habit) === daypart).map(snapshotForHabit);
+    const due = source.filter(snapshot => snapshot.completedToday || snapshot.canComplete);
+    const event = daypartRewardEvent(daypart);
+    const done = due.filter(snapshot => snapshot.completedToday).length;
+    return {
+      daypart,
+      total: due.length,
+      done,
+      eligible: due.length >= 2,
+      complete: due.length >= 2 && due.every(snapshot => snapshot.completedToday),
+      awarded: Boolean(event),
+      rewardStoryEnergy: Number(event?.storyEnergy || 0)
+    };
+  }
+
+  function daypartStatusLabel(info, ready) {
+    if (info.awarded) return `Cleared · +${formatEnergy(info.rewardStoryEnergy)} 🔥`;
+    if (info.eligible) return `${info.done}/${info.total} · clear bonus`;
+    return ready ? `${ready} ready` : "clear";
+  }
+
+  function maybeAwardDaypartClear(daypart) {
+    const info = daypartClearInfo(daypart);
+    if (!info.eligible || !info.complete || info.awarded) return null;
+    const sourceId = `${todayKey()}:${daypart}`;
+    const reward = app.awardActivity?.({
+      source: "habit-daypart-clear",
+      sourceId,
+      label: `${DAYPARTS[daypart]?.label || "Habit"} habits cleared`,
+      xp: 6,
+      realmXP: 0,
+      statXP: 0,
+      coins: 0,
+      storyEnergyBase: 0.6,
+      progressionRelevant: false,
+      metadata: { daypart, habitCount: info.total }
+    });
+    if (!reward) return null;
+    return { awarded: true, daypart, storyEnergy: Number(reward.storyEnergy || 0), xp: Number(reward.xp || 0) };
   }
 
   function openHabitDialog(habitId = null) {

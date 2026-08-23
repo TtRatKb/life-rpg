@@ -7,11 +7,17 @@
     return;
   }
 
-  const SCHEMA = 2;
+  const SCHEMA = 3;
   const SHADOW_KEY = "life-rpg-daily-planner-shadow-v1";
   const MAX_DAY_HISTORY = 120;
   const MAX_COMPANION_HISTORY = 45;
   const MAX_REROLL_MEMORY = 180;
+  const MAX_BATCHES_PER_DAY = 3;
+  const BATCH_BONUSES = [
+    { storyEnergyBase: 1.8, xp: 15, coins: 1 },
+    { storyEnergyBase: 1.2, xp: 10, coins: 1 },
+    { storyEnergyBase: 0.8, xp: 5, coins: 0 }
+  ];
   const LEGACY_LOADOUT_IDS = new Set(["q-work-focus", "q-home-clean", "q-recovery-gaming"]);
 
   const SLOTS = {
@@ -64,6 +70,7 @@
     picksPanel: byId("dailyPicksPanel"),
     picksEmpty: byId("dailyPicksEmpty"),
     picksCount: byId("dailyPicksCount"),
+    batchStatus: byId("dailyBatchStatus"),
     dialog: byId("dailyBriefingDialog"),
     form: byId("dailyBriefingForm"),
     dialogTitle: byId("dailyBriefingDialogTitle"),
@@ -95,6 +102,12 @@
     els.form?.addEventListener("submit", saveBriefing);
 
     document.addEventListener("click", event => {
+      const newBatch = event.target.closest?.("[data-daily-new-batch]");
+      if (newBatch) {
+        startNewBatch();
+        return;
+      }
+
       const reroll = event.target.closest?.("[data-daily-reroll]");
       if (reroll) {
         rerollSlot(reroll.dataset.dailyReroll);
@@ -211,6 +224,15 @@
       changed = true;
     }
 
+    if (!planner.migrations.dailyLifeV23) {
+      Object.values(planner.days || {}).forEach(day => {
+        if (!day || typeof day !== "object") return;
+        ensureDayBatchState(day);
+      });
+      planner.migrations.dailyLifeV23 = true;
+      changed = true;
+    }
+
     trimHistory(planner);
     writeShadow(planner);
     return changed;
@@ -288,11 +310,29 @@
     return plannerState().days[todayKey()] || null;
   }
 
+  let fullRefreshQueued = false;
+
   function render() {
     const day = todayRecord();
+    let bonusAwarded = false;
+    if (day?.checkIn) {
+      ensureDayBatchState(day);
+      bonusAwarded = maybeAwardBatchClear(day);
+    }
     renderBriefing(day);
     renderPicks(day);
+    renderBatchStatus(day);
     renderHeroButton(day);
+    if (bonusAwarded) queueFullRefresh();
+  }
+
+  function queueFullRefresh() {
+    if (fullRefreshQueued) return;
+    fullRefreshQueued = true;
+    requestAnimationFrame(() => {
+      fullRefreshQueued = false;
+      app.renderAll?.();
+    });
   }
 
   function renderHeroButton(day) {
@@ -351,7 +391,8 @@
       <div class="daily-capacity-note-v14 ${checkIn.gentle ? "gentle" : ""}">
         <span>${checkIn.gentle ? "♡" : "✿"}</span>
         <div><small>PLANNER READ</small><strong>${esc(capacity.title)}</strong><p>${esc(capacity.text)}</p></div>
-      </div>`;
+      </div>
+      ${momentNoteMarkup(checkIn)}`;
   }
 
   function capacityLabel(checkIn) {
@@ -394,7 +435,9 @@
     }
 
     els.picksEmpty.classList.add("hidden");
-    els.picksCount.textContent = `${picks.length} picked for today`;
+    const completed = picks.filter(pick => pickCompletion(pick).done).length;
+    const batch = Math.max(1, Number(day.batchIndex || 1));
+    els.picksCount.textContent = `Batch ${batch} · ${completed}/${picks.length} complete`;
     els.picks.innerHTML = picks.map(pickCardMarkup).join("");
   }
 
@@ -404,7 +447,8 @@
     if (pick.sourceType === "book") {
       const book = findBook(pick.sourceId);
       if (!book) return unavailablePickMarkup(pick, slot, "This book is no longer in the Library. Reroll this card to replace it.");
-      const done = bookTouchedToday(book.id);
+      const completion = pickCompletion(pick);
+      const done = completion.done;
       if (book.status !== "reading" && !done) return unavailablePickMarkup(pick, slot, "This book is no longer marked Reading. Reroll this card to replace it.");
       const progress = bookProgress(book);
       const role = bookRoleMeta(book.role);
@@ -417,13 +461,13 @@
           <div class="daily-pick-top-v14">
             <span class="daily-pick-icon-v14">${slot.icon}</span>
             <div><small>${slot.kicker}</small><strong>${slot.title}</strong></div>
-            ${done ? '<span class="daily-pick-done-v14">✓ Read today</span>' : ""}
+            ${done ? '<span class="daily-pick-done-v14">✓ Finish line</span>' : ""}
           </div>
           <div class="daily-pick-quest-v14">
             <div class="daily-adventure-meta-v15 daily-book-meta-v16">
               <span class="daily-realm-pill-v14">${role.icon} ${esc(role.label)}</span>
               <span class="daily-adventure-source-v15">📚 Library</span>
-              <span class="daily-adventure-progress-v15">${esc(progressLine)}</span>
+              <span class="daily-adventure-progress-v15">${esc(completion.progressText || progressLine)}</span>
             </div>
             <h3>${esc(book.title || "Untitled book")}</h3>
             ${book.author ? `<p class="daily-book-author-v16">${esc(book.author)}</p>` : ""}
@@ -440,7 +484,8 @@
     if (pick.sourceType === "game") {
       const game = findGame(pick.sourceId);
       if (!game) return unavailablePickMarkup(pick, slot, "This game is no longer in the Games shelf. Reroll this card to replace it.");
-      const done = gameTouchedToday(game.id);
+      const completion = pickCompletion(pick);
+      const done = completion.done;
       if (!["playing", "endless"].includes(game.status) && !done) return unavailablePickMarkup(pick, slot, "This game is no longer in active rotation. Reroll this card to replace it.");
       const role = gameRoleMeta(game.role);
       const goal = pick.gameGoal || gameGoal(game, pick.slot, todayRecord()?.checkIn || {});
@@ -453,13 +498,13 @@
           <div class="daily-pick-top-v14">
             <span class="daily-pick-icon-v14">${slot.icon}</span>
             <div><small>${slot.kicker}</small><strong>${slot.title}</strong></div>
-            ${done ? '<span class="daily-pick-done-v14">✓ Played today</span>' : ""}
+            ${done ? '<span class="daily-pick-done-v14">✓ Finish line</span>' : ""}
           </div>
           <div class="daily-pick-quest-v14">
             <div class="daily-adventure-meta-v15 daily-game-meta-v17">
               <span class="daily-realm-pill-v14">${role.icon} ${esc(role.label)}</span>
               <span class="daily-adventure-source-v15">🎮 Games</span>
-              <span class="daily-adventure-progress-v15">${esc(progressLine)}</span>
+              <span class="daily-adventure-progress-v15">${esc(completion.progressText || progressLine)}</span>
             </div>
             <h3>${esc(game.title || "Untitled game")}</h3>
             ${game.platform ? `<p class="daily-game-platform-v17">${esc(game.platform)}</p>` : ""}
@@ -476,7 +521,8 @@
     if (pick.sourceType === "adventure") {
       const adventure = findAdventure(pick.sourceId);
       if (!adventure) return unavailablePickMarkup(pick, slot, "This Side Adventure is no longer active. Reroll this card to replace it.");
-      const done = adventureTouchedToday(adventure.id);
+      const completion = pickCompletion(pick);
+      const done = completion.done;
       const progress = adventure.progressMode === "percent" ? clamp(Number(adventure.progress || 0), 0, 100) : null;
       const finishLine = pick.adventureGoal?.label || adventureGoal(adventure, pick.slot, todayRecord()?.checkIn || {}).label;
       return `
@@ -484,7 +530,7 @@
           <div class="daily-pick-top-v14">
             <span class="daily-pick-icon-v14">${slot.icon}</span>
             <div><small>${slot.kicker}</small><strong>${slot.title}</strong></div>
-            ${done ? '<span class="daily-pick-done-v14">✓ Touched today</span>' : ""}
+            ${done ? '<span class="daily-pick-done-v14">✓ Finish line</span>' : ""}
           </div>
           <div class="daily-pick-quest-v14">
             <div class="daily-adventure-meta-v15">
@@ -506,9 +552,10 @@
     const quest = findQuest(pick.sourceId);
     if (!quest) return unavailablePickMarkup(pick, slot, "This item is no longer in the Quest Board. Reroll this card to replace it.");
 
-    const progress = todayQuestUnits(quest.id);
+    const completion = pickCompletion(pick);
+    const progress = Number(completion.progress || 0);
     const goal = Number(pick.suggestedUnits || questTargetValue(quest));
-    const done = progress >= goal - 1e-9;
+    const done = completion.done;
     const unitLabel = friendlyUnitLabel(quest.unitLabel, goal);
     const goalText = goalLabel(quest, goal);
     const progressText = progress > 0 ? `${formatNumber(progress)} / ${formatNumber(goal)} ${unitLabel}` : goalText;
@@ -602,10 +649,19 @@
       companion: { id: companion.id },
       createdAt: existing.createdAt || Date.now(),
       updatedAt: Date.now(),
-      rerollHistory: existing.rerollHistory || { focus: [], joy: [], gentle: [] }
+      rerollHistory: existing.rerollHistory || { focus: [], joy: [], gentle: [] },
+      batchIndex: Math.max(1, Number(existing.batchIndex || 1)),
+      batchHistory: Array.isArray(existing.batchHistory) ? existing.batchHistory : [],
+      batchReward: existing.batchReward || null,
+      batchClearedAt: existing.batchClearedAt || null
     };
 
-    day.picks = buildPicks(checkIn, existing.picks || [], day.rerollHistory);
+    // Once a batch has been cleared, its three finished picks are part of today's
+    // reward history. Editing the check-in must not silently swap those picks
+    // while leaving the already-paid batch reward attached to them.
+    day.picks = existing.batchReward?.eventId && Array.isArray(existing.picks)
+      ? existing.picks
+      : buildPicks(checkIn, existing.picks || [], day.rerollHistory);
     planner.days[key] = day;
     recordCompanion(planner, key, companion.id);
     persist(existing.checkIn ? "daily-briefing-edit" : "daily-briefing-create");
@@ -617,7 +673,7 @@
     return els.form?.querySelector(`input[name="${name}"]:checked`)?.value || "";
   }
 
-  function buildPicks(checkIn, previousPicks = [], rerollHistory = {}) {
+  function buildPicks(checkIn, previousPicks = [], rerollHistory = {}, globalExcluded = new Set()) {
     const quests = eligibleQuests();
     const adventures = eligibleAdventures();
     const books = eligibleBooks();
@@ -632,7 +688,7 @@
 
     for (const slot of ["focus", "joy", "gentle"]) {
       const previous = previousBySlot[slot];
-      const excluded = new Set(rerollHistory[slot] || []);
+      const excluded = new Set([...(rerollHistory[slot] || []), ...globalExcluded]);
       const candidate = chooseSourceCandidate(slot, checkIn, quests, adventures, books, games, used, excluded, previous, usedTypes, usedRealms);
       if (!candidate) continue;
       used.add(sourceKey(candidate.sourceType, candidate.item.id));
@@ -706,7 +762,7 @@
         candidates.push({
           sourceType,
           item,
-          score: baseScore + memory + diversity + seededJitter(`${seed}|${sourceType}|${item.id}`)
+          score: baseScore + memory + diversity + momentAdjustment(sourceType, item, slot) + seededJitter(`${seed}|${sourceType}|${item.id}`)
         });
       };
 
@@ -776,7 +832,8 @@
       if (date === today) return;
       const age = daysBetweenDateKeys(date, today);
       if (age < 1 || age > 14) return;
-      (day?.picks || []).forEach(pick => {
+      const historical = Array.isArray(day?.batchHistory) ? day.batchHistory.flatMap(batch => batch?.picks || []) : [];
+      [...historical, ...(day?.picks || [])].forEach(pick => {
         const pickKey = sourceKey(pick.sourceType || "quest", pick.sourceId);
         if (pickKey === key) {
           daysSinceItem = Math.min(daysSinceItem, age);
@@ -808,7 +865,7 @@
         gameGoal: gameGoal(candidate.item, slot, checkIn),
         reason: reasonForGame(candidate.item, slot, checkIn),
         rerolls: Number(previous?.rerolls || 0),
-        pickedAt: Date.now()
+        pickedAt: previous?.sourceType === "game" && previous?.sourceId === candidate.item.id ? Number(previous.pickedAt || Date.now()) : Date.now()
       };
     }
     if (candidate.sourceType === "book") {
@@ -819,7 +876,7 @@
         bookGoal: bookGoal(candidate.item, slot, checkIn),
         reason: reasonForBook(candidate.item, slot, checkIn),
         rerolls: Number(previous?.rerolls || 0),
-        pickedAt: Date.now()
+        pickedAt: previous?.sourceType === "book" && previous?.sourceId === candidate.item.id ? Number(previous.pickedAt || Date.now()) : Date.now()
       };
     }
     if (candidate.sourceType === "adventure") {
@@ -830,7 +887,7 @@
         adventureGoal: adventureGoal(candidate.item, slot, checkIn),
         reason: reasonForAdventure(candidate.item, slot, checkIn),
         rerolls: Number(previous?.rerolls || 0),
-        pickedAt: Date.now()
+        pickedAt: previous?.sourceType === "adventure" && previous?.sourceId === candidate.item.id ? Number(previous.pickedAt || Date.now()) : Date.now()
       };
     }
     return makePick(slot, candidate.item, checkIn, previous);
@@ -844,7 +901,7 @@
       suggestedUnits: suggestedUnits(quest, slot, checkIn),
       reason: reasonFor(quest, slot, checkIn),
       rerolls: Number(previous?.rerolls || 0),
-      pickedAt: Date.now()
+      pickedAt: previous?.sourceType === "quest" && previous?.sourceId === quest.id ? Number(previous.pickedAt || Date.now()) : Date.now()
     };
   }
 
@@ -1423,14 +1480,15 @@
     };
   }
 
-  function companionMarkup(companion, { preview = false } = {}) {
+  function companionMarkup(companion, { preview = false, day = null } = {}) {
     const c = companion || companionById("luca");
+    const line = preview ? companionPreviewLine(c) : companionDoneLine(c, day);
     return `
       <div class="daily-companion-art-v14 ${escAttr(c.id)}">${companionImage(c)}</div>
       <div class="daily-companion-copy-v14">
         <small>${esc(c.kicker)}</small>
         <strong>${esc(c.name)}</strong>
-        <p>${esc(preview ? c.previewLine : c.doneLine)}</p>
+        <p>${esc(line)}</p>
       </div>`;
   }
 
@@ -1441,6 +1499,253 @@
 
   function dialogTitleFor(companion) {
     return companion?.id === "mina" ? "Quick status report." : "Let's make the day smaller.";
+  }
+
+
+  function ensureDayBatchState(day) {
+    if (!day || typeof day !== "object") return day;
+    if (!Number.isFinite(Number(day.batchIndex)) || Number(day.batchIndex) < 1) day.batchIndex = 1;
+    if (!Array.isArray(day.batchHistory)) day.batchHistory = [];
+    if (!day.rerollHistory || typeof day.rerollHistory !== "object") day.rerollHistory = { focus: [], joy: [], gentle: [] };
+    return day;
+  }
+
+  function pickStartMs(pick) {
+    const explicit = Number(pick?.pickedAt || 0);
+    if (Number.isFinite(explicit) && explicit > 0) return explicit;
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    return start.getTime();
+  }
+
+  function timeFromValue(value) {
+    if (typeof value === "number") return value;
+    const parsed = new Date(value || 0).getTime();
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  function pickCompletion(pick) {
+    if (!pick?.sourceId) return { done: false, progress: 0, progressText: "Not started" };
+    const start = pickStartMs(pick);
+    const type = pick.sourceType || "quest";
+
+    if (type === "book") {
+      const goal = pick.bookGoal || bookGoal(findBook(pick.sourceId) || {}, pick.slot, todayRecord()?.checkIn || {});
+      const logs = bookLogs(pick.sourceId).filter(log => timeFromValue(log.at) >= start);
+      if (goal.type === "chapter") {
+        const count = logs.filter(log => log.chapter).length;
+        return { done: count >= 1, progress: count, progressText: count ? "1 chapter complete" : "0 / 1 chapter" };
+      }
+      if (goal.type === "minutes") {
+        const amount = logs.reduce((sum, log) => sum + Math.max(0, Number(log.minutes || 0)), 0);
+        return { done: amount >= Number(goal.amount || 0), progress: amount, progressText: `${formatNumber(amount)} / ${formatNumber(goal.amount)} min` };
+      }
+      const pages = logs.reduce((sum, log) => sum + Math.max(0, Number(log.pages || 0)), 0);
+      return { done: pages >= Number(goal.amount || 0), progress: pages, progressText: `${formatNumber(pages)} / ${formatNumber(goal.amount)} pages` };
+    }
+
+    if (type === "game") {
+      const goal = pick.gameGoal || gameGoal(findGame(pick.sourceId) || {}, pick.slot, todayRecord()?.checkIn || {});
+      const minutes = gameLogs(pick.sourceId)
+        .filter(log => timeFromValue(log.at) >= start)
+        .reduce((sum, log) => sum + Math.max(0, Number(log.minutes || 0)), 0);
+      return { done: minutes >= Number(goal.minutes || 0), progress: minutes, progressText: `${formatDuration(minutes)} / ${formatDuration(goal.minutes || 0)}` };
+    }
+
+    if (type === "adventure") {
+      const logs = adventureLogs(pick.sourceId).filter(log => timeFromValue(log.at) >= start);
+      return { done: logs.length > 0, progress: logs.length, progressText: logs.length ? "Next action logged ✓" : "Next action still open" };
+    }
+
+    const goal = Number(pick.suggestedUnits || questTargetValue(findQuest(pick.sourceId) || {}));
+    const progress = (app.getState().completionLog || [])
+      .filter(log => log.questId === pick.sourceId && timeFromValue(log.at) >= start)
+      .reduce((sum, log) => sum + Math.max(0, Number(log.units || 0)), 0);
+    return { done: progress >= goal - 1e-9, progress, progressText: `${formatNumber(progress)} / ${formatNumber(goal)}` };
+  }
+
+  function currentBatchComplete(day) {
+    const picks = Array.isArray(day?.picks) ? day.picks : [];
+    return picks.length === 3 && picks.every(pick => pickCompletion(pick).done);
+  }
+
+  function maybeAwardBatchClear(day) {
+    if (!day?.checkIn) return false;
+    ensureDayBatchState(day);
+    if (!currentBatchComplete(day) || day.batchReward?.eventId) return false;
+    const batchIndex = Math.max(1, Number(day.batchIndex || 1));
+    const bonus = BATCH_BONUSES[Math.min(batchIndex - 1, BATCH_BONUSES.length - 1)];
+    const sourceId = `${day.date || todayKey()}:batch-${batchIndex}`;
+    const existing = (app.getState().rewardLedger?.events || []).find(event => event.source === "daily-batch-clear" && event.sourceId === sourceId);
+    const reward = existing ? {
+      eventId: existing.id,
+      storyEnergy: Number(existing.storyEnergy || 0),
+      rawStoryEnergy: Number(existing.rawStoryEnergy || 0),
+      xp: Number(existing.xp || 0),
+      coins: Number(existing.coins || 0)
+    } : app.awardActivity?.({
+      source: "daily-batch-clear",
+      sourceId,
+      label: `Today's Picks batch ${batchIndex} cleared`,
+      xp: bonus.xp,
+      realmXP: 0,
+      statXP: 0,
+      coins: bonus.coins,
+      storyEnergyBase: bonus.storyEnergyBase,
+      progressionRelevant: false,
+      metadata: { batchIndex, pickKeys: day.picks.map(pick => sourceKey(pick.sourceType || "quest", pick.sourceId)) }
+    });
+    if (!reward) return false;
+    day.batchReward = {
+      eventId: reward.eventId || existing?.id || null,
+      storyEnergy: Number(reward.storyEnergy || 0),
+      rawStoryEnergy: Number(reward.rawStoryEnergy || bonus.storyEnergyBase),
+      xp: Number(reward.xp || 0),
+      coins: Number(reward.coins || 0)
+    };
+    day.batchClearedAt = Date.now();
+    day.updatedAt = Date.now();
+    writeShadow(plannerState());
+    app.saveState({ source: "daily-batch-clear" });
+    return !existing;
+  }
+
+  function renderBatchStatus(day) {
+    if (!els.batchStatus) return;
+    if (!day?.checkIn || !Array.isArray(day.picks) || !day.picks.length) {
+      els.batchStatus.classList.add("hidden");
+      els.batchStatus.innerHTML = "";
+      return;
+    }
+    ensureDayBatchState(day);
+    const completed = day.picks.filter(pick => pickCompletion(pick).done).length;
+    const batchIndex = Math.max(1, Number(day.batchIndex || 1));
+    const fullBatch = day.picks.length === 3;
+    els.batchStatus.classList.remove("hidden");
+
+    if (fullBatch && completed === 3 && day.batchReward?.eventId) {
+      const reward = day.batchReward;
+      const canContinue = batchIndex < MAX_BATCHES_PER_DAY;
+      els.batchStatus.innerHTML = `
+        <div class="daily-batch-clear-v23">
+          <span class="daily-batch-clear-icon-v23">✦</span>
+          <div><small>BATCH ${batchIndex} CLEARED</small><strong>All three finish lines complete.</strong><p>Closure bonus: +${esc(app.formatEnergy?.(reward.storyEnergy) ?? reward.storyEnergy)} 🔥 · +${Number(reward.xp || 0)} XP${Number(reward.coins || 0) ? ` · +${Number(reward.coins)} 🪙` : ""}. Anything else today is extra.</p></div>
+          ${canContinue ? '<button class="secondary-button" type="button" data-daily-new-batch>Start another batch</button>' : '<span class="daily-batch-limit-v23">Three batches is plenty ✓</span>'}
+        </div>`;
+      return;
+    }
+
+    if (!fullBatch) {
+      els.batchStatus.innerHTML = `<div class="daily-batch-progress-v23"><span>✿</span><div><small>LIGHT PLAN</small><strong>${completed}/${day.picks.length} complete</strong><p>A batch-clear bonus appears only when the planner can build three useful picks. No need to fill the gap yourself.</p></div></div>`;
+      return;
+    }
+
+    const nextBonus = BATCH_BONUSES[Math.min(batchIndex - 1, BATCH_BONUSES.length - 1)];
+    els.batchStatus.innerHTML = `<div class="daily-batch-progress-v23"><span>${completed ? "✦" : "✿"}</span><div><small>BATCH ${batchIndex} · ${completed}/3</small><strong>${completed === 2 ? "One finish line left." : completed === 1 ? "One down. Two to go." : "Three things. Then stop if you want."}</strong><p>Clear all three for a completion bonus worth up to ${esc(app.formatEnergy?.(nextBonus.storyEnergyBase) ?? nextBonus.storyEnergyBase)} 🔥 before daily diminishing returns.</p></div></div>`;
+  }
+
+  function startNewBatch() {
+    const day = todayRecord();
+    if (!day?.checkIn) return;
+    ensureDayBatchState(day);
+    if (!currentBatchComplete(day) || !day.batchReward?.eventId) return;
+    if (Number(day.batchIndex || 1) >= MAX_BATCHES_PER_DAY) return;
+
+    const excluded = new Set();
+    (day.batchHistory || []).forEach(batch => (batch?.picks || []).forEach(pick => excluded.add(sourceKey(pick.sourceType || "quest", pick.sourceId))));
+    (day.picks || []).forEach(pick => excluded.add(sourceKey(pick.sourceType || "quest", pick.sourceId)));
+    const freshRerolls = { focus: [], joy: [], gentle: [] };
+    const nextPicks = buildPicks(day.checkIn, [], freshRerolls, excluded);
+    if (nextPicks.length < 3) {
+      app.showToast?.("No fresh full batch left today — anything else is bonus play.");
+      return;
+    }
+
+    day.batchHistory.push({
+      batchIndex: Number(day.batchIndex || 1),
+      picks: structuredCloneSafe(day.picks || []),
+      reward: { ...(day.batchReward || {}) },
+      clearedAt: day.batchClearedAt || Date.now()
+    });
+    day.batchHistory = day.batchHistory.slice(-8);
+    day.batchIndex = Number(day.batchIndex || 1) + 1;
+    day.picks = nextPicks;
+    day.rerollHistory = freshRerolls;
+    day.batchReward = null;
+    day.batchClearedAt = null;
+    day.updatedAt = Date.now();
+    persist("daily-new-batch");
+  }
+
+  function currentMoment() {
+    const hour = new Date().getHours();
+    if (hour < 12) return { id: "morning", icon: "☀️", label: "Morning", late: false };
+    if (hour < 18) return { id: "daytime", icon: "🌤️", label: "Daytime", late: false };
+    return { id: "evening", icon: "🌙", label: "Evening", late: hour >= 21 };
+  }
+
+  function momentNoteMarkup(checkIn) {
+    const moment = currentMoment();
+    let text = "Keep the next action bounded enough that you can actually start it.";
+    if (moment.id === "morning") text = checkIn.gentle ? "The morning does not need to become a rescue mission. Start small." : "Use the clearer part of the day for the pick that needs the most initiation.";
+    if (moment.id === "daytime") text = "The planner favors things that can fit into the day you are already having, not an imaginary perfect schedule.";
+    if (moment.id === "evening") text = moment.late ? "Late-evening picks strongly favor low setup and a clean stopping point." : "High-friction work gets a penalty now; recovery, hobbies and bounded tasks become more attractive.";
+    return `<div class="daily-moment-note-v23"><span>${moment.icon}</span><div><small>RIGHT NOW · ${esc(moment.label.toUpperCase())}</small><strong>${esc(text)}</strong></div></div>`;
+  }
+
+  function companionPreviewLine(companion) {
+    const moment = currentMoment();
+    if (companion?.id === "mina") {
+      if (moment.id === "morning") return "Occasionally, Mina checks in before the day gets away from both of you. Not every morning.";
+      if (moment.id === "evening") return "Sometimes Mina catches Luca at the edge of the day, when the useful question is mostly how much is left in the tank.";
+      return "Some days, Mina wanders into the check-in naturally. She still does not get access to the app's private planner brain.";
+    }
+    if (moment.id === "evening") return "Most days can end with Luca deciding what is still worth doing — and what can stay tomorrow's problem.";
+    return "Most days can simply begin with Luca checking in with herself.";
+  }
+
+  function companionDoneLine(companion, day) {
+    const checkIn = day?.checkIn || {};
+    const moment = currentMoment();
+    const low = checkIn.gentle || ["fumes", "low"].includes(checkIn.energy);
+    if (companion?.id === "mina") {
+      if (low) return "Okay. Small plan. We are not turning low battery into a character flaw.";
+      if (moment.id === "evening") return "Three things max, and I am vetoing any plan that somehow becomes a second workday.";
+      return "Good. Tiny plan. No turning this into a twelve-step self-improvement challenge.";
+    }
+    if (low) return "Keep the floor low. One finished thing counts more than an ambitious list you cannot enter.";
+    if (moment.id === "evening") return "The day already happened. Pick what still fits; do not negotiate with the whole backlog.";
+    return "Okay. That's enough information. Pick the next thing, not the whole life.";
+  }
+
+  function sourceEstimatedMinutes(type, item) {
+    if (type === "quest") return estimatedMinutes(item);
+    if (type === "game") return Math.max(10, Number(item?.sessionMinutes || 45));
+    if (type === "adventure") return Math.max(10, Number(item?.sessionMinutes || 30));
+    if (type === "book") return item?.source === "audio" ? 20 : 25;
+    return 0;
+  }
+
+  function momentAdjustment(type, item, slot) {
+    const moment = currentMoment();
+    const realm = sourceRealm(type, item);
+    const minutes = sourceEstimatedMinutes(type, item);
+    let score = 0;
+    if (moment.id === "morning") {
+      if (slot === "focus" && ["Work", "Knowledge", "Japanese", "Health"].includes(realm)) score += 0.45;
+      if (slot === "gentle" && realm === "Recovery") score -= 0.15;
+      return score;
+    }
+    if (moment.id === "daytime") {
+      if (slot === "focus" && ["Home", "Health"].includes(realm)) score += 0.18;
+      return score;
+    }
+    if (slot === "focus" && realm === "Work") score -= moment.late ? 2.2 : 1.2;
+    if (slot === "focus" && minutes >= 60) score -= moment.late ? 2.0 : 0.9;
+    if (slot === "joy" && ["Hobbies", "Recovery"].includes(realm)) score += 0.65;
+    if (slot === "gentle" && realm === "Recovery") score += 0.75;
+    if (moment.late && minutes >= 45) score -= 0.8;
+    return score;
   }
 
   function reasonForGame(game, slot, checkIn) {

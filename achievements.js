@@ -545,6 +545,7 @@
   }
 
   function meaningfulRewardEvent(event) {
+    if (event?.progressionRelevant === false) return false;
     return Number(event.xp || 0) > 0 || Number(event.storyEnergy || 0) > 0 || Number(event.coins || 0) > 0 || Number(event.realmXP || 0) > 0 || Number(event.statXP || 0) > 0;
   }
 

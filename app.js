@@ -254,7 +254,7 @@
     };
 
     for (const event of state.rewardLedger.events || []) {
-      if (!event || event.duplicate) continue;
+      if (!event || event.duplicate || event.progressionRelevant === false) continue;
       activity.total += 1;
       if (event.capability) activity.byCapability[event.capability] = Number(activity.byCapability[event.capability] || 0) + 1;
       if (event.realm) activity.byRealm[event.realm] = Number(activity.byRealm[event.realm] || 0) + 1;
@@ -298,7 +298,7 @@
         : null;
 
     return (state.rewardLedger.events || []).filter(event => {
-      if (!event || event.duplicate) return false;
+      if (!event || event.duplicate || event.progressionRelevant === false) return false;
       if (normalized.capability && event.capability !== normalized.capability) return false;
       if (normalized.realm && event.realm !== normalized.realm) return false;
       if (normalized.source && event.source !== normalized.source) return false;
@@ -625,6 +625,7 @@
       dedupeFamily,
       duplicate,
       duplicateOf: reward.duplicateOf,
+      progressionRelevant: spec.progressionRelevant !== false,
       at: safeDate.toISOString(),
       metadata: spec.metadata && typeof spec.metadata === "object" ? { ...spec.metadata } : null
     };
@@ -1944,7 +1945,7 @@
     ensureProgressionState();
     const today = localDateKey(new Date());
     return state.rewardLedger.events.filter(event => {
-      if (rewardEventDateKey(event) !== today || event.duplicate) return false;
+      if (rewardEventDateKey(event) !== today || event.duplicate || event.progressionRelevant === false) return false;
       return Number(event.xp || 0) > 0 || Number(event.storyEnergy || 0) > 0 || Number(event.coins || 0) > 0;
     }).length;
   }
