@@ -103,12 +103,23 @@
       const log = event.target.closest?.("[data-daily-log]");
       if (log) {
         openQuestLog(log.dataset.dailyLog, Number(log.dataset.dailyUnits || 0));
+        return;
+      }
+
+      const adventureLog = event.target.closest?.("[data-daily-adventure-log]");
+      if (adventureLog) {
+        window.LifeRPGAdventures?.openLog?.(adventureLog.dataset.dailyAdventureLog);
       }
     });
 
     window.addEventListener("life-rpg:render", () => {
       if (!initialized) return;
       ensureState();
+      render();
+    });
+
+    window.addEventListener("life-rpg:adventure-change", () => {
+      if (!initialized) return;
       render();
     });
   }
@@ -314,7 +325,7 @@
     if (!picks.length) {
       els.picks.innerHTML = `
         <div class="daily-no-candidates-v14">
-          <span>☷</span><div><strong>I couldn't build a useful set yet.</strong><p>Add a few quests to your library and the planner will have something concrete to choose from.</p></div>
+          <span>☷</span><div><strong>I couldn't build a useful set yet.</strong><p>Add a few quests or Side Adventures and the planner will have something concrete to choose from.</p></div>
         </div>`;
       els.picksEmpty.classList.add("hidden");
       els.picksCount.textContent = "No candidates";
@@ -328,15 +339,39 @@
 
   function pickCardMarkup(pick) {
     const slot = SLOTS[pick.slot] || SLOTS.focus;
-    const quest = findQuest(pick.sourceId);
-    if (!quest) {
+
+    if (pick.sourceType === "adventure") {
+      const adventure = findAdventure(pick.sourceId);
+      if (!adventure) return unavailablePickMarkup(pick, slot, "This Side Adventure is no longer active. Reroll this card to replace it.");
+      const done = adventureTouchedToday(adventure.id);
+      const progress = adventure.progressMode === "percent" ? clamp(Number(adventure.progress || 0), 0, 100) : null;
+      const finishLine = adventure.nextAction || "Spend one focused session on this.";
       return `
-        <article class="daily-pick-v14 ${slot.className} unavailable">
-          <div class="daily-pick-top-v14"><span class="daily-pick-icon-v14">${slot.icon}</span><div><small>${slot.kicker}</small><strong>${slot.title}</strong></div></div>
-          <p>This item is no longer in the Quest Board. Reroll this card to replace it.</p>
-          <button class="secondary-button" data-daily-reroll="${escAttr(pick.slot)}" type="button">↻ Another</button>
+        <article class="daily-pick-v14 ${slot.className} daily-adventure-pick-v15 ${done ? "done" : ""}">
+          <div class="daily-pick-top-v14">
+            <span class="daily-pick-icon-v14">${slot.icon}</span>
+            <div><small>${slot.kicker}</small><strong>${slot.title}</strong></div>
+            ${done ? '<span class="daily-pick-done-v14">✓ Touched today</span>' : ""}
+          </div>
+          <div class="daily-pick-quest-v14">
+            <div class="daily-adventure-meta-v15">
+              <span class="daily-realm-pill-v14">${realmIcon(adventure.realm)} ${esc(adventure.realm || "Hobbies")}</span>
+              <span class="daily-adventure-source-v15">✧ Side Adventure</span>
+              ${progress === null ? "" : `<span class="daily-adventure-progress-v15">${progress}% complete</span>`}
+            </div>
+            <h3>${esc(adventure.name || "Untitled adventure")}</h3>
+            <div class="daily-goal-v14"><span>✦</span><div><small>TODAY'S FINISH LINE</small><strong>${esc(finishLine)}</strong></div></div>
+            <p class="daily-pick-reason-v14"><b>Why this today?</b> ${esc(pick.reason || reasonForAdventure(adventure, pick.slot, todayRecord()?.checkIn || {}))}</p>
+          </div>
+          <div class="daily-pick-actions-v14">
+            <button class="primary-button" data-daily-adventure-log="${escAttr(adventure.id)}" type="button">${done ? "Log more" : "Log this step"}</button>
+            <button class="secondary-button" data-daily-reroll="${escAttr(pick.slot)}" type="button">↻ Not today</button>
+          </div>
         </article>`;
     }
+
+    const quest = findQuest(pick.sourceId);
+    if (!quest) return unavailablePickMarkup(pick, slot, "This item is no longer in the Quest Board. Reroll this card to replace it.");
 
     const progress = todayQuestUnits(quest.id);
     const goal = Number(pick.suggestedUnits || quest.target || 1);
@@ -362,6 +397,15 @@
           <button class="primary-button" data-daily-log="${escAttr(quest.id)}" data-daily-units="${goal}" type="button">${done ? "Log more" : "Log progress"}</button>
           <button class="secondary-button" data-daily-reroll="${escAttr(pick.slot)}" type="button">↻ Not today</button>
         </div>
+      </article>`;
+  }
+
+  function unavailablePickMarkup(pick, slot, message) {
+    return `
+      <article class="daily-pick-v14 ${slot.className} unavailable">
+        <div class="daily-pick-top-v14"><span class="daily-pick-icon-v14">${slot.icon}</span><div><small>${slot.kicker}</small><strong>${slot.title}</strong></div></div>
+        <p>${esc(message)}</p>
+        <button class="secondary-button" data-daily-reroll="${escAttr(pick.slot)}" type="button">↻ Another</button>
       </article>`;
   }
 
@@ -442,7 +486,8 @@
 
   function buildPicks(checkIn, previousPicks = [], rerollHistory = {}) {
     const quests = eligibleQuests();
-    if (!quests.length) return [];
+    const adventures = eligibleAdventures();
+    if (!quests.length && !adventures.length) return [];
 
     const picked = [];
     const used = new Set();
@@ -450,10 +495,11 @@
 
     for (const slot of ["focus", "joy", "gentle"]) {
       const previous = previousBySlot[slot];
-      const candidate = chooseCandidate(slot, checkIn, quests, used, new Set(rerollHistory[slot] || []), previous?.sourceId);
+      const excluded = new Set(rerollHistory[slot] || []);
+      const candidate = chooseSourceCandidate(slot, checkIn, quests, adventures, used, excluded, previous);
       if (!candidate) continue;
-      used.add(candidate.quest.id);
-      picked.push(makePick(slot, candidate.quest, checkIn, previous));
+      used.add(sourceKey(candidate.sourceType, candidate.item.id));
+      picked.push(makePickFromCandidate(slot, candidate, checkIn, previous));
     }
 
     return picked;
@@ -465,16 +511,58 @@
     return quests.filter(q => q && q.id && q.name && q.archived !== true && q.active !== false);
   }
 
-  function chooseCandidate(slot, checkIn, quests, used, excluded, currentId = "") {
-    let pool = quests.filter(q => !used.has(q.id) && !excluded.has(q.id) && q.id !== currentId);
-    if (!pool.length) pool = quests.filter(q => !used.has(q.id) && q.id !== currentId);
-    if (!pool.length) pool = quests.filter(q => !used.has(q.id));
-    if (!pool.length) return null;
+  function eligibleAdventures() {
+    const items = app.getState().sideAdventures?.items;
+    return Array.isArray(items) ? items.filter(item => item && item.id && item.name && item.status === "active") : [];
+  }
 
+  function chooseSourceCandidate(slot, checkIn, quests, adventures, used, excluded, previous = null) {
+    const currentKey = previous ? sourceKey(previous.sourceType || "quest", previous.sourceId) : "";
+    const currentId = previous?.sourceId || "";
     const seed = `${todayKey()}|${slot}|${Object.values(checkIn).join("|")}|${[...excluded].join(",")}`;
-    return pool
-      .map(quest => ({ quest, score: scoreQuest(quest, slot, checkIn) + seededJitter(`${seed}|${quest.id}`) }))
-      .sort((a, b) => b.score - a.score)[0];
+
+    const buildPool = relaxed => {
+      const candidates = [];
+      const allowQuest = quest => {
+        const key = sourceKey("quest", quest.id);
+        if (used.has(key)) return false;
+        if (!relaxed && (excluded.has(key) || excluded.has(quest.id) || key === currentKey || quest.id === currentId)) return false;
+        if (relaxed === 1 && (key === currentKey || quest.id === currentId)) return false;
+        return true;
+      };
+      const allowAdventure = item => {
+        const key = sourceKey("adventure", item.id);
+        if (used.has(key)) return false;
+        if (!relaxed && (excluded.has(key) || excluded.has(item.id) || key === currentKey || item.id === currentId)) return false;
+        if (relaxed === 1 && (key === currentKey || item.id === currentId)) return false;
+        return true;
+      };
+
+      quests.filter(allowQuest).forEach(quest => candidates.push({ sourceType: "quest", item: quest, score: scoreQuest(quest, slot, checkIn) + seededJitter(`${seed}|quest|${quest.id}`) }));
+      if (slot !== "focus") {
+        adventures.filter(allowAdventure).forEach(item => candidates.push({ sourceType: "adventure", item, score: scoreAdventure(item, slot, checkIn) + seededJitter(`${seed}|adventure|${item.id}`) }));
+      }
+      return candidates;
+    };
+
+    let pool = buildPool(0);
+    if (!pool.length) pool = buildPool(1);
+    if (!pool.length) pool = buildPool(2);
+    return pool.sort((a, b) => b.score - a.score)[0] || null;
+  }
+
+  function makePickFromCandidate(slot, candidate, checkIn, previous = null) {
+    if (candidate.sourceType === "adventure") {
+      return {
+        slot,
+        sourceType: "adventure",
+        sourceId: candidate.item.id,
+        reason: reasonForAdventure(candidate.item, slot, checkIn),
+        rerolls: Number(previous?.rerolls || 0),
+        pickedAt: Date.now()
+      };
+    }
+    return makePick(slot, candidate.item, checkIn, previous);
   }
 
   function makePick(slot, quest, checkIn, previous = null) {
@@ -535,6 +623,53 @@
     }
 
     return score;
+  }
+
+  function scoreAdventure(item, slot, checkIn) {
+    const capacity = effectiveCapacity(checkIn);
+    const demand = adventureDemand(item);
+    const duration = Number(item.sessionMinutes || 30);
+    const timeBudget = TIME_BUDGET[checkIn.time] || 30;
+    const days = daysSinceTimestamp(item.lastTouchedAt || item.createdAt);
+    const progress = item.progressMode === "percent" ? Number(item.progress || 0) : 0;
+    const tags = new Set(item.reasonTags || []);
+    let score = matchDemand(capacity, demand) * 2.2;
+
+    score += duration <= timeBudget ? 1.8 : -Math.min(4.2, (duration - timeBudget) / 18);
+    score += Math.min(2.2, Math.max(0, days - 3) * 0.12);
+    if (!Number(item.sessions || 0)) score += 0.8;
+    if (adventureTouchedToday(item.id)) score -= 5.2;
+    if (progress >= 60) score += 0.55;
+    if (progress >= 80) score += 0.75;
+    if (tags.has("takes-space")) score += 0.55;
+    if (tags.has("want-result")) score += 0.35;
+    if (tags.has("deadline")) score += 0.65;
+
+    if (slot === "joy") {
+      score += 4.8;
+      if (["Hobbies", "Recovery"].includes(item.realm)) score += 0.8;
+      if (tags.has("fun")) score += 0.75;
+      if (item.energy === "high" && effectiveCapacity(checkIn) < 1.4) score -= 2.2;
+    }
+
+    if (slot === "gentle") {
+      if (item.energy === "low") score += 4.2;
+      if (duration <= 20) score += 2.1;
+      else if (duration <= 30) score += 0.9;
+      if (item.energy === "high") score -= 4.5;
+      if (checkIn.gentle && item.energy === "low") score += 1.4;
+    }
+
+    return score;
+  }
+
+  function adventureDemand(item) {
+    let demand = ({ low: 0.55, medium: 1.35, high: 2.15 })[item.energy] ?? 1.35;
+    const minutes = Number(item.sessionMinutes || 30);
+    if (minutes >= 90) demand += 0.55;
+    else if (minutes >= 60) demand += 0.3;
+    else if (minutes <= 15) demand -= 0.25;
+    return clamp(demand, 0.1, 3);
   }
 
   function effectiveCapacity(checkIn) {
@@ -629,6 +764,33 @@
     return `It matches today's capacity reasonably well and gives the day one clear ${realm} direction.`;
   }
 
+  function reasonForAdventure(item, slot, checkIn) {
+    const days = daysSinceTimestamp(item.lastTouchedAt || item.createdAt);
+    const progress = item.progressMode === "percent" ? clamp(Number(item.progress || 0), 0, 100) : null;
+    const tags = new Set(item.reasonTags || []);
+    const lowDay = effectiveCapacity(checkIn) < 1.25 || checkIn.gentle;
+
+    if (slot === "gentle" && item.energy === "low") {
+      return `This is a low-friction project with a concrete stopping point, so it still fits if the day gets heavier than expected.`;
+    }
+    if (progress !== null && progress >= 75) {
+      return `You're already ${progress}% through this, so one specific next step has a good chance of creating visible momentum.`;
+    }
+    if (tags.has("takes-space") && days >= 7) {
+      return `This has been sitting around for ${humanDays(days)} and it literally takes up space. One small step moves it toward being out of the way.`;
+    }
+    if (days >= 14) {
+      return `You chose this for yourself, but haven't touched it in ${humanDays(days)}. The planner is bringing back one concrete step instead of the whole project.`;
+    }
+    if (tags.has("fun")) {
+      return `This is here on purpose because today's plan should contain something you actually chose for fun, not only things that need doing.`;
+    }
+    if (lowDay) {
+      return `Its next action is specific enough to stop after one session, which keeps the commitment small on a lower-capacity day.`;
+    }
+    return `It fits today's time and energy reasonably well, and the next action is already defined so you don't have to decide how to start.`;
+  }
+
   function rerollSlot(slotId) {
     if (!SLOTS[slotId]) return;
     const day = todayRecord();
@@ -638,23 +800,23 @@
 
     day.rerollHistory ||= { focus: [], joy: [], gentle: [] };
     day.rerollHistory[slotId] ||= [];
-    if (current.sourceId && !day.rerollHistory[slotId].includes(current.sourceId)) {
-      day.rerollHistory[slotId].push(current.sourceId);
-    }
-    day.rerollHistory[slotId] = day.rerollHistory[slotId].slice(-12);
+    const key = sourceKey(current.sourceType || "quest", current.sourceId);
+    if (current.sourceId && !day.rerollHistory[slotId].includes(key)) day.rerollHistory[slotId].push(key);
+    day.rerollHistory[slotId] = day.rerollHistory[slotId].slice(-16);
 
-    const used = new Set((day.picks || []).filter(p => p.slot !== slotId).map(p => p.sourceId));
-    const candidate = chooseCandidate(
+    const used = new Set((day.picks || []).filter(p => p.slot !== slotId).map(p => sourceKey(p.sourceType || "quest", p.sourceId)));
+    const candidate = chooseSourceCandidate(
       slotId,
       day.checkIn,
       eligibleQuests(),
+      eligibleAdventures(),
       used,
       new Set(day.rerollHistory[slotId]),
-      current.sourceId
+      current
     );
 
     if (!candidate) return;
-    const next = makePick(slotId, candidate.quest, day.checkIn, current);
+    const next = makePickFromCandidate(slotId, candidate, day.checkIn, current);
     next.rerolls = Number(current.rerolls || 0) + 1;
     day.picks = (day.picks || []).map(p => p.slot === slotId ? next : p);
     day.updatedAt = Date.now();
@@ -771,6 +933,43 @@
     planner.companionHistory = (planner.companionHistory || []).filter(item => item.date !== date);
     planner.companionHistory.push({ date, id });
     planner.companionHistory.sort((a, b) => a.date.localeCompare(b.date));
+  }
+
+  function sourceKey(type, id) {
+    return `${type || "quest"}:${id || ""}`;
+  }
+
+  function findAdventure(id) {
+    return app.getState().sideAdventures?.items?.find(item => item.id === id) || null;
+  }
+
+  function adventureLogs(id) {
+    const logs = app.getState().sideAdventures?.logs;
+    return Array.isArray(logs) ? logs.filter(log => log.adventureId === id) : [];
+  }
+
+  function adventureTouchedToday(id) {
+    return adventureLogs(id).some(log => (log.date || dateKeyFromValue(log.at)) === todayKey());
+  }
+
+  function daysSinceTimestamp(value) {
+    if (!value) return 30;
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return 30;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    date.setHours(0, 0, 0, 0);
+    return Math.max(0, Math.floor((today - date) / 86400000));
+  }
+
+  function humanDays(days) {
+    if (days < 7) return `${days} day${days === 1 ? "" : "s"}`;
+    if (days < 35) {
+      const weeks = Math.floor(days / 7);
+      return `${weeks} week${weeks === 1 ? "" : "s"}`;
+    }
+    const months = Math.floor(days / 30);
+    return `${months} month${months === 1 ? "" : "s"}`;
   }
 
   function findQuest(id) {

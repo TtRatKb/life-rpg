@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#321d34" />
   <title>Life RPG — Base Camp</title>
-  <link rel="stylesheet" href="styles.css?v=0.14.0" />
+  <link rel="stylesheet" href="styles.css?v=0.15.0" />
 </head>
 <body>
   <div class="ambient ambient-one"></div>
@@ -92,6 +92,7 @@
         <section class="dashboard-command-strip dashboard-command-strip-habits" aria-label="Life RPG quick navigation">
           <button data-view-target="habits"><span class="command-strip-icon">❀</span><span><strong>Habits</strong><small>Build consistency without punishment.</small></span><b>›</b></button>
           <button data-view-target="quests"><span class="command-strip-icon">☷</span><span><strong>Quest Board</strong><small>Choose what fits today.</small></span><b>›</b></button>
+          <button data-view-target="adventures"><span class="command-strip-icon">✧</span><span><strong>Side Adventures</strong><small>Come back to things you actually want.</small></span><b>›</b></button>
           <button data-view-target="people"><span class="command-strip-icon">♧</span><span><strong>People</strong><small>Talk, message, connect.</small></span><b>›</b></button>
           <button data-view-target="story"><span class="command-strip-icon">♡</span><span><strong>Main Story</strong><small>Spend energy when you're ready.</small></span><b>›</b></button>
         </section>
@@ -141,8 +142,9 @@
                 <strong>No giant menu yet.</strong>
                 <p>Do the short briefing first. Life RPG will narrow the Quest Board down to a tiny plan for today.</p>
               </div>
-              <footer class="daily-picks-footer-v14">
-                <button class="text-button" data-view-target="quests" type="button">Browse the full Quest Board anyway →</button>
+              <footer class="daily-picks-footer-v14 daily-picks-footer-v15">
+                <button class="text-button" data-view-target="adventures" type="button">Open Side Adventures →</button>
+                <button class="text-button" data-view-target="quests" type="button">Browse the Quest Board →</button>
               </footer>
             </section>
 
@@ -271,6 +273,75 @@
             <strong>No habits yet.</strong>
             <p>Create only the behaviors you actually want help remembering or sustaining. You can add and edit them yourself any time.</p>
             <button class="primary-button" id="habitEmptyCreate" type="button">Create your first habit</button>
+          </div>
+        </section>
+      </section>
+
+      <!-- SIDE ADVENTURES -->
+      <section id="view-adventures" class="view adventure-view-v15">
+        <section class="adventure-hero-v15">
+          <div class="adventure-hero-copy-v15">
+            <span class="adventure-kicker-v15">✧ THE THINGS YOU WANT TO COME BACK TO</span>
+            <p class="eyebrow">SIDE ADVENTURES</p>
+            <h1>Projects without the productivity costume.</h1>
+            <p class="lead">Creative projects, crafts and long-running personal things live here. Give each one a concrete next action so Today's Picks can say what to do instead of showing you another menu.</p>
+            <div class="adventure-rule-row-v15" aria-label="Side Adventure rules">
+              <span><b>1</b> Keep the project</span>
+              <span><b>2</b> Define the next action</span>
+              <span><b>3</b> Log one session</span>
+              <span><b>4</b> Let the planner bring it back</span>
+            </div>
+          </div>
+          <aside class="adventure-hero-card-v15">
+            <div class="adventure-hero-symbol-v15">✧</div>
+            <div>
+              <small>SPECIFIC BEATS VAGUE</small>
+              <strong>“Crochet 3 rows” beats “work on crochet.”</strong>
+              <p>The finish line is allowed to be small. You can always keep going after today's step is done.</p>
+            </div>
+            <button class="primary-button" id="addAdventureButton" type="button">＋ New Side Adventure</button>
+          </aside>
+        </section>
+
+        <section class="adventure-summary-grid-v15" aria-label="Side Adventure summary">
+          <article class="adventure-summary-card-v15"><span>✧</span><div><small>ACTIVE</small><strong id="adventureSummaryActive">0</strong></div></article>
+          <article class="adventure-summary-card-v15"><span>◷</span><div><small>WAITING 2+ WEEKS</small><strong id="adventureSummaryStale">0</strong></div></article>
+          <article class="adventure-summary-card-v15"><span>❀</span><div><small>75%+ COMPLETE</small><strong id="adventureSummaryAlmost">0</strong></div></article>
+        </section>
+
+        <section class="adventure-library-shell-v15">
+          <div class="adventure-library-heading-v15">
+            <div>
+              <p class="eyebrow">YOUR OPEN THREADS</p>
+              <h2>Side Adventure Board</h2>
+              <p class="panel-subcopy">This is the library. The dashboard will pull only a tiny number of these into your day.</p>
+            </div>
+            <div class="adventure-library-controls-v15">
+              <input id="adventureSearch" type="search" placeholder="Search projects…" aria-label="Search Side Adventures" />
+              <select id="adventureStatusFilter" aria-label="Filter Side Adventures by status">
+                <option value="active">Active</option>
+                <option value="paused">Paused</option>
+                <option value="finished">Finished</option>
+                <option value="all">All</option>
+              </select>
+            </div>
+          </div>
+
+          <div id="adventureKindFilters" class="adventure-kind-filters-v15" aria-label="Filter by project kind">
+            <button class="active" type="button" data-adventure-kind="all">All</button>
+            <button type="button" data-adventure-kind="creative">🎨 Creative</button>
+            <button type="button" data-adventure-kind="skill">🧶 Skill / craft</button>
+            <button type="button" data-adventure-kind="personal">✨ Personal</button>
+            <button type="button" data-adventure-kind="collection">✦ Long game</button>
+            <button type="button" data-adventure-kind="other">🌸 Other</button>
+          </div>
+
+          <div id="adventureBoard" class="adventure-board-v15"></div>
+          <div id="adventureEmpty" class="adventure-empty-v15 hidden">
+            <span>✧</span>
+            <h3>No Side Adventures here yet.</h3>
+            <p>Add something you genuinely want to return to. Books and games will get their own smarter libraries later; this version starts with projects and open-ended hobbies.</p>
+            <button class="primary-button" id="adventureEmptyCreate" type="button">Create the first one</button>
           </div>
         </section>
       </section>
@@ -778,6 +849,7 @@
       <button class="nav-button active" data-view="basecamp"><span>⌂</span><small>Dashboard</small></button>
       <button class="nav-button" data-view="habits"><span>❀</span><small>Habits</small></button>
       <button class="nav-button" data-view="quests"><span>☷</span><small>Quests</small></button>
+      <button class="nav-button" data-view="adventures"><span>✧</span><small>Adventures</small></button>
       <button class="nav-button" data-view="growth"><span>✦</span><small>Growth</small></button>
       <button class="nav-button" data-view="world"><span>◇</span><small>World</small></button>
       <div class="nav-section-label nav-section-story">STORY</div>
@@ -959,6 +1031,81 @@
         <button class="secondary-button" id="cancelHabitButton" type="button">Cancel</button>
         <button class="primary-button" id="saveHabitButton" type="submit">Save habit</button>
       </menu>
+    </form>
+  </dialog>
+
+  <div id="adventureToast" class="adventure-toast-v15 hidden" role="status" aria-live="polite">
+    <span class="adventure-toast-symbol-v15">✧</span>
+    <div><small>SIDE ADVENTURE</small><strong id="adventureToastTitle">Progress logged.</strong><span id="adventureToastDetail">One step closer.</span></div>
+  </div>
+
+  <!-- CREATE / EDIT SIDE ADVENTURE -->
+  <dialog id="adventureDialog" class="rpg-dialog adventure-dialog-v15">
+    <form id="adventureForm" class="rpg-dialog-form adventure-form-v15">
+      <input type="hidden" id="adventureEditId" />
+      <div class="dialog-heading">
+        <div><p class="eyebrow">SIDE ADVENTURE SETUP</p><h2 id="adventureDialogTitle">Create a side adventure</h2></div>
+        <button class="close-button" id="adventureDialogClose" type="button" aria-label="Close">×</button>
+      </div>
+      <p class="muted">This is for a voluntary thing you want to keep alive. Make the next action concrete enough that future-you can just start.</p>
+
+      <label>Adventure name<input id="adventureName" required maxlength="80" placeholder="e.g. Tiny frog amigurumi" /></label>
+      <div class="form-grid">
+        <label>Kind<select id="adventureKind"><option value="creative">🎨 Creative project</option><option value="skill">🧶 Skill / craft</option><option value="personal">✨ Personal project</option><option value="collection">✦ Collection / long game</option><option value="other">🌸 Other adventure</option></select></label>
+        <label>Realm<select id="adventureRealm"><option>Hobbies</option><option>Recovery</option><option>Japanese</option><option>Knowledge</option><option>Home</option><option>Health</option><option>Work</option></select></label>
+      </div>
+      <div class="form-grid">
+        <label>Status<select id="adventureStatus"><option value="active">Active</option><option value="paused">Paused</option><option value="finished">Finished</option></select></label>
+        <label>Energy needed<select id="adventureEnergy"><option value="low">☕ Low</option><option value="medium" selected>🌤️ Medium</option><option value="high">⚡ High</option></select></label>
+      </div>
+      <label>Typical session length<select id="adventureMinutes"><option value="10">10 minutes</option><option value="15">15 minutes</option><option value="20">20 minutes</option><option value="30" selected>30 minutes</option><option value="45">45 minutes</option><option value="60">1 hour</option><option value="90">1½ hours</option><option value="120">2 hours</option></select></label>
+
+      <label class="adventure-next-field-v15">Concrete next action<input id="adventureNextAction" required maxlength="140" placeholder="e.g. Crochet 3 more rounds of the body" /><small>Think finish line, not category: “read chapter 6” instead of “read”; “sew the waistband” instead of “sewing”.</small></label>
+
+      <div class="form-grid">
+        <label>Progress tracking<select id="adventureProgressMode"><option value="percent">Track percentage</option><option value="simple">No percentage — sessions only</option></select></label>
+        <label id="adventureProgressWrap">Current progress<input id="adventureProgress" type="number" min="0" max="100" step="1" value="0" /></label>
+      </div>
+      <label id="adventureIncrementWrap">Typical progress after one session<select id="adventureIncrement"><option value="0">Don't change automatically</option><option value="2">+2%</option><option value="5" selected>+5%</option><option value="10">+10%</option><option value="15">+15%</option><option value="20">+20%</option><option value="25">+25%</option></select><small>This only preselects the progress when you log a session. You can change it before saving.</small></label>
+
+      <fieldset class="adventure-reason-fieldset-v15">
+        <legend>Why do you want to finish / continue it?</legend>
+        <div class="adventure-reason-options-v15">
+          <label><input type="checkbox" name="adventureReason" value="takes-space" /><span>📦 Takes up space</span></label>
+          <label><input type="checkbox" name="adventureReason" value="want-result" /><span>✨ I want the result</span></label>
+          <label><input type="checkbox" name="adventureReason" value="learn" /><span>🧠 I want to learn this</span></label>
+          <label><input type="checkbox" name="adventureReason" value="fun" /><span>💕 Just for fun</span></label>
+          <label><input type="checkbox" name="adventureReason" value="gift" /><span>🎁 For someone</span></label>
+          <label><input type="checkbox" name="adventureReason" value="deadline" /><span>◷ Has a real deadline</span></label>
+        </div>
+      </fieldset>
+
+      <label>Optional note<input id="adventureNote" maxlength="160" placeholder="Materials, context, where you left off…" /></label>
+      <div id="adventurePreview" class="adventure-preview-v15"></div>
+      <menu>
+        <button class="danger-text-button hidden" id="deleteAdventureButton" type="button">Delete adventure</button>
+        <span class="dialog-menu-spacer"></span>
+        <button class="secondary-button" id="cancelAdventureButton" type="button">Cancel</button>
+        <button class="primary-button" type="submit">Save adventure</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <!-- LOG SIDE ADVENTURE PROGRESS -->
+  <dialog id="adventureLogDialog" class="rpg-dialog adventure-log-dialog-v15">
+    <form id="adventureLogForm" class="rpg-dialog-form">
+      <input type="hidden" id="adventureLogId" />
+      <div class="dialog-heading">
+        <div><p class="eyebrow">LOG PROGRESS</p><h2 id="adventureLogTitle">Side Adventure</h2></div>
+        <button class="close-button" id="adventureLogClose" type="button" aria-label="Close">×</button>
+      </div>
+      <div class="adventure-log-finish-v15"><small>TODAY'S FINISH LINE</small><strong id="adventureLogFinishLine">One small next step.</strong></div>
+      <div id="adventureLogProgressWrap">
+        <label>Where are you now?<input id="adventureLogProgress" type="number" min="0" max="100" step="1" value="0" /></label>
+        <div id="adventureLogQuickProgress" class="adventure-log-quick-v15"></div>
+      </div>
+      <label>Next action after this <span class="muted">(optional)</span><input id="adventureLogNextAction" maxlength="140" placeholder="e.g. Attach the eyes" /><small>Leave blank if the current next action still applies.</small></label>
+      <menu><button class="secondary-button" id="adventureLogCancel" type="button">Not now</button><button class="primary-button" type="submit">✓ Log this session</button></menu>
     </form>
   </dialog>
 
@@ -1258,7 +1405,8 @@
   <script src="story-engine.js?v=0.12.2"></script>
   <script src="app.js?v=0.9.3"></script>
   <script src="habits.js?v=0.13.1"></script>
-  <script src="daily.js?v=0.14.0"></script>
+  <script src="adventures.js?v=0.15.0"></script>
+  <script src="daily.js?v=0.15.0"></script>
   <script src="story-ui.js?v=0.12.2"></script>
   <script type="module" src="cloud-save.js?v=0.9.3"></script>
 </body>
