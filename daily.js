@@ -7,10 +7,11 @@
     return;
   }
 
-  const SCHEMA = 1;
+  const SCHEMA = 2;
   const SHADOW_KEY = "life-rpg-daily-planner-shadow-v1";
   const MAX_DAY_HISTORY = 120;
   const MAX_COMPANION_HISTORY = 45;
+  const MAX_REROLL_MEMORY = 180;
   const LEGACY_LOADOUT_IDS = new Set(["q-work-focus", "q-home-clean", "q-recovery-gaming"]);
 
   const SLOTS = {
@@ -175,6 +176,10 @@
       planner.companionHistory = [];
       changed = true;
     }
+    if (!planner.rerollMemory || typeof planner.rerollMemory !== "object" || Array.isArray(planner.rerollMemory)) {
+      planner.rerollMemory = {};
+      changed = true;
+    }
 
     if (!planner.migrations || typeof planner.migrations !== "object") {
       planner.migrations = {};
@@ -191,6 +196,21 @@
       changed = true;
     }
 
+    // V0.18 remembers “Not today” across days, but only as a soft, decaying preference.
+    if (!planner.migrations.plannerBrainV2) {
+      Object.entries(planner.days || {}).forEach(([date, day]) => {
+        Object.values(day?.rerollHistory || {}).flat().forEach(key => {
+          if (!key) return;
+          const memory = planner.rerollMemory[key] || { count: 0, lastDate: date, lastAt: 0, slots: {} };
+          memory.count = Math.min(6, Number(memory.count || 0) + 1);
+          if (!memory.lastDate || date > memory.lastDate) memory.lastDate = date;
+          planner.rerollMemory[key] = memory;
+        });
+      });
+      planner.migrations.plannerBrainV2 = true;
+      changed = true;
+    }
+
     trimHistory(planner);
     writeShadow(planner);
     return changed;
@@ -201,6 +221,7 @@
       schemaVersion: SCHEMA,
       days: {},
       companionHistory: [],
+      rerollMemory: {},
       migrations: {}
     };
   }
@@ -246,6 +267,21 @@
     if (Array.isArray(planner.companionHistory) && planner.companionHistory.length > MAX_COMPANION_HISTORY) {
       planner.companionHistory = planner.companionHistory.slice(-MAX_COMPANION_HISTORY);
     }
+    if (planner.rerollMemory && typeof planner.rerollMemory === "object") {
+      const entries = Object.entries(planner.rerollMemory);
+      if (entries.length > MAX_REROLL_MEMORY) {
+        entries
+          .sort((a, b) => memorySortValue(b[1]) - memorySortValue(a[1]))
+          .slice(MAX_REROLL_MEMORY)
+          .forEach(([key]) => delete planner.rerollMemory[key]);
+      }
+    }
+  }
+
+  function memorySortValue(memory) {
+    if (Number(memory?.lastAt || 0)) return Number(memory.lastAt);
+    const parsed = memory?.lastDate ? new Date(`${memory.lastDate}T12:00:00`).getTime() : 0;
+    return Number.isFinite(parsed) ? parsed : 0;
   }
 
   function todayRecord() {
@@ -442,7 +478,7 @@
       if (!adventure) return unavailablePickMarkup(pick, slot, "This Side Adventure is no longer active. Reroll this card to replace it.");
       const done = adventureTouchedToday(adventure.id);
       const progress = adventure.progressMode === "percent" ? clamp(Number(adventure.progress || 0), 0, 100) : null;
-      const finishLine = adventure.nextAction || "Spend one focused session on this.";
+      const finishLine = pick.adventureGoal?.label || adventureGoal(adventure, pick.slot, todayRecord()?.checkIn || {}).label;
       return `
         <article class="daily-pick-v14 ${slot.className} daily-adventure-pick-v15 ${done ? "done" : ""}">
           <div class="daily-pick-top-v14">
@@ -590,14 +626,18 @@
 
     const picked = [];
     const used = new Set();
+    const usedTypes = [];
+    const usedRealms = [];
     const previousBySlot = Object.fromEntries(previousPicks.map(p => [p.slot, p]));
 
     for (const slot of ["focus", "joy", "gentle"]) {
       const previous = previousBySlot[slot];
       const excluded = new Set(rerollHistory[slot] || []);
-      const candidate = chooseSourceCandidate(slot, checkIn, quests, adventures, books, games, used, excluded, previous);
+      const candidate = chooseSourceCandidate(slot, checkIn, quests, adventures, books, games, used, excluded, previous, usedTypes, usedRealms);
       if (!candidate) continue;
       used.add(sourceKey(candidate.sourceType, candidate.item.id));
+      usedTypes.push(candidate.sourceType);
+      usedRealms.push(sourceRealm(candidate.sourceType, candidate.item));
       picked.push(makePickFromCandidate(slot, candidate, checkIn, previous));
     }
 
@@ -625,7 +665,7 @@
     return Array.isArray(items) ? items.filter(game => game && game.id && game.title && ["playing", "endless"].includes(game.status)) : [];
   }
 
-  function chooseSourceCandidate(slot, checkIn, quests, adventures, books, games, used, excluded, previous = null) {
+  function chooseSourceCandidate(slot, checkIn, quests, adventures, books, games, used, excluded, previous = null, usedTypes = [], usedRealms = []) {
     const currentKey = previous ? sourceKey(previous.sourceType || "quest", previous.sourceId) : "";
     const currentId = previous?.sourceId || "";
     const seed = `${todayKey()}|${slot}|${Object.values(checkIn).join("|")}|${[...excluded].join(",")}`;
@@ -639,20 +679,105 @@
         if (relaxed === 1 && (key === currentKey || item.id === currentId)) return false;
         return true;
       };
+      const push = (sourceType, item, baseScore) => {
+        if (!allowed(sourceType, item)) return;
+        const key = sourceKey(sourceType, item.id);
+        const memory = plannerMemoryAdjustment(key, sourceType, sourceRealm(sourceType, item), slot);
+        const diversity = diversityAdjustment(sourceType, sourceRealm(sourceType, item), usedTypes, usedRealms, slot);
+        candidates.push({
+          sourceType,
+          item,
+          score: baseScore + memory + diversity + seededJitter(`${seed}|${sourceType}|${item.id}`)
+        });
+      };
 
-      quests.filter(item => allowed("quest", item)).forEach(quest => candidates.push({ sourceType: "quest", item: quest, score: scoreQuest(quest, slot, checkIn) + seededJitter(`${seed}|quest|${quest.id}`) }));
-      if (slot !== "focus") {
-        adventures.filter(item => allowed("adventure", item)).forEach(item => candidates.push({ sourceType: "adventure", item, score: scoreAdventure(item, slot, checkIn) + seededJitter(`${seed}|adventure|${item.id}`) }));
-      }
-      books.filter(item => allowed("book", item)).forEach(book => candidates.push({ sourceType: "book", item: book, score: scoreBook(book, slot, checkIn) + seededJitter(`${seed}|book|${book.id}`) }));
-      games.filter(item => allowed("game", item)).forEach(game => candidates.push({ sourceType: "game", item: game, score: scoreGame(game, slot, checkIn) + seededJitter(`${seed}|game|${game.id}`) }));
+      quests.forEach(quest => push("quest", quest, scoreQuest(quest, slot, checkIn)));
+      adventures.forEach(item => push("adventure", item, scoreAdventure(item, slot, checkIn)));
+      books.forEach(book => push("book", book, scoreBook(book, slot, checkIn)));
+      games.forEach(game => push("game", game, scoreGame(game, slot, checkIn)));
       return candidates;
     };
 
     let pool = buildPool(0);
     if (!pool.length) pool = buildPool(1);
     if (!pool.length) pool = buildPool(2);
-    return pool.sort((a, b) => b.score - a.score)[0] || null;
+    const best = pool.sort((a, b) => b.score - a.score)[0] || null;
+    if (!best) return null;
+
+    // V2 may deliberately leave a slot empty instead of recommending something that fits badly.
+    const floor = slot === "focus" ? -0.8 : slot === "joy" ? -0.35 : -0.15;
+    return best.score >= floor || pool.length === 1 ? best : null;
+  }
+
+  function sourceRealm(type, item) {
+    if (type === "book") return bookRoleMeta(item?.role).realm;
+    if (type === "game") return gameRoleMeta(item?.role).realm;
+    return String(item?.realm || (type === "adventure" ? "Hobbies" : ""));
+  }
+
+  function diversityAdjustment(type, realm, usedTypes, usedRealms, slot) {
+    const sameType = usedTypes.filter(value => value === type).length;
+    const sameRealm = realm ? usedRealms.filter(value => value === realm).length : 0;
+    let penalty = sameType * 0.95 + sameRealm * 0.55;
+    if (slot === "joy" && ["book", "game", "adventure"].includes(type)) penalty *= 0.72;
+    if (slot === "gentle" && realm === "Recovery") penalty *= 0.6;
+    return -penalty;
+  }
+
+  function plannerMemoryAdjustment(key, sourceType, realm, slot) {
+    const stats = recentPickStats(key, sourceType, realm);
+    let score = 0;
+    if (stats.daysSinceItem === 1) score -= 2.8;
+    else if (stats.daysSinceItem === 2) score -= 1.8;
+    else if (stats.daysSinceItem === 3) score -= 1.05;
+    else if (stats.daysSinceItem <= 7) score -= 0.5;
+    if (stats.itemCount7 > 1) score -= Math.min(1.8, (stats.itemCount7 - 1) * 0.6);
+    if (stats.typeCount3 >= 2) score -= Math.min(1.25, (stats.typeCount3 - 1) * 0.45);
+    if (realm && stats.realmCount3 >= 2) score -= Math.min(0.9, (stats.realmCount3 - 1) * 0.32);
+
+    const memory = plannerState().rerollMemory?.[key];
+    if (memory) {
+      const days = daysSinceDateKey(memory.lastDate);
+      const recency = days <= 1 ? 1 : days <= 3 ? 0.8 : days <= 7 ? 0.55 : days <= 14 ? 0.3 : 0.12;
+      score -= Math.min(3.5, Number(memory.count || 0) * 0.8) * recency;
+      if (Number(memory.slots?.[slot] || 0) > 1 && days <= 7) score -= 0.45;
+    }
+    return score;
+  }
+
+  function recentPickStats(key, sourceType, realm) {
+    const days = plannerState().days || {};
+    const today = todayKey();
+    let daysSinceItem = 999;
+    let itemCount7 = 0;
+    let typeCount3 = 0;
+    let realmCount3 = 0;
+
+    Object.entries(days).forEach(([date, day]) => {
+      if (date === today) return;
+      const age = daysBetweenDateKeys(date, today);
+      if (age < 1 || age > 14) return;
+      (day?.picks || []).forEach(pick => {
+        const pickKey = sourceKey(pick.sourceType || "quest", pick.sourceId);
+        if (pickKey === key) {
+          daysSinceItem = Math.min(daysSinceItem, age);
+          if (age <= 7) itemCount7 += 1;
+        }
+        if (age <= 3 && (pick.sourceType || "quest") === sourceType) typeCount3 += 1;
+        if (age <= 3 && realm && pickRealm(pick) === realm) realmCount3 += 1;
+      });
+    });
+
+    return { daysSinceItem, itemCount7, typeCount3, realmCount3 };
+  }
+
+  function pickRealm(pick) {
+    if (!pick?.sourceId) return "";
+    const type = pick.sourceType || "quest";
+    if (type === "book") return sourceRealm(type, findBook(pick.sourceId));
+    if (type === "game") return sourceRealm(type, findGame(pick.sourceId));
+    if (type === "adventure") return sourceRealm(type, findAdventure(pick.sourceId));
+    return sourceRealm(type, findQuest(pick.sourceId));
   }
 
   function makePickFromCandidate(slot, candidate, checkIn, previous = null) {
@@ -683,6 +808,7 @@
         slot,
         sourceType: "adventure",
         sourceId: candidate.item.id,
+        adventureGoal: adventureGoal(candidate.item, slot, checkIn),
         reason: reasonForAdventure(candidate.item, slot, checkIn),
         rerolls: Number(previous?.rerolls || 0),
         pickedAt: Date.now()
@@ -722,6 +848,7 @@
     if (wasDoneYesterday(quest.id)) score -= 1.15;
     score -= cooldownPenalty(quest, logs);
     if (looksLikeGenericReadingQuest(quest) && hasSpecificReadingBookForRealm(realm)) score -= 3.4;
+    if (looksLikeGenericGamingQuest(quest) && eligibleGames().length) score -= 3.2;
 
     if (slot === "focus") {
       score += PRIORITY_SCORE[priority] ?? 0.5;
@@ -762,6 +889,12 @@
     return eligibleBooks().some(book => bookRoleMeta(book.role).realm === realm);
   }
 
+  function looksLikeGenericGamingQuest(quest) {
+    const name = String(quest?.name || "").toLowerCase();
+    const unit = String(quest?.unitLabel || "").toLowerCase();
+    return /game|gaming|videogame|video game|spielen|zocken/.test(name) && /min|minute|hour|stunde|session|time|mal/.test(unit);
+  }
+
   function scoreAdventure(item, slot, checkIn) {
     const capacity = effectiveCapacity(checkIn);
     const demand = adventureDemand(item);
@@ -781,6 +914,17 @@
     if (tags.has("takes-space")) score += 0.55;
     if (tags.has("want-result")) score += 0.35;
     if (tags.has("deadline")) score += 0.65;
+
+    if (slot === "focus") {
+      if (tags.has("deadline")) score += 3.1;
+      if (tags.has("takes-space")) score += 2.2;
+      if (tags.has("want-result")) score += 1.45;
+      if (["Home", "Knowledge", "Japanese", "Health"].includes(item.realm)) score += 1.15;
+      if (item.energy === "high" && effectiveCapacity(checkIn) < 1.5) score -= 3.2;
+      if (checkIn.gentle && item.energy !== "low") score -= 1.5;
+      if (!String(item.nextAction || "").trim()) score -= 1.35;
+      if (tags.has("fun") && !tags.has("deadline") && !tags.has("takes-space") && !tags.has("want-result")) score -= 1.0;
+    }
 
     if (slot === "joy") {
       score += 4.8;
@@ -946,14 +1090,44 @@
 
     let amount = gentle ? 5 : budget >= 60 && capacity >= 2 ? 20 : 10;
     if (slot === "joy" && !gentle && budget >= 30) amount = 15;
+    const current = Math.max(0, Number(book.currentPage || 0));
     if (book.totalPages) {
-      const remaining = Math.max(0, Number(book.totalPages) - Number(book.currentPage || 0));
+      const remaining = Math.max(0, Number(book.totalPages) - current);
       if (remaining > 0) amount = Math.min(amount, remaining);
       if (remaining > 0 && amount >= remaining) {
         return { type: "pages", amount: remaining, label: `Finish the last ${formatNumber(remaining)} page${remaining === 1 ? "" : "s"} of ${title}` };
       }
     }
-    return { type: "pages", amount: Math.max(1, amount), label: `Read ${formatNumber(Math.max(1, amount))} pages of ${title}` };
+
+    amount = Math.max(1, amount);
+    if (current > 0) {
+      const startPage = Math.floor(current) + 1;
+      const endPage = Math.floor(current + amount);
+      return { type: "pages", amount, label: `Read pages ${startPage}–${endPage} of ${title}` };
+    }
+    return { type: "pages", amount, label: `Read the first ${formatNumber(amount)} page${amount === 1 ? "" : "s"} of ${title}` };
+  }
+
+  function adventureGoal(item, slot, checkIn) {
+    const budget = TIME_BUDGET[checkIn.time] || 30;
+    const capacity = effectiveCapacity(checkIn);
+    const gentle = slot === "gentle" || checkIn.gentle || capacity < 1;
+    let minutes = Math.max(10, Number(item.sessionMinutes || 30));
+    if (gentle) minutes = Math.min(minutes, 20);
+    else if (budget <= 15) minutes = Math.min(minutes, 15);
+    else if (budget <= 30) minutes = Math.min(minutes, 30);
+    else if (budget <= 60) minutes = Math.min(minutes, 45);
+    else minutes = Math.min(minutes, 60);
+
+    const action = String(item.nextAction || "").trim();
+    if (!action) return { minutes, label: `Spend ${minutes} minutes on ${item.name || "this project"}` };
+
+    const hasConcreteUnit = /\b\d+(?:[.,]\d+)?\s*(?:row|rows|reihe|reihen|step|steps|schritt|schritte|page|pages|seite|seiten|chapter|chapters|kapitel|minute|minutes|min|hour|hours|stunde|stunden|piece|pieces|part|parts)\b/i.test(action);
+    const genericStart = /^(?:continue|keep working on|work on|practice|make progress on|do more|weitermachen|weiterarbeiten|üben|daran arbeiten)\b/i.test(action);
+    if (genericStart && !hasConcreteUnit) {
+      return { minutes, label: `${action.replace(/[.!?]+$/, "")} for ${minutes} minutes` };
+    }
+    return { minutes, label: action };
   }
 
   function adventureDemand(item) {
@@ -1063,6 +1237,12 @@
     const tags = new Set(item.reasonTags || []);
     const lowDay = effectiveCapacity(checkIn) < 1.25 || checkIn.gentle;
 
+    if (slot === "focus") {
+      if (tags.has("takes-space")) return `You marked this as something that takes up space, so the planner is giving you one concrete step toward getting that space back.`;
+      if (tags.has("deadline")) return `This project has a real deadline attached to it, and today's check-in leaves enough room for one defined next action.`;
+      if (tags.has("want-result") && progress !== null && progress >= 60) return `You want the finished result and you're already ${progress}% through it. One specific step is a better focus move than starting another new thing.`;
+      return `This has a defined next action and fits today's capacity, so it can act as the one useful thing without turning the whole project into today's job.`;
+    }
     if (slot === "gentle" && item.energy === "low") {
       return `This is a low-friction project with a concrete stopping point, so it still fits if the day gets heavier than expected.`;
     }
@@ -1096,8 +1276,12 @@
     const key = sourceKey(current.sourceType || "quest", current.sourceId);
     if (current.sourceId && !day.rerollHistory[slotId].includes(key)) day.rerollHistory[slotId].push(key);
     day.rerollHistory[slotId] = day.rerollHistory[slotId].slice(-16);
+    rememberReroll(key, slotId);
 
-    const used = new Set((day.picks || []).filter(p => p.slot !== slotId).map(p => sourceKey(p.sourceType || "quest", p.sourceId)));
+    const otherPicks = (day.picks || []).filter(p => p.slot !== slotId);
+    const used = new Set(otherPicks.map(p => sourceKey(p.sourceType || "quest", p.sourceId)));
+    const usedTypes = otherPicks.map(p => p.sourceType || "quest");
+    const usedRealms = otherPicks.map(pickRealm).filter(Boolean);
     const candidate = chooseSourceCandidate(
       slotId,
       day.checkIn,
@@ -1107,7 +1291,9 @@
       eligibleGames(),
       used,
       new Set(day.rerollHistory[slotId]),
-      current
+      current,
+      usedTypes,
+      usedRealms
     );
 
     if (!candidate) return;
@@ -1116,6 +1302,19 @@
     day.picks = (day.picks || []).map(p => p.slot === slotId ? next : p);
     day.updatedAt = Date.now();
     persist("daily-pick-reroll");
+  }
+
+  function rememberReroll(key, slotId) {
+    if (!key) return;
+    const planner = plannerState();
+    planner.rerollMemory ||= {};
+    const current = planner.rerollMemory[key] || { count: 0, lastDate: todayKey(), lastAt: 0, slots: {} };
+    current.count = Math.min(12, Number(current.count || 0) + 1);
+    current.lastDate = todayKey();
+    current.lastAt = Date.now();
+    current.slots ||= {};
+    current.slots[slotId] = Math.min(12, Number(current.slots[slotId] || 0) + 1);
+    planner.rerollMemory[key] = current;
   }
 
   function openQuestLog(questId, suggested) {
@@ -1449,6 +1648,18 @@
 
   function todayKey() {
     return dateKey(new Date());
+  }
+
+  function daysSinceDateKey(key) {
+    if (!key) return 999;
+    return daysBetweenDateKeys(key, todayKey());
+  }
+
+  function daysBetweenDateKeys(older, newer) {
+    const a = new Date(`${older}T12:00:00`);
+    const b = new Date(`${newer}T12:00:00`);
+    if (Number.isNaN(a.getTime()) || Number.isNaN(b.getTime())) return 999;
+    return Math.max(0, Math.round((b - a) / 86400000));
   }
 
   function dateKey(date) {
