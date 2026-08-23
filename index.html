@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#321d34" />
   <title>Life RPG — Base Camp</title>
-  <link rel="stylesheet" href="styles.css?v=0.12.4" />
+  <link rel="stylesheet" href="styles.css?v=0.12.5" />
 </head>
 <body>
   <div class="ambient ambient-one"></div>
@@ -236,18 +236,81 @@
       </section>
 
       <!-- WORLD -->
-      <section id="view-world" class="view">
-        <header class="page-heading">
-          <div>
+      <section id="view-world" class="view world-view-v5">
+        <section class="world-hero-v5">
+          <div class="world-hero-copy-v5">
+            <span class="world-kicker-v5">✦ YOUR MAP IS PERSONAL</span>
             <p class="eyebrow">DISCOVERY</p>
             <h1>Your World</h1>
             <p class="lead">
-              Places become available because Luca has a reason to know them. The world grows with the story.
+              Places become part of Luca's world because life gives her a reason to know them. Story, friendships and routines make the map grow naturally.
             </p>
+            <div class="world-rule-chips-v5" aria-label="How locations are discovered">
+              <span><b>♡</b> Story</span>
+              <span><b>♧</b> Relationships</span>
+              <span><b>✦</b> Real life</span>
+            </div>
           </div>
-        </header>
 
-        <div id="locationGrid" class="location-grid"></div>
+          <aside class="world-discovery-card-v5">
+            <div class="world-compass-v5" aria-hidden="true"><span>✿</span></div>
+            <div>
+              <small>DISCOVERY RULE</small>
+              <strong>No arbitrary map levels.</strong>
+              <p>A place appears when Luca actually has a narrative or everyday reason to know it.</p>
+            </div>
+          </aside>
+        </section>
+
+        <section class="world-atlas-v5">
+          <div class="world-atlas-heading-v5">
+            <div>
+              <p class="eyebrow">PLACES</p>
+              <h2>My Atlas</h2>
+              <p>Unlocked places stay here and can later become homes for conversations, hangouts, events and story scenes.</p>
+            </div>
+            <div class="world-atlas-legend-v5">
+              <span><i class="world-dot-v5 unlocked"></i> Known</span>
+              <span><i class="world-dot-v5 locked"></i> Not discovered yet</span>
+            </div>
+          </div>
+          <div id="locationGrid" class="location-grid location-grid-v5"></div>
+        </section>
+      </section>
+
+      <!-- MEMORIES -->
+      <section id="view-memories" class="view memories-view-v5">
+        <section class="memories-hero-v5">
+          <div class="memories-hero-art-v5" aria-hidden="true">
+            <img src="assets/story/portraits/luca_soft_smile.png" alt="" />
+            <span class="memories-petal petal-one">✿</span>
+            <span class="memories-petal petal-two">✿</span>
+            <span class="memories-petal petal-three">✧</span>
+          </div>
+          <div class="memories-hero-copy-v5">
+            <span class="memory-bookmark-v5">MEMORY ARCHIVE</span>
+            <p class="eyebrow">YOUR STORY SO FAR</p>
+            <h1>Memories</h1>
+            <p class="lead">Finished story chapters become moments you can return to whenever you want — without changing the choices that belong to your canon playthrough.</p>
+            <div class="memory-safety-v5">
+              <span>♡ Replay freely</span>
+              <span>✦ Try different choices</span>
+              <span>✓ Canon save stays untouched</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="memory-archive-v5">
+          <div class="memory-archive-heading-v5">
+            <div>
+              <p class="eyebrow">UNLOCKED MOMENTS</p>
+              <h2>Story Archive</h2>
+              <p>Only memories Luca has actually lived appear here. Future moments stay hidden until they happen.</p>
+            </div>
+            <button class="ghost-button memory-story-button-v5" data-view-target="story" type="button">Back to Story <span>›</span></button>
+          </div>
+          <div id="memoryList" class="empty-state compact memory-list-v5">Nothing has been added to Memories yet.</div>
+        </section>
       </section>
 
       <!-- STORY -->
@@ -317,16 +380,20 @@
         </section>
 
         <section class="story-secondary-grid">
-          <section class="panel memory-panel">
+          <section class="panel memory-panel story-memory-preview-v5">
             <div class="panel-heading">
               <div>
                 <p class="eyebrow">MEMORIES</p>
-                <h3>Unlocked moments</h3>
+                <h3>Your story archive</h3>
               </div>
-              <span class="tiny-badge">Replay archive</span>
+              <span class="tiny-badge">Replay safe</span>
             </div>
-            <p class="muted memory-copy">Completed chapters become replayable memories. Your exact story position is autosaved while you read.</p>
-            <div id="memoryList" class="empty-state compact">Nothing has been added to Memories yet.</div>
+            <div class="story-memory-preview-art-v5" aria-hidden="true">
+              <span>♡</span>
+              <i>✿</i>
+            </div>
+            <p class="muted memory-copy">Completed chapters are kept in a dedicated archive. Replay them, experiment with different answers, and keep your canon save exactly as it is.</p>
+            <button class="secondary-button story-memory-open-v5" data-view-target="memories" type="button">Open Memories <span>›</span></button>
           </section>
 
           <section class="panel messages-preview-panel">
@@ -540,12 +607,14 @@
       <div class="nav-section-label">YOUR LIFE</div>
       <button class="nav-button active" data-view="basecamp"><span>⌂</span><small>Dashboard</small></button>
       <button class="nav-button" data-view="quests"><span>☷</span><small>Quests</small></button>
+      <button class="nav-button" data-view="growth"><span>✦</span><small>Growth</small></button>
       <button class="nav-button" data-view="world"><span>◇</span><small>World</small></button>
+      <div class="nav-section-label nav-section-story">STORY</div>
       <button class="nav-button" data-view="story"><span>♡</span><small>Story</small></button>
+      <button class="nav-button" data-view="memories"><span>❀</span><small>Memories</small></button>
       <div class="nav-section-label nav-section-social">SOCIAL</div>
       <button class="nav-button" data-view="people"><span>♧</span><small>People</small></button>
       <button class="nav-button" data-view="phone"><span>▣</span><small>Phone</small><b id="navPhoneUnread" class="nav-unread-badge hidden">0</b></button>
-      <button class="nav-button" data-view="growth"><span>✦</span><small>Growth</small></button>
       <div class="nav-profile-card" aria-hidden="true">
         <img src="assets/story/portraits/luca_neutral.png" alt="" />
         <div><strong>Luca</strong><span>30 · Math Teacher</span></div>
