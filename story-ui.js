@@ -39,6 +39,15 @@
     phoneContacts: byId("storyPhoneContacts"),
     phoneThreadHeader: byId("storyPhoneThreadHeader"),
     phoneThread: byId("storyPhoneThread"),
+    peopleDirectory: byId("peopleDirectory"),
+    peopleProfileHero: byId("peopleProfileHero"),
+    peopleProfileActions: byId("peopleProfileActions"),
+    peopleProfileDetails: byId("peopleProfileDetails"),
+    phonePageContacts: byId("phonePageContacts"),
+    phonePageThreadHeader: byId("phonePageThreadHeader"),
+    phonePageThread: byId("phonePageThread"),
+    phonePageUnreadLabel: byId("phonePageUnreadLabel"),
+    navPhoneUnread: byId("navPhoneUnread"),
 
     readerPage: byId("storyReaderPage"),
     shell: byId("storyReaderShell"),
@@ -122,6 +131,39 @@
 
       const phoneButton = event.target.closest("[data-message-person]");
       if (phoneButton) openPhone(phoneButton.dataset.messagePerson);
+    });
+
+    els.peopleDirectory?.addEventListener("click", event => {
+      const button = event.target.closest("[data-people-select]");
+      if (!button) return;
+      selectPeoplePerson(button.dataset.peopleSelect);
+    });
+
+    els.peopleProfileActions?.addEventListener("click", event => {
+      const talkButton = event.target.closest("[data-talk-person]");
+      if (talkButton) { openNextTalk(talkButton.dataset.talkPerson); return; }
+      const hangoutButton = event.target.closest("[data-hangout-person]");
+      if (hangoutButton && !hangoutButton.disabled) { openNextHangout(hangoutButton.dataset.hangoutPerson); return; }
+      const messageButton = event.target.closest("[data-profile-message-person]");
+      if (messageButton) {
+        const personId = messageButton.dataset.profileMessagePerson;
+        const state = app.getState();
+        state.story.social.selectedPhonePersonId = personId;
+        app.saveState({ source: "social-phone-select" });
+        renderPhoneSurfaces(personId);
+      }
+    });
+
+    els.phonePageContacts?.addEventListener("click", event => {
+      const button = event.target.closest("[data-phone-person]");
+      if (!button) return;
+      selectPhonePerson(button.dataset.phonePerson, { markRead: true });
+    });
+
+    els.phonePageThread?.addEventListener("click", event => {
+      const button = event.target.closest("[data-message-reply-group][data-message-reply-id]");
+      if (!button) return;
+      chooseMessageReply(button.dataset.messageReplyGroup, button.dataset.messageReplyId);
     });
 
     els.phoneOpen?.addEventListener("click", () => openPhone());
@@ -215,6 +257,7 @@
       talkStep: 0,
       lastTalkId: null,
       selectedPhonePersonId: null,
+      selectedPeoplePersonId: null,
       ...previous
     };
     state.story.social.seenTalkIds = array(state.story.social.seenTalkIds);
@@ -402,8 +445,10 @@
 
     renderNextScene(next);
     renderPeople();
+    renderPeoplePage();
     renderMemories();
     renderPhonePreview();
+    renderPhoneSurfaces();
   }
 
   function renderNextScene(scene) {
@@ -511,6 +556,102 @@
         </article>
       `;
     }).join("");
+  }
+
+  function relationshipLabel(person) {
+    const state = app.getState();
+    if (person.id === "mina") {
+      if (state.flags?.MINA_HANGOUTS_UNLOCKED) return "Friend";
+      if (state.flags?.STORY_MINA_FRIENDSHIP_STARTED) return "New connection";
+    }
+    return "Known person";
+  }
+
+  function knownDetailsForPerson(person) {
+    const state = app.getState();
+    const details = [];
+    if (person.id === "mina") {
+      if (state.flags?.STORY_MET_MINA) details.push("You met through the hero outreach program at school.");
+      if (state.flags?.STORY_MINA_FRIENDSHIP_STARTED) details.push("She chose to keep talking after the formal introductions were over.");
+      if (state.flags?.MINA_HANGOUTS_UNLOCKED) details.push("Spending time together outside the original school context now feels natural.");
+    }
+    if (!details.length) details.push("You are still learning what this connection might become.");
+    return details;
+  }
+
+  function renderPeoplePage() {
+    if (!els.peopleDirectory || !els.peopleProfileHero || !els.peopleProfileActions || !els.peopleProfileDetails) return;
+    const people = knownPeople();
+    const state = app.getState();
+
+    if (!people.length) {
+      els.peopleDirectory.innerHTML = `<div class="empty-state compact">No social contacts yet.</div>`;
+      els.peopleProfileHero.innerHTML = `<div class="people-profile-empty"><span>✿</span><strong>Your social world will grow through the story.</strong><p>People appear here only after Luca has actually met them.</p></div>`;
+      els.peopleProfileActions.innerHTML = `<div class="empty-state compact">Nothing to do here yet.</div>`;
+      els.peopleProfileDetails.innerHTML = `<div class="empty-state compact">No shared history yet.</div>`;
+      return;
+    }
+
+    let selectedId = state.story.social.selectedPeoplePersonId;
+    if (!people.some(person => person.id === selectedId)) selectedId = people[0].id;
+    state.story.social.selectedPeoplePersonId = selectedId;
+    const selected = people.find(person => person.id === selectedId) || people[0];
+
+    els.peopleDirectory.innerHTML = people.map(person => {
+      const active = person.id === selected.id;
+      const unread = unreadMessageCount(person.id);
+      return `
+        <button class="people-directory-card ${active ? "active" : ""}" type="button" data-people-select="${escapeHtml(person.id)}">
+          <span class="people-directory-avatar">${person.cardAsset ? `<img src="${escapeHtml(person.cardAsset)}" alt="" />` : escapeHtml(person.name?.charAt(0) || "✦")}</span>
+          <span class="people-directory-copy"><strong>${escapeHtml(person.name)}</strong><small>${escapeHtml(relationshipLabel(person))}</small></span>
+          ${unread ? `<span class="people-directory-unread">${unread}</span>` : ""}
+        </button>`;
+    }).join("");
+
+    const label = relationshipLabel(selected);
+    els.peopleProfileHero.innerHTML = `
+      <div class="people-profile-art ${escapeClass(selected.tone || "default")}">
+        ${selected.cardAsset ? `<img src="${escapeHtml(selected.cardAsset)}" alt="${escapeHtml(selected.name)}" />` : `<span>${escapeHtml(selected.name?.charAt(0) || "✦")}</span>`}
+      </div>
+      <div class="people-profile-copy">
+        <p class="eyebrow">${escapeHtml(label)}</p>
+        <h2>${escapeHtml(selected.name)}</h2>
+        <p class="people-profile-role">${escapeHtml(selected.role || "Known person")}</p>
+        <div class="people-profile-status"><span>✿</span><strong>${escapeHtml(label)}</strong><small>Relationship state is shown through access and behavior — never a love meter.</small></div>
+      </div>`;
+
+    const talk = nextTalkForPerson(selected.id);
+    const hangout = nextHangoutForPerson(selected.id);
+    const hangoutUnlocked = !selected.hangoutUnlockFlag || Boolean(state.flags?.[selected.hangoutUnlockFlag]);
+    const unread = unreadMessageCount(selected.id);
+    els.peopleProfileActions.innerHTML = `
+      <button class="social-action-card" type="button" data-talk-person="${escapeHtml(selected.id)}" ${talk ? "" : "disabled"}>
+        <span class="social-action-icon">💬</span><span><strong>Talk</strong><small>Random everyday conversation · free</small></span><b>FREE</b>
+      </button>
+      <button class="social-action-card" type="button" data-profile-message-person="${escapeHtml(selected.id)}" data-view-target="phone">
+        <span class="social-action-icon">✉</span><span><strong>Messages</strong><small>${unread ? `${unread} unread conversation${unread === 1 ? "" : "s"}` : "Story-linked threads · no expiry"}</small></span>${unread ? `<b class="message-count">${unread} NEW</b>` : ""}
+      </button>
+      <button class="social-action-card ${hangoutUnlocked && hangout ? "ready" : "locked"}" type="button" data-hangout-person="${escapeHtml(selected.id)}" ${hangoutUnlocked && hangout ? "" : "disabled"}>
+        <span class="social-action-icon">${hangoutUnlocked ? "☕" : "🔒"}</span><span><strong>Hang Out</strong><small>${hangoutUnlocked ? (hangout ? "Spend time together · free" : "More hangouts can appear later") : "Unlocks naturally through the story"}</small></span><b>${hangoutUnlocked && hangout ? "FREE" : "???"}</b>
+      </button>`;
+
+    const details = knownDetailsForPerson(selected);
+    els.peopleProfileDetails.innerHTML = `
+      <div class="people-known-summary">
+        <strong>${escapeHtml(selected.name)}</strong>
+        <p>${escapeHtml(selected.role || "Known person")}</p>
+      </div>
+      <div class="people-known-list">${details.map(item => `<div><span>✿</span><p>${escapeHtml(item)}</p></div>`).join("")}</div>
+      <div class="people-known-footnote">Hidden trust, memories and preferences stay hidden. You'll notice them when they matter.</div>`;
+  }
+
+  function selectPeoplePerson(personId) {
+    const state = app.getState();
+    const person = knownPeople().find(item => item.id === personId);
+    if (!person) return;
+    state.story.social.selectedPeoplePersonId = personId;
+    app.saveState({ source: "social-people-select" });
+    renderPeoplePage();
   }
 
   function renderMemories() {
@@ -767,20 +908,47 @@
     selectPhonePerson(preferred, { markRead: true });
   }
 
-  function renderPhoneDialog(selectedPersonId) {
-    if (!els.phoneContacts || !els.phoneThreadHeader || !els.phoneThread) return;
+  function renderPhoneSurfaces(selectedPersonId = null) {
     const people = knownPeople();
-    els.phoneContacts.innerHTML = people.map(person => {
-      const unread = unreadMessageCount(person.id);
-      const active = person.id === selectedPersonId;
+    const state = app.getState();
+    const unread = unreadMessageCount();
+    if (els.phonePageUnreadLabel) els.phonePageUnreadLabel.textContent = unread ? `${unread} new message${unread === 1 ? "" : "s"}` : "No new messages";
+    if (els.navPhoneUnread) {
+      els.navPhoneUnread.textContent = unread;
+      els.navPhoneUnread.classList.toggle("hidden", !unread);
+    }
+
+    if (!people.length) {
+      const emptyContacts = `<div class="story-phone-empty compact">No contacts yet.</div>`;
+      const emptyThread = `<div class="phone-page-empty-state"><span>✉</span><strong>Your messages will live here.</strong><p>Once someone has a reason to text Luca, the conversation stays available until you want to read it.</p></div>`;
+      if (els.phoneContacts) els.phoneContacts.innerHTML = emptyContacts;
+      if (els.phonePageContacts) els.phonePageContacts.innerHTML = emptyContacts;
+      if (els.phoneThread) els.phoneThread.innerHTML = emptyThread;
+      if (els.phonePageThread) els.phonePageThread.innerHTML = emptyThread;
+      return;
+    }
+
+    let selected = selectedPersonId || state.story.social.selectedPhonePersonId;
+    if (!people.some(person => person.id === selected)) selected = people.find(person => unreadMessageCount(person.id))?.id || people[0].id;
+    state.story.social.selectedPhonePersonId = selected;
+
+    const contactsHtml = people.map(person => {
+      const count = unreadMessageCount(person.id);
+      const active = person.id === selected;
       return `
         <button class="story-phone-contact ${active ? "active" : ""}" type="button" data-phone-person="${escapeHtml(person.id)}">
           <span class="story-phone-contact-avatar">${person.cardAsset ? `<img src="${escapeHtml(person.cardAsset)}" alt="" />` : escapeHtml(person.name?.charAt(0) || "✦")}</span>
-          <span><strong>${escapeHtml(person.name)}</strong><small>${unread ? `${unread} unread` : "Messages"}</small></span>
-        </button>
-      `;
+          <span><strong>${escapeHtml(person.name)}</strong><small>${count ? `${count} unread` : "Messages"}</small></span>
+          ${count ? `<b class="phone-contact-unread">${count}</b>` : ""}
+        </button>`;
     }).join("");
-    renderPhoneThread(selectedPersonId);
+    if (els.phoneContacts) els.phoneContacts.innerHTML = contactsHtml;
+    if (els.phonePageContacts) els.phonePageContacts.innerHTML = contactsHtml;
+    renderPhoneThread(selected);
+  }
+
+  function renderPhoneDialog(selectedPersonId) {
+    renderPhoneSurfaces(selectedPersonId);
   }
 
   function selectPhonePerson(personId, { markRead = false } = {}) {
@@ -796,9 +964,10 @@
       app.saveState({ source: "social-message-read" });
     }
 
-    renderPhoneDialog(personId);
+    renderPhoneSurfaces(personId);
     renderPhonePreview();
     renderPeople();
+    renderPeoplePage();
   }
 
   function renderPhoneThread(personId) {
@@ -806,50 +975,56 @@
     const person = knownPeople().find(item => item.id === personId);
     if (!person) return;
     const messages = eligibleMessagesForPerson(personId);
-    els.phoneThreadHeader.innerHTML = `
-      <div>
-        <small>Messages with</small>
-        <strong>${escapeHtml(person.name)}</strong>
+    const headerHtml = `
+      <div class="phone-thread-person">
+        <span class="phone-thread-avatar">${person.cardAsset ? `<img src="${escapeHtml(person.cardAsset)}" alt="" />` : escapeHtml(person.name?.charAt(0) || "✦")}</span>
+        <div><small>Messages with</small><strong>${escapeHtml(person.name)}</strong></div>
       </div>
-      <span class="story-phone-thread-status">Story-linked · no expiry</span>
-    `;
+      <span class="story-phone-thread-status">Story-linked · no expiry</span>`;
+    if (els.phoneThreadHeader) els.phoneThreadHeader.innerHTML = headerHtml;
+    if (els.phonePageThreadHeader) els.phonePageThreadHeader.innerHTML = headerHtml;
 
+    let threadHtml;
     if (!messages.length) {
-      els.phoneThread.innerHTML = `<div class="story-phone-empty">No messages yet. Story moments can unlock threads later; once unlocked, they wait here until you want to read them.</div>`;
-      return;
+      threadHtml = `<div class="phone-page-empty-state"><span>✉</span><strong>No messages yet.</strong><p>Story moments can unlock a conversation later. Once it appears, it will wait here for you.</p></div>`;
+    } else {
+      const replies = state.story.social.messageReplies || {};
+      threadHtml = messages.map(message => {
+        const selectedId = replies[messageReadKey(message)];
+        const selected = array(message.replyOptions).find(option => option.id === selectedId);
+        const replyUi = !selected && array(message.replyOptions).length
+          ? `<div class="story-message-replies">
+              <small>Reply when you want</small>
+              ${array(message.replyOptions).map(option => `
+                <button type="button" class="story-message-reply" data-message-reply-group="${escapeHtml(messageReadKey(message))}" data-message-reply-id="${escapeHtml(option.id)}">${escapeHtml(option.text)}</button>
+              `).join("")}
+            </div>`
+          : "";
+        const selectedUi = selected
+          ? `<div class="story-message-bubble outgoing">${escapeHtml(selected.text)}</div>
+             ${array(selected.after).map(bubble => `<div class="story-message-bubble ${bubble.from === "luca" ? "outgoing" : "incoming"}">${escapeHtml(bubble.text || "")}</div>`).join("")}`
+          : "";
+
+        return `
+          <section class="story-message-group">
+            <div class="story-message-date">${escapeHtml(message.label || "Earlier")}</div>
+            ${array(message.messages).map(bubble => `
+              <div class="story-message-bubble ${bubble.from === "luca" ? "outgoing" : "incoming"}">
+                ${escapeHtml(bubble.text || "")}
+              </div>
+            `).join("")}
+            ${selectedUi}
+            ${replyUi}
+          </section>`;
+      }).join("");
     }
 
-    const replies = state.story.social.messageReplies || {};
-    els.phoneThread.innerHTML = messages.map(message => {
-      const selectedId = replies[messageReadKey(message)];
-      const selected = array(message.replyOptions).find(option => option.id === selectedId);
-      const replyUi = !selected && array(message.replyOptions).length
-        ? `<div class="story-message-replies">
-            <small>Reply when you want</small>
-            ${array(message.replyOptions).map(option => `
-              <button type="button" class="story-message-reply" data-message-reply-group="${escapeHtml(messageReadKey(message))}" data-message-reply-id="${escapeHtml(option.id)}">${escapeHtml(option.text)}</button>
-            `).join("")}
-          </div>`
-        : "";
-      const selectedUi = selected
-        ? `<div class="story-message-bubble outgoing">${escapeHtml(selected.text)}</div>
-           ${array(selected.after).map(bubble => `<div class="story-message-bubble ${bubble.from === "luca" ? "outgoing" : "incoming"}">${escapeHtml(bubble.text || "")}</div>`).join("")}`
-        : "";
-
-      return `
-        <section class="story-message-group">
-          <div class="story-message-date">${escapeHtml(message.label || "Earlier")}</div>
-          ${array(message.messages).map(bubble => `
-            <div class="story-message-bubble ${bubble.from === "luca" ? "outgoing" : "incoming"}">
-              ${escapeHtml(bubble.text || "")}
-            </div>
-          `).join("")}
-          ${selectedUi}
-          ${replyUi}
-        </section>
-      `;
-    }).join("");
-    requestAnimationFrame(() => { els.phoneThread.scrollTop = els.phoneThread.scrollHeight; });
+    if (els.phoneThread) els.phoneThread.innerHTML = threadHtml;
+    if (els.phonePageThread) els.phonePageThread.innerHTML = threadHtml;
+    requestAnimationFrame(() => {
+      if (els.phoneThread) els.phoneThread.scrollTop = els.phoneThread.scrollHeight;
+      if (els.phonePageThread) els.phonePageThread.scrollTop = els.phonePageThread.scrollHeight;
+    });
   }
 
   function chooseMessageReply(groupId, optionId) {
@@ -872,9 +1047,10 @@
     state.story.social.readMessageIds = [...read];
     app.saveState({ source: "social-message-reply" });
     app.renderAll();
-    renderPhoneDialog(state.story.social.selectedPhonePersonId || message.personId);
+    renderPhoneSurfaces(state.story.social.selectedPhonePersonId || message.personId);
     renderPhonePreview();
     renderPeople();
+    renderPeoplePage();
   }
 
   function handleStoryAction() {

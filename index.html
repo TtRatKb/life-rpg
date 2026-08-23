@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#321d34" />
   <title>Life RPG — Base Camp</title>
-  <link rel="stylesheet" href="styles.css?v=0.12.0" />
+  <link rel="stylesheet" href="styles.css?v=0.12.2" />
 </head>
 <body>
   <div class="ambient ambient-one"></div>
@@ -299,6 +299,84 @@
         </section>
       </section>
 
+      <!-- PEOPLE -->
+      <section id="view-people" class="view social-page social-people-page">
+        <header class="page-heading social-page-heading">
+          <div>
+            <p class="eyebrow">RELATIONSHIPS</p>
+            <h1>People</h1>
+            <p class="lead">The people in Luca's life become more familiar through ordinary conversations, messages and time spent together.</p>
+          </div>
+          <span class="social-page-flower" aria-hidden="true">✿</span>
+        </header>
+
+        <section class="people-page-layout">
+          <aside class="panel people-directory-panel">
+            <div class="panel-heading compact-heading">
+              <div>
+                <p class="eyebrow">YOUR ORBIT</p>
+                <h3>People you know</h3>
+              </div>
+            </div>
+            <div id="peopleDirectory" class="people-directory"></div>
+          </aside>
+
+          <section class="people-profile-column">
+            <article id="peopleProfileHero" class="panel people-profile-hero">
+              <div class="people-profile-empty">Nobody is selected yet.</div>
+            </article>
+
+            <div class="people-profile-grid">
+              <section class="panel people-actions-panel">
+                <div class="panel-heading compact-heading">
+                  <div>
+                    <p class="eyebrow">SOCIAL</p>
+                    <h3>What you can do</h3>
+                  </div>
+                </div>
+                <div id="peopleProfileActions" class="people-profile-actions"></div>
+              </section>
+
+              <section class="panel people-known-panel">
+                <div class="panel-heading compact-heading">
+                  <div>
+                    <p class="eyebrow">SO FAR</p>
+                    <h3>What Luca knows</h3>
+                  </div>
+                </div>
+                <div id="peopleProfileDetails" class="people-profile-details"></div>
+              </section>
+            </div>
+          </section>
+        </section>
+      </section>
+
+      <!-- PHONE -->
+      <section id="view-phone" class="view social-page social-phone-page">
+        <header class="page-heading social-page-heading">
+          <div>
+            <p class="eyebrow">MESSAGES</p>
+            <h1>Phone</h1>
+            <p class="lead">Story-linked conversations wait here until you feel like reading and replying. Nothing expires.</p>
+          </div>
+          <div class="phone-page-status"><span class="status-dot"></span><strong id="phonePageUnreadLabel">No new messages</strong></div>
+        </header>
+
+        <section class="panel phone-page-shell">
+          <aside class="phone-page-sidebar">
+            <div class="phone-page-sidebar-title">
+              <span>✉</span>
+              <div><strong>Messages</strong><small>Story-linked · no expiry</small></div>
+            </div>
+            <nav id="phonePageContacts" class="story-phone-contacts phone-page-contacts" aria-label="Message contacts"></nav>
+          </aside>
+          <section class="story-phone-thread-shell phone-page-thread-shell">
+            <header id="phonePageThreadHeader" class="story-phone-thread-header phone-page-thread-header"></header>
+            <div id="phonePageThread" class="story-phone-thread phone-page-thread"></div>
+          </section>
+        </section>
+      </section>
+
       <!-- GROWTH -->
       <section id="view-growth" class="view">
         <header class="page-heading">
@@ -428,6 +506,9 @@
       <button class="nav-button" data-view="quests"><span>☷</span><small>Quests</small></button>
       <button class="nav-button" data-view="world"><span>◇</span><small>World</small></button>
       <button class="nav-button" data-view="story"><span>♡</span><small>Story</small></button>
+      <div class="nav-section-label nav-section-social">SOCIAL</div>
+      <button class="nav-button" data-view="people"><span>♧</span><small>People</small></button>
+      <button class="nav-button" data-view="phone"><span>▣</span><small>Phone</small><b id="navPhoneUnread" class="nav-unread-badge hidden">0</b></button>
       <button class="nav-button" data-view="growth"><span>✦</span><small>Growth</small></button>
       <div class="nav-profile-card" aria-hidden="true">
         <img src="assets/story/portraits/luca_neutral.png" alt="" />
@@ -727,9 +808,9 @@
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <script src="data/quests.js"></script>
-  <script src="story-engine.js?v=0.11.0"></script>
+  <script src="story-engine.js?v=0.12.2"></script>
   <script src="app.js?v=0.9.3"></script>
-  <script src="story-ui.js?v=0.11.0"></script>
+  <script src="story-ui.js?v=0.12.2"></script>
   <script type="module" src="cloud-save.js?v=0.9.3"></script>
 </body>
 </html>
