@@ -255,6 +255,7 @@
       hangoutCounts: {},
       recentTalkIdsByPerson: {},
       lastInteractionByPerson: {},
+      dailyTalkBondDatesByPerson: {},
       activeHangoutId: null,
       hangoutStep: 0,
       activeHangoutProgressionSnapshot: null,
@@ -275,6 +276,7 @@
     state.story.social.hangoutCounts = object(state.story.social.hangoutCounts);
     state.story.social.recentTalkIdsByPerson = object(state.story.social.recentTalkIdsByPerson);
     state.story.social.lastInteractionByPerson = object(state.story.social.lastInteractionByPerson);
+    state.story.social.dailyTalkBondDatesByPerson = object(state.story.social.dailyTalkBondDatesByPerson);
   }
 
   function migrateLegacyStoryIfNeeded() {
@@ -382,6 +384,62 @@
     }
 
     repairAccidentalFreeSceneUnlock();
+    repairV024CanonAlignment();
+  }
+
+  function repairV024CanonAlignment() {
+    const state = app.getState();
+    const repairKey = "V024_CANON_ALIGNMENT";
+    state.flags = object(state.flags);
+    if (state.flags[repairKey]) return;
+
+    const prematureHousing = [
+      "MINA_HOUSING_LEAD_SHARED",
+      "HOUSING_LEAD_DYNARIOT",
+      "STORY_BAKUGO_KIRISHIMA_MENTIONED",
+      "DYNARIOT_MEETING_POSSIBLE"
+    ].some(key => Boolean(state.flags[key]));
+
+    [
+      "MINA_HOUSING_LEAD_SHARED",
+      "HOUSING_LEAD_DYNARIOT",
+      "STORY_BAKUGO_KIRISHIMA_MENTIONED",
+      "DYNARIOT_MEETING_POSSIBLE"
+    ].forEach(key => delete state.flags[key]);
+
+    [
+      "ROOMMATE_PRIORITY_RULES",
+      "ROOMMATE_PRIORITY_SAFETY",
+      "ROOMMATE_PRIORITY_DIRECT_TERMS",
+      "MSG_M5_MEETING_GO",
+      "MSG_M5_DETAILS_FIRST",
+      "MSG_M5_TWO_GUYS",
+      "MSG_M8_TAKE_TIME",
+      "MSG_M8_ENTHUSIASM_PROBATION",
+      "MSG_M8_TRUE_CRIME"
+    ].forEach(key => delete state.story.traits?.[key]);
+
+    const social = state.story.social;
+    social.readMessageIds = array(social.readMessageIds).filter(id => !["MG_M_005", "MG_M_008"].includes(id));
+    social.seenTalkIds = array(social.seenTalkIds).filter(id => id !== "TK_M_SUPPORT_STYLE");
+    delete social.messageReplies?.MG_M_005;
+    delete social.messageReplies?.MG_M_008;
+
+    if (prematureHousing && state.story.completedSceneIds.includes("SC_005")) {
+      state.story.completedSceneIds = state.story.completedSceneIds.filter(id => id !== "SC_005");
+      if (!state.story.unlockedSceneIds.includes("SC_005")) state.story.unlockedSceneIds.push("SC_005");
+      state.memories = array(state.memories).filter(id => id !== "MEM_SP3_005");
+      delete state.story.choiceSelections?.s5_choice;
+      delete state.story.progressionSnapshots?.SC_005;
+      if (state.story.activeSceneId === "SC_005") state.story.readerStep = 0;
+    } else if (prematureHousing && state.story.unlockedSceneIds.includes("SC_005")) {
+      state.story.readerStep = state.story.activeSceneId === "SC_005" ? 0 : state.story.readerStep;
+      delete state.story.choiceSelections?.s5_choice;
+      delete state.story.progressionSnapshots?.SC_005;
+    }
+
+    state.flags[repairKey] = true;
+    app.saveState({ source: "story-v024-canon-alignment" });
   }
 
   function repairAccidentalFreeSceneUnlock() {
@@ -617,7 +675,8 @@
       const avatar = person.cardAsset
         ? `<span class="story-person-avatar"><img src="${escapeHtml(person.cardAsset)}" alt="" /></span>`
         : `<span class="story-person-initial">${escapeHtml(person.name?.charAt(0) || "✦")}</span>`;
-      const talkLabel = talk ? "Talk" : "Talk";
+      const dailyBondDone = talkBondEarnedToday(person.id);
+      const talkLabel = talk ? (dailyBondDone ? "Talk · ✓ today" : "Talk") : "Talk";
 
       return `
         <article class="story-person-card ${escapeClass(person.tone || "default")}">
@@ -640,10 +699,13 @@
   function relationshipLabel(person) {
     const state = app.getState();
     if (person.id === "mina") {
+      if (state.flags?.MINA_CLOSE_FRIEND) return "Close friend";
+      if (state.flags?.MINA_CHOSEN_FRIENDSHIP_CONFIRMED) return "Good friend";
       if (state.flags?.MINA_FRIENDSHIP_ESTABLISHED) return "Friend";
       if (state.flags?.MINA_HANGOUTS_UNLOCKED) return "Making plans";
       if (state.flags?.STORY_MINA_FRIENDSHIP_STARTED) return "New connection";
     }
+    if (["kirishima", "bakugo"].includes(person.id) && state.flags?.DYNARIOT_ROOMMATE_MEETING_COMPLETE) return "New acquaintance";
     return "Known person";
   }
 
@@ -655,10 +717,22 @@
       if (state.flags?.STORY_MINA_FRIENDSHIP_STARTED) details.push("She chose to keep talking after the formal introductions were over.");
       if (state.flags?.MINA_REAL_COFFEE_COMPLETE) details.push("Coffee stopped being a vague someday-plan and became part of your actual off-duty life.");
       if (state.flags?.MINA_BOOKSTORE_HANGOUT_COMPLETE) details.push("Bookstores and small detours have become plausible plans together.");
+      if (state.flags?.MINA_NERD_SIDE_VISIBLE) details.push("She has met the version of you who can happily over-explain books, games, figures and collector nonsense.");
       if (state.flags?.MINA_KNOWS_HOUSING_PROBLEM) details.push("She knows the commute and housing situation are genuinely wearing you down.");
-      if (state.flags?.MINA_HOUSING_LEAD_SHARED) details.push("She offered a practical housing lead without treating your answer as a foregone conclusion.");
-      if (state.flags?.MINA_CHOSEN_FRIENDSHIP_CONFIRMED) details.push("She has made it hard to dismiss the friendship as Mina simply being friendly with everyone.");
+      if (state.flags?.MINA_CHOSEN_FRIENDSHIP_CONFIRMED) details.push("Plans no longer need a practical excuse; you see each other because you want to.");
+      if (state.flags?.MINA_KNOWS_RR_DYNAMIGHT_FAN) details.push("She knows Red Riot and Dynamight are a private fandom topic and has promised not to make it weird.");
+      if (state.flags?.DYNARIOT_ROOMMATE_MEETING_COMPLETE) details.push("She knows exactly how much information she omitted before that roommate viewing.");
       if (state.locations?.cafe) details.push("Koharu Café has become one of the places you can naturally end up together.");
+    }
+    if (person.id === "kirishima") {
+      if (state.flags?.STORY_MET_KIRISHIMA) details.push("Mina introduced you during a possible-roommate viewing.");
+      if (state.flags?.STORY_MET_KIRISHIMA) details.push("You knew Red Riot’s public hero work for years before meeting Eijiro privately. He does not know how much.");
+      if (state.flags?.DYNARIOT_ROOMMATE_MEETING_COMPLETE) details.push("He was warm, practical and unexpectedly easy to talk to in person.");
+    }
+    if (person.id === "bakugo") {
+      if (state.flags?.STORY_MET_BAKUGO) details.push("Mina introduced you during a possible-roommate viewing.");
+      if (state.flags?.STORY_MET_BAKUGO) details.push("You knew Dynamight’s public hero work for years before meeting Katsuki privately. He does not know how much.");
+      if (state.flags?.DYNARIOT_ROOMMATE_MEETING_COMPLETE) details.push("He made it clear that the spare room comes with rules, not instant friendship.");
     }
     if (!details.length) details.push("You are still learning what this connection might become.");
     return details;
@@ -712,7 +786,7 @@
     const pending = pendingReplyCount(selected.id);
     els.peopleProfileActions.innerHTML = `
       <button class="social-action-card" type="button" data-talk-person="${escapeHtml(selected.id)}" ${talk ? "" : "disabled"}>
-        <span class="social-action-icon">💬</span><span><strong>Talk</strong><small>Random everyday conversation · free</small></span><b>FREE</b>
+        <span class="social-action-icon">💬</span><span><strong>Talk</strong><small>${talkBondEarnedToday(selected.id) ? "Today’s relationship gain is already earned · keep chatting for fun" : "First completed chat today grows familiarity · extra chats are just for fun"}</small></span><b>${talkBondEarnedToday(selected.id) ? "✓ TODAY" : "FREE"}</b>
       </button>
       <button class="social-action-card" type="button" data-profile-message-person="${escapeHtml(selected.id)}" data-view-target="phone">
         <span class="social-action-icon">✉</span><span><strong>Messages</strong><small>${unread ? `${unread} unread conversation${unread === 1 ? "" : "s"}` : pending ? `${pending} ${pending === 1 ? "reply is" : "replies are"} still open whenever you want` : "Story-linked threads · no expiry"}</small></span>${unread ? `<b class="message-count">${unread} NEW</b>` : pending ? `<b class="message-count reply-waiting">REPLY</b>` : ""}
@@ -810,6 +884,37 @@
     }
   }
 
+  function localDateKey(date = new Date()) {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  }
+
+  function talkBondEarnedToday(personId) {
+    const social = app.getState().story?.social;
+    if (!social || !personId) return false;
+    const dates = array(social.dailyTalkBondDatesByPerson?.[personId]);
+    return dates.includes(localDateKey());
+  }
+
+  function awardDailyTalkBond(personId) {
+    if (!personId) return false;
+    const state = app.getState();
+    ensureStoryState();
+    const social = state.story.social;
+    social.dailyTalkBondDatesByPerson = object(social.dailyTalkBondDatesByPerson);
+    const today = localDateKey();
+    const dates = array(social.dailyTalkBondDatesByPerson[personId]);
+    if (dates.includes(today)) return false;
+
+    social.dailyTalkBondDatesByPerson[personId] = [...dates, today].slice(-400);
+    state.story.relationships = object(state.story.relationships);
+    state.story.relationships[personId] = object(state.story.relationships[personId]);
+    state.story.relationships[personId].familiarity = Number(state.story.relationships[personId].familiarity || 0) + 1;
+    return true;
+  }
+
   function pendingReplyCount(personId = null) {
     const state = app.getState();
     const replies = state.story.social?.messageReplies || {};
@@ -822,18 +927,23 @@
 
   function personRole(person) {
     const state = app.getState();
+    if (person.id === "mina" && state.flags?.MINA_CLOSE_FRIEND) return "Pro Hero · Close friend";
     if (person.id === "mina" && state.flags?.MINA_FRIENDSHIP_ESTABLISHED) return "Pro Hero · Friend";
+    if (person.id === "kirishima" && state.flags?.DYNARIOT_ROOMMATE_MEETING_COMPLETE) return "Pro Hero · Possible roommate";
+    if (person.id === "bakugo" && state.flags?.DYNARIOT_ROOMMATE_MEETING_COMPLETE) return "Pro Hero · Possible roommate";
     return person.role || "Known person";
   }
 
   function socialRhythmForPerson(person) {
     const state = app.getState();
     if (person.id === "mina") {
+      if (state.flags?.MINA_CLOSE_FRIEND) return "You can be low-energy, nerdy, quiet or ridiculous around each other without needing to turn it into an event.";
       if (state.flags?.MINA_CHOSEN_FRIENDSHIP_CONFIRMED) return "You make plans because you want to see each other, not because there is an event to justify it.";
       if (state.flags?.MINA_FRIENDSHIP_ESTABLISHED) return "Conversation has started to feel ordinary instead of scheduled.";
       if (state.flags?.MINA_HANGOUTS_UNLOCKED) return "The friendship is beginning to exist outside the original school context.";
       if (state.flags?.STORY_MINA_FRIENDSHIP_STARTED) return "She keeps finding reasons to continue the conversation.";
     }
+    if (["kirishima", "bakugo"].includes(person.id)) return "You have met once. An everyday relationship has not formed yet, so Talk and Hang Out remain locked.";
     return "This connection is still finding its shape.";
   }
 
@@ -1672,6 +1782,7 @@
       if (!alreadySeen) social.seenTalkIds.push(scene.id);
       social.talkCounts[scene.id] = Number(social.talkCounts[scene.id] || 0) + 1;
       social.lastTalkId = scene.id;
+      runtime.dailyTalkBondAwarded = awardDailyTalkBond(scene.personId);
       recordSocialInteraction(scene.personId, "talk", scene.id);
       social.activeTalkId = null;
       social.talkStep = 0;
@@ -1736,7 +1847,9 @@
     copy.textContent = replay
       ? "This was a sandboxed replay. Any different answers you tried here were not written into your canon save."
       : isTalk
-        ? "That conversation is now part of your social history. Talk never costs Story Energy."
+        ? (runtime?.dailyTalkBondAwarded
+          ? "That was your first completed Talk with this person today, so the connection quietly grew. Keep talking as much as you like; extra Talks today are for the conversation, not extra relationship progress."
+          : "That conversation is now part of your social history. You already earned today’s Talk relationship progress with this person, so extra chats are simply here because you feel like talking.")
         : isHangout
           ? "That time together is now part of your social history. Hangouts never cost Story Energy."
           : "My choices and hidden relationship state have been saved. This chapter is now available in Memories.";
