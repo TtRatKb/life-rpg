@@ -1,0 +1,902 @@
+(() => {
+  "use strict";
+
+  const app = window.LifeRPGApp;
+  if (!app?.getState || !app?.saveState) {
+    console.error("Life RPG Daily Briefing could not initialize because LifeRPGApp is unavailable.");
+    return;
+  }
+
+  const SCHEMA = 1;
+  const SHADOW_KEY = "life-rpg-daily-planner-shadow-v1";
+  const MAX_DAY_HISTORY = 120;
+  const MAX_COMPANION_HISTORY = 45;
+  const LEGACY_LOADOUT_IDS = new Set(["q-work-focus", "q-home-clean", "q-recovery-gaming"]);
+
+  const SLOTS = {
+    focus: {
+      icon: "🎯",
+      kicker: "FOCUS PICK",
+      title: "One useful thing",
+      className: "focus"
+    },
+    joy: {
+      icon: "🌸",
+      kicker: "JOY PICK",
+      title: "Something for you",
+      className: "joy"
+    },
+    gentle: {
+      icon: "☕",
+      kicker: "GENTLE PICK",
+      title: "Low-pressure option",
+      className: "gentle"
+    }
+  };
+
+  const LABELS = {
+    sleep: { bad: "Bad", meh: "Meh", fine: "Fine", great: "Great" },
+    energy: { fumes: "Running on fumes", low: "Low", okay: "Okay", lots: "Lots" },
+    time: { none: "Almost none", little: "A little", decent: "A decent amount", plenty: "Plenty" },
+    obligations: { help: "Please send help", busy: "Busy", normal: "Normal", open: "Pretty open" }
+  };
+
+  const VALUE = {
+    sleep: { bad: 0, meh: 1, fine: 2, great: 3 },
+    energy: { fumes: 0, low: 1, okay: 2, lots: 3 },
+    time: { none: 0, little: 1, decent: 2, plenty: 3 },
+    obligations: { help: 0, busy: 1, normal: 2, open: 3 }
+  };
+
+  const TIME_BUDGET = { none: 12, little: 30, decent: 65, plenty: 130 };
+  const PRIORITY_SCORE = { "Must Do": 3.3, Main: 2.5, "Low Energy": 1.3, Optional: 0.7, Bonus: 0.2 };
+  const DEMAND_BY_REALM = { Recovery: 0.35, Hobbies: 0.8, Home: 1.1, Japanese: 1.55, Knowledge: 1.65, Health: 1.85, Work: 2.15 };
+
+  const els = {
+    heroButton: byId("heroDailyBriefingButton"),
+    panel: byId("dailyBriefingPanel"),
+    start: byId("dailyBriefingStart"),
+    edit: byId("dailyBriefingEdit"),
+    companion: byId("dailyCompanion"),
+    state: byId("dailyBriefingState"),
+    picks: byId("dailyPicks"),
+    picksPanel: byId("dailyPicksPanel"),
+    picksEmpty: byId("dailyPicksEmpty"),
+    picksCount: byId("dailyPicksCount"),
+    dialog: byId("dailyBriefingDialog"),
+    form: byId("dailyBriefingForm"),
+    dialogTitle: byId("dailyBriefingDialogTitle"),
+    dialogCompanion: byId("dailyDialogCompanion"),
+    close: byId("dailyBriefingClose"),
+    cancel: byId("dailyBriefingCancel"),
+    gentle: byId("dailyGentle")
+  };
+
+  let initialized = false;
+  let provisionalCompanion = null;
+
+  init();
+
+  function init() {
+    bindEvents();
+    const changed = ensureState();
+    initialized = true;
+    if (changed) persist("daily-planner-init", { render: false });
+    render();
+  }
+
+  function bindEvents() {
+    els.start?.addEventListener("click", () => openBriefing(false));
+    els.edit?.addEventListener("click", () => openBriefing(true));
+    els.heroButton?.addEventListener("click", handleHeroAction);
+    els.close?.addEventListener("click", closeBriefing);
+    els.cancel?.addEventListener("click", closeBriefing);
+    els.form?.addEventListener("submit", saveBriefing);
+
+    document.addEventListener("click", event => {
+      const reroll = event.target.closest?.("[data-daily-reroll]");
+      if (reroll) {
+        rerollSlot(reroll.dataset.dailyReroll);
+        return;
+      }
+
+      const log = event.target.closest?.("[data-daily-log]");
+      if (log) {
+        openQuestLog(log.dataset.dailyLog, Number(log.dataset.dailyUnits || 0));
+      }
+    });
+
+    window.addEventListener("life-rpg:render", () => {
+      if (!initialized) return;
+      ensureState();
+      render();
+    });
+  }
+
+  function byId(id) {
+    return document.getElementById(id);
+  }
+
+  function ensureState() {
+    const state = app.getState();
+    let changed = false;
+
+    if (!state.dailyPlanner || typeof state.dailyPlanner !== "object" || Array.isArray(state.dailyPlanner)) {
+      state.dailyPlanner = readShadow() || defaultState();
+      changed = true;
+    }
+
+    const planner = state.dailyPlanner;
+    if (Number(planner.schemaVersion || 0) < SCHEMA) {
+      planner.schemaVersion = SCHEMA;
+      changed = true;
+    }
+    if (!planner.days || typeof planner.days !== "object" || Array.isArray(planner.days)) {
+      planner.days = {};
+      changed = true;
+    }
+    if (!Array.isArray(planner.companionHistory)) {
+      planner.companionHistory = [];
+      changed = true;
+    }
+
+    if (!planner.migrations || typeof planner.migrations !== "object") {
+      planner.migrations = {};
+      changed = true;
+    }
+
+    // The visible manual loadout is retired in V0.14. Keep the quest library itself untouched.
+    if (!planner.migrations.retiredLegacyLoadout) {
+      if (Array.isArray(state.selectedQuestIds)) {
+        const onlyLegacy = state.selectedQuestIds.length > 0 && state.selectedQuestIds.every(id => LEGACY_LOADOUT_IDS.has(id));
+        if (onlyLegacy) state.selectedQuestIds = [];
+      }
+      planner.migrations.retiredLegacyLoadout = true;
+      changed = true;
+    }
+
+    trimHistory(planner);
+    writeShadow(planner);
+    return changed;
+  }
+
+  function defaultState() {
+    return {
+      schemaVersion: SCHEMA,
+      days: {},
+      companionHistory: [],
+      migrations: {}
+    };
+  }
+
+  function plannerState() {
+    ensureState();
+    return app.getState().dailyPlanner;
+  }
+
+  function readShadow() {
+    try {
+      const raw = localStorage.getItem(SHADOW_KEY);
+      if (!raw) return null;
+      const value = JSON.parse(raw);
+      if (!value || typeof value !== "object") return null;
+      return value;
+    } catch {
+      return null;
+    }
+  }
+
+  function writeShadow(value) {
+    try {
+      localStorage.setItem(SHADOW_KEY, JSON.stringify(value));
+    } catch {
+      // Main save remains canonical; this is only a small local recovery shadow.
+    }
+  }
+
+  function persist(source, { render: shouldRender = true } = {}) {
+    const planner = plannerState();
+    trimHistory(planner);
+    writeShadow(planner);
+    app.saveState({ source });
+    if (shouldRender) render();
+  }
+
+  function trimHistory(planner) {
+    const keys = Object.keys(planner.days || {}).sort();
+    while (keys.length > MAX_DAY_HISTORY) {
+      delete planner.days[keys.shift()];
+    }
+    if (Array.isArray(planner.companionHistory) && planner.companionHistory.length > MAX_COMPANION_HISTORY) {
+      planner.companionHistory = planner.companionHistory.slice(-MAX_COMPANION_HISTORY);
+    }
+  }
+
+  function todayRecord() {
+    return plannerState().days[todayKey()] || null;
+  }
+
+  function render() {
+    const day = todayRecord();
+    renderBriefing(day);
+    renderPicks(day);
+    renderHeroButton(day);
+  }
+
+  function renderHeroButton(day) {
+    if (!els.heroButton) return;
+    if (day?.checkIn) {
+      els.heroButton.innerHTML = "<span>✦</span> Review today's picks";
+      return;
+    }
+    els.heroButton.innerHTML = "<span>✦</span> Start today's briefing";
+  }
+
+  function handleHeroAction() {
+    const day = todayRecord();
+    if (day?.checkIn) {
+      els.panel?.scrollIntoView({ behavior: "smooth", block: "start" });
+    } else {
+      openBriefing(false);
+    }
+  }
+
+  function renderBriefing(day) {
+    if (!els.state || !els.companion) return;
+
+    if (!day?.checkIn) {
+      const candidate = companionForDate();
+      els.companion.innerHTML = companionMarkup(candidate, { preview: true });
+      els.state.innerHTML = `
+        <div class="daily-not-started-v14">
+          <span class="daily-not-started-icon-v14">✦</span>
+          <div>
+            <strong>Four quick questions. Then the choices get smaller.</strong>
+            <p>Sleep, energy, free time and how full your obligation plate already is. No scoring, no judgement.</p>
+          </div>
+        </div>`;
+      els.start?.classList.remove("hidden");
+      if (els.start) els.start.textContent = "Start today's briefing";
+      els.edit?.classList.add("hidden");
+      return;
+    }
+
+    els.companion.innerHTML = companionMarkup(companionById(day.companion?.id) || companionForDate(), { day });
+    els.state.innerHTML = briefingSummaryMarkup(day.checkIn);
+    els.start?.classList.add("hidden");
+    els.edit?.classList.remove("hidden");
+  }
+
+  function briefingSummaryMarkup(checkIn) {
+    const capacity = capacityLabel(checkIn);
+    return `
+      <div class="daily-summary-v14">
+        <div class="daily-summary-chip-v14"><span>☾</span><div><small>SLEEP</small><strong>${esc(LABELS.sleep[checkIn.sleep] || checkIn.sleep)}</strong></div></div>
+        <div class="daily-summary-chip-v14"><span>⚡</span><div><small>ENERGY</small><strong>${esc(LABELS.energy[checkIn.energy] || checkIn.energy)}</strong></div></div>
+        <div class="daily-summary-chip-v14"><span>◷</span><div><small>FREE TIME</small><strong>${esc(LABELS.time[checkIn.time] || checkIn.time)}</strong></div></div>
+        <div class="daily-summary-chip-v14"><span>☷</span><div><small>OBLIGATIONS</small><strong>${esc(LABELS.obligations[checkIn.obligations] || checkIn.obligations)}</strong></div></div>
+      </div>
+      <div class="daily-capacity-note-v14 ${checkIn.gentle ? "gentle" : ""}">
+        <span>${checkIn.gentle ? "♡" : "✿"}</span>
+        <div><small>PLANNER READ</small><strong>${esc(capacity.title)}</strong><p>${esc(capacity.text)}</p></div>
+      </div>`;
+  }
+
+  function capacityLabel(checkIn) {
+    const sleep = VALUE.sleep[checkIn.sleep] ?? 1;
+    const energy = VALUE.energy[checkIn.energy] ?? 1;
+    const time = VALUE.time[checkIn.time] ?? 1;
+    const obligations = VALUE.obligations[checkIn.obligations] ?? 1;
+    const score = sleep * 0.2 + energy * 0.4 + time * 0.2 + obligations * 0.2 - (checkIn.gentle ? 1.1 : 0);
+
+    if (checkIn.gentle || score < 0.8) {
+      return { title: "Keep the floor low today.", text: "Short, forgiving options get priority. Finishing one small thing is enough." };
+    }
+    if (score < 1.55) {
+      return { title: "A lighter day fits best.", text: "The planner will avoid stacking high-friction choices and keep the suggested chunks small." };
+    }
+    if (score < 2.35) {
+      return { title: "You have some usable room.", text: "A meaningful focus task can fit, but the day still gets a joy pick and an easy exit." };
+    }
+    return { title: "There is room for a bigger move.", text: "The focus pick can be more ambitious without turning the entire day into productivity mode." };
+  }
+
+  function renderPicks(day) {
+    if (!els.picks || !els.picksEmpty || !els.picksCount) return;
+    if (!day?.checkIn) {
+      els.picks.innerHTML = "";
+      els.picksEmpty.classList.remove("hidden");
+      els.picksCount.textContent = "Waiting for briefing";
+      return;
+    }
+
+    const picks = Array.isArray(day.picks) ? day.picks : [];
+    if (!picks.length) {
+      els.picks.innerHTML = `
+        <div class="daily-no-candidates-v14">
+          <span>☷</span><div><strong>I couldn't build a useful set yet.</strong><p>Add a few quests to your library and the planner will have something concrete to choose from.</p></div>
+        </div>`;
+      els.picksEmpty.classList.add("hidden");
+      els.picksCount.textContent = "No candidates";
+      return;
+    }
+
+    els.picksEmpty.classList.add("hidden");
+    els.picksCount.textContent = `${picks.length} picked for today`;
+    els.picks.innerHTML = picks.map(pickCardMarkup).join("");
+  }
+
+  function pickCardMarkup(pick) {
+    const slot = SLOTS[pick.slot] || SLOTS.focus;
+    const quest = findQuest(pick.sourceId);
+    if (!quest) {
+      return `
+        <article class="daily-pick-v14 ${slot.className} unavailable">
+          <div class="daily-pick-top-v14"><span class="daily-pick-icon-v14">${slot.icon}</span><div><small>${slot.kicker}</small><strong>${slot.title}</strong></div></div>
+          <p>This item is no longer in the Quest Board. Reroll this card to replace it.</p>
+          <button class="secondary-button" data-daily-reroll="${escAttr(pick.slot)}" type="button">↻ Another</button>
+        </article>`;
+    }
+
+    const progress = todayQuestUnits(quest.id);
+    const goal = Number(pick.suggestedUnits || quest.target || 1);
+    const done = progress >= goal - 1e-9;
+    const unitLabel = friendlyUnitLabel(quest.unitLabel, goal);
+    const goalText = goalLabel(quest, goal);
+    const progressText = progress > 0 ? `${formatNumber(progress)} / ${formatNumber(goal)} ${unitLabel}` : goalText;
+
+    return `
+      <article class="daily-pick-v14 ${slot.className} ${done ? "done" : ""}">
+        <div class="daily-pick-top-v14">
+          <span class="daily-pick-icon-v14">${slot.icon}</span>
+          <div><small>${slot.kicker}</small><strong>${slot.title}</strong></div>
+          ${done ? '<span class="daily-pick-done-v14">✓ Done</span>' : ""}
+        </div>
+        <div class="daily-pick-quest-v14">
+          <span class="daily-realm-pill-v14">${realmIcon(quest.realm)} ${esc(quest.realm || "Quest")}</span>
+          <h3>${esc(quest.name || "Untitled quest")}</h3>
+          <div class="daily-goal-v14"><span>✦</span><div><small>TODAY'S FINISH LINE</small><strong>${esc(done ? progressText : goalText)}</strong></div></div>
+          <p class="daily-pick-reason-v14"><b>Why this today?</b> ${esc(pick.reason || reasonFor(quest, pick.slot, todayRecord()?.checkIn || {}))}</p>
+        </div>
+        <div class="daily-pick-actions-v14">
+          <button class="primary-button" data-daily-log="${escAttr(quest.id)}" data-daily-units="${goal}" type="button">${done ? "Log more" : "Log progress"}</button>
+          <button class="secondary-button" data-daily-reroll="${escAttr(pick.slot)}" type="button">↻ Not today</button>
+        </div>
+      </article>`;
+  }
+
+  function openBriefing(editing) {
+    if (!els.dialog || !els.form) return;
+    const existing = todayRecord();
+    provisionalCompanion = existing?.companion?.id ? companionById(existing.companion.id) : companionForDate();
+    renderDialogCompanion(provisionalCompanion);
+
+    els.form.reset();
+    if (editing && existing?.checkIn) fillCheckIn(existing.checkIn);
+    if (els.dialogTitle) els.dialogTitle.textContent = editing ? "Adjust today's check-in." : dialogTitleFor(provisionalCompanion);
+    els.dialog.showModal();
+  }
+
+  function fillCheckIn(checkIn) {
+    setRadio("dailySleep", checkIn.sleep);
+    setRadio("dailyEnergy", checkIn.energy);
+    setRadio("dailyTime", checkIn.time);
+    setRadio("dailyObligations", checkIn.obligations);
+    if (els.gentle) els.gentle.checked = Boolean(checkIn.gentle);
+  }
+
+  function setRadio(name, value) {
+    const input = els.form?.querySelector(`input[name="${name}"][value="${cssEscape(value)}"]`);
+    if (input) input.checked = true;
+  }
+
+  function renderDialogCompanion(companion) {
+    if (!els.dialogCompanion) return;
+    const c = companion || companionById("luca");
+    els.dialogCompanion.innerHTML = `
+      <div class="daily-dialog-avatar-v14 ${escAttr(c.id)}">${companionImage(c, true)}</div>
+      <div><small>${esc(c.kicker)}</small><strong>${esc(c.name)}</strong><p>${esc(c.dialogLine)}</p></div>`;
+  }
+
+  function closeBriefing() {
+    if (els.dialog?.open) els.dialog.close();
+  }
+
+  function saveBriefing(event) {
+    event.preventDefault();
+    if (!els.form?.reportValidity()) return;
+
+    const checkIn = {
+      sleep: radioValue("dailySleep"),
+      energy: radioValue("dailyEnergy"),
+      time: radioValue("dailyTime"),
+      obligations: radioValue("dailyObligations"),
+      gentle: Boolean(els.gentle?.checked)
+    };
+
+    const planner = plannerState();
+    const key = todayKey();
+    const existing = planner.days[key] || {};
+    const companion = provisionalCompanion || companionForDate();
+    const day = {
+      ...existing,
+      date: key,
+      checkIn,
+      companion: { id: companion.id },
+      createdAt: existing.createdAt || Date.now(),
+      updatedAt: Date.now(),
+      rerollHistory: existing.rerollHistory || { focus: [], joy: [], gentle: [] }
+    };
+
+    day.picks = buildPicks(checkIn, existing.picks || [], day.rerollHistory);
+    planner.days[key] = day;
+    recordCompanion(planner, key, companion.id);
+    persist(existing.checkIn ? "daily-briefing-edit" : "daily-briefing-create");
+    closeBriefing();
+    requestAnimationFrame(() => els.panel?.scrollIntoView({ behavior: "smooth", block: "start" }));
+  }
+
+  function radioValue(name) {
+    return els.form?.querySelector(`input[name="${name}"]:checked`)?.value || "";
+  }
+
+  function buildPicks(checkIn, previousPicks = [], rerollHistory = {}) {
+    const quests = eligibleQuests();
+    if (!quests.length) return [];
+
+    const picked = [];
+    const used = new Set();
+    const previousBySlot = Object.fromEntries(previousPicks.map(p => [p.slot, p]));
+
+    for (const slot of ["focus", "joy", "gentle"]) {
+      const previous = previousBySlot[slot];
+      const candidate = chooseCandidate(slot, checkIn, quests, used, new Set(rerollHistory[slot] || []), previous?.sourceId);
+      if (!candidate) continue;
+      used.add(candidate.quest.id);
+      picked.push(makePick(slot, candidate.quest, checkIn, previous));
+    }
+
+    return picked;
+  }
+
+  function eligibleQuests() {
+    const state = app.getState();
+    const quests = Array.isArray(state.quests) ? state.quests : [];
+    return quests.filter(q => q && q.id && q.name && q.archived !== true && q.active !== false);
+  }
+
+  function chooseCandidate(slot, checkIn, quests, used, excluded, currentId = "") {
+    let pool = quests.filter(q => !used.has(q.id) && !excluded.has(q.id) && q.id !== currentId);
+    if (!pool.length) pool = quests.filter(q => !used.has(q.id) && q.id !== currentId);
+    if (!pool.length) pool = quests.filter(q => !used.has(q.id));
+    if (!pool.length) return null;
+
+    const seed = `${todayKey()}|${slot}|${Object.values(checkIn).join("|")}|${[...excluded].join(",")}`;
+    return pool
+      .map(quest => ({ quest, score: scoreQuest(quest, slot, checkIn) + seededJitter(`${seed}|${quest.id}`) }))
+      .sort((a, b) => b.score - a.score)[0];
+  }
+
+  function makePick(slot, quest, checkIn, previous = null) {
+    return {
+      slot,
+      sourceType: "quest",
+      sourceId: quest.id,
+      suggestedUnits: suggestedUnits(quest, slot, checkIn),
+      reason: reasonFor(quest, slot, checkIn),
+      rerolls: Number(previous?.rerolls || 0),
+      pickedAt: Date.now()
+    };
+  }
+
+  function scoreQuest(quest, slot, checkIn) {
+    const realm = String(quest.realm || "");
+    const priority = String(quest.priority || "Optional");
+    const capacity = effectiveCapacity(checkIn);
+    const demand = questDemand(quest);
+    const duration = estimatedMinutes(quest);
+    const timeBudget = TIME_BUDGET[checkIn.time] || 30;
+    const logs = questLogs(quest.id);
+    const daysSince = daysSinceLast(logs);
+    const doneToday = todayQuestUnits(quest.id) > 0;
+
+    let score = 0;
+    score += matchDemand(capacity, demand) * 2.2;
+    if (duration) score += duration <= timeBudget ? 1.5 : -Math.min(4, (duration - timeBudget) / 20);
+    score += Math.min(1.6, Math.max(0, daysSince - 2) * 0.09);
+    if (doneToday) score -= 5;
+    if (wasDoneYesterday(quest.id)) score -= 1.15;
+    score -= cooldownPenalty(quest, logs);
+
+    if (slot === "focus") {
+      score += PRIORITY_SCORE[priority] ?? 0.5;
+      if (["Work", "Knowledge", "Japanese", "Home", "Health"].includes(realm)) score += 1.4;
+      if (["Hobbies", "Recovery"].includes(realm)) score -= 0.4;
+      if (checkIn.obligations === "help" && realm === "Work") score -= 1.6;
+      if (checkIn.gentle && demand > 1.3) score -= 2.2;
+    }
+
+    if (slot === "joy") {
+      if (realm === "Hobbies") score += 4;
+      if (realm === "Recovery") score += 3;
+      if (priority === "Optional" || priority === "Bonus") score += 1.2;
+      if (realm === "Work") score -= 4;
+      if (realm === "Home") score -= 1;
+    }
+
+    if (slot === "gentle") {
+      if (realm === "Recovery") score += 4.5;
+      if (priority === "Low Energy") score += 3;
+      if (realm === "Hobbies") score += 1.4;
+      if (demand <= 0.9) score += 2;
+      if (duration && duration <= 20) score += 1.4;
+      if (realm === "Work") score -= 3;
+      if (demand > 1.6) score -= 2.5;
+    }
+
+    return score;
+  }
+
+  function effectiveCapacity(checkIn) {
+    const sleep = VALUE.sleep[checkIn.sleep] ?? 1;
+    const energy = VALUE.energy[checkIn.energy] ?? 1;
+    const obligations = VALUE.obligations[checkIn.obligations] ?? 1;
+    let capacity = energy * 0.58 + sleep * 0.25 + obligations * 0.17;
+    if (checkIn.gentle) capacity -= 1;
+    return clamp(capacity, 0, 3);
+  }
+
+  function questDemand(quest) {
+    let demand = DEMAND_BY_REALM[quest.realm] ?? 1.25;
+    if (quest.priority === "Low Energy") demand -= 0.65;
+    if (quest.priority === "Must Do") demand += 0.15;
+    const minutes = estimatedMinutes(quest);
+    if (minutes >= 60) demand += 0.55;
+    else if (minutes >= 35) demand += 0.25;
+    else if (minutes && minutes <= 15) demand -= 0.25;
+    return clamp(demand, 0.1, 3);
+  }
+
+  function matchDemand(capacity, demand) {
+    const delta = Math.abs(capacity - demand);
+    return 1.6 - delta;
+  }
+
+  function estimatedMinutes(quest) {
+    const target = Number(quest.target || 0);
+    const unit = String(quest.unitLabel || "").toLowerCase();
+    if (!target) return 0;
+    if (/(min|minute)/.test(unit)) return target;
+    if (/(page|seite)/.test(unit)) return target * 2;
+    if (/(hour|stunde)/.test(unit)) return target * 60;
+    if (/(chapter|kapitel)/.test(unit)) return target * 25;
+    return 0;
+  }
+
+  function suggestedUnits(quest, slot, checkIn) {
+    const target = Math.max(0.1, Number(quest.target || 1));
+    if (quest.mode !== "variable") return target;
+
+    const capacity = effectiveCapacity(checkIn);
+    let fraction = slot === "gentle" ? 0.45 : slot === "joy" ? 0.65 : 0.8;
+    if (capacity < 0.8) fraction *= 0.55;
+    else if (capacity < 1.5) fraction *= 0.72;
+    else if (capacity > 2.5) fraction = Math.min(1, fraction + 0.2);
+    if (checkIn.gentle) fraction *= 0.72;
+
+    const duration = estimatedMinutes(quest);
+    const budget = TIME_BUDGET[checkIn.time] || 30;
+    if (duration > 0 && duration * fraction > budget) fraction *= budget / (duration * fraction);
+
+    const raw = clamp(target * fraction, Math.min(target, sensibleMinimum(quest)), target);
+    return roundFriendly(raw, quest.unitLabel);
+  }
+
+  function sensibleMinimum(quest) {
+    const unit = String(quest.unitLabel || "").toLowerCase();
+    if (/(min|minute)/.test(unit)) return 5;
+    if (/(page|seite)/.test(unit)) return 5;
+    if (/(hour|stunde)/.test(unit)) return 0.25;
+    return 1;
+  }
+
+  function roundFriendly(value, unitLabel) {
+    const unit = String(unitLabel || "").toLowerCase();
+    if (/(min|minute|page|seite|row|reihe|step|schritt)/.test(unit)) {
+      if (value >= 20) return Math.max(1, Math.round(value / 5) * 5);
+      return Math.max(1, Math.round(value));
+    }
+    if (value >= 5) return Math.round(value);
+    return Math.round(value * 2) / 2;
+  }
+
+  function reasonFor(quest, slot, checkIn) {
+    const realm = quest.realm || "this Realm";
+    const low = effectiveCapacity(checkIn) < 1.25 || checkIn.gentle;
+    const busy = ["help", "busy"].includes(checkIn.obligations) || ["none", "little"].includes(checkIn.time);
+    const days = daysSinceLast(questLogs(quest.id));
+
+    if (slot === "joy") {
+      if (days >= 10) return `It's a ${realm} thing you haven't touched in a while, and today's plan should include something chosen for you rather than only obligations.`;
+      return `It keeps a ${realm} option in the day on purpose, so the plan isn't just a productivity list.`;
+    }
+    if (slot === "gentle") {
+      if (low) return `Your check-in points toward lower friction today. This is one of the easier ways to still make the day count.`;
+      return `This gives you an easy fallback if the day gets heavier than the morning plan expected.`;
+    }
+    if (busy) return `Your available time is limited, so this is a concrete ${realm} move without asking you to browse the whole Quest Board.`;
+    if (days >= 14) return `This ${realm} quest has been out of rotation for a while, and today has enough room to bring it back.`;
+    return `It matches today's capacity reasonably well and gives the day one clear ${realm} direction.`;
+  }
+
+  function rerollSlot(slotId) {
+    if (!SLOTS[slotId]) return;
+    const day = todayRecord();
+    if (!day?.checkIn) return;
+    const current = (day.picks || []).find(p => p.slot === slotId);
+    if (!current) return;
+
+    day.rerollHistory ||= { focus: [], joy: [], gentle: [] };
+    day.rerollHistory[slotId] ||= [];
+    if (current.sourceId && !day.rerollHistory[slotId].includes(current.sourceId)) {
+      day.rerollHistory[slotId].push(current.sourceId);
+    }
+    day.rerollHistory[slotId] = day.rerollHistory[slotId].slice(-12);
+
+    const used = new Set((day.picks || []).filter(p => p.slot !== slotId).map(p => p.sourceId));
+    const candidate = chooseCandidate(
+      slotId,
+      day.checkIn,
+      eligibleQuests(),
+      used,
+      new Set(day.rerollHistory[slotId]),
+      current.sourceId
+    );
+
+    if (!candidate) return;
+    const next = makePick(slotId, candidate.quest, day.checkIn, current);
+    next.rerolls = Number(current.rerolls || 0) + 1;
+    day.picks = (day.picks || []).map(p => p.slot === slotId ? next : p);
+    day.updatedAt = Date.now();
+    persist("daily-pick-reroll");
+  }
+
+  function openQuestLog(questId, suggested) {
+    const quest = findQuest(questId);
+    if (!quest) return;
+
+    const direct = document.querySelector(`.complete-quest-button[data-quest-id="${cssEscape(questId)}"]`);
+    if (direct) {
+      direct.click();
+      window.setTimeout(() => prefillUnits(suggested), 0);
+      return;
+    }
+
+    const dialog = byId("completeDialog");
+    const id = byId("completeQuestId");
+    const title = byId("completeQuestTitle");
+    const units = byId("actualUnits");
+    if (!dialog || !id || !title || !units) return;
+    id.value = quest.id;
+    title.textContent = quest.name;
+    units.value = suggested || quest.target || 1;
+    units.step = Number(quest.target || 1) < 1 ? "0.1" : "1";
+    units.dispatchEvent(new Event("input", { bubbles: true }));
+    dialog.showModal();
+  }
+
+  function prefillUnits(value) {
+    if (!value) return;
+    const input = byId("actualUnits");
+    if (!input) return;
+    input.value = value;
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  }
+
+  function companionForDate() {
+    const state = app.getState();
+    const flags = state.flags || {};
+    const options = [companionById("luca")];
+
+    if (flags.STORY_MINA_FRIENDSHIP_STARTED) {
+      const mina = companionById("mina");
+      mina.weight = flags.MINA_HANGOUTS_UNLOCKED ? 2.6 : 1;
+      options.push(mina);
+    }
+
+    const history = plannerState().companionHistory || [];
+    const recent = history.filter(item => item.date < todayKey()).slice(-3).reverse();
+    options.forEach(option => {
+      if (option.id === "luca") return;
+      if (recent[0]?.id === option.id) option.weight *= 0.18;
+      else if (recent.slice(0, 2).some(item => item.id === option.id)) option.weight *= 0.48;
+    });
+
+    const seed = seededRandom(`${todayKey()}|companion|${history.slice(-5).map(h => h.id).join("-")}`);
+    const total = options.reduce((sum, item) => sum + item.weight, 0);
+    let cursor = seed * total;
+    for (const option of options) {
+      cursor -= option.weight;
+      if (cursor <= 0) return option;
+    }
+    return options[0];
+  }
+
+  function companionById(id) {
+    if (id === "mina") {
+      return {
+        id: "mina",
+        name: "Mina",
+        kicker: "A QUICK CHECK-IN",
+        weight: 1,
+        portrait: "assets/story/sprites/mina_neutral.png",
+        previewLine: "Some mornings, someone from Luca's actual social world may wander into the briefing. Not every day.",
+        dialogLine: "Okay, important question: how alive are we today?",
+        doneLine: "Good. Tiny plan. No turning this into a twelve-step self-improvement challenge."
+      };
+    }
+    return {
+      id: "luca",
+      name: "Luca",
+      kicker: "SELF CHECK-IN",
+      weight: 6,
+      portrait: "assets/story/portraits/luca_thinking.png",
+      previewLine: "Most days can simply begin with Luca checking in with herself.",
+      dialogLine: "Let's make this smaller. What kind of day are we actually working with?",
+      doneLine: "Okay. That's enough information. Pick the next thing, not the whole life."
+    };
+  }
+
+  function companionMarkup(companion, { preview = false } = {}) {
+    const c = companion || companionById("luca");
+    return `
+      <div class="daily-companion-art-v14 ${escAttr(c.id)}">${companionImage(c)}</div>
+      <div class="daily-companion-copy-v14">
+        <small>${esc(c.kicker)}</small>
+        <strong>${esc(c.name)}</strong>
+        <p>${esc(preview ? c.previewLine : c.doneLine)}</p>
+      </div>`;
+  }
+
+  function companionImage(companion, dialog = false) {
+    if (!companion?.portrait) return `<span>${companion?.id === "mina" ? "✦" : "L"}</span>`;
+    return `<img src="${escAttr(companion.portrait)}" alt="${escAttr(companion.name)}" class="${dialog ? "daily-dialog-image-v14" : "daily-companion-image-v14"}" />`;
+  }
+
+  function dialogTitleFor(companion) {
+    return companion?.id === "mina" ? "Quick status report." : "Let's make the day smaller.";
+  }
+
+  function recordCompanion(planner, date, id) {
+    planner.companionHistory = (planner.companionHistory || []).filter(item => item.date !== date);
+    planner.companionHistory.push({ date, id });
+    planner.companionHistory.sort((a, b) => a.date.localeCompare(b.date));
+  }
+
+  function findQuest(id) {
+    return (app.getState().quests || []).find(q => q.id === id) || null;
+  }
+
+  function questLogs(questId) {
+    return (app.getState().completionLog || []).filter(log => log.questId === questId);
+  }
+
+  function todayQuestUnits(questId) {
+    const today = todayKey();
+    return questLogs(questId)
+      .filter(log => dateKeyFromValue(log.at) === today)
+      .reduce((sum, log) => sum + Number(log.units || 0), 0);
+  }
+
+  function wasDoneYesterday(questId) {
+    const date = new Date();
+    date.setDate(date.getDate() - 1);
+    const key = dateKey(date);
+    return questLogs(questId).some(log => dateKeyFromValue(log.at) === key);
+  }
+
+  function daysSinceLast(logs) {
+    if (!logs.length) return 30;
+    const times = logs.map(log => new Date(log.at).getTime()).filter(Number.isFinite);
+    if (!times.length) return 30;
+    return Math.max(0, Math.floor((Date.now() - Math.max(...times)) / 86400000));
+  }
+
+  function cooldownPenalty(quest, logs) {
+    const raw = quest.cooldownDays ?? quest.cooldown;
+    const cooldown = typeof raw === "number" ? raw : Number.parseFloat(raw);
+    if (!Number.isFinite(cooldown) || cooldown <= 0 || !logs.length) return 0;
+    const since = daysSinceLast(logs);
+    return since < cooldown ? 5 + (cooldown - since) * 0.5 : 0;
+  }
+
+  function goalLabel(quest, goal) {
+    const unit = friendlyUnitLabel(quest.unitLabel, goal);
+    if (quest.mode !== "variable" && Number(goal) === 1 && /task|session|time|clear/i.test(unit)) return "Complete it once";
+    return `${formatNumber(goal)} ${unit}`;
+  }
+
+  function friendlyUnitLabel(label, value) {
+    const raw = String(label || "unit").trim();
+    if (Number(value) === 1) {
+      return raw.replace(/s$/i, "");
+    }
+    return raw;
+  }
+
+  function realmIcon(realm) {
+    return ({ Work: "📎", Health: "🌱", Recovery: "☕", Home: "🏠", Japanese: "🌸", Knowledge: "📚", Hobbies: "🎨" })[realm] || "✦";
+  }
+
+  function seededJitter(seed) {
+    return (seededRandom(seed) - 0.5) * 0.7;
+  }
+
+  function seededRandom(seed) {
+    let h = 2166136261;
+    for (let i = 0; i < seed.length; i++) {
+      h ^= seed.charCodeAt(i);
+      h = Math.imul(h, 16777619);
+    }
+    h += h << 13; h ^= h >>> 7; h += h << 3; h ^= h >>> 17; h += h << 5;
+    return ((h >>> 0) % 1000000) / 1000000;
+  }
+
+  function todayKey() {
+    return dateKey(new Date());
+  }
+
+  function dateKey(date) {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  }
+
+  function dateKeyFromValue(value) {
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? "" : dateKey(date);
+  }
+
+  function formatNumber(value) {
+    const n = Number(value || 0);
+    return Number.isInteger(n) ? String(n) : n.toFixed(2).replace(/0+$/, "").replace(/\.$/, "");
+  }
+
+  function clamp(value, min, max) {
+    return Math.max(min, Math.min(max, value));
+  }
+
+  function cssEscape(value) {
+    if (window.CSS?.escape) return CSS.escape(String(value ?? ""));
+    return String(value ?? "").replace(/(["'\\.#:[\]()=+~*^$|<> ])/g, "\\$1");
+  }
+
+  function esc(value) {
+    if (app.escapeHtml) return app.escapeHtml(value);
+    return String(value ?? "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
+
+  function escAttr(value) {
+    return esc(value);
+  }
+
+  window.LifeRPGDaily = {
+    render,
+    openBriefing: () => openBriefing(false),
+    editBriefing: () => openBriefing(true),
+    getToday: () => structuredCloneSafe(todayRecord()),
+    reroll: rerollSlot
+  };
+
+  function structuredCloneSafe(value) {
+    if (value == null) return value;
+    if (typeof structuredClone === "function") return structuredClone(value);
+    return JSON.parse(JSON.stringify(value));
+  }
+})();

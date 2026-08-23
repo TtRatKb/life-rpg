@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#321d34" />
   <title>Life RPG — Base Camp</title>
-  <link rel="stylesheet" href="styles.css?v=0.13.1" />
+  <link rel="stylesheet" href="styles.css?v=0.14.0" />
 </head>
 <body>
   <div class="ambient ambient-one"></div>
@@ -59,7 +59,7 @@
               You do not have to win the whole day. Pick the next thing that fits the life you actually have.
             </p>
             <div class="hero-actions dashboard-hero-actions">
-              <button class="primary-button" data-view-target="quests"><span>✦</span> Choose today's quests</button>
+              <button class="primary-button" id="heroDailyBriefingButton" type="button"><span>✦</span> Start today's briefing</button>
               <button class="ghost-button" data-view-target="story"><span>♡</span> Open story</button>
               <button class="ghost-button" data-view-target="growth"><span>❀</span> View growth</button>
             </div>
@@ -109,25 +109,51 @@
         </section>
 
         <section class="dashboard-grid dashboard-grid-v3">
-          <section class="panel loadout-panel dashboard-loadout-v3">
-            <div class="panel-heading">
-              <div>
-                <p class="eyebrow">TODAY'S RUN</p>
-                <h2>My Loadout</h2>
-                <p class="panel-subcopy">A small plan for the life you actually have today.</p>
+          <div class="dashboard-daily-stack-v14">
+            <section class="panel daily-briefing-card-v14" id="dailyBriefingPanel" aria-labelledby="dailyBriefingTitle">
+              <div class="daily-briefing-head-v14">
+                <div>
+                  <p class="eyebrow">DAILY BRIEFING</p>
+                  <h2 id="dailyBriefingTitle">What kind of day is this?</h2>
+                  <p class="panel-subcopy">A tiny check-in so the app can choose for you instead of handing you another list.</p>
+                </div>
+                <button class="mini-nav-button hidden" id="dailyBriefingEdit" type="button">Edit check-in</button>
               </div>
-              <span class="count-badge" id="loadoutCount">0 selected</span>
-            </div>
+              <div id="dailyCompanion" class="daily-companion-v14"></div>
+              <div id="dailyBriefingState" class="daily-briefing-state-v14"></div>
+              <div class="daily-briefing-actions-v14">
+                <button class="primary-button" id="dailyBriefingStart" type="button">Start today's briefing</button>
+              </div>
+            </section>
 
-            <div id="loadout" class="quest-stack"></div>
+            <section class="panel daily-picks-card-v14" id="dailyPicksPanel" aria-labelledby="dailyPicksTitle">
+              <div class="panel-heading daily-picks-heading-v14">
+                <div>
+                  <p class="eyebrow">TODAY'S PICKS</p>
+                  <h2 id="dailyPicksTitle">Three things. That's enough.</h2>
+                  <p class="panel-subcopy">One useful thing, one thing for you, and one low-pressure option. Reroll only the card that doesn't fit.</p>
+                </div>
+                <span class="count-badge" id="dailyPicksCount">Waiting for briefing</span>
+              </div>
+              <div id="dailyPicks" class="daily-picks-grid-v14"></div>
+              <div id="dailyPicksEmpty" class="daily-picks-empty-v14">
+                <span>✿</span>
+                <strong>No giant menu yet.</strong>
+                <p>Do the short briefing first. Life RPG will narrow the Quest Board down to a tiny plan for today.</p>
+              </div>
+              <footer class="daily-picks-footer-v14">
+                <button class="text-button" data-view-target="quests" type="button">Browse the full Quest Board anyway →</button>
+              </footer>
+            </section>
 
-            <div id="emptyLoadout" class="empty-state hidden">
-              <span class="empty-icon">🎒</span>
-              <strong>Your loadout is empty.</strong>
-              <p>Choose a few quests that actually fit today. Optional and Recovery quests count too.</p>
-              <button class="secondary-button" data-view-target="quests">Choose quests</button>
+            <!-- Compatibility anchors: the legacy loadout is retired from the visible dashboard,
+                 but these IDs stay mounted so existing app logic and saves remain intact. -->
+            <div class="daily-legacy-loadout-compat-v14" aria-hidden="true">
+              <span id="loadoutCount">0 selected</span>
+              <div id="loadout" class="quest-stack"></div>
+              <div id="emptyLoadout" class="hidden"></div>
             </div>
-          </section>
+          </div>
 
           <aside class="side-stack dashboard-side-stack-v3">
             <section class="panel home-panel dashboard-home-card-v3">
@@ -770,6 +796,73 @@
   </div>
 
 
+  <!-- DAILY BRIEFING -->
+  <dialog id="dailyBriefingDialog" class="rpg-dialog daily-briefing-dialog-v14">
+    <form id="dailyBriefingForm" class="rpg-dialog-form daily-briefing-form-v14">
+      <div class="dialog-heading">
+        <div>
+          <p class="eyebrow">TODAY'S CHECK-IN</p>
+          <h2 id="dailyBriefingDialogTitle">Let's make the day smaller.</h2>
+        </div>
+        <button class="close-button" id="dailyBriefingClose" type="button" aria-label="Close">×</button>
+      </div>
+
+      <div id="dailyDialogCompanion" class="daily-dialog-companion-v14"></div>
+
+      <fieldset class="daily-question-v14" data-daily-question="sleep">
+        <legend><span>01</span><strong>How did you sleep?</strong></legend>
+        <div class="daily-choice-row-v14">
+          <label><input type="radio" name="dailySleep" value="bad" required /><span>Bad</span></label>
+          <label><input type="radio" name="dailySleep" value="meh" /><span>Meh</span></label>
+          <label><input type="radio" name="dailySleep" value="fine" /><span>Fine</span></label>
+          <label><input type="radio" name="dailySleep" value="great" /><span>Great</span></label>
+        </div>
+      </fieldset>
+
+      <fieldset class="daily-question-v14" data-daily-question="energy">
+        <legend><span>02</span><strong>How much energy do you have?</strong></legend>
+        <div class="daily-choice-row-v14">
+          <label><input type="radio" name="dailyEnergy" value="fumes" required /><span>Running on fumes</span></label>
+          <label><input type="radio" name="dailyEnergy" value="low" /><span>Low</span></label>
+          <label><input type="radio" name="dailyEnergy" value="okay" /><span>Okay</span></label>
+          <label><input type="radio" name="dailyEnergy" value="lots" /><span>Lots</span></label>
+        </div>
+      </fieldset>
+
+      <fieldset class="daily-question-v14" data-daily-question="time">
+        <legend><span>03</span><strong>How much free time is actually yours?</strong></legend>
+        <div class="daily-choice-row-v14">
+          <label><input type="radio" name="dailyTime" value="none" required /><span>Almost none</span></label>
+          <label><input type="radio" name="dailyTime" value="little" /><span>A little</span></label>
+          <label><input type="radio" name="dailyTime" value="decent" /><span>A decent amount</span></label>
+          <label><input type="radio" name="dailyTime" value="plenty" /><span>Plenty</span></label>
+        </div>
+      </fieldset>
+
+      <fieldset class="daily-question-v14" data-daily-question="obligations">
+        <legend><span>04</span><strong>How full is the must-do part of today?</strong></legend>
+        <div class="daily-choice-row-v14">
+          <label><input type="radio" name="dailyObligations" value="help" required /><span>Please send help</span></label>
+          <label><input type="radio" name="dailyObligations" value="busy" /><span>Busy</span></label>
+          <label><input type="radio" name="dailyObligations" value="normal" /><span>Normal</span></label>
+          <label><input type="radio" name="dailyObligations" value="open" /><span>Pretty open</span></label>
+        </div>
+      </fieldset>
+
+      <label class="daily-gentle-toggle-v14">
+        <input id="dailyGentle" type="checkbox" />
+        <span class="daily-gentle-check-v14">♡</span>
+        <span><strong>I need a gentle day.</strong><small>No explanation required. The planner will lower the friction.</small></span>
+      </label>
+
+      <menu>
+        <button class="secondary-button" id="dailyBriefingCancel" type="button">Not now</button>
+        <button class="primary-button" type="submit">Build my day ✦</button>
+      </menu>
+    </form>
+  </dialog>
+
+
   <div id="habitToast" class="habit-toast-v1 hidden" role="status" aria-live="polite">
     <span class="habit-toast-flower-v1">❀</span>
     <div>
@@ -1165,6 +1258,7 @@
   <script src="story-engine.js?v=0.12.2"></script>
   <script src="app.js?v=0.9.3"></script>
   <script src="habits.js?v=0.13.1"></script>
+  <script src="daily.js?v=0.14.0"></script>
   <script src="story-ui.js?v=0.12.2"></script>
   <script type="module" src="cloud-save.js?v=0.9.3"></script>
 </body>
