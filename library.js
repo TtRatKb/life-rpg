@@ -917,16 +917,45 @@
     logBook(book, type === "minutes" ? { minutes: amount, pages: 0, chapter: false, source: "quick" } : { pages: amount, minutes: 0, chapter: false, source: "quick" });
   }
 
+  function readingRewardSpec(book, { pages = 0, minutes = 0, chapter = false, at = Date.now() } = {}) {
+    let storyEnergyBase = 0.2;
+    if (pages > 0) storyEnergyBase = Math.min(3, Number(pages) * 0.04);
+    else if (minutes > 0) storyEnergyBase = Math.min(3, Number(minutes) * 0.025);
+    else if (chapter) storyEnergyBase = 0.7;
+
+    const role = ROLES[book.role] || ROLES.fun;
+    const xp = Math.max(2, Math.round(storyEnergyBase * 10));
+    const capability = book.role === "japanese" ? "japanese" : "knowledge";
+    return {
+      source: "library",
+      sourceId: book.id,
+      label: book.title,
+      realm: role.realm,
+      capability,
+      xp,
+      realmXP: xp,
+      statXP: Math.max(1, Math.round(xp * 0.65)),
+      storyEnergyBase,
+      dedupeFamily: "reading",
+      at: new Date(at).toISOString(),
+      metadata: { pages: Number(pages || 0), minutes: Number(minutes || 0), chapter: Boolean(chapter), role: book.role }
+    };
+  }
+
   function logBook(book, { pages = 0, minutes = 0, chapter = false, source = "manual" } = {}) {
     const now = Date.now();
     if (book.status !== "reading") {
       book.status = "reading";
       book.startedAt ||= now;
     }
+
+    const beforePage = Math.max(0, Number(book.currentPage || 0));
     if (pages > 0) {
-      book.currentPage = Math.max(0, Number(book.currentPage || 0) + Number(pages));
+      book.currentPage = beforePage + Number(pages);
       if (book.totalPages) book.currentPage = Math.min(book.currentPage, book.totalPages);
     }
+    const actualPages = Math.max(0, Number(book.currentPage || 0) - beforePage);
+
     book.lastReadAt = now;
     book.updatedAt = now;
     book.sessions = Number(book.sessions || 0) + 1;
@@ -934,17 +963,32 @@
       book.status = "finished";
       book.finishedAt = now;
     }
+
+    const reward = app.awardActivity?.(readingRewardSpec(book, {
+      pages: actualPages,
+      minutes: Number(minutes || 0),
+      chapter,
+      at: now
+    })) || { xp: 0, realmXP: 0, statXP: 0, storyEnergy: 0, rawStoryEnergy: 0 };
+
     model().logs.push({
       id: makeId("read"), bookId: book.id, at: now, date: dateKey(new Date(now)),
-      pages: Number(pages || 0), minutes: Number(minutes || 0), chapter: Boolean(chapter), source
+      pages: actualPages, minutes: Number(minutes || 0), chapter: Boolean(chapter), source,
+      xp: Number(reward.xp || 0), realmXP: Number(reward.realmXP || 0), statXP: Number(reward.statXP || 0),
+      storyEnergy: Number(reward.storyEnergy || 0), rawStoryEnergy: Number(reward.rawStoryEnergy || 0),
+      rewardEventId: reward.eventId || null, deduped: Boolean(reward.deduped)
     });
     persist("book-library-log");
+    app.renderAll?.();
     const detail = book.status === "finished"
       ? "Finished ✨"
-      : pages > 0
+      : actualPages > 0
         ? `Now on page ${formatNumber(book.currentPage)}${book.totalPages ? ` / ${formatNumber(book.totalPages)}` : ""}`
         : minutes > 0 ? `${formatDuration(minutes)} logged` : "Reading session logged";
-    showToast("Reading logged", `${book.title} · ${detail}`);
+    const rewardText = reward.deduped
+      ? " · already counted from a linked reading quest"
+      : ` · +${app.formatEnergy?.(reward.storyEnergy) ?? reward.storyEnergy} 🔥 · +${Number(reward.xp || 0)} XP`;
+    showToast("Reading logged", `${book.title} · ${detail}${rewardText}`);
   }
 
   function bookProgress(book) {

@@ -490,6 +490,33 @@
     els.logPreview.innerHTML = `<span>▶</span><div><small>SESSION</small><strong>${esc(formatDuration(minutes))} with ${esc(game.title)}</strong><p>${goal ? `Working toward: ${esc(goal.text)}` : "Just playing counts."}${progress === null ? "" : ` · Progress after: ${progress}%`}</p></div>`;
   }
 
+  function gameRewardSpec(game, minutes, at) {
+    const storyEnergyBase = Math.min(3, Math.max(0.25, Math.max(1, Number(minutes || 0)) * 0.025));
+    const xp = Math.max(3, Math.round(storyEnergyBase * 10));
+    const role = ROLES[game.role] || ROLES.fun;
+    const capability = game.role === "social"
+      ? "social"
+      : game.role === "japanese"
+        ? "japanese"
+        : game.role === "challenge"
+          ? "confidence"
+          : "wellbeing";
+    return {
+      source: "game",
+      sourceId: game.id,
+      label: game.title,
+      realm: role.realm,
+      capability,
+      xp,
+      realmXP: xp,
+      statXP: Math.max(1, Math.round(xp * 0.65)),
+      storyEnergyBase,
+      dedupeFamily: "gaming",
+      at: new Date(at).toISOString(),
+      metadata: { minutes: Number(minutes || 0), role: game.role }
+    };
+  }
+
   function logSession(event) {
     event.preventDefault();
     if (!els.logForm?.reportValidity()) return;
@@ -501,7 +528,15 @@
     const goalId = els.logGoal?.value || "";
     const progressAfter = game.progressMode === "percent" ? clamp(Number(els.logProgress?.value || game.progress || 0), 0, 100) : null;
 
-    model().logs.push({ id: makeId("glog"), gameId: game.id, at: now, date: todayKey(), minutes, goalId: goalId || null, progressAfter });
+    const reward = app.awardActivity?.(gameRewardSpec(game, minutes, now)) || {
+      xp: 0, realmXP: 0, statXP: 0, storyEnergy: 0, rawStoryEnergy: 0
+    };
+    model().logs.push({
+      id: makeId("glog"), gameId: game.id, at: now, date: todayKey(), minutes, goalId: goalId || null, progressAfter,
+      xp: Number(reward.xp || 0), realmXP: Number(reward.realmXP || 0), statXP: Number(reward.statXP || 0),
+      storyEnergy: Number(reward.storyEnergy || 0), rawStoryEnergy: Number(reward.rawStoryEnergy || 0),
+      rewardEventId: reward.eventId || null, deduped: Boolean(reward.deduped)
+    });
     game.totalMinutes = Number(game.totalMinutes || 0) + minutes;
     game.sessions = Number(game.sessions || 0) + 1;
     game.lastPlayedAt = now;
@@ -512,8 +547,12 @@
     if (game.progressMode === "percent" && game.progress >= 100 && game.status !== "endless") game.status = "finished";
 
     persist("game-session-log");
+    app.renderAll?.();
     closeLogDialog();
-    showToast("Session logged", `${game.title} · ${formatDuration(minutes)}${goalId ? " · personal goal kept in focus" : ""}`);
+    const rewardText = reward.deduped
+      ? " · already counted from a linked gaming quest"
+      : ` · +${app.formatEnergy?.(reward.storyEnergy) ?? reward.storyEnergy} 🔥 · +${Number(reward.xp || 0)} XP`;
+    showToast("Session logged", `${game.title} · ${formatDuration(minutes)}${goalId ? " · personal goal kept in focus" : ""}${rewardText}`);
   }
 
   function closeLogDialog() {

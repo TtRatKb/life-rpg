@@ -451,6 +451,27 @@
     renderPhoneSurfaces();
   }
 
+  function progressionRequirementMatches(requirement) {
+    if (!requirement || typeof requirement !== "object") return true;
+    const type = requirement.type || (requirement.capability ? "capability" : requirement.realmRank ? "realmRank" : null);
+    const key = requirement.key || requirement.capability || requirement.realmRank;
+    if (!type || !key) return true;
+
+    let value = 0;
+    if (type === "capability") value = Number(app.getCapabilityInfo?.(key)?.level || 1);
+    else if (type === "realmRank") value = Number(app.getRealmRankInfo?.(key)?.level || 1);
+    else return true;
+
+    if (requirement.min != null && value < Number(requirement.min)) return false;
+    if (requirement.max != null && value > Number(requirement.max)) return false;
+    return true;
+  }
+
+  function sceneRequirementsMet(scene) {
+    const requirements = Array.isArray(scene?.requirements) ? scene.requirements : [];
+    return requirements.every(progressionRequirementMatches);
+  }
+
   function renderNextScene(scene) {
     const state = app.getState();
     const story = state.story;
@@ -477,6 +498,7 @@
     const step = Number(story.readerStep || 0);
     const cost = Number(scene.cost || 0);
     const enoughEnergy = state.storyEnergy >= cost;
+    const readyForScene = sceneRequirementsMet(scene);
 
     if (unlocked) {
       els.nextTitle.textContent = scene.title;
@@ -500,6 +522,14 @@
       ? "Start at the beginning of my ordinary life, before anything changes."
       : "The next chapter stays spoiler-free until you unlock it.";
 
+    if (!readyForScene) {
+      els.energyNeed.innerHTML = `<span class="story-energy-pill locked">Real-life readiness not met yet</span>`;
+      els.actionButton.disabled = true;
+      els.actionButton.textContent = "Not quite ready yet";
+      els.actionHint.textContent = "Some future chapters can react to real-life growth. Readiness checks stay spoiler-safe and should always have a reasonable path forward.";
+      return;
+    }
+
     if (cost === 0) {
       els.energyNeed.innerHTML = `<span class="story-energy-pill ready">No Story Energy required</span>`;
       els.actionButton.disabled = false;
@@ -509,16 +539,16 @@
     }
 
     if (enoughEnergy) {
-      els.energyNeed.innerHTML = `<span class="story-energy-pill ready">${state.storyEnergy} 🔥 available</span><span class="story-energy-pill">${cost} 🔥 to unlock chapter</span>`;
+      els.energyNeed.innerHTML = `<span class="story-energy-pill ready">${app.formatEnergy?.(state.storyEnergy) ?? state.storyEnergy} 🔥 available</span><span class="story-energy-pill">${cost} 🔥 to unlock chapter</span>`;
       els.actionButton.disabled = false;
       els.actionButton.textContent = `Unlock next chapter · ${cost} 🔥`;
       els.actionHint.textContent = "Unlocking pays for the complete chapter. Reading, Previous and choices are free after that.";
     } else {
-      const missing = Math.max(0, cost - state.storyEnergy);
-      els.energyNeed.innerHTML = `<span class="story-energy-pill">${state.storyEnergy} 🔥 available</span><span class="story-energy-pill locked">Need ${missing} more</span>`;
+      const missing = Math.max(0, cost - Number(state.storyEnergy || 0));
+      els.energyNeed.innerHTML = `<span class="story-energy-pill">${app.formatEnergy?.(state.storyEnergy) ?? state.storyEnergy} 🔥 available</span><span class="story-energy-pill locked">Need ${app.formatEnergy?.(missing) ?? missing} more</span>`;
       els.actionButton.disabled = true;
-      els.actionButton.textContent = `Need ${missing} more Story Energy`;
-      els.actionHint.textContent = "Real-life quests, Recovery and external task clears can fund the next chapter.";
+      els.actionButton.textContent = `Need ${app.formatEnergy?.(missing) ?? missing} more Story Energy`;
+      els.actionHint.textContent = "Habits, quests, books, games, Side Adventures and real-life tasks can all fund the next chapter.";
     }
   }
 
@@ -1069,9 +1099,9 @@
 
       if (!state.story.unlockedSceneIds.includes(next.id)) {
         const cost = Number(next.cost || 0);
-        if (state.storyEnergy < cost) return;
+        if (!sceneRequirementsMet(next) || state.storyEnergy < cost) return;
 
-        state.storyEnergy -= cost;
+        state.storyEnergy = Math.max(0, Math.floor((Number(state.storyEnergy || 0) - cost + 1e-9) * 100) / 100);
         state.story.unlockedSceneIds.push(next.id);
         state.story.activeSceneId = next.id;
         state.story.readerStep = 0;
@@ -1189,6 +1219,13 @@
     if (node.unless?.flag && flags[node.unless.flag]) return false;
     if (Array.isArray(node.unless?.flags) && node.unless.flags.some(key => Boolean(flags[key]))) return false;
 
+    if (node.when?.capability && !progressionRequirementMatches({ type: "capability", ...node.when.capability })) return false;
+    if (node.when?.realmRank && !progressionRequirementMatches({ type: "realmRank", ...node.when.realmRank })) return false;
+    if (Array.isArray(node.when?.capabilities) && node.when.capabilities.some(req => !progressionRequirementMatches({ type: "capability", ...req }))) return false;
+    if (Array.isArray(node.when?.realmRanks) && node.when.realmRanks.some(req => !progressionRequirementMatches({ type: "realmRank", ...req }))) return false;
+    if (node.unless?.capability && progressionRequirementMatches({ type: "capability", ...node.unless.capability })) return false;
+    if (node.unless?.realmRank && progressionRequirementMatches({ type: "realmRank", ...node.unless.realmRank })) return false;
+
     if (node.when?.relationship) {
       const requirement = node.when.relationship;
       const value = Number(relationships?.[requirement.key]?.[requirement.stat] || 0);
@@ -1260,8 +1297,8 @@
     els.sceneTitle.textContent = runtime.scene.title || (isTalk ? "Talk" : isHangout ? "Hang Out" : "Story");
     els.location.textContent = runtime.scene.location || (isTalk ? "Somewhere nearby" : isHangout ? "Out together" : "Story");
     els.beatLabel.textContent = runtime.finished ? "Complete" : `${isTalk ? "Talk" : isHangout ? "Hangout" : "Scene"} ${current}`;
-    els.energy.textContent = (isTalk || isHangout) ? "Free" : state.storyEnergy;
-    els.energySide.textContent = (isTalk || isHangout) ? "Free" : state.storyEnergy;
+    els.energy.textContent = (isTalk || isHangout) ? "Free" : (app.formatEnergy?.(state.storyEnergy) ?? state.storyEnergy);
+    els.energySide.textContent = (isTalk || isHangout) ? "Free" : (app.formatEnergy?.(state.storyEnergy) ?? state.storyEnergy);
     els.progressReaderLabel.textContent = `${current} / ${total}`;
     els.progressReaderBar.style.width = `${percent}%`;
     els.saveStatus.textContent = runtime.replay

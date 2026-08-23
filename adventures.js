@@ -437,6 +437,32 @@
     byId("adventureLogQuickProgress")?.querySelectorAll("[data-adventure-quick-progress]").forEach(button => button.classList.toggle("active", Number(button.dataset.adventureQuickProgress) === value));
   }
 
+  function adventureRewardSpec(item, at) {
+    const minutes = clamp(Number(item.minutes || 30), 10, 180);
+    const energyFactor = item.energy === "high" ? 1.12 : item.energy === "low" ? 0.9 : 1;
+    const storyEnergyBase = Math.min(2.8, Math.max(0.35, minutes * 0.025 * energyFactor));
+    const xp = Math.max(4, Math.round(storyEnergyBase * 10));
+    const capability = app.inferCapability?.({
+      realm: item.realm,
+      label: item.name,
+      kind: item.kind || "adventure"
+    }) || "creativity";
+
+    return {
+      source: "adventure",
+      sourceId: item.id,
+      label: item.name,
+      realm: item.realm,
+      capability,
+      xp,
+      realmXP: xp,
+      statXP: Math.max(1, Math.round(xp * 0.65)),
+      storyEnergyBase,
+      at: new Date(at).toISOString(),
+      metadata: { minutes, energy: item.energy, kind: item.kind }
+    };
+  }
+
   function logAdventureProgress(event) {
     event.preventDefault();
     const id = els.logId?.value;
@@ -453,25 +479,38 @@
     if (nextAction) item.nextAction = nextAction;
     if (item.progressMode === "percent" && after >= 100) item.status = "finished";
 
+    const reward = app.awardActivity?.(adventureRewardSpec(item, now)) || {
+      xp: 0, realmXP: 0, statXP: 0, storyEnergy: 0, rawStoryEnergy: 0
+    };
+
     model().logs.push({
       id: makeId("advlog"),
       adventureId: item.id,
       at: now,
       date: todayKey(),
       progressBefore: before,
-      progressAfter: after
+      progressAfter: after,
+      xp: Number(reward.xp || 0),
+      realmXP: Number(reward.realmXP || 0),
+      statXP: Number(reward.statXP || 0),
+      storyEnergy: Number(reward.storyEnergy || 0),
+      rawStoryEnergy: Number(reward.rawStoryEnergy || 0),
+      rewardEventId: reward.eventId || null,
+      deduped: Boolean(reward.deduped)
     });
     persist("side-adventure-progress");
+    app.renderAll?.();
     closeLogDialog();
-    showToast(item, before, after);
+    showToast(item, before, after, reward);
   }
 
-  function showToast(item, before, after) {
+  function showToast(item, before, after, reward = null) {
     if (!els.toast) return;
     if (els.toastTitle) els.toastTitle.textContent = item.name;
     if (els.toastDetail) {
       const delta = item.progressMode === "percent" && after !== before ? ` · ${after}% complete` : "";
-      els.toastDetail.textContent = `Progress logged${delta}`;
+      const rewardText = reward ? ` · +${app.formatEnergy?.(reward.storyEnergy) ?? reward.storyEnergy} 🔥 · +${Number(reward.xp || 0)} XP` : "";
+      els.toastDetail.textContent = `Progress logged${delta}${rewardText}`;
     }
     els.toast.classList.remove("hidden");
     clearTimeout(showToast.timer);

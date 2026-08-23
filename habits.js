@@ -19,11 +19,11 @@
     anytime: { label: "Anytime", icon: "✨", order: 3 }
   };
   const EFFORTS = {
-    tiny: { label: "Tiny", base: 0.25 },
-    low: { label: "Low", base: 0.40 },
-    normal: { label: "Normal", base: 0.70 },
-    high: { label: "High", base: 1.20 },
-    boss: { label: "Boss", base: 2.00 }
+    tiny: { label: "Tiny", base: 0.25, xp: 3 },
+    low: { label: "Low", base: 0.40, xp: 5 },
+    normal: { label: "Normal", base: 0.70, xp: 8 },
+    high: { label: "High", base: 1.20, xp: 12 },
+    boss: { label: "Boss", base: 2.00, xp: 18 }
   };
 
   let showArchived = false;
@@ -431,7 +431,16 @@
     const rewardStreak = Math.max(streak, candidateStreak, 1);
     const multiplier = streakMultiplier(rewardStreak);
     const baseReward = effortBase(habit);
-    const reward = floor2(baseReward * multiplier);
+    const rawReward = floor2(baseReward * multiplier);
+    const preview = app.previewActivityReward?.({
+      source: "habit",
+      sourceId: habit.id,
+      label: habit.name,
+      realm: habit.realm,
+      capability: app.inferCapability?.({ realm: habit.realm, label: habit.name, kind: "habit" }),
+      storyEnergyBase: rawReward
+    });
+    const reward = preview ? Number(preview.storyEnergy || 0) : rawReward;
 
     return {
       habit,
@@ -443,6 +452,7 @@
       progressText: progressLabel(habit, inPeriod.length, target),
       timingText: timingLabel(habit, { completedToday, periodComplete }),
       reward,
+      rawReward,
       baseReward,
       multiplier,
       nextSort: nextSortValue(habit)
@@ -478,6 +488,7 @@
       timestamp: now,
       periodKey: period.key,
       reward: 0,
+      rawReward: 0,
       baseReward: snapshot.baseReward,
       multiplier: 1,
       streakAfter: 0,
@@ -489,21 +500,44 @@
     const streakAfter = calculateStreak(habit, after);
     const streakForReward = Math.max(snapshot.streak, streakAfter, 1);
     const multiplier = streakMultiplier(streakForReward);
-    const reward = floor2(effortBase(habit) * multiplier);
+    const rawReward = floor2(effortBase(habit) * multiplier);
+    const effort = EFFORTS[habit.effort] || EFFORTS.low;
+    const xp = Math.max(1, Number(effort.xp || 5));
+    const capability = app.inferCapability?.({ realm: habit.realm, label: habit.name, kind: "habit" }) || "wellbeing";
+    const reward = app.awardActivity?.({
+      source: "habit",
+      sourceId: habit.id,
+      label: habit.name,
+      realm: habit.realm,
+      capability,
+      xp,
+      realmXP: xp,
+      statXP: Math.max(1, Math.round(xp * 0.65)),
+      storyEnergyBase: rawReward,
+      at: new Date(now).toISOString(),
+      metadata: { effort: habit.effort, streakAfter, periodKey: period.key }
+    }) || { xp: 0, statXP: 0, storyEnergy: rawReward, rawStoryEnergy: rawReward };
 
     provisional.streakAfter = streakAfter;
     provisional.multiplier = multiplier;
-    provisional.reward = reward;
+    provisional.rawReward = rawReward;
+    provisional.reward = Number(reward.storyEnergy || 0);
+    provisional.xp = Number(reward.xp || 0);
+    provisional.realmXP = Number(reward.realmXP || 0);
+    provisional.stat = capability;
+    provisional.statXP = Number(reward.statXP || 0);
+    provisional.rewardEventId = reward.eventId || null;
+    provisional.deduped = Boolean(reward.deduped);
 
     state.habits.completions.push(provisional);
-    state.storyEnergy = floor2(Number(state.storyEnergy || 0) + reward);
 
     persist("habit-complete");
+    app.renderAll?.();
     showHabitToast(habit, reward, streakAfter);
 
     try {
       window.dispatchEvent(new CustomEvent("life-rpg:habit-complete", {
-        detail: { habitId: habit.id, reward, streakAfter, date: provisional.date }
+        detail: { habitId: habit.id, reward: reward.storyEnergy, xp: reward.xp, streakAfter, date: provisional.date }
       }));
     } catch {
       // Older browsers may not support CustomEvent construction; completion is already saved.
@@ -516,7 +550,7 @@
     if (els.toastTitle) els.toastTitle.textContent = habit.name;
     if (els.toastReward) {
       const streakText = streakAfter > 1 ? ` · ${streakAfter}-${streakUnitLabel(habit, 1)} streak` : "";
-      els.toastReward.textContent = `+${formatEnergy(reward)} Story Energy${streakText}`;
+      els.toastReward.textContent = `+${formatEnergy(reward.storyEnergy)} Story Energy · +${Number(reward.xp || 0)} XP${streakText}`;
     }
     els.toast.classList.remove("hidden");
     els.toast.classList.add("show");

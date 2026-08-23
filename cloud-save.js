@@ -28,7 +28,7 @@ const firebaseConfig = {
 
 const CLOUD_META_KEY = "lifeRpgCloudMetaV01";
 const LOCAL_ROLLBACK_KEY = "lifeRpgLocalRollbackV01";
-const SAVE_SCHEMA_VERSION = 6;
+const SAVE_SCHEMA_VERSION = 7;
 const SAVE_DEBOUNCE_MS = 900;
 
 const firebaseApp = initializeApp(firebaseConfig);
@@ -498,6 +498,18 @@ function progressScore(state) {
   const questLogs = Array.isArray(state?.completionLog) ? state.completionLog.length : 0;
   const externalLogs = Array.isArray(state?.externalCompletionLog) ? state.externalCompletionLog.length : 0;
   const memories = Array.isArray(state?.memories) ? state.memories.length : 0;
+  const habits = Array.isArray(state?.habits?.items) ? state.habits.items.length : 0;
+  const habitLogs = Array.isArray(state?.habits?.completions) ? state.habits.completions.length : 0;
+  const adventures = Array.isArray(state?.sideAdventures?.items) ? state.sideAdventures.items.length : 0;
+  const adventureLogs = Array.isArray(state?.sideAdventures?.logs) ? state.sideAdventures.logs.length : 0;
+  const books = Array.isArray(state?.bookLibrary?.items) ? state.bookLibrary.items.length : 0;
+  const bookLogs = Array.isArray(state?.bookLibrary?.logs) ? state.bookLibrary.logs.length : 0;
+  const games = Array.isArray(state?.gameLibrary?.items) ? state.gameLibrary.items.length : 0;
+  const gameLogs = Array.isArray(state?.gameLibrary?.logs) ? state.gameLibrary.logs.length : 0;
+  const plannerDays = state?.dailyPlanner?.days && typeof state.dailyPlanner.days === "object"
+    ? Object.keys(state.dailyPlanner.days).length
+    : 0;
+  const rewardEvents = Array.isArray(state?.rewardLedger?.events) ? state.rewardLedger.events.length : 0;
 
   return (
     completedScenes * 1000 +
@@ -505,6 +517,12 @@ function progressScore(state) {
     questLogs * 20 +
     externalLogs * 20 +
     memories * 50 +
+    habits * 12 + habitLogs * 8 +
+    adventures * 12 + adventureLogs * 8 +
+    books * 12 + bookLogs * 8 +
+    games * 12 + gameLogs * 8 +
+    plannerDays * 4 +
+    rewardEvents * 2 +
     Math.max(0, Number(state?.characterXP || 0)) +
     Math.max(0, Number(state?.storyEnergy || 0)) +
     Math.max(0, Number(state?.coins || 0))
@@ -516,11 +534,22 @@ function summarizeState(state, savedAt = null) {
   const sceneCount = Array.isArray(story.completedSceneIds) ? story.completedSceneIds.length : 0;
   const questCount = Array.isArray(state?.completionLog) ? state.completionLog.length : 0;
   const externalCount = Array.isArray(state?.externalCompletionLog) ? state.externalCompletionLog.length : 0;
+  const habitCount = Array.isArray(state?.habits?.completions) ? state.habits.completions.length : 0;
+  const adventureCount = Array.isArray(state?.sideAdventures?.logs) ? state.sideAdventures.logs.length : 0;
+  const bookCount = Array.isArray(state?.bookLibrary?.logs) ? state.bookLibrary.logs.length : 0;
+  const gameCount = Array.isArray(state?.gameLibrary?.logs) ? state.gameLibrary.logs.length : 0;
   const xp = Math.max(0, Number(state?.characterXP || 0));
+  const activityCount = questCount + externalCount + habitCount + adventureCount + bookCount + gameCount;
+  const collectionCount =
+    (Array.isArray(state?.bookLibrary?.items) ? state.bookLibrary.items.length : 0) +
+    (Array.isArray(state?.gameLibrary?.items) ? state.gameLibrary.items.length : 0) +
+    (Array.isArray(state?.sideAdventures?.items) ? state.sideAdventures.items.length : 0) +
+    (Array.isArray(state?.habits?.items) ? state.habits.items.length : 0);
   const parts = [
     `${xp} Character XP`,
     `${sceneCount} story scene${sceneCount === 1 ? "" : "s"}`,
-    `${questCount + externalCount} logged clear${questCount + externalCount === 1 ? "" : "s"}`
+    `${activityCount} activity log${activityCount === 1 ? "" : "s"}`,
+    `${collectionCount} tracked item${collectionCount === 1 ? "" : "s"}`
   ];
   if (savedAt) parts.push(`saved ${formatDateTime(savedAt)}`);
   return parts.join(" · ");

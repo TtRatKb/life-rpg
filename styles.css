@@ -9400,3 +9400,35 @@ dialog:not(.story-phone-dialog)::backdrop { background: rgba(49,29,50,.44); }
   .game-card-actions-v17 .secondary-button { flex: 1 1 auto; }
   .game-toast-v17 { right: 16px; bottom: 82px; }
 }
+
+/* V0.18.1 · Growth system clarity ---------------------------------- */
+.realm-card-heading-v181 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.realm-card-heading-v181 > span {
+  color: #76596c !important;
+  font-size: .8rem;
+  font-weight: 850;
+}
+.realm-card-heading-v181 > strong {
+  color: #624459;
+  font-size: .78rem;
+}
+.realm-cards-v3 .realm-card > .progress {
+  position: relative;
+  z-index: 1;
+  height: 7px;
+  margin-top: 4px;
+}
+.realm-cards-v3 .realm-card > small {
+  position: relative;
+  z-index: 1;
+  display: block;
+  margin-top: 8px;
+  color: #9a7d8e;
+  font-size: .66rem;
+}

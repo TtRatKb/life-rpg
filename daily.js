@@ -507,7 +507,7 @@
     if (!quest) return unavailablePickMarkup(pick, slot, "This item is no longer in the Quest Board. Reroll this card to replace it.");
 
     const progress = todayQuestUnits(quest.id);
-    const goal = Number(pick.suggestedUnits || quest.target || 1);
+    const goal = Number(pick.suggestedUnits || questTargetValue(quest));
     const done = progress >= goal - 1e-9;
     const unitLabel = friendlyUnitLabel(quest.unitLabel, goal);
     const goalText = goalLabel(quest, goal);
@@ -644,10 +644,29 @@
     return picked;
   }
 
+  function questTargetValue(quest) {
+    const value = Number(quest?.units ?? quest?.target ?? 1);
+    return Number.isFinite(value) && value > 0 ? value : 1;
+  }
+
+  function isVariableQuest(quest) {
+    return quest?.xpMode === "Variable by Units" || quest?.mode === "variable";
+  }
+
+  function questPriority(quest) {
+    if (quest?.priority) return String(quest.priority);
+    if (quest?.energy === "Low Energy") return "Low Energy";
+    if (quest?.energy === "Boss") return "Must Do";
+    return "Optional";
+  }
+
   function eligibleQuests() {
-    const state = app.getState();
-    const quests = Array.isArray(state.quests) ? state.quests : [];
-    return quests.filter(q => q && q.id && q.name && q.archived !== true && q.active !== false);
+    const quests = typeof app.getQuestCatalog === "function" ? app.getQuestCatalog() : [];
+    return quests.filter(quest => {
+      if (!quest || !quest.id || !quest.name || quest.manualStatus === "Archived" || quest.active === false) return false;
+      const availability = app.getQuestAvailability?.(quest);
+      return availability ? availability.available : true;
+    });
   }
 
   function eligibleAdventures() {
@@ -831,7 +850,7 @@
 
   function scoreQuest(quest, slot, checkIn) {
     const realm = String(quest.realm || "");
-    const priority = String(quest.priority || "Optional");
+    const priority = questPriority(quest);
     const capacity = effectiveCapacity(checkIn);
     const demand = questDemand(quest);
     const duration = estimatedMinutes(quest);
@@ -1150,8 +1169,8 @@
 
   function questDemand(quest) {
     let demand = DEMAND_BY_REALM[quest.realm] ?? 1.25;
-    if (quest.priority === "Low Energy") demand -= 0.65;
-    if (quest.priority === "Must Do") demand += 0.15;
+    if (questPriority(quest) === "Low Energy") demand -= 0.65;
+    if (questPriority(quest) === "Must Do") demand += 0.15;
     const minutes = estimatedMinutes(quest);
     if (minutes >= 60) demand += 0.55;
     else if (minutes >= 35) demand += 0.25;
@@ -1165,7 +1184,7 @@
   }
 
   function estimatedMinutes(quest) {
-    const target = Number(quest.target || 0);
+    const target = questTargetValue(quest);
     const unit = String(quest.unitLabel || "").toLowerCase();
     if (!target) return 0;
     if (/(min|minute)/.test(unit)) return target;
@@ -1176,8 +1195,8 @@
   }
 
   function suggestedUnits(quest, slot, checkIn) {
-    const target = Math.max(0.1, Number(quest.target || 1));
-    if (quest.mode !== "variable") return target;
+    const target = Math.max(0.1, questTargetValue(quest));
+    if (!isVariableQuest(quest)) return target;
 
     const capacity = effectiveCapacity(checkIn);
     let fraction = slot === "gentle" ? 0.45 : slot === "joy" ? 0.65 : 0.8;
@@ -1335,8 +1354,9 @@
     if (!dialog || !id || !title || !units) return;
     id.value = quest.id;
     title.textContent = quest.name;
-    units.value = suggested || quest.target || 1;
-    units.step = Number(quest.target || 1) < 1 ? "0.1" : "1";
+    units.value = suggested || questTargetValue(quest);
+    units.min = questTargetValue(quest) < 1 ? "0.1" : "1";
+    units.step = questTargetValue(quest) < 1 ? "0.1" : "1";
     units.dispatchEvent(new Event("input", { bubbles: true }));
     dialog.showModal();
   }
@@ -1578,7 +1598,7 @@
   }
 
   function findQuest(id) {
-    return (app.getState().quests || []).find(q => q.id === id) || null;
+    return app.getQuestById?.(id) || app.getQuestCatalog?.().find(quest => quest.id === id) || null;
   }
 
   function questLogs(questId) {
@@ -1616,7 +1636,7 @@
 
   function goalLabel(quest, goal) {
     const unit = friendlyUnitLabel(quest.unitLabel, goal);
-    if (quest.mode !== "variable" && Number(goal) === 1 && /task|session|time|clear/i.test(unit)) return "Complete it once";
+    if (!isVariableQuest(quest) && Number(goal) === 1 && /task|session|time|clear/i.test(unit)) return "Complete it once";
     return `${formatNumber(goal)} ${unit}`;
   }
 

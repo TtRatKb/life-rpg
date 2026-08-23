@@ -10,7 +10,7 @@
     confidence: { label: "Confidence", icon: "✨" },
     social: { label: "Social", icon: "💬" },
     wellbeing: { label: "Wellbeing", icon: "🌿" },
-    japanese: { label: "Japanese", icon: "🇯🇵" }
+    japanese: { label: "Japanese Skill", icon: "🇯🇵" }
   };
 
   const REALM_META = {
@@ -28,6 +28,16 @@
     "Normal": 1,
     "Boss": 2
   };
+
+  const REWARD_LEDGER_SCHEMA = 1;
+  const MAX_REWARD_EVENTS = 3000;
+  const REWARD_DEDUPE_WINDOW_MS = 10 * 60 * 1000;
+  const STORY_ENERGY_TIERS = [
+    { until: 4, multiplier: 1 },
+    { until: 8, multiplier: 0.72 },
+    { until: 12, multiplier: 0.42 },
+    { until: Infinity, multiplier: 0.12 }
+  ];
 
   const IMPORTED_QUESTS = (window.LIFE_RPG_QUESTS || []).map(normalizeImportedQuest);
 
@@ -48,7 +58,7 @@
       ...quest,
       custom: false,
       stat,
-      statAtTarget: Math.max(1, Math.round(Number(quest.xp || 0) * .35))
+      statAtTarget: Math.max(1, Math.round(Number(quest.xp || 0) * .65))
     };
   }
 
@@ -114,7 +124,7 @@
       questType: null,
       realmXpSource: "Quest",
       stat: quest.stat || "knowledge",
-      statAtTarget: Number(quest.statAtTarget || Math.max(1, Math.round(Number(quest.xpAtTarget || 20) * .35)))
+      statAtTarget: Number(quest.statAtTarget || Math.max(1, Math.round(Number(quest.xpAtTarget || 20) * .65)))
     };
   }
 
@@ -194,12 +204,297 @@
   };
 
 
+  function defaultRewardLedger() {
+    return {
+      schemaVersion: REWARD_LEDGER_SCHEMA,
+      events: []
+    };
+  }
+
+  function ensureProgressionState() {
+    if (!state.rewardLedger || typeof state.rewardLedger !== "object" || Array.isArray(state.rewardLedger)) {
+      state.rewardLedger = defaultRewardLedger();
+    }
+    state.rewardLedger.schemaVersion = REWARD_LEDGER_SCHEMA;
+    if (!Array.isArray(state.rewardLedger.events)) state.rewardLedger.events = [];
+    if (state.rewardLedger.events.length > MAX_REWARD_EVENTS) {
+      state.rewardLedger.events = state.rewardLedger.events
+        .slice()
+        .sort((a, b) => new Date(a.at || 0) - new Date(b.at || 0))
+        .slice(-MAX_REWARD_EVENTS);
+    }
+
+    const defaults = defaultState();
+    state.stats = { ...defaults.stats, ...(state.stats || {}) };
+    state.realms = { ...defaults.realms, ...(state.realms || {}) };
+    state.characterXP = Math.max(0, Number(state.characterXP || 0));
+    state.coins = Math.max(0, Number(state.coins || 0));
+    state.storyEnergy = floor2(Math.max(0, Number(state.storyEnergy || 0)));
+  }
+
+  function migrateLegacyRewardLedger() {
+    ensureProgressionState();
+    const events = state.rewardLedger.events;
+    const ids = new Set(events.map(event => event?.id).filter(Boolean));
+
+    const addLegacy = (id, data) => {
+      if (!id || ids.has(id)) return id;
+      events.push({ id, migrated: true, ...data });
+      ids.add(id);
+      return id;
+    };
+
+    (state.completionLog || []).forEach((log, index) => {
+      const id = log.rewardEventId || `legacy-quest-${log.id || index}`;
+      log.rewardEventId = id;
+      addLegacy(id, {
+        source: "quest",
+        sourceId: log.questId || null,
+        label: log.questName || "Quest",
+        realm: REALM_META[log.realm] ? log.realm : null,
+        capability: STAT_META[log.stat] ? log.stat : null,
+        xp: Math.max(0, Number(log.xp || 0)),
+        realmXP: Math.max(0, Number(log.xp || 0)),
+        statXP: Math.max(0, Number(log.statXP || 0)),
+        coins: Math.max(0, Number(log.coins || 0)),
+        rawStoryEnergy: Math.max(0, Number(log.rawStoryEnergy ?? log.storyEnergy ?? 0)),
+        storyEnergy: Math.max(0, Number(log.storyEnergy || 0)),
+        dedupeFamily: dedupeFamilyForQuest(getQuestById(log.questId)),
+        duplicate: Boolean(log.deduped),
+        duplicateOf: null,
+        at: log.at || new Date(0).toISOString()
+      });
+    });
+
+    (state.externalCompletionLog || []).forEach((log, index) => {
+      const id = log.rewardEventId || `legacy-external-${log.id || index}`;
+      log.rewardEventId = id;
+      addLegacy(id, {
+        source: "external",
+        sourceId: log.id || null,
+        label: log.name || "External task",
+        realm: REALM_META[log.realm] ? log.realm : null,
+        capability: STAT_META[log.stat] ? log.stat : null,
+        xp: Math.max(0, Number(log.xp || 0)),
+        realmXP: Math.max(0, Number(log.xp || 0)),
+        statXP: Math.max(0, Number(log.statXP || 0)),
+        coins: Math.max(0, Number(log.coins || 0)),
+        rawStoryEnergy: Math.max(0, Number(log.rawStoryEnergy ?? log.storyEnergy ?? 0)),
+        storyEnergy: Math.max(0, Number(log.storyEnergy || 0)),
+        dedupeFamily: null,
+        duplicate: Boolean(log.deduped),
+        duplicateOf: null,
+        at: log.at || new Date(0).toISOString()
+      });
+    });
+
+    const habitCompletions = state.habits?.completions;
+    if (Array.isArray(habitCompletions)) {
+      habitCompletions.forEach((log, index) => {
+        const paid = Math.max(0, Number(log.reward || 0));
+        if (paid <= 0 && !log.rewardEventId) return;
+        const habit = state.habits?.items?.find?.(item => item.id === log.habitId) || null;
+        const id = log.rewardEventId || `legacy-habit-${log.id || index}`;
+        log.rewardEventId = id;
+        addLegacy(id, {
+          source: "habit",
+          sourceId: log.habitId || null,
+          label: habit?.name || "Habit",
+          realm: REALM_META[habit?.realm] ? habit.realm : null,
+          capability: inferCapability({ realm: habit?.realm, label: habit?.name, kind: "habit" }),
+          xp: Math.max(0, Number(log.xp || 0)),
+          realmXP: Math.max(0, Number(log.realmXP ?? log.xp ?? 0)),
+          statXP: Math.max(0, Number(log.statXP || 0)),
+          coins: 0,
+          rawStoryEnergy: Math.max(0, Number(log.rawReward ?? paid)),
+          storyEnergy: paid,
+          dedupeFamily: null,
+          duplicate: Boolean(log.deduped),
+          duplicateOf: null,
+          at: log.timestamp ? new Date(Number(log.timestamp)).toISOString() : `${log.date || "1970-01-01"}T12:00:00`
+        });
+      });
+    }
+
+    state.rewardLedger.events = events
+      .slice()
+      .sort((a, b) => new Date(a.at || 0) - new Date(b.at || 0))
+      .slice(-MAX_REWARD_EVENTS);
+  }
+
+  function inferCapability({ realm, label = "", kind = "", role = "" } = {}) {
+    const text = `${label} ${kind} ${role}`.toLowerCase();
+    if (realm === "Japanese") return "japanese";
+    if (realm === "Knowledge") return "knowledge";
+    if (realm === "Work") return kind === "book" ? "knowledge" : "confidence";
+    if (realm === "Recovery" || realm === "Home") return "wellbeing";
+    if (realm === "Health") {
+      return /(walk|run|workout|training|exercise|gym|strength|sport|yoga|pilates|swim|cycle|bike|climb|hike)/i.test(text)
+        ? "strength"
+        : "wellbeing";
+    }
+    if (realm === "Hobbies") {
+      if (kind === "book" || /(book|read|reading)/i.test(text)) return "knowledge";
+      if (role === "social") return "social";
+      if (role === "challenge") return "confidence";
+      if (kind === "game" || /(game|gaming|play)/i.test(text)) return "wellbeing";
+      return "creativity";
+    }
+    return "knowledge";
+  }
+
+  function dedupeFamilyForQuest(quest) {
+    if (!quest) return null;
+    const name = String(quest.name || "").toLowerCase();
+    const isBookAdmin = /(rate|review|log\s+a\s+book|book\s+log)/i.test(name);
+    if (!isBookAdmin && (quest.hobbyLane === "Reading" || /(\bread\b|\breading\b|\bpages?\b|continue current book)/i.test(name))) {
+      return "reading";
+    }
+    if (quest.hobbyLane === "Gaming" || /(\bgame\b|\bgaming\b|play session)/i.test(name)) return "gaming";
+    return null;
+  }
+
+  function rewardEventDateKey(event) {
+    const date = new Date(event?.at || 0);
+    return Number.isFinite(date.getTime()) ? localDateKey(date) : null;
+  }
+
+  function storyEnergyEarnedOnDate(dateLike = new Date()) {
+    ensureProgressionState();
+    const date = dateLike instanceof Date ? dateLike : new Date(dateLike);
+    const key = localDateKey(Number.isFinite(date.getTime()) ? date : new Date());
+    return floor2(state.rewardLedger.events
+      .filter(event => rewardEventDateKey(event) === key)
+      .reduce((sum, event) => sum + Math.max(0, Number(event.storyEnergy || 0)), 0));
+  }
+
+  function applyStoryEnergyDiminishing(rawStoryEnergy, alreadyEarned = 0) {
+    let rawRemaining = Math.max(0, Number(rawStoryEnergy || 0));
+    let earned = Math.max(0, Number(alreadyEarned || 0));
+    let payout = 0;
+
+    for (const tier of STORY_ENERGY_TIERS) {
+      if (rawRemaining <= 0) break;
+      if (earned >= tier.until) continue;
+      const actualRoom = tier.until === Infinity ? Infinity : Math.max(0, tier.until - earned);
+      const rawRoom = actualRoom === Infinity ? Infinity : actualRoom / tier.multiplier;
+      const rawTaken = Math.min(rawRemaining, rawRoom);
+      const gained = rawTaken * tier.multiplier;
+      payout += gained;
+      earned += gained;
+      rawRemaining -= rawTaken;
+    }
+
+    return floor2(payout);
+  }
+
+  function recentCrossSourceDuplicate(dedupeFamily, source, atMs) {
+    if (!dedupeFamily) return null;
+    const allowedSources = dedupeFamily === "reading"
+      ? new Set(["quest", "library"])
+      : dedupeFamily === "gaming"
+        ? new Set(["quest", "game"])
+        : null;
+    if (!allowedSources?.has(source)) return null;
+
+    ensureProgressionState();
+    return state.rewardLedger.events
+      .slice()
+      .reverse()
+      .find(event => {
+        if (event.duplicate || event.dedupeFamily !== dedupeFamily) return false;
+        if (event.source === source || !allowedSources.has(event.source)) return false;
+        const eventMs = new Date(event.at || 0).getTime();
+        return Number.isFinite(eventMs) && Math.abs(atMs - eventMs) <= REWARD_DEDUPE_WINDOW_MS;
+      }) || null;
+  }
+
+  function calculateActivityReward(spec = {}, { mutate = false } = {}) {
+    ensureProgressionState();
+    const atDate = spec.at ? new Date(spec.at) : new Date();
+    const safeDate = Number.isFinite(atDate.getTime()) ? atDate : new Date();
+    const atMs = safeDate.getTime();
+    const source = String(spec.source || "activity");
+    const dedupeFamily = spec.dedupeFamily || null;
+    const duplicateOf = recentCrossSourceDuplicate(dedupeFamily, source, atMs);
+    const duplicate = Boolean(duplicateOf);
+
+    const requestedXP = Math.max(0, Math.round(Number(spec.xp ?? spec.characterXP ?? 0)));
+    const requestedRealmXP = Math.max(0, Math.round(Number(spec.realmXP ?? requestedXP)));
+    const requestedStatXP = Math.max(0, Math.round(Number(spec.statXP ?? spec.capabilityXP ?? 0)));
+    const requestedCoins = Math.max(0, Math.round(Number(spec.coins || 0)));
+    const rawStoryEnergy = floor2(Math.max(0, Number(spec.storyEnergyBase ?? spec.rawStoryEnergy ?? 0)));
+    const earnedToday = storyEnergyEarnedOnDate(safeDate);
+    const storyEnergy = duplicate ? 0 : applyStoryEnergyDiminishing(rawStoryEnergy, earnedToday);
+
+    const reward = {
+      xp: duplicate ? 0 : requestedXP,
+      realmXP: duplicate ? 0 : requestedRealmXP,
+      statXP: duplicate ? 0 : requestedStatXP,
+      coins: duplicate ? 0 : requestedCoins,
+      rawStoryEnergy,
+      storyEnergy,
+      deduped: duplicate,
+      duplicateOf: duplicateOf?.id || null
+    };
+
+    if (!mutate) return reward;
+
+    const realm = REALM_META[spec.realm] ? spec.realm : null;
+    const capability = STAT_META[spec.capability] ? spec.capability : null;
+    state.characterXP += reward.xp;
+    state.coins += reward.coins;
+    state.storyEnergy = floor2(Number(state.storyEnergy || 0) + reward.storyEnergy);
+    if (realm) state.realms[realm] = Math.max(0, Number(state.realms[realm] || 0)) + reward.realmXP;
+    if (capability) state.stats[capability] = Math.max(0, Number(state.stats[capability] || 0)) + reward.statXP;
+
+    const event = {
+      id: `reward-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      source,
+      sourceId: spec.sourceId || null,
+      label: String(spec.label || "Activity"),
+      realm,
+      capability,
+      xp: reward.xp,
+      realmXP: reward.realmXP,
+      statXP: reward.statXP,
+      coins: reward.coins,
+      rawStoryEnergy,
+      storyEnergy: reward.storyEnergy,
+      dedupeFamily,
+      duplicate,
+      duplicateOf: reward.duplicateOf,
+      at: safeDate.toISOString(),
+      metadata: spec.metadata && typeof spec.metadata === "object" ? { ...spec.metadata } : null
+    };
+
+    state.rewardLedger.events.push(event);
+    if (state.rewardLedger.events.length > MAX_REWARD_EVENTS) {
+      state.rewardLedger.events = state.rewardLedger.events.slice(-MAX_REWARD_EVENTS);
+    }
+    reward.eventId = event.id;
+    return reward;
+  }
+
+  function awardActivity(spec = {}) {
+    const reward = calculateActivityReward(spec, { mutate: true });
+    applyHiddenEngineChecks();
+    return reward;
+  }
+
+  function previewActivityReward(spec = {}) {
+    return calculateActivityReward(spec, { mutate: false });
+  }
+
+
   function defaultState() {
     return {
-      version: 6,
+      version: 7,
+      progressionSchemaVersion: 1,
       characterXP: 0,
       coins: 0,
       storyEnergy: 0,
+      rewardLedger: defaultRewardLedger(),
       stats: {
         strength: 0,
         knowledge: 0,
@@ -307,7 +602,6 @@
     externalTaskRealm: byId("externalTaskRealm"),
     externalTaskPreview: byId("externalTaskPreview"),
 
-    storyTestResult: byId("storyTestResult"),
 
     clearOverlay: byId("clearOverlay"),
     clearQuestName: byId("clearQuestName"),
@@ -355,7 +649,11 @@
     return {
       ...base,
       ...savedWithoutQuestLibrary,
-      version: 6,
+      version: 7,
+      progressionSchemaVersion: Number(saved.progressionSchemaVersion || 0),
+      rewardLedger: saved.rewardLedger && typeof saved.rewardLedger === "object"
+        ? { ...defaultRewardLedger(), ...saved.rewardLedger, events: Array.isArray(saved.rewardLedger.events) ? saved.rewardLedger.events : [] }
+        : defaultRewardLedger(),
       stats: { ...base.stats, ...(saved.stats || {}) },
       realms: { ...base.realms, ...(saved.realms || {}) },
       flags: { ...base.flags, ...(saved.flags || {}) },
@@ -371,6 +669,24 @@
       externalCompletionLog: Array.isArray(saved.externalCompletionLog) ? saved.externalCompletionLog : [],
       memories: Array.isArray(saved.memories) ? saved.memories : []
     };
+  }
+
+  function migrateCapabilityCurve() {
+    if (Number(state.progressionSchemaVersion || 0) >= 1) return;
+
+    Object.keys(STAT_META).forEach(key => {
+      const oldXP = Math.max(0, Number(state.stats?.[key] || 0));
+      const oldCompletedLevels = Math.floor(oldXP / 100);
+      const oldProgress = (oldXP % 100) / 100;
+      let migratedXP = 0;
+      for (let level = 1; level <= oldCompletedLevels; level += 1) {
+        migratedXP += capabilityXpRequiredForLevel(level);
+      }
+      migratedXP += oldProgress * capabilityXpRequiredForLevel(oldCompletedLevels + 1);
+      state.stats[key] = Math.round(migratedXP);
+    });
+
+    state.progressionSchemaVersion = 1;
   }
 
   function migrateLegacyState() {
@@ -396,7 +712,10 @@
       questId: migrateLegacyQuestId(log.questId)
     }));
 
-    state.version = 6;
+    migrateCapabilityCurve();
+    ensureProgressionState();
+    migrateLegacyRewardLedger();
+    state.version = 7;
     saveState();
   }
 
@@ -424,7 +743,10 @@
     if (state.flags.LOCATION_GYM_INTRODUCED) state.locations.gym = true;
     if (state.flags.LOCATION_AGENCY_INTRODUCED) state.locations.agency = true;
 
-    state.version = 6;
+    migrateCapabilityCurve();
+    ensureProgressionState();
+    migrateLegacyRewardLedger();
+    state.version = 7;
     saveState({ suppressCloud: Boolean(options.suppressCloud), source: options.source || "replace" });
     renderAll();
     return true;
@@ -581,8 +903,8 @@
     const todayCount = getTodayRewardActionCount();
 
     els.levelValue.textContent = levelInfo.level;
-    els.storyEnergyValue.textContent = state.storyEnergy;
-    els.storyEnergyValueLarge.textContent = state.storyEnergy;
+    els.storyEnergyValue.textContent = formatEnergy(state.storyEnergy);
+    els.storyEnergyValueLarge.textContent = formatEnergy(state.storyEnergy);
     els.coinsValue.textContent = state.coins;
 
     els.xpLabel.textContent = `${levelInfo.intoLevel} / ${levelInfo.required}`;
@@ -596,7 +918,7 @@
     } else if (todayCount === 1) {
       els.rhythmLine.textContent = "Today already counts. Everything after this is extra.";
     } else {
-      els.rhythmLine.textContent = `${todayCount} meaningful clears today. You do not need to maximize the bar.`;
+      els.rhythmLine.textContent = `${todayCount} meaningful actions today. You do not need to maximize the bar.`;
     }
 
     els.homeSubtitle.textContent = state.locations.sharedApartment
@@ -784,12 +1106,19 @@
 
   function renderRealmCards() {
     els.realmCards.innerHTML = Object.entries(state.realms)
-      .map(([realm, xp]) => `
-        <article class="realm-card">
-          <span>${REALM_META[realm]?.icon || "✦"} ${escapeHtml(realm)}</span>
-          <strong>${Math.round(xp)} XP</strong>
-        </article>
-      `)
+      .map(([realm, xp]) => {
+        const info = realmRankInfo(xp);
+        return `
+          <article class="realm-card">
+            <div class="realm-card-heading-v181">
+              <span>${REALM_META[realm]?.icon || "✦"} ${escapeHtml(realm)}</span>
+              <strong>Rank ${info.level}</strong>
+            </div>
+            <div class="progress"><span style="width:${info.percent}%"></span></div>
+            <small>${info.intoLevel} / ${info.required} XP to next rank</small>
+          </article>
+        `;
+      })
       .join("");
   }
 
@@ -958,7 +1287,7 @@
       questType: null,
       realmXpSource: "Quest",
       stat: byId("newQuestStat").value,
-      statAtTarget: Math.max(1, Math.round(xp * .35))
+      statAtTarget: Math.max(1, Math.round(xp * .65))
     };
 
     state.customQuests.push(quest);
@@ -986,6 +1315,7 @@
     els.completeQuestId.value = quest.id;
     els.completeQuestTitle.textContent = quest.name;
     els.actualUnits.value = target;
+    els.actualUnits.min = target < 1 ? "0.1" : "1";
     els.actualUnits.step = target < 1 ? "0.1" : "1";
     els.actualUnits.disabled = !isVariable;
 
@@ -999,17 +1329,28 @@
 
     const target = questTarget(quest);
     const units = Math.max(.1, Number(els.actualUnits.value) || target);
-    const reward = calculateQuestReward(quest, units, getTodayRewardActionCount());
+    const reward = calculateQuestReward(quest, units);
 
     els.completePreview.innerHTML = `
       <div class="reward-box"><strong>${reward.xp}</strong><small>⚔️ XP</small></div>
-      <div class="reward-box"><strong>${reward.storyEnergy}</strong><small>🔥 Story</small></div>
+      <div class="reward-box"><strong>${formatEnergy(reward.storyEnergy)}</strong><small>🔥 Story</small></div>
       <div class="reward-box"><strong>${reward.coins}</strong><small>🪙 Coins</small></div>
-      <div class="reward-box"><strong>${reward.statXP}</strong><small>${STAT_META[quest.stat]?.icon || "✨"} Stat XP</small></div>
+      <div class="reward-box"><strong>${reward.statXP}</strong><small>${STAT_META[quest.stat]?.icon || "✨"} Capability XP</small></div>
     `;
   }
 
-  function calculateQuestReward(quest, units, completedTodayCount) {
+  function questStoryEnergyBase(quest, units) {
+    const base = {
+      "Low Energy": 0.8,
+      "Normal": 1.4,
+      "Boss": 2.1
+    }[quest.energy] ?? 1.4;
+    if (quest.xpMode !== "Variable by Units") return base;
+    const ratio = Math.max(0, Number(units || 0) / questTarget(quest));
+    return floor2(base * Math.min(2.5, ratio));
+  }
+
+  function calculateQuestReward(quest, units) {
     const target = questTarget(quest);
     const multiplier = quest.xpMode === "Variable by Units"
       ? Math.max(0, units / target)
@@ -1018,13 +1359,21 @@
     const xp = Math.max(1, Math.round(Number(quest.xp || 0) * multiplier));
     const statXP = Math.max(1, Math.round(Number(quest.statAtTarget || 1) * multiplier));
     const coins = Math.max(1, Math.round(questCoinBase(quest) * Math.min(multiplier, 2)));
+    const preview = previewActivityReward({
+      source: "quest",
+      sourceId: quest.id,
+      label: quest.name,
+      realm: quest.realm,
+      capability: quest.stat,
+      xp,
+      realmXP: xp,
+      statXP,
+      coins,
+      storyEnergyBase: questStoryEnergyBase(quest, units),
+      dedupeFamily: dedupeFamilyForQuest(quest)
+    });
 
-    // Story Energy deliberately has diminishing daily returns.
-    // Recovery, hobby, health and low-energy quests use the same schedule.
-    const schedule = [6, 5, 4];
-    const storyEnergy = schedule[completedTodayCount] ?? 2;
-
-    return { xp, statXP, coins, storyEnergy };
+    return { ...preview, requestedXP: xp, requestedStatXP: statXP, requestedCoins: coins };
   }
 
   function completeQuest(questId, units) {
@@ -1040,18 +1389,21 @@
     const normalizedUnits = quest.xpMode === "Variable by Units"
       ? Math.max(.1, Number(units) || questTarget(quest))
       : questTarget(quest);
-
-    const reward = calculateQuestReward(
-      quest,
-      normalizedUnits,
-      getTodayRewardActionCount()
-    );
-
-    state.characterXP += reward.xp;
-    state.coins += reward.coins;
-    state.storyEnergy += reward.storyEnergy;
-    state.stats[quest.stat] = (state.stats[quest.stat] || 0) + reward.statXP;
-    state.realms[quest.realm] = (state.realms[quest.realm] || 0) + reward.xp;
+    const baseReward = calculateQuestReward(quest, normalizedUnits);
+    const reward = awardActivity({
+      source: "quest",
+      sourceId: quest.id,
+      label: quest.name,
+      realm: quest.realm,
+      capability: quest.stat,
+      xp: baseReward.requestedXP,
+      realmXP: baseReward.requestedXP,
+      statXP: baseReward.requestedStatXP,
+      coins: baseReward.requestedCoins,
+      storyEnergyBase: questStoryEnergyBase(quest, normalizedUnits),
+      dedupeFamily: dedupeFamilyForQuest(quest),
+      metadata: { units: normalizedUnits, unitLabel: questUnitLabel(quest) }
+    });
 
     state.completionLog.push({
       id: `log-${Date.now()}`,
@@ -1064,7 +1416,10 @@
       stat: quest.stat,
       statXP: reward.statXP,
       storyEnergy: reward.storyEnergy,
+      rawStoryEnergy: reward.rawStoryEnergy,
       coins: reward.coins,
+      rewardEventId: reward.eventId,
+      deduped: reward.deduped,
       at: new Date().toISOString()
     });
 
@@ -1096,17 +1451,26 @@
     return map[realm] || "confidence";
   }
 
-  function calculateExternalTaskReward(effort, completedTodayCount) {
+  function calculateExternalTaskReward(effort, realm = "Work") {
     const base = {
-      "Low Energy": { xp: 10, statXP: 3, coins: 1 },
-      "Normal": { xp: 20, statXP: 7, coins: 2 },
-      "Boss": { xp: 35, statXP: 12, coins: 4 }
-    }[effort] || { xp: 20, statXP: 7, coins: 2 };
-
-    const storySchedule = [6, 5, 4];
+      "Low Energy": { xp: 10, statXP: 7, coins: 1, storyEnergyBase: 0.8 },
+      "Normal": { xp: 20, statXP: 13, coins: 2, storyEnergyBase: 1.4 },
+      "Boss": { xp: 35, statXP: 23, coins: 4, storyEnergyBase: 2.1 }
+    }[effort] || { xp: 20, statXP: 13, coins: 2, storyEnergyBase: 1.4 };
+    const stat = externalTaskStatForRealm(realm);
     return {
       ...base,
-      storyEnergy: storySchedule[completedTodayCount] ?? 2
+      ...previewActivityReward({
+        source: "external",
+        label: `${effort} external task`,
+        realm,
+        capability: stat,
+        xp: base.xp,
+        realmXP: base.xp,
+        statXP: base.statXP,
+        coins: base.coins,
+        storyEnergyBase: base.storyEnergyBase
+      })
     };
   }
 
@@ -1115,13 +1479,13 @@
     const effort = els.externalTaskEffort?.value || "Normal";
     const realm = els.externalTaskRealm?.value || "Work";
     const stat = externalTaskStatForRealm(realm);
-    const reward = calculateExternalTaskReward(effort, getTodayRewardActionCount());
+    const reward = calculateExternalTaskReward(effort, realm);
 
     els.externalTaskPreview.innerHTML = `
       <div class="reward-box"><strong>${reward.xp}</strong><small>⚔️ XP</small></div>
-      <div class="reward-box"><strong>${reward.storyEnergy}</strong><small>🔥 Story</small></div>
+      <div class="reward-box"><strong>${formatEnergy(reward.storyEnergy)}</strong><small>🔥 Story</small></div>
       <div class="reward-box"><strong>${reward.coins}</strong><small>🪙 Coins</small></div>
-      <div class="reward-box"><strong>${reward.statXP}</strong><small>${STAT_META[stat]?.icon || "✨"} Stat XP</small></div>
+      <div class="reward-box"><strong>${reward.statXP}</strong><small>${STAT_META[stat]?.icon || "✨"} Capability XP</small></div>
     `;
   }
 
@@ -1129,17 +1493,25 @@
     const effort = els.externalTaskEffort?.value || "Normal";
     const realm = els.externalTaskRealm?.value || "Work";
     const stat = externalTaskStatForRealm(realm);
-    const reward = calculateExternalTaskReward(effort, getTodayRewardActionCount());
+    const baseReward = calculateExternalTaskReward(effort, realm);
     const label = els.externalTaskName?.value.trim() || `${effort} external task`;
-
-    state.characterXP += reward.xp;
-    state.coins += reward.coins;
-    state.storyEnergy += reward.storyEnergy;
-    state.stats[stat] = (state.stats[stat] || 0) + reward.statXP;
-    state.realms[realm] = (state.realms[realm] || 0) + reward.xp;
+    const sourceId = `external-${Date.now()}`;
+    const reward = awardActivity({
+      source: "external",
+      sourceId,
+      label,
+      realm,
+      capability: stat,
+      xp: baseReward.xp,
+      realmXP: baseReward.xp,
+      statXP: baseReward.statXP,
+      coins: baseReward.coins,
+      storyEnergyBase: baseReward.storyEnergyBase,
+      metadata: { effort }
+    });
 
     state.externalCompletionLog.push({
-      id: `external-${Date.now()}`,
+      id: sourceId,
       name: label,
       effort,
       realm,
@@ -1147,11 +1519,14 @@
       stat,
       statXP: reward.statXP,
       storyEnergy: reward.storyEnergy,
+      rawStoryEnergy: reward.rawStoryEnergy,
       coins: reward.coins,
+      rewardEventId: reward.eventId,
       source: "manual-external",
       at: new Date().toISOString()
     });
 
+    applyHiddenEngineChecks();
     saveState();
     renderAll();
     showQuestClear({ name: label, stat }, reward);
@@ -1171,43 +1546,28 @@
   }
 
   function applyHiddenEngineChecks() {
-    const strengthActivityCount = state.completionLog
-      .filter(log => log.stat === "strength")
-      .length;
+    ensureProgressionState();
+    const rewarded = state.rewardLedger.events.filter(event => !event.duplicate);
+    const strengthActivityCount = rewarded.filter(event => event.capability === "strength").length;
+    if (strengthActivityCount >= 3) state.flags.ACTIVITY_PATTERN_A = true;
 
-    if (strengthActivityCount >= 3) {
-      state.flags.ACTIVITY_PATTERN_A = true;
-    }
+    const japaneseCount = rewarded.filter(event => event.realm === "Japanese").length;
+    if (japaneseCount >= 3) state.flags.ACTIVITY_PATTERN_B = true;
 
-    const japaneseCount = state.completionLog
-      .filter(log => log.realm === "Japanese")
-      .length;
-
-    if (japaneseCount >= 3) {
-      state.flags.ACTIVITY_PATTERN_B = true;
-    }
-
-    // Stats alone do NOT unlock narrative locations.
-    if (state.flags.LOCATION_SHARED_APARTMENT_INTRODUCED) {
-      state.locations.sharedApartment = true;
-    }
-
-    if (state.flags.LOCATION_GYM_INTRODUCED) {
-      state.locations.gym = true;
-    }
-
-    if (state.flags.LOCATION_AGENCY_INTRODUCED) {
-      state.locations.agency = true;
-    }
+    // Growth can influence future story checks, but locations remain narrative unlocks.
+    if (state.flags.LOCATION_SHARED_APARTMENT_INTRODUCED) state.locations.sharedApartment = true;
+    if (state.flags.LOCATION_GYM_INTRODUCED) state.locations.gym = true;
+    if (state.flags.LOCATION_AGENCY_INTRODUCED) state.locations.agency = true;
   }
 
   function showQuestClear(quest, reward) {
     els.clearQuestName.textContent = quest.name;
     els.clearRewards.innerHTML = `
       <span>+${reward.xp} ⚔️ XP</span>
-      <span>+${reward.storyEnergy} 🔥 Story</span>
+      <span>+${formatEnergy(reward.storyEnergy)} 🔥 Story</span>
       <span>+${reward.coins} 🪙</span>
       <span>+${reward.statXP} ${STAT_META[quest.stat]?.icon || "✨"} ${escapeHtml(STAT_META[quest.stat]?.label || quest.stat)}</span>
+      ${reward.deduped ? `<span>↺ Already counted from a linked activity log.</span>` : ""}
     `;
     els.clearOverlay.classList.remove("hidden");
   }
@@ -1227,32 +1587,6 @@
         `;
       })
       .join("");
-  }
-
-  function testStoryUnlockFlow() {
-    const cost = 10;
-    els.storyTestResult.classList.remove("hidden");
-
-    if (state.storyEnergy < cost) {
-      els.storyTestResult.textContent =
-        `You need ${cost - state.storyEnergy} more Story Energy. A real scene would not charge for choices inside it.`;
-      return;
-    }
-
-    state.storyEnergy -= cost;
-
-    const testMemory = "SYSTEM_MEMORY_TEST_A";
-    if (!state.memories.includes(testMemory)) {
-      state.memories.push(testMemory);
-    }
-
-    state.flags.STORY_UNLOCK_FLOW_TESTED = true;
-
-    saveState();
-    renderAll();
-
-    els.storyTestResult.textContent =
-      "Unlock flow passed: Energy was spent, an opaque memory ID was written, and no future narrative text was exposed.";
   }
 
   function renderMemories() {
@@ -1276,7 +1610,7 @@
     const info = getLevelInfo(state.characterXP);
     els.profileLevel.textContent = info.level;
     els.profileXP.textContent = state.characterXP;
-    els.profileEnergy.textContent = state.storyEnergy;
+    els.profileEnergy.textContent = formatEnergy(state.storyEnergy);
     els.profileDays.textContent = getAdventureDayCount();
   }
 
@@ -1309,6 +1643,10 @@
       selectedQuestIds: state.selectedQuestIds,
       completionCount: state.completionLog.length,
       externalCompletionCount: state.externalCompletionLog.length,
+      rewardLedgerCount: state.rewardLedger?.events?.length || 0,
+      todayRewardActionCount: getTodayRewardActionCount(),
+      todayStoryEnergyEarned: storyEnergyEarnedOnDate(new Date()),
+      progressionSchemaVersion: state.progressionSchemaVersion,
       todayCompletionCount: getTodayCompletions().length,
       todayExternalCompletionCount: getTodayExternalCompletions().length
     }, null, 2);
@@ -1371,40 +1709,53 @@
     return `${d.getFullYear()}-W${String(week).padStart(2, "0")}`;
   }
 
-  function getLevelInfo(totalXP) {
+  function progressionLevelInfo(totalXP, requirementFn) {
     let level = 1;
-    let remaining = totalXP;
-    let required = xpRequiredForLevel(level);
+    let remaining = Math.max(0, Number(totalXP || 0));
+    let required = requirementFn(level);
 
-    while (remaining >= required) {
+    while (remaining >= required && level < 999) {
       remaining -= required;
       level += 1;
-      required = xpRequiredForLevel(level);
+      required = requirementFn(level);
     }
 
     return {
       level,
       intoLevel: Math.round(remaining),
       required,
-      percent: Math.min(100, (remaining / required) * 100)
+      percent: Math.min(100, required > 0 ? (remaining / required) * 100 : 0)
     };
+  }
+
+  function getLevelInfo(totalXP) {
+    return progressionLevelInfo(totalXP, xpRequiredForLevel);
   }
 
   function xpRequiredForLevel(level) {
     return 100 + (level - 1) * 35;
   }
 
-  function statLevelInfo(xp) {
-    const required = 100;
-    const level = Math.floor(xp / required) + 1;
-    const intoLevel = xp % required;
+  function roundToFive(value) {
+    return Math.max(5, Math.round(Number(value || 0) / 5) * 5);
+  }
 
-    return {
-      level,
-      intoLevel,
-      required,
-      percent: intoLevel
-    };
+  function capabilityXpRequiredForLevel(level) {
+    const n = Math.max(0, Number(level || 1) - 1);
+    return roundToFive(100 * Math.pow(1.30, n));
+  }
+
+  function statLevelInfo(xp) {
+    return progressionLevelInfo(xp, capabilityXpRequiredForLevel);
+  }
+
+  function realmXpRequiredForRank(rank) {
+    const n = Math.max(0, Number(rank || 1) - 1);
+    return roundToFive(120 * Math.pow(1.25, n));
+  }
+
+  function realmRankInfo(xp) {
+    return progressionLevelInfo(xp, realmXpRequiredForRank);
   }
 
   function getTodayCompletions() {
@@ -1423,7 +1774,12 @@
   }
 
   function getTodayRewardActionCount() {
-    return getTodayCompletions().length + getTodayExternalCompletions().length;
+    ensureProgressionState();
+    const today = localDateKey(new Date());
+    return state.rewardLedger.events.filter(event => {
+      if (rewardEventDateKey(event) !== today || event.duplicate) return false;
+      return Number(event.xp || 0) > 0 || Number(event.storyEnergy || 0) > 0 || Number(event.coins || 0) > 0;
+    }).length;
   }
 
   function getTodayUnitsForQuest(questId) {
@@ -1432,11 +1788,23 @@
       .reduce((sum, log) => sum + Number(log.units || 0), 0);
   }
 
+  function allActivityDateKeys() {
+    const values = [];
+    const pushAt = value => {
+      const date = new Date(value || 0);
+      if (Number.isFinite(date.getTime())) values.push(localDateKey(date));
+    };
+    (state.completionLog || []).forEach(log => pushAt(log.at));
+    (state.externalCompletionLog || []).forEach(log => pushAt(log.at));
+    (state.habits?.completions || []).forEach(log => pushAt(log.timestamp || `${log.date}T12:00:00`));
+    (state.sideAdventures?.logs || []).forEach(log => pushAt(log.at));
+    (state.bookLibrary?.logs || []).forEach(log => pushAt(log.at));
+    (state.gameLibrary?.logs || []).forEach(log => pushAt(log.at));
+    return values;
+  }
+
   function getAdventureDayCount() {
-    return new Set(
-      [...state.completionLog, ...state.externalCompletionLog]
-        .map(log => localDateKey(new Date(log.at)))
-    ).size;
+    return new Set(allActivityDateKeys()).size;
   }
 
   function localDateKey(date) {
@@ -1449,6 +1817,15 @@
   function trimNumber(value) {
     const number = Number(value);
     return number % 1 === 0 ? String(number) : number.toFixed(1);
+  }
+
+  function floor2(value) {
+    return Math.floor((Number(value || 0) + 1e-9) * 100) / 100;
+  }
+
+  function formatEnergy(value) {
+    const number = floor2(value);
+    return number % 1 === 0 ? String(number) : number.toFixed(2).replace(/0$/, "");
   }
 
   function escapeHtml(value) {
@@ -1474,6 +1851,20 @@
   window.LifeRPGApp = {
     getState: () => state,
     getStorageKey: () => STORAGE_KEY,
+    getQuestCatalog: () => getAllQuests().map(quest => ({ ...quest })),
+    getQuestById,
+    getQuestAvailability,
+    getCapabilityInfo: key => statLevelInfo(state.stats?.[key] || 0),
+    getRealmRankInfo: realm => realmRankInfo(state.realms?.[realm] || 0),
+    capabilityXpRequiredForLevel,
+    realmXpRequiredForRank,
+    inferCapability,
+    dedupeFamilyForQuest,
+    previewActivityReward,
+    awardActivity,
+    getTodayStoryEnergyEarned: () => storyEnergyEarnedOnDate(new Date()),
+    getTodayRewardActionCount,
+    formatEnergy,
     saveState,
     replaceState,
     renderAll,
