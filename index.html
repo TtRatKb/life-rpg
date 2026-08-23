@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#321d34" />
   <title>Life RPG — Base Camp</title>
-  <link rel="stylesheet" href="styles.css?v=0.19.0" />
+  <link rel="stylesheet" href="styles.css?v=0.21.0" />
 </head>
 <body>
   <div class="ambient ambient-one"></div>
@@ -71,6 +71,7 @@
               <div class="dashboard-player-nameplate">
                 <strong>Luca</strong>
                 <span>Player Character</span>
+                <em id="dashboardPlayerTitleLine" class="profile-title-line-v21 hidden"></em>
               </div>
             </div>
             <div class="dashboard-player-details-v3">
@@ -97,6 +98,7 @@
           <button data-view-target="games"><span class="command-strip-icon">🎮</span><span><strong>Games</strong><small>Keep active games and personal goals in rotation.</small></span><b>›</b></button>
           <button data-view-target="people"><span class="command-strip-icon">♧</span><span><strong>People</strong><small>Talk, message, connect.</small></span><b>›</b></button>
           <button data-view-target="story"><span class="command-strip-icon">♡</span><span><strong>Main Story</strong><small>Spend energy when you're ready.</small></span><b>›</b></button>
+          <button data-view-target="achievements"><span class="command-strip-icon">🏆</span><span><strong>Achievements</strong><small>Collect milestones and hidden moments.</small></span><b>›</b></button>
         </section>
 
         <section class="panel dashboard-habits-preview" aria-labelledby="dashboardHabitsTitle">
@@ -828,7 +830,7 @@
           <div class="growth-profile-art-v3" aria-hidden="true">
             <div class="growth-profile-glow"></div>
             <img src="assets/story/portraits/luca_neutral.png" alt="" />
-            <div class="growth-profile-nameplate"><strong>Luca</strong><span>30 · Math Teacher</span></div>
+            <div class="growth-profile-nameplate"><strong>Luca</strong><span>30 · Math Teacher</span><em id="growthPlayerTitleLine" class="profile-title-line-v21 hidden"></em></div>
           </div>
 
           <div class="growth-profile-copy-v3">
@@ -894,6 +896,21 @@
           </div>
         </section>
 
+        <section class="panel growth-achievement-panel-v21" aria-labelledby="growthAchievementTitle">
+          <div class="panel-heading growth-achievement-heading-v21">
+            <div>
+              <p class="eyebrow">ACHIEVEMENT SHOWCASE</p>
+              <h2 id="growthAchievementTitle">Moments worth keeping</h2>
+              <p class="panel-subcopy">Pin up to three unlocked achievements here. Secret achievements stay hidden until the moment actually happens.</p>
+            </div>
+            <div class="growth-achievement-heading-actions-v21">
+              <span class="count-badge" id="growthAchievementCount">0 / 0</span>
+              <button class="mini-nav-button" data-view-target="achievements" type="button">Open collection ›</button>
+            </div>
+          </div>
+          <div id="growthAchievementShowcase" class="growth-achievement-showcase-v21"></div>
+        </section>
+
         <section class="growth-grid-v3">
           <section class="panel growth-stats-panel-v3">
             <div class="panel-heading">
@@ -920,6 +937,55 @@
           </section>
         </section>
 
+      </section>
+
+      <!-- ACHIEVEMENTS -->
+      <section id="view-achievements" class="view achievements-view-v21">
+        <section class="achievements-hero-v21">
+          <div class="achievements-hero-copy-v21">
+            <p class="eyebrow">MILESTONES · MEMORIES · LITTLE WINS</p>
+            <h1>Achievements</h1>
+            <p class="lead">A collection of things that happened because you actually lived your life. No achievement can buy affection, and most rewards are cosmetic rather than another source of XP inflation.</p>
+            <div class="achievement-rule-row-v21">
+              <span><b>✦</b> Existing progress counts retroactively</span>
+              <span><b>?</b> Secrets stay ??? until unlocked</span>
+              <span><b>✧</b> Profile titles are cosmetic only</span>
+            </div>
+          </div>
+          <aside class="achievements-hero-card-v21">
+            <div class="achievement-hero-medal-v21">🏆</div>
+            <div class="achievement-hero-stats-v21">
+              <div><small>UNLOCKED</small><strong><span id="achievementUnlockedCount">0</span> / <span id="achievementTotalCount">0</span></strong></div>
+              <div><small>HIDDEN SECRETS</small><strong id="achievementSecretCount">0</strong></div>
+              <div><small>LATEST</small><strong id="achievementLatestUnlock">Nothing yet</strong></div>
+            </div>
+          </aside>
+        </section>
+
+        <section class="panel achievement-title-panel-v21">
+          <div>
+            <p class="eyebrow">COSMETIC UNLOCK</p>
+            <h2>Profile Title</h2>
+            <p id="achievementTitleHint" class="panel-subcopy">Profile titles unlock from selected achievements. They are cosmetic only.</p>
+          </div>
+          <label class="achievement-title-select-v21">
+            <span>Displayed under Luca's name</span>
+            <select id="achievementTitleSelect" aria-label="Choose profile title"><option value="">No profile title</option></select>
+          </label>
+        </section>
+
+        <section class="achievement-library-v21">
+          <div class="achievement-library-head-v21">
+            <div>
+              <p class="eyebrow">COLLECTION</p>
+              <h2>Badge Archive</h2>
+              <p class="panel-subcopy">Visible milestones show progress. Locked secret achievements deliberately tell you nothing useful.</p>
+            </div>
+          </div>
+          <div id="achievementFilters" class="achievement-filters-v21" aria-label="Achievement categories"></div>
+          <div id="achievementGrid" class="achievement-grid-v21"></div>
+          <div id="achievementEmpty" class="empty-state compact hidden">No achievements in this category yet.</div>
+        </section>
       </section>
 
       <!-- SETTINGS & SAVE SYSTEM -->
@@ -1046,6 +1112,7 @@
       <button class="nav-button" data-view="library"><span>📚</span><small>Library</small></button>
       <button class="nav-button" data-view="games"><span>🎮</span><small>Games</small></button>
       <button class="nav-button" data-view="growth"><span>✦</span><small>Growth</small></button>
+      <button class="nav-button" data-view="achievements"><span>🏆</span><small>Achievements</small></button>
       <button class="nav-button" data-view="world"><span>◇</span><small>World</small></button>
       <div class="nav-section-label nav-section-story">STORY</div>
       <button class="nav-button" data-view="story"><span>♡</span><small>Story</small></button>
@@ -1867,6 +1934,11 @@ Project Hail Mary — Andy Weir
     </div>
   </section>
 
+  <div id="achievementToast" class="achievement-toast-v21 hidden" role="status" aria-live="polite">
+    <span id="achievementToastIcon" class="achievement-toast-icon-v21">🏆</span>
+    <div><small>ACHIEVEMENT UNLOCKED</small><strong id="achievementToastTitle">Milestone</strong><span id="achievementToastDetail">Achievement unlocked</span></div>
+  </div>
+
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <script src="data/quests.js"></script>
@@ -1878,6 +1950,7 @@ Project Hail Mary — Andy Weir
   <script src="games.js?v=0.18.1"></script>
   <script src="daily.js?v=0.18.1"></script>
   <script src="story-ui.js?v=0.19.0"></script>
+  <script src="achievements.js?v=0.21.0"></script>
   <script type="module" src="cloud-save.js?v=0.18.1"></script>
 </body>
 </html>
