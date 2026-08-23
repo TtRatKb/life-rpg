@@ -94,6 +94,7 @@
           <button data-view-target="quests"><span class="command-strip-icon">☷</span><span><strong>Quest Board</strong><small>Choose what fits today.</small></span><b>›</b></button>
           <button data-view-target="adventures"><span class="command-strip-icon">✧</span><span><strong>Side Adventures</strong><small>Come back to things you actually want.</small></span><b>›</b></button>
           <button data-view-target="library"><span class="command-strip-icon">📚</span><span><strong>Library</strong><small>Your books, without database homework.</small></span><b>›</b></button>
+          <button data-view-target="games"><span class="command-strip-icon">🎮</span><span><strong>Games</strong><small>Keep active games and personal goals in rotation.</small></span><b>›</b></button>
           <button data-view-target="people"><span class="command-strip-icon">♧</span><span><strong>People</strong><small>Talk, message, connect.</small></span><b>›</b></button>
           <button data-view-target="story"><span class="command-strip-icon">♡</span><span><strong>Main Story</strong><small>Spend energy when you're ready.</small></span><b>›</b></button>
         </section>
@@ -141,10 +142,11 @@
               <div id="dailyPicksEmpty" class="daily-picks-empty-v14">
                 <span>✿</span>
                 <strong>No giant menu yet.</strong>
-                <p>Do the short briefing first. Life RPG will narrow your Quests, Side Adventures and current books down to a tiny plan for today.</p>
+                <p>Do the short briefing first. Life RPG will narrow your Quests, Side Adventures, current books and active games down to a tiny plan for today.</p>
               </div>
               <footer class="daily-picks-footer-v14 daily-picks-footer-v15">
                 <button class="text-button" data-view-target="library" type="button">Open Library →</button>
+                <button class="text-button" data-view-target="games" type="button">Open Games →</button>
                 <button class="text-button" data-view-target="adventures" type="button">Open Side Adventures →</button>
                 <button class="text-button" data-view-target="quests" type="button">Browse the Quest Board →</button>
               </footer>
@@ -419,6 +421,78 @@
             <h3>Your Library is empty.</h3>
             <p>Add one book in a few taps, or paste a whole list at once. Details like pages and series can wait until they are useful.</p>
             <button class="primary-button" id="libraryEmptyCreate" type="button">Add the first book</button>
+          </div>
+        </section>
+      </section>
+
+
+      <!-- GAMES -->
+      <section id="view-games" class="view games-view-v17">
+        <section class="games-hero-v17">
+          <div class="games-hero-copy-v17">
+            <span class="games-kicker-v17">🎮 PLAY IS ALLOWED TO HAVE THREADS TOO</span>
+            <p class="eyebrow">GAMES & PLAY</p>
+            <h1>Remember what you actually wanted to play.</h1>
+            <p class="lead">Track active games, light session history and personal goals without pretending every game has a completion percentage. Endless games can stay endless; Stardew can be about the Community Center; a story game can simply be “keep going.”</p>
+            <div class="games-rule-row-v17" aria-label="Games rules">
+              <span><b>1</b> Add the game</span>
+              <span><b>2</b> Keep goals optional</span>
+              <span><b>3</b> Log a session</span>
+              <span><b>4</b> Let the planner bring it back</span>
+            </div>
+          </div>
+          <aside class="games-hero-card-v17">
+            <div class="games-hero-symbol-v17">✦</div>
+            <div>
+              <small>NO FAKE 100% REQUIRED</small>
+              <strong>“Complete the Community Center” is a real goal.</strong>
+              <p>Personal goals give open-ended games concrete threads. If a game does not need goals, just log play and enjoy it.</p>
+            </div>
+            <button class="primary-button" id="addGameButton" type="button">＋ Add a game</button>
+          </aside>
+        </section>
+
+        <section class="games-summary-grid-v17" aria-label="Games summary">
+          <article class="games-summary-card-v17"><span>▶</span><div><small>PLAYING NOW</small><strong id="gameSummaryPlaying">0</strong></div></article>
+          <article class="games-summary-card-v17"><span>✦</span><div><small>BACKLOG</small><strong id="gameSummaryBacklog">0</strong></div></article>
+          <article class="games-summary-card-v17"><span>☐</span><div><small>OPEN PERSONAL GOALS</small><strong id="gameSummaryGoals">0</strong></div></article>
+        </section>
+
+        <section class="games-shell-v17">
+          <div class="games-heading-v17">
+            <div>
+              <p class="eyebrow">YOUR PLAY SHELF</p>
+              <h2>What is actually in rotation?</h2>
+              <p class="panel-subcopy">Playing and Endless games can enter Today's Picks. Backlog games stay here until you deliberately move them into rotation.</p>
+            </div>
+            <div class="games-controls-v17">
+              <input id="gameSearch" type="search" placeholder="Search title, platform, goal…" aria-label="Search Games" />
+              <select id="gameStatusFilter" aria-label="Filter Games by status">
+                <option value="playing">Playing now</option>
+                <option value="backlog">Backlog</option>
+                <option value="paused">Paused</option>
+                <option value="finished">Finished</option>
+                <option value="endless">Endless only</option>
+                <option value="all">All games</option>
+              </select>
+              <button class="secondary-button" id="addGameButtonSecondary" type="button">＋ New game</button>
+            </div>
+          </div>
+
+          <div id="gameRoleFilters" class="games-role-filters-v17" aria-label="Filter games by purpose">
+            <button class="active" type="button" data-game-role="all">All</button>
+            <button type="button" data-game-role="fun">🎮 For Fun</button>
+            <button type="button" data-game-role="social">♡ Social</button>
+            <button type="button" data-game-role="japanese">あ Japanese</button>
+            <button type="button" data-game-role="challenge">✦ Goals / Challenge</button>
+          </div>
+
+          <div id="gameBoard" class="game-board-v17"></div>
+          <div id="gameEmpty" class="games-empty-v17 hidden">
+            <span>🎮</span>
+            <h3>No games here yet.</h3>
+            <p>Add the games you want Life RPG to remember. You only need a title; everything else exists to make recommendations more specific.</p>
+            <button class="primary-button" id="gameEmptyCreate" type="button">Add the first game</button>
           </div>
         </section>
       </section>
@@ -929,6 +1003,7 @@
       <button class="nav-button" data-view="quests"><span>☷</span><small>Quests</small></button>
       <button class="nav-button" data-view="adventures"><span>✧</span><small>Adventures</small></button>
       <button class="nav-button" data-view="library"><span>📚</span><small>Library</small></button>
+      <button class="nav-button" data-view="games"><span>🎮</span><small>Games</small></button>
       <button class="nav-button" data-view="growth"><span>✦</span><small>Growth</small></button>
       <button class="nav-button" data-view="world"><span>◇</span><small>World</small></button>
       <div class="nav-section-label nav-section-story">STORY</div>
@@ -1096,6 +1171,129 @@ Project Hail Mary — Andy Weir
       <menu><button class="secondary-button" id="bookLogCancel" type="button">Cancel</button><button class="primary-button" type="submit">Log reading</button></menu>
     </form>
   </dialog>
+
+
+  <!-- ADD / EDIT GAME -->
+  <dialog id="gameDialog" class="rpg-dialog game-dialog-v17">
+    <form id="gameForm" class="rpg-dialog-form game-form-v17">
+      <input id="gameEditId" type="hidden" />
+      <div class="dialog-heading">
+        <div><p class="eyebrow">GAME SHELF</p><h2 id="gameDialogTitle">Add a game</h2></div>
+        <button class="close-button" id="gameDialogClose" type="button" aria-label="Close">×</button>
+      </div>
+
+      <div class="game-form-intro-v17">
+        <span>🎮</span>
+        <div><strong>Title first. Details only if they help.</strong><p>A game can be open-ended. Progress and personal goals are optional, not homework.</p></div>
+      </div>
+
+      <label>Title<input id="gameTitle" maxlength="180" placeholder="Stardew Valley" required /></label>
+      <div class="form-grid">
+        <label>Status
+          <select id="gameStatus">
+            <option value="playing">▶ Playing</option>
+            <option value="backlog">✦ Backlog</option>
+            <option value="paused">◷ Paused</option>
+            <option value="finished">✓ Finished</option>
+            <option value="endless">∞ Endless / ongoing</option>
+          </select>
+        </label>
+        <label>Platform <span class="optional-label-v16">optional</span><input id="gamePlatform" maxlength="80" placeholder="PC, Switch, PS5…" /></label>
+      </div>
+
+      <div class="form-grid">
+        <label>Why do you play it?
+          <select id="gameRole">
+            <option value="fun">🎮 For Fun</option>
+            <option value="social">♡ Social</option>
+            <option value="japanese">あ Japanese / immersion</option>
+            <option value="challenge">✦ Goals / challenge</option>
+          </select>
+        </label>
+        <label>Typical session
+          <select id="gameSessionMinutes">
+            <option value="15">15 minutes</option>
+            <option value="30">30 minutes</option>
+            <option value="45" selected>45 minutes</option>
+            <option value="60">1 hour</option>
+            <option value="90">1.5 hours</option>
+            <option value="120">2 hours</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="form-grid">
+        <label>Progress tracking
+          <select id="gameProgressMode">
+            <option value="none">None — no fake percentage</option>
+            <option value="percent">Percent — I roughly know it</option>
+          </select>
+        </label>
+        <label id="gameProgressWrap" class="hidden">Current progress<input id="gameProgress" type="number" min="0" max="100" step="1" value="0" /></label>
+      </div>
+
+      <label>Personal goals <span class="optional-label-v16">optional · one per line</span>
+        <textarea id="gameGoalsSeed" rows="4" maxlength="1400" placeholder="Complete the Community Center\nGet married\nReach the bottom of the mines"></textarea>
+      </label>
+      <p class="game-field-hint-v17">When editing, this box only adds new goals. Existing goals stay on the game card where you can tick them off.</p>
+
+      <label>Private note <span class="optional-label-v16">optional</span><textarea id="gameNotes" rows="3" maxlength="600" placeholder="Anything worth remembering. Not required for recommendations."></textarea></label>
+      <div id="gamePreview" class="game-preview-v17"></div>
+
+      <menu>
+        <button class="text-button danger-button hidden" id="deleteGameButton" type="button">Remove game</button>
+        <span class="menu-spacer"></span>
+        <button class="secondary-button" id="cancelGameButton" type="button">Cancel</button>
+        <button class="primary-button" type="submit">Save game</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <!-- LOG GAME SESSION -->
+  <dialog id="gameLogDialog" class="rpg-dialog game-log-dialog-v17">
+    <form id="gameLogForm" class="rpg-dialog-form game-log-form-v17">
+      <input id="gameLogId" type="hidden" />
+      <div class="dialog-heading">
+        <div><p class="eyebrow">PLAY LOG</p><h2 id="gameLogTitle">Game</h2></div>
+        <button class="close-button" id="gameLogClose" type="button" aria-label="Close">×</button>
+      </div>
+
+      <label>How long did you play?<input id="gameLogMinutes" type="number" min="1" step="1" value="45" required /></label>
+      <div class="game-log-nudges-v17">
+        <button type="button" data-game-log-nudge="15">15m</button>
+        <button type="button" data-game-log-nudge="30">30m</button>
+        <button type="button" data-game-log-nudge="45">45m</button>
+        <button type="button" data-game-log-nudge="60">1h</button>
+        <button type="button" data-game-log-nudge="90">1.5h</button>
+      </div>
+
+      <label id="gameLogGoalLabel">What were you working toward? <span class="optional-label-v16">optional</span>
+        <select id="gameLogGoal"><option value="">No specific goal</option></select>
+      </label>
+      <label id="gameLogProgressWrap" class="hidden">Progress after this session<input id="gameLogProgress" type="number" min="0" max="100" step="1" /></label>
+      <div id="gameLogPreview" class="game-log-preview-v17"></div>
+      <menu><button class="secondary-button" id="gameLogCancel" type="button">Cancel</button><button class="primary-button" type="submit">Log session</button></menu>
+    </form>
+  </dialog>
+
+  <!-- ADD GAME GOAL -->
+  <dialog id="gameGoalDialog" class="rpg-dialog game-goal-dialog-v17">
+    <form id="gameGoalForm" class="rpg-dialog-form game-goal-form-v17">
+      <input id="gameGoalGameId" type="hidden" />
+      <div class="dialog-heading">
+        <div><p class="eyebrow">PERSONAL GOAL</p><h2 id="gameGoalDialogTitle">Add a goal</h2></div>
+        <button class="close-button" id="gameGoalClose" type="button" aria-label="Close">×</button>
+      </div>
+      <label>What do you actually want to achieve?<input id="gameGoalText" maxlength="180" placeholder="Complete the Community Center" required /></label>
+      <p class="muted">This does not need to be an official achievement. It only needs to matter to you.</p>
+      <menu><button class="secondary-button" id="gameGoalCancel" type="button">Cancel</button><button class="primary-button" type="submit">Add goal</button></menu>
+    </form>
+  </dialog>
+
+  <div id="gameToast" class="game-toast-v17 hidden" role="status" aria-live="polite">
+    <span class="game-toast-mark-v17">🎮</span>
+    <div><small>LIFE RPG</small><strong id="gameToastTitle">Session logged</strong><span id="gameToastDetail"></span></div>
+  </div>
 
   <!-- DAILY BRIEFING -->
   <dialog id="dailyBriefingDialog" class="rpg-dialog daily-briefing-dialog-v14">
@@ -1636,7 +1834,8 @@ Project Hail Mary — Andy Weir
   <script src="habits.js?v=0.13.1"></script>
   <script src="adventures.js?v=0.15.0"></script>
   <script src="library.js?v=0.16.1"></script>
-  <script src="daily.js?v=0.16.0"></script>
+  <script src="games.js?v=0.17.0"></script>
+  <script src="daily.js?v=0.17.0"></script>
   <script src="story-ui.js?v=0.12.2"></script>
   <script type="module" src="cloud-save.js?v=0.9.3"></script>
 </body>

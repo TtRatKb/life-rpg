@@ -118,6 +118,12 @@
           type: bookLog.dataset.dailyBookGoalType || "pages",
           amount: Number(bookLog.dataset.dailyBookGoalAmount || 0)
         });
+        return;
+      }
+
+      const gameLog = event.target.closest?.("[data-daily-game-log]");
+      if (gameLog) {
+        window.LifeRPGGames?.openLog?.(gameLog.dataset.dailyGameLog, Number(gameLog.dataset.dailyGameMinutes || 0));
       }
     });
 
@@ -133,6 +139,11 @@
     });
 
     window.addEventListener("life-rpg:library-change", () => {
+      if (!initialized) return;
+      render();
+    });
+
+    window.addEventListener("life-rpg:game-change", () => {
       if (!initialized) return;
       render();
     });
@@ -339,7 +350,7 @@
     if (!picks.length) {
       els.picks.innerHTML = `
         <div class="daily-no-candidates-v14">
-          <span>☷</span><div><strong>I couldn't build a useful set yet.</strong><p>Add a few quests, Side Adventures, or books marked Reading and the planner will have something concrete to choose from.</p></div>
+          <span>☷</span><div><strong>I couldn't build a useful set yet.</strong><p>Add a few quests, Side Adventures, books marked Reading, or active games and the planner will have something concrete to choose from.</p></div>
         </div>`;
       els.picksEmpty.classList.add("hidden");
       els.picksCount.textContent = "No candidates";
@@ -385,6 +396,42 @@
           </div>
           <div class="daily-pick-actions-v14">
             <button class="primary-button" data-daily-book-log="${escAttr(book.id)}" data-daily-book-goal-type="${escAttr(goal.type)}" data-daily-book-goal-amount="${Number(goal.amount || 0)}" type="button">${done ? "Log more" : "Log this reading"}</button>
+            <button class="secondary-button" data-daily-reroll="${escAttr(pick.slot)}" type="button">↻ Not today</button>
+          </div>
+        </article>`;
+    }
+
+    if (pick.sourceType === "game") {
+      const game = findGame(pick.sourceId);
+      if (!game) return unavailablePickMarkup(pick, slot, "This game is no longer in the Games shelf. Reroll this card to replace it.");
+      const done = gameTouchedToday(game.id);
+      if (!["playing", "endless"].includes(game.status) && !done) return unavailablePickMarkup(pick, slot, "This game is no longer in active rotation. Reroll this card to replace it.");
+      const role = gameRoleMeta(game.role);
+      const goal = pick.gameGoal || gameGoal(game, pick.slot, todayRecord()?.checkIn || {});
+      const openGoals = Array.isArray(game.goals) ? game.goals.filter(item => !item.done) : [];
+      const progressLine = game.progressMode === "percent"
+        ? `${clamp(Number(game.progress || 0), 0, 100)}% complete`
+        : `${formatDuration(game.totalMinutes || 0)} logged${openGoals.length ? ` · ${openGoals.length} goal${openGoals.length === 1 ? "" : "s"} open` : ""}`;
+      return `
+        <article class="daily-pick-v14 ${slot.className} daily-game-pick-v17 ${done ? "done" : ""}">
+          <div class="daily-pick-top-v14">
+            <span class="daily-pick-icon-v14">${slot.icon}</span>
+            <div><small>${slot.kicker}</small><strong>${slot.title}</strong></div>
+            ${done ? '<span class="daily-pick-done-v14">✓ Played today</span>' : ""}
+          </div>
+          <div class="daily-pick-quest-v14">
+            <div class="daily-adventure-meta-v15 daily-game-meta-v17">
+              <span class="daily-realm-pill-v14">${role.icon} ${esc(role.label)}</span>
+              <span class="daily-adventure-source-v15">🎮 Games</span>
+              <span class="daily-adventure-progress-v15">${esc(progressLine)}</span>
+            </div>
+            <h3>${esc(game.title || "Untitled game")}</h3>
+            ${game.platform ? `<p class="daily-game-platform-v17">${esc(game.platform)}</p>` : ""}
+            <div class="daily-goal-v14"><span>✦</span><div><small>TODAY'S FINISH LINE</small><strong>${esc(goal.label)}</strong></div></div>
+            <p class="daily-pick-reason-v14"><b>Why this today?</b> ${esc(pick.reason || reasonForGame(game, pick.slot, todayRecord()?.checkIn || {}))}</p>
+          </div>
+          <div class="daily-pick-actions-v14">
+            <button class="primary-button" data-daily-game-log="${escAttr(game.id)}" data-daily-game-minutes="${Number(goal.minutes || game.sessionMinutes || 45)}" type="button">${done ? "Log more play" : "Log this session"}</button>
             <button class="secondary-button" data-daily-reroll="${escAttr(pick.slot)}" type="button">↻ Not today</button>
           </div>
         </article>`;
@@ -538,7 +585,8 @@
     const quests = eligibleQuests();
     const adventures = eligibleAdventures();
     const books = eligibleBooks();
-    if (!quests.length && !adventures.length && !books.length) return [];
+    const games = eligibleGames();
+    if (!quests.length && !adventures.length && !books.length && !games.length) return [];
 
     const picked = [];
     const used = new Set();
@@ -547,7 +595,7 @@
     for (const slot of ["focus", "joy", "gentle"]) {
       const previous = previousBySlot[slot];
       const excluded = new Set(rerollHistory[slot] || []);
-      const candidate = chooseSourceCandidate(slot, checkIn, quests, adventures, books, used, excluded, previous);
+      const candidate = chooseSourceCandidate(slot, checkIn, quests, adventures, books, games, used, excluded, previous);
       if (!candidate) continue;
       used.add(sourceKey(candidate.sourceType, candidate.item.id));
       picked.push(makePickFromCandidate(slot, candidate, checkIn, previous));
@@ -572,7 +620,12 @@
     return Array.isArray(items) ? items.filter(book => book && book.id && book.title && book.status === "reading") : [];
   }
 
-  function chooseSourceCandidate(slot, checkIn, quests, adventures, books, used, excluded, previous = null) {
+  function eligibleGames() {
+    const items = app.getState().gameLibrary?.items;
+    return Array.isArray(items) ? items.filter(game => game && game.id && game.title && ["playing", "endless"].includes(game.status)) : [];
+  }
+
+  function chooseSourceCandidate(slot, checkIn, quests, adventures, books, games, used, excluded, previous = null) {
     const currentKey = previous ? sourceKey(previous.sourceType || "quest", previous.sourceId) : "";
     const currentId = previous?.sourceId || "";
     const seed = `${todayKey()}|${slot}|${Object.values(checkIn).join("|")}|${[...excluded].join(",")}`;
@@ -592,6 +645,7 @@
         adventures.filter(item => allowed("adventure", item)).forEach(item => candidates.push({ sourceType: "adventure", item, score: scoreAdventure(item, slot, checkIn) + seededJitter(`${seed}|adventure|${item.id}`) }));
       }
       books.filter(item => allowed("book", item)).forEach(book => candidates.push({ sourceType: "book", item: book, score: scoreBook(book, slot, checkIn) + seededJitter(`${seed}|book|${book.id}`) }));
+      games.filter(item => allowed("game", item)).forEach(game => candidates.push({ sourceType: "game", item: game, score: scoreGame(game, slot, checkIn) + seededJitter(`${seed}|game|${game.id}`) }));
       return candidates;
     };
 
@@ -602,6 +656,17 @@
   }
 
   function makePickFromCandidate(slot, candidate, checkIn, previous = null) {
+    if (candidate.sourceType === "game") {
+      return {
+        slot,
+        sourceType: "game",
+        sourceId: candidate.item.id,
+        gameGoal: gameGoal(candidate.item, slot, checkIn),
+        reason: reasonForGame(candidate.item, slot, checkIn),
+        rerolls: Number(previous?.rerolls || 0),
+        pickedAt: Date.now()
+      };
+    }
     if (candidate.sourceType === "book") {
       return {
         slot,
@@ -780,6 +845,79 @@
     }
 
     return score;
+  }
+
+  function scoreGame(game, slot, checkIn) {
+    const role = game.role || "fun";
+    const capacity = effectiveCapacity(checkIn);
+    const duration = Number(game.sessionMinutes || 45);
+    const timeBudget = TIME_BUDGET[checkIn.time] || 30;
+    const days = daysSinceTimestamp(game.lastPlayedAt || game.createdAt);
+    const openGoals = Array.isArray(game.goals) ? game.goals.filter(goal => !goal.done) : [];
+    const progress = game.progressMode === "percent" ? Number(game.progress || 0) : null;
+    let demand = 0.75;
+    if (role === "challenge") demand += 0.25;
+    if (role === "japanese") demand += 0.2;
+    if (duration >= 90) demand += 0.55;
+    else if (duration >= 60) demand += 0.3;
+    else if (duration <= 20) demand -= 0.18;
+
+    let score = matchDemand(capacity, demand) * 2;
+    score += duration <= timeBudget ? 1.7 : -Math.min(3.8, (duration - timeBudget) / 20);
+    score += Math.min(3.2, Math.max(0, days - 3) * 0.13);
+    if (gameTouchedToday(game.id)) score -= 6;
+    if (openGoals.length) score += Math.min(1.2, openGoals.length * 0.22);
+    if (progress !== null && progress >= 65) score += 0.55;
+    if (progress !== null && progress >= 85) score += 0.7;
+
+    if (slot === "focus") {
+      if (role === "japanese") score += 4.5;
+      else if (role === "challenge") score += 0.8;
+      else score -= 4.3;
+      if (checkIn.gentle) score -= 1.4;
+    }
+
+    if (slot === "joy") {
+      score += 5.1;
+      if (role === "fun") score += 1;
+      if (role === "social") score += 0.8;
+      if (role === "japanese") score += 0.4;
+      if (openGoals.length) score += 0.5;
+    }
+
+    if (slot === "gentle") {
+      if (duration <= 30) score += 3.1;
+      else if (duration <= 45) score += 1.6;
+      if (role === "fun") score += 2.4;
+      if (role === "social") score += 1;
+      if (role === "challenge") score -= 1.1;
+      if (duration >= 90) score -= 2.8;
+      if (checkIn.gentle && duration <= 30) score += 0.8;
+    }
+
+    return score;
+  }
+
+  function gameGoal(game, slot, checkIn) {
+    const budget = TIME_BUDGET[checkIn.time] || 30;
+    const capacity = effectiveCapacity(checkIn);
+    const gentle = slot === "gentle" || checkIn.gentle || capacity < 1;
+    let minutes = Number(game.sessionMinutes || 45);
+    if (gentle) minutes = Math.min(minutes, 30);
+    else if (budget <= 15) minutes = Math.min(minutes, 15);
+    else if (budget <= 30) minutes = Math.min(minutes, 30);
+    else if (budget <= 45) minutes = Math.min(minutes, 45);
+    else if (budget <= 60) minutes = Math.min(minutes, 60);
+    minutes = Math.max(10, minutes);
+
+    const goals = Array.isArray(game.goals) ? game.goals.filter(goal => !goal.done) : [];
+    let goal = goals.find(item => item.id === game.lastGoalId) || goals[0] || null;
+    const base = `Play ${game.title} for ${minutes} minutes`;
+    return {
+      minutes,
+      goalId: goal?.id || null,
+      label: goal ? `${base} and work toward “${goal.text}”` : base
+    };
   }
 
   function bookDemand(book) {
@@ -966,6 +1104,7 @@
       eligibleQuests(),
       eligibleAdventures(),
       eligibleBooks(),
+      eligibleGames(),
       used,
       new Set(day.rerollHistory[slotId]),
       current
@@ -1085,6 +1224,31 @@
     return companion?.id === "mina" ? "Quick status report." : "Let's make the day smaller.";
   }
 
+  function reasonForGame(game, slot, checkIn) {
+    const days = daysSinceTimestamp(game.lastPlayedAt || game.createdAt);
+    const openGoals = Array.isArray(game.goals) ? game.goals.filter(goal => !goal.done) : [];
+    const progress = game.progressMode === "percent" ? clamp(Number(game.progress || 0), 0, 100) : null;
+
+    if (progress !== null && progress >= 70 && days >= 10) {
+      return `You're already ${progress}% through this and haven't played in ${humanDays(days)}. A bounded session keeps the thread alive without turning the evening into a commitment.`;
+    }
+    if (openGoals.length && days >= 10) {
+      return `You still have ${openGoals.length} personal goal${openGoals.length === 1 ? "" : "s"} here, and the game has been out of rotation for ${humanDays(days)}. The planner is surfacing the actual game, not “play something.”`;
+    }
+    if (slot === "joy") {
+      return days >= 7
+        ? `This is one of your active games and you haven't returned to it in ${humanDays(days)}. Today's joy slot is allowed to be actual play.`
+        : `This is already in your active rotation, so the planner can choose a specific game instead of making you browse your whole backlog.`;
+    }
+    if (slot === "gentle") {
+      return `A short session has a clear stopping point and asks for very little setup. You can stop when the timer is done and still count the pick as complete.`;
+    }
+    if (game.role === "japanese") {
+      return `You marked this game as Japanese / immersion, so a specific play session can count as a concrete language thread rather than another generic study option.`;
+    }
+    return `This game is already active, and a small defined session gives you something specific to start without deciding from the whole Games shelf.`;
+  }
+
   function reasonForBook(book, slot, checkIn) {
     const days = daysSinceTimestamp(book.lastReadAt || book.startedAt || book.createdAt);
     const progress = bookProgress(book);
@@ -1120,6 +1284,36 @@
 
   function sourceKey(type, id) {
     return `${type || "quest"}:${id || ""}`;
+  }
+
+  function findGame(id) {
+    return app.getState().gameLibrary?.items?.find(game => game.id === id) || null;
+  }
+
+  function gameLogs(id) {
+    const logs = app.getState().gameLibrary?.logs;
+    return Array.isArray(logs) ? logs.filter(log => log.gameId === id) : [];
+  }
+
+  function gameTouchedToday(id) {
+    return gameLogs(id).some(log => (log.date || dateKeyFromValue(log.at)) === todayKey());
+  }
+
+  function gameRoleMeta(role) {
+    return ({
+      fun: { label: "For Fun", icon: "🎮", realm: "Hobbies" },
+      social: { label: "Social", icon: "♡", realm: "Hobbies" },
+      japanese: { label: "Japanese", icon: "あ", realm: "Japanese" },
+      challenge: { label: "Goals / Challenge", icon: "✦", realm: "Hobbies" }
+    })[role] || { label: "For Fun", icon: "🎮", realm: "Hobbies" };
+  }
+
+  function formatDuration(minutes) {
+    const total = Math.max(0, Math.round(Number(minutes || 0)));
+    if (total < 60) return `${total}m`;
+    const hours = Math.floor(total / 60);
+    const mins = total % 60;
+    return mins ? `${hours}h ${mins}m` : `${hours}h`;
   }
 
   function findBook(id) {
