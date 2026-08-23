@@ -7,7 +7,10 @@
     return;
   }
 
-  const SCHEMA = 1;
+  const SCHEMA = 2;
+  const LOOKUP_CACHE_KEY = "life-rpg-book-lookup-cache-v1";
+  const LOOKUP_CACHE_TTL = 7 * 24 * 60 * 60 * 1000;
+  const LOOKUP_LIMIT = 6;
   const SHADOW_KEY = "life-rpg-book-library-shadow-v1";
   const MAX_LOGS = 1200;
 
@@ -69,6 +72,11 @@
     notes: byId("bookNotes"),
     advanced: byId("bookAdvancedDetails"),
     preview: byId("bookQuickPreview"),
+    lookupQuery: byId("bookLookupQuery"),
+    lookupSearch: byId("bookLookupSearch"),
+    lookupStatus: byId("bookLookupStatus"),
+    lookupSelection: byId("bookLookupSelection"),
+    lookupResults: byId("bookLookupResults"),
 
     bulkDialog: byId("bookBulkDialog"),
     bulkForm: byId("bookBulkForm"),
@@ -102,6 +110,10 @@
   let selectedRole = "all";
   let toastTimer = null;
   let logSuggestion = null;
+  let lookupResults = [];
+  let selectedLookup = null;
+  let lookupCleared = false;
+  let lookupController = null;
 
   init();
 
@@ -121,6 +133,12 @@
     els.cancel?.addEventListener("click", closeBookDialog);
     els.form?.addEventListener("submit", saveBookFromDialog);
     els.deleteButton?.addEventListener("click", deleteCurrentBook);
+    els.lookupSearch?.addEventListener("click", runBookLookup);
+    els.lookupQuery?.addEventListener("keydown", event => {
+      if (event.key !== "Enter") return;
+      event.preventDefault();
+      runBookLookup();
+    });
 
     [els.title, els.author, els.source, els.totalPages, els.currentPage, els.series, els.seriesNumber, els.preferredGoal].forEach(input => {
       input?.addEventListener("input", renderQuickPreview);
@@ -140,6 +158,18 @@
     });
 
     document.addEventListener("click", event => {
+      const lookupUse = event.target.closest?.("[data-book-lookup-use]");
+      if (lookupUse) {
+        applyLookupResult(Number(lookupUse.dataset.bookLookupUse || -1));
+        return;
+      }
+
+      const lookupClear = event.target.closest?.("[data-book-lookup-clear]");
+      if (lookupClear) {
+        clearLookupSelection();
+        return;
+      }
+
       const edit = event.target.closest?.("[data-book-edit]");
       if (edit) {
         openBookDialog(edit.dataset.bookEdit);
@@ -216,6 +246,13 @@
       if (!ROLES[book.role]) { book.role = "fun"; changed = true; }
       if (!SOURCES[book.source]) { book.source = "physical"; changed = true; }
       if (!book.preferredGoal || !["auto", "pages", "chapter", "minutes"].includes(book.preferredGoal)) { book.preferredGoal = "auto"; changed = true; }
+      if (typeof book.coverUrl !== "string") { book.coverUrl = ""; changed = true; }
+      if (typeof book.isbn !== "string") { book.isbn = ""; changed = true; }
+      if (typeof book.publisher !== "string") { book.publisher = ""; changed = true; }
+      if (typeof book.language !== "string") { book.language = ""; changed = true; }
+      if (typeof book.catalogProvider !== "string") { book.catalogProvider = ""; changed = true; }
+      if (typeof book.catalogKey !== "string") { book.catalogKey = ""; changed = true; }
+      if (!Number.isFinite(Number(book.publishYear || 0))) { book.publishYear = null; changed = true; }
       book.totalPages = safePositive(book.totalPages);
       book.currentPage = Math.max(0, Number(book.currentPage || 0));
       if (book.totalPages) book.currentPage = Math.min(book.currentPage, book.totalPages);
@@ -328,10 +365,12 @@
     const reasonBits = [];
     if (book.continueSeries && book.series) reasonBits.push("continue series");
     if (book.status === "reading" && daysSinceTimestamp(book.lastReadAt || book.startedAt || book.createdAt) >= 14) reasonBits.push("waiting for you");
+    const cover = safeCoverUrl(book.coverUrl);
+    const catalogBits = [book.publishYear, book.publisher].filter(Boolean).slice(0, 2).join(" · ");
 
     return `
-      <article class="library-book-card-v16 status-${escAttr(book.status)}">
-        <div class="library-book-spine-v16" aria-hidden="true"><span>${bookSpineMark(book)}</span></div>
+      <article class="library-book-card-v16 status-${escAttr(book.status)}${cover ? " has-cover-v161" : ""}">
+        ${cover ? `<div class="library-book-cover-v161"><img src="${escAttr(cover)}" alt="Cover of ${escAttr(book.title)}" loading="lazy" /><span aria-hidden="true">${bookSpineMark(book)}</span></div>` : `<div class="library-book-spine-v16" aria-hidden="true"><span>${bookSpineMark(book)}</span></div>`}
         <div class="library-book-body-v16">
           <div class="library-book-top-v16">
             <div class="library-book-tags-v16">
@@ -345,6 +384,7 @@
             <h3>${esc(book.title)}</h3>
             <p class="library-author-v16">${book.author ? esc(book.author) : "Author not added"}</p>
             ${seriesText ? `<p class="library-series-v16">✦ ${seriesText}</p>` : ""}
+            ${catalogBits ? `<p class="library-catalog-line-v161">${esc(catalogBits)}</p>` : ""}
           </div>
           ${progressMarkup(book, progress)}
           <div class="library-book-meta-v16">
@@ -385,6 +425,247 @@
     return `<div class="library-progress-block-v16 simple"><div class="row-between"><span>Progress</span><strong>Not set</strong></div><small>You can still log reading with one tap.</small></div>`;
   }
 
+  async function runBookLookup() {
+    const query = String(els.lookupQuery?.value || "").trim();
+    if (query.length < 2) {
+      renderLookupStatus("Type a title, author, or ISBN first.", "note");
+      return;
+    }
+    if (lookupController) lookupController.abort();
+    lookupController = new AbortController();
+    lookupResults = [];
+    renderLookupResults();
+    setLookupBusy(true);
+    renderLookupStatus("Searching Open Library…", "loading");
+    try {
+      lookupResults = await lookupBooks(query, lookupController.signal);
+      if (!lookupResults.length) {
+        renderLookupStatus("No confident matches found. You can still enter the book manually below.", "empty");
+      } else {
+        renderLookupStatus(`${lookupResults.length} match${lookupResults.length === 1 ? "" : "es"} found — pick the edition/work that looks right.`, "success");
+      }
+      renderLookupResults();
+    } catch (error) {
+      if (error?.name === "AbortError") return;
+      console.warn("Open Library lookup failed", error);
+      renderLookupStatus(error?.message || "Book lookup is unavailable right now. Manual entry still works.", "error");
+    } finally {
+      setLookupBusy(false);
+      lookupController = null;
+    }
+  }
+
+  async function lookupBooks(query, signal = undefined) {
+    const normalized = String(query || "").trim();
+    if (!normalized) return [];
+    const cacheKey = normalizeLookupCacheKey(normalized);
+    const cached = readLookupCache(cacheKey);
+    if (cached) return cached;
+
+    const isbn = normalizeIsbn(normalized);
+    const params = new URLSearchParams();
+    if (isbn) params.set("isbn", isbn);
+    else params.set("q", normalized);
+    params.set("fields", "key,title,author_name,cover_i,first_publish_year,number_of_pages_median,isbn,publisher,language,edition_count,edition_key,series");
+    params.set("limit", String(LOOKUP_LIMIT));
+
+    const response = await fetch(`https://openlibrary.org/search.json?${params.toString()}`, {
+      method: "GET",
+      headers: { Accept: "application/json" },
+      signal
+    });
+    if (response.status === 429) throw new Error("Open Library is rate-limiting searches for a moment. Try again in a few seconds.");
+    if (!response.ok) throw new Error(`Open Library search failed (${response.status}). Manual entry still works.`);
+    const data = await response.json();
+    const results = (Array.isArray(data?.docs) ? data.docs : [])
+      .map(doc => mapLookupDoc(doc, isbn))
+      .filter(item => item.title)
+      .slice(0, LOOKUP_LIMIT);
+    writeLookupCache(cacheKey, results);
+    return results;
+  }
+
+  function mapLookupDoc(doc, searchedIsbn = "") {
+    const isbnList = Array.isArray(doc?.isbn) ? doc.isbn.map(normalizeIsbn).filter(Boolean) : [];
+    const isbn = searchedIsbn && isbnList.includes(searchedIsbn) ? searchedIsbn : (isbnList[0] || searchedIsbn || "");
+    const coverId = Number(doc?.cover_i || 0) || null;
+    const coverUrl = coverId
+      ? `https://covers.openlibrary.org/b/id/${coverId}-M.jpg`
+      : isbn ? `https://covers.openlibrary.org/b/isbn/${encodeURIComponent(isbn)}-M.jpg` : "";
+    const series = Array.isArray(doc?.series) ? String(doc.series[0] || "") : String(doc?.series || "");
+    const publisher = Array.isArray(doc?.publisher) ? String(doc.publisher[0] || "") : String(doc?.publisher || "");
+    const languages = Array.isArray(doc?.language) ? doc.language.filter(Boolean) : [];
+    return {
+      provider: "openlibrary",
+      key: String(doc?.key || ""),
+      title: String(doc?.title || "").trim(),
+      author: Array.isArray(doc?.author_name) ? doc.author_name.filter(Boolean).join(", ") : "",
+      totalPages: safePositive(doc?.number_of_pages_median),
+      pageCountApprox: Boolean(safePositive(doc?.number_of_pages_median)),
+      series: series.trim(),
+      seriesNumber: "",
+      isbn,
+      publishYear: safePositive(doc?.first_publish_year),
+      publisher: publisher.trim(),
+      language: languages.slice(0, 3).join(", "),
+      editionCount: Math.max(0, Number(doc?.edition_count || 0)),
+      coverUrl,
+      coverId,
+      editionKeys: Array.isArray(doc?.edition_key) ? doc.edition_key.slice(0, 8) : []
+    };
+  }
+
+  function renderLookupResults() {
+    if (!els.lookupResults) return;
+    els.lookupResults.innerHTML = lookupResults.map((book, index) => {
+      const meta = [book.publishYear, book.totalPages ? `~${formatNumber(book.totalPages)} pages` : "", book.editionCount ? `${book.editionCount} edition${book.editionCount === 1 ? "" : "s"}` : ""]
+        .filter(Boolean).join(" · ");
+      const cover = safeCoverUrl(book.coverUrl);
+      return `<article class="library-lookup-result-v161">
+        <div class="library-lookup-cover-v161">${cover ? `<img src="${escAttr(cover)}" alt="" loading="lazy" />` : `<span>📖</span>`}</div>
+        <div class="library-lookup-copy-v161">
+          <strong>${esc(book.title)}</strong>
+          <span>${book.author ? esc(book.author) : "Author not listed"}</span>
+          <small>${meta ? esc(meta) : "Catalog match"}${book.publisher ? ` · ${esc(book.publisher)}` : ""}</small>
+        </div>
+        <button class="secondary-button" type="button" data-book-lookup-use="${index}">Use this book</button>
+      </article>`;
+    }).join("");
+  }
+
+  function applyLookupResult(index) {
+    const book = lookupResults[index];
+    if (!book) return;
+    selectedLookup = { ...book };
+    lookupCleared = false;
+    if (els.title) els.title.value = book.title || els.title.value;
+    if (els.author) els.author.value = book.author || els.author.value;
+    if (els.totalPages && book.totalPages) els.totalPages.value = String(book.totalPages);
+    if (els.series && book.series) els.series.value = book.series;
+    renderLookupSelection();
+    renderQuickPreview();
+    renderLookupStatus("Match applied. You only need to choose your status, purpose, and where you have it.", "success");
+  }
+
+  function clearLookupSelection() {
+    selectedLookup = null;
+    lookupCleared = true;
+    renderLookupSelection();
+    renderQuickPreview();
+    renderLookupStatus("Imported catalog link removed. Your typed fields stay as they are.", "note");
+  }
+
+  function renderLookupSelection() {
+    if (!els.lookupSelection) return;
+    if (!selectedLookup) {
+      els.lookupSelection.classList.add("hidden");
+      els.lookupSelection.innerHTML = "";
+      return;
+    }
+    const meta = [selectedLookup.publishYear, selectedLookup.totalPages ? `${formatNumber(selectedLookup.totalPages)} pages` : "", selectedLookup.isbn ? `ISBN ${selectedLookup.isbn}` : ""]
+      .filter(Boolean).join(" · ");
+    const cover = safeCoverUrl(selectedLookup.coverUrl);
+    els.lookupSelection.innerHTML = `${cover ? `<img src="${escAttr(cover)}" alt="" />` : `<span class="library-lookup-selected-mark-v161">✓</span>`}
+      <div><small>CATALOG MATCH SELECTED</small><strong>${esc(selectedLookup.title || "Book")}</strong><span>${esc(meta || "Open Library")}</span></div>
+      <button class="text-button" type="button" data-book-lookup-clear>Remove match</button>`;
+    els.lookupSelection.classList.remove("hidden");
+  }
+
+  function renderLookupStatus(message = "", kind = "") {
+    if (!els.lookupStatus) return;
+    els.lookupStatus.textContent = message;
+    els.lookupStatus.dataset.kind = kind;
+    els.lookupStatus.classList.toggle("hidden", !message);
+  }
+
+  function setLookupBusy(busy) {
+    if (els.lookupSearch) {
+      els.lookupSearch.disabled = busy;
+      els.lookupSearch.textContent = busy ? "Searching…" : "Find book";
+    }
+    if (els.lookupQuery) els.lookupQuery.setAttribute("aria-busy", busy ? "true" : "false");
+  }
+
+  function lookupFromBook(book) {
+    if (!book || !book.catalogProvider) return null;
+    return {
+      provider: book.catalogProvider,
+      key: book.catalogKey || "",
+      title: book.title || "",
+      author: book.author || "",
+      totalPages: safePositive(book.totalPages),
+      pageCountApprox: Boolean(book.catalogPageCountApprox),
+      series: book.series || "",
+      seriesNumber: book.seriesNumber || "",
+      isbn: book.isbn || "",
+      publishYear: safePositive(book.publishYear),
+      publisher: book.publisher || "",
+      language: book.language || "",
+      editionCount: 0,
+      coverUrl: safeCoverUrl(book.coverUrl)
+    };
+  }
+
+  function catalogFieldsForSave(existing, totalPages) {
+    if (lookupCleared) {
+      return { coverUrl: "", isbn: "", publishYear: null, publisher: "", language: "", catalogProvider: "", catalogKey: "", catalogUpdatedAt: null, catalogPageCountApprox: false };
+    }
+    const source = selectedLookup || (existing?.catalogProvider ? lookupFromBook(existing) : null);
+    if (!source) {
+      return { coverUrl: existing?.coverUrl || "", isbn: existing?.isbn || "", publishYear: existing?.publishYear || null, publisher: existing?.publisher || "", language: existing?.language || "", catalogProvider: existing?.catalogProvider || "", catalogKey: existing?.catalogKey || "", catalogUpdatedAt: existing?.catalogUpdatedAt || null, catalogPageCountApprox: Boolean(existing?.catalogPageCountApprox) };
+    }
+    const importedPages = safePositive(source.totalPages);
+    return {
+      coverUrl: safeCoverUrl(source.coverUrl),
+      isbn: String(source.isbn || ""),
+      publishYear: safePositive(source.publishYear),
+      publisher: String(source.publisher || ""),
+      language: String(source.language || ""),
+      catalogProvider: String(source.provider || "openlibrary"),
+      catalogKey: String(source.key || ""),
+      catalogUpdatedAt: Date.now(),
+      catalogPageCountApprox: Boolean(source.pageCountApprox && importedPages && totalPages === importedPages)
+    };
+  }
+
+  function normalizeIsbn(value) {
+    const clean = String(value || "").toUpperCase().replace(/[^0-9X]/g, "");
+    return clean.length === 10 || clean.length === 13 ? clean : "";
+  }
+
+  function normalizeLookupCacheKey(value) {
+    return String(value || "").trim().toLowerCase().replace(/\s+/g, " ").slice(0, 220);
+  }
+
+  function readLookupCache(key) {
+    try {
+      const cache = JSON.parse(localStorage.getItem(LOOKUP_CACHE_KEY) || "{}");
+      const entry = cache?.[key];
+      if (!entry || Date.now() - Number(entry.at || 0) > LOOKUP_CACHE_TTL || !Array.isArray(entry.results)) return null;
+      return entry.results;
+    } catch { return null; }
+  }
+
+  function writeLookupCache(key, results) {
+    try {
+      const now = Date.now();
+      const cache = JSON.parse(localStorage.getItem(LOOKUP_CACHE_KEY) || "{}");
+      Object.keys(cache).forEach(cacheKey => {
+        if (now - Number(cache[cacheKey]?.at || 0) > LOOKUP_CACHE_TTL) delete cache[cacheKey];
+      });
+      cache[key] = { at: now, results };
+      const keys = Object.keys(cache).sort((a, b) => Number(cache[b]?.at || 0) - Number(cache[a]?.at || 0)).slice(0, 30);
+      const trimmed = {};
+      keys.forEach(cacheKey => { trimmed[cacheKey] = cache[cacheKey]; });
+      localStorage.setItem(LOOKUP_CACHE_KEY, JSON.stringify(trimmed));
+    } catch { /* cache is optional */ }
+  }
+
+  function safeCoverUrl(value) {
+    const url = String(value || "").trim();
+    return /^https:\/\/covers\.openlibrary\.org\//i.test(url) ? url : "";
+  }
+
   function openBookDialog(id = "") {
     if (!els.dialog || !els.form) return;
     const book = id ? findBook(id) : null;
@@ -402,6 +683,13 @@
     if (els.continueSeries) els.continueSeries.checked = Boolean(book?.continueSeries);
     if (els.preferredGoal) els.preferredGoal.value = book?.preferredGoal || "auto";
     if (els.notes) els.notes.value = book?.notes || "";
+    lookupResults = [];
+    lookupCleared = false;
+    selectedLookup = book ? lookupFromBook(book) : null;
+    if (els.lookupQuery) els.lookupQuery.value = book ? [book.title, book.author].filter(Boolean).join(" ") : "";
+    renderLookupStatus("");
+    renderLookupResults();
+    renderLookupSelection();
     setRadio("bookStatus", book?.status || "want");
     setRadio("bookRole", book?.role || "fun");
     if (els.advanced) els.advanced.open = Boolean(book && (book.totalPages || book.currentPage || book.series || book.notes || book.preferredGoal !== "auto"));
@@ -442,6 +730,7 @@
       continueSeries: Boolean(els.continueSeries?.checked),
       preferredGoal: ["auto", "pages", "chapter", "minutes"].includes(els.preferredGoal?.value) ? els.preferredGoal.value : "auto",
       notes: String(els.notes?.value || "").trim(),
+      ...catalogFieldsForSave(existing, totalPages),
       createdAt: existing?.createdAt || now,
       updatedAt: now,
       startedAt: status === "reading" ? (existing?.startedAt || now) : existing?.startedAt || null,
@@ -495,9 +784,10 @@
     const pages = safePositive(els.totalPages?.value);
     const current = Math.max(0, Number(els.currentPage?.value || 0));
     const pct = pages ? Math.floor(Math.min(100, current / pages * 100)) : null;
+    const cover = safeCoverUrl(lookupCleared ? "" : (selectedLookup?.coverUrl || findBook(els.editId?.value)?.coverUrl || ""));
     els.preview.innerHTML = `
-      <div class="library-preview-mark-v16">${role.icon}</div>
-      <div><small>${status.icon} ${status.label} · ${source.icon} ${source.label}</small><strong>${esc(title)}</strong><span>${role.label}${pct === null ? "" : ` · ${pct}%`}</span></div>`;
+      ${cover ? `<img class="library-preview-cover-v161" src="${escAttr(cover)}" alt="" />` : `<div class="library-preview-mark-v16">${role.icon}</div>`}
+      <div><small>${status.icon} ${status.label} · ${source.icon} ${source.label}</small><strong>${esc(title)}</strong><span>${role.label}${pct === null ? "" : ` · ${pct}%`}${selectedLookup ? " · catalog match selected" : ""}</span></div>`;
   }
 
   function openBulkDialog() {
@@ -554,7 +844,9 @@
       library.items.push({
         id: makeId("book"), title: entry.title, author: entry.author, status, role, source,
         totalPages: null, currentPage: 0, series: "", seriesNumber: "", continueSeries: false,
-        preferredGoal: "auto", notes: "", createdAt: now + index, updatedAt: now + index,
+        preferredGoal: "auto", notes: "", coverUrl: "", isbn: "", publishYear: null, publisher: "", language: "",
+        catalogProvider: "", catalogKey: "", catalogUpdatedAt: null, catalogPageCountApprox: false,
+        createdAt: now + index, updatedAt: now + index,
         startedAt: status === "reading" ? now : null, finishedAt: status === "finished" ? now : null, lastReadAt: null
       });
       added += 1;
@@ -676,7 +968,8 @@
       getLogs: id => bookLogs(id),
       findBook,
       roleMeta: role => ROLES[role] || ROLES.fun,
-      statusMeta: status => STATUSES[status] || STATUSES.want
+      statusMeta: status => STATUSES[status] || STATUSES.want,
+      searchCatalog: lookupBooks
     };
   }
 

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#321d34" />
   <title>Life RPG — Base Camp</title>
-  <link rel="stylesheet" href="styles.css?v=0.16.0" />
+  <link rel="stylesheet" href="styles.css?v=0.16.1" />
 </head>
 <body>
   <div class="ambient ambient-one"></div>
@@ -963,6 +963,23 @@
 
       <div class="library-minimal-note-v16"><span>✦</span><div><strong>Only the title is required.</strong><p>Everything below is there to make recommendations smarter — not to give you another admin job.</p></div></div>
 
+      <section class="library-lookup-v161" aria-labelledby="bookLookupHeading">
+        <div class="library-lookup-heading-v161">
+          <div><span class="library-lookup-kicker-v161">SMART LOOKUP</span><strong id="bookLookupHeading">Find it instead of typing it.</strong><p>Search by title, author, or ISBN. Pick the right match and Life RPG fills the useful catalog details for you.</p></div>
+          <span class="library-lookup-provider-v161">Open Library</span>
+        </div>
+        <div class="library-lookup-search-v161">
+          <input id="bookLookupQuery" type="search" autocomplete="off" placeholder="e.g. A Court of Thorns and Roses, Sarah J. Maas, or ISBN" aria-label="Search Open Library" />
+          <button class="primary-button" id="bookLookupSearch" type="button">Find book</button>
+        </div>
+        <div id="bookLookupStatus" class="library-lookup-status-v161" aria-live="polite"></div>
+        <div id="bookLookupSelection" class="library-lookup-selection-v161 hidden"></div>
+        <div id="bookLookupResults" class="library-lookup-results-v161"></div>
+        <small class="library-lookup-footnote-v161">Page counts can differ between editions, so imported details stay editable. Search data and covers are provided by <a href="https://openlibrary.org/" target="_blank" rel="noopener">Open Library</a>.</small>
+      </section>
+
+      <div class="library-manual-divider-v161"><span>or enter / correct it manually</span></div>
+
       <div class="form-grid library-title-row-v16">
         <label>Title<input id="bookTitle" maxlength="180" placeholder="A Court of Thorns and Roses" required /></label>
         <label>Author <span class="optional-label-v16">optional</span><input id="bookAuthor" maxlength="120" placeholder="Sarah J. Maas" /></label>
@@ -1618,7 +1635,7 @@ Project Hail Mary — Andy Weir
   <script src="app.js?v=0.9.3"></script>
   <script src="habits.js?v=0.13.1"></script>
   <script src="adventures.js?v=0.15.0"></script>
-  <script src="library.js?v=0.16.0"></script>
+  <script src="library.js?v=0.16.1"></script>
   <script src="daily.js?v=0.16.0"></script>
   <script src="story-ui.js?v=0.12.2"></script>
   <script type="module" src="cloud-save.js?v=0.9.3"></script>

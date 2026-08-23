@@ -8861,3 +8861,133 @@ dialog:not(.story-phone-dialog)::backdrop { background: rgba(49,29,50,.44); }
   .library-advanced-v16 summary small { display: none; }
   .library-toast-v16 { right: 16px; bottom: 82px; }
 }
+
+/* =========================================================
+   V0.16.1 — Smart Book Lookup
+   ========================================================= */
+.library-lookup-v161 {
+  display: grid;
+  gap: 11px;
+  padding: 15px;
+  border: 1px solid rgba(109,61,99,.14);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 93% 10%, rgba(228,178,197,.22), transparent 34%),
+    linear-gradient(145deg, #fffaf6 0%, #fbf0f2 100%);
+}
+.library-lookup-heading-v161 {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+.library-lookup-heading-v161 strong { display: block; margin-top: 2px; color: #56374f; font-size: .98rem; }
+.library-lookup-heading-v161 p { margin: 4px 0 0; max-width: 560px; color: #8b7480; font-size: .76rem; line-height: 1.45; }
+.library-lookup-kicker-v161 { display: block; color: #9d6d85; font-size: .6rem; font-weight: 900; letter-spacing: .11em; }
+.library-lookup-provider-v161 {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  min-height: 27px;
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: #6c3d62;
+  color: #fff;
+  font-size: .65rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.library-lookup-search-v161 { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 8px; }
+.library-lookup-search-v161 input { min-width: 0; }
+.library-lookup-search-v161 .primary-button { min-width: 108px; }
+.library-lookup-status-v161 {
+  min-height: 18px;
+  padding: 0 2px;
+  color: #806b77;
+  font-size: .72rem;
+  line-height: 1.4;
+}
+.library-lookup-status-v161[data-kind="success"] { color: #5f735e; }
+.library-lookup-status-v161[data-kind="error"] { color: #9b4d5a; }
+.library-lookup-status-v161[data-kind="loading"] { color: #79566e; font-weight: 700; }
+.library-lookup-results-v161 { display: grid; gap: 8px; }
+.library-lookup-result-v161 {
+  display: grid;
+  grid-template-columns: 52px minmax(0,1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border: 1px solid rgba(109,61,99,.1);
+  border-radius: 14px;
+  background: rgba(255,253,249,.92);
+}
+.library-lookup-cover-v161 {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 64px;
+  overflow: hidden;
+  border-radius: 8px;
+  background: linear-gradient(160deg,#ead5de,#6c3d62);
+  color: #fff;
+  box-shadow: 0 5px 12px rgba(70,40,62,.12);
+}
+.library-lookup-cover-v161 img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.library-lookup-copy-v161 { min-width: 0; }
+.library-lookup-copy-v161 strong,
+.library-lookup-copy-v161 span,
+.library-lookup-copy-v161 small { display: block; }
+.library-lookup-copy-v161 strong { overflow: hidden; color: #583b50; font-size: .82rem; line-height: 1.3; text-overflow: ellipsis; }
+.library-lookup-copy-v161 span { margin-top: 2px; color: #826b78; font-size: .72rem; }
+.library-lookup-copy-v161 small { margin-top: 3px; color: #a08b95; font-size: .64rem; line-height: 1.35; }
+.library-lookup-result-v161 .secondary-button { min-height: 34px; padding: 6px 9px; font-size: .68rem; white-space: nowrap; }
+.library-lookup-selection-v161 {
+  display: grid;
+  grid-template-columns: 42px minmax(0,1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 11px;
+  border: 1px solid rgba(91,112,89,.2);
+  border-radius: 14px;
+  background: rgba(239,246,236,.75);
+}
+.library-lookup-selection-v161 img { width: 38px; height: 54px; border-radius: 6px; object-fit: cover; box-shadow: 0 4px 10px rgba(59,47,55,.12); }
+.library-lookup-selected-mark-v161 { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; background: #71836b; color: #fff; font-weight: 900; }
+.library-lookup-selection-v161 small,
+.library-lookup-selection-v161 strong,
+.library-lookup-selection-v161 span { display: block; }
+.library-lookup-selection-v161 small { color: #75836f; font-size: .58rem; font-weight: 900; letter-spacing: .08em; }
+.library-lookup-selection-v161 strong { margin-top: 1px; color: #4d5f49; font-size: .8rem; }
+.library-lookup-selection-v161 span { margin-top: 1px; color: #7c8d77; font-size: .65rem; }
+.library-lookup-selection-v161 .text-button { font-size: .68rem; }
+.library-lookup-footnote-v161 { display: block; color: #9a858f; font-size: .64rem; line-height: 1.45; }
+.library-lookup-footnote-v161 a { color: #704963; font-weight: 700; }
+.library-manual-divider-v161 { display: flex; align-items: center; gap: 10px; color: #a08793; font-size: .64rem; text-transform: uppercase; letter-spacing: .07em; }
+.library-manual-divider-v161::before,
+.library-manual-divider-v161::after { content: ""; flex: 1; height: 1px; background: rgba(109,61,99,.11); }
+.library-manual-divider-v161 span { flex: none; }
+.library-preview-cover-v161 { width: 38px; height: 54px; flex: none; border-radius: 6px; object-fit: cover; box-shadow: 0 4px 10px rgba(66,37,58,.12); }
+.library-book-card-v16.has-cover-v161 { grid-template-columns: 104px minmax(0,1fr); }
+.library-book-cover-v161 {
+  position: relative;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  min-height: 100%;
+  background: linear-gradient(170deg,#ead5df,#755067);
+}
+.library-book-cover-v161 img { width: 100%; height: 100%; min-height: 270px; object-fit: cover; display: block; }
+.library-book-cover-v161 > span { position: absolute; inset: auto 8px 8px auto; display: none; }
+.library-catalog-line-v161 { margin: 5px 0 0; color: #a08793; font-size: .67rem; }
+
+@media (max-width: 720px) {
+  .library-lookup-heading-v161 { flex-direction: column; gap: 8px; }
+  .library-lookup-search-v161 { grid-template-columns: 1fr; }
+  .library-lookup-search-v161 .primary-button { width: 100%; }
+  .library-lookup-result-v161 { grid-template-columns: 46px minmax(0,1fr); }
+  .library-lookup-result-v161 .secondary-button { grid-column: 2; justify-self: start; }
+  .library-lookup-selection-v161 { grid-template-columns: 38px minmax(0,1fr); }
+  .library-lookup-selection-v161 .text-button { grid-column: 2; justify-self: start; }
+  .library-book-card-v16.has-cover-v161 { grid-template-columns: 82px minmax(0,1fr); }
+  .library-book-cover-v161 img { min-height: 100%; }
+}
