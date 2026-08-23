@@ -1,0 +1,40 @@
+{
+  "schema": 1,
+  "updated": "2026-08-23",
+  "purpose": "Human-readable source of truth for approved story character visuals. Future visual passes should preserve locked designs unless explicitly re-approved.",
+  "characters": {
+    "bakugo": {
+      "status": "locked-base",
+      "displayName": "Katsuki Bakugo",
+      "visualVersion": "bakugo-offduty-v2",
+      "canonNotes": [
+        "Young adult Pro Hero; attractive, sharp anime face rather than an older/rugged look.",
+        "Normal adult Bakugo hairstyle: full spiky blond hair; no undercut/sidecut in the locked base.",
+        "Red eyes; face should stay relatively compact rather than long or overly angular.",
+        "Large, irregular combat/explosion-type scars on face, neck, shoulders, arms and hands; avoid making every scar look like a thin knife cut.",
+        "Off-duty base: black tank top, relaxed black streetwear, black jacket with warm orange-red lining.",
+        "Rendering lock: warm muted skin tones, soft painterly cel-shading, dark warm shadows, detailed but clean anime linework, matching the approved 2026-08-23 expression-sheet look."
+      ],
+      "approved": {
+        "neutral": "assets/story/characters/bakugo-neutral.png",
+        "annoyedMild": "assets/story/characters/bakugo-annoyed-mild.png",
+        "annoyedIrritated": "assets/story/characters/bakugo-annoyed-irritated.png",
+        "annoyedSharp": "assets/story/characters/bakugo-annoyed-sharp.png",
+        "annoyedBrooding": "assets/story/characters/bakugo-annoyed-brooding.png",
+        "annoyedAway": "assets/story/characters/bakugo-annoyed-away.png"
+      },
+      "temporaryFallbacks": {
+        "angry": "annoyedSharp until a dedicated Angry pack is approved",
+        "smug": "neutral until a dedicated Smug/Amused pack is approved"
+      },
+      "planned": [
+        "angry pack",
+        "soft / caught-off-guard / flustered pack",
+        "tired / vulnerable / late-night pack",
+        "smug / amused pack",
+        "hero-costume set"
+      ],
+      "legacyRule": "Older Bakugo character images are not canonical visual references and should not be selected for new story content."
+    }
+  }
+}
