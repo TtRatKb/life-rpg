@@ -192,9 +192,9 @@
       description: "A location that should unlock through narrative introduction."
     },
     cafe: {
-      label: "Unknown Location",
+      label: "Koharu Café",
       icon: "☕",
-      description: "A place Luca has not discovered yet."
+      description: "A small café Mina introduced — easy to reach, low-pressure, and starting to feel like a shared spot."
     },
     district: {
       label: "Unknown Location",

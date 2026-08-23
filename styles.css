@@ -10232,3 +10232,30 @@ dialog:not(.story-phone-dialog)::backdrop { background: rgba(49,29,50,.44); }
   }
   .bottom-nav::-webkit-scrollbar { display: none; }
 }
+
+/* V0.22 Social Expansion */
+.people-social-rhythm {
+  margin: 12px 0 14px;
+  padding: 13px 14px;
+  border: 1px solid rgba(116, 72, 103, .10);
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(255, 248, 250, .92), rgba(248, 239, 245, .78));
+}
+.people-social-rhythm small {
+  display: block;
+  margin-bottom: 5px;
+  color: #9b6f87;
+  font-size: .68rem;
+  font-weight: 800;
+  letter-spacing: .12em;
+}
+.people-social-rhythm p {
+  margin: 0;
+  color: #6f5263;
+  line-height: 1.5;
+}
+.reply-waiting {
+  background: rgba(164, 118, 146, .12) !important;
+  color: #8a5e79 !important;
+  border-color: rgba(139, 91, 120, .14) !important;
+}

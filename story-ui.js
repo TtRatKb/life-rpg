@@ -253,6 +253,8 @@
       messageReplies: {},
       completedHangoutIds: [],
       hangoutCounts: {},
+      recentTalkIdsByPerson: {},
+      lastInteractionByPerson: {},
       activeHangoutId: null,
       hangoutStep: 0,
       activeHangoutProgressionSnapshot: null,
@@ -271,6 +273,8 @@
     state.story.social.messageReplies = object(state.story.social.messageReplies);
     state.story.social.completedHangoutIds = array(state.story.social.completedHangoutIds);
     state.story.social.hangoutCounts = object(state.story.social.hangoutCounts);
+    state.story.social.recentTalkIdsByPerson = object(state.story.social.recentTalkIdsByPerson);
+    state.story.social.lastInteractionByPerson = object(state.story.social.lastInteractionByPerson);
   }
 
   function migrateLegacyStoryIfNeeded() {
@@ -609,6 +613,7 @@
       const hangout = nextHangoutForPerson(person.id);
       const hangoutUnlocked = !person.hangoutUnlockFlag || Boolean(app.getState().flags?.[person.hangoutUnlockFlag]);
       const unread = unreadMessageCount(person.id);
+      const pending = pendingReplyCount(person.id);
       const avatar = person.cardAsset
         ? `<span class="story-person-avatar"><img src="${escapeHtml(person.cardAsset)}" alt="" /></span>`
         : `<span class="story-person-initial">${escapeHtml(person.name?.charAt(0) || "✦")}</span>`;
@@ -619,12 +624,12 @@
           ${avatar}
           <div class="story-person-copy">
             <strong>${escapeHtml(person.name)}</strong>
-            <small>${escapeHtml(person.role || "Known person")}</small>
+            <small>${escapeHtml(personRole(person))}</small>
             <span class="story-person-social-note">Talk = random everyday chat · Hang Out = story-unlocked · Messages = story-linked.</span>
           </div>
           <div class="story-person-actions">
             <button class="secondary-button" type="button" data-talk-person="${escapeHtml(person.id)}" ${talk ? "" : "disabled"}>${escapeHtml(talkLabel)}</button>
-            <button class="ghost-button" type="button" data-message-person="${escapeHtml(person.id)}">Messages${unread ? ` · ${unread}` : ""}</button>
+            <button class="ghost-button" type="button" data-message-person="${escapeHtml(person.id)}">Messages${unread ? ` · ${unread} new` : pending ? " · reply open" : ""}</button>
             <button class="ghost-button hangout-button ${hangoutUnlocked && hangout ? "ready" : "locked"}" type="button" data-hangout-person="${escapeHtml(person.id)}" ${hangoutUnlocked && hangout ? "" : "disabled"}>${hangoutUnlocked ? (hangout ? "Hang Out" : "Hang Out · More later") : "Hang Out · Locked"}</button>
           </div>
         </article>
@@ -635,7 +640,8 @@
   function relationshipLabel(person) {
     const state = app.getState();
     if (person.id === "mina") {
-      if (state.flags?.MINA_HANGOUTS_UNLOCKED) return "Friend";
+      if (state.flags?.MINA_FRIENDSHIP_ESTABLISHED) return "Friend";
+      if (state.flags?.MINA_HANGOUTS_UNLOCKED) return "Making plans";
       if (state.flags?.STORY_MINA_FRIENDSHIP_STARTED) return "New connection";
     }
     return "Known person";
@@ -647,7 +653,12 @@
     if (person.id === "mina") {
       if (state.flags?.STORY_MET_MINA) details.push("You met through the hero outreach program at school.");
       if (state.flags?.STORY_MINA_FRIENDSHIP_STARTED) details.push("She chose to keep talking after the formal introductions were over.");
-      if (state.flags?.MINA_HANGOUTS_UNLOCKED) details.push("Spending time together outside the original school context now feels natural.");
+      if (state.flags?.MINA_REAL_COFFEE_COMPLETE) details.push("Coffee stopped being a vague someday-plan and became part of your actual off-duty life.");
+      if (state.flags?.MINA_BOOKSTORE_HANGOUT_COMPLETE) details.push("Bookstores and small detours have become plausible plans together.");
+      if (state.flags?.MINA_KNOWS_HOUSING_PROBLEM) details.push("She knows the commute and housing situation are genuinely wearing you down.");
+      if (state.flags?.MINA_HOUSING_LEAD_SHARED) details.push("She offered a practical housing lead without treating your answer as a foregone conclusion.");
+      if (state.flags?.MINA_CHOSEN_FRIENDSHIP_CONFIRMED) details.push("She has made it hard to dismiss the friendship as Mina simply being friendly with everyone.");
+      if (state.locations?.cafe) details.push("Koharu Café has become one of the places you can naturally end up together.");
     }
     if (!details.length) details.push("You are still learning what this connection might become.");
     return details;
@@ -690,7 +701,7 @@
       <div class="people-profile-copy">
         <p class="eyebrow">${escapeHtml(label)}</p>
         <h2>${escapeHtml(selected.name)}</h2>
-        <p class="people-profile-role">${escapeHtml(selected.role || "Known person")}</p>
+        <p class="people-profile-role">${escapeHtml(personRole(selected))}</p>
         <div class="people-profile-status"><span>✿</span><strong>${escapeHtml(label)}</strong><small>Relationship state is shown through access and behavior — never a love meter.</small></div>
       </div>`;
 
@@ -698,12 +709,13 @@
     const hangout = nextHangoutForPerson(selected.id);
     const hangoutUnlocked = !selected.hangoutUnlockFlag || Boolean(state.flags?.[selected.hangoutUnlockFlag]);
     const unread = unreadMessageCount(selected.id);
+    const pending = pendingReplyCount(selected.id);
     els.peopleProfileActions.innerHTML = `
       <button class="social-action-card" type="button" data-talk-person="${escapeHtml(selected.id)}" ${talk ? "" : "disabled"}>
         <span class="social-action-icon">💬</span><span><strong>Talk</strong><small>Random everyday conversation · free</small></span><b>FREE</b>
       </button>
       <button class="social-action-card" type="button" data-profile-message-person="${escapeHtml(selected.id)}" data-view-target="phone">
-        <span class="social-action-icon">✉</span><span><strong>Messages</strong><small>${unread ? `${unread} unread conversation${unread === 1 ? "" : "s"}` : "Story-linked threads · no expiry"}</small></span>${unread ? `<b class="message-count">${unread} NEW</b>` : ""}
+        <span class="social-action-icon">✉</span><span><strong>Messages</strong><small>${unread ? `${unread} unread conversation${unread === 1 ? "" : "s"}` : pending ? `${pending} ${pending === 1 ? "reply is" : "replies are"} still open whenever you want` : "Story-linked threads · no expiry"}</small></span>${unread ? `<b class="message-count">${unread} NEW</b>` : pending ? `<b class="message-count reply-waiting">REPLY</b>` : ""}
       </button>
       <button class="social-action-card ${hangoutUnlocked && hangout ? "ready" : "locked"}" type="button" data-hangout-person="${escapeHtml(selected.id)}" ${hangoutUnlocked && hangout ? "" : "disabled"}>
         <span class="social-action-icon">${hangoutUnlocked ? "☕" : "🔒"}</span><span><strong>Hang Out</strong><small>${hangoutUnlocked ? (hangout ? "Spend time together · free" : "More hangouts can appear later") : "Unlocks naturally through the story"}</small></span><b>${hangoutUnlocked && hangout ? "FREE" : "???"}</b>
@@ -713,8 +725,9 @@
     els.peopleProfileDetails.innerHTML = `
       <div class="people-known-summary">
         <strong>${escapeHtml(selected.name)}</strong>
-        <p>${escapeHtml(selected.role || "Known person")}</p>
+        <p>${escapeHtml(personRole(selected))}</p>
       </div>
+      <div class="people-social-rhythm"><small>CURRENT RHYTHM</small><p>${escapeHtml(socialRhythmForPerson(selected))}</p></div>
       <div class="people-known-list">${details.map(item => `<div><span>✿</span><p>${escapeHtml(item)}</p></div>`).join("")}</div>
       <div class="people-known-footnote">Hidden trust, memories and preferences stay hidden. You'll notice them when they matter.</div>`;
   }
@@ -776,6 +789,52 @@
 
   function socialHangouts() {
     return Array.isArray(pack?.social?.hangouts) ? pack.social.hangouts : [];
+  }
+
+  function recordSocialInteraction(personId, kind, interactionId) {
+    const state = app.getState();
+    if (!personId || !state.story?.social) return;
+    const social = state.story.social;
+    social.lastInteractionByPerson = object(social.lastInteractionByPerson);
+    social.recentTalkIdsByPerson = object(social.recentTalkIdsByPerson);
+
+    social.lastInteractionByPerson[personId] = {
+      kind: kind || "social",
+      id: interactionId || null,
+      at: new Date().toISOString()
+    };
+
+    if (kind === "talk" && interactionId) {
+      const previous = array(social.recentTalkIdsByPerson[personId]);
+      social.recentTalkIdsByPerson[personId] = [interactionId, ...previous.filter(id => id !== interactionId)].slice(0, 3);
+    }
+  }
+
+  function pendingReplyCount(personId = null) {
+    const state = app.getState();
+    const replies = state.story.social?.messageReplies || {};
+    const people = personId ? [personId] : knownPeople().map(person => person.id);
+    return people.reduce((count, id) => count + eligibleMessagesForPerson(id).filter(message => {
+      const key = messageReadKey(message);
+      return array(message.replyOptions).length > 0 && !replies[key];
+    }).length, 0);
+  }
+
+  function personRole(person) {
+    const state = app.getState();
+    if (person.id === "mina" && state.flags?.MINA_FRIENDSHIP_ESTABLISHED) return "Pro Hero · Friend";
+    return person.role || "Known person";
+  }
+
+  function socialRhythmForPerson(person) {
+    const state = app.getState();
+    if (person.id === "mina") {
+      if (state.flags?.MINA_CHOSEN_FRIENDSHIP_CONFIRMED) return "You make plans because you want to see each other, not because there is an event to justify it.";
+      if (state.flags?.MINA_FRIENDSHIP_ESTABLISHED) return "Conversation has started to feel ordinary instead of scheduled.";
+      if (state.flags?.MINA_HANGOUTS_UNLOCKED) return "The friendship is beginning to exist outside the original school context.";
+      if (state.flags?.STORY_MINA_FRIENDSHIP_STARTED) return "She keeps finding reasons to continue the conversation.";
+    }
+    return "This connection is still finding its shape.";
   }
 
   function hangoutById(hangoutId) {
@@ -853,12 +912,18 @@
     }
 
     const unseenOnce = eligible.filter(talk => talk.once && !social.seenTalkIds.includes(talk.id));
-    if (unseenOnce.length) return unseenOnce[Math.floor(Math.random() * unseenOnce.length)];
+    if (unseenOnce.length) {
+      const highestPriority = Math.max(...unseenOnce.map(talk => Number(talk.priority || 0)));
+      const timely = unseenOnce.filter(talk => Number(talk.priority || 0) === highestPriority);
+      return timely[Math.floor(Math.random() * timely.length)];
+    }
 
     const repeatable = eligible.filter(talk => !talk.once);
     if (!repeatable.length) return null;
-    const alternatives = repeatable.filter(talk => talk.id !== social.lastTalkId);
-    const pool = alternatives.length ? alternatives : repeatable;
+    const recent = new Set(array(social.recentTalkIdsByPerson?.[personId]));
+    const fresh = repeatable.filter(talk => !recent.has(talk.id));
+    const notLast = repeatable.filter(talk => talk.id !== social.lastTalkId);
+    const pool = fresh.length ? fresh : notLast.length ? notLast : repeatable;
     return pool[Math.floor(Math.random() * pool.length)];
   }
 
@@ -928,6 +993,7 @@
     if (!els.phonePreview || !els.phoneOpen || !els.phoneBadge) return;
     const people = knownPeople();
     const unread = unreadMessageCount();
+    const pending = pendingReplyCount();
 
     if (!people.length) {
       els.phoneBadge.textContent = "Locked";
@@ -947,10 +1013,10 @@
       .flatMap(person => eligibleMessagesForPerson(person.id).map(message => ({ person, message })))
       .at(-1);
 
-    els.phoneBadge.textContent = unread ? `${unread} new` : "Online";
+    els.phoneBadge.textContent = unread ? `${unread} new` : pending ? "Reply open" : "Online";
     els.phoneBadge.classList.toggle("has-unread", Boolean(unread));
     els.phoneOpen.disabled = false;
-    els.phoneOpen.textContent = unread ? `Open phone · ${unread} new` : "Open phone";
+    els.phoneOpen.textContent = unread ? `Open phone · ${unread} new` : pending ? "Open phone · reply waiting" : "Open phone";
 
     if (!latest) {
       els.phonePreview.innerHTML = `
@@ -978,7 +1044,7 @@
     const people = knownPeople();
     if (!people.length) return;
     const state = app.getState();
-    const preferred = personId || state.story.social.selectedPhonePersonId || people.find(person => unreadMessageCount(person.id))?.id || people[0].id;
+    const preferred = personId || state.story.social.selectedPhonePersonId || people.find(person => unreadMessageCount(person.id))?.id || people.find(person => pendingReplyCount(person.id))?.id || people[0].id;
     renderPhoneDialog(preferred);
     if (!els.phoneDialog.open) els.phoneDialog.showModal();
     selectPhonePerson(preferred, { markRead: true });
@@ -988,7 +1054,12 @@
     const people = knownPeople();
     const state = app.getState();
     const unread = unreadMessageCount();
-    if (els.phonePageUnreadLabel) els.phonePageUnreadLabel.textContent = unread ? `${unread} new message${unread === 1 ? "" : "s"}` : "No new messages";
+    const pending = pendingReplyCount();
+    if (els.phonePageUnreadLabel) els.phonePageUnreadLabel.textContent = unread
+      ? `${unread} new message${unread === 1 ? "" : "s"}`
+      : pending
+        ? `${pending} ${pending === 1 ? "reply is" : "replies are"} still open`
+        : "No new messages";
     if (els.navPhoneUnread) {
       els.navPhoneUnread.textContent = unread;
       els.navPhoneUnread.classList.toggle("hidden", !unread);
@@ -1005,17 +1076,18 @@
     }
 
     let selected = selectedPersonId || state.story.social.selectedPhonePersonId;
-    if (!people.some(person => person.id === selected)) selected = people.find(person => unreadMessageCount(person.id))?.id || people[0].id;
+    if (!people.some(person => person.id === selected)) selected = people.find(person => unreadMessageCount(person.id))?.id || people.find(person => pendingReplyCount(person.id))?.id || people[0].id;
     state.story.social.selectedPhonePersonId = selected;
 
     const contactsHtml = people.map(person => {
       const count = unreadMessageCount(person.id);
+      const replyOpen = pendingReplyCount(person.id);
       const active = person.id === selected;
       return `
         <button class="story-phone-contact ${active ? "active" : ""}" type="button" data-phone-person="${escapeHtml(person.id)}">
           <span class="story-phone-contact-avatar">${person.cardAsset ? `<img src="${escapeHtml(person.cardAsset)}" alt="" />` : escapeHtml(person.name?.charAt(0) || "✦")}</span>
-          <span><strong>${escapeHtml(person.name)}</strong><small>${count ? `${count} unread` : "Messages"}</small></span>
-          ${count ? `<b class="phone-contact-unread">${count}</b>` : ""}
+          <span><strong>${escapeHtml(person.name)}</strong><small>${count ? `${count} unread` : replyOpen ? "Reply open · no expiry" : "Messages"}</small></span>
+          ${count ? `<b class="phone-contact-unread">${count}</b>` : replyOpen ? `<b class="phone-contact-unread reply-waiting">↩</b>` : ""}
         </button>`;
     }).join("");
     if (els.phoneContacts) els.phoneContacts.innerHTML = contactsHtml;
@@ -1121,6 +1193,7 @@
     const read = new Set(state.story.social.readMessageIds || []);
     read.add(groupId);
     state.story.social.readMessageIds = [...read];
+    recordSocialInteraction(message.personId, "message", groupId);
     app.saveState({ source: "social-message-reply" });
     app.renderAll();
     renderPhoneSurfaces(state.story.social.selectedPhonePersonId || message.personId);
@@ -1599,6 +1672,7 @@
       if (!alreadySeen) social.seenTalkIds.push(scene.id);
       social.talkCounts[scene.id] = Number(social.talkCounts[scene.id] || 0) + 1;
       social.lastTalkId = scene.id;
+      recordSocialInteraction(scene.personId, "talk", scene.id);
       social.activeTalkId = null;
       social.talkStep = 0;
       social.activeTalkProgressionSnapshot = null;
@@ -1615,6 +1689,7 @@
       if (!alreadyComplete || !scene.once) applyEffects(scene.onComplete || []);
       if (!alreadyComplete) social.completedHangoutIds.push(scene.id);
       social.hangoutCounts[scene.id] = Number(social.hangoutCounts[scene.id] || 0) + 1;
+      recordSocialInteraction(scene.personId, "hangout", scene.id);
       social.activeHangoutId = null;
       social.hangoutStep = 0;
       social.activeHangoutProgressionSnapshot = null;
