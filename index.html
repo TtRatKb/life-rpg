@@ -3,9 +3,9 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="theme-color" content="#f0642c" />
+  <meta name="theme-color" content="#321d34" />
   <title>Life RPG — Base Camp</title>
-  <link rel="stylesheet" href="styles.css?v=0.10.0" />
+  <link rel="stylesheet" href="styles.css?v=0.12.0" />
 </head>
 <body>
   <div class="ambient ambient-one"></div>
@@ -14,10 +14,10 @@
   <div class="app-shell">
     <header class="topbar">
       <button class="brand-button" data-view-target="basecamp" aria-label="Go to Base Camp">
-        <span class="brand-mark">✦</span>
+        <span class="brand-mark">✿</span>
         <span>
           <span class="eyebrow">LIFE RPG</span>
-          <strong>Base Camp</strong>
+          <strong>Live your story.</strong>
         </span>
       </button>
 
@@ -41,6 +41,9 @@
       </div>
     </header>
 
+    <div class="shell-sakura shell-sakura-left" aria-hidden="true">✿</div>
+    <div class="shell-sakura shell-sakura-right" aria-hidden="true">✿</div>
+
     <main>
       <!-- BASE CAMP -->
       <section id="view-basecamp" class="view active">
@@ -60,7 +63,7 @@
 
           <div class="character-card">
             <div class="avatar-ring">
-              <div class="avatar-core">L</div>
+              <img class="avatar-portrait" src="assets/story/portraits/luca_neutral.png" alt="Luca" />
             </div>
             <div>
               <p class="eyebrow">PLAYER CHARACTER</p>
@@ -420,11 +423,16 @@
     </main>
 
     <nav class="bottom-nav" aria-label="Primary navigation">
-      <button class="nav-button active" data-view="basecamp"><span>🌸</span><small>Base Camp</small></button>
-      <button class="nav-button" data-view="quests"><span>🎯</span><small>Quests</small></button>
-      <button class="nav-button" data-view="world"><span>🗺️</span><small>World</small></button>
-      <button class="nav-button" data-view="story"><span>❤️</span><small>Story</small></button>
-      <button class="nav-button" data-view="growth"><span>✨</span><small>Growth</small></button>
+      <div class="nav-section-label">YOUR LIFE</div>
+      <button class="nav-button active" data-view="basecamp"><span>⌂</span><small>Dashboard</small></button>
+      <button class="nav-button" data-view="quests"><span>☷</span><small>Quests</small></button>
+      <button class="nav-button" data-view="world"><span>◇</span><small>World</small></button>
+      <button class="nav-button" data-view="story"><span>♡</span><small>Story</small></button>
+      <button class="nav-button" data-view="growth"><span>✦</span><small>Growth</small></button>
+      <div class="nav-profile-card" aria-hidden="true">
+        <img src="assets/story/portraits/luca_neutral.png" alt="" />
+        <div><strong>Luca</strong><span>30 · Math Teacher</span></div>
+      </div>
     </nav>
   </div>
 
@@ -719,9 +727,9 @@
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <script src="data/quests.js"></script>
-  <script src="story-engine.js?v=0.10.1"></script>
+  <script src="story-engine.js?v=0.11.0"></script>
   <script src="app.js?v=0.9.3"></script>
-  <script src="story-ui.js?v=0.10.1"></script>
+  <script src="story-ui.js?v=0.11.0"></script>
   <script type="module" src="cloud-save.js?v=0.9.3"></script>
 </body>
 </html>
