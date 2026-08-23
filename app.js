@@ -232,6 +232,167 @@
     state.storyEnergy = floor2(Math.max(0, Number(state.storyEnergy || 0)));
   }
 
+  function getProgressionSnapshot() {
+    ensureProgressionState();
+
+    const capabilities = {};
+    Object.keys(STAT_META).forEach(key => {
+      capabilities[key] = statLevelInfo(state.stats?.[key] || 0).level;
+    });
+
+    const realmRanks = {};
+    Object.keys(REALM_META).forEach(realm => {
+      realmRanks[realm] = realmRankInfo(state.realms?.[realm] || 0).level;
+    });
+
+    const activity = {
+      total: 0,
+      byCapability: {},
+      byRealm: {},
+      bySource: {},
+      byFamily: {}
+    };
+
+    for (const event of state.rewardLedger.events || []) {
+      if (!event || event.duplicate) continue;
+      activity.total += 1;
+      if (event.capability) activity.byCapability[event.capability] = Number(activity.byCapability[event.capability] || 0) + 1;
+      if (event.realm) activity.byRealm[event.realm] = Number(activity.byRealm[event.realm] || 0) + 1;
+      if (event.source) activity.bySource[event.source] = Number(activity.bySource[event.source] || 0) + 1;
+      if (event.dedupeFamily) activity.byFamily[event.dedupeFamily] = Number(activity.byFamily[event.dedupeFamily] || 0) + 1;
+    }
+
+    return {
+      schemaVersion: 1,
+      capturedAt: new Date().toISOString(),
+      characterLevel: getLevelInfo(state.characterXP).level,
+      capabilities,
+      realmRanks,
+      activity
+    };
+  }
+
+  function getActivityCount(criteria = {}, snapshot = null) {
+    const normalized = criteria && typeof criteria === "object" ? criteria : {};
+    const filters = ["capability", "realm", "source", "dedupeFamily"].filter(key => normalized[key]);
+    const hasTimeFilter = Boolean(normalized.sinceAt || normalized.sinceDays != null);
+
+    // Story snapshots deliberately keep only small aggregate counters so saves do not
+    // balloon as the reward ledger grows. The common hidden-check cases (e.g. three
+    // Strength activities) can therefore stay stable for the whole scene.
+    if (snapshot?.activity && !hasTimeFilter && filters.length <= 1) {
+      if (!filters.length) return Number(snapshot.activity.total || 0);
+      const key = filters[0];
+      if (key === "capability") return Number(snapshot.activity.byCapability?.[normalized.capability] || 0);
+      if (key === "realm") return Number(snapshot.activity.byRealm?.[normalized.realm] || 0);
+      if (key === "source") return Number(snapshot.activity.bySource?.[normalized.source] || 0);
+      if (key === "dedupeFamily") return Number(snapshot.activity.byFamily?.[normalized.dedupeFamily] || 0);
+    }
+
+    ensureProgressionState();
+    const sinceAt = normalized.sinceAt ? new Date(normalized.sinceAt) : null;
+    const sinceMs = sinceAt && Number.isFinite(sinceAt.getTime())
+      ? sinceAt.getTime()
+      : normalized.sinceDays != null
+        ? Date.now() - Math.max(0, Number(normalized.sinceDays || 0)) * 86400000
+        : null;
+
+    return (state.rewardLedger.events || []).filter(event => {
+      if (!event || event.duplicate) return false;
+      if (normalized.capability && event.capability !== normalized.capability) return false;
+      if (normalized.realm && event.realm !== normalized.realm) return false;
+      if (normalized.source && event.source !== normalized.source) return false;
+      if (normalized.dedupeFamily && event.dedupeFamily !== normalized.dedupeFamily) return false;
+      if (sinceMs != null) {
+        const at = new Date(event.at || 0).getTime();
+        if (!Number.isFinite(at) || at < sinceMs) return false;
+      }
+      return true;
+    }).length;
+  }
+
+  function progressionComparison(actual, requirement = {}) {
+    if (requirement.equals != null && actual !== requirement.equals) return false;
+    if (requirement.min != null && Number(actual) < Number(requirement.min)) return false;
+    if (requirement.max != null && Number(actual) > Number(requirement.max)) return false;
+    return true;
+  }
+
+  function evaluateProgressionCondition(condition, options = {}) {
+    if (condition == null) return true;
+    if (typeof condition === "boolean") return condition;
+    if (Array.isArray(condition)) return condition.every(item => evaluateProgressionCondition(item, options));
+    if (typeof condition !== "object") return true;
+
+    const snapshot = options.snapshot && typeof options.snapshot === "object" ? options.snapshot : null;
+
+    if (Array.isArray(condition.all)) {
+      if (!condition.all.every(item => evaluateProgressionCondition(item, options))) return false;
+    }
+    if (Array.isArray(condition.any)) {
+      if (!condition.any.some(item => evaluateProgressionCondition(item, options))) return false;
+    }
+    if (condition.not != null && evaluateProgressionCondition(condition.not, options)) return false;
+
+    let requirement = condition;
+    let type = condition.type || null;
+
+    if (!type && condition.capability) {
+      type = "capability";
+      requirement = typeof condition.capability === "object"
+        ? { ...condition, ...condition.capability, key: condition.capability.key || condition.key }
+        : { ...condition, key: condition.capability };
+    } else if (!type && condition.realmRank) {
+      type = "realmRank";
+      requirement = typeof condition.realmRank === "object"
+        ? { ...condition, ...condition.realmRank, key: condition.realmRank.key || condition.key }
+        : { ...condition, key: condition.realmRank };
+    } else if (!type && condition.activityCount) {
+      type = "activityCount";
+      requirement = typeof condition.activityCount === "object"
+        ? { ...condition, ...condition.activityCount }
+        : { ...condition, min: Number(condition.activityCount || 0) };
+    }
+
+    if (!type) return true;
+
+    switch (type) {
+      case "capability": {
+        const key = requirement.key || requirement.capability;
+        if (!key) return true;
+        const actual = Number(snapshot?.capabilities?.[key] ?? statLevelInfo(state.stats?.[key] || 0).level);
+        return progressionComparison(actual, requirement);
+      }
+      case "realmRank": {
+        const key = requirement.key || requirement.realm || requirement.realmRank;
+        if (!key) return true;
+        const actual = Number(snapshot?.realmRanks?.[key] ?? realmRankInfo(state.realms?.[key] || 0).level);
+        return progressionComparison(actual, requirement);
+      }
+      case "characterLevel": {
+        const actual = Number(snapshot?.characterLevel ?? getLevelInfo(state.characterXP).level);
+        return progressionComparison(actual, requirement);
+      }
+      case "activityCount": {
+        const actual = getActivityCount(requirement, snapshot);
+        return progressionComparison(actual, requirement);
+      }
+      case "flag": {
+        const key = requirement.key || requirement.flag;
+        if (!key) return true;
+        const expected = Object.prototype.hasOwnProperty.call(requirement, "value") ? requirement.value : true;
+        return state.flags?.[key] === expected;
+      }
+      case "storyCompleted": {
+        const id = requirement.key || requirement.sceneId || requirement.storyCompleted;
+        if (!id) return true;
+        return Boolean(state.story?.completedSceneIds?.includes?.(id));
+      }
+      default:
+        return true;
+    }
+  }
+
   function migrateLegacyRewardLedger() {
     ensureProgressionState();
     const events = state.rewardLedger.events;
@@ -1646,6 +1807,12 @@
       rewardLedgerCount: state.rewardLedger?.events?.length || 0,
       todayRewardActionCount: getTodayRewardActionCount(),
       todayStoryEnergyEarned: storyEnergyEarnedOnDate(new Date()),
+      storyProgression: {
+        schemaVersion: 1,
+        characterLevel: getLevelInfo(state.characterXP).level,
+        capabilities: Object.fromEntries(Object.keys(STAT_META).map(key => [key, statLevelInfo(state.stats?.[key] || 0).level])),
+        realmRanks: Object.fromEntries(Object.keys(REALM_META).map(realm => [realm, realmRankInfo(state.realms?.[realm] || 0).level]))
+      },
       progressionSchemaVersion: state.progressionSchemaVersion,
       todayCompletionCount: getTodayCompletions().length,
       todayExternalCompletionCount: getTodayExternalCompletions().length
@@ -1856,6 +2023,9 @@
     getQuestAvailability,
     getCapabilityInfo: key => statLevelInfo(state.stats?.[key] || 0),
     getRealmRankInfo: realm => realmRankInfo(state.realms?.[realm] || 0),
+    getProgressionSnapshot,
+    getActivityCount,
+    evaluateProgressionCondition,
     capabilityXpRequiredForLevel,
     realmXpRequiredForRank,
     inferCapability,

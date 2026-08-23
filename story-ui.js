@@ -226,6 +226,7 @@
       relationships: {},
       traits: {},
       social: {},
+      progressionSnapshots: {},
       activeSceneId: null,
       readerStep: 0,
       ...previous
@@ -237,6 +238,7 @@
     state.story.bonds = object(state.story.bonds);
     state.story.relationships = object(state.story.relationships);
     state.story.traits = object(state.story.traits);
+    state.story.progressionSnapshots = object(state.story.progressionSnapshots);
     ensureSocialState();
   }
 
@@ -253,8 +255,10 @@
       hangoutCounts: {},
       activeHangoutId: null,
       hangoutStep: 0,
+      activeHangoutProgressionSnapshot: null,
       activeTalkId: null,
       talkStep: 0,
+      activeTalkProgressionSnapshot: null,
       lastTalkId: null,
       selectedPhonePersonId: null,
       selectedPeoplePersonId: null,
@@ -318,6 +322,7 @@
         bonds: {},
         relationships: {},
         traits: {},
+        progressionSnapshots: {},
         activeSceneId: null,
         readerStep: 0,
         migratedFrom: oldPackId,
@@ -339,6 +344,7 @@
     state.story.bonds = {};
     state.story.relationships = {};
     state.story.traits = {};
+    state.story.progressionSnapshots = {};
     state.story.activeSceneId = null;
     state.story.readerStep = 0;
     app.saveState({ source: "story-pack-reset" });
@@ -358,6 +364,7 @@
       state.story.bonds = {};
       state.story.relationships = {};
       state.story.traits = {};
+      state.story.progressionSnapshots = {};
       state.story.activeSceneId = null;
       state.story.readerStep = 0;
     }
@@ -390,6 +397,7 @@
     // Completed story remains preserved, and any save with real-life clears is left alone.
     if (sceneWasAccidentallyOpened && noRealLifeClears && noEnergy) {
       state.story.unlockedSceneIds = unlocked.filter(id => id !== "SC_002");
+      if (state.story.progressionSnapshots) delete state.story.progressionSnapshots.SC_002;
       if (state.story.activeSceneId === "SC_002") {
         state.story.activeSceneId = null;
         state.story.readerStep = 0;
@@ -451,8 +459,12 @@
     renderPhoneSurfaces();
   }
 
-  function progressionRequirementMatches(requirement) {
+  function progressionRequirementMatches(requirement, snapshot = null) {
     if (!requirement || typeof requirement !== "object") return true;
+    if (typeof app.evaluateProgressionCondition === "function") {
+      return app.evaluateProgressionCondition(requirement, { snapshot });
+    }
+
     const type = requirement.type || (requirement.capability ? "capability" : requirement.realmRank ? "realmRank" : null);
     const key = requirement.key || requirement.capability || requirement.realmRank;
     if (!type || !key) return true;
@@ -467,9 +479,41 @@
     return true;
   }
 
-  function sceneRequirementsMet(scene) {
+  function sceneRequirementsMet(scene, snapshot = null) {
     const requirements = Array.isArray(scene?.requirements) ? scene.requirements : [];
-    return requirements.every(progressionRequirementMatches);
+    if (!requirements.every(requirement => progressionRequirementMatches(requirement, snapshot))) return false;
+    if (scene?.readiness && typeof app.evaluateProgressionCondition === "function") {
+      return app.evaluateProgressionCondition(scene.readiness, { snapshot });
+    }
+    return true;
+  }
+
+  function getSceneProgressionSnapshot(sceneId, { create = false } = {}) {
+    const state = app.getState();
+    ensureStoryState();
+    const existing = state.story.progressionSnapshots?.[sceneId];
+    if (existing && typeof existing === "object") return existing;
+    if (!create || typeof app.getProgressionSnapshot !== "function") return null;
+
+    const snapshot = app.getProgressionSnapshot();
+    state.story.progressionSnapshots[sceneId] = snapshot;
+    return snapshot;
+  }
+
+  function getSocialProgressionSnapshot(kind, sceneId, { create = false } = {}) {
+    const state = app.getState();
+    ensureStoryState();
+    const isTalk = kind === "talk";
+    const idKey = isTalk ? "activeTalkId" : "activeHangoutId";
+    const snapshotKey = isTalk ? "activeTalkProgressionSnapshot" : "activeHangoutProgressionSnapshot";
+    const existing = state.story.social?.[snapshotKey];
+
+    if (state.story.social?.[idKey] === sceneId && existing && typeof existing === "object") return existing;
+    if (!create || typeof app.getProgressionSnapshot !== "function") return null;
+
+    const snapshot = app.getProgressionSnapshot();
+    state.story.social[snapshotKey] = snapshot;
+    return snapshot;
   }
 
   function renderNextScene(scene) {
@@ -773,6 +817,7 @@
       replay: false,
       scene: hangout,
       replaySelections: {},
+      progressionSnapshot: getSocialProgressionSnapshot("hangout", hangout.id, { create: true }),
       step: 0,
       sequence: [],
       finished: false
@@ -836,6 +881,7 @@
       replay: false,
       scene: talk,
       replaySelections: {},
+      progressionSnapshot: getSocialProgressionSnapshot("talk", talk.id, { create: true }),
       step: 0,
       sequence: [],
       finished: false
@@ -1105,6 +1151,7 @@
         state.story.unlockedSceneIds.push(next.id);
         state.story.activeSceneId = next.id;
         state.story.readerStep = 0;
+        getSceneProgressionSnapshot(next.id, { create: true });
         app.saveState({ source: "story-unlock" });
       }
 
@@ -1145,6 +1192,7 @@
       replay,
       scene,
       replaySelections: {},
+      progressionSnapshot: getSceneProgressionSnapshot(sceneId, { create: !replay }),
       step: 0,
       sequence: [],
       finished: false
@@ -1181,8 +1229,9 @@
     const state = app.getState();
     const sequence = [];
 
-    for (const node of activeRuntime.scene.nodes || []) {
-      if (!conditionMatches(node)) continue;
+    for (const originalNode of activeRuntime.scene.nodes || []) {
+      if (!conditionMatches(originalNode, activeRuntime.progressionSnapshot)) continue;
+      const node = resolveConditionalVariant(originalNode, activeRuntime.progressionSnapshot);
       sequence.push(node);
 
       if (node.type !== "choice") continue;
@@ -1194,15 +1243,38 @@
         : selectionStore[key];
       const option = (node.options || []).find(item => item.id === selectionId);
 
-      for (const extra of option?.after || []) {
-        if (conditionMatches(extra)) sequence.push(extra);
+      for (const originalExtra of option?.after || []) {
+        if (!conditionMatches(originalExtra, activeRuntime.progressionSnapshot)) continue;
+        sequence.push(resolveConditionalVariant(originalExtra, activeRuntime.progressionSnapshot));
       }
     }
 
     return sequence;
   }
 
-  function conditionMatches(node) {
+  function resolveConditionalVariant(node, snapshot = null) {
+    const variants = array(node?.variants)
+      .filter(variant => conditionMatches(variant, snapshot))
+      .slice()
+      .sort((a, b) => Number(b.priority || 0) - Number(a.priority || 0));
+
+    const selected = variants[0];
+    if (!selected) return node;
+
+    const resolved = {
+      ...node,
+      ...selected,
+      id: node.id,
+      type: selected.type || node.type
+    };
+    delete resolved.variants;
+    delete resolved.when;
+    delete resolved.unless;
+    delete resolved.priority;
+    return resolved;
+  }
+
+  function conditionMatches(node, snapshot = null) {
     const state = app.getState();
     const traits = state.story?.traits || {};
     const flags = state.flags || {};
@@ -1219,12 +1291,22 @@
     if (node.unless?.flag && flags[node.unless.flag]) return false;
     if (Array.isArray(node.unless?.flags) && node.unless.flags.some(key => Boolean(flags[key]))) return false;
 
-    if (node.when?.capability && !progressionRequirementMatches({ type: "capability", ...node.when.capability })) return false;
-    if (node.when?.realmRank && !progressionRequirementMatches({ type: "realmRank", ...node.when.realmRank })) return false;
-    if (Array.isArray(node.when?.capabilities) && node.when.capabilities.some(req => !progressionRequirementMatches({ type: "capability", ...req }))) return false;
-    if (Array.isArray(node.when?.realmRanks) && node.when.realmRanks.some(req => !progressionRequirementMatches({ type: "realmRank", ...req }))) return false;
-    if (node.unless?.capability && progressionRequirementMatches({ type: "capability", ...node.unless.capability })) return false;
-    if (node.unless?.realmRank && progressionRequirementMatches({ type: "realmRank", ...node.unless.realmRank })) return false;
+    if (node.when?.capability && !progressionRequirementMatches({ type: "capability", ...node.when.capability }, snapshot)) return false;
+    if (node.when?.realmRank && !progressionRequirementMatches({ type: "realmRank", ...node.when.realmRank }, snapshot)) return false;
+    if (Array.isArray(node.when?.capabilities) && node.when.capabilities.some(req => !progressionRequirementMatches({ type: "capability", ...req }, snapshot))) return false;
+    if (Array.isArray(node.when?.realmRanks) && node.when.realmRanks.some(req => !progressionRequirementMatches({ type: "realmRank", ...req }, snapshot))) return false;
+    if (node.unless?.capability && progressionRequirementMatches({ type: "capability", ...node.unless.capability }, snapshot)) return false;
+    if (node.unless?.realmRank && progressionRequirementMatches({ type: "realmRank", ...node.unless.realmRank }, snapshot)) return false;
+
+    if (node.when?.progression && typeof app.evaluateProgressionCondition === "function") {
+      if (!app.evaluateProgressionCondition(node.when.progression, { snapshot })) return false;
+    }
+    if (Array.isArray(node.when?.anyProgression) && typeof app.evaluateProgressionCondition === "function") {
+      if (!node.when.anyProgression.some(condition => app.evaluateProgressionCondition(condition, { snapshot }))) return false;
+    }
+    if (node.unless?.progression && typeof app.evaluateProgressionCondition === "function") {
+      if (app.evaluateProgressionCondition(node.unless.progression, { snapshot })) return false;
+    }
 
     if (node.when?.relationship) {
       const requirement = node.when.relationship;
@@ -1234,6 +1316,16 @@
     }
 
     return true;
+  }
+
+  function availableChoiceOptions(node, snapshot = runtime?.progressionSnapshot || null) {
+    const options = array(node?.options);
+    const visible = options.filter(option => conditionMatches(option, snapshot));
+    if (visible.length) return visible;
+
+    // A story pack should always include at least one unconditional response. This
+    // fallback prevents a malformed future pack from trapping the reader.
+    return options.filter(option => !option.when && !option.unless);
   }
 
   function renderReaderNode() {
@@ -1352,6 +1444,8 @@
     els.advance.classList.add("hidden");
     els.choices.classList.remove("hidden");
 
+    const visibleOptions = availableChoiceOptions(node);
+
     if (!runtime.replay && canonSelectedId) {
       const selected = (node.options || []).find(option => option.id === canonSelectedId);
       els.choices.innerHTML = `
@@ -1368,7 +1462,14 @@
       return;
     }
 
-    els.choices.innerHTML = (node.options || []).map(option => {
+    if (!visibleOptions.length) {
+      els.choices.classList.add("hidden");
+      els.advance.classList.remove("hidden");
+      els.advance.innerHTML = `Continue <span>›</span>`;
+      return;
+    }
+
+    els.choices.innerHTML = visibleOptions.map(option => {
       const isCanon = runtime.replay && canonSelectedId === option.id;
       const isReplaySelected = runtime.replay && replaySelectedId === option.id;
       return `
@@ -1387,7 +1488,7 @@
   function chooseOption(node, optionId) {
     if (!runtime) return;
 
-    const option = (node.options || []).find(item => item.id === optionId);
+    const option = availableChoiceOptions(node).find(item => item.id === optionId);
     if (!option) return;
 
     const key = choiceKey(runtime.sceneId, node.id);
@@ -1500,6 +1601,7 @@
       social.lastTalkId = scene.id;
       social.activeTalkId = null;
       social.talkStep = 0;
+      social.activeTalkProgressionSnapshot = null;
       app.saveState({ source: "social-talk-complete" });
       app.renderAll();
       runtime.finished = true;
@@ -1515,6 +1617,7 @@
       social.hangoutCounts[scene.id] = Number(social.hangoutCounts[scene.id] || 0) + 1;
       social.activeHangoutId = null;
       social.hangoutStep = 0;
+      social.activeHangoutProgressionSnapshot = null;
       app.saveState({ source: "social-hangout-complete" });
       app.renderAll();
       runtime.finished = true;
