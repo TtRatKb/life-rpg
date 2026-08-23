@@ -326,6 +326,36 @@
       state.story.activeSceneId = null;
       state.story.readerStep = 0;
     }
+
+    repairAccidentalFreeSceneUnlock();
+  }
+
+  function repairAccidentalFreeSceneUnlock() {
+    const state = app.getState();
+    const repairKey = "V0121_SC002_ENERGY_GATE_REPAIR";
+
+    if (state.flags?.[repairKey]) return;
+
+    const unlocked = array(state.story?.unlockedSceneIds);
+    const completed = array(state.story?.completedSceneIds);
+    const noRealLifeClears = array(state.completionLog).length === 0;
+    const noEnergy = Number(state.storyEnergy || 0) <= 0;
+    const sceneWasAccidentallyOpened = unlocked.includes("SC_002") && !completed.includes("SC_002");
+
+    // V0.11.0 accidentally shipped SC_002 with a zero Story Energy cost.
+    // Only revoke that accidental unlock for untouched real-life saves.
+    // Completed story remains preserved, and any save with real-life clears is left alone.
+    if (sceneWasAccidentallyOpened && noRealLifeClears && noEnergy) {
+      state.story.unlockedSceneIds = unlocked.filter(id => id !== "SC_002");
+      if (state.story.activeSceneId === "SC_002") {
+        state.story.activeSceneId = null;
+        state.story.readerStep = 0;
+      }
+    }
+
+    state.flags = object(state.flags);
+    state.flags[repairKey] = true;
+    app.saveState({ source: "story-v0121-energy-gate-repair" });
   }
 
   function renderStoryHub() {

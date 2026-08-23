@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const PACK_URL = "content/SP_003.dat?v=0.11.0";
+  const PACK_URL = "content/SP_003.dat?v=0.12.1";
   const KEY = new TextEncoder().encode("LifeRPG-SP3-accidental-spoiler-shield-v3");
   let cache = null;
 
