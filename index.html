@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#321d34" />
   <title>Life RPG — Base Camp</title>
-  <link rel="stylesheet" href="styles.css?v=0.12.2" />
+  <link rel="stylesheet" href="styles.css?v=0.12.3" />
 </head>
 <body>
   <div class="ambient ambient-one"></div>
@@ -46,48 +46,62 @@
 
     <main>
       <!-- BASE CAMP -->
-      <section id="view-basecamp" class="view active">
-        <section class="home-hero">
-          <div class="home-copy">
-            <p class="eyebrow" id="dateLine"></p>
+      <section id="view-basecamp" class="view active dashboard-view-v3">
+        <section class="dashboard-hero-v3">
+          <div class="dashboard-hero-copy-v3">
+            <div class="dashboard-day-line">
+              <span class="dashboard-day-chip"><span aria-hidden="true">✿</span><span id="dateLine"></span></span>
+              <span class="dashboard-day-chip secondary">Civilian life · Math teacher</span>
+            </div>
+            <p class="eyebrow">TODAY'S STORY</p>
             <h1 id="greeting">Welcome home.</h1>
             <p id="homeSubtitle" class="hero-copy">
               You do not have to win the whole day. Pick the next thing that fits the life you actually have.
             </p>
-
-            <div class="hero-actions">
-              <button class="primary-button" data-view-target="quests">Choose today's quests</button>
-              <button class="ghost-button" data-view-target="story">Open story</button>
+            <div class="hero-actions dashboard-hero-actions">
+              <button class="primary-button" data-view-target="quests"><span>✦</span> Choose today's quests</button>
+              <button class="ghost-button" data-view-target="story"><span>♡</span> Open story</button>
+              <button class="ghost-button" data-view-target="growth"><span>❀</span> View growth</button>
             </div>
           </div>
 
-          <div class="character-card">
-            <div class="avatar-ring">
+          <aside class="character-card dashboard-player-card-v3">
+            <div class="dashboard-player-art-v3">
               <img class="avatar-portrait" src="assets/story/portraits/luca_neutral.png" alt="Luca" />
+              <div class="dashboard-player-nameplate">
+                <strong>Luca</strong>
+                <span>Player Character</span>
+              </div>
             </div>
-            <div>
-              <p class="eyebrow">PLAYER CHARACTER</p>
+            <div class="dashboard-player-details-v3">
+              <p class="eyebrow">CURRENT CHARACTER</p>
               <h2>Luca</h2>
               <p class="muted" id="characterStatusLine">Civilian · Teacher · Level 1</p>
-            </div>
-
-            <div class="xp-card">
-              <div class="row-between">
-                <span>Character XP</span>
-                <strong id="xpLabel">0 / 100</strong>
+              <div class="xp-card dashboard-xp-card-v3">
+                <div class="row-between">
+                  <span>Character XP</span>
+                  <strong id="xpLabel">0 / 100</strong>
+                </div>
+                <div class="progress large"><span id="xpBar"></span></div>
+                <small id="rhythmLine">One meaningful action is enough to make today count.</small>
               </div>
-              <div class="progress large"><span id="xpBar"></span></div>
-              <small id="rhythmLine">One meaningful action is enough to make today count.</small>
             </div>
-          </div>
+          </aside>
         </section>
 
-        <section class="dashboard-grid">
-          <section class="panel loadout-panel">
+        <section class="dashboard-command-strip" aria-label="Life RPG quick navigation">
+          <button data-view-target="quests"><span class="command-strip-icon">☷</span><span><strong>Quest Board</strong><small>Choose what fits today.</small></span><b>›</b></button>
+          <button data-view-target="people"><span class="command-strip-icon">♧</span><span><strong>People</strong><small>Talk, message, connect.</small></span><b>›</b></button>
+          <button data-view-target="story"><span class="command-strip-icon">♡</span><span><strong>Main Story</strong><small>Spend energy when you're ready.</small></span><b>›</b></button>
+        </section>
+
+        <section class="dashboard-grid dashboard-grid-v3">
+          <section class="panel loadout-panel dashboard-loadout-v3">
             <div class="panel-heading">
               <div>
                 <p class="eyebrow">TODAY'S RUN</p>
-                <h2>Loadout</h2>
+                <h2>My Loadout</h2>
+                <p class="panel-subcopy">A small plan for the life you actually have today.</p>
               </div>
               <span class="count-badge" id="loadoutCount">0 selected</span>
             </div>
@@ -102,60 +116,56 @@
             </div>
           </section>
 
-          <aside class="side-stack">
-            <section class="panel home-panel">
+          <aside class="side-stack dashboard-side-stack-v3">
+            <section class="panel home-panel dashboard-home-card-v3">
               <div class="panel-heading">
                 <div>
-                  <p class="eyebrow">HOME</p>
+                  <p class="eyebrow">HOME BASE</p>
                   <h3 id="homeName">Current Apartment</h3>
                 </div>
                 <span class="status-dot"></span>
               </div>
-
-              <p id="homeDescription" class="muted">
-                Small, familiar, and unfortunately much too far from work.
-              </p>
-
+              <p id="homeDescription" class="muted">Small, familiar, and unfortunately much too far from work.</p>
               <div id="roomGrid" class="room-grid"></div>
               <div id="roomMessage" class="soft-callout hidden"></div>
             </section>
 
-            <section class="panel pulse-panel">
+            <section class="panel pulse-panel dashboard-social-card-v3">
               <div class="panel-heading">
                 <div>
                   <p class="eyebrow">SOCIAL</p>
-                  <h3>Life around you</h3>
+                  <h3>Life around me</h3>
                 </div>
+                <button class="mini-nav-button" data-view-target="people" type="button">People ›</button>
               </div>
               <div id="socialPulse"></div>
             </section>
 
-            <section class="panel external-task-panel">
+            <section class="panel external-task-panel dashboard-external-card-v3">
               <div class="panel-heading">
                 <div>
-                  <p class="eyebrow">TODOIST / EXTERNAL</p>
-                  <h3>Task Clear</h3>
+                  <p class="eyebrow">REAL-LIFE CLEAR</p>
+                  <h3>External Task</h3>
                 </div>
-                <span class="tiny-badge">Reward layer</span>
+                <span class="tiny-badge">Todoist</span>
               </div>
-              <p class="muted external-task-copy">
-                Keep deadlines and important tasks in Todoist. When you finish one, claim the game reward here — without copying the task into Life RPG.
-              </p>
+              <p class="muted external-task-copy">Keep the actual obligation in Todoist. Claim only the Life RPG reward here when it is done.</p>
               <div id="externalTaskTodaySummary" class="external-task-summary"></div>
               <button class="secondary-button external-task-button" id="externalTaskButton" type="button">Claim completed task</button>
             </section>
           </aside>
         </section>
 
-        <section class="section-block">
+        <section class="section-block dashboard-growth-preview-v3">
           <div class="panel-heading">
             <div>
-              <p class="eyebrow">GROWTH</p>
+              <p class="eyebrow">CHARACTER DEVELOPMENT</p>
               <h2>What is changing?</h2>
+              <p class="panel-subcopy">Real actions slowly become abilities, confidence and a bigger life.</p>
             </div>
-            <button class="text-button" data-view-target="growth">View all stats</button>
+            <button class="text-button" data-view-target="growth">Open full profile →</button>
           </div>
-          <div id="miniStats" class="stat-strip"></div>
+          <div id="miniStats" class="stat-strip dashboard-stat-strip-v3"></div>
         </section>
       </section>
 
@@ -378,54 +388,60 @@
       </section>
 
       <!-- GROWTH -->
-      <section id="view-growth" class="view">
-        <header class="page-heading">
-          <div>
+      <section id="view-growth" class="view growth-view-v3">
+        <section class="growth-profile-hero-v3">
+          <div class="growth-profile-art-v3" aria-hidden="true">
+            <div class="growth-profile-glow"></div>
+            <img src="assets/story/portraits/luca_neutral.png" alt="" />
+            <div class="growth-profile-nameplate"><strong>Luca</strong><span>30 · Math Teacher</span></div>
+          </div>
+
+          <div class="growth-profile-copy-v3">
             <p class="eyebrow">CHARACTER DEVELOPMENT</p>
             <h1>Growth</h1>
-            <p class="lead">
-              Realm XP describes where life is happening. Character stats describe what Luca is becoming capable of.
-            </p>
-          </div>
-        </header>
+            <p class="lead">Realm XP shows where life is happening. Character Stats show what those real actions are slowly making possible.</p>
 
-        <section class="resource-overview">
-          <article class="resource-card">
-            <small>Character Level</small>
-            <strong id="profileLevel">1</strong>
-          </article>
-          <article class="resource-card">
-            <small>Total XP</small>
-            <strong id="profileXP">0</strong>
-          </article>
-          <article class="resource-card">
-            <small>Story Energy</small>
-            <strong id="profileEnergy">0</strong>
-          </article>
-          <article class="resource-card">
-            <small>Adventure Days</small>
-            <strong id="profileDays">0</strong>
-          </article>
+            <section class="resource-overview growth-resource-overview-v3" aria-label="Character progress overview">
+              <article class="resource-card growth-resource-card level-card">
+                <span class="resource-card-icon">✦</span><small>Character Level</small><strong id="profileLevel">1</strong>
+              </article>
+              <article class="resource-card growth-resource-card xp-total-card">
+                <span class="resource-card-icon">◇</span><small>Total XP</small><strong id="profileXP">0</strong>
+              </article>
+              <article class="resource-card growth-resource-card energy-card">
+                <span class="resource-card-icon">♡</span><small>Story Energy</small><strong id="profileEnergy">0</strong>
+              </article>
+              <article class="resource-card growth-resource-card days-card">
+                <span class="resource-card-icon">☀</span><small>Adventure Days</small><strong id="profileDays">0</strong>
+              </article>
+            </section>
+          </div>
         </section>
 
-        <section class="panel">
-          <div class="panel-heading">
-            <div>
-              <p class="eyebrow">REAL-LIFE STATS</p>
-              <h2>Character Stats</h2>
+        <section class="growth-grid-v3">
+          <section class="panel growth-stats-panel-v3">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">REAL-LIFE STATS</p>
+                <h2>Character Stats</h2>
+                <p class="panel-subcopy">Capabilities grow from what you actually do — never from buying affection.</p>
+              </div>
+              <span class="growth-panel-mark">✧</span>
             </div>
-          </div>
-          <div id="fullStats" class="full-stats"></div>
-        </section>
+            <div id="fullStats" class="full-stats full-stats-v3"></div>
+          </section>
 
-        <section class="panel realms-panel">
-          <div class="panel-heading">
-            <div>
-              <p class="eyebrow">LIFE DOMAINS</p>
-              <h2>Realms</h2>
+          <section class="panel realms-panel realms-panel-v3">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">LIFE DOMAINS</p>
+                <h2>Realms</h2>
+                <p class="panel-subcopy">Every part of life counts — including hobbies and recovery.</p>
+              </div>
+              <span class="growth-panel-mark">❀</span>
             </div>
-          </div>
-          <div id="realmCards" class="realm-cards"></div>
+            <div id="realmCards" class="realm-cards realm-cards-v3"></div>
+          </section>
         </section>
 
         <section class="panel save-panel" id="savePanel">
@@ -476,28 +492,8 @@
             Local save stays enabled even when cloud sync is active. If cloud and local progress ever diverge, Life RPG asks before replacing either one.
           </p>
         </section>
-
-        <section class="panel dev-panel">
-          <div class="panel-heading">
-            <div>
-              <p class="eyebrow">DEVELOPMENT</p>
-              <h3>Spoiler-safe test mode</h3>
-            </div>
-            <label class="switch">
-              <input type="checkbox" id="devModeToggle" />
-              <span></span>
-            </label>
-          </div>
-          <p class="muted">
-            Shows engine state and opaque IDs only. It should never print unrevealed narrative text.
-          </p>
-          <div id="devControls" class="dev-controls hidden">
-            <button class="secondary-button" id="testHomeUpgrade">Simulate narrative flag A</button>
-            <button class="secondary-button" id="testMinaContact">Simulate contact flag A</button>
-          </div>
-          <pre id="devOutput" class="dev-output hidden"></pre>
-        </section>
       </section>
+
     </main>
 
     <nav class="bottom-nav" aria-label="Primary navigation">
