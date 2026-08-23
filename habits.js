@@ -7,11 +7,17 @@
     return;
   }
 
-  const HABIT_SCHEMA = 1;
+  const HABIT_SCHEMA = 2;
   const SHADOW_KEY = "life-rpg-habits-shadow-v1";
   const STREAK_GROWTH = 1.03;
   const STREAK_CAP = 2;
   const REALMS = ["Health", "Recovery", "Japanese", "Hobbies", "Work", "Knowledge", "Home"];
+  const DAYPARTS = {
+    morning: { label: "Morning", icon: "☀️", order: 0 },
+    daytime: { label: "Daytime", icon: "🌤️", order: 1 },
+    evening: { label: "Evening", icon: "🌙", order: 2 },
+    anytime: { label: "Anytime", icon: "✨", order: 3 }
+  };
   const EFFORTS = {
     tiny: { label: "Tiny", base: 0.25 },
     low: { label: "Low", base: 0.40 },
@@ -48,6 +54,7 @@
     scheduleCountWrap: byId("habitScheduleCountWrap"),
     scheduleCountLabel: byId("habitScheduleCountLabel"),
     scheduleCount: byId("habitScheduleCount"),
+    daypart: byId("habitDaypart"),
     note: byId("habitNote"),
     rewardPreview: byId("habitRewardPreview"),
     cadenceEditNote: byId("habitEditCadenceNote"),
@@ -77,6 +84,7 @@
     els.scheduleType?.addEventListener("change", updateScheduleControls);
     els.scheduleCount?.addEventListener("input", renderHabitRewardPreview);
     els.effort?.addEventListener("change", renderHabitRewardPreview);
+    els.daypart?.addEventListener("change", renderHabitRewardPreview);
     els.toggleArchived?.addEventListener("click", () => {
       showArchived = !showArchived;
       render();
@@ -144,6 +152,7 @@
       if (!habit.schedule || typeof habit.schedule !== "object") { habit.schedule = { type: "daily" }; changed = true; }
       if (!EFFORTS[habit.effort]) { habit.effort = "low"; changed = true; }
       if (!REALMS.includes(habit.realm)) { habit.realm = "Health"; changed = true; }
+      if (!DAYPARTS[habit.daypart]) { habit.daypart = "anytime"; changed = true; }
     });
 
     writeShadow(state.habits);
@@ -224,16 +233,31 @@
 
     els.empty.classList.add("hidden");
 
-    const activeHtml = activeSnapshots
-      .sort((a, b) => Number(b.canComplete) - Number(a.canComplete) || a.habit.name.localeCompare(b.habit.name))
-      .map(renderHabitCard)
+    const groups = Object.keys(DAYPARTS)
+      .map(key => {
+        const entries = activeSnapshots
+          .filter(snapshot => normalizedDaypart(snapshot.habit) === key)
+          .sort(compareHabitSnapshots);
+        if (!entries.length) return "";
+        const meta = DAYPARTS[key];
+        const ready = entries.filter(snapshot => snapshot.canComplete).length;
+        return `
+          <section class="habit-daypart-section-v131" data-daypart="${key}">
+            <header class="habit-daypart-heading-v131">
+              <span class="habit-daypart-icon-v131">${meta.icon}</span>
+              <div><small>${escapeHtml(daypartEyebrow(key))}</small><h3>${escapeHtml(meta.label)}</h3></div>
+              <span class="habit-daypart-count-v131">${ready ? `${ready} ready` : "clear"}</span>
+            </header>
+            <div class="habit-daypart-grid-v131">${entries.map(renderHabitCard).join("")}</div>
+          </section>`;
+      })
       .join("");
 
     const archivedHtml = showArchived && archived.length
-      ? `<div class="habit-archive-divider-v1"><span>Archived habits</span></div>${archived.map(h => renderHabitCard(snapshotForHabit(h), { archived: true })).join("")}`
+      ? `<div class="habit-archive-divider-v1"><span>Archived habits</span></div><div class="habit-daypart-grid-v131">${archived.map(h => renderHabitCard(snapshotForHabit(h), { archived: true })).join("")}</div>`
       : "";
 
-    els.board.innerHTML = activeHtml + archivedHtml;
+    els.board.innerHTML = groups + archivedHtml;
   }
 
   function renderDashboard(activeSnapshots) {
@@ -249,39 +273,81 @@
       return;
     }
 
-    const sorted = [...activeSnapshots].sort((a, b) => Number(b.canComplete) - Number(a.canComplete) || a.nextSort - b.nextSort);
-    const visible = sorted.slice(0, 4);
+    const sorted = [...activeSnapshots].sort(compareHabitSnapshots);
     const readyCount = sorted.filter(s => s.canComplete).length;
+    const current = currentDaypart();
+    const groups = Object.keys(DAYPARTS)
+      .map(key => {
+        const entries = sorted.filter(snapshot => normalizedDaypart(snapshot.habit) === key);
+        if (!entries.length) return "";
+        const meta = DAYPARTS[key];
+        const ready = entries.filter(snapshot => snapshot.canComplete).length;
+        const allDone = entries.every(snapshot => snapshot.completedToday || snapshot.periodComplete || !snapshot.canComplete);
+        const isPast = key !== "anytime" && DAYPARTS[key].order < DAYPARTS[current].order;
+        const compact = isPast && allDone;
+        return `
+          <section class="dashboard-habit-daypart-v131 ${key === current ? "current" : ""} ${compact ? "compact" : ""}">
+            <header>
+              <span>${meta.icon}</span>
+              <strong>${escapeHtml(meta.label)}</strong>
+              <small>${compact ? "Done ✓" : ready ? `${ready} ready` : "Clear"}</small>
+            </header>
+            ${compact ? "" : `<div class="dashboard-habit-timeline-v131">${entries.map(renderDashboardHabit).join("")}</div>`}
+          </section>`;
+      })
+      .join("");
 
     els.dashboard.innerHTML = `
       <div class="dashboard-habit-summary-v1">
         <strong>${readyCount ? `${readyCount} ready today` : "Today's habit rhythm is clear"}</strong>
         <span>${sorted.length} active · best streak ${Math.max(...sorted.map(s => s.streak), 0)}</span>
       </div>
-      <div class="dashboard-habit-cards-v1">
-        ${visible.map(renderDashboardHabit).join("")}
-      </div>`;
+      <div class="dashboard-habit-dayplan-v131">${groups}</div>`;
   }
 
   function renderDashboardHabit(snapshot) {
     const { habit, canComplete, reward, streak, progressText, timingText, completedToday } = snapshot;
+    const daypart = DAYPARTS[normalizedDaypart(habit)];
     return `
-      <article class="dashboard-habit-card-v1 ${canComplete ? "ready" : ""}">
-        <div class="dashboard-habit-copy-v1">
-          <span class="habit-realm-dot-v1 realm-${cssToken(habit.realm)}"></span>
-          <div>
-            <strong>${escapeHtml(habit.name)}</strong>
-            <small>${escapeHtml(progressText)} · ${escapeHtml(timingText)}</small>
-          </div>
+      <article class="dashboard-habit-row-v131 ${canComplete ? "ready" : ""} ${completedToday ? "done" : ""}">
+        <span class="habit-realm-dot-v1 realm-${cssToken(habit.realm)}"></span>
+        <div class="dashboard-habit-row-copy-v131">
+          <strong>${escapeHtml(habit.name)}</strong>
+          <small>${escapeHtml(progressText)} · ${escapeHtml(timingText)}</small>
         </div>
-        <div class="dashboard-habit-meta-v1">
+        <div class="dashboard-habit-row-meta-v131">
+          <span title="${escapeHtml(daypart.label)}">${daypart.icon}</span>
           <span>🔥 ${formatEnergy(reward)}</span>
-          <span>✦ ${streak}</span>
+          ${streak ? `<span>✦ ${streak}</span>` : ""}
         </div>
         ${canComplete
-          ? `<button class="habit-quick-complete-v1" type="button" data-habit-complete="${escapeHtml(habit.id)}">Done +${formatEnergy(reward)} 🔥</button>`
-          : `<span class="dashboard-habit-state-v1">${completedToday ? "Logged today ✓" : escapeHtml(timingText)}</span>`}
+          ? `<button class="habit-quick-complete-v1" type="button" data-habit-complete="${escapeHtml(habit.id)}">Done</button>`
+          : `<span class="dashboard-habit-state-v1">${completedToday ? "✓" : escapeHtml(timingText)}</span>`}
       </article>`;
+  }
+
+  function compareHabitSnapshots(a, b) {
+    const daypartDiff = DAYPARTS[normalizedDaypart(a.habit)].order - DAYPARTS[normalizedDaypart(b.habit)].order;
+    if (daypartDiff) return daypartDiff;
+    return Number(b.canComplete) - Number(a.canComplete) || a.nextSort - b.nextSort || a.habit.name.localeCompare(b.habit.name);
+  }
+
+  function normalizedDaypart(habit) {
+    return DAYPARTS[habit?.daypart] ? habit.daypart : "anytime";
+  }
+
+  function daypartEyebrow(key) {
+    if (key === "morning") return "START THE DAY";
+    if (key === "daytime") return "THROUGH THE DAY";
+    if (key === "evening") return "WIND DOWN";
+    return "WHENEVER IT FITS";
+  }
+
+  function currentDaypart() {
+    const hour = new Date().getHours();
+    if (hour < 12) return "morning";
+    if (hour < 18) return "daytime";
+    return "evening";
   }
 
   function renderHabitCard(snapshot, { archived = false } = {}) {
@@ -306,6 +372,7 @@
             <div>
               <div class="habit-card-labels-v1">
                 <span>${escapeHtml(habit.realm)}</span>
+                <span>${DAYPARTS[normalizedDaypart(habit)].icon} ${escapeHtml(DAYPARTS[normalizedDaypart(habit)].label)}</span>
                 <span>${escapeHtml(scheduleLabel(habit))}</span>
                 <span>${escapeHtml(EFFORTS[habit.effort]?.label || "Low")} effort</span>
               </div>
@@ -477,12 +544,14 @@
       els.effort.value = EFFORTS[habit.effort] ? habit.effort : "low";
       els.scheduleType.value = habit.schedule?.type || "daily";
       els.scheduleCount.value = scheduleCountValue(habit);
+      els.daypart.value = normalizedDaypart(habit);
       els.note.value = habit.note || "";
     } else {
       els.realm.value = "Health";
       els.effort.value = "low";
       els.scheduleType.value = "daily";
       els.scheduleCount.value = "2";
+      els.daypart.value = "anytime";
       els.note.value = "";
     }
 
@@ -512,6 +581,7 @@
       existing.name = els.name.value.trim();
       existing.realm = REALMS.includes(els.realm.value) ? els.realm.value : "Health";
       existing.effort = EFFORTS[els.effort.value] ? els.effort.value : "low";
+      existing.daypart = DAYPARTS[els.daypart?.value] ? els.daypart.value : "anytime";
       existing.note = els.note.value.trim();
       existing.schedule = schedule;
       existing.updatedAt = now;
@@ -525,6 +595,7 @@
         name: els.name.value.trim(),
         realm: REALMS.includes(els.realm.value) ? els.realm.value : "Health",
         effort: EFFORTS[els.effort.value] ? els.effort.value : "low",
+        daypart: DAYPARTS[els.daypart?.value] ? els.daypart.value : "anytime",
         note: els.note.value.trim(),
         schedule,
         active: true,
@@ -611,8 +682,10 @@
     const max = floor2(effort.base * STREAK_CAP);
     const schedule = scheduleFromForm();
     const cadence = scheduleLabel({ schedule });
+    const daypart = DAYPARTS[els.daypart?.value] || DAYPARTS.anytime;
 
     els.rewardPreview.innerHTML = `
+      <div><span>Day plan</span><strong>${daypart.icon} ${escapeHtml(daypart.label)}</strong></div>
       <div><span>Cadence</span><strong>${escapeHtml(cadence)}</strong></div>
       <div><span>Base clear</span><strong>${formatEnergy(effort.base)} 🔥</strong></div>
       <div><span>14-period streak</span><strong>${formatEnergy(afterTwoWeeks)} 🔥</strong></div>

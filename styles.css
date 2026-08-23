@@ -7323,3 +7323,183 @@ dialog:not(.story-phone-dialog)::backdrop { background: rgba(49,29,50,.44); }
 @media (max-width: 720px) {
   .habit-toast-v1 { right: 16px; bottom: 142px; }
 }
+
+
+/* ==========================================================================
+   V0.13.1 · Habit Dayparts — Morning → Daytime → Evening → Anytime
+   ========================================================================== */
+
+.field-help-v131 {
+  display: block;
+  margin-top: 6px;
+  color: #9a8290;
+  font-size: .64rem;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.habit-board-v1 {
+  display: block;
+}
+
+.habit-daypart-section-v131 {
+  position: relative;
+  margin-top: 16px;
+  padding: 16px;
+  border: 1px solid rgba(105,65,98,.08);
+  border-radius: 21px;
+  background: rgba(255,255,255,.42);
+}
+.habit-daypart-section-v131:first-child { margin-top: 0; }
+.habit-daypart-section-v131[data-daypart="morning"] { background: linear-gradient(145deg, rgba(255,250,235,.70), rgba(255,255,255,.50)); }
+.habit-daypart-section-v131[data-daypart="daytime"] { background: linear-gradient(145deg, rgba(248,246,255,.72), rgba(255,255,255,.50)); }
+.habit-daypart-section-v131[data-daypart="evening"] { background: linear-gradient(145deg, rgba(246,236,249,.72), rgba(255,255,255,.50)); }
+.habit-daypart-section-v131[data-daypart="anytime"] { background: linear-gradient(145deg, rgba(242,249,239,.68), rgba(255,255,255,.50)); }
+
+.habit-daypart-heading-v131 {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 11px;
+  margin-bottom: 12px;
+  padding: 0 2px;
+}
+.habit-daypart-icon-v131 {
+  display: grid;
+  place-items: center;
+  width: 39px;
+  height: 39px;
+  border: 1px solid rgba(105,65,98,.07);
+  border-radius: 13px;
+  background: rgba(255,255,255,.70);
+  font-size: 1rem;
+}
+.habit-daypart-heading-v131 small,
+.habit-daypart-heading-v131 h3 { display: block; margin: 0; }
+.habit-daypart-heading-v131 small {
+  color: #aa7b90;
+  font-size: .54rem;
+  font-weight: 900;
+  letter-spacing: .12em;
+}
+.habit-daypart-heading-v131 h3 {
+  margin-top: 2px;
+  color: #52384d;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1rem;
+  font-weight: 600;
+}
+.habit-daypart-count-v131 {
+  padding: 5px 8px;
+  border-radius: 999px;
+  color: #8e6c7e;
+  background: rgba(255,255,255,.72);
+  font-size: .59rem;
+  font-weight: 800;
+}
+.habit-daypart-grid-v131 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 11px;
+}
+
+.dashboard-habit-dayplan-v131 {
+  display: grid;
+  gap: 8px;
+}
+.dashboard-habit-daypart-v131 {
+  overflow: hidden;
+  border: 1px solid rgba(105,65,98,.08);
+  border-radius: 15px;
+  background: rgba(255,255,255,.55);
+}
+.dashboard-habit-daypart-v131.current {
+  border-color: rgba(203,86,130,.20);
+  box-shadow: 0 7px 18px rgba(151,65,105,.055);
+}
+.dashboard-habit-daypart-v131 > header {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 7px;
+  min-height: 35px;
+  padding: 7px 10px;
+  border-bottom: 1px solid rgba(105,65,98,.06);
+  background: rgba(251,243,247,.62);
+}
+.dashboard-habit-daypart-v131.compact > header { border-bottom: 0; }
+.dashboard-habit-daypart-v131.current > header { background: rgba(250,228,237,.75); }
+.dashboard-habit-daypart-v131 > header > span { font-size: .82rem; }
+.dashboard-habit-daypart-v131 > header strong {
+  color: #5b4053;
+  font-size: .69rem;
+}
+.dashboard-habit-daypart-v131 > header small {
+  color: #9a8290;
+  font-size: .58rem;
+  font-weight: 750;
+}
+.dashboard-habit-timeline-v131 { display: grid; }
+.dashboard-habit-row-v131 {
+  display: grid;
+  grid-template-columns: auto minmax(0,1fr) auto auto;
+  align-items: center;
+  gap: 9px;
+  min-height: 48px;
+  padding: 8px 10px;
+  border-top: 1px solid rgba(105,65,98,.055);
+}
+.dashboard-habit-row-v131:first-child { border-top: 0; }
+.dashboard-habit-row-v131.ready { background: rgba(255,248,251,.50); }
+.dashboard-habit-row-v131.done { opacity: .72; }
+.dashboard-habit-row-v131 .habit-realm-dot-v1 { margin-top: 0; }
+.dashboard-habit-row-copy-v131 { min-width: 0; }
+.dashboard-habit-row-copy-v131 strong,
+.dashboard-habit-row-copy-v131 small { display: block; min-width: 0; }
+.dashboard-habit-row-copy-v131 strong {
+  overflow: hidden;
+  color: #523a4d;
+  font-size: .71rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dashboard-habit-row-copy-v131 small {
+  margin-top: 2px;
+  overflow: hidden;
+  color: #927c89;
+  font-size: .58rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dashboard-habit-row-meta-v131 {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.dashboard-habit-row-meta-v131 span {
+  color: #846679;
+  font-size: .57rem;
+  font-weight: 750;
+}
+.dashboard-habit-row-v131 .habit-quick-complete-v1 {
+  min-height: 28px;
+  padding: 5px 9px;
+  border-radius: 9px;
+  font-size: .59rem;
+}
+.dashboard-habit-row-v131 .dashboard-habit-state-v1 {
+  min-width: 28px;
+  text-align: center;
+}
+
+@media (max-width: 1120px) {
+  .habit-daypart-grid-v131 { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 700px) {
+  .habit-daypart-section-v131 { padding: 12px; border-radius: 17px; }
+  .habit-daypart-heading-v131 { grid-template-columns: auto 1fr; }
+  .habit-daypart-count-v131 { grid-column: 2; justify-self: start; margin-top: -4px; }
+  .dashboard-habit-row-v131 { grid-template-columns: auto minmax(0,1fr) auto; }
+  .dashboard-habit-row-meta-v131 { display: none; }
+}
