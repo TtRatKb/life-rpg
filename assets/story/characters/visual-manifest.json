@@ -102,6 +102,51 @@
         "Hero expressions are intentionally a compact standard set for story use rather than a duplicate of every off-duty emotion."
       ],
       "heroCostumeVersion": "bakugo-adult-pro-hero-v2"
+    },
+    "kirishima": {
+      "status": "locked-base+offduty-starter-pack",
+      "displayName": "Eijiro Kirishima",
+      "visualVersion": "kirishima-offduty-v1",
+      "canonNotes": [
+        "Adult Pro Hero; attractive, muscular and athletic, but with a youthful, warm and emotionally readable face rather than an overly rugged older-man look.",
+        "Long vivid red spiky hair with a strong silhouette and larger readable spike groups; preserve the approved 2026-08-25 base design across future expressions.",
+        "Red eyes and clearly recognizable shark-like pointed teeth.",
+        "Multiple ear piercings and a simple dog-tag style necklace are part of the approved off-duty visual identity.",
+        "Off-duty base is intentionally distinct from Bakugo: light gray athletic tank top, red sleeveless hooded layer/vest with black trim, black cargo-style pants and red/black accessories.",
+        "Build should read powerful and broad-shouldered without becoming disproportionately bulky.",
+        "Rendering lock: polished anime/otome character art with clean detailed linework, warm painterly cel-shading and the same overall quality/framing discipline as the approved Bakugo V2 set, while preserving Kirishima’s own visual identity."
+      ],
+      "approved": {
+        "neutral": "assets/story/characters/kirishima-neutral.png",
+        "happy": "assets/story/characters/kirishima-happy.png",
+        "serious": "assets/story/characters/kirishima-serious.png",
+        "flustered": "assets/story/characters/kirishima-flustered.png",
+        "angry": "assets/story/characters/kirishima-angry.png",
+        "tired": "assets/story/characters/kirishima-tired.png",
+        "teasing": "assets/story/characters/kirishima-teasing.png"
+      },
+      "temporaryFallbacks": {},
+      "planned": [
+        "Additional more differentiated off-duty emotions may be added later without invalidating this approved starter pack.",
+        "Hero Costume Kirishima visual pass remains optional future work."
+      ],
+      "legacyRule": "Older Kirishima baseline/headshot experiments are not canonical visual references for new story content once this V1 off-duty base is available.",
+      "compatibilityAliases": {
+        "friendly": "assets/story/characters/kirishima-happy.png (approved alias for warm/friendly expressions)",
+        "warm": "assets/story/characters/kirishima-happy.png (approved alias for warm/friendly expressions)",
+        "annoyed": "assets/story/characters/kirishima-serious.png (approved alias for firmer/annoyed expressions)",
+        "soft": "assets/story/characters/kirishima-flustered.png (approved starter alias for softer/embarrassed expressions)",
+        "intense": "assets/story/characters/kirishima-angry.png (approved alias for angry/intense expressions)",
+        "vulnerable": "assets/story/characters/kirishima-tired.png (approved starter alias for tired/quiet vulnerability)",
+        "confident": "assets/story/characters/kirishima-teasing.png (approved alias for teasing/confident expressions)"
+      },
+      "expressionNotes": [
+        "Off-duty starter pack approved 2026-08-25: Neutral, Happy/Friendly, Annoyed/Serious, Flustered/Soft, Angry/Intense, Tired/Vulnerable and Teasing/Confident.",
+        "This is a story-ready baseline pack, not a claim that Kirishima’s emotional range is complete; later packs may add subtler or more differentiated variants.",
+        "Warmth is a core contrast with Bakugo: Kirishima may smile broadly, show his shark teeth and read as approachable without becoming a generic cheerful-only character.",
+        "Serious, angry, tired and vulnerable states must remain visibly distinct so he retains emotional range and independent dramatic weight.",
+        "Future sprites should keep clothing, hair silhouette, face proportions, muscular build, piercings, necklace and rendering consistent unless the user explicitly approves a redesign."
+      ]
     }
   }
 }
