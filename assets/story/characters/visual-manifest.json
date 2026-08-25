@@ -4,7 +4,7 @@
   "purpose": "Human-readable source of truth for approved story character visuals. Future visual passes should preserve locked designs unless explicitly re-approved.",
   "characters": {
     "bakugo": {
-      "status": "locked-base+angry-pack+happy-pack+soft-pack",
+      "status": "locked-base+angry-pack+happy-pack+soft-pack+tired-pack+smug-cocky-pack",
       "displayName": "Katsuki Bakugo",
       "visualVersion": "bakugo-offduty-v2",
       "canonNotes": [
@@ -37,14 +37,22 @@
         "soft": "assets/story/characters/bakugo-soft.png",
         "caughtOffGuard": "assets/story/characters/bakugo-caught-off-guard.png",
         "flustered": "assets/story/characters/bakugo-flustered.png",
-        "flusteredIntense": "assets/story/characters/bakugo-flustered-intense.png"
+        "flusteredIntense": "assets/story/characters/bakugo-flustered-intense.png",
+        "tired": "assets/story/characters/bakugo-tired.png",
+        "tiredNeckRub": "assets/story/characters/bakugo-tired-neck-rub.png",
+        "vulnerableGuarded": "assets/story/characters/bakugo-vulnerable-guarded.png",
+        "lateNightDrained": "assets/story/characters/bakugo-late-night-drained.png",
+        "smugHandsPockets": "assets/story/characters/bakugo-smug-hands-pockets.png",
+        "smugNeckRub": "assets/story/characters/bakugo-smug-neck-rub.png",
+        "smugLeanBack": "assets/story/characters/bakugo-smug-lean-back.png",
+        "cockySwagger": "assets/story/characters/bakugo-cocky-swagger.png",
+        "cockyArmsCrossed": "assets/story/characters/bakugo-cocky-arms-crossed.png",
+        "cockyChallenge": "assets/story/characters/bakugo-cocky-challenge.png",
+        "smugJacketGrip": "assets/story/characters/bakugo-smug-jacket-grip.png",
+        "smugArmBehindHead": "assets/story/characters/bakugo-smug-arm-behind-head.png"
       },
-      "temporaryFallbacks": {
-        "smug": "neutral until a dedicated Smug/Amused pack is approved"
-      },
+      "temporaryFallbacks": {},
       "planned": [
-        "tired / vulnerable / late-night pack",
-        "smug / amused pack",
         "hero-costume set"
       ],
       "legacyRule": "Older Bakugo character images are not canonical visual references and should not be selected for new story content.",
@@ -53,7 +61,12 @@
         "happy": "assets/story/characters/bakugo-happy.png (approved alias of happyGenuineGrin for generic happy expression references)",
         "soft": "assets/story/characters/bakugo-soft.png (approved alias for softer/warmed expression references)",
         "caughtOffGuard": "assets/story/characters/bakugo-caught-off-guard.png (approved alias for surprised/startled references)",
-        "flustered": "assets/story/characters/bakugo-flustered.png (approved alias for generic flustered references)"
+        "flustered": "assets/story/characters/bakugo-flustered.png (approved alias for generic flustered references)",
+        "tired": "assets/story/characters/bakugo-tired.png (approved alias for generic tired/exhausted expression references)",
+        "vulnerable": "assets/story/characters/bakugo-vulnerable-guarded.png (approved alias for guarded low-energy vulnerability references)",
+        "lateNight": "assets/story/characters/bakugo-late-night-drained.png (approved alias for late-night drained expression references)",
+        "smug": "assets/story/characters/bakugo-smug.png (approved generic alias of smugHandsPockets)",
+        "cocky": "assets/story/characters/bakugo-cocky-swagger.png (approved generic alias for cocky/confident references)"
       },
       "expressionNotes": [
         "Dedicated Angry pack approved 2026-08-24. Angry must read clearly stronger than the Annoyed/Irritated family through face and body language.",
@@ -64,7 +77,15 @@
         "Quirk sparks are not the default for happy expressions. Use them selectively for the highest-energy celebratory/excited variant only.",
         "Dedicated Soft / Caught-off-Guard / Flustered pack approved 2026-08-25. These expressions should preserve the locked Bakugo V2 look and the same off-duty framing/crop used across the approved sprite set.",
         "Bakugo-style softness should remain character-accurate: restrained warmth, reluctant vulnerability, brief surprise, and defensive embarrassment rather than overly sweet or out-of-character softness.",
-        "Flustered variants can include blush, tension, averted gaze, hand-to-neck/body-language discomfort, or startled widening of the eyes; they should still read as Bakugo rather than generic shy anime blushing."
+        "Flustered variants can include blush, tension, averted gaze, hand-to-neck/body-language discomfort, or startled widening of the eyes; they should still read as Bakugo rather than generic shy anime blushing.",
+        "Dedicated Tired / Vulnerable / Late-Night pack approved 2026-08-25. These expressions preserve the locked Bakugo V2 face, hairstyle, rendering, and the same off-duty sprite framing/crop as the other approved packs.",
+        "Hair should stay consistent with the approved V2 gold-standard look and must not become excessively spiky or exaggerated in tired variants.",
+        "Tiredness should read strongly through posture and gesture: lowered shoulders, heavier posture, hand in hair, neck rub, guarded self-hold, or head-supported fatigue. Vulnerability should remain character-accurate and restrained, not soft or weepy.",
+        "Dedicated Smug / Cocky pack approved 2026-08-25. Eight approved off-duty variants are locked and should remain visually consistent with the Bakugo V2 gold-standard face, scars, hair volume, clothing and sprite framing.",
+        "The core read is smug, cocky and intensely self-confident rather than intentionally seductive. Any attractiveness should be a by-product of confidence, competence, posture and expression—not overt flirting or deliberately seductive posing.",
+        "Use varied body language: hands in pockets, arms crossed, open-palmed challenge, jacket grip, neck rub, lean-back, arm-behind-head and relaxed swagger. Do not collapse the pack into one repeated pose.",
+        "A few variants may use a slightly downward or angled look for the cocky “Oh yeah?” energy, but not every sprite should use that camera relationship.",
+        "Hair must remain compact and consistent with the approved V2 reference: full spiky blond shape with fewer larger clumps, not over-detailed with excessive needle-like spikes."
       ]
     }
   }
