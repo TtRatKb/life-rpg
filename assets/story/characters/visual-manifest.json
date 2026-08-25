@@ -4,7 +4,7 @@
   "purpose": "Human-readable source of truth for approved story character visuals. Future visual passes should preserve locked designs unless explicitly re-approved.",
   "characters": {
     "bakugo": {
-      "status": "locked-base+angry-pack+happy-pack",
+      "status": "locked-base+angry-pack+happy-pack+soft-pack",
       "displayName": "Katsuki Bakugo",
       "visualVersion": "bakugo-offduty-v2",
       "canonNotes": [
@@ -33,13 +33,16 @@
         "happyAmusedSmirk": "assets/story/characters/bakugo-happy-amused-smirk.png",
         "happyPlayful": "assets/story/characters/bakugo-happy-playful.png",
         "happyProud": "assets/story/characters/bakugo-happy-proud.png",
-        "happyExcitedSpark": "assets/story/characters/bakugo-happy-excited-spark.png"
+        "happyExcitedSpark": "assets/story/characters/bakugo-happy-excited-spark.png",
+        "soft": "assets/story/characters/bakugo-soft.png",
+        "caughtOffGuard": "assets/story/characters/bakugo-caught-off-guard.png",
+        "flustered": "assets/story/characters/bakugo-flustered.png",
+        "flusteredIntense": "assets/story/characters/bakugo-flustered-intense.png"
       },
       "temporaryFallbacks": {
         "smug": "neutral until a dedicated Smug/Amused pack is approved"
       },
       "planned": [
-        "soft / caught-off-guard / flustered pack",
         "tired / vulnerable / late-night pack",
         "smug / amused pack",
         "hero-costume set"
@@ -47,7 +50,10 @@
       "legacyRule": "Older Bakugo character images are not canonical visual references and should not be selected for new story content.",
       "compatibilityAliases": {
         "angry": "assets/story/characters/bakugo-angry.png (approved alias of angryClenched for older expression references)",
-        "happy": "assets/story/characters/bakugo-happy.png (approved alias of happyGenuineGrin for generic happy expression references)"
+        "happy": "assets/story/characters/bakugo-happy.png (approved alias of happyGenuineGrin for generic happy expression references)",
+        "soft": "assets/story/characters/bakugo-soft.png (approved alias for softer/warmed expression references)",
+        "caughtOffGuard": "assets/story/characters/bakugo-caught-off-guard.png (approved alias for surprised/startled references)",
+        "flustered": "assets/story/characters/bakugo-flustered.png (approved alias for generic flustered references)"
       },
       "expressionNotes": [
         "Dedicated Angry pack approved 2026-08-24. Angry must read clearly stronger than the Annoyed/Irritated family through face and body language.",
@@ -55,7 +61,10 @@
         "Explosion Quirk sparks are selective rather than constant. Subtle sparks may appear when anger is escalating; the shouting/high-intensity expression may vent more visible sparks.",
         "Dedicated Happy pack approved 2026-08-25. This pack preserves the locked Bakugo V2 look and the same consistent crop/framing as the other approved off-duty sprites.",
         "Happy should still read very Bakugo: confidence, satisfaction, playfulness and energized warmth rather than a soft generic smile-only approach.",
-        "Quirk sparks are not the default for happy expressions. Use them selectively for the highest-energy celebratory/excited variant only."
+        "Quirk sparks are not the default for happy expressions. Use them selectively for the highest-energy celebratory/excited variant only.",
+        "Dedicated Soft / Caught-off-Guard / Flustered pack approved 2026-08-25. These expressions should preserve the locked Bakugo V2 look and the same off-duty framing/crop used across the approved sprite set.",
+        "Bakugo-style softness should remain character-accurate: restrained warmth, reluctant vulnerability, brief surprise, and defensive embarrassment rather than overly sweet or out-of-character softness.",
+        "Flustered variants can include blush, tension, averted gaze, hand-to-neck/body-language discomfort, or startled widening of the eyes; they should still read as Bakugo rather than generic shy anime blushing."
       ]
     }
   }
