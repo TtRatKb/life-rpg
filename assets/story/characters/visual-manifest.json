@@ -4,7 +4,7 @@
   "purpose": "Human-readable source of truth for approved story character visuals. Future visual passes should preserve locked designs unless explicitly re-approved.",
   "characters": {
     "bakugo": {
-      "status": "locked-base+angry-pack+happy-pack+soft-pack+tired-pack+smug-cocky-pack",
+      "status": "locked-base+angry-pack+happy-pack+soft-pack+tired-pack+smug-cocky-pack+hero-costume-pack",
       "displayName": "Katsuki Bakugo",
       "visualVersion": "bakugo-offduty-v2",
       "canonNotes": [
@@ -49,12 +49,18 @@
         "cockyArmsCrossed": "assets/story/characters/bakugo-cocky-arms-crossed.png",
         "cockyChallenge": "assets/story/characters/bakugo-cocky-challenge.png",
         "smugJacketGrip": "assets/story/characters/bakugo-smug-jacket-grip.png",
-        "smugArmBehindHead": "assets/story/characters/bakugo-smug-arm-behind-head.png"
+        "smugArmBehindHead": "assets/story/characters/bakugo-smug-arm-behind-head.png",
+        "heroNeutral": "assets/story/characters/bakugo-hero-neutral.png",
+        "heroSmug": "assets/story/characters/bakugo-hero-smug.png",
+        "heroAlert": "assets/story/characters/bakugo-hero-alert.png",
+        "heroRelaxed": "assets/story/characters/bakugo-hero-relaxed.png",
+        "heroFocused": "assets/story/characters/bakugo-hero-focused.png",
+        "heroAnnoyed": "assets/story/characters/bakugo-hero-annoyed.png",
+        "heroHappy": "assets/story/characters/bakugo-hero-happy.png",
+        "heroProfile": "assets/story/characters/bakugo-hero-profile.png"
       },
       "temporaryFallbacks": {},
-      "planned": [
-        "hero-costume set"
-      ],
+      "planned": [],
       "legacyRule": "Older Bakugo character images are not canonical visual references and should not be selected for new story content.",
       "compatibilityAliases": {
         "angry": "assets/story/characters/bakugo-angry.png (approved alias of angryClenched for older expression references)",
@@ -66,7 +72,10 @@
         "vulnerable": "assets/story/characters/bakugo-vulnerable-guarded.png (approved alias for guarded low-energy vulnerability references)",
         "lateNight": "assets/story/characters/bakugo-late-night-drained.png (approved alias for late-night drained expression references)",
         "smug": "assets/story/characters/bakugo-smug.png (approved generic alias of smugHandsPockets)",
-        "cocky": "assets/story/characters/bakugo-cocky-swagger.png (approved generic alias for cocky/confident references)"
+        "cocky": "assets/story/characters/bakugo-cocky-swagger.png (approved generic alias for cocky/confident references)",
+        "heroNeutral": "assets/story/characters/bakugo-hero-neutral.png (default expression for Hero outfit)",
+        "heroFocused": "assets/story/characters/bakugo-hero-focused.png (focused/ready Hero expression)",
+        "heroSmug": "assets/story/characters/bakugo-hero-smug.png (confident/smug Hero expression)"
       },
       "expressionNotes": [
         "Dedicated Angry pack approved 2026-08-24. Angry must read clearly stronger than the Annoyed/Irritated family through face and body language.",
@@ -85,8 +94,14 @@
         "The core read is smug, cocky and intensely self-confident rather than intentionally seductive. Any attractiveness should be a by-product of confidence, competence, posture and expression—not overt flirting or deliberately seductive posing.",
         "Use varied body language: hands in pockets, arms crossed, open-palmed challenge, jacket grip, neck rub, lean-back, arm-behind-head and relaxed swagger. Do not collapse the pack into one repeated pose.",
         "A few variants may use a slightly downward or angled look for the cocky “Oh yeah?” energy, but not every sprite should use that camera relationship.",
-        "Hair must remain compact and consistent with the approved V2 reference: full spiky blond shape with fewer larger clumps, not over-detailed with excessive needle-like spikes."
-      ]
+        "Hair must remain compact and consistent with the approved V2 reference: full spiky blond shape with fewer larger clumps, not over-detailed with excessive needle-like spikes.",
+        "Adult Pro-Hero costume pack approved 2026-08-25.",
+        "Hero-costume canon: adult streamlined black tactical suit with orange X harness, high black collar, rectangular gray metal shoulder plates, segmented metal forearm/bracer armor, dark green utility canisters/pouches and black gloves.",
+        "Do not revert to the older oversized grenade-gauntlet costume silhouette for the adult Hero set.",
+        "The approved Hero sprites must preserve the locked V2 face, scar placement, compact blond hair shape and warm painterly cel-shaded rendering used by the approved off-duty set.",
+        "Hero expressions are intentionally a compact standard set for story use rather than a duplicate of every off-duty emotion."
+      ],
+      "heroCostumeVersion": "bakugo-adult-pro-hero-v2"
     }
   }
 }
