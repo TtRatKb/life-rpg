@@ -1,10 +1,10 @@
 {
   "schema": 1,
-  "updated": "2026-08-24",
+  "updated": "2026-08-25",
   "purpose": "Human-readable source of truth for approved story character visuals. Future visual passes should preserve locked designs unless explicitly re-approved.",
   "characters": {
     "bakugo": {
-      "status": "locked-base+angry-pack",
+      "status": "locked-base+angry-pack+happy-pack",
       "displayName": "Katsuki Bakugo",
       "visualVersion": "bakugo-offduty-v2",
       "canonNotes": [
@@ -25,7 +25,15 @@
         "angryClenched": "assets/story/characters/bakugo-angry-clenched.png",
         "angrySparking": "assets/story/characters/bakugo-angry-sparking.png",
         "angryShouting": "assets/story/characters/bakugo-angry-shouting.png",
-        "angrySeething": "assets/story/characters/bakugo-angry-seething.png"
+        "angrySeething": "assets/story/characters/bakugo-angry-seething.png",
+        "happySoftSmirk": "assets/story/characters/bakugo-happy-soft-smirk.png",
+        "happyGenuineGrin": "assets/story/characters/bakugo-happy-genuine-grin.png",
+        "happyScarredGrin": "assets/story/characters/bakugo-happy-scarred-grin.png",
+        "happyTriumphantLaugh": "assets/story/characters/bakugo-happy-triumphant-laugh.png",
+        "happyAmusedSmirk": "assets/story/characters/bakugo-happy-amused-smirk.png",
+        "happyPlayful": "assets/story/characters/bakugo-happy-playful.png",
+        "happyProud": "assets/story/characters/bakugo-happy-proud.png",
+        "happyExcitedSpark": "assets/story/characters/bakugo-happy-excited-spark.png"
       },
       "temporaryFallbacks": {
         "smug": "neutral until a dedicated Smug/Amused pack is approved"
@@ -38,12 +46,16 @@
       ],
       "legacyRule": "Older Bakugo character images are not canonical visual references and should not be selected for new story content.",
       "compatibilityAliases": {
-        "angry": "assets/story/characters/bakugo-angry.png (approved alias of angryClenched for older expression references)"
+        "angry": "assets/story/characters/bakugo-angry.png (approved alias of angryClenched for older expression references)",
+        "happy": "assets/story/characters/bakugo-happy.png (approved alias of happyGenuineGrin for generic happy expression references)"
       },
       "expressionNotes": [
         "Dedicated Angry pack approved 2026-08-24. Angry must read clearly stronger than the Annoyed/Irritated family through face and body language.",
         "Angry poses should vary: clenched restraint, forward/aggressive gesture, seething tension and open shouting are all valid; do not reuse one hand/arm pose across the whole pack.",
-        "Explosion Quirk sparks are selective rather than constant. Subtle sparks may appear when anger is escalating; the shouting/high-intensity expression may vent more visible sparks."
+        "Explosion Quirk sparks are selective rather than constant. Subtle sparks may appear when anger is escalating; the shouting/high-intensity expression may vent more visible sparks.",
+        "Dedicated Happy pack approved 2026-08-25. This pack preserves the locked Bakugo V2 look and the same consistent crop/framing as the other approved off-duty sprites.",
+        "Happy should still read very Bakugo: confidence, satisfaction, playfulness and energized warmth rather than a soft generic smile-only approach.",
+        "Quirk sparks are not the default for happy expressions. Use them selectively for the highest-energy celebratory/excited variant only."
       ]
     }
   }
