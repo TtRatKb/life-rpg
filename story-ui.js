@@ -1022,6 +1022,8 @@
       finished: false
     };
     runtime.sequence = buildSequence(runtime);
+    resetVisualRenderState();
+    prefetchRuntimeVisuals();
     const savedStep = state.story.social.activeHangoutId === hangout.id
       ? Math.max(0, Number(state.story.social.hangoutStep || 0))
       : 0;
@@ -1092,6 +1094,8 @@
       finished: false
     };
     runtime.sequence = buildSequence(runtime);
+    resetVisualRenderState();
+    prefetchRuntimeVisuals();
     const savedStep = state.story.social.activeTalkId === talk.id
       ? Math.max(0, Number(state.story.social.talkStep || 0))
       : 0;
@@ -1940,7 +1944,7 @@
   function resolveVisualStateAtStep(step) {
     const base = {
       mode: "dialogue",
-      background: null,
+      background: contextualBackgroundForRuntime(runtime),
       cg: null,
       characters: [],
       focus: null,
@@ -1992,11 +1996,53 @@
     return next;
   }
 
+  function contextualBackgroundForRuntime(activeRuntime = runtime) {
+    const backgrounds = pack?.assets?.backgrounds || {};
+    const explicit = activeRuntime?.scene?.visualDefault?.background || activeRuntime?.scene?.defaultBackground || null;
+    if (explicit && backgrounds[explicit]?.src) return explicit;
+
+    const firstDeclared = firstBackgroundInSequence(activeRuntime?.sequence, backgrounds);
+    if (firstDeclared) return firstDeclared;
+
+    return inferBackgroundFromLocation(activeRuntime?.scene?.location, backgrounds);
+  }
+
+  function firstBackgroundInSequence(sequence, backgrounds) {
+    for (const node of array(sequence)) {
+      const key = node?.visual?.background;
+      if (key && backgrounds?.[key]?.src) return key;
+    }
+    return null;
+  }
+
+  function inferBackgroundFromLocation(location, backgrounds) {
+    const value = String(location || "").toLowerCase();
+    const candidates = [];
+
+    if (/school|classroom|hallway|senior high|academy/.test(value)) candidates.push("schoolHallway");
+    if (/café|cafe|coffee|bookstore/.test(value)) candidates.push("cityCafe");
+    if (/station|commute|train|platform/.test(value)) candidates.push("stationEvening");
+    if (/gym|training/.test(value)) candidates.push("gym");
+    if (/shared apartment|new apartment|possible new apartment/.test(value)) candidates.push("sharedApartment");
+    if (/apartment|home|room/.test(value)) candidates.push("homeMorning");
+    if (/collector|district|city|street|outside|evening/.test(value)) candidates.push("cityDusk");
+
+    return candidates.find(key => backgrounds?.[key]?.src) || null;
+  }
+
+  function backgroundAssetForVisual(visual, backgroundAssets) {
+    if (visual?.cg) return { src: visual.cg };
+    const requested = visual?.background;
+    if (requested && backgroundAssets?.[requested]?.src) return backgroundAssets[requested];
+    const fallback = contextualBackgroundForRuntime(runtime);
+    return fallback && backgroundAssets?.[fallback]?.src ? backgroundAssets[fallback] : null;
+  }
+
   function applyVisual(visual, node = null) {
     const characterAssets = pack?.assets?.characters || {};
     const backgroundAssets = pack?.assets?.backgrounds || {};
     const mode = visual?.mode || "dialogue";
-    const bg = visual?.cg ? { src: visual.cg } : (visual?.background ? backgroundAssets[visual.background] : null);
+    const bg = backgroundAssetForVisual(visual, backgroundAssets);
     const characters = Array.isArray(visual?.characters) ? visual.characters : [];
     const portraitSpec = resolvePortraitSpec(visual, characters, characterAssets);
 
@@ -2240,6 +2286,10 @@
     const urls = new Set();
     const characterAssets = pack.assets.characters || {};
     const backgroundAssets = pack.assets.backgrounds || {};
+    const contextualBackground = contextualBackgroundForRuntime(runtime);
+    if (contextualBackground && backgroundAssets?.[contextualBackground]?.src) {
+      urls.add(String(backgroundAssets[contextualBackground].src));
+    }
 
     for (const node of runtime.sequence) {
       const visual = node?.visual;
