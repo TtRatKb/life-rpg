@@ -745,9 +745,18 @@
       items.unshift(next);
     }
 
+    const stewardshipReward = existing ? null : window.LifeRPGStewardship?.rewardCreation?.({
+      type: "book",
+      id: next.id,
+      label: next.title,
+      fields: [next.title, next.author]
+    });
+
     closeBookDialog();
     persist(existing ? "book-library-edit" : "book-library-create");
-    showToast(existing ? "Book updated" : "Added to Library", title);
+    if (Number(stewardshipReward?.xp || 0) > 0 || Number(stewardshipReward?.storyEnergy || 0) > 0) app.renderAll?.();
+    const upkeepText = window.LifeRPGStewardship?.statusText?.(stewardshipReward) || "";
+    showToast(existing ? "Book updated" : "Added to Library", [title, upkeepText].filter(Boolean).join(" · "));
   }
 
   function deleteCurrentBook() {
@@ -836,25 +845,34 @@
     const now = Date.now();
     let added = 0;
     let skipped = 0;
+    const addedBooks = [];
 
     entries.forEach((entry, index) => {
       const key = duplicateKey(entry.title, entry.author);
       if (existingKeys.has(key)) { skipped += 1; return; }
       existingKeys.add(key);
-      library.items.push({
+      const book = {
         id: makeId("book"), title: entry.title, author: entry.author, status, role, source,
         totalPages: null, currentPage: 0, series: "", seriesNumber: "", continueSeries: false,
         preferredGoal: "auto", notes: "", coverUrl: "", isbn: "", publishYear: null, publisher: "", language: "",
         catalogProvider: "", catalogKey: "", catalogUpdatedAt: null, catalogPageCountApprox: false,
         createdAt: now + index, updatedAt: now + index,
         startedAt: status === "reading" ? now : null, finishedAt: status === "finished" ? now : null, lastReadAt: null
-      });
+      };
+      library.items.push(book);
+      addedBooks.push(book);
       added += 1;
     });
 
+    const stewardshipReward = window.LifeRPGStewardship?.rewardMany?.(addedBooks
+      .map(book => ({ type: "book", id: book.id, label: book.title, fields: [book.title, book.author] })));
+
     closeBulkDialog();
     persist("book-library-bulk-add");
-    showToast(`${added} book${added === 1 ? "" : "s"} added`, skipped ? `${skipped} duplicate${skipped === 1 ? "" : "s"} skipped.` : "Categorized in one pass.");
+    if (Number(stewardshipReward?.xp || 0) > 0 || Number(stewardshipReward?.storyEnergy || 0) > 0) app.renderAll?.();
+    const baseDetail = skipped ? `${skipped} duplicate${skipped === 1 ? "" : "s"} skipped.` : "Categorized in one pass.";
+    const upkeepText = window.LifeRPGStewardship?.statusText?.(stewardshipReward) || "";
+    showToast(`${added} book${added === 1 ? "" : "s"} added`, [baseDetail, upkeepText].filter(Boolean).join(" · "));
   }
 
   function duplicateKey(title, author) {

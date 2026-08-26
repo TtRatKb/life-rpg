@@ -11271,3 +11271,257 @@ body.story-backlog-open { overflow: hidden; }
   .pulse-card.living-world { grid-template-columns: auto minmax(0, 1fr); }
   .pulse-card.living-world .mini-nav-button { grid-column: 1 / -1; justify-self: stretch; }
 }
+
+/* ========================================================================== 
+   V0.27.1 · Daily Loop & Stewardship XP
+   Conversational check-in, mobile morning loop, and lightweight app-upkeep XP.
+   ========================================================================== */
+
+.mobile-daily-checkin-v271 { display: none; }
+
+.daily-checkin-reward-v271 {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-top: 10px;
+  padding: 12px 14px;
+  border: 1px solid rgba(170, 102, 137, .13);
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(252, 230, 239, .88), rgba(250, 245, 236, .9));
+}
+.daily-checkin-reward-v271 > span {
+  display: grid;
+  place-items: center;
+  min-width: 54px;
+  height: 42px;
+  padding: 0 10px;
+  border-radius: 13px;
+  color: #fff;
+  background: linear-gradient(135deg, #bd668c, #81547c);
+  box-shadow: 0 7px 16px rgba(112, 65, 98, .13);
+  font-size: .85rem;
+  font-weight: 900;
+}
+.daily-checkin-reward-v271.legacy > span { min-width: 42px; }
+.daily-checkin-reward-v271 small {
+  display: block;
+  color: #9b6a84;
+  font-size: .58rem;
+  font-weight: 900;
+  letter-spacing: .1em;
+}
+.daily-checkin-reward-v271 strong {
+  display: block;
+  margin-top: 1px;
+  color: #53394d;
+  font-size: .82rem;
+}
+.daily-checkin-reward-v271 p {
+  margin: 2px 0 0;
+  color: #826d79;
+  font-size: .72rem;
+  line-height: 1.4;
+}
+
+.daily-conversation-progress-v271 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: -4px 2px 17px;
+  color: #987487;
+  font-size: .68rem;
+  font-weight: 850;
+  letter-spacing: .05em;
+}
+.daily-conversation-dots-v271 {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+.daily-conversation-dots-v271 span {
+  display: block;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: rgba(125, 80, 111, .16);
+  transition: width .16s ease, background .16s ease, transform .16s ease;
+}
+.daily-conversation-dots-v271 span.active {
+  width: 22px;
+  background: #b86d90;
+}
+.daily-conversation-dots-v271 span.done {
+  background: #d39bb4;
+}
+
+.daily-conversation-step-v271 { display: none; }
+.daily-conversation-step-v271.is-active-v271 {
+  display: block;
+  animation: dailyConversationInV271 .18s ease both;
+}
+@keyframes dailyConversationInV271 {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.daily-conversation-step-v271 legend {
+  margin-bottom: 12px;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.02rem;
+  line-height: 1.35;
+}
+.daily-choice-row-two-v271 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.daily-conversation-hint-v271 {
+  margin: 15px 2px 0;
+  color: #9a8290;
+  font-size: .68rem;
+  line-height: 1.45;
+}
+.daily-conversation-menu-v271 {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  align-items: center;
+  margin-top: 13px;
+}
+.daily-conversation-menu-v271 #dailyBriefingCancel { margin-right: auto; }
+.daily-conversation-menu-v271 button:disabled {
+  opacity: .46;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+/* The dialogue copy is the actual conversational turn: question -> response -> next question. */
+#dailyDialogLine {
+  min-height: 2.7em;
+  transition: opacity .12s ease;
+}
+
+@media (max-width: 720px) {
+  #view-basecamp .mobile-daily-checkin-v271 { order: -30; }
+  .mobile-daily-checkin-v271 {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 11px;
+    margin: 0 0 10px;
+    padding: 13px 13px 13px 12px;
+    border: 1px solid rgba(146, 79, 116, .14);
+    border-radius: 20px;
+    background:
+      radial-gradient(circle at 4% 8%, rgba(255,255,255,.88), transparent 34%),
+      linear-gradient(135deg, #fbe6ee, #f8f0e8 58%, #f4e7ef);
+    box-shadow: 0 12px 28px rgba(72, 41, 68, .08);
+  }
+  .mobile-daily-checkin-v271.is-done-v271 {
+    background: linear-gradient(135deg, rgba(245,236,242,.94), rgba(249,244,236,.95));
+  }
+  .mobile-daily-checkin-copy-v271 {
+    display: grid;
+    grid-template-columns: 36px minmax(0, 1fr);
+    gap: 9px;
+    align-items: center;
+    min-width: 0;
+  }
+  .mobile-daily-checkin-mark-v271 {
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 13px;
+    color: #fff;
+    background: linear-gradient(135deg, #cc7598, #8b5b83);
+    box-shadow: 0 7px 15px rgba(112,65,98,.14);
+  }
+  .mobile-daily-checkin-copy-v271 small {
+    display: block;
+    margin-bottom: 2px;
+    color: #a45d7e;
+    font-size: .54rem;
+    font-weight: 900;
+    letter-spacing: .11em;
+  }
+  .mobile-daily-checkin-copy-v271 strong {
+    display: block;
+    color: #4f354a;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: .83rem;
+    line-height: 1.2;
+  }
+  .mobile-daily-checkin-copy-v271 span:not(.mobile-daily-checkin-mark-v271) {
+    display: block;
+    margin-top: 3px;
+    color: #806b78;
+    font-size: .61rem;
+    line-height: 1.25;
+  }
+  .mobile-daily-checkin-v271 > button {
+    flex: 0 0 auto;
+    min-height: 43px;
+    padding: 8px 11px;
+    border-radius: 13px;
+    font-size: .68rem;
+    white-space: nowrap;
+  }
+
+  .daily-briefing-dialog-v14 {
+    width: min(100vw - 16px, 620px);
+  }
+  .daily-briefing-form-v14 {
+    max-height: min(92dvh, 900px);
+    padding: 18px 16px;
+  }
+  .daily-dialog-companion-v14 {
+    grid-template-columns: 74px 1fr;
+    margin-bottom: 14px;
+  }
+  .daily-choice-row-v14,
+  .daily-choice-row-two-v271 {
+    grid-template-columns: 1fr 1fr;
+  }
+  .daily-choice-row-v14 label > span {
+    min-height: 58px;
+    padding: 9px 7px;
+  }
+  .daily-conversation-menu-v271 {
+    display: grid;
+    grid-template-columns: auto 1fr;
+  }
+  .daily-conversation-menu-v271 #dailyBriefingCancel { display: none; }
+  .daily-conversation-menu-v271 #dailyConversationBack { grid-column: 1; }
+  .daily-conversation-menu-v271 #dailyConversationNext { grid-column: 2; width: 100%; }
+}
+
+@media (max-width: 420px) {
+  .mobile-daily-checkin-v271 { align-items: stretch; }
+  .mobile-daily-checkin-copy-v271 { grid-template-columns: 30px minmax(0, 1fr); }
+  .mobile-daily-checkin-mark-v271 { width: 30px; height: 30px; border-radius: 10px; }
+  .mobile-daily-checkin-v271 > button { padding-inline: 9px; }
+  .daily-choice-row-v14,
+  .daily-choice-row-two-v271 { grid-template-columns: 1fr; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .daily-conversation-step-v271.is-active-v271 { animation: none; }
+}
+
+/* Companion-specific check-in language: Mina reads like an actual message thread;
+   Luca reads more like a private morning thought. */
+.daily-briefing-dialog-v14.mina-chat-v271 .daily-dialog-companion-v14 {
+  background: linear-gradient(135deg, #f7dce9, #efe5f5);
+}
+.daily-briefing-dialog-v14.mina-chat-v271 #dailyDialogLine {
+  position: relative;
+  display: inline-block;
+  margin-top: 7px;
+  padding: 9px 11px;
+  border-radius: 14px 14px 14px 5px;
+  color: #583e52;
+  background: rgba(255,255,255,.83);
+  box-shadow: 0 5px 14px rgba(91,55,84,.06);
+}
+.daily-briefing-dialog-v14.luca-monologue-v271 #dailyDialogLine {
+  font-family: Georgia, "Times New Roman", serif;
+  font-style: italic;
+  color: #695063;
+}

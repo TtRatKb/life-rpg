@@ -732,7 +732,7 @@
       els.energyNeed.innerHTML = `<span class="story-energy-pill">${app.formatEnergy?.(state.storyEnergy) ?? state.storyEnergy} 🔥 available</span><span class="story-energy-pill locked">Need ${app.formatEnergy?.(missing) ?? missing} more</span>`;
       els.actionButton.disabled = true;
       els.actionButton.textContent = `Need ${app.formatEnergy?.(missing) ?? missing} more Story Energy`;
-      els.actionHint.textContent = "Habits, quests, books, games, Side Adventures and real-life tasks can all fund the next chapter.";
+      els.actionHint.textContent = "Daily check-ins, habits, quests, reading, tracked game goals, Side Adventures and useful Life RPG upkeep can all help fund the next chapter.";
     }
   }
 
@@ -964,6 +964,17 @@
       if (count < min) return false;
       if (max != null && count > Number(max)) return false;
       return true;
+    }
+
+    const checkInRule = rule.checkIn && typeof rule.checkIn === "object" ? rule.checkIn : null;
+    if (checkInRule) {
+      const today = app.getState()?.dailyPlanner?.days?.[localDateKey()]?.checkIn;
+      if (!today) return false;
+      return Object.entries(checkInRule).every(([key, expected]) => {
+        const actual = today[key];
+        if (Array.isArray(expected)) return expected.includes(actual);
+        return actual === expected;
+      });
     }
     return false;
   }

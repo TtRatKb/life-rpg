@@ -781,8 +781,21 @@
       });
     }
 
+    const createdHabit = existing ? null : store.items[store.items.length - 1];
+    const stewardshipReward = createdHabit ? window.LifeRPGStewardship?.rewardCreation?.({
+      type: "habit",
+      id: createdHabit.id,
+      label: createdHabit.name,
+      fields: [createdHabit.name, createdHabit.realm]
+    }) : null;
+
     closeHabitDialog();
     persist(existing ? "habit-edit" : "habit-create");
+    if (Number(stewardshipReward?.xp || 0) > 0 || Number(stewardshipReward?.storyEnergy || 0) > 0) app.renderAll?.();
+    if (stewardshipReward) {
+      const upkeepText = window.LifeRPGStewardship?.statusText?.(stewardshipReward) || "";
+      if (upkeepText) app.showToast?.(`Habit added · ${upkeepText}`);
+    }
   }
 
   function deleteHabitFromDialog() {

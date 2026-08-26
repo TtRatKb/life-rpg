@@ -7,7 +7,7 @@
     return;
   }
 
-  const SCHEMA = 3;
+  const SCHEMA = 4;
   const SHADOW_KEY = "life-rpg-daily-planner-shadow-v1";
   const MAX_DAY_HISTORY = 120;
   const MAX_COMPANION_HISTORY = 45;
@@ -58,9 +58,108 @@
   const TIME_BUDGET = { none: 12, little: 30, decent: 65, plenty: 130 };
   const PRIORITY_SCORE = { "Must Do": 3.3, Main: 2.5, "Low Energy": 1.3, Optional: 0.7, Bonus: 0.2 };
   const DEMAND_BY_REALM = { Recovery: 0.35, Hobbies: 0.8, Home: 1.1, Japanese: 1.55, Knowledge: 1.65, Health: 1.85, Work: 2.15 };
+  const CONVERSATION_STEPS = ["sleep", "energy", "time", "obligations", "gentle"];
+
+  const CHECKIN_COPY = {
+    luca: {
+      sleep: {
+        question: "Okay. First: how did I actually sleep?",
+        reactions: {
+          bad: "Right. That explains some things. I am not budgeting today like I slept eight perfect hours.",
+          meh: "Not catastrophic. Also not exactly a glowing endorsement of the night.",
+          fine: "Fine is useful. I can work with fine.",
+          great: "Oh. Actual sleep. Nice. Let's not immediately waste that by planning seventeen things."
+        }
+      },
+      energy: {
+        question: "And what is the battery situation, realistically?",
+        reactions: {
+          fumes: "Red battery icon. Understood. Friction needs to be very low today.",
+          low: "Low. Not zero, but definitely not imaginary-high-energy-me either.",
+          okay: "Okay is enough. I do not need to turn it into 'excellent' before I can start anything.",
+          lots: "Huh. Actual energy. Useful information. Still not permission to overbook the day."
+        }
+      },
+      time: {
+        question: "How much of today is actually mine?",
+        reactions: {
+          none: "Basically none. Then the plan needs to fit into cracks, not pretend a free evening exists.",
+          little: "A little. Good. Small containers, then.",
+          decent: "A decent amount. Enough room to choose instead of just react.",
+          plenty: "Plenty, apparently. I should probably still leave some of it unclaimed."
+        }
+      },
+      obligations: {
+        question: "How crowded is the must-do pile?",
+        reactions: {
+          help: "Yep. That's a lot. The planner does not get to add a second invisible workload on top of it.",
+          busy: "Busy. So anything optional needs to actually earn its place today.",
+          normal: "Normal amount of life-admin. Manageable.",
+          open: "Pretty open. Nice. That means I can choose something because I want it, too."
+        }
+      },
+      gentle: {
+        question: "Last check: do I need to deliberately keep today gentle?",
+        reactions: {
+          yes: "Yes. Then gentle is the rule, not something I have to justify after the fact.",
+          no: "No special handling needed. Regular-sized day it is."
+        }
+      }
+    },
+    mina: {
+      sleep: {
+        question: "Hey girl. First things first: how did you sleep?",
+        reactions: {
+          bad: "Ugh, that's rough. Okay, we're not pretending that didn't happen.",
+          meh: "Could've been worse, could've been way better. Noted.",
+          fine: "Okay, decent. We can work with decent.",
+          great: "Oh, look at you, actually rested. Love that for you."
+        }
+      },
+      energy: {
+        question: "Okay. And how much battery are we actually working with?",
+        reactions: {
+          fumes: "Yep. Battery icon is red. We plan accordingly.",
+          low: "Low battery, heard. No heroic nonsense.",
+          okay: "Okay is useful! We do not need to manufacture extra energy first.",
+          lots: "Oh? Actual battery? Dangerous. Still not giving you twelve tasks."
+        }
+      },
+      time: {
+        question: "How much of today is actually yours?",
+        reactions: {
+          none: "Oof. Then we are working with tiny pockets, not a fake free afternoon.",
+          little: "A little is still yours. We can protect a little.",
+          decent: "Okay, that's real breathing room.",
+          plenty: "Plenty? Cute. Please do not immediately donate all of it to obligations."
+        }
+      },
+      obligations: {
+        question: "And how scary is the must-do pile today?",
+        reactions: {
+          help: "Okay, wow. The pile is being rude. We are not adding guilt as a bonus task.",
+          busy: "Busy. Got it. Optional stuff has to stay actually optional.",
+          normal: "Normal amount of nonsense. Manageable.",
+          open: "Pretty open? Okayyy. Maybe we can leave room for something fun on purpose."
+        }
+      },
+      gentle: {
+        question: "Last one. Do you need me to officially declare this a gentle day?",
+        reactions: {
+          yes: "Done. Officially declared. No appeals, no guilt, tiny wins absolutely count.",
+          no: "Cool. Normal mode. Still banning the twelve-step self-improvement spiral, though."
+        }
+      }
+    }
+  };
 
   const els = {
     heroButton: byId("heroDailyBriefingButton"),
+    mobileCard: byId("dailyMobileCheckinCard"),
+    mobileButton: byId("dailyMobileCheckinButton"),
+    mobileKicker: byId("dailyMobileCheckinKicker"),
+    mobileTitle: byId("dailyMobileCheckinTitle"),
+    mobileMeta: byId("dailyMobileCheckinMeta"),
     panel: byId("dailyBriefingPanel"),
     start: byId("dailyBriefingStart"),
     edit: byId("dailyBriefingEdit"),
@@ -77,19 +176,26 @@
     dialogCompanion: byId("dailyDialogCompanion"),
     close: byId("dailyBriefingClose"),
     cancel: byId("dailyBriefingCancel"),
-    gentle: byId("dailyGentle")
+    gentle: byId("dailyGentle"),
+    conversationCounter: byId("dailyConversationCounter"),
+    conversationDots: byId("dailyConversationDots"),
+    conversationNext: byId("dailyConversationNext"),
+    conversationBack: byId("dailyConversationBack")
   };
 
   let initialized = false;
   let provisionalCompanion = null;
+  let conversationStep = 0;
+  let conversationEditing = false;
 
   init();
 
   function init() {
     bindEvents();
     const changed = ensureState();
+    const rewardUpgraded = ensureTodayCheckInStoryEnergyReward();
     initialized = true;
-    if (changed) persist("daily-planner-init", { render: false });
+    if (changed || rewardUpgraded) persist(rewardUpgraded ? "daily-checkin-v272-reward-migration" : "daily-planner-init", { render: false });
     render();
   }
 
@@ -97,8 +203,12 @@
     els.start?.addEventListener("click", () => openBriefing(false));
     els.edit?.addEventListener("click", () => openBriefing(true));
     els.heroButton?.addEventListener("click", handleHeroAction);
+    els.mobileButton?.addEventListener("click", handleHeroAction);
     els.close?.addEventListener("click", closeBriefing);
     els.cancel?.addEventListener("click", closeBriefing);
+    els.conversationNext?.addEventListener("click", continueConversation);
+    els.conversationBack?.addEventListener("click", () => showConversationStep(Math.max(0, conversationStep - 1)));
+    els.form?.addEventListener("change", handleConversationAnswer);
     els.form?.addEventListener("submit", saveBriefing);
 
     document.addEventListener("click", event => {
@@ -323,6 +433,7 @@
     renderPicks(day);
     renderBatchStatus(day);
     renderHeroButton(day);
+    renderMobileCheckin(day);
     if (bonusAwarded) queueFullRefresh();
   }
 
@@ -338,10 +449,37 @@
   function renderHeroButton(day) {
     if (!els.heroButton) return;
     if (day?.checkIn) {
-      els.heroButton.innerHTML = "<span>✦</span> Review today's picks";
+      const reward = day.checkInReward;
+      const streak = Number(reward?.streak || currentCheckInStreak());
+      els.heroButton.innerHTML = `<span>✦</span> Review today's picks${streak > 1 ? ` · ${streak} day streak` : ""}`;
       return;
     }
-    els.heroButton.innerHTML = "<span>✦</span> Start today's briefing";
+    const projected = projectedCheckInReward();
+    els.heroButton.innerHTML = `<span>✦</span> Daily check-in · +${formatEnergy(projected.storyEnergy)} 🔥 · +${projected.xp} XP`;
+  }
+
+  function renderMobileCheckin(day) {
+    if (!els.mobileCard || !els.mobileButton) return;
+    const moment = currentMoment();
+    if (els.mobileKicker) els.mobileKicker.textContent = moment.id === "morning" ? "MORNING CHECK-IN" : "DAILY CHECK-IN";
+
+    if (day?.checkIn) {
+      const reward = day.checkInReward || {};
+      const streak = Number(reward.streak || currentCheckInStreak());
+      const xp = Number(reward.xp || 0);
+      const storyEnergy = Number(reward.storyEnergy || 0);
+      if (els.mobileTitle) els.mobileTitle.textContent = streak > 1 ? `${streak}-day check-in streak.` : "Today's check-in is done.";
+      if (els.mobileMeta) els.mobileMeta.textContent = `${storyEnergy ? `+${formatEnergy(storyEnergy)} 🔥 · ` : ""}${xp ? `+${xp} XP · ` : ""}Your planner already knows what kind of day this is.`;
+      els.mobileButton.textContent = "Review day";
+      els.mobileCard.classList.add("is-done-v271");
+      return;
+    }
+
+    const projected = projectedCheckInReward();
+    if (els.mobileTitle) els.mobileTitle.textContent = moment.id === "morning" ? "Do the tiny morning check-in." : "You can still check in today.";
+    if (els.mobileMeta) els.mobileMeta.textContent = `+${formatEnergy(projected.storyEnergy)} 🔥 · +${projected.xp} XP today · ${projected.streak} day streak if completed`;
+    els.mobileButton.textContent = "Check in";
+    els.mobileCard.classList.remove("is-done-v271");
   }
 
   function handleHeroAction() {
@@ -363,12 +501,15 @@
         <div class="daily-not-started-v14">
           <span class="daily-not-started-icon-v14">✦</span>
           <div>
-            <strong>Four quick questions. Then the choices get smaller.</strong>
-            <p>Sleep, energy, free time and how full your obligation plate already is. No scoring, no judgement.</p>
+            <strong>A short conversation. Then the choices get smaller.</strong>
+            <p>Answer one thing at a time. Showing up earns a little Story Energy and XP, and helps the planner fit the day you actually have.</p>
           </div>
         </div>`;
       els.start?.classList.remove("hidden");
-      if (els.start) els.start.textContent = "Start today's briefing";
+      if (els.start) {
+        const projected = projectedCheckInReward();
+        els.start.textContent = `Start check-in · +${formatEnergy(projected.storyEnergy)} 🔥 · +${projected.xp} XP`;
+      }
       els.edit?.classList.add("hidden");
       return;
     }
@@ -388,6 +529,7 @@
         <div class="daily-summary-chip-v14"><span>◷</span><div><small>FREE TIME</small><strong>${esc(LABELS.time[checkIn.time] || checkIn.time)}</strong></div></div>
         <div class="daily-summary-chip-v14"><span>☷</span><div><small>OBLIGATIONS</small><strong>${esc(LABELS.obligations[checkIn.obligations] || checkIn.obligations)}</strong></div></div>
       </div>
+      ${checkInRewardMarkup(todayRecord()?.checkInReward)}
       <div class="daily-capacity-note-v14 ${checkIn.gentle ? "gentle" : ""}">
         <span>${checkIn.gentle ? "♡" : "✿"}</span>
         <div><small>PLANNER READ</small><strong>${esc(capacity.title)}</strong><p>${esc(capacity.text)}</p></div>
@@ -593,12 +735,15 @@
     if (!els.dialog || !els.form) return;
     const existing = todayRecord();
     provisionalCompanion = existing?.companion?.id ? companionById(existing.companion.id) : companionForDate();
-    renderDialogCompanion(provisionalCompanion);
+    conversationEditing = Boolean(editing && existing?.checkIn);
+    conversationStep = 0;
 
     els.form.reset();
-    if (editing && existing?.checkIn) fillCheckIn(existing.checkIn);
-    if (els.dialogTitle) els.dialogTitle.textContent = editing ? "Adjust today's check-in." : dialogTitleFor(provisionalCompanion);
+    if (conversationEditing) fillCheckIn(existing.checkIn);
+    renderDialogCompanion(provisionalCompanion);
+    if (els.dialogTitle) els.dialogTitle.textContent = conversationEditing ? "Adjust today's check-in." : dialogTitleFor(provisionalCompanion);
     els.dialog.showModal();
+    showConversationStep(0);
   }
 
   function fillCheckIn(checkIn) {
@@ -606,7 +751,7 @@
     setRadio("dailyEnergy", checkIn.energy);
     setRadio("dailyTime", checkIn.time);
     setRadio("dailyObligations", checkIn.obligations);
-    if (els.gentle) els.gentle.checked = Boolean(checkIn.gentle);
+    setRadio("dailyGentleChoice", checkIn.gentle ? "yes" : "no");
   }
 
   function setRadio(name, value) {
@@ -617,9 +762,123 @@
   function renderDialogCompanion(companion) {
     if (!els.dialogCompanion) return;
     const c = companion || companionById("luca");
+    els.dialog?.classList.toggle("mina-chat-v271", c.id === "mina");
+    els.dialog?.classList.toggle("luca-monologue-v271", c.id !== "mina");
     els.dialogCompanion.innerHTML = `
-      <div class="daily-dialog-avatar-v14 ${escAttr(c.id)}">${companionImage(c, true)}</div>
-      <div><small>${esc(c.kicker)}</small><strong>${esc(c.name)}</strong><p>${esc(c.dialogLine)}</p></div>`;
+      <div id="dailyDialogAvatar" class="daily-dialog-avatar-v14 ${escAttr(c.id)}">${companionImage(c, true)}</div>
+      <div><small>${esc(c.kicker)}</small><strong>${esc(c.name)}</strong><p id="dailyDialogLine">${esc(c.dialogLine)}</p></div>`;
+  }
+
+  function showConversationStep(index) {
+    if (!els.form) return;
+    const steps = [...els.form.querySelectorAll("[data-daily-question]")];
+    if (!steps.length) return;
+    conversationStep = clamp(Number(index || 0), 0, steps.length - 1);
+
+    steps.forEach((step, stepIndex) => {
+      const active = stepIndex === conversationStep;
+      step.classList.toggle("is-active-v271", active);
+      step.setAttribute("aria-hidden", active ? "false" : "true");
+    });
+
+    const key = steps[conversationStep]?.dataset.dailyQuestion || CONVERSATION_STEPS[conversationStep];
+    const prompt = conversationQuestion(provisionalCompanion, key);
+    const promptEl = steps[conversationStep]?.querySelector("legend strong");
+    if (promptEl) promptEl.textContent = prompt;
+    setDialogLine(prompt);
+    setDialogPortraitMood("question");
+
+    if (els.conversationCounter) els.conversationCounter.textContent = `${conversationStep + 1} of ${steps.length}`;
+    if (els.conversationDots) {
+      els.conversationDots.innerHTML = steps.map((_, i) => `<span class="${i < conversationStep ? "done" : i === conversationStep ? "active" : ""}"></span>`).join("");
+    }
+    if (els.conversationBack) els.conversationBack.classList.toggle("hidden", conversationStep === 0);
+
+    const checked = steps[conversationStep]?.querySelector("input[type='radio']:checked");
+    updateConversationNext(Boolean(checked), conversationStep === steps.length - 1);
+  }
+
+  function handleConversationAnswer(event) {
+    const input = event.target;
+    if (!(input instanceof HTMLInputElement) || input.type !== "radio") return;
+    const step = input.closest?.("[data-daily-question]");
+    if (!step?.classList.contains("is-active-v271")) return;
+    const key = step.dataset.dailyQuestion;
+    const reaction = conversationReaction(provisionalCompanion, key, input.value);
+    if (reaction) setDialogLine(reaction);
+    setDialogPortraitMood(reactionMood(key, input.value));
+    updateConversationNext(true, conversationStep === CONVERSATION_STEPS.length - 1);
+  }
+
+  function continueConversation() {
+    if (!els.form) return;
+    const steps = [...els.form.querySelectorAll("[data-daily-question]")];
+    const current = steps[conversationStep];
+    if (!current?.querySelector("input[type='radio']:checked")) return;
+    if (conversationStep >= steps.length - 1) {
+      els.form.requestSubmit();
+      return;
+    }
+    showConversationStep(conversationStep + 1);
+  }
+
+  function updateConversationNext(answered, finalStep) {
+    if (!els.conversationNext) return;
+    els.conversationNext.disabled = !answered;
+    if (!answered) {
+      els.conversationNext.textContent = "Choose an answer";
+      return;
+    }
+    if (finalStep) {
+      const reward = todayRecord()?.checkIn ? null : projectedCheckInReward();
+      els.conversationNext.textContent = conversationEditing
+        ? "Save changes ✦"
+        : `Finish check-in${reward ? ` · +${formatEnergy(reward.storyEnergy)} 🔥 · +${reward.xp} XP` : ""}`;
+      return;
+    }
+    els.conversationNext.textContent = "Continue →";
+  }
+
+  function conversationQuestion(companion, key) {
+    const id = companion?.id === "mina" ? "mina" : "luca";
+    return CHECKIN_COPY[id]?.[key]?.question || "How are we doing?";
+  }
+
+  function conversationReaction(companion, key, value) {
+    const id = companion?.id === "mina" ? "mina" : "luca";
+    return CHECKIN_COPY[id]?.[key]?.reactions?.[value] || "Okay. Noted.";
+  }
+
+  function setDialogLine(text) {
+    const line = byId("dailyDialogLine");
+    if (line) line.textContent = text;
+  }
+
+  function reactionMood(key, value) {
+    if (["great", "lots", "plenty", "open", "no"].includes(value)) return "positive";
+    if (["bad", "fumes", "help", "yes"].includes(value)) return "low";
+    if (["meh", "low", "busy"].includes(value)) return "skeptical";
+    return key === "gentle" ? "warm" : "neutral";
+  }
+
+  function setDialogPortraitMood(mood) {
+    const img = byId("dailyDialogAvatar")?.querySelector("img");
+    if (!img || !provisionalCompanion) return;
+    if (provisionalCompanion.id === "mina") {
+      img.src = mood === "positive"
+        ? "assets/story/sprites/mina_excited.png"
+        : mood === "skeptical"
+          ? "assets/story/sprites/mina_teasing.png"
+          : mood === "question"
+            ? "assets/story/sprites/mina_curious.png"
+            : "assets/story/sprites/mina_neutral.png";
+      return;
+    }
+    img.src = mood === "positive" || mood === "warm"
+      ? "assets/story/portraits/luca_warm.png"
+      : mood === "skeptical" || mood === "low"
+        ? "assets/story/portraits/luca_skeptical.png"
+        : "assets/story/portraits/luca_neutral.png";
   }
 
   function closeBriefing() {
@@ -635,7 +894,7 @@
       energy: radioValue("dailyEnergy"),
       time: radioValue("dailyTime"),
       obligations: radioValue("dailyObligations"),
-      gentle: Boolean(els.gentle?.checked)
+      gentle: radioValue("dailyGentleChoice") === "yes"
     };
 
     const planner = plannerState();
@@ -662,10 +921,46 @@
     day.picks = existing.batchReward?.eventId && Array.isArray(existing.picks)
       ? existing.picks
       : buildPicks(checkIn, existing.picks || [], day.rerollHistory);
+    const firstCheckIn = !existing.checkIn;
+    if (firstCheckIn) {
+      const streak = checkInStreakOnCompletion(planner, key);
+      const requestedXP = checkInXPForStreak(streak);
+      const requestedStoryEnergy = checkInStoryEnergyForStreak(streak);
+      const reward = app.awardActivity?.({
+        source: "daily-checkin",
+        sourceId: key,
+        label: "Daily check-in",
+        xp: requestedXP,
+        realmXP: 0,
+        statXP: 0,
+        coins: 0,
+        storyEnergyBase: requestedStoryEnergy,
+        progressionRelevant: false,
+        at: new Date().toISOString(),
+        metadata: { streak, checkIn: true, dailyLoopReward: true }
+      }) || { xp: requestedXP, storyEnergy: requestedStoryEnergy, rawStoryEnergy: requestedStoryEnergy };
+      day.checkInReward = {
+        xp: Number(reward.xp || 0),
+        storyEnergy: Number(reward.storyEnergy || 0),
+        rawStoryEnergy: Number(reward.rawStoryEnergy || requestedStoryEnergy),
+        storyEnergyVersion: 2,
+        streak,
+        eventId: reward.eventId || null,
+        awardedAt: Date.now()
+      };
+    } else if (existing.checkInReward) {
+      day.checkInReward = existing.checkInReward;
+    }
+
     planner.days[key] = day;
     recordCompanion(planner, key, companion.id);
-    persist(existing.checkIn ? "daily-briefing-edit" : "daily-briefing-create");
+    persist(firstCheckIn ? "daily-checkin-create" : "daily-briefing-edit");
     closeBriefing();
+    if (firstCheckIn) {
+      app.renderAll?.();
+      const reward = day.checkInReward;
+      app.showToast?.(`Daily check-in · +${formatEnergy(reward?.storyEnergy || 0)} Story Energy · +${Number(reward?.xp || 0)} XP · ${Number(reward?.streak || 1)} day streak`);
+    }
     requestAnimationFrame(() => els.panel?.scrollIntoView({ behavior: "smooth", block: "start" }));
   }
 
@@ -1675,6 +1970,130 @@
     day.batchClearedAt = null;
     day.updatedAt = Date.now();
     persist("daily-new-batch");
+  }
+
+  function checkInXPForStreak(streak) {
+    const safe = Math.max(1, Math.round(Number(streak || 1)));
+    return 5 + Math.min(5, Math.floor((safe - 1) / 2));
+  }
+
+  function checkInStoryEnergyForStreak(streak) {
+    const safe = Math.max(1, Math.round(Number(streak || 1)));
+    return Math.min(1, 0.6 + Math.floor((safe - 1) / 2) * 0.1);
+  }
+
+  function checkInStreakOnCompletion(planner, key) {
+    let streak = 1;
+    let cursor = previousDateKey(key);
+    while (planner?.days?.[cursor]?.checkIn) {
+      streak += 1;
+      cursor = previousDateKey(cursor);
+      if (streak >= 3650) break;
+    }
+    return streak;
+  }
+
+  function currentCheckInStreak() {
+    const planner = plannerState();
+    const today = todayKey();
+    if (!planner.days?.[today]?.checkIn) return 0;
+    return checkInStreakOnCompletion(planner, today);
+  }
+
+  function projectedCheckInReward() {
+    const planner = plannerState();
+    const key = todayKey();
+    const existing = planner.days?.[key];
+    if (existing?.checkIn) {
+      const streak = Number(existing.checkInReward?.streak || checkInStreakOnCompletion(planner, key));
+      return {
+        xp: Number(existing.checkInReward?.xp || 0),
+        storyEnergy: Number(existing.checkInReward?.storyEnergy || 0),
+        streak,
+        alreadyDone: true
+      };
+    }
+    const streak = checkInStreakOnCompletion(planner, key);
+    const xp = checkInXPForStreak(streak);
+    const rawStoryEnergy = checkInStoryEnergyForStreak(streak);
+    const preview = app.previewActivityReward?.({
+      source: "daily-checkin-preview",
+      sourceId: key,
+      xp,
+      realmXP: 0,
+      statXP: 0,
+      coins: 0,
+      storyEnergyBase: rawStoryEnergy,
+      progressionRelevant: false
+    });
+    return {
+      xp,
+      storyEnergy: Number(preview?.storyEnergy ?? rawStoryEnergy),
+      rawStoryEnergy,
+      streak,
+      alreadyDone: false
+    };
+  }
+
+  function previousDateKey(key) {
+    const date = new Date(`${key}T12:00:00`);
+    if (Number.isNaN(date.getTime())) return "";
+    date.setDate(date.getDate() - 1);
+    return dateKey(date);
+  }
+
+  function checkInRewardMarkup(reward) {
+    if (!reward) {
+      const streak = currentCheckInStreak();
+      return streak > 0
+        ? `<div class="daily-checkin-reward-v271 legacy"><span>✦</span><div><small>CHECK-IN STREAK</small><strong>${streak} day${streak === 1 ? "" : "s"}</strong><p>Older check-ins remain valid; Daily Loop rewards apply to new check-ins.</p></div></div>`
+        : "";
+    }
+    const streak = Math.max(1, Number(reward.streak || 1));
+    return `<div class="daily-checkin-reward-v271"><span>+${formatEnergy(reward.storyEnergy || 0)} 🔥</span><div><small>DAILY LOOP REWARD · +${Number(reward.xp || 0)} XP</small><strong>${streak} day${streak === 1 ? "" : "s"} in a row</strong><p>Showing up counts. The streak gradually raises both rewards; Story Energy caps at +1/day and XP at +10/day.</p></div></div>`;
+  }
+
+  function ensureTodayCheckInStoryEnergyReward() {
+    const planner = plannerState();
+    const key = todayKey();
+    const day = planner.days?.[key];
+    if (!day?.checkIn) return false;
+    const existingReward = day.checkInReward || {};
+    if (Number(existingReward.storyEnergyVersion || 0) >= 2 || Number(existingReward.storyEnergy || 0) > 0) return false;
+
+    const streak = Number(existingReward.streak || checkInStreakOnCompletion(planner, key));
+    const requestedStoryEnergy = checkInStoryEnergyForStreak(streak);
+    const reward = app.awardActivity?.({
+      source: "daily-checkin-v272",
+      sourceId: key,
+      label: "Daily check-in Story Energy",
+      xp: 0,
+      realmXP: 0,
+      statXP: 0,
+      coins: 0,
+      storyEnergyBase: requestedStoryEnergy,
+      progressionRelevant: false,
+      at: new Date().toISOString(),
+      metadata: { streak, checkIn: true, dailyLoopRewardUpgrade: true }
+    }) || { storyEnergy: requestedStoryEnergy, rawStoryEnergy: requestedStoryEnergy };
+
+    day.checkInReward = {
+      ...existingReward,
+      storyEnergy: Number(reward.storyEnergy || 0),
+      rawStoryEnergy: Number(reward.rawStoryEnergy || requestedStoryEnergy),
+      storyEnergyVersion: 2,
+      streak,
+      storyEventId: reward.eventId || null,
+      awardedAt: existingReward.awardedAt || Date.now()
+    };
+    day.updatedAt = Date.now();
+    return true;
+  }
+
+  function formatEnergy(value) {
+    if (typeof app.formatEnergy === "function") return app.formatEnergy(value);
+    const n = Number(value || 0);
+    return Number.isInteger(n) ? String(n) : n.toFixed(2).replace(/0+$/, "").replace(/\.$/, "");
   }
 
   function currentMoment() {

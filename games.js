@@ -436,9 +436,17 @@
     } else {
       model().items.push(game);
     }
+    const stewardshipReward = existing ? null : window.LifeRPGStewardship?.rewardCreation?.({
+      type: "game",
+      id: game.id,
+      label: game.title,
+      fields: [game.title, game.platform]
+    });
     persist(existing ? "game-edit" : "game-create");
+    if (Number(stewardshipReward?.xp || 0) > 0 || Number(stewardshipReward?.storyEnergy || 0) > 0) app.renderAll?.();
     closeGameDialog();
-    showToast(existing ? "Game updated" : "Game added", `${game.title} is ready for the planner.`);
+    const upkeepText = window.LifeRPGStewardship?.statusText?.(stewardshipReward) || "";
+    showToast(existing ? "Game updated" : "Game added", [`${game.title} is ready for the planner.`, upkeepText].filter(Boolean).join(" · "));
   }
 
   function deleteCurrentGame() {
@@ -487,12 +495,12 @@
     const minutes = Math.max(0, Number(els.logMinutes?.value || 0));
     const progress = game.progressMode === "percent" ? clamp(Number(els.logProgress?.value || game.progress || 0), 0, 100) : null;
     const goal = game.goals.find(item => item.id === els.logGoal?.value);
-    els.logPreview.innerHTML = `<span>▶</span><div><small>SESSION</small><strong>${esc(formatDuration(minutes))} with ${esc(game.title)}</strong><p>${goal ? `Working toward: ${esc(goal.text)}` : "Just playing counts."}${progress === null ? "" : ` · Progress after: ${progress}%`}</p></div>`;
+    els.logPreview.innerHTML = `<span>▶</span><div><small>SESSION</small><strong>${esc(formatDuration(minutes))} with ${esc(game.title)}</strong><p>${goal ? `Working toward: ${esc(goal.text)}` : "Just playing counts for hobby XP; Story Energy comes from clearing tracked goals or finishing games."}${progress === null ? "" : ` · Progress after: ${progress}%`}</p></div>`;
   }
 
   function gameRewardSpec(game, minutes, at) {
-    const storyEnergyBase = Math.min(3, Math.max(0.25, Math.max(1, Number(minutes || 0)) * 0.025));
-    const xp = Math.max(3, Math.round(storyEnergyBase * 10));
+    const sessionWeight = Math.min(3, Math.max(0.25, Math.max(1, Number(minutes || 0)) * 0.025));
+    const xp = Math.max(3, Math.round(sessionWeight * 10));
     const role = ROLES[game.role] || ROLES.fun;
     const capability = game.role === "social"
       ? "social"
@@ -510,7 +518,7 @@
       xp,
       realmXP: xp,
       statXP: Math.max(1, Math.round(xp * 0.65)),
-      storyEnergyBase,
+      storyEnergyBase: 0,
       dedupeFamily: "gaming",
       at: new Date(at).toISOString(),
       metadata: { minutes: Number(minutes || 0), role: game.role }
@@ -527,6 +535,7 @@
     const now = Date.now();
     const goalId = els.logGoal?.value || "";
     const progressAfter = game.progressMode === "percent" ? clamp(Number(els.logProgress?.value || game.progress || 0), 0, 100) : null;
+    const wasFinished = game.status === "finished" || Number(game.progress || 0) >= 100;
 
     const reward = app.awardActivity?.(gameRewardSpec(game, minutes, now)) || {
       xp: 0, realmXP: 0, statXP: 0, storyEnergy: 0, rawStoryEnergy: 0
@@ -546,13 +555,35 @@
     if (game.status === "backlog" || game.status === "paused") game.status = "playing";
     if (game.progressMode === "percent" && game.progress >= 100 && game.status !== "endless") game.status = "finished";
 
+    let finishReward = null;
+    if (!wasFinished && game.status === "finished" && !game.finishRewardEventId) {
+      finishReward = app.awardActivity?.({
+        source: "game-finish",
+        sourceId: game.id,
+        label: `Finished: ${game.title}`,
+        realm: (ROLES[game.role] || ROLES.fun).realm,
+        capability: game.role === "japanese" ? "japanese" : game.role === "challenge" ? "confidence" : "wellbeing",
+        xp: 10,
+        realmXP: 10,
+        statXP: 6,
+        coins: 0,
+        storyEnergyBase: 1.5,
+        progressionRelevant: true,
+        at: new Date(now).toISOString(),
+        metadata: { gameFinished: true }
+      }) || null;
+      game.finishRewardEventId = finishReward?.eventId || `local-finish-${now}`;
+      game.finishRewardStoryEnergy = Number(finishReward?.storyEnergy || 0);
+    }
+
     persist("game-session-log");
     app.renderAll?.();
     closeLogDialog();
     const rewardText = reward.deduped
       ? " · already counted from a linked gaming quest"
-      : ` · +${app.formatEnergy?.(reward.storyEnergy) ?? reward.storyEnergy} 🔥 · +${Number(reward.xp || 0)} XP`;
-    showToast("Session logged", `${game.title} · ${formatDuration(minutes)}${goalId ? " · personal goal kept in focus" : ""}${rewardText}`);
+      : ` · +${Number(reward.xp || 0)} XP`;
+    const finishText = finishReward ? ` · finished +${app.formatEnergy?.(finishReward.storyEnergy) ?? finishReward.storyEnergy} 🔥` : "";
+    showToast("Session logged", `${game.title} · ${formatDuration(minutes)}${goalId ? " · personal goal kept in focus" : ""}${rewardText}${finishText}`);
   }
 
   function closeLogDialog() {
@@ -591,9 +622,41 @@
     if (!game || !goal) return;
     goal.done = !goal.done;
     goal.completedAt = goal.done ? Date.now() : null;
+
+    let goalReward = null;
+    if (goal.done && !goal.rewardEventId) {
+      const role = ROLES[game.role] || ROLES.fun;
+      const capability = game.role === "social"
+        ? "social"
+        : game.role === "japanese"
+          ? "japanese"
+          : game.role === "challenge"
+            ? "confidence"
+            : "wellbeing";
+      goalReward = app.awardActivity?.({
+        source: "game-goal",
+        sourceId: `${game.id}:${goal.id}`,
+        label: `${game.title}: ${goal.text}`,
+        realm: role.realm,
+        capability,
+        xp: 6,
+        realmXP: 6,
+        statXP: 4,
+        coins: 0,
+        storyEnergyBase: 0.8,
+        progressionRelevant: true,
+        metadata: { gameGoal: true }
+      }) || null;
+      goal.rewardEventId = goalReward?.eventId || `local-goal-${Date.now()}`;
+      goal.rewardStoryEnergy = Number(goalReward?.storyEnergy || 0);
+    }
+
     game.updatedAt = Date.now();
     persist("game-goal-toggle");
-    if (goal.done) showToast("Personal goal cleared ✦", `${game.title}: ${goal.text}`);
+    if (goal.done) {
+      const rewardText = goalReward ? ` · +${app.formatEnergy?.(goalReward.storyEnergy) ?? goalReward.storyEnergy} 🔥` : " · already rewarded";
+      showToast("Personal goal cleared ✦", `${game.title}: ${goal.text}${rewardText}`);
+    }
   }
 
   function deleteGoal(gameId, goalId) {

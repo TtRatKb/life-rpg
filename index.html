@@ -14,7 +14,7 @@
   <link rel="manifest" href="manifest.webmanifest?v=0.25.1" />
   <link rel="apple-touch-icon" href="assets/app-icon-180.png?v=0.25.1" />
   <link rel="icon" type="image/png" sizes="192x192" href="assets/app-icon-192.png?v=0.25.1" />
-  <link rel="stylesheet" href="styles.css?v=0.27.0" />
+  <link rel="stylesheet" href="styles.css?v=0.27.2" />
 </head>
 <body>
   <section id="mobileCloudGate" class="mobile-cloud-gate-v251" data-state="checking" aria-live="polite" aria-label="Life RPG cloud sign in">
@@ -69,6 +69,18 @@
     <main>
       <!-- BASE CAMP -->
       <section id="view-basecamp" class="view active dashboard-view-v3">
+        <section id="dailyMobileCheckinCard" class="mobile-daily-checkin-v271" aria-label="Daily check-in">
+          <div class="mobile-daily-checkin-copy-v271">
+            <span class="mobile-daily-checkin-mark-v271" aria-hidden="true">✦</span>
+            <div>
+              <small id="dailyMobileCheckinKicker">MORNING CHECK-IN</small>
+              <strong id="dailyMobileCheckinTitle">Start the day with a tiny check-in.</strong>
+              <span id="dailyMobileCheckinMeta">Earn XP for showing up consistently.</span>
+            </div>
+          </div>
+          <button id="dailyMobileCheckinButton" class="primary-button" type="button">Check in</button>
+        </section>
+
         <section class="dashboard-hero-v3">
           <div class="dashboard-hero-copy-v3">
             <div class="dashboard-day-line">
@@ -1462,8 +1474,13 @@ Project Hail Mary — Andy Weir
 
       <div id="dailyDialogCompanion" class="daily-dialog-companion-v14"></div>
 
-      <fieldset class="daily-question-v14" data-daily-question="sleep">
-        <legend><span>01</span><strong>How did you sleep?</strong></legend>
+      <div class="daily-conversation-progress-v271" aria-live="polite">
+        <span id="dailyConversationCounter">1 of 5</span>
+        <div id="dailyConversationDots" class="daily-conversation-dots-v271" aria-hidden="true"></div>
+      </div>
+
+      <fieldset class="daily-question-v14 daily-conversation-step-v271" data-daily-question="sleep">
+        <legend><span>01</span><strong id="dailyPromptSleep">How did you sleep?</strong></legend>
         <div class="daily-choice-row-v14">
           <label><input type="radio" name="dailySleep" value="bad" required /><span>Bad</span></label>
           <label><input type="radio" name="dailySleep" value="meh" /><span>Meh</span></label>
@@ -1472,8 +1489,8 @@ Project Hail Mary — Andy Weir
         </div>
       </fieldset>
 
-      <fieldset class="daily-question-v14" data-daily-question="energy">
-        <legend><span>02</span><strong>How much energy do you have?</strong></legend>
+      <fieldset class="daily-question-v14 daily-conversation-step-v271" data-daily-question="energy">
+        <legend><span>02</span><strong id="dailyPromptEnergy">How much energy do you have?</strong></legend>
         <div class="daily-choice-row-v14">
           <label><input type="radio" name="dailyEnergy" value="fumes" required /><span>Running on fumes</span></label>
           <label><input type="radio" name="dailyEnergy" value="low" /><span>Low</span></label>
@@ -1482,8 +1499,8 @@ Project Hail Mary — Andy Weir
         </div>
       </fieldset>
 
-      <fieldset class="daily-question-v14" data-daily-question="time">
-        <legend><span>03</span><strong>How much free time is actually yours?</strong></legend>
+      <fieldset class="daily-question-v14 daily-conversation-step-v271" data-daily-question="time">
+        <legend><span>03</span><strong id="dailyPromptTime">How much free time is actually yours?</strong></legend>
         <div class="daily-choice-row-v14">
           <label><input type="radio" name="dailyTime" value="none" required /><span>Almost none</span></label>
           <label><input type="radio" name="dailyTime" value="little" /><span>A little</span></label>
@@ -1492,8 +1509,8 @@ Project Hail Mary — Andy Weir
         </div>
       </fieldset>
 
-      <fieldset class="daily-question-v14" data-daily-question="obligations">
-        <legend><span>04</span><strong>How full is the must-do part of today?</strong></legend>
+      <fieldset class="daily-question-v14 daily-conversation-step-v271" data-daily-question="obligations">
+        <legend><span>04</span><strong id="dailyPromptObligations">How full is the must-do part of today?</strong></legend>
         <div class="daily-choice-row-v14">
           <label><input type="radio" name="dailyObligations" value="help" required /><span>Please send help</span></label>
           <label><input type="radio" name="dailyObligations" value="busy" /><span>Busy</span></label>
@@ -1502,15 +1519,20 @@ Project Hail Mary — Andy Weir
         </div>
       </fieldset>
 
-      <label class="daily-gentle-toggle-v14">
-        <input id="dailyGentle" type="checkbox" />
-        <span class="daily-gentle-check-v14">♡</span>
-        <span><strong>I need a gentle day.</strong><small>No explanation required. The planner will lower the friction.</small></span>
-      </label>
+      <fieldset class="daily-question-v14 daily-conversation-step-v271" data-daily-question="gentle">
+        <legend><span>05</span><strong id="dailyPromptGentle">Do you need a deliberately gentle day?</strong></legend>
+        <div class="daily-choice-row-v14 daily-choice-row-two-v271">
+          <label><input id="dailyGentle" type="radio" name="dailyGentleChoice" value="yes" required /><span>Yes. Keep it gentle ♡</span></label>
+          <label><input type="radio" name="dailyGentleChoice" value="no" /><span>No, normal planning is fine</span></label>
+        </div>
+      </fieldset>
 
-      <menu>
+      <p class="daily-conversation-hint-v271">One answer at a time. Your check-in changes the planner, not your relationship scores.</p>
+
+      <menu class="daily-conversation-menu-v271">
         <button class="secondary-button" id="dailyBriefingCancel" type="button">Not now</button>
-        <button class="primary-button" type="submit">Build my day ✦</button>
+        <button class="secondary-button hidden" id="dailyConversationBack" type="button">← Back</button>
+        <button class="primary-button" id="dailyConversationNext" type="button" disabled>Choose an answer</button>
       </menu>
     </form>
   </dialog>
@@ -2005,16 +2027,17 @@ Project Hail Mary — Andy Weir
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <script src="data/quests.js"></script>
-  <script src="story-engine.js?v=0.27.0"></script>
+  <script src="story-engine.js?v=0.27.2"></script>
   <script src="app.js?v=0.23.0"></script>
-  <script src="habits.js?v=0.25.0"></script>
-  <script src="adventures.js?v=0.18.1"></script>
-  <script src="library.js?v=0.18.1"></script>
-  <script src="games.js?v=0.18.1"></script>
-  <script src="daily.js?v=0.23.0"></script>
-  <script src="story-ui.js?v=0.27.0"></script>
+  <script src="stewardship.js?v=0.27.2"></script>
+  <script src="habits.js?v=0.27.2"></script>
+  <script src="adventures.js?v=0.27.2"></script>
+  <script src="library.js?v=0.27.2"></script>
+  <script src="games.js?v=0.27.2"></script>
+  <script src="daily.js?v=0.27.2"></script>
+  <script src="story-ui.js?v=0.27.2"></script>
   <script src="achievements.js?v=0.23.0"></script>
   <script type="module" src="cloud-save.js?v=0.25.1"></script>
-  <script src="pwa.js?v=0.27.0"></script>
+  <script src="pwa.js?v=0.27.2"></script>
 </body>
 </html>

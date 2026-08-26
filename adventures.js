@@ -376,8 +376,19 @@
     item.updatedAt = now;
     if (item.progressMode === "percent" && item.progress >= 100) item.status = "finished";
     if (!existing) current.items.push(item);
+    const stewardshipReward = existing ? null : window.LifeRPGStewardship?.rewardCreation?.({
+      type: "adventure",
+      id: item.id,
+      label: item.name,
+      fields: [item.name, item.kind]
+    });
     persist(existing ? "side-adventure-edit" : "side-adventure-create");
+    if (Number(stewardshipReward?.xp || 0) > 0 || Number(stewardshipReward?.storyEnergy || 0) > 0) app.renderAll?.();
     closeAdventureDialog();
+    if (stewardshipReward) {
+      const upkeepText = window.LifeRPGStewardship?.statusText?.(stewardshipReward) || "";
+      if (upkeepText) app.showToast?.(`Side Adventure added · ${upkeepText}`);
+    }
   }
 
   function deleteCurrentAdventure() {
