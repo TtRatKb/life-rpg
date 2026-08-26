@@ -102,6 +102,12 @@
     });
 
     document.addEventListener("click", event => {
+      const dateMode = event.target.closest?.("[data-habit-date-mode]");
+      if (dateMode) {
+        habitViewOffset = dateMode.dataset.habitDateMode === "yesterday" ? -1 : 0;
+        render();
+      }
+
       const complete = event.target.closest?.("[data-habit-complete]");
       if (complete) {
         completeHabit(complete.dataset.habitComplete, complete.dataset.habitDate || todayKey());

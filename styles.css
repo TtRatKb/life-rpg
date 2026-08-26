@@ -10425,3 +10425,272 @@ dialog:not(.story-phone-dialog)::backdrop { background: rgba(49,29,50,.44); }
     margin-top: 4px;
   }
 }
+
+/* ========================================================================== 
+   V0.25.0 · Mobile Quick Log Pass
+   Mobile is a fast habit companion first; desktop layout remains unchanged.
+   ========================================================================== */
+
+.dashboard-habit-mobile-actions-v250 { display: none; }
+
+@media (max-width: 720px) {
+  :root { --mobile-dock-height-v250: 74px; }
+
+  html { scroll-padding-bottom: calc(var(--mobile-dock-height-v250) + 20px); }
+  body { -webkit-tap-highlight-color: rgba(207, 93, 137, .12); }
+
+  .app-shell {
+    width: min(100% - 18px, 680px);
+    padding: 76px 0 calc(var(--mobile-dock-height-v250) + env(safe-area-inset-bottom, 0px) + 18px) !important;
+  }
+
+  /* A lighter phone header: keep the useful resources, drop decorative clutter. */
+  .topbar {
+    min-height: 62px;
+    padding: 8px 10px 8px 62px;
+  }
+  .brand-button { width: 56px; height: 62px; }
+  .brand-mark { width: 32px; height: 32px; font-size: .98rem; }
+  .top-resources { gap: 4px; }
+  .resource-pill { min-height: 38px; padding: 6px 8px; border-radius: 12px; }
+  .resource-pill.coins { display: none; }
+  .resource-pill strong { font-size: .78rem; }
+  .cloud-resource-button strong { max-width: 56px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* Five thumb destinations only. Other systems stay reachable from Dashboard. */
+  .bottom-nav {
+    bottom: max(7px, env(safe-area-inset-bottom, 0px));
+    width: min(520px, calc(100vw - 14px));
+    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+    padding: 5px 6px;
+    border-radius: 19px;
+    overflow: hidden;
+  }
+  .bottom-nav .nav-button { display: none; }
+  .bottom-nav .nav-button[data-view="basecamp"],
+  .bottom-nav .nav-button[data-view="habits"],
+  .bottom-nav .nav-button[data-view="story"],
+  .bottom-nav .nav-button[data-view="phone"],
+  .bottom-nav .nav-button[data-view="settings"] { display: grid; }
+  .bottom-nav .nav-button {
+    min-height: 54px;
+    padding: 6px 2px 5px;
+    gap: 1px;
+  }
+  .bottom-nav .nav-button span { font-size: 1.08rem; }
+  .bottom-nav .nav-button small { font-size: .54rem; }
+
+  /* Dashboard becomes "quick log first" on phones. */
+  #view-basecamp.active {
+    display: flex;
+    flex-direction: column;
+  }
+  #view-basecamp .dashboard-habits-preview { order: -20; }
+  #view-basecamp .dashboard-hero-v3 { order: -10; }
+
+  .dashboard-habits-preview {
+    margin-top: 0;
+    padding: 15px !important;
+    border-radius: 20px !important;
+    box-shadow: 0 12px 28px rgba(72,41,68,.08) !important;
+  }
+  .dashboard-habits-preview .panel-heading {
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  .dashboard-habits-preview .panel-heading > div:first-child { min-width: 0; }
+  .dashboard-habits-preview .panel-heading .eyebrow { margin-bottom: 2px; font-size: .58rem; }
+  .dashboard-habits-preview .panel-heading h2 { font-size: 1.32rem; }
+  .dashboard-habits-preview .panel-subcopy { display: none; }
+  .dashboard-habits-desktop-open-v250 { display: none !important; }
+  .dashboard-habit-mobile-actions-v250 {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: auto;
+  }
+  .dashboard-habit-mobile-actions-v250 button {
+    min-height: 40px;
+    padding: 7px 10px;
+    border-radius: 12px;
+    font-size: .69rem;
+    white-space: nowrap;
+  }
+  .dashboard-habit-list { margin-top: 8px; }
+  .dashboard-habit-summary-v1 {
+    padding: 8px 2px 10px;
+    gap: 2px;
+  }
+  .dashboard-habit-summary-v1 strong { font-size: .78rem; }
+  .dashboard-habit-summary-v1 span { font-size: .62rem; }
+  .dashboard-habit-dayplan-v131 { gap: 7px; }
+  .dashboard-habit-daypart-v131 { border-radius: 14px; }
+  .dashboard-habit-daypart-v131 > header {
+    min-height: 40px;
+    padding: 8px 10px;
+  }
+  .dashboard-habit-daypart-v131 > header strong { font-size: .74rem; }
+  .dashboard-habit-daypart-v131 > header small { font-size: .61rem; }
+  .dashboard-habit-row-v131 {
+    min-height: 58px;
+    gap: 9px;
+    padding: 8px 9px;
+  }
+  .dashboard-habit-row-copy-v131 strong {
+    font-size: .79rem;
+    white-space: normal;
+    line-height: 1.2;
+  }
+  .dashboard-habit-row-copy-v131 small {
+    margin-top: 3px;
+    font-size: .62rem;
+    white-space: normal;
+    line-height: 1.25;
+  }
+  .dashboard-habit-row-v131 .habit-quick-complete-v1 {
+    min-width: 64px;
+    min-height: 42px;
+    padding: 7px 10px;
+    border-radius: 12px;
+    font-size: .68rem;
+    font-weight: 850;
+  }
+  .dashboard-habit-row-v131 .dashboard-habit-state-v1 {
+    min-width: 40px;
+    font-size: .72rem;
+  }
+
+  /* Keep the desktop hero, but make it secondary and much shorter on phone. */
+  .dashboard-hero-v3 {
+    margin-top: 12px;
+    padding: 17px !important;
+    border-radius: 20px !important;
+  }
+  .dashboard-hero-v3 .dashboard-day-line,
+  .dashboard-hero-v3 .hero-actions,
+  .dashboard-hero-v3 .dashboard-player-details-v3 { display: none; }
+  .dashboard-hero-v3 .dashboard-hero-copy-v3 .eyebrow { margin-bottom: 4px; }
+  .dashboard-hero-v3 .dashboard-hero-copy-v3 h1 { margin-bottom: 4px; font-size: 1.55rem; }
+  .dashboard-hero-v3 .hero-copy { margin: 0; font-size: .78rem; line-height: 1.45; }
+  .dashboard-player-card-v3 { min-height: 0; }
+  .dashboard-player-art-v3 { min-height: 112px; }
+  .dashboard-player-art-v3 .avatar-portrait { max-height: 124px; object-position: center 20%; }
+
+  /* The full Habit screen is also a logger first, manager second. */
+  #view-habits.active {
+    display: flex;
+    flex-direction: column;
+  }
+  #view-habits .habit-board-shell-v1 { order: -30; }
+  #view-habits .habit-summary-grid-v1 { order: -20; }
+  #view-habits .habit-hero-v1 { order: -10; }
+
+  .habit-hero-v1 { display: none; }
+  .habit-board-shell-v1 {
+    margin-top: 0;
+    padding: 14px !important;
+    border-radius: 20px !important;
+  }
+  .habit-board-heading-v1 {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 13px;
+  }
+  .habit-board-heading-v1 h2 { font-size: 1.35rem; }
+  .habit-board-heading-v1 p { display: none; }
+  .habit-board-actions-v1 {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 7px;
+  }
+  .habit-date-switch-v249 {
+    grid-column: 1 / -1;
+    min-height: 48px;
+    padding: 5px 6px 5px 11px;
+  }
+  .habit-date-label-v249 { font-size: .72rem; }
+  .habit-date-toggle-v249 { min-height: 38px; font-size: .68rem; }
+  #toggleArchivedHabits { align-self: center; padding: 6px 2px; font-size: .67rem; }
+  #addHabitButtonSecondary { min-height: 40px; padding: 7px 10px; font-size: .68rem; }
+
+  .habit-summary-grid-v1 {
+    grid-template-columns: repeat(3, minmax(0,1fr));
+    gap: 6px;
+    margin: 8px 0 12px;
+  }
+  .habit-summary-card-v1 {
+    min-height: 66px;
+    padding: 9px 8px;
+    border-radius: 15px;
+  }
+  .habit-summary-card-v1 > span { display: none; }
+  .habit-summary-card-v1 small { font-size: .49rem; line-height: 1.1; }
+  .habit-summary-card-v1 strong { margin-top: 4px; font-size: .9rem; }
+
+  .habit-daypart-section-v131 { padding: 10px; border-radius: 16px; }
+  .habit-daypart-heading-v131 { margin-bottom: 8px; }
+  .habit-daypart-grid-v131 { gap: 8px; }
+  .habit-card-v1 {
+    min-height: 0;
+    padding: 13px 12px 12px;
+    border-radius: 16px;
+  }
+  .habit-card-v1::after { opacity: .35; }
+  .habit-card-title-v1 h3 { margin-top: 5px; font-size: 1rem; }
+  .habit-card-labels-v1 { gap: 4px; }
+  .habit-card-labels-v1 span { padding: 4px 6px; font-size: .54rem; }
+  .habit-card-labels-v1 span:nth-child(n+3) { display: none; }
+  .habit-card-note-v1,
+  .habit-reward-line-v1,
+  .habit-no-penalty-v1 { display: none !important; }
+  .habit-progress-panel-v1 {
+    grid-template-columns: minmax(0,1fr) auto;
+    gap: 8px;
+    margin-top: 10px;
+    padding: 9px 10px;
+    border-radius: 13px;
+  }
+  .habit-progress-panel-v1 small { font-size: .51rem; }
+  .habit-progress-panel-v1 strong { font-size: .72rem; }
+  .habit-progress-panel-v1 span { font-size: .61rem; }
+  .habit-streak-flame-v1 { min-width: 56px; padding: 6px 8px; }
+  .habit-streak-flame-v1 > span { font-size: .88rem; }
+  .habit-card-footer-v1 { margin-top: 10px; padding-top: 0; border-top: 0; }
+  .habit-card-actions-v1 { width: 100%; }
+  .habit-card-actions-v1 button {
+    width: 100%;
+    min-height: 48px;
+    border-radius: 13px;
+    font-size: .73rem;
+    font-weight: 850;
+  }
+
+  /* Low-priority dashboard navigation stays available, but no longer competes with logging. */
+  .dashboard-command-strip-habits {
+    grid-template-columns: repeat(2, minmax(0,1fr));
+    gap: 7px;
+    margin-top: 16px;
+  }
+  .dashboard-command-strip-habits button { min-height: 64px; padding: 9px 10px; }
+  .dashboard-command-strip-habits button small { display: none; }
+
+  .habit-toast-v1,
+  .achievement-toast-v21,
+  .adventure-toast-v15 {
+    bottom: calc(var(--mobile-dock-height-v250) + env(safe-area-inset-bottom, 0px) + 15px) !important;
+  }
+}
+
+@media (max-width: 420px) {
+  .topbar { padding-right: 8px; }
+  .resource-pill { padding-inline: 7px; }
+  .cloud-resource-button { display: none; }
+  .dashboard-habit-mobile-actions-v250 button:first-child { padding-inline: 8px; }
+  .dashboard-habit-mobile-actions-v250 button:last-child { padding-inline: 9px; }
+  .dashboard-habit-mobile-actions-v250 button { font-size: .64rem; }
+  .dashboard-hero-v3 { grid-template-columns: minmax(0,1fr) 92px !important; }
+  .dashboard-player-art-v3 { min-height: 96px; }
+  .dashboard-command-strip-habits { grid-template-columns: 1fr 1fr; }
+}

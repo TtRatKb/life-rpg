@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#321d34" />
   <title>Life RPG — Base Camp</title>
-  <link rel="stylesheet" href="styles.css?v=0.24.9" />
+  <link rel="stylesheet" href="styles.css?v=0.25.0" />
 </head>
 <body>
   <div class="ambient ambient-one"></div>
@@ -91,7 +91,7 @@
         </section>
 
         <section class="dashboard-command-strip dashboard-command-strip-habits" aria-label="Life RPG quick navigation">
-          <button data-view-target="habits"><span class="command-strip-icon">❀</span><span><strong>Habits</strong><small>Build consistency without punishment.</small></span><b>›</b></button>
+          <button data-view-target="habits" data-habit-date-mode="today"><span class="command-strip-icon">❀</span><span><strong>Habits</strong><small>Build consistency without punishment.</small></span><b>›</b></button>
           <button data-view-target="quests"><span class="command-strip-icon">☷</span><span><strong>Quest Board</strong><small>Choose what fits today.</small></span><b>›</b></button>
           <button data-view-target="adventures"><span class="command-strip-icon">✧</span><span><strong>Side Adventures</strong><small>Come back to things you actually want.</small></span><b>›</b></button>
           <button data-view-target="library"><span class="command-strip-icon">📚</span><span><strong>Library</strong><small>Your books, without database homework.</small></span><b>›</b></button>
@@ -108,7 +108,11 @@
               <h2 id="dashboardHabitsTitle">Today's Habits</h2>
               <p class="panel-subcopy">Small things worth remembering. Streaks raise the reward; missing one never takes anything away.</p>
             </div>
-            <button class="mini-nav-button" data-view-target="habits" type="button">Open habits ›</button>
+            <button class="mini-nav-button dashboard-habits-desktop-open-v250" data-view-target="habits" data-habit-date-mode="today" type="button">Open habits ›</button>
+            <div class="dashboard-habit-mobile-actions-v250" aria-label="Mobile habit quick actions">
+              <button class="secondary-button" data-view-target="habits" data-habit-date-mode="yesterday" type="button">↶ Yesterday</button>
+              <button class="primary-button" data-view-target="habits" data-habit-date-mode="today" type="button">Log habits</button>
+            </div>
           </div>
           <div id="dashboardHabits" class="dashboard-habit-list"></div>
         </section>
@@ -1111,7 +1115,7 @@
     <nav class="bottom-nav" aria-label="Primary navigation">
       <div class="nav-section-label">YOUR LIFE</div>
       <button class="nav-button active" data-view="basecamp"><span>⌂</span><small>Dashboard</small></button>
-      <button class="nav-button" data-view="habits"><span>❀</span><small>Habits</small></button>
+      <button class="nav-button" data-view="habits" data-habit-date-mode="today"><span>❀</span><small>Habits</small></button>
       <button class="nav-button" data-view="quests"><span>☷</span><small>Quests</small></button>
       <button class="nav-button" data-view="adventures"><span>✧</span><small>Adventures</small></button>
       <button class="nav-button" data-view="library"><span>📚</span><small>Library</small></button>
@@ -1949,7 +1953,7 @@ Project Hail Mary — Andy Weir
   <script src="data/quests.js"></script>
   <script src="story-engine.js?v=0.24.0"></script>
   <script src="app.js?v=0.23.0"></script>
-  <script src="habits.js?v=0.24.9"></script>
+  <script src="habits.js?v=0.25.0"></script>
   <script src="adventures.js?v=0.18.1"></script>
   <script src="library.js?v=0.18.1"></script>
   <script src="games.js?v=0.18.1"></script>
