@@ -49,6 +49,12 @@
     phonePageThread: byId("phonePageThread"),
     phonePageUnreadLabel: byId("phonePageUnreadLabel"),
     navPhoneUnread: byId("navPhoneUnread"),
+    navStoryPulse: byId("navStoryPulse"),
+    worldPulseBadge: byId("storyWorldPulseBadge"),
+    worldPulseTitle: byId("storyWorldPulseTitle"),
+    worldPulseCopy: byId("storyWorldPulseCopy"),
+    worldPulseAction: byId("storyWorldPulseAction"),
+    dashboardSocialPulse: byId("socialPulse"),
 
     readerPage: byId("storyReaderPage"),
     shell: byId("storyReaderShell"),
@@ -111,6 +117,11 @@
       event.preventDefault();
       event.stopPropagation();
       handleStoryAction();
+    });
+    document.addEventListener("click", event => {
+      const dynamicNav = event.target.closest?.("#socialPulse [data-view-target], #peopleProfileActions [data-view-target]");
+      if (!dynamicNav) return;
+      app.showView?.(dynamicNav.dataset.viewTarget);
     });
     els.close?.addEventListener("click", closeReader);
     els.exitSide?.addEventListener("click", closeReader);
@@ -179,6 +190,15 @@
       const button = event.target.closest("[data-message-reply-group][data-message-reply-id]");
       if (!button) return;
       chooseMessageReply(button.dataset.messageReplyGroup, button.dataset.messageReplyId);
+    });
+
+    els.worldPulseAction?.addEventListener("click", () => {
+      const moment = currentWorldMoment();
+      if (moment) {
+        openRandomEvent(moment.id);
+        return;
+      }
+      app.showView?.("people");
     });
 
     els.phoneOpen?.addEventListener("click", () => openPhone());
@@ -286,6 +306,14 @@
       recentTalkIdsByPerson: {},
       lastInteractionByPerson: {},
       dailyTalkBondDatesByPerson: {},
+      completedRandomEventIds: [],
+      randomEventHistory: [],
+      queuedRandomEventId: null,
+      queuedRandomEventAt: null,
+      lastWorldMomentOfferDate: null,
+      activeRandomEventId: null,
+      randomEventStep: 0,
+      activeRandomEventProgressionSnapshot: null,
       activeHangoutId: null,
       hangoutStep: 0,
       activeHangoutProgressionSnapshot: null,
@@ -307,6 +335,9 @@
     state.story.social.recentTalkIdsByPerson = object(state.story.social.recentTalkIdsByPerson);
     state.story.social.lastInteractionByPerson = object(state.story.social.lastInteractionByPerson);
     state.story.social.dailyTalkBondDatesByPerson = object(state.story.social.dailyTalkBondDatesByPerson);
+    state.story.social.completedRandomEventIds = array(state.story.social.completedRandomEventIds);
+    state.story.social.randomEventHistory = array(state.story.social.randomEventHistory)
+      .filter(item => item && typeof item === "object" && item.id);
   }
 
   function migrateLegacyStoryIfNeeded() {
@@ -411,6 +442,19 @@
     if (state.story.activeSceneId && !engine.sceneById(pack, state.story.activeSceneId)) {
       state.story.activeSceneId = null;
       state.story.readerStep = 0;
+    }
+
+    const social = state.story.social;
+    social.completedRandomEventIds = array(social.completedRandomEventIds).filter(id => Boolean(randomEventById(id)));
+    social.randomEventHistory = array(social.randomEventHistory).filter(entry => entry?.id && Boolean(randomEventById(entry.id)));
+    if (social.queuedRandomEventId && !randomEventById(social.queuedRandomEventId)) {
+      social.queuedRandomEventId = null;
+      social.queuedRandomEventAt = null;
+    }
+    if (social.activeRandomEventId && !randomEventById(social.activeRandomEventId)) {
+      social.activeRandomEventId = null;
+      social.randomEventStep = 0;
+      social.activeRandomEventProgressionSnapshot = null;
     }
 
     repairAccidentalFreeSceneUnlock();
@@ -549,6 +593,7 @@
     renderMemories();
     renderPhonePreview();
     renderPhoneSurfaces();
+    renderWorldPulse();
   }
 
   function progressionRequirementMatches(requirement, snapshot = null) {
@@ -595,9 +640,12 @@
   function getSocialProgressionSnapshot(kind, sceneId, { create = false } = {}) {
     const state = app.getState();
     ensureStoryState();
-    const isTalk = kind === "talk";
-    const idKey = isTalk ? "activeTalkId" : "activeHangoutId";
-    const snapshotKey = isTalk ? "activeTalkProgressionSnapshot" : "activeHangoutProgressionSnapshot";
+    const keys = {
+      talk: ["activeTalkId", "activeTalkProgressionSnapshot"],
+      hangout: ["activeHangoutId", "activeHangoutProgressionSnapshot"],
+      event: ["activeRandomEventId", "activeRandomEventProgressionSnapshot"]
+    };
+    const [idKey, snapshotKey] = keys[kind] || keys.talk;
     const existing = state.story.social?.[snapshotKey];
 
     if (state.story.social?.[idKey] === sceneId && existing && typeof existing === "object") return existing;
@@ -714,7 +762,7 @@
           <div class="story-person-copy">
             <strong>${escapeHtml(person.name)}</strong>
             <small>${escapeHtml(personRole(person))}</small>
-            <span class="story-person-social-note">Talk = random everyday chat · Hang Out = story-unlocked · Messages = story-linked.</span>
+            <span class="story-person-social-note">Talk = responsive everyday chat · Hang Out = story-unlocked · Messages = story-linked.</span>
           </div>
           <div class="story-person-actions">
             <button class="secondary-button" type="button" data-talk-person="${escapeHtml(person.id)}" ${talk ? "" : "disabled"}>${escapeHtml(talkLabel)}</button>
@@ -816,7 +864,7 @@
     const pending = pendingReplyCount(selected.id);
     els.peopleProfileActions.innerHTML = `
       <button class="social-action-card" type="button" data-talk-person="${escapeHtml(selected.id)}" ${talk ? "" : "disabled"}>
-        <span class="social-action-icon">💬</span><span><strong>Talk</strong><small>${talkBondEarnedToday(selected.id) ? "Today’s relationship gain is already earned · keep chatting for fun" : "First completed chat today grows familiarity · extra chats are just for fun"}</small></span><b>${talkBondEarnedToday(selected.id) ? "✓ TODAY" : "FREE"}</b>
+        <span class="social-action-icon">💬</span><span><strong>Talk</strong><small>${talk && reactivityScore(talk) > 0 ? "Conversation can pick up on what you’ve been doing lately · free" : talkBondEarnedToday(selected.id) ? "Today’s relationship gain is already earned · keep chatting for fun" : "First completed chat today grows familiarity · extra chats are just for fun"}</small></span><b>${talkBondEarnedToday(selected.id) ? "✓ TODAY" : "FREE"}</b>
       </button>
       <button class="social-action-card" type="button" data-profile-message-person="${escapeHtml(selected.id)}" data-view-target="phone">
         <span class="social-action-icon">✉</span><span><strong>Messages</strong><small>${unread ? `${unread} unread conversation${unread === 1 ? "" : "s"}` : pending ? `${pending} ${pending === 1 ? "reply is" : "replies are"} still open whenever you want` : "Story-linked threads · no expiry"}</small></span>${unread ? `<b class="message-count">${unread} NEW</b>` : pending ? `<b class="message-count reply-waiting">REPLY</b>` : ""}
@@ -895,6 +943,186 @@
     return Array.isArray(pack?.social?.hangouts) ? pack.social.hangouts : [];
   }
 
+  function socialRandomEvents() {
+    return Array.isArray(pack?.social?.randomEvents) ? pack.social.randomEvents : [];
+  }
+
+  function randomEventById(eventId) {
+    return socialRandomEvents().find(event => event.id === eventId) || null;
+  }
+
+  function reactivityRuleMatches(rule) {
+    if (!rule || typeof rule !== "object") return false;
+    if (rule.progression && typeof app.evaluateProgressionCondition === "function") {
+      return app.evaluateProgressionCondition(rule.progression);
+    }
+    const criteria = rule.activity && typeof rule.activity === "object" ? rule.activity : null;
+    if (criteria && typeof app.getActivityCount === "function") {
+      const count = Number(app.getActivityCount(criteria) || 0);
+      const min = Number(rule.min ?? criteria.min ?? 1);
+      const max = rule.max ?? criteria.max;
+      if (count < min) return false;
+      if (max != null && count > Number(max)) return false;
+      return true;
+    }
+    return false;
+  }
+
+  function reactivityScore(item) {
+    return array(item?.reactivity).reduce((score, rule) => {
+      if (!reactivityRuleMatches(rule)) return score;
+      return score + Math.max(1, Number(rule.weight || 1));
+    }, 0);
+  }
+
+  function weightedPick(items, weightForItem = () => 1) {
+    if (!items.length) return null;
+    const weighted = items.map(item => ({ item, weight: Math.max(0.01, Number(weightForItem(item) || 1)) }));
+    const total = weighted.reduce((sum, entry) => sum + entry.weight, 0);
+    let cursor = Math.random() * total;
+    for (const entry of weighted) {
+      cursor -= entry.weight;
+      if (cursor <= 0) return entry.item;
+    }
+    return weighted.at(-1)?.item || items[0];
+  }
+
+  function randomEventAvailable(event) {
+    const state = app.getState();
+    const social = state.story?.social || {};
+    if (!event || !conditionMatches(event)) return false;
+    if (event.personId && !knownPeople().some(person => person.id === event.personId)) return false;
+    if (event.once && array(social.completedRandomEventIds).includes(event.id)) return false;
+
+    const cooldownDays = Math.max(0, Number(event.cooldownDays || 0));
+    if (cooldownDays > 0) {
+      const latest = array(social.randomEventHistory)
+        .filter(entry => entry?.id === event.id && entry.at)
+        .map(entry => new Date(entry.at).getTime())
+        .filter(Number.isFinite)
+        .sort((a, b) => b - a)[0];
+      if (latest && Date.now() - latest < cooldownDays * 86400000) return false;
+    }
+    return true;
+  }
+
+  function currentWorldMoment() {
+    const state = app.getState();
+    ensureStoryState();
+    const social = state.story.social;
+
+    if (social.queuedRandomEventId) {
+      const queued = randomEventById(social.queuedRandomEventId);
+      if (queued) return queued;
+      social.queuedRandomEventId = null;
+      social.queuedRandomEventAt = null;
+    }
+
+    const today = localDateKey();
+    if (social.lastWorldMomentOfferDate === today) return null;
+
+    const eligible = socialRandomEvents().filter(randomEventAvailable);
+    if (!eligible.length) return null;
+
+    const maxReactive = Math.max(0, ...eligible.map(reactivityScore));
+    const contextual = maxReactive > 0 ? eligible.filter(event => reactivityScore(event) === maxReactive) : eligible;
+    const selected = weightedPick(contextual, event => Math.max(1, Number(event.weight || 1)) + reactivityScore(event));
+    if (!selected) return null;
+
+    social.queuedRandomEventId = selected.id;
+    social.queuedRandomEventAt = new Date().toISOString();
+    social.lastWorldMomentOfferDate = today;
+    app.saveState({ source: "social-world-moment-offer" });
+    return selected;
+  }
+
+  function renderWorldPulse() {
+    const moment = currentWorldMoment();
+    const unread = unreadMessageCount();
+    const pending = pendingReplyCount();
+    const contextualTalk = knownPeople()
+      .map(person => nextTalkForPerson(person.id))
+      .find(talk => talk && reactivityScore(talk) > 0);
+
+    if (els.navStoryPulse) {
+      els.navStoryPulse.textContent = "✦";
+      els.navStoryPulse.classList.toggle("hidden", !moment);
+    }
+
+    if (els.worldPulseBadge && els.worldPulseTitle && els.worldPulseCopy && els.worldPulseAction) {
+      if (moment) {
+        els.worldPulseBadge.textContent = "NEW · FREE";
+        els.worldPulseBadge.classList.add("ready");
+        els.worldPulseTitle.textContent = "A little moment is waiting";
+        els.worldPulseCopy.textContent = "Something in your current life lined up with your social world. Open it when you feel like it — it will wait for you.";
+        els.worldPulseAction.disabled = false;
+        els.worldPulseAction.textContent = "See what happened";
+      } else if (contextualTalk) {
+        els.worldPulseBadge.textContent = "RESPONSIVE";
+        els.worldPulseBadge.classList.remove("ready");
+        els.worldPulseTitle.textContent = "Today can show up in conversation";
+        els.worldPulseCopy.textContent = "An ordinary Talk can pick up on the things you have actually been doing lately. No Story Energy needed.";
+        els.worldPulseAction.disabled = false;
+        els.worldPulseAction.textContent = "Open People";
+      } else {
+        els.worldPulseBadge.textContent = "QUIET";
+        els.worldPulseBadge.classList.remove("ready");
+        els.worldPulseTitle.textContent = "The world is quiet, not empty";
+        els.worldPulseCopy.textContent = "Talks, messages and spontaneous moments keep existing between main chapters. Nothing here needs Story Energy.";
+        els.worldPulseAction.disabled = knownPeople().length === 0;
+        els.worldPulseAction.textContent = knownPeople().length ? "Open People" : "No contacts yet";
+      }
+    }
+
+    if (els.dashboardSocialPulse) {
+      if (unread) {
+        els.dashboardSocialPulse.innerHTML = `<div class="pulse-card living-world"><span class="pulse-icon">✉</span><div><strong>${unread} unread conversation${unread === 1 ? "" : "s"}.</strong><p>Your social world has something waiting. Messages never expire.</p></div><button class="mini-nav-button" data-view-target="phone" type="button">Phone ›</button></div>`;
+      } else if (moment) {
+        els.dashboardSocialPulse.innerHTML = `<div class="pulse-card living-world"><span class="pulse-icon">✦</span><div><strong>Something happened in your social world.</strong><p>A small free moment is waiting in Story. It stays spoiler-free until you open it.</p></div><button class="mini-nav-button" data-view-target="story" type="button">Story ›</button></div>`;
+      } else if (contextualTalk) {
+        els.dashboardSocialPulse.innerHTML = `<div class="pulse-card living-world"><span class="pulse-icon">💬</span><div><strong>Someone can pick up on today.</strong><p>Talks can now react to recent real-life activity instead of feeling like a shuffled list.</p></div><button class="mini-nav-button" data-view-target="people" type="button">People ›</button></div>`;
+      } else if (knownPeople().length) {
+        els.dashboardSocialPulse.innerHTML = `<div class="pulse-card living-world"><span class="pulse-icon">♡</span><div><strong>Your social world is available.</strong><p>${pending ? "A reply is still open, and " : ""}Talks and relationship-unlocked time together remain free between chapters.</p></div><button class="mini-nav-button" data-view-target="people" type="button">People ›</button></div>`;
+      }
+    }
+  }
+
+  function openRandomEvent(eventId) {
+    const event = randomEventById(eventId);
+    if (!event) return false;
+    const state = app.getState();
+    ensureStoryState();
+
+    runtime = {
+      kind: "event",
+      sceneId: event.id,
+      replay: false,
+      scene: event,
+      replaySelections: {},
+      progressionSnapshot: getSocialProgressionSnapshot("event", event.id, { create: true }),
+      step: 0,
+      sequence: [],
+      finished: false
+    };
+    runtime.sequence = buildSequence(runtime);
+    resetVisualRenderState();
+    prefetchRuntimeVisuals();
+    const savedStep = state.story.social.activeRandomEventId === event.id
+      ? Math.max(0, Number(state.story.social.randomEventStep || 0))
+      : 0;
+    runtime.step = Math.min(savedStep, Math.max(0, runtime.sequence.length - 1));
+    state.story.social.activeRandomEventId = event.id;
+    state.story.social.queuedRandomEventId = event.id;
+    state.story.social.randomEventStep = runtime.step;
+    app.saveState({ source: "social-world-moment-open" });
+
+    els.readerPage.classList.remove("hidden");
+    document.body.classList.add("story-mode-open");
+    window.scrollTo({ top: 0, behavior: "instant" });
+    renderReaderNode();
+    return true;
+  }
+
   function recordSocialInteraction(personId, kind, interactionId) {
     const state = app.getState();
     if (!personId || !state.story?.social) return;
@@ -964,17 +1192,34 @@
     return person.role || "Known person";
   }
 
+  function recentInteractionPhrase(personId) {
+    const interaction = app.getState().story?.social?.lastInteractionByPerson?.[personId];
+    if (!interaction?.at) return "";
+    const at = new Date(interaction.at);
+    if (!Number.isFinite(at.getTime())) return "";
+    const today = localDateKey();
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const kind = interaction.kind === "message" ? "messaged" : interaction.kind === "hangout" ? "spent time together" : interaction.kind === "event" ? "crossed paths" : "talked";
+    if (localDateKey(at) === today) return `You ${kind} today.`;
+    if (localDateKey(at) === localDateKey(yesterday)) return `You ${kind} yesterday.`;
+    return "";
+  }
+
   function socialRhythmForPerson(person) {
     const state = app.getState();
+    let base = "This connection is still finding its shape.";
     if (person.id === "mina") {
-      if (state.flags?.MINA_CLOSE_FRIEND) return "You can be low-energy, nerdy, quiet or ridiculous around each other without needing to turn it into an event.";
-      if (state.flags?.MINA_CHOSEN_FRIENDSHIP_CONFIRMED) return "You make plans because you want to see each other, not because there is an event to justify it.";
-      if (state.flags?.MINA_FRIENDSHIP_ESTABLISHED) return "Conversation has started to feel ordinary instead of scheduled.";
-      if (state.flags?.MINA_HANGOUTS_UNLOCKED) return "The friendship is beginning to exist outside the original school context.";
-      if (state.flags?.STORY_MINA_FRIENDSHIP_STARTED) return "She keeps finding reasons to continue the conversation.";
+      if (state.flags?.MINA_CLOSE_FRIEND) base = "You can be low-energy, nerdy, quiet or ridiculous around each other without needing to turn it into an event.";
+      else if (state.flags?.MINA_CHOSEN_FRIENDSHIP_CONFIRMED) base = "You make plans because you want to see each other, not because there is an event to justify it.";
+      else if (state.flags?.MINA_FRIENDSHIP_ESTABLISHED) base = "Conversation has started to feel ordinary instead of scheduled.";
+      else if (state.flags?.MINA_HANGOUTS_UNLOCKED) base = "The friendship is beginning to exist outside the original school context.";
+      else if (state.flags?.STORY_MINA_FRIENDSHIP_STARTED) base = "She keeps finding reasons to continue the conversation.";
+    } else if (["kirishima", "bakugo"].includes(person.id)) {
+      base = "You have met once. An everyday relationship has not formed yet, so Talk and Hang Out remain locked.";
     }
-    if (["kirishima", "bakugo"].includes(person.id)) return "You have met once. An everyday relationship has not formed yet, so Talk and Hang Out remain locked.";
-    return "This connection is still finding its shape.";
+    const recent = recentInteractionPhrase(person.id);
+    return recent ? `${base} ${recent}` : base;
   }
 
   function hangoutById(hangoutId) {
@@ -1057,7 +1302,7 @@
     if (unseenOnce.length) {
       const highestPriority = Math.max(...unseenOnce.map(talk => Number(talk.priority || 0)));
       const timely = unseenOnce.filter(talk => Number(talk.priority || 0) === highestPriority);
-      return timely[Math.floor(Math.random() * timely.length)];
+      return weightedPick(timely, talk => 1 + reactivityScore(talk) * 4);
     }
 
     const repeatable = eligible.filter(talk => !talk.once);
@@ -1066,7 +1311,7 @@
     const fresh = repeatable.filter(talk => !recent.has(talk.id));
     const notLast = repeatable.filter(talk => talk.id !== social.lastTalkId);
     const pool = fresh.length ? fresh : notLast.length ? notLast : repeatable;
-    return pool[Math.floor(Math.random() * pool.length)];
+    return weightedPick(pool, talk => 1 + reactivityScore(talk) * 5);
   }
 
   function openNextTalk(personId) {
@@ -1458,7 +1703,7 @@
       if (node.type !== "choice") continue;
 
       const key = choiceKey(activeRuntime.sceneId, node.id);
-      const selectionStore = ["talk", "hangout"].includes(activeRuntime.kind) ? state.story.social.choiceSelections : state.story.choiceSelections;
+      const selectionStore = ["talk", "hangout", "event"].includes(activeRuntime.kind) ? state.story.social.choiceSelections : state.story.choiceSelections;
       const selectionId = activeRuntime.replay
         ? activeRuntime.replaySelections[key]
         : selectionStore[key];
@@ -1605,21 +1850,23 @@
 
     const isTalk = runtime.kind === "talk";
     const isHangout = runtime.kind === "hangout";
+    const isEvent = runtime.kind === "event";
+    const isFreeSocial = isTalk || isHangout || isEvent;
     els.shell.dataset.mood = runtime.scene.mood || "default";
     els.shell.dataset.replay = runtime.replay ? "true" : "false";
-    els.shell.dataset.kind = isTalk ? "talk" : isHangout ? "hangout" : "main";
-    els.chapterLabel.textContent = isTalk ? (runtime.scene.chapterLabel || "TALK") : isHangout ? (runtime.scene.chapterLabel || "HANG OUT") : (runtime.scene.chapterLabel || `Chapter ${String(runtime.scene.order || 1).padStart(2, "0")}`);
-    els.sceneTitle.textContent = runtime.scene.title || (isTalk ? "Talk" : isHangout ? "Hang Out" : "Story");
-    els.location.textContent = runtime.scene.location || (isTalk ? "Somewhere nearby" : isHangout ? "Out together" : "Story");
-    els.beatLabel.textContent = runtime.finished ? "Complete" : `${isTalk ? "Talk" : isHangout ? "Hangout" : "Scene"} ${current}`;
-    els.energy.textContent = (isTalk || isHangout) ? "Free" : (app.formatEnergy?.(state.storyEnergy) ?? state.storyEnergy);
-    els.energySide.textContent = (isTalk || isHangout) ? "Free" : (app.formatEnergy?.(state.storyEnergy) ?? state.storyEnergy);
+    els.shell.dataset.kind = isTalk ? "talk" : isHangout ? "hangout" : isEvent ? "event" : "main";
+    els.chapterLabel.textContent = isTalk ? (runtime.scene.chapterLabel || "TALK") : isHangout ? (runtime.scene.chapterLabel || "HANG OUT") : isEvent ? (runtime.scene.chapterLabel || "WORLD MOMENT") : (runtime.scene.chapterLabel || `Chapter ${String(runtime.scene.order || 1).padStart(2, "0")}`);
+    els.sceneTitle.textContent = runtime.scene.title || (isTalk ? "Talk" : isHangout ? "Hang Out" : isEvent ? "A little moment" : "Story");
+    els.location.textContent = runtime.scene.location || (isTalk ? "Somewhere nearby" : isHangout ? "Out together" : isEvent ? "Everyday life" : "Story");
+    els.beatLabel.textContent = runtime.finished ? "Complete" : `${isTalk ? "Talk" : isHangout ? "Hangout" : isEvent ? "Moment" : "Scene"} ${current}`;
+    els.energy.textContent = isFreeSocial ? "Free" : (app.formatEnergy?.(state.storyEnergy) ?? state.storyEnergy);
+    els.energySide.textContent = isFreeSocial ? "Free" : (app.formatEnergy?.(state.storyEnergy) ?? state.storyEnergy);
     els.progressReaderLabel.textContent = `${current} / ${total}`;
     els.progressReaderBar.style.width = `${percent}%`;
     if (els.miniProgressBar) els.miniProgressBar.style.width = `${percent}%`;
     els.saveStatus.textContent = runtime.replay
       ? "Replay mode · choices do not alter canon"
-      : isTalk ? "Free social interaction · autosaved" : isHangout ? "Free hangout · autosaved" : "Autosaved to local + cloud";
+      : isTalk ? "Free social interaction · autosaved" : isHangout ? "Free hangout · autosaved" : isEvent ? "World moment · autosaved" : "Autosaved to local + cloud";
 
     if (els.previous) {
       els.previous.disabled = !runtime.finished && runtime.step <= 0;
@@ -1655,7 +1902,7 @@
   function renderChoiceNode(node) {
     const state = app.getState();
     const key = choiceKey(runtime.sceneId, node.id);
-    const selectionStore = ["talk", "hangout"].includes(runtime.kind) ? state.story.social.choiceSelections : state.story.choiceSelections;
+    const selectionStore = ["talk", "hangout", "event"].includes(runtime.kind) ? state.story.social.choiceSelections : state.story.choiceSelections;
     const canonSelectedId = selectionStore[key];
     const replaySelectedId = runtime.replaySelections[key];
 
@@ -1730,7 +1977,7 @@
     }
 
     const state = app.getState();
-    const selectionStore = ["talk", "hangout"].includes(runtime.kind) ? state.story.social.choiceSelections : state.story.choiceSelections;
+    const selectionStore = ["talk", "hangout", "event"].includes(runtime.kind) ? state.story.social.choiceSelections : state.story.choiceSelections;
     if (selectionStore[key]) return;
 
     selectionStore[key] = option.id;
@@ -1745,10 +1992,13 @@
     } else if (runtime.kind === "hangout") {
       state.story.social.hangoutStep = runtime.step;
       state.story.social.activeHangoutId = runtime.sceneId;
+    } else if (runtime.kind === "event") {
+      state.story.social.randomEventStep = runtime.step;
+      state.story.social.activeRandomEventId = runtime.sceneId;
     } else {
       state.story.readerStep = runtime.step;
     }
-    app.saveState({ source: runtime.kind === "talk" ? "social-talk-choice" : runtime.kind === "hangout" ? "social-hangout-choice" : "story-choice" });
+    app.saveState({ source: runtime.kind === "talk" ? "social-talk-choice" : runtime.kind === "hangout" ? "social-hangout-choice" : runtime.kind === "event" ? "social-world-moment-choice" : "story-choice" });
     app.renderAll();
     renderReaderNode();
   }
@@ -1798,6 +2048,14 @@
       state.story.social.activeHangoutId = runtime.sceneId;
       app.saveState({ source: "social-hangout-reading" });
       els.saveStatus.textContent = "Free hangout · autosaved";
+      return;
+    }
+    if (runtime.kind === "event") {
+      state.story.social.randomEventStep = runtime.step;
+      state.story.social.activeRandomEventId = runtime.sceneId;
+      state.story.social.queuedRandomEventId = runtime.sceneId;
+      app.saveState({ source: "social-world-moment-reading" });
+      els.saveStatus.textContent = "World moment · autosaved";
       return;
     }
     state.story.readerStep = runtime.step;
@@ -1854,6 +2112,25 @@
       return;
     }
 
+    if (runtime.kind === "event") {
+      const social = state.story.social;
+      const alreadyComplete = array(social.completedRandomEventIds).includes(scene.id);
+      if (!alreadyComplete || !scene.once) applyEffects(scene.onComplete || []);
+      if (scene.once && !alreadyComplete) social.completedRandomEventIds.push(scene.id);
+      social.randomEventHistory = [...array(social.randomEventHistory), { id: scene.id, at: new Date().toISOString() }].slice(-120);
+      if (scene.personId) recordSocialInteraction(scene.personId, "event", scene.id);
+      social.activeRandomEventId = null;
+      social.randomEventStep = 0;
+      social.activeRandomEventProgressionSnapshot = null;
+      social.queuedRandomEventId = null;
+      social.queuedRandomEventAt = null;
+      app.saveState({ source: "social-world-moment-complete" });
+      app.renderAll();
+      runtime.finished = true;
+      renderFinishedState(false);
+      return;
+    }
+
     const alreadyComplete = state.story.completedSceneIds.includes(scene.id);
     if (!alreadyComplete) {
       applyEffects(scene.onComplete || []);
@@ -1874,16 +2151,17 @@
     const memory = runtime?.scene?.memory;
     const isTalk = runtime?.kind === "talk";
     const isHangout = runtime?.kind === "hangout";
+    const isEvent = runtime?.kind === "event";
     renderReaderChrome();
     els.beatContent.innerHTML = "";
 
     const kicker = document.createElement("p");
     kicker.className = "story-completion-kicker";
-    kicker.textContent = replay ? "Memory replay complete" : isTalk ? "Talk complete" : isHangout ? "Hangout complete" : "Chapter complete";
+    kicker.textContent = replay ? "Memory replay complete" : isTalk ? "Talk complete" : isHangout ? "Hangout complete" : isEvent ? "Moment complete" : "Chapter complete";
 
     const title = document.createElement("h2");
     title.className = "story-completion-title";
-    title.textContent = replay ? runtime.scene.title : isTalk ? (runtime.scene.completeTitle || "A little more familiar") : isHangout ? (runtime.scene.completeTitle || "Time well spent") : (memory?.title || runtime.scene.title);
+    title.textContent = replay ? runtime.scene.title : isTalk ? (runtime.scene.completeTitle || "A little more familiar") : isHangout ? (runtime.scene.completeTitle || "Time well spent") : isEvent ? (runtime.scene.completeTitle || "A small moment") : (memory?.title || runtime.scene.title);
 
     const copy = document.createElement("p");
     copy.className = "story-prose-paragraph";
@@ -1895,7 +2173,9 @@
           : "That conversation is now part of your social history. You already earned today’s Talk relationship progress with this person, so extra chats are simply here because you feel like talking.")
         : isHangout
           ? "That time together is now part of your social history. Hangouts never cost Story Energy."
-          : "My choices and hidden relationship state have been saved. This chapter is now available in Memories.";
+          : isEvent
+            ? "That little moment is now part of your social history. Spontaneous moments never cost Story Energy and can quietly reflect the life you are actually living."
+            : "My choices and hidden relationship state have been saved. This chapter is now available in Memories.";
 
     els.beatContent.append(kicker, title, copy);
     els.choices.classList.add("hidden");
@@ -1904,7 +2184,7 @@
     els.advance.innerHTML = `${replay ? "Return to Memories" : "Return to Story Hub"} <span>›</span>`;
     els.beatLabel.textContent = "Complete";
     els.progressReaderBar.style.width = "100%";
-    els.saveStatus.textContent = replay ? "Replay only · canon unchanged" : isTalk ? "Social history saved" : isHangout ? "Hangout saved" : "Saved";
+    els.saveStatus.textContent = replay ? "Replay only · canon unchanged" : isTalk ? "Social history saved" : isHangout ? "Hangout saved" : isEvent ? "World moment saved" : "Saved";
   }
 
   function applyEffects(effects) {

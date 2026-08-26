@@ -11176,3 +11176,98 @@ body.story-backlog-open { overflow: hidden; }
     transition: none !important;
   }
 }
+
+/* =========================================================
+   V0.27.0 · Living World / Social Reactivity Pass
+   ========================================================= */
+.story-world-pulse-panel {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 22px;
+  overflow: hidden;
+  margin-top: 20px;
+  background:
+    radial-gradient(circle at 88% 18%, rgba(235, 151, 184, .16), transparent 12rem),
+    linear-gradient(135deg, rgba(255,253,250,.98), rgba(252,236,243,.92));
+}
+.story-world-pulse-panel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 1px rgba(173, 95, 134, .04);
+}
+.story-world-pulse-copy { min-width: 0; position: relative; z-index: 1; }
+.story-world-pulse-copy .panel-heading { margin-bottom: 6px; }
+.story-world-pulse-copy > p { max-width: 760px; margin: 0; line-height: 1.55; }
+#storyWorldPulseBadge.ready {
+  color: #8c315d;
+  background: linear-gradient(135deg, #f8d5e5, #f7e3eb);
+  box-shadow: 0 5px 14px rgba(177, 70, 111, .10);
+}
+.story-world-pulse-orbit {
+  position: relative;
+  width: 100px;
+  height: 72px;
+  color: #b8547d;
+  opacity: .82;
+}
+.story-world-pulse-orbit::before,
+.story-world-pulse-orbit::after {
+  content: "";
+  position: absolute;
+  border: 1px solid rgba(191, 90, 132, .18);
+  border-radius: 999px;
+  transform: rotate(-18deg);
+}
+.story-world-pulse-orbit::before { inset: 10px 4px 8px; }
+.story-world-pulse-orbit::after { inset: 20px 15px 17px; transform: rotate(28deg); }
+.story-world-pulse-orbit span,
+.story-world-pulse-orbit i,
+.story-world-pulse-orbit b {
+  position: absolute;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.82);
+  box-shadow: 0 7px 16px rgba(107, 57, 92, .08);
+  font-style: normal;
+  font-size: .8rem;
+}
+.story-world-pulse-orbit span { left: 7px; top: 24px; }
+.story-world-pulse-orbit i { right: 7px; top: 7px; }
+.story-world-pulse-orbit b { right: 24px; bottom: 1px; color: #d8799f; }
+.story-world-pulse-action { position: relative; z-index: 1; min-width: 156px; }
+.story-pulse-badge {
+  color: #fff9fc;
+  background: #bf4e78;
+  box-shadow: 0 4px 12px rgba(161, 54, 96, .22);
+}
+.pulse-card.living-world {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+}
+.pulse-card.living-world .mini-nav-button { white-space: nowrap; }
+.story-reader-layout[data-kind="event"] .story-reading-card::before {
+  background: linear-gradient(90deg, rgba(214,111,151,.14), rgba(157,111,166,.10), rgba(214,111,151,.14));
+}
+.story-reader-layout[data-kind="event"] .story-reader-save-status { color: #9a5270; }
+
+@media (max-width: 820px) {
+  .story-world-pulse-panel { grid-template-columns: minmax(0, 1fr) auto; }
+  .story-world-pulse-orbit { display: none; }
+}
+
+@media (max-width: 620px) {
+  .story-world-pulse-panel { grid-template-columns: 1fr; gap: 14px; }
+  .story-world-pulse-action { width: 100%; }
+  .pulse-card.living-world { grid-template-columns: auto minmax(0, 1fr); }
+  .pulse-card.living-world .mini-nav-button { grid-column: 1 / -1; justify-self: stretch; }
+}

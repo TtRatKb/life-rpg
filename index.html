@@ -14,7 +14,7 @@
   <link rel="manifest" href="manifest.webmanifest?v=0.25.1" />
   <link rel="apple-touch-icon" href="assets/app-icon-180.png?v=0.25.1" />
   <link rel="icon" type="image/png" sizes="192x192" href="assets/app-icon-192.png?v=0.25.1" />
-  <link rel="stylesheet" href="styles.css?v=0.26.0" />
+  <link rel="stylesheet" href="styles.css?v=0.27.0" />
 </head>
 <body>
   <section id="mobileCloudGate" class="mobile-cloud-gate-v251" data-state="checking" aria-live="polite" aria-label="Life RPG cloud sign in">
@@ -740,6 +740,21 @@
           </section>
         </section>
 
+        <section class="panel story-world-pulse-panel" aria-labelledby="storyWorldPulseTitle">
+          <div class="story-world-pulse-copy">
+            <div class="panel-heading compact-heading">
+              <div>
+                <p class="eyebrow">WORLD PULSE</p>
+                <h3 id="storyWorldPulseTitle">Checking the world...</h3>
+              </div>
+              <span class="tiny-badge" id="storyWorldPulseBadge">QUIET</span>
+            </div>
+            <p id="storyWorldPulseCopy" class="muted">Talks, messages and spontaneous moments can live between main chapters.</p>
+          </div>
+          <div class="story-world-pulse-orbit" aria-hidden="true"><span>✦</span><i>♡</i><b>✿</b></div>
+          <button class="secondary-button story-world-pulse-action" id="storyWorldPulseAction" type="button" disabled>Checking...</button>
+        </section>
+
         <section class="story-secondary-grid">
           <section class="panel memory-panel story-memory-preview-v5">
             <div class="panel-heading">
@@ -1146,7 +1161,7 @@
       <button class="nav-button" data-view="achievements"><span>🏆</span><small>Achievements</small></button>
       <button class="nav-button" data-view="world"><span>◇</span><small>World</small></button>
       <div class="nav-section-label nav-section-story">STORY</div>
-      <button class="nav-button" data-view="story"><span>♡</span><small>Story</small></button>
+      <button class="nav-button" data-view="story"><span>♡</span><small>Story</small><b id="navStoryPulse" class="nav-unread-badge story-pulse-badge hidden">✦</b></button>
       <button class="nav-button" data-view="memories"><span>❀</span><small>Memories</small></button>
       <div class="nav-section-label nav-section-social">SOCIAL</div>
       <button class="nav-button" data-view="people"><span>♧</span><small>People</small></button>
@@ -1990,16 +2005,16 @@ Project Hail Mary — Andy Weir
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <script src="data/quests.js"></script>
-  <script src="story-engine.js?v=0.26.3"></script>
+  <script src="story-engine.js?v=0.27.0"></script>
   <script src="app.js?v=0.23.0"></script>
   <script src="habits.js?v=0.25.0"></script>
   <script src="adventures.js?v=0.18.1"></script>
   <script src="library.js?v=0.18.1"></script>
   <script src="games.js?v=0.18.1"></script>
   <script src="daily.js?v=0.23.0"></script>
-  <script src="story-ui.js?v=0.26.1"></script>
+  <script src="story-ui.js?v=0.27.0"></script>
   <script src="achievements.js?v=0.23.0"></script>
   <script type="module" src="cloud-save.js?v=0.25.1"></script>
-  <script src="pwa.js?v=0.26.3"></script>
+  <script src="pwa.js?v=0.27.0"></script>
 </body>
 </html>
