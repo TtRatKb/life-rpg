@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#321d34" />
   <title>Life RPG — Base Camp</title>
-  <link rel="stylesheet" href="styles.css?v=0.23.0" />
+  <link rel="stylesheet" href="styles.css?v=0.24.9" />
 </head>
 <body>
   <div class="ambient ambient-one"></div>
@@ -254,7 +254,7 @@
           </article>
           <article class="habit-summary-card-v1">
             <span>◷</span>
-            <div><small>READY TODAY</small><strong id="habitSummaryDue">0</strong></div>
+            <div><small id="habitSummaryDueLabel">READY TODAY</small><strong id="habitSummaryDue">0</strong></div>
           </article>
           <article class="habit-summary-card-v1">
             <span>🔥</span>
@@ -262,14 +262,18 @@
           </article>
         </section>
 
-        <section class="habit-board-shell-v1">
+        <section class="habit-board-shell-v1" id="habitBoardShell">
           <div class="habit-board-heading-v1">
             <div>
               <p class="eyebrow">YOUR RHYTHMS</p>
-              <h2>Habit Day Plan</h2>
-              <p>Habits are grouped by when they fit your day: morning, daytime, evening, then anytime. The time of day is for ordering only — you can still log something whenever real life requires it.</p>
+              <h2 id="habitPlanTitle">Habit Day Plan</h2>
+              <p id="habitPlanDescription">Habits are grouped by when they fit your day: morning, daytime, evening, then anytime. The time of day is for ordering only — you can still log something whenever real life requires it.</p>
             </div>
             <div class="habit-board-actions-v1">
+              <div class="habit-date-switch-v249" aria-label="Habit log date">
+                <span class="habit-date-label-v249" id="habitPlanDateLabel">Today</span>
+                <button class="secondary-button habit-date-toggle-v249" id="habitDateToggle" type="button">← Log Yesterday</button>
+              </div>
               <button class="text-button hidden" id="toggleArchivedHabits" type="button">Show archived</button>
               <button class="secondary-button" id="addHabitButtonSecondary" type="button">＋ New habit</button>
             </div>
@@ -1945,7 +1949,7 @@ Project Hail Mary — Andy Weir
   <script src="data/quests.js"></script>
   <script src="story-engine.js?v=0.24.0"></script>
   <script src="app.js?v=0.23.0"></script>
-  <script src="habits.js?v=0.23.0"></script>
+  <script src="habits.js?v=0.24.9"></script>
   <script src="adventures.js?v=0.18.1"></script>
   <script src="library.js?v=0.18.1"></script>
   <script src="games.js?v=0.18.1"></script>

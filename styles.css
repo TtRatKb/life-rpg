@@ -10323,3 +10323,105 @@ dialog:not(.story-phone-dialog)::backdrop { background: rgba(49,29,50,.44); }
   .daily-batch-clear-v23 .secondary-button { width: 100%; }
   .daily-batch-limit-v23 { width: 100%; padding-left: 50px; }
 }
+
+
+/* V0.24.9 — Habit Yesterday Backfill */
+.habit-date-switch-v249 {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 5px 6px 5px 11px;
+  border: 1px solid rgba(84, 39, 74, .14);
+  border-radius: 999px;
+  background: rgba(255, 250, 247, .72);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.82);
+}
+
+.habit-date-label-v249 {
+  min-width: 112px;
+  color: var(--plum, #54274a);
+  font-size: .76rem;
+  font-weight: 800;
+  letter-spacing: .035em;
+  white-space: nowrap;
+}
+
+.habit-date-toggle-v249 {
+  min-height: 36px;
+  padding: 7px 12px;
+  border-radius: 999px;
+}
+
+.habit-board-shell-v1.is-yesterday-v249 {
+  border-color: rgba(174, 98, 130, .28);
+  box-shadow:
+    0 14px 34px rgba(84, 39, 74, .08),
+    inset 0 3px 0 rgba(199, 127, 157, .16);
+}
+
+.habit-board-shell-v1.is-yesterday-v249 .habit-board-heading-v1 {
+  position: relative;
+}
+
+.habit-board-shell-v1.is-yesterday-v249 .habit-board-heading-v1::after {
+  content: "BACKFILL MODE · YESTERDAY ONLY";
+  position: absolute;
+  left: 0;
+  bottom: -10px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(199, 127, 157, .12);
+  color: #9c5877;
+  font-size: .61rem;
+  font-weight: 900;
+  letter-spacing: .095em;
+}
+
+.habit-history-empty-v249 {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  margin-top: 18px;
+  padding: 18px 20px;
+  border: 1px dashed rgba(84, 39, 74, .18);
+  border-radius: 18px;
+  background: rgba(255, 250, 247, .58);
+  color: var(--plum, #54274a);
+}
+
+.habit-history-empty-v249 > span {
+  font-size: 1.55rem;
+}
+
+.habit-history-empty-v249 div {
+  display: grid;
+  gap: 3px;
+}
+
+.habit-history-empty-v249 small {
+  color: rgba(84, 39, 74, .68);
+}
+
+@media (max-width: 760px) {
+  .habit-date-switch-v249 {
+    width: 100%;
+    justify-content: space-between;
+    border-radius: 16px;
+  }
+
+  .habit-date-label-v249 {
+    min-width: 0;
+  }
+
+  .habit-date-toggle-v249 {
+    width: auto !important;
+    flex: 0 0 auto;
+  }
+
+  .habit-board-shell-v1.is-yesterday-v249 .habit-board-heading-v1::after {
+    position: static;
+    display: inline-flex;
+    align-self: flex-start;
+    margin-top: 4px;
+  }
+}

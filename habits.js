@@ -27,6 +27,7 @@
   };
 
   let showArchived = false;
+  let habitViewOffset = 0; // 0 = today, -1 = yesterday
   let initialized = false;
 
   const els = {
@@ -38,7 +39,13 @@
     dashboard: byId("dashboardHabits"),
     activeSummary: byId("habitSummaryActive"),
     dueSummary: byId("habitSummaryDue"),
+    dueSummaryLabel: byId("habitSummaryDueLabel"),
     streakSummary: byId("habitSummaryBestStreak"),
+    boardShell: byId("habitBoardShell"),
+    planTitle: byId("habitPlanTitle"),
+    planDescription: byId("habitPlanDescription"),
+    dateLabel: byId("habitPlanDateLabel"),
+    dateToggle: byId("habitDateToggle"),
     toggleArchived: byId("toggleArchivedHabits"),
     dialog: byId("habitDialog"),
     form: byId("habitForm"),
@@ -89,11 +96,15 @@
       showArchived = !showArchived;
       render();
     });
+    els.dateToggle?.addEventListener("click", () => {
+      habitViewOffset = habitViewOffset === 0 ? -1 : 0;
+      render();
+    });
 
     document.addEventListener("click", event => {
       const complete = event.target.closest?.("[data-habit-complete]");
       if (complete) {
-        completeHabit(complete.dataset.habitComplete);
+        completeHabit(complete.dataset.habitComplete, complete.dataset.habitDate || todayKey());
         return;
       }
 
@@ -204,12 +215,19 @@
     const habits = habitState().items;
     const active = habits.filter(h => h.active !== false);
     const archived = habits.filter(h => h.active === false);
-    const activeSnapshots = active.map(snapshotForHabit);
+    const today = todayKey();
+    const viewDate = habitViewDateKey();
+
+    const todaySnapshots = active.map(habit => snapshotForHabit(habit, today));
+    const boardSnapshots = active
+      .filter(habit => isTrackableOnDate(habit, viewDate))
+      .map(habit => snapshotForHabit(habit, viewDate));
 
     if (els.activeSummary) els.activeSummary.textContent = String(active.length);
-    if (els.dueSummary) els.dueSummary.textContent = String(activeSnapshots.filter(s => s.canComplete).length);
+    if (els.dueSummary) els.dueSummary.textContent = String(boardSnapshots.filter(s => s.canComplete).length);
+    if (els.dueSummaryLabel) els.dueSummaryLabel.textContent = habitViewOffset === -1 ? "READY YESTERDAY" : "READY TODAY";
     if (els.streakSummary) {
-      const best = activeSnapshots.reduce((max, s) => Math.max(max, s.streak), 0);
+      const best = todaySnapshots.reduce((max, s) => Math.max(max, s.streak), 0);
       els.streakSummary.textContent = best ? `${best} ${best === 1 ? "period" : "periods"}` : "0";
     }
 
@@ -218,16 +236,39 @@
       els.toggleArchived.textContent = showArchived ? "Hide archived" : `Show archived (${archived.length})`;
     }
 
-    renderBoard(activeSnapshots, archived);
-    renderDashboard(activeSnapshots);
+    renderDateControls(viewDate);
+    renderBoard(boardSnapshots, archived, viewDate, active.length);
+    renderDashboard(todaySnapshots);
   }
 
-  function renderBoard(activeSnapshots, archived) {
+  function renderDateControls(dateKey) {
+    const yesterday = habitViewOffset === -1;
+    if (els.boardShell) els.boardShell.classList.toggle("is-yesterday-v249", yesterday);
+    if (els.planTitle) els.planTitle.textContent = yesterday ? "Yesterday's Habit Plan" : "Habit Day Plan";
+    if (els.planDescription) {
+      els.planDescription.textContent = yesterday
+        ? "Backfill anything you really completed yesterday. It counts toward the correct schedule period and can repair a streak you would otherwise lose."
+        : "Habits are grouped by when they fit your day: morning, daytime, evening, then anytime. The time of day is for ordering only — you can still log something whenever real life requires it.";
+    }
+    if (els.dateLabel) els.dateLabel.textContent = `${yesterday ? "Yesterday" : "Today"} · ${friendlyDateLabel(dateKey)}`;
+    if (els.dateToggle) els.dateToggle.textContent = yesterday ? "Back to Today →" : "← Log Yesterday";
+  }
+
+  function renderBoard(activeSnapshots, archived, dateKey = todayKey(), totalActive = activeSnapshots.length) {
     if (!els.board || !els.empty) return;
 
     if (activeSnapshots.length === 0 && (!showArchived || archived.length === 0)) {
-      els.board.innerHTML = "";
-      els.empty.classList.remove("hidden");
+      if (totalActive > 0 && dateKey !== todayKey()) {
+        els.empty.classList.add("hidden");
+        els.board.innerHTML = `
+          <div class="habit-history-empty-v249">
+            <span>🕰️</span>
+            <div><strong>No habits were being tracked yesterday.</strong><small>Only habits that already existed on that date can be backfilled.</small></div>
+          </div>`;
+      } else {
+        els.board.innerHTML = "";
+        els.empty.classList.remove("hidden");
+      }
       return;
     }
 
@@ -241,7 +282,7 @@
         if (!entries.length) return "";
         const meta = DAYPARTS[key];
         const ready = entries.filter(snapshot => snapshot.canComplete).length;
-        const clear = daypartClearInfo(key, entries);
+        const clear = daypartClearInfo(key, entries, dateKey);
         return `
           <section class="habit-daypart-section-v131 ${clear.awarded ? "bonus-cleared-v23" : ""}" data-daypart="${key}">
             <header class="habit-daypart-heading-v131">
@@ -249,13 +290,13 @@
               <div><small>${escapeHtml(daypartEyebrow(key))}</small><h3>${escapeHtml(meta.label)}</h3></div>
               <span class="habit-daypart-count-v131">${daypartStatusLabel(clear, ready)}</span>
             </header>
-            <div class="habit-daypart-grid-v131">${entries.map(renderHabitCard).join("")}</div>
+            <div class="habit-daypart-grid-v131">${entries.map(snapshot => renderHabitCard(snapshot, { dateKey })).join("")}</div>
           </section>`;
       })
       .join("");
 
     const archivedHtml = showArchived && archived.length
-      ? `<div class="habit-archive-divider-v1"><span>Archived habits</span></div><div class="habit-daypart-grid-v131">${archived.map(h => renderHabitCard(snapshotForHabit(h), { archived: true })).join("")}</div>`
+      ? `<div class="habit-archive-divider-v1"><span>Archived habits</span></div><div class="habit-daypart-grid-v131">${archived.map(h => renderHabitCard(snapshotForHabit(h, dateKey), { archived: true, dateKey })).join("")}</div>`
       : "";
 
     els.board.innerHTML = groups + archivedHtml;
@@ -283,7 +324,7 @@
         if (!entries.length) return "";
         const meta = DAYPARTS[key];
         const ready = entries.filter(snapshot => snapshot.canComplete).length;
-        const clear = daypartClearInfo(key, entries);
+        const clear = daypartClearInfo(key, entries, todayKey());
         const allDone = entries.every(snapshot => snapshot.completedToday || snapshot.periodComplete || !snapshot.canComplete);
         const isPast = key !== "anytime" && DAYPARTS[key].order < DAYPARTS[current].order;
         const compact = isPast && allDone;
@@ -323,7 +364,7 @@
           ${streak ? `<span>✦ ${streak}</span>` : ""}
         </div>
         ${canComplete
-          ? `<button class="habit-quick-complete-v1" type="button" data-habit-complete="${escapeHtml(habit.id)}">Done</button>`
+          ? `<button class="habit-quick-complete-v1" type="button" data-habit-complete="${escapeHtml(habit.id)}" data-habit-date="${todayKey()}">Done</button>`
           : `<span class="dashboard-habit-state-v1">${completedToday ? "✓" : escapeHtml(timingText)}</span>`}
       </article>`;
   }
@@ -352,18 +393,20 @@
     return "evening";
   }
 
-  function renderHabitCard(snapshot, { archived = false } = {}) {
-    const { habit, streak, canComplete, completedToday, progressText, timingText, reward, baseReward, multiplier } = snapshot;
+  function renderHabitCard(snapshot, { archived = false, dateKey = todayKey() } = {}) {
+    const { habit, streak, canComplete, completedOnDate, progressText, timingText, reward, baseReward, multiplier } = snapshot;
     const note = habit.note ? `<p class="habit-card-note-v1">${escapeHtml(habit.note)}</p>` : "";
-    const statusClass = archived ? "archived" : canComplete ? "ready" : completedToday ? "done-today" : "waiting";
+    const statusClass = archived ? "archived" : canComplete ? "ready" : completedOnDate ? "done-today" : "waiting";
+    const historical = dateKey !== todayKey();
+    const dateWord = historical ? "yesterday" : "today";
 
     let actionHtml;
     if (archived) {
       actionHtml = `<button class="secondary-button" type="button" data-habit-archive="${escapeHtml(habit.id)}">Restore</button>`;
     } else if (canComplete) {
-      actionHtml = `<button class="primary-button habit-complete-button-v1" type="button" data-habit-complete="${escapeHtml(habit.id)}">✓ Log done · +${formatEnergy(reward)} 🔥</button>`;
+      actionHtml = `<button class="primary-button habit-complete-button-v1" type="button" data-habit-complete="${escapeHtml(habit.id)}" data-habit-date="${escapeHtml(dateKey)}">✓ ${historical ? "Log yesterday" : "Log done"} · +${formatEnergy(reward)} 🔥</button>`;
     } else {
-      actionHtml = `<button class="secondary-button" type="button" disabled>${completedToday ? "Logged today ✓" : escapeHtml(timingText)}</button>`;
+      actionHtml = `<button class="secondary-button" type="button" disabled>${completedOnDate ? `Logged ${dateWord} ✓` : escapeHtml(timingText)}</button>`;
     }
 
     return `
@@ -388,7 +431,7 @@
 
         <div class="habit-progress-panel-v1">
           <div>
-            <small>THIS PERIOD</small>
+            <small>${historical ? "THAT PERIOD" : "THIS PERIOD"}</small>
             <strong>${escapeHtml(progressText)}</strong>
             <span>${escapeHtml(timingText)}</span>
           </div>
@@ -404,11 +447,11 @@
           <span>×</span>
           <div><small>STREAK</small><strong>${formatMultiplier(multiplier)}</strong></div>
           <span>=</span>
-          <div class="habit-reward-current-v1"><small>NEXT CLEAR</small><strong>${formatEnergy(reward)} 🔥</strong></div>
+          <div class="habit-reward-current-v1"><small>${historical ? "BACKFILL CLEAR" : "NEXT CLEAR"}</small><strong>${formatEnergy(reward)} 🔥</strong></div>
         </div>
 
         <footer class="habit-card-footer-v1">
-          <span class="habit-no-penalty-v1">${streak ? "Keep going for a larger bonus." : "Fresh start. Nothing was lost."}</span>
+          <span class="habit-no-penalty-v1">${historical ? "Backfills are limited to yesterday and never duplicate an existing log." : streak ? "Keep going for a larger bonus." : "Fresh start. Nothing was lost."}</span>
           <div class="habit-card-actions-v1">
             <button class="text-button" type="button" data-habit-archive="${escapeHtml(habit.id)}">${archived ? "Restore" : "Archive"}</button>
             ${actionHtml}
@@ -417,90 +460,107 @@
       </article>`;
   }
 
-  function snapshotForHabit(habit) {
+  function snapshotForHabit(habit, dateKey = todayKey()) {
     const completions = completionsForHabit(habit);
-    const period = currentPeriod(habit);
+    const period = currentPeriod(habit, dateKey);
     const target = targetForHabit(habit);
     const inPeriod = period ? completions.filter(c => c.periodKey === period.key) : [];
-    const completedToday = completions.some(c => c.date === todayKey());
+    const completedOnDate = completions.some(c => c.date === dateKey);
     const periodComplete = inPeriod.length >= target;
-    const scheduleAllowsToday = isScheduledToday(habit);
-    const canComplete = habit.active !== false && scheduleAllowsToday && !completedToday && !periodComplete;
-    const streak = calculateStreak(habit, completions);
-    const candidate = canComplete ? candidateCompletion(habit, period, completions) : null;
+    const scheduleAllowsDate = isScheduledOnDate(habit, dateKey);
+    const trackable = isTrackableOnDate(habit, dateKey);
+    const canComplete = habit.active !== false && trackable && scheduleAllowsDate && !completedOnDate && !periodComplete;
+    const streak = calculateStreak(habit, completions, dateKey);
+    const candidate = canComplete ? candidateCompletion(habit, period, dateKey) : null;
     const candidateCompletions = candidate ? [...completions, candidate] : completions;
-    const candidateStreak = candidate ? calculateStreak(habit, candidateCompletions) : streak;
+    const candidateStreak = candidate ? calculateStreak(habit, candidateCompletions, dateKey) : streak;
     const rewardStreak = Math.max(streak, candidateStreak, 1);
     const multiplier = streakMultiplier(rewardStreak);
     const baseReward = effortBase(habit);
     const rawReward = floor2(baseReward * multiplier);
+    const previewAt = rewardDateForDateKey(dateKey).toISOString();
     const preview = app.previewActivityReward?.({
       source: "habit",
-      sourceId: habit.id,
+      sourceId: `${habit.id}:${dateKey}`,
       label: habit.name,
       realm: habit.realm,
       capability: app.inferCapability?.({ realm: habit.realm, label: habit.name, kind: "habit" }),
-      storyEnergyBase: rawReward
+      storyEnergyBase: rawReward,
+      at: previewAt
     });
     const reward = preview ? Number(preview.storyEnergy || 0) : rawReward;
 
     return {
       habit,
+      dateKey,
       streak,
       candidateStreak,
       canComplete,
-      completedToday,
+      completedToday: dateKey === todayKey() && completedOnDate,
+      completedOnDate,
       periodComplete,
-      progressText: progressLabel(habit, inPeriod.length, target),
-      timingText: timingLabel(habit, { completedToday, periodComplete }),
+      trackable,
+      progressText: progressLabel(habit, inPeriod.length, target, dateKey),
+      timingText: timingLabel(habit, { completedOnDate, periodComplete, dateKey, trackable }),
       reward,
       rawReward,
       baseReward,
       multiplier,
-      nextSort: nextSortValue(habit)
+      nextSort: nextSortValue(habit, dateKey)
     };
   }
 
-  function candidateCompletion(habit, period) {
+  function candidateCompletion(habit, period, dateKey = todayKey()) {
     return {
       id: "preview",
       habitId: habit.id,
-      date: todayKey(),
+      date: dateKey,
       timestamp: Date.now(),
-      periodKey: period?.key || todayKey(),
+      periodKey: period?.key || dateKey,
       reward: 0
     };
   }
 
-  function completeHabit(habitId) {
+  function completeHabit(habitId, requestedDateKey = todayKey()) {
     const state = app.getState();
     ensureHabitsState();
     const habit = state.habits.items.find(item => item.id === habitId);
     if (!habit || habit.active === false) return;
 
-    const snapshot = snapshotForHabit(habit);
+    const today = todayKey();
+    const yesterday = dateKeyWithOffset(-1);
+    const dateKey = requestedDateKey === yesterday ? yesterday : today;
+    const snapshot = snapshotForHabit(habit, dateKey);
     if (!snapshot.canComplete) return;
 
-    const period = currentPeriod(habit);
+    const period = currentPeriod(habit, dateKey);
+    if (!period) return;
+
     const now = Date.now();
+    const rewardDate = rewardDateForDateKey(dateKey);
     const provisional = {
       id: makeId("HC"),
       habitId: habit.id,
-      date: todayKey(),
+      date: dateKey,
       timestamp: now,
+      loggedAt: new Date(now).toISOString(),
       periodKey: period.key,
       reward: 0,
       rawReward: 0,
       baseReward: snapshot.baseReward,
       multiplier: 1,
       streakAfter: 0,
-      effort: habit.effort
+      effort: habit.effort,
+      backfilled: dateKey !== today
     };
 
     const before = completionsForHabit(habit);
+    if (before.some(item => item.date === dateKey)) return;
+
     const after = [...before, provisional];
-    const streakAfter = calculateStreak(habit, after);
-    const streakForReward = Math.max(snapshot.streak, streakAfter, 1);
+    const rewardStreakAfter = calculateStreak(habit, after, dateKey);
+    const currentStreakAfter = calculateStreak(habit, after, today);
+    const streakForReward = Math.max(snapshot.streak, rewardStreakAfter, 1);
     const multiplier = streakMultiplier(streakForReward);
     const rawReward = floor2(effortBase(habit) * multiplier);
     const effort = EFFORTS[habit.effort] || EFFORTS.low;
@@ -508,7 +568,7 @@
     const capability = app.inferCapability?.({ realm: habit.realm, label: habit.name, kind: "habit" }) || "wellbeing";
     const reward = app.awardActivity?.({
       source: "habit",
-      sourceId: habit.id,
+      sourceId: `${habit.id}:${dateKey}`,
       label: habit.name,
       realm: habit.realm,
       capability,
@@ -516,11 +576,20 @@
       realmXP: xp,
       statXP: Math.max(1, Math.round(xp * 0.65)),
       storyEnergyBase: rawReward,
-      at: new Date(now).toISOString(),
-      metadata: { effort: habit.effort, streakAfter, periodKey: period.key }
+      at: rewardDate.toISOString(),
+      metadata: {
+        effort: habit.effort,
+        streakAfter: currentStreakAfter,
+        rewardStreakAfter,
+        periodKey: period.key,
+        completedForDate: dateKey,
+        loggedAt: provisional.loggedAt,
+        backfilled: provisional.backfilled
+      }
     }) || { xp: 0, statXP: 0, storyEnergy: rawReward, rawStoryEnergy: rawReward };
 
-    provisional.streakAfter = streakAfter;
+    provisional.streakAfter = currentStreakAfter;
+    provisional.rewardStreakAfter = rewardStreakAfter;
     provisional.multiplier = multiplier;
     provisional.rawReward = rawReward;
     provisional.reward = Number(reward.storyEnergy || 0);
@@ -532,15 +601,22 @@
     provisional.deduped = Boolean(reward.deduped);
 
     state.habits.completions.push(provisional);
-    const daypartBonus = maybeAwardDaypartClear(normalizedDaypart(habit));
+    const daypartBonus = maybeAwardDaypartClear(normalizedDaypart(habit), dateKey);
 
-    persist("habit-complete");
+    persist(dateKey === today ? "habit-complete" : "habit-backfill-yesterday");
     app.renderAll?.();
-    showHabitToast(habit, reward, streakAfter, daypartBonus);
+    showHabitToast(habit, reward, currentStreakAfter, daypartBonus, dateKey);
 
     try {
       window.dispatchEvent(new CustomEvent("life-rpg:habit-complete", {
-        detail: { habitId: habit.id, reward: reward.storyEnergy, xp: reward.xp, streakAfter, date: provisional.date }
+        detail: {
+          habitId: habit.id,
+          reward: reward.storyEnergy,
+          xp: reward.xp,
+          streakAfter: currentStreakAfter,
+          date: provisional.date,
+          backfilled: provisional.backfilled
+        }
       }));
     } catch {
       // Older browsers may not support CustomEvent construction; completion is already saved.
@@ -548,13 +624,14 @@
   }
 
 
-  function showHabitToast(habit, reward, streakAfter, daypartBonus = null) {
+  function showHabitToast(habit, reward, streakAfter, daypartBonus = null, dateKey = todayKey()) {
     if (!els.toast) return;
-    if (els.toastTitle) els.toastTitle.textContent = habit.name;
+    const historical = dateKey !== todayKey();
+    if (els.toastTitle) els.toastTitle.textContent = historical ? `${habit.name} · yesterday` : habit.name;
     if (els.toastReward) {
       const streakText = streakAfter > 1 ? ` · ${streakAfter}-${streakUnitLabel(habit, 1)} streak` : "";
       const clearText = daypartBonus?.awarded ? ` · ${DAYPARTS[daypartBonus.daypart].label} cleared +${formatEnergy(daypartBonus.storyEnergy)} 🔥` : "";
-      els.toastReward.textContent = `+${formatEnergy(reward.storyEnergy)} Story Energy · +${Number(reward.xp || 0)} XP${streakText}${clearText}`;
+      els.toastReward.textContent = `+${formatEnergy(reward.storyEnergy)} Story Energy · +${Number(reward.xp || 0)} XP${streakText}${clearText}${historical ? " · backfilled" : ""}`;
     }
     els.toast.classList.remove("hidden");
     els.toast.classList.add("show");
@@ -566,24 +643,26 @@
   }
 
 
-  function daypartRewardEvent(daypart) {
-    const sourceId = `${todayKey()}:${daypart}`;
+  function daypartRewardEvent(daypart, dateKey = todayKey()) {
+    const sourceId = `${dateKey}:${daypart}`;
     return (app.getState().rewardLedger?.events || []).find(event => event.source === "habit-daypart-clear" && event.sourceId === sourceId) || null;
   }
 
-  function daypartClearInfo(daypart, snapshots = null) {
+  function daypartClearInfo(daypart, snapshots = null, dateKey = todayKey()) {
     const source = Array.isArray(snapshots)
       ? snapshots
-      : habitState().items.filter(habit => habit.active !== false && normalizedDaypart(habit) === daypart).map(snapshotForHabit);
-    const due = source.filter(snapshot => snapshot.completedToday || snapshot.canComplete);
-    const event = daypartRewardEvent(daypart);
-    const done = due.filter(snapshot => snapshot.completedToday).length;
+      : habitState().items
+          .filter(habit => habit.active !== false && normalizedDaypart(habit) === daypart && isTrackableOnDate(habit, dateKey))
+          .map(habit => snapshotForHabit(habit, dateKey));
+    const due = source.filter(snapshot => snapshot.completedOnDate || snapshot.canComplete);
+    const event = daypartRewardEvent(daypart, dateKey);
+    const done = due.filter(snapshot => snapshot.completedOnDate).length;
     return {
       daypart,
       total: due.length,
       done,
       eligible: due.length >= 2,
-      complete: due.length >= 2 && due.every(snapshot => snapshot.completedToday),
+      complete: due.length >= 2 && due.every(snapshot => snapshot.completedOnDate),
       awarded: Boolean(event),
       rewardStoryEnergy: Number(event?.storyEnergy || 0)
     };
@@ -595,10 +674,10 @@
     return ready ? `${ready} ready` : "clear";
   }
 
-  function maybeAwardDaypartClear(daypart) {
-    const info = daypartClearInfo(daypart);
+  function maybeAwardDaypartClear(daypart, dateKey = todayKey()) {
+    const info = daypartClearInfo(daypart, null, dateKey);
     if (!info.eligible || !info.complete || info.awarded) return null;
-    const sourceId = `${todayKey()}:${daypart}`;
+    const sourceId = `${dateKey}:${daypart}`;
     const reward = app.awardActivity?.({
       source: "habit-daypart-clear",
       sourceId,
@@ -609,7 +688,8 @@
       coins: 0,
       storyEnergyBase: 0.6,
       progressionRelevant: false,
-      metadata: { daypart, habitCount: info.total }
+      at: rewardDateForDateKey(dateKey).toISOString(),
+      metadata: { daypart, habitCount: info.total, completedForDate: dateKey, backfilled: dateKey !== todayKey() }
     });
     if (!reward) return null;
     return { awarded: true, daypart, storyEnergy: Number(reward.storyEnergy || 0), xp: Number(reward.xp || 0) };
@@ -862,14 +942,14 @@
     };
   }
 
-  function isScheduledToday(habit) {
+  function isScheduledOnDate(habit, dateKey = todayKey()) {
     const schedule = normalizeSchedule(habit.schedule);
     if (schedule.type === "daily" || schedule.type === "weekly" || schedule.type === "monthly") return true;
-    return Boolean(currentPeriod(habit));
+    return Boolean(currentPeriod(habit, dateKey));
   }
 
-  function calculateStreak(habit, completions = completionsForHabit(habit)) {
-    const periods = periodsThroughToday(habit);
+  function calculateStreak(habit, completions = completionsForHabit(habit), throughDateKey = todayKey()) {
+    const periods = periodsThroughDate(habit, throughDateKey);
     if (!periods.length) return 0;
     const target = targetForHabit(habit);
     const counts = new Map();
@@ -897,10 +977,10 @@
     return streak;
   }
 
-  function periodsThroughToday(habit) {
+  function periodsThroughDate(habit, throughDateKey = todayKey()) {
     const schedule = normalizeSchedule(habit.schedule);
-    const start = parseDateKey(habit.scheduleStartDate || habit.createdDate || todayKey());
-    const today = parseDateKey(todayKey());
+    const start = parseDateKey(habit.scheduleStartDate || habit.createdDate || throughDateKey);
+    const today = parseDateKey(throughDateKey);
     if (start > today) return [];
     const periods = [];
 
@@ -953,27 +1033,31 @@
     return periods;
   }
 
-  function progressLabel(habit, count, target) {
+  function progressLabel(habit, count, target, dateKey = todayKey()) {
     const schedule = normalizeSchedule(habit.schedule);
+    const historical = dateKey !== todayKey();
     if (schedule.type === "daily" || schedule.type === "interval") return count >= 1 ? "Done for this due date" : "0 / 1 done";
-    if (schedule.type === "weekly") return `${Math.min(count, target)} / ${target} this week`;
-    return `${Math.min(count, target)} / ${target} this month`;
+    if (schedule.type === "weekly") return `${Math.min(count, target)} / ${target} ${historical ? "that week" : "this week"}`;
+    return `${Math.min(count, target)} / ${target} ${historical ? "that month" : "this month"}`;
   }
 
-  function timingLabel(habit, { completedToday = false, periodComplete = false } = {}) {
+  function timingLabel(habit, { completedOnDate = false, periodComplete = false, dateKey = todayKey(), trackable = true } = {}) {
     if (habit.active === false) return "Archived";
+    if (!trackable) return dateKey === todayKey() ? "Not active yet" : "Not tracked yet";
     const schedule = normalizeSchedule(habit.schedule);
+    const historical = dateKey !== todayKey();
 
     if (schedule.type === "daily") {
-      if (completedToday || periodComplete) return "Back tomorrow";
-      return "Ready today";
+      if (completedOnDate || periodComplete) return historical ? "Logged yesterday" : "Back tomorrow";
+      return historical ? "Ready to backfill" : "Ready today";
     }
 
     if (schedule.type === "interval") {
-      if (currentPeriod(habit)) {
-        if (completedToday || periodComplete) return `Back in ${schedule.every} days`;
-        return "Due today";
+      if (currentPeriod(habit, dateKey)) {
+        if (completedOnDate || periodComplete) return historical ? "Logged yesterday" : `Back in ${schedule.every} days`;
+        return historical ? "Due yesterday" : "Due today";
       }
+      if (historical) return "Not due yesterday";
       const next = nextIntervalDue(habit);
       const days = next ? daysBetween(parseDateKey(todayKey()), next) : schedule.every;
       return days === 1 ? "Due tomorrow" : `Due in ${days} days`;
@@ -981,13 +1065,15 @@
 
     if (schedule.type === "weekly") {
       if (periodComplete) return "Weekly goal met";
-      if (completedToday) return "Logged today";
+      if (completedOnDate) return historical ? "Logged yesterday" : "Logged today";
+      if (historical) return "Available yesterday";
       const days = daysUntilEndOfWeek();
       return days === 0 ? "Last day this week" : `${days + 1} days left this week`;
     }
 
     if (periodComplete) return "Monthly goal met";
-    if (completedToday) return "Logged today";
+    if (completedOnDate) return historical ? "Logged yesterday" : "Logged today";
+    if (historical) return "Available yesterday";
     const days = daysUntilEndOfMonth();
     return days === 0 ? "Last day this month" : `${days + 1} days left this month`;
   }
@@ -1004,9 +1090,10 @@
     return due;
   }
 
-  function nextSortValue(habit) {
+  function nextSortValue(habit, dateKey = todayKey()) {
     const schedule = normalizeSchedule(habit.schedule);
     if (schedule.type !== "interval") return 0;
+    if (dateKey !== todayKey()) return currentPeriod(habit, dateKey) ? parseDateKey(dateKey).getTime() : Number.MAX_SAFE_INTEGER;
     const next = nextIntervalDue(habit);
     return next ? next.getTime() : Number.MAX_SAFE_INTEGER;
   }
@@ -1043,6 +1130,37 @@
   function makeId(prefix) {
     if (window.crypto?.randomUUID) return `${prefix}_${window.crypto.randomUUID()}`;
     return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 9)}`;
+  }
+
+  function habitViewDateKey() {
+    return dateKeyWithOffset(habitViewOffset);
+  }
+
+  function dateKeyWithOffset(offsetDays = 0) {
+    const date = new Date();
+    date.setHours(12, 0, 0, 0);
+    date.setDate(date.getDate() + Number(offsetDays || 0));
+    return formatDateKey(date);
+  }
+
+  function isTrackableOnDate(habit, dateKey = todayKey()) {
+    const startKey = habit.scheduleStartDate || habit.createdDate || todayKey();
+    return parseDateKey(dateKey) >= parseDateKey(startKey);
+  }
+
+  function rewardDateForDateKey(dateKey) {
+    const date = parseDateKey(dateKey);
+    date.setHours(12, 0, 0, 0);
+    return date;
+  }
+
+  function friendlyDateLabel(dateKey) {
+    const date = parseDateKey(dateKey);
+    try {
+      return new Intl.DateTimeFormat(undefined, { weekday: "short", month: "short", day: "numeric" }).format(date);
+    } catch {
+      return dateKey;
+    }
   }
 
   function todayKey() {
