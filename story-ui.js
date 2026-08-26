@@ -15,6 +15,7 @@
   let pack = null;
   let runtime = null;
   let loadError = null;
+  const prefetchedStoryAssets = new Set();
 
   const els = {
     arcTitle: byId("storyArcTitle"),
@@ -72,7 +73,13 @@
     spriteCenter: byId("storySpriteCenter"),
     spriteRight: byId("storySpriteRight"),
     textboxPortrait: byId("storyTextboxPortrait"),
-    textboxPortraitImg: byId("storyTextboxPortraitImg")
+    textboxPortraitImg: byId("storyTextboxPortraitImg"),
+    backlog: byId("storyBacklog"),
+    backlogOpen: byId("storyBacklogOpen"),
+    backlogClose: byId("storyBacklogClose"),
+    backlogScrim: byId("storyBacklogScrim"),
+    backlogList: byId("storyBacklogList"),
+    miniProgressBar: byId("storyReaderMiniProgressBar")
   };
 
   init();
@@ -109,6 +116,14 @@
     els.exitSide?.addEventListener("click", closeReader);
     els.previous?.addEventListener("click", previousReader);
     els.advance?.addEventListener("click", advanceReader);
+    els.backlogOpen?.addEventListener("click", openBacklog);
+    els.backlogClose?.addEventListener("click", closeBacklog);
+    els.backlogScrim?.addEventListener("click", closeBacklog);
+    els.visualStage?.addEventListener("click", () => {
+      if (!runtime || runtime.finished || !els.backlog?.classList.contains("hidden")) return;
+      if (els.advance?.classList.contains("hidden")) return;
+      advanceReader();
+    });
 
     els.memoryList?.addEventListener("click", event => {
       const button = event.target.closest("[data-replay-scene]");
@@ -191,21 +206,36 @@
     document.addEventListener("keydown", event => {
       if (!runtime || els.readerPage?.classList.contains("hidden")) return;
 
+      const tag = document.activeElement?.tagName;
+      const typing = ["INPUT", "SELECT", "TEXTAREA"].includes(tag);
+
+      if (!els.backlog?.classList.contains("hidden")) {
+        if (event.key === "Escape") {
+          event.preventDefault();
+          closeBacklog();
+        }
+        return;
+      }
+
       if (event.key === "Escape") {
         closeReader();
         return;
       }
 
+      if (!typing && event.key.toLowerCase() === "b") {
+        event.preventDefault();
+        openBacklog();
+        return;
+      }
+
       if (event.key === "ArrowLeft") {
-        const tag = document.activeElement?.tagName;
-        if (["INPUT", "SELECT", "TEXTAREA"].includes(tag)) return;
+        if (typing) return;
         event.preventDefault();
         previousReader();
         return;
       }
 
       if ((event.key === "Enter" || event.key === " ") && !els.advance?.classList.contains("hidden")) {
-        const tag = document.activeElement?.tagName;
         if (["BUTTON", "INPUT", "SELECT", "TEXTAREA"].includes(tag)) return;
         event.preventDefault();
         advanceReader();
@@ -1382,6 +1412,8 @@
     };
 
     runtime.sequence = buildSequence(runtime);
+    resetVisualRenderState();
+    prefetchRuntimeVisuals();
     const savedStep = !replay && state.story.activeSceneId === sceneId
       ? Math.max(0, Number(state.story.readerStep || 0))
       : 0;
@@ -1402,8 +1434,10 @@
 
   function closeReader() {
     if (!runtime) return;
+    closeBacklog();
     els.readerPage.classList.add("hidden");
     document.body.classList.remove("story-mode-open");
+    resetVisualRenderState();
     runtime = null;
     renderStoryHub();
   }
@@ -1540,7 +1574,7 @@
     }
 
     try {
-      applyVisual(resolveVisualStateAtStep(runtime.step));
+      applyVisual(resolveVisualStateAtStep(runtime.step), node);
     } catch (error) {
       console.error("Story visual failed; continuing in text-only mode", error);
       try {
@@ -1554,6 +1588,8 @@
         // Text remains readable even if the optional visual layer is unavailable.
       }
     }
+
+    animateNodeContent();
   }
 
   function renderReaderChrome() {
@@ -1576,6 +1612,7 @@
     els.energySide.textContent = (isTalk || isHangout) ? "Free" : (app.formatEnergy?.(state.storyEnergy) ?? state.storyEnergy);
     els.progressReaderLabel.textContent = `${current} / ${total}`;
     els.progressReaderBar.style.width = `${percent}%`;
+    if (els.miniProgressBar) els.miniProgressBar.style.width = `${percent}%`;
     els.saveStatus.textContent = runtime.replay
       ? "Replay mode · choices do not alter canon"
       : isTalk ? "Free social interaction · autosaved" : isHangout ? "Free hangout · autosaved" : "Autosaved to local + cloud";
@@ -1680,6 +1717,7 @@
     if (runtime.replay) {
       runtime.replaySelections[key] = option.id;
       runtime.sequence = buildSequence(runtime);
+      prefetchRuntimeVisuals();
       const newIndex = runtime.sequence.findIndex(item => item.id === node.id);
       runtime.step = Math.max(0, newIndex + 1);
       runtime.finished = false;
@@ -1694,6 +1732,7 @@
     selectionStore[key] = option.id;
     applyEffects(option.effects || []);
     runtime.sequence = buildSequence(runtime);
+    prefetchRuntimeVisuals();
     const newIndex = runtime.sequence.findIndex(item => item.id === node.id);
     runtime.step = Math.max(0, newIndex + 1);
     if (runtime.kind === "talk") {
@@ -1953,33 +1992,15 @@
     return next;
   }
 
-  function applyVisual(visual) {
+  function applyVisual(visual, node = null) {
     const characterAssets = pack?.assets?.characters || {};
     const backgroundAssets = pack?.assets?.backgrounds || {};
     const mode = visual?.mode || "dialogue";
     const bg = visual?.cg ? { src: visual.cg } : (visual?.background ? backgroundAssets[visual.background] : null);
     const characters = Array.isArray(visual?.characters) ? visual.characters : [];
-    const focusId = visual?.focus || null;
     const portraitSpec = resolvePortraitSpec(visual, characters, characterAssets);
 
-    clearSprites();
     renderTextboxPortrait(portraitSpec, characterAssets);
-
-    if (bg?.src) {
-      els.visualBackdrop.style.backgroundImage = `url("${String(bg.src).replace(/"/g, "%22")}")`;
-      els.visualStage.classList.remove("hidden");
-      els.visualStage.setAttribute("aria-hidden", "false");
-    } else {
-      els.visualBackdrop.style.backgroundImage = "none";
-      els.visualStage.classList.add("hidden");
-      els.visualStage.setAttribute("aria-hidden", "true");
-    }
-
-    if (mode === "cg") {
-      els.visualStage.dataset.mode = "cg";
-    } else {
-      delete els.visualStage.dataset.mode;
-    }
 
     const stageCharacters = characters.filter(item => {
       if (!item?.id) return false;
@@ -1987,27 +2008,107 @@
       if (portraitSpec && item.id === portraitSpec.id && mode !== "cg") return Boolean(item.allowSceneDuplicate);
       return true;
     });
+    const focusId = visual?.focus || inferFocusIdFromNode(node, stageCharacters, characterAssets);
 
+    const bgSrc = bg?.src ? String(bg.src) : "";
+    const previousBg = els.visualBackdrop?.dataset?.assetSrc || "";
+    if (els.visualBackdrop) {
+      if (bgSrc) {
+        if (previousBg !== bgSrc) {
+          els.visualBackdrop.style.backgroundImage = `url("${bgSrc.replace(/"/g, "%22")}")`;
+          els.visualBackdrop.dataset.assetSrc = bgSrc;
+          restartAnimationClass(els.visualBackdrop, "is-backdrop-changing");
+        }
+      } else if (previousBg) {
+        els.visualBackdrop.style.backgroundImage = "none";
+        delete els.visualBackdrop.dataset.assetSrc;
+      }
+    }
+
+    if (mode === "cg") els.visualStage.dataset.mode = "cg";
+    else delete els.visualStage.dataset.mode;
+
+    const desired = { left: null, center: null, right: null };
     for (const item of stageCharacters) {
       const asset = resolveCharacterAsset(characterAssets?.[item.id], item);
       if (!asset?.src) continue;
-
-      const target = item.side === "left"
-        ? els.spriteLeft
-        : item.side === "center"
-          ? els.spriteCenter
-          : els.spriteRight;
-      if (!target) continue;
-
-      const label = characterAssets?.[item.id]?.name || item.id || "Character";
-      target.dataset.characterId = item.id || "";
-      target.classList.toggle("is-active", !focusId || focusId === item.id);
-      target.classList.toggle("is-muted", Boolean(focusId && focusId !== item.id));
-      target.innerHTML = `<img src="${escapeHtml(asset.src)}" alt="${escapeHtml(label)}" />`;
-      target.classList.remove("hidden");
-      els.visualStage.classList.remove("hidden");
-      els.visualStage.setAttribute("aria-hidden", "false");
+      const side = item.side === "left" ? "left" : item.side === "center" ? "center" : "right";
+      desired[side] = {
+        item,
+        asset,
+        label: characterAssets?.[item.id]?.name || item.id || "Character"
+      };
     }
+
+    updateSpriteSlot(els.spriteLeft, desired.left, focusId);
+    updateSpriteSlot(els.spriteCenter, desired.center, focusId);
+    updateSpriteSlot(els.spriteRight, desired.right, focusId);
+
+    const visibleCount = Object.values(desired).filter(Boolean).length;
+    els.visualStage.dataset.characterCount = String(visibleCount);
+    if (focusId) els.visualStage.dataset.focusCharacter = focusId;
+    else delete els.visualStage.dataset.focusCharacter;
+
+    const shouldShow = Boolean(bgSrc || visibleCount);
+    els.visualStage.classList.toggle("hidden", !shouldShow);
+    els.visualStage.setAttribute("aria-hidden", shouldShow ? "false" : "true");
+  }
+
+  function updateSpriteSlot(target, desired, focusId) {
+    if (!target) return;
+    if (!desired) {
+      target.classList.add("hidden");
+      target.classList.remove("is-active", "is-muted", "is-entering", "is-expression-changing");
+      target.innerHTML = "";
+      delete target.dataset.characterId;
+      delete target.dataset.expression;
+      delete target.dataset.assetSrc;
+      return;
+    }
+
+    const { item, asset, label } = desired;
+    const src = String(asset.src);
+    const previousSrc = target.dataset.assetSrc || "";
+    const previousCharacter = target.dataset.characterId || "";
+    const characterChanged = Boolean(previousCharacter && previousCharacter !== item.id);
+    const expressionChanged = Boolean(previousSrc && previousSrc !== src && !characterChanged);
+    let img = target.querySelector("img");
+
+    if (!img) {
+      img = document.createElement("img");
+      target.replaceChildren(img);
+    }
+
+    if (previousSrc !== src) img.src = src;
+    img.alt = label;
+    target.dataset.characterId = item.id || "";
+    target.dataset.expression = item.expression || "neutral";
+    target.dataset.assetSrc = src;
+    target.classList.remove("hidden", "is-entering", "is-expression-changing");
+    target.classList.toggle("is-active", !focusId || focusId === item.id);
+    target.classList.toggle("is-muted", Boolean(focusId && focusId !== item.id));
+
+    if (!previousSrc || characterChanged) restartAnimationClass(target, "is-entering");
+    else if (expressionChanged) restartAnimationClass(target, "is-expression-changing");
+  }
+
+  function inferFocusIdFromNode(node, characters, characterAssets) {
+    const dialogue = array(node?.content).filter(block => block?.kind === "dialogue" && block?.speaker).at(-1);
+    if (!dialogue?.speaker) return null;
+    const speaker = normalizeStoryName(dialogue.speaker);
+    if (!speaker) return null;
+
+    for (const item of characters || []) {
+      const id = String(item?.id || "");
+      const fullName = String(characterAssets?.[id]?.name || "");
+      const candidates = [id, fullName, ...fullName.split(/\s+/)].map(normalizeStoryName).filter(Boolean);
+      if (candidates.some(candidate => speaker === candidate || speaker.includes(candidate) || candidate.includes(speaker))) return id;
+    }
+    return null;
+  }
+
+  function normalizeStoryName(value) {
+    return String(value || "").toLowerCase().replace(/[^a-z0-9]+/g, "");
   }
 
   function resolvePortraitSpec(visual, characters, characterAssets) {
@@ -2041,6 +2142,7 @@
       els.textboxPortrait.classList.add("hidden");
       els.textboxPortraitImg.removeAttribute("src");
       els.textboxPortraitImg.alt = "";
+      delete els.textboxPortrait.dataset.assetSrc;
       return;
     }
 
@@ -2049,14 +2151,21 @@
       els.textboxPortrait.classList.add("hidden");
       els.textboxPortraitImg.removeAttribute("src");
       els.textboxPortraitImg.alt = "";
+      delete els.textboxPortrait.dataset.assetSrc;
       return;
     }
 
     const label = characterAssets?.[spec.id]?.name || spec.id;
+    const src = String(asset.src);
+    const previousSrc = els.textboxPortrait.dataset.assetSrc || "";
     els.textboxPortrait.classList.remove("hidden");
     els.textboxPortrait.dataset.characterId = spec.id;
     els.textboxPortrait.dataset.expression = spec.expression || "neutral";
-    els.textboxPortraitImg.src = asset.src;
+    els.textboxPortrait.dataset.assetSrc = src;
+    if (previousSrc !== src) {
+      els.textboxPortraitImg.src = src;
+      restartAnimationClass(els.textboxPortrait, previousSrc ? "is-expression-changing" : "is-entering");
+    }
     els.textboxPortraitImg.alt = label;
   }
 
@@ -2078,19 +2187,176 @@
     [els.spriteLeft, els.spriteCenter, els.spriteRight].forEach(el => {
       if (!el) return;
       el.classList.add("hidden");
-      el.classList.remove("is-active", "is-muted");
+      el.classList.remove("is-active", "is-muted", "is-entering", "is-expression-changing");
       delete el.dataset.characterId;
+      delete el.dataset.expression;
+      delete el.dataset.assetSrc;
       el.innerHTML = "";
     });
     if (els.textboxPortrait) {
       els.textboxPortrait.classList.add("hidden");
+      els.textboxPortrait.classList.remove("is-entering", "is-expression-changing");
       delete els.textboxPortrait.dataset.characterId;
       delete els.textboxPortrait.dataset.expression;
+      delete els.textboxPortrait.dataset.assetSrc;
     }
     if (els.textboxPortraitImg) {
       els.textboxPortraitImg.removeAttribute("src");
       els.textboxPortraitImg.alt = "";
     }
+  }
+
+  function resetVisualRenderState() {
+    clearSprites();
+    if (els.visualBackdrop) {
+      els.visualBackdrop.style.backgroundImage = "none";
+      els.visualBackdrop.classList.remove("is-backdrop-changing");
+      delete els.visualBackdrop.dataset.assetSrc;
+    }
+    if (els.visualStage) {
+      els.visualStage.classList.add("hidden");
+      els.visualStage.setAttribute("aria-hidden", "true");
+      delete els.visualStage.dataset.mode;
+      delete els.visualStage.dataset.characterCount;
+      delete els.visualStage.dataset.focusCharacter;
+    }
+  }
+
+  function restartAnimationClass(element, className) {
+    if (!element) return;
+    element.classList.remove(className);
+    void element.offsetWidth;
+    element.classList.add(className);
+    element.addEventListener("animationend", () => element.classList.remove(className), { once: true });
+  }
+
+  function animateNodeContent() {
+    restartAnimationClass(els.beatContent, "is-node-entering");
+    if (!els.choices?.classList.contains("hidden")) restartAnimationClass(els.choices, "is-node-entering");
+  }
+
+  function prefetchRuntimeVisuals() {
+    if (!runtime?.sequence?.length || !pack?.assets) return;
+    const urls = new Set();
+    const characterAssets = pack.assets.characters || {};
+    const backgroundAssets = pack.assets.backgrounds || {};
+
+    for (const node of runtime.sequence) {
+      const visual = node?.visual;
+      if (!visual || typeof visual !== "object") continue;
+      if (visual.cg) urls.add(String(visual.cg));
+      if (visual.background && backgroundAssets?.[visual.background]?.src) urls.add(String(backgroundAssets[visual.background].src));
+      for (const item of array(visual.characters)) {
+        const asset = resolveCharacterAsset(characterAssets?.[item?.id], item);
+        if (asset?.src) urls.add(String(asset.src));
+      }
+      const portrait = resolvePortraitSpec(visual, array(visual.characters), characterAssets);
+      const portraitAsset = resolveCharacterAsset(characterAssets?.[portrait?.id], portrait);
+      if (portraitAsset?.src) urls.add(String(portraitAsset.src));
+    }
+
+    for (const src of urls) {
+      if (!src || prefetchedStoryAssets.has(src)) continue;
+      prefetchedStoryAssets.add(src);
+      const image = new Image();
+      image.decoding = "async";
+      image.src = src;
+    }
+  }
+
+  function openBacklog() {
+    if (!runtime || !els.backlog || !els.backlogList) return;
+    renderBacklog();
+    els.backlog.classList.remove("hidden");
+    document.body.classList.add("story-backlog-open");
+    requestAnimationFrame(() => els.backlogClose?.focus({ preventScroll: true }));
+  }
+
+  function closeBacklog() {
+    if (!els.backlog) return;
+    const wasOpen = !els.backlog.classList.contains("hidden");
+    els.backlog.classList.add("hidden");
+    document.body.classList.remove("story-backlog-open");
+    if (wasOpen && runtime) {
+      requestAnimationFrame(() => {
+        if (runtime && !els.readerPage?.classList.contains("hidden")) els.backlogOpen?.focus({ preventScroll: true });
+      });
+    }
+  }
+
+  function renderBacklog() {
+    if (!runtime || !els.backlogList) return;
+    els.backlogList.innerHTML = "";
+    const maxIndex = runtime.finished
+      ? Math.max(0, runtime.sequence.length - 1)
+      : Math.min(runtime.step, Math.max(0, runtime.sequence.length - 1));
+    const fragment = document.createDocumentFragment();
+    let rendered = 0;
+
+    for (let index = 0; index <= maxIndex; index += 1) {
+      const node = runtime.sequence[index];
+      if (!node) continue;
+      const entry = document.createElement("article");
+      entry.className = `story-backlog-entry ${node.type === "choice" ? "is-choice" : ""}`;
+
+      if (node.type === "choice") {
+        const prompt = document.createElement("p");
+        prompt.className = "story-backlog-choice-prompt";
+        prompt.textContent = node.prompt || "What do I do?";
+        entry.appendChild(prompt);
+
+        const selectedId = selectedChoiceIdForBacklog(node);
+        const selected = array(node.options).find(option => option.id === selectedId);
+        if (selected) {
+          const answer = document.createElement("p");
+          answer.className = "story-backlog-choice-answer";
+          answer.textContent = selected.text || "";
+          entry.appendChild(answer);
+        }
+      } else {
+        for (const block of array(node.content)) {
+          if (!block?.text) continue;
+          if (block.kind === "dialogue") {
+            const line = document.createElement("div");
+            line.className = "story-backlog-dialogue";
+            const speaker = document.createElement("strong");
+            speaker.textContent = block.speaker || "Dialogue";
+            const text = document.createElement("span");
+            text.textContent = block.text;
+            line.append(speaker, text);
+            entry.appendChild(line);
+          } else {
+            const text = document.createElement("p");
+            text.className = block.kind === "thought" ? "story-backlog-thought" : "story-backlog-prose";
+            text.textContent = block.text;
+            entry.appendChild(text);
+          }
+        }
+      }
+
+      if (!entry.childNodes.length) continue;
+      fragment.appendChild(entry);
+      rendered += 1;
+    }
+
+    if (!rendered) {
+      const empty = document.createElement("div");
+      empty.className = "story-backlog-empty";
+      empty.textContent = "Nothing to look back on yet.";
+      fragment.appendChild(empty);
+    }
+
+    els.backlogList.appendChild(fragment);
+    requestAnimationFrame(() => { els.backlogList.scrollTop = els.backlogList.scrollHeight; });
+  }
+
+  function selectedChoiceIdForBacklog(node) {
+    if (!runtime || !node) return null;
+    const state = app.getState();
+    const key = choiceKey(runtime.sceneId, node.id);
+    const store = ["talk", "hangout"].includes(runtime.kind) ? state.story.social.choiceSelections : state.story.choiceSelections;
+    if (runtime.replay) return runtime.replaySelections[key] || store[key] || null;
+    return store[key] || null;
   }
 
   function choiceKey(sceneId, choiceId) {
