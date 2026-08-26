@@ -1,8 +1,39 @@
 {
   "schema": 1,
-  "updated": "2026-08-25",
+  "updated": "2026-08-26",
   "purpose": "Human-readable source of truth for approved story character visuals. Future visual passes should preserve locked designs unless explicitly re-approved.",
   "characters": {
+    "luca": {
+      "status": "provisionally-approved-runtime-v1",
+      "displayName": "Luca",
+      "visualVersion": "luca-runtime-v1-working",
+      "canonNotes": [
+        "Working visual canon only; not permanently final-locked.",
+        "Identity follows the current approved Luca board: light skin, green eyes, natural freckles, shoulder/above-shoulder wavy bleached-blonde hair with visible dark regrowth, facial piercings and adult 30-year-old appearance.",
+        "Runtime V1 look uses round glasses, pink cardigan, simple black camisole/tank styling and restrained believable jewelry.",
+        "Hair, outfit, glasses, jewelry and accessories remain scene-variable; this runtime outfit is not a permanent story-time outfit lock.",
+        "Legacy Luca runtime illustrations must not be used as identity references for new generation."
+      ],
+      "approved": {
+        "neutral": "assets/story/portraits/luca_neutral.png",
+        "warm": "assets/story/portraits/luca_warm.png",
+        "skeptical": "assets/story/portraits/luca_skeptical.png",
+        "annoyed": "assets/story/portraits/luca_annoyed.png",
+        "flustered": "assets/story/portraits/luca_flustered.png"
+      },
+      "compatibilityAliases": {
+        "softSmile": "assets/story/portraits/luca_warm.png",
+        "happy": "assets/story/portraits/luca_warm.png",
+        "amused": "assets/story/portraits/luca_warm.png",
+        "thinking": "assets/story/portraits/luca_neutral.png"
+      },
+      "expressionNotes": [
+        "V1 core runtime set approved as good-enough-for-now on 2026-08-26: Neutral, Warm/Amused, Skeptical/Side-Eye, Mild Annoyed and Flustered/Caught Off Guard.",
+        "Use subtle intensity appropriate to Luca’s current trust/self-control; do not over-broadcast hidden feelings.",
+        "Further expressions may be added later without invalidating this working set."
+      ],
+      "legacyRule": "Older Luca runtime portraits/character illustrations are transitional only and are excluded as visual-generation references."
+    },
     "bakugo": {
       "status": "locked-base+angry-pack+happy-pack+soft-pack+tired-pack+smug-cocky-pack+hero-costume-pack",
       "displayName": "Katsuki Bakugo",
