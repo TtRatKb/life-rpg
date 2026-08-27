@@ -7,7 +7,7 @@
     return;
   }
 
-  const HABIT_SCHEMA = 2;
+  const HABIT_SCHEMA = 3;
   const SHADOW_KEY = "life-rpg-habits-shadow-v1";
   const STREAK_GROWTH = 1.03;
   const STREAK_CAP = 2;
@@ -147,7 +147,12 @@
       changed = true;
     }
 
-    if (Number(state.habits.schemaVersion || 0) < HABIT_SCHEMA) {
+    const previousHabitSchema = Number(state.habits.schemaVersion || 0);
+    if (previousHabitSchema < 3) {
+      if (repairArchiveRestoreRegression(state.habits)) changed = true;
+      state.habits.schemaVersion = HABIT_SCHEMA;
+      changed = true;
+    } else if (previousHabitSchema < HABIT_SCHEMA) {
       state.habits.schemaVersion = HABIT_SCHEMA;
       changed = true;
     }
@@ -182,6 +187,49 @@
       items: [],
       completions: []
     };
+  }
+
+  function repairArchiveRestoreRegression(store) {
+    if (!store || !Array.isArray(store.items) || !Array.isArray(store.completions)) return false;
+
+    let repaired = false;
+    const now = Date.now();
+    const threeDays = 3 * 24 * 60 * 60 * 1000;
+
+    store.items.forEach(habit => {
+      if (!habit || habit.active === false || !habit.archivedAt || !habit.scheduleStartDate) return;
+
+      const trackingFrom = Number(habit.trackingFrom || 0);
+      const archivedAt = Number(habit.archivedAt || 0);
+      if (!trackingFrom || !archivedAt || trackingFrom < archivedAt || trackingFrom - archivedAt > threeDays) return;
+
+      const trackingDate = formatDateKey(new Date(trackingFrom));
+      if (trackingDate !== habit.scheduleStartDate) return;
+
+      const earlier = store.completions
+        .filter(log => log?.habitId === habit.id && typeof log.date === "string" && log.date < habit.scheduleStartDate)
+        .sort((a, b) => String(a.date).localeCompare(String(b.date)));
+      if (!earlier.length) return;
+
+      // V0.24.8–V0.27.2 reset scheduleStartDate/trackingFrom when an archived habit
+      // was restored. Recover the original tracking window from saved history.
+      const earliestCompletion = earlier[0].date;
+      const createdDate = typeof habit.createdDate === "string" ? habit.createdDate : null;
+      habit.scheduleStartDate = createdDate && createdDate <= earliestCompletion ? createdDate : earliestCompletion;
+
+      const createdAt = Number(habit.createdAt || 0);
+      if (createdAt > 0 && createdAt < trackingFrom) {
+        habit.trackingFrom = createdAt;
+      } else {
+        const recovered = parseDateKey(habit.scheduleStartDate);
+        habit.trackingFrom = recovered.getTime();
+      }
+
+      habit.archiveRestoreRecoveredAt = now;
+      repaired = true;
+    });
+
+    return repaired;
   }
 
   function habitState() {
@@ -819,15 +867,18 @@
     const habit = store.items.find(item => item.id === habitId);
     if (!habit) return;
 
+    const now = Date.now();
     if (habit.active === false) {
+      // Restoring an archived habit must never rewrite its historical tracking window.
+      // Existing completions remain the source of truth, so an accidental archive/restore
+      // cannot erase a streak or make yesterday impossible to backfill.
       habit.active = true;
-      habit.scheduleStartDate = todayKey();
-      habit.trackingFrom = Date.now();
-      habit.updatedAt = Date.now();
+      habit.restoredAt = now;
+      habit.updatedAt = now;
     } else {
       habit.active = false;
-      habit.archivedAt = Date.now();
-      habit.updatedAt = Date.now();
+      habit.archivedAt = now;
+      habit.updatedAt = now;
     }
 
     persist(habit.active ? "habit-restore" : "habit-archive");
