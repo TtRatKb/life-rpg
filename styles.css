@@ -11525,3 +11525,36 @@ body.story-backlog-open { overflow: hidden; }
   font-style: italic;
   color: #695063;
 }
+
+
+/* V0.27.3 — quick chain logging */
+.chain-log-picker-v273 {
+  display: grid;
+  gap: .4rem;
+  padding: .75rem .85rem;
+  border: 1px solid rgba(111, 66, 92, .16);
+  border-radius: 14px;
+  background: rgba(255, 250, 247, .72);
+}
+.chain-log-picker-v273 select { width: 100%; }
+.chain-log-status-v273 {
+  padding: .65rem .8rem;
+  border-radius: 12px;
+  background: rgba(242, 226, 236, .72);
+  color: var(--ink, #4b3342);
+  font-size: .9rem;
+  line-height: 1.4;
+}
+.chain-log-status-v273.hidden { display: none; }
+.chain-log-menu-v273 {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: .55rem;
+}
+@media (max-width: 640px) {
+  .chain-log-menu-v273 { display: grid; grid-template-columns: 1fr 1fr; }
+  .chain-log-menu-v273 .primary-button { grid-column: 1 / -1; }
+  .chain-log-menu-v273 button { width: 100%; }
+  .chain-save-button-v273 { order: 2; }
+}

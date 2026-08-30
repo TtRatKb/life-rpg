@@ -50,6 +50,7 @@
     close: byId("adventureDialogClose"),
     cancel: byId("cancelAdventureButton"),
     deleteButton: byId("deleteAdventureButton"),
+    saveAnother: byId("saveAdventureAnotherButton"),
     name: byId("adventureName"),
     kind: byId("adventureKind"),
     realm: byId("adventureRealm"),
@@ -68,6 +69,8 @@
     logForm: byId("adventureLogForm"),
     logId: byId("adventureLogId"),
     logTitle: byId("adventureLogTitle"),
+    logPicker: byId("adventureLogPicker"),
+    logChainStatus: byId("adventureLogChainStatus"),
     logClose: byId("adventureLogClose"),
     logCancel: byId("adventureLogCancel"),
     logFinishLine: byId("adventureLogFinishLine"),
@@ -140,6 +143,10 @@
     els.logClose?.addEventListener("click", closeLogDialog);
     els.logCancel?.addEventListener("click", closeLogDialog);
     els.logForm?.addEventListener("submit", logAdventureProgress);
+    els.logPicker?.addEventListener("change", () => {
+      const item = model().items.find(entry => entry.id === els.logPicker.value);
+      if (item) configureLogForm(item);
+    });
     els.logProgress?.addEventListener("input", updateLogProgressButtons);
 
     window.addEventListener("life-rpg:render", () => {
@@ -314,6 +321,7 @@
     if (els.editId) els.editId.value = item?.id || "";
     if (els.dialogTitle) els.dialogTitle.textContent = item ? "Edit side adventure" : "Create a side adventure";
     els.deleteButton?.classList.toggle("hidden", !item);
+    els.saveAnother?.classList.toggle("hidden", Boolean(item));
     if (els.name) els.name.value = item?.name || "";
     if (els.kind) els.kind.value = item?.kind || "creative";
     if (els.realm) els.realm.value = item?.realm || "Hobbies";
@@ -382,13 +390,36 @@
       label: item.name,
       fields: [item.name, item.kind]
     });
+    const addAnother = !existing && event.submitter?.dataset.saveAnother === "true";
     persist(existing ? "side-adventure-edit" : "side-adventure-create");
     if (Number(stewardshipReward?.xp || 0) > 0 || Number(stewardshipReward?.storyEnergy || 0) > 0) app.renderAll?.();
-    closeAdventureDialog();
+    if (addAnother) {
+      resetAdventureDialogForAnother({ kind: item.kind, realm: item.realm, energy: item.energy, sessionMinutes: item.sessionMinutes });
+    } else {
+      closeAdventureDialog();
+    }
     if (stewardshipReward) {
       const upkeepText = window.LifeRPGStewardship?.statusText?.(stewardshipReward) || "";
       if (upkeepText) app.showToast?.(`Side Adventure added · ${upkeepText}`);
     }
+  }
+
+  function resetAdventureDialogForAnother(defaults = {}) {
+    els.form?.reset();
+    if (els.editId) els.editId.value = "";
+    if (els.dialogTitle) els.dialogTitle.textContent = "Create a side adventure";
+    els.deleteButton?.classList.add("hidden");
+    els.saveAnother?.classList.remove("hidden");
+    if (els.kind) els.kind.value = defaults.kind || "creative";
+    if (els.realm) els.realm.value = defaults.realm || "Hobbies";
+    if (els.energy) els.energy.value = defaults.energy || "medium";
+    if (els.minutes) els.minutes.value = String(defaults.sessionMinutes || 30);
+    if (els.statusField) els.statusField.value = "active";
+    if (els.progressMode) els.progressMode.value = "percent";
+    if (els.progress) els.progress.value = "0";
+    if (els.increment) els.increment.value = "5";
+    renderFormState();
+    window.setTimeout(() => els.name?.focus(), 20);
   }
 
   function deleteCurrentAdventure() {
@@ -415,7 +446,23 @@
     const item = model().items.find(entry => entry.id === id);
     if (!item || !els.logDialog || !els.logForm) return;
     els.logForm.reset();
+    populateLogPicker(item.id);
+    configureLogForm(item);
+    setChainLogStatus("");
+    els.logDialog.showModal();
+  }
+
+  function populateLogPicker(selectedId = "") {
+    if (!els.logPicker) return;
+    const items = [...model().items].filter(item => item.status !== "finished").sort((a, b) => String(a.name || "").localeCompare(String(b.name || "")));
+    els.logPicker.innerHTML = items.map(item => `<option value="${escAttr(item.id)}">${esc(item.name)}</option>`).join("");
+    if (items.some(item => item.id === selectedId)) els.logPicker.value = selectedId;
+  }
+
+  function configureLogForm(item) {
+    if (!item) return;
     if (els.logId) els.logId.value = item.id;
+    if (els.logPicker && els.logPicker.value !== item.id) els.logPicker.value = item.id;
     if (els.logTitle) els.logTitle.textContent = item.name;
     if (els.logFinishLine) els.logFinishLine.textContent = item.nextAction || "Spend one focused session on this.";
     const percent = item.progressMode === "percent";
@@ -423,11 +470,17 @@
     if (els.logProgress) els.logProgress.value = String(percent ? clamp(Number(item.progress || 0) + Number(item.progressIncrement || 0), 0, 100) : 0);
     if (els.logNextAction) els.logNextAction.value = "";
     renderLogQuickButtons(item);
-    els.logDialog.showModal();
+  }
+
+  function setChainLogStatus(message) {
+    if (!els.logChainStatus) return;
+    els.logChainStatus.textContent = message || "";
+    els.logChainStatus.classList.toggle("hidden", !message);
   }
 
   function closeLogDialog() {
     if (els.logDialog?.open) els.logDialog.close();
+    setChainLogStatus("");
   }
 
   function renderLogQuickButtons(item) {
@@ -511,8 +564,21 @@
     });
     persist("side-adventure-progress");
     app.renderAll?.();
-    closeLogDialog();
+    const addAnother = event.submitter?.dataset.logAnother === "true";
     showToast(item, before, after, reward);
+    if (addAnother) {
+      populateLogPicker(item.status === "finished" ? "" : item.id);
+      const nextItem = model().items.find(entry => entry.id === els.logPicker?.value);
+      if (nextItem) {
+        configureLogForm(nextItem);
+        setChainLogStatus(`✓ ${item.name} saved. Pick another side adventure above or log another session.`);
+        window.setTimeout(() => els.logPicker?.focus(), 20);
+      } else {
+        closeLogDialog();
+      }
+    } else {
+      closeLogDialog();
+    }
   }
 
   function showToast(item, before, after, reward = null) {

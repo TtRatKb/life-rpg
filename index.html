@@ -14,7 +14,7 @@
   <link rel="manifest" href="manifest.webmanifest?v=0.25.1" />
   <link rel="apple-touch-icon" href="assets/app-icon-180.png?v=0.25.1" />
   <link rel="icon" type="image/png" sizes="192x192" href="assets/app-icon-192.png?v=0.25.1" />
-  <link rel="stylesheet" href="styles.css?v=0.27.2" />
+  <link rel="stylesheet" href="styles.css?v=0.27.3" />
 </head>
 <body>
   <section id="mobileCloudGate" class="mobile-cloud-gate-v251" data-state="checking" aria-live="polite" aria-label="Life RPG cloud sign in">
@@ -1290,7 +1290,8 @@
         <button class="text-button danger-button hidden" id="deleteBookButton" type="button">Remove book</button>
         <span class="menu-spacer"></span>
         <button class="secondary-button" id="cancelBookButton" type="button">Cancel</button>
-        <button class="primary-button" type="submit">Save to Library</button>
+        <button class="secondary-button chain-save-button-v273" id="saveBookAnotherButton" type="submit" data-save-another="true">Save & add another</button>
+        <button class="primary-button" type="submit">Save & done</button>
       </menu>
     </form>
   </dialog>
@@ -1324,6 +1325,10 @@ Project Hail Mary — Andy Weir
         <div><p class="eyebrow">READING LOG</p><h2 id="bookLogTitle">Book</h2></div>
         <button class="close-button" id="bookLogClose" type="button" aria-label="Close">×</button>
       </div>
+      <label class="chain-log-picker-v273">What are you logging?
+        <select id="bookLogPicker" aria-label="Choose a book to log"></select>
+      </label>
+      <div id="bookLogChainStatus" class="chain-log-status-v273 hidden" aria-live="polite"></div>
       <div id="bookLogPagesWrap" class="book-log-unit-v16">
         <label>Pages read this time<input id="bookLogPages" type="number" min="0" step="1" placeholder="e.g. 17" /></label>
         <div class="book-log-nudges-v16"><button type="button" data-book-log-field="pages" data-book-log-nudge="10">+10</button><button type="button" data-book-log-field="pages" data-book-log-nudge="25">+25</button><button type="button" data-book-log-field="pages" data-book-log-nudge="50">+50</button></div>
@@ -1334,7 +1339,7 @@ Project Hail Mary — Andy Weir
       </div>
       <label class="library-check-v16"><input id="bookLogChapter" type="checkbox" /><span><strong>I finished a chapter.</strong><small>Useful when Today's Pick was “read one chapter”; page count can still stay optional.</small></span></label>
       <div id="bookLogPreview" class="book-log-preview-v16"></div>
-      <menu><button class="secondary-button" id="bookLogCancel" type="button">Cancel</button><button class="primary-button" type="submit">Log reading</button></menu>
+      <menu class="chain-log-menu-v273"><button class="secondary-button" id="bookLogCancel" type="button">Done</button><button class="secondary-button" type="submit">Log & done</button><button class="primary-button" type="submit" data-log-another="true">Log & another</button></menu>
     </form>
   </dialog>
 
@@ -1410,7 +1415,8 @@ Project Hail Mary — Andy Weir
         <button class="text-button danger-button hidden" id="deleteGameButton" type="button">Remove game</button>
         <span class="menu-spacer"></span>
         <button class="secondary-button" id="cancelGameButton" type="button">Cancel</button>
-        <button class="primary-button" type="submit">Save game</button>
+        <button class="secondary-button chain-save-button-v273" id="saveGameAnotherButton" type="submit" data-save-another="true">Save & add another</button>
+        <button class="primary-button" type="submit">Save & done</button>
       </menu>
     </form>
   </dialog>
@@ -1424,6 +1430,10 @@ Project Hail Mary — Andy Weir
         <button class="close-button" id="gameLogClose" type="button" aria-label="Close">×</button>
       </div>
 
+      <label class="chain-log-picker-v273">What are you logging?
+        <select id="gameLogPicker" aria-label="Choose a game to log"></select>
+      </label>
+      <div id="gameLogChainStatus" class="chain-log-status-v273 hidden" aria-live="polite"></div>
       <label>How long did you play?<input id="gameLogMinutes" type="number" min="1" step="1" value="45" required /></label>
       <div class="game-log-nudges-v17">
         <button type="button" data-game-log-nudge="15">15m</button>
@@ -1438,7 +1448,7 @@ Project Hail Mary — Andy Weir
       </label>
       <label id="gameLogProgressWrap" class="hidden">Progress after this session<input id="gameLogProgress" type="number" min="0" max="100" step="1" /></label>
       <div id="gameLogPreview" class="game-log-preview-v17"></div>
-      <menu><button class="secondary-button" id="gameLogCancel" type="button">Cancel</button><button class="primary-button" type="submit">Log session</button></menu>
+      <menu class="chain-log-menu-v273"><button class="secondary-button" id="gameLogCancel" type="button">Done</button><button class="secondary-button" type="submit">Log & done</button><button class="primary-button" type="submit" data-log-another="true">Log & another</button></menu>
     </form>
   </dialog>
 
@@ -1632,7 +1642,8 @@ Project Hail Mary — Andy Weir
         <button class="danger-text-button hidden" id="deleteHabitButton" type="button">Delete habit</button>
         <span class="dialog-menu-spacer"></span>
         <button class="secondary-button" id="cancelHabitButton" type="button">Cancel</button>
-        <button class="primary-button" id="saveHabitButton" type="submit">Save habit</button>
+        <button class="secondary-button chain-save-button-v273" id="saveHabitAnotherButton" type="submit" data-save-another="true">Save & add another</button>
+        <button class="primary-button" id="saveHabitButton" type="submit">Save & done</button>
       </menu>
     </form>
   </dialog>
@@ -1689,7 +1700,8 @@ Project Hail Mary — Andy Weir
         <button class="danger-text-button hidden" id="deleteAdventureButton" type="button">Delete adventure</button>
         <span class="dialog-menu-spacer"></span>
         <button class="secondary-button" id="cancelAdventureButton" type="button">Cancel</button>
-        <button class="primary-button" type="submit">Save adventure</button>
+        <button class="secondary-button chain-save-button-v273" id="saveAdventureAnotherButton" type="submit" data-save-another="true">Save & add another</button>
+        <button class="primary-button" type="submit">Save & done</button>
       </menu>
     </form>
   </dialog>
@@ -1702,13 +1714,17 @@ Project Hail Mary — Andy Weir
         <div><p class="eyebrow">LOG PROGRESS</p><h2 id="adventureLogTitle">Side Adventure</h2></div>
         <button class="close-button" id="adventureLogClose" type="button" aria-label="Close">×</button>
       </div>
+      <label class="chain-log-picker-v273">What are you logging?
+        <select id="adventureLogPicker" aria-label="Choose a side adventure to log"></select>
+      </label>
+      <div id="adventureLogChainStatus" class="chain-log-status-v273 hidden" aria-live="polite"></div>
       <div class="adventure-log-finish-v15"><small>TODAY'S FINISH LINE</small><strong id="adventureLogFinishLine">One small next step.</strong></div>
       <div id="adventureLogProgressWrap">
         <label>Where are you now?<input id="adventureLogProgress" type="number" min="0" max="100" step="1" value="0" /></label>
         <div id="adventureLogQuickProgress" class="adventure-log-quick-v15"></div>
       </div>
       <label>Next action after this <span class="muted">(optional)</span><input id="adventureLogNextAction" maxlength="140" placeholder="e.g. Attach the eyes" /><small>Leave blank if the current next action still applies.</small></label>
-      <menu><button class="secondary-button" id="adventureLogCancel" type="button">Not now</button><button class="primary-button" type="submit">✓ Log this session</button></menu>
+      <menu class="chain-log-menu-v273"><button class="secondary-button" id="adventureLogCancel" type="button">Done</button><button class="secondary-button" type="submit">Log & done</button><button class="primary-button" type="submit" data-log-another="true">✓ Log & another</button></menu>
     </form>
   </dialog>
 
@@ -1790,7 +1806,8 @@ Project Hail Mary — Andy Weir
 
       <menu>
         <button class="secondary-button" value="cancel">Cancel</button>
-        <button class="primary-button" id="saveQuestButton" value="default">Create quest</button>
+        <button class="secondary-button chain-save-button-v273" id="saveQuestAnotherButton" type="button">Create & add another</button>
+        <button class="primary-button" id="saveQuestButton" value="default">Create & done</button>
       </menu>
     </form>
   </dialog>
@@ -1858,13 +1875,15 @@ Project Hail Mary — Andy Weir
         </label>
       </div>
 
+      <div id="externalTaskChainStatus" class="chain-log-status-v273 hidden" aria-live="polite"></div>
       <div id="externalTaskPreview" class="reward-preview"></div>
 
       <p class="muted external-reward-note">Story Energy uses the same diminishing daily schedule as normal quests, so important work helps without making overwork the optimal strategy.</p>
 
       <menu>
-        <button class="secondary-button" value="cancel">Cancel</button>
-        <button class="primary-button" id="confirmExternalTaskButton" value="default">Claim reward</button>
+        <button class="secondary-button" value="cancel">Done</button>
+        <button class="secondary-button" id="confirmExternalTaskDoneButton" type="button">Claim & done</button>
+        <button class="primary-button" id="confirmExternalTaskButton" type="button">Claim & another</button>
       </menu>
     </form>
   </dialog>
@@ -2028,16 +2047,16 @@ Project Hail Mary — Andy Weir
 
   <script src="data/quests.js"></script>
   <script src="story-engine.js?v=0.27.2"></script>
-  <script src="app.js?v=0.23.0"></script>
+  <script src="app.js?v=0.27.3"></script>
   <script src="stewardship.js?v=0.27.2"></script>
-  <script src="habits.js?v=0.27.2a"></script>
-  <script src="adventures.js?v=0.27.2"></script>
-  <script src="library.js?v=0.27.2"></script>
-  <script src="games.js?v=0.27.2"></script>
+  <script src="habits.js?v=0.27.3"></script>
+  <script src="adventures.js?v=0.27.3"></script>
+  <script src="library.js?v=0.27.3"></script>
+  <script src="games.js?v=0.27.3"></script>
   <script src="daily.js?v=0.27.2"></script>
   <script src="story-ui.js?v=0.27.2"></script>
   <script src="achievements.js?v=0.23.0"></script>
   <script type="module" src="cloud-save.js?v=0.25.1"></script>
-  <script src="pwa.js?v=0.27.2a"></script>
+  <script src="pwa.js?v=0.27.3"></script>
 </body>
 </html>

@@ -46,6 +46,7 @@
     close: byId("gameDialogClose"),
     cancel: byId("cancelGameButton"),
     deleteButton: byId("deleteGameButton"),
+    saveAnother: byId("saveGameAnotherButton"),
     title: byId("gameTitle"),
     platform: byId("gamePlatform"),
     statusField: byId("gameStatus"),
@@ -62,6 +63,8 @@
     logForm: byId("gameLogForm"),
     logId: byId("gameLogId"),
     logTitle: byId("gameLogTitle"),
+    logPicker: byId("gameLogPicker"),
+    logChainStatus: byId("gameLogChainStatus"),
     logClose: byId("gameLogClose"),
     logCancel: byId("gameLogCancel"),
     logMinutes: byId("gameLogMinutes"),
@@ -157,6 +160,10 @@
     els.logClose?.addEventListener("click", closeLogDialog);
     els.logCancel?.addEventListener("click", closeLogDialog);
     els.logForm?.addEventListener("submit", logSession);
+    els.logPicker?.addEventListener("change", () => {
+      const game = findGame(els.logPicker.value);
+      if (game) configureLogForm(game);
+    });
     els.logMinutes?.addEventListener("input", renderLogPreview);
     els.logProgress?.addEventListener("input", renderLogPreview);
     els.logGoal?.addEventListener("change", renderLogPreview);
@@ -383,6 +390,7 @@
     if (els.goalsSeed) els.goalsSeed.value = "";
     if (els.notes) els.notes.value = game?.notes || "";
     els.deleteButton?.classList.toggle("hidden", !game);
+    els.saveAnother?.classList.toggle("hidden", Boolean(game));
     renderGameFormState();
     renderGamePreview();
     els.dialog.showModal();
@@ -442,11 +450,31 @@
       label: game.title,
       fields: [game.title, game.platform]
     });
+    const addAnother = !existing && event.submitter?.dataset.saveAnother === "true";
     persist(existing ? "game-edit" : "game-create");
     if (Number(stewardshipReward?.xp || 0) > 0 || Number(stewardshipReward?.storyEnergy || 0) > 0) app.renderAll?.();
-    closeGameDialog();
     const upkeepText = window.LifeRPGStewardship?.statusText?.(stewardshipReward) || "";
     showToast(existing ? "Game updated" : "Game added", [`${game.title} is ready for the planner.`, upkeepText].filter(Boolean).join(" · "));
+    if (addAnother) {
+      resetGameDialogForAnother({ status: game.status === "finished" ? "playing" : status, role: game.role, sessionMinutes: game.sessionMinutes });
+    } else {
+      closeGameDialog();
+    }
+  }
+
+  function resetGameDialogForAnother(defaults = {}) {
+    els.form?.reset();
+    if (els.editId) els.editId.value = "";
+    if (els.dialogTitle) els.dialogTitle.textContent = "Add a game";
+    els.deleteButton?.classList.add("hidden");
+    els.saveAnother?.classList.remove("hidden");
+    if (els.statusField) els.statusField.value = defaults.status || "playing";
+    if (els.role) els.role.value = defaults.role || "fun";
+    if (els.minutes) els.minutes.value = String(defaults.sessionMinutes || 45);
+    if (els.progressMode) els.progressMode.value = "none";
+    if (els.progress) els.progress.value = "0";
+    renderGameFormState();
+    window.setTimeout(() => els.title?.focus(), 20);
   }
 
   function deleteCurrentGame() {
@@ -470,7 +498,26 @@
     const game = findGame(id);
     if (!game) return;
     els.logForm.reset();
+    populateLogPicker(game.id);
+    configureLogForm(game, suggestedMinutes);
+    setChainLogStatus("");
+    els.logDialog.showModal();
+  }
+
+  function populateLogPicker(selectedId = "") {
+    if (!els.logPicker) return;
+    const items = [...model().items].sort((a, b) => {
+      const rank = value => value === "playing" || value === "endless" ? 0 : value === "paused" ? 1 : value === "backlog" ? 2 : 3;
+      return rank(a.status) - rank(b.status) || String(a.title || "").localeCompare(String(b.title || ""));
+    });
+    els.logPicker.innerHTML = items.map(game => `<option value="${escAttr(game.id)}">${esc(game.title)}${game.platform ? ` — ${esc(game.platform)}` : ""}</option>`).join("");
+    if (items.some(game => game.id === selectedId)) els.logPicker.value = selectedId;
+  }
+
+  function configureLogForm(game, suggestedMinutes = 0) {
+    if (!game) return;
     if (els.logId) els.logId.value = game.id;
+    if (els.logPicker && els.logPicker.value !== game.id) els.logPicker.value = game.id;
     if (els.logTitle) els.logTitle.textContent = game.title;
     if (els.logMinutes) els.logMinutes.value = String(Math.max(5, suggestedMinutes || game.sessionMinutes || 45));
     const usesProgress = game.progressMode === "percent";
@@ -478,7 +525,12 @@
     if (els.logProgress) els.logProgress.value = usesProgress ? String(clamp(Number(game.progress || 0), 0, 100)) : "";
     renderGoalOptions(game);
     renderLogPreview();
-    els.logDialog.showModal();
+  }
+
+  function setChainLogStatus(message) {
+    if (!els.logChainStatus) return;
+    els.logChainStatus.textContent = message || "";
+    els.logChainStatus.classList.toggle("hidden", !message);
   }
 
   function renderGoalOptions(game) {
@@ -578,16 +630,26 @@
 
     persist("game-session-log");
     app.renderAll?.();
-    closeLogDialog();
+    const addAnother = event.submitter?.dataset.logAnother === "true";
     const rewardText = reward.deduped
       ? " · already counted from a linked gaming quest"
       : ` · +${Number(reward.xp || 0)} XP`;
     const finishText = finishReward ? ` · finished +${app.formatEnergy?.(finishReward.storyEnergy) ?? finishReward.storyEnergy} 🔥` : "";
     showToast("Session logged", `${game.title} · ${formatDuration(minutes)}${goalId ? " · personal goal kept in focus" : ""}${rewardText}${finishText}`);
+    if (addAnother) {
+      populateLogPicker(game.id);
+      const nextGame = findGame(els.logPicker?.value || game.id) || game;
+      configureLogForm(nextGame);
+      setChainLogStatus(`✓ ${game.title} saved. Pick another game above or log another session.`);
+      window.setTimeout(() => els.logPicker?.focus(), 20);
+    } else {
+      closeLogDialog();
+    }
   }
 
   function closeLogDialog() {
     if (els.logDialog?.open) els.logDialog.close();
+    setChainLogStatus("");
   }
 
   function openGoalDialog(gameId) {

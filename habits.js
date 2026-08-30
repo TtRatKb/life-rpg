@@ -54,6 +54,7 @@
     close: byId("habitDialogClose"),
     cancel: byId("cancelHabitButton"),
     deleteButton: byId("deleteHabitButton"),
+    saveAnother: byId("saveHabitAnotherButton"),
     name: byId("habitName"),
     realm: byId("habitRealm"),
     effort: byId("habitEffort"),
@@ -758,6 +759,7 @@
     els.editId.value = habit?.id || "";
     els.title.textContent = habit ? "Edit habit" : "Create a habit";
     els.deleteButton?.classList.toggle("hidden", !habit);
+    els.saveAnother?.classList.toggle("hidden", Boolean(habit));
     els.cadenceEditNote?.classList.toggle("hidden", !habit);
 
     if (habit) {
@@ -837,13 +839,43 @@
       fields: [createdHabit.name, createdHabit.realm]
     }) : null;
 
-    closeHabitDialog();
+    const addAnother = !existing && event.submitter?.dataset.saveAnother === "true";
     persist(existing ? "habit-edit" : "habit-create");
     if (Number(stewardshipReward?.xp || 0) > 0 || Number(stewardshipReward?.storyEnergy || 0) > 0) app.renderAll?.();
+    if (addAnother) {
+      const defaults = {
+        realm: REALMS.includes(els.realm.value) ? els.realm.value : "Health",
+        effort: EFFORTS[els.effort.value] ? els.effort.value : "low",
+        scheduleType: els.scheduleType.value || "daily",
+        scheduleCount: els.scheduleCount.value || "2",
+        daypart: DAYPARTS[els.daypart?.value] ? els.daypart.value : "anytime"
+      };
+      resetHabitDialogForAnother(defaults);
+    } else {
+      closeHabitDialog();
+    }
     if (stewardshipReward) {
       const upkeepText = window.LifeRPGStewardship?.statusText?.(stewardshipReward) || "";
       if (upkeepText) app.showToast?.(`Habit added · ${upkeepText}`);
     }
+  }
+
+  function resetHabitDialogForAnother(defaults = {}) {
+    els.form?.reset();
+    els.editId.value = "";
+    els.title.textContent = "Create a habit";
+    els.deleteButton?.classList.add("hidden");
+    els.saveAnother?.classList.remove("hidden");
+    els.cadenceEditNote?.classList.add("hidden");
+    els.realm.value = defaults.realm || "Health";
+    els.effort.value = defaults.effort || "low";
+    els.scheduleType.value = defaults.scheduleType || "daily";
+    els.scheduleCount.value = defaults.scheduleCount || "2";
+    els.daypart.value = defaults.daypart || "anytime";
+    els.note.value = "";
+    updateScheduleControls();
+    renderHabitRewardPreview();
+    window.setTimeout(() => els.name?.focus(), 20);
   }
 
   function deleteHabitFromDialog() {

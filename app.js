@@ -763,6 +763,7 @@
     externalTaskEffort: byId("externalTaskEffort"),
     externalTaskRealm: byId("externalTaskRealm"),
     externalTaskPreview: byId("externalTaskPreview"),
+    externalTaskChainStatus: byId("externalTaskChainStatus"),
 
 
     clearOverlay: byId("clearOverlay"),
@@ -958,7 +959,12 @@
 
     byId("saveQuestButton").addEventListener("click", event => {
       event.preventDefault();
-      createQuestFromForm();
+      createQuestFromForm(false);
+    });
+
+    byId("saveQuestAnotherButton")?.addEventListener("click", event => {
+      event.preventDefault();
+      createQuestFromForm(true);
     });
 
     byId("confirmCompleteButton").addEventListener("click", event => {
@@ -1008,7 +1014,18 @@
     byId("confirmExternalTaskButton")?.addEventListener("click", event => {
       event.preventDefault();
       if (!els.externalTaskForm?.reportValidity()) return;
-      completeExternalTask();
+      const result = completeExternalTask({ showOverlay: false });
+      if (!result) return;
+      showExternalTaskChainStatus(result);
+      els.externalTaskName.value = "";
+      updateExternalTaskPreview();
+      window.setTimeout(() => els.externalTaskName?.focus(), 20);
+    });
+
+    byId("confirmExternalTaskDoneButton")?.addEventListener("click", event => {
+      event.preventDefault();
+      if (!els.externalTaskForm?.reportValidity()) return;
+      completeExternalTask({ showOverlay: true });
       els.externalTaskDialog?.close();
     });
 
@@ -1411,18 +1428,25 @@
     renderQuestLibrary();
   }
 
-  function openCreateQuestDialog() {
+  function resetCreateQuestForm(defaults = {}) {
     els.questForm.reset();
     byId("newQuestTarget").value = 1;
     byId("newQuestXP").value = 20;
-    byId("newQuestUnitLabel").value = "task";
-    byId("newQuestEnergy").value = "Normal";
-    byId("newQuestFrequency").value = "Repeatable";
-    byId("newQuestXPMode").value = "Fixed";
-    els.questDialog.showModal();
+    byId("newQuestUnitLabel").value = defaults.unitLabel || "task";
+    byId("newQuestEnergy").value = defaults.energy || "Normal";
+    byId("newQuestFrequency").value = defaults.frequency || "Repeatable";
+    byId("newQuestXPMode").value = defaults.xpMode || "Fixed";
+    if (defaults.realm) byId("newQuestRealm").value = defaults.realm;
+    if (defaults.stat) byId("newQuestStat").value = defaults.stat;
   }
 
-  function createQuestFromForm() {
+  function openCreateQuestDialog() {
+    resetCreateQuestForm();
+    els.questDialog.showModal();
+    window.setTimeout(() => byId("newQuestName")?.focus(), 20);
+  }
+
+  function createQuestFromForm(addAnother = false) {
     if (!els.questForm.reportValidity()) return;
 
     const target = Number(byId("newQuestTarget").value);
@@ -1457,8 +1481,20 @@
 
     saveState();
     renderAll();
-    els.questDialog.close();
     showToast("Quest created and added to today's loadout.");
+    if (addAnother) {
+      resetCreateQuestForm({
+        realm: quest.realm,
+        stat: quest.stat,
+        energy: quest.energy,
+        frequency: quest.frequency,
+        xpMode: quest.xpMode,
+        unitLabel: quest.unitLabel
+      });
+      window.setTimeout(() => byId("newQuestName")?.focus(), 20);
+    } else {
+      els.questDialog.close();
+    }
   }
 
   function openCompleteDialog(questId) {
@@ -1596,8 +1632,18 @@
     els.externalTaskName.value = "";
     els.externalTaskEffort.value = "Normal";
     els.externalTaskRealm.value = "Work";
+    if (els.externalTaskChainStatus) {
+      els.externalTaskChainStatus.textContent = "";
+      els.externalTaskChainStatus.classList.add("hidden");
+    }
     updateExternalTaskPreview();
     els.externalTaskDialog.showModal();
+  }
+
+  function showExternalTaskChainStatus({ label, reward }) {
+    if (!els.externalTaskChainStatus || !reward) return;
+    els.externalTaskChainStatus.textContent = `✓ ${label} saved · +${formatEnergy(reward.storyEnergy)} 🔥 · +${reward.xp} XP. Ready for another.`;
+    els.externalTaskChainStatus.classList.remove("hidden");
   }
 
   function externalTaskStatForRealm(realm) {
@@ -1651,7 +1697,7 @@
     `;
   }
 
-  function completeExternalTask() {
+  function completeExternalTask({ showOverlay = true } = {}) {
     const effort = els.externalTaskEffort?.value || "Normal";
     const realm = els.externalTaskRealm?.value || "Work";
     const stat = externalTaskStatForRealm(realm);
@@ -1691,7 +1737,8 @@
     applyHiddenEngineChecks();
     saveState();
     renderAll();
-    showQuestClear({ name: label, stat }, reward);
+    if (showOverlay) showQuestClear({ name: label, stat }, reward);
+    return { label, reward, stat };
   }
 
   function renderExternalTaskSummary() {

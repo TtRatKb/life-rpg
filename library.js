@@ -60,6 +60,7 @@
     close: byId("bookDialogClose"),
     cancel: byId("cancelBookButton"),
     deleteButton: byId("deleteBookButton"),
+    saveAnother: byId("saveBookAnotherButton"),
     title: byId("bookTitle"),
     author: byId("bookAuthor"),
     source: byId("bookSource"),
@@ -92,6 +93,8 @@
     logForm: byId("bookLogForm"),
     logId: byId("bookLogId"),
     logTitle: byId("bookLogTitle"),
+    logPicker: byId("bookLogPicker"),
+    logChainStatus: byId("bookLogChainStatus"),
     logClose: byId("bookLogClose"),
     logCancel: byId("bookLogCancel"),
     logPagesWrap: byId("bookLogPagesWrap"),
@@ -208,6 +211,10 @@
     els.logClose?.addEventListener("click", closeLogDialog);
     els.logCancel?.addEventListener("click", closeLogDialog);
     els.logForm?.addEventListener("submit", saveLog);
+    els.logPicker?.addEventListener("change", () => {
+      const book = findBook(els.logPicker.value);
+      if (book) configureLogForm(book);
+    });
     [els.logPages, els.logMinutes, els.logChapter].forEach(input => input?.addEventListener("input", renderLogPreview));
     document.addEventListener("click", event => {
       const nudge = event.target.closest?.("[data-book-log-nudge]");
@@ -673,6 +680,7 @@
     if (els.editId) els.editId.value = book?.id || "";
     if (els.dialogTitle) els.dialogTitle.textContent = book ? "Edit book" : "Add a book";
     if (els.deleteButton) els.deleteButton.classList.toggle("hidden", !book);
+    els.saveAnother?.classList.toggle("hidden", Boolean(book));
     if (els.title) els.title.value = book?.title || "";
     if (els.author) els.author.value = book?.author || "";
     if (els.source) els.source.value = book?.source || "physical";
@@ -752,11 +760,41 @@
       fields: [next.title, next.author]
     });
 
-    closeBookDialog();
+    const addAnother = !existing && event.submitter?.dataset.saveAnother === "true";
     persist(existing ? "book-library-edit" : "book-library-create");
     if (Number(stewardshipReward?.xp || 0) > 0 || Number(stewardshipReward?.storyEnergy || 0) > 0) app.renderAll?.();
     const upkeepText = window.LifeRPGStewardship?.statusText?.(stewardshipReward) || "";
     showToast(existing ? "Book updated" : "Added to Library", [title, upkeepText].filter(Boolean).join(" · "));
+    if (addAnother) {
+      const defaults = { status, role, source: next.source };
+      resetBookDialogForAnother(defaults);
+    } else {
+      closeBookDialog();
+    }
+  }
+
+  function resetBookDialogForAnother(defaults = {}) {
+    els.form?.reset();
+    if (els.editId) els.editId.value = "";
+    if (els.dialogTitle) els.dialogTitle.textContent = "Add a book";
+    els.deleteButton?.classList.add("hidden");
+    els.saveAnother?.classList.remove("hidden");
+    selectedLookup = null;
+    lookupCleared = false;
+    lookupResults = [];
+    if (els.lookupQuery) els.lookupQuery.value = "";
+    renderLookupStatus("");
+    renderLookupResults();
+    renderLookupSelection();
+    setRadio("bookStatus", defaults.status || "want");
+    setRadio("bookRole", defaults.role || "fun");
+    if (els.source) els.source.value = defaults.source || "physical";
+    if (els.advanced) els.advanced.open = false;
+    renderQuickPreview();
+    window.setTimeout(() => {
+      if (els.lookupQuery) els.lookupQuery.focus();
+      else els.title?.focus();
+    }, 20);
   }
 
   function deleteCurrentBook() {
@@ -884,21 +922,46 @@
     if (!book || !els.logDialog || !els.logForm) return;
     logSuggestion = suggestion && typeof suggestion === "object" ? suggestion : null;
     els.logForm.reset();
+    populateLogPicker(book.id);
+    configureLogForm(book, logSuggestion);
+    setChainLogStatus("");
+    els.logDialog.showModal();
+  }
+
+  function populateLogPicker(selectedId = "") {
+    if (!els.logPicker) return;
+    const items = [...model().items].sort((a, b) => {
+      const rank = value => value === "reading" ? 0 : value === "paused" ? 1 : value === "want" ? 2 : value === "finished" ? 3 : 4;
+      return rank(a.status) - rank(b.status) || String(a.title || "").localeCompare(String(b.title || ""));
+    });
+    els.logPicker.innerHTML = items.map(book => `<option value="${escAttr(book.id)}">${esc(book.title)}${book.author ? ` — ${esc(book.author)}` : ""}</option>`).join("");
+    if (items.some(book => book.id === selectedId)) els.logPicker.value = selectedId;
+  }
+
+  function configureLogForm(book, suggestion = null) {
+    if (!book) return;
     if (els.logId) els.logId.value = book.id;
+    if (els.logPicker && els.logPicker.value !== book.id) els.logPicker.value = book.id;
     if (els.logTitle) els.logTitle.textContent = book.title;
     const audio = book.source === "audio";
     els.logPagesWrap?.classList.toggle("hidden", audio);
     els.logMinutesWrap?.classList.toggle("hidden", !audio);
-    if (els.logPages) els.logPages.value = !audio && logSuggestion?.type === "pages" ? String(logSuggestion.amount || 10) : "";
-    if (els.logMinutes) els.logMinutes.value = audio && logSuggestion?.type === "minutes" ? String(logSuggestion.amount || 20) : "";
-    if (els.logChapter) els.logChapter.checked = logSuggestion?.type === "chapter";
+    if (els.logPages) els.logPages.value = !audio && suggestion?.type === "pages" ? String(suggestion.amount || 10) : "";
+    if (els.logMinutes) els.logMinutes.value = audio && suggestion?.type === "minutes" ? String(suggestion.amount || 20) : "";
+    if (els.logChapter) els.logChapter.checked = suggestion?.type === "chapter";
     renderLogPreview();
-    els.logDialog.showModal();
+  }
+
+  function setChainLogStatus(message) {
+    if (!els.logChainStatus) return;
+    els.logChainStatus.textContent = message || "";
+    els.logChainStatus.classList.toggle("hidden", !message);
   }
 
   function closeLogDialog() {
     els.logDialog?.close();
     logSuggestion = null;
+    setChainLogStatus("");
   }
 
   function renderLogPreview() {
@@ -925,8 +988,17 @@
     const pages = book.source === "audio" ? 0 : Math.max(0, Number(els.logPages?.value || 0));
     const minutes = book.source === "audio" ? Math.max(0, Number(els.logMinutes?.value || 0)) : 0;
     const chapter = Boolean(els.logChapter?.checked);
+    const addAnother = event.submitter?.dataset.logAnother === "true";
     logBook(book, { pages, minutes, chapter, source: "dialog" });
-    closeLogDialog();
+    if (addAnother) {
+      populateLogPicker(book.id);
+      const nextBook = findBook(els.logPicker?.value || book.id) || book;
+      configureLogForm(nextBook);
+      setChainLogStatus(`✓ ${book.title} saved. Pick another book above or log another reading session.`);
+      window.setTimeout(() => els.logPicker?.focus(), 20);
+    } else {
+      closeLogDialog();
+    }
   }
 
   function quickLog(id, type, amount) {
