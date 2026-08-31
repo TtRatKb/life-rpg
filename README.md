@@ -72,3 +72,12 @@ GitHub Pages will then update automatically after the new commit is deployed.
 4. Add the first **private spoiler-safe story pack**.
 5. Add social Talk / Messages / Hangouts.
 6. Add Firebase login + cloud save after the game loop feels right.
+
+## V0.28.0 — Story Continuity & World Expansion
+
+- Expanded the installed main story and social content while preserving hidden-story presentation.
+- Audited normal VN staging so physically present speakers remain visible, with deterministic two- and three-character layouts.
+- Added location-aware World moments to unlocked locations.
+- Corrected current-home state so visiting the future/shared apartment does not make it Luca's home before the move-in story state.
+- Added more Talks, Messages with reply choices, Hangouts, and repeatable World moments.
+- No canon CGs added; CG calibration remains separate.

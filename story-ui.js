@@ -102,6 +102,7 @@
       pack = await engine.loadPack();
       migrateLegacyStoryIfNeeded();
       ensurePackState();
+      app.renderWorld?.();
     } catch (error) {
       loadError = error;
       console.error(error);
@@ -594,6 +595,7 @@
     renderPhonePreview();
     renderPhoneSurfaces();
     renderWorldPulse();
+    app.renderWorld?.();
   }
 
   function progressionRequirementMatches(requirement, snapshot = null) {
@@ -1015,6 +1017,45 @@
       if (latest && Date.now() - latest < cooldownDays * 86400000) return false;
     }
     return true;
+  }
+
+  function worldEventsForLocation(locationKey) {
+    const state = app.getState();
+    const activeId = state.story?.social?.activeRandomEventId;
+    const candidates = socialRandomEvents()
+      .filter(event => event?.worldLocation === locationKey)
+      .filter(event => event.id === activeId || randomEventAvailable(event));
+
+    return candidates.sort((a, b) => {
+      if (a.id === activeId) return -1;
+      if (b.id === activeId) return 1;
+      const reactive = reactivityScore(b) - reactivityScore(a);
+      if (reactive) return reactive;
+      const weight = Number(b.weight || 1) - Number(a.weight || 1);
+      if (weight) return weight;
+      return String(a.id).localeCompare(String(b.id));
+    });
+  }
+
+  function getWorldLocationStatus(locationKey) {
+    if (!pack || !locationKey) return { available: false };
+    const event = worldEventsForLocation(locationKey)[0];
+    if (!event) return { available: false };
+    const person = event.personId ? knownPeople().find(item => item.id === event.personId) : null;
+    return {
+      available: true,
+      eventId: event.id,
+      personId: person?.id || null,
+      personName: person?.name || "Someone",
+      cardAsset: person?.cardAsset || null,
+      hint: event.worldHint || "A small free moment is available here."
+    };
+  }
+
+  function visitWorldLocation(locationKey) {
+    const status = getWorldLocationStatus(locationKey);
+    if (!status.available || !status.eventId) return false;
+    return openRandomEvent(status.eventId);
   }
 
   function currentWorldMoment() {
@@ -2339,12 +2380,12 @@
 
     renderTextboxPortrait(portraitSpec, characterAssets);
 
-    const stageCharacters = characters.filter(item => {
+    const stageCharacters = normalizeStageCharacters(characters.filter(item => {
       if (!item?.id) return false;
       if (item.stage === false) return false;
       if (portraitSpec && item.id === portraitSpec.id && mode !== "cg") return Boolean(item.allowSceneDuplicate);
       return true;
-    });
+    }));
     const focusId = visual?.focus || inferFocusIdFromNode(node, stageCharacters, characterAssets);
 
     const bgSrc = bg?.src ? String(bg.src) : "";
@@ -2389,6 +2430,17 @@
     const shouldShow = Boolean(bgSrc || visibleCount);
     els.visualStage.classList.toggle("hidden", !shouldShow);
     els.visualStage.setAttribute("aria-hidden", shouldShow ? "false" : "true");
+  }
+
+  function normalizeStageCharacters(characters) {
+    const list = array(characters).filter(Boolean).slice(0, 3).map(item => ({ ...item }));
+    if (list.length <= 1) return list;
+
+    // Ensemble staging is intentionally deterministic. Two people flank Luca/player;
+    // three people use left/center/right with slight visual overlap in CSS.
+    const slots = list.length === 2 ? ["left", "right"] : ["left", "center", "right"];
+    list.forEach((item, index) => { item.side = slots[index]; });
+    return list;
   }
 
   function updateSpriteSlot(target, desired, focusId) {
@@ -2723,6 +2775,8 @@
   window.LifeRPGStoryUI = {
     beginOrContinue: handleStoryAction,
     openTalk: openNextTalk,
-    openPhone
+    openPhone,
+    getWorldLocationStatus,
+    visitWorldLocation
   };
 })();

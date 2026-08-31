@@ -994,6 +994,9 @@
 
     byId("testHomeUpgrade").addEventListener("click", () => {
       state.flags.LOCATION_SHARED_APARTMENT_INTRODUCED = true;
+      state.flags.SHARED_APARTMENT_IS_HOME = true;
+      state.flags.DYNARIOT_MOVE_IN_COMPLETE = true;
+      state.locations.currentHome = false;
       state.locations.sharedApartment = true;
       saveState();
       renderAll();
@@ -1027,6 +1030,14 @@
       if (!els.externalTaskForm?.reportValidity()) return;
       completeExternalTask({ showOverlay: true });
       els.externalTaskDialog?.close();
+    });
+
+    els.locationGrid?.addEventListener("click", event => {
+      const button = event.target.closest?.("[data-world-location]");
+      if (!button || button.disabled) return;
+      const locationKey = button.dataset.worldLocation;
+      const opened = window.LifeRPGStoryUI?.visitWorldLocation?.(locationKey);
+      if (!opened) showToast("Nothing specific is happening there right now.");
     });
 
     byId("closeClearOverlay").addEventListener("click", () => {
@@ -1100,7 +1111,8 @@
       els.rhythmLine.textContent = `${todayCount} meaningful actions today. You do not need to maximize the bar.`;
     }
 
-    els.homeSubtitle.textContent = state.locations.sharedApartment
+    const sharedApartmentIsHome = Boolean(state.flags?.SHARED_APARTMENT_IS_HOME || state.flags?.DYNARIOT_MOVE_IN_COMPLETE);
+    els.homeSubtitle.textContent = sharedApartmentIsHome
       ? "The shape of home has changed. Your real-life quests still decide how Luca grows."
       : "You do not have to win the whole day. Pick the next thing that fits the life you actually have.";
   }
@@ -1164,7 +1176,7 @@
   }
 
   function renderHome() {
-    const sharedHome = Boolean(state.locations.sharedApartment);
+    const sharedHome = Boolean(state.flags?.SHARED_APARTMENT_IS_HOME || state.flags?.DYNARIOT_MOVE_IN_COMPLETE);
 
     if (sharedHome) {
       els.homeName.textContent = "Shared Apartment";
@@ -1784,14 +1796,30 @@
   function renderWorld() {
     els.locationGrid.innerHTML = Object.entries(LOCATION_META)
       .map(([key, meta]) => {
+        const movedIntoSharedHome = Boolean(state.flags?.SHARED_APARTMENT_IS_HOME || state.flags?.DYNARIOT_MOVE_IN_COMPLETE);
+        const displayMeta = key === "currentHome" && movedIntoSharedHome
+          ? { ...meta, label: "Previous Apartment", description: "Luca’s old apartment — familiar, inconveniently far away, and no longer home." }
+          : meta;
         const unlocked = Boolean(state.locations[key]);
+        const worldStatus = unlocked ? window.LifeRPGStoryUI?.getWorldLocationStatus?.(key) : null;
+        const hasMoment = Boolean(worldStatus?.available);
+        const avatar = worldStatus?.cardAsset
+          ? `<img src="${escapeHtml(worldStatus.cardAsset)}" alt="" />`
+          : `<span>${worldStatus?.icon || "✦"}</span>`;
+        const presence = unlocked
+          ? hasMoment
+            ? `<div class="location-presence is-active">${avatar}<span><strong>${escapeHtml(worldStatus.personName || "Someone")}</strong><small>${escapeHtml(worldStatus.hint || "Something is happening here.")}</small></span></div>`
+            : `<div class="location-presence is-quiet"><span>☁</span><span><strong>Quiet right now</strong><small>Come back later; availability changes with story and recent moments.</small></span></div>`
+          : "";
 
         return `
           <article class="location-card ${unlocked ? "unlocked" : "locked"}">
             ${unlocked ? "" : `<span class="location-lock">🔒 Unknown</span>`}
-            <span class="location-icon">${unlocked ? meta.icon : "✦"}</span>
-            <strong>${escapeHtml(unlocked ? meta.label : "Unknown Location")}</strong>
-            <small>${escapeHtml(unlocked ? meta.description : "This place has not been introduced in Luca's story yet.")}</small>
+            <span class="location-icon">${unlocked ? displayMeta.icon : "✦"}</span>
+            <strong>${escapeHtml(unlocked ? displayMeta.label : "Unknown Location")}</strong>
+            <small>${escapeHtml(unlocked ? displayMeta.description : "This place has not been introduced in Luca's story yet.")}</small>
+            ${presence}
+            ${unlocked ? `<button class="secondary-button location-visit-button" type="button" data-world-location="${escapeHtml(key)}" ${hasMoment ? "" : "disabled"}>${hasMoment ? "Visit" : "Nothing happening"}</button>` : ""}
           </article>
         `;
       })
@@ -2086,6 +2114,7 @@
     saveState,
     replaceState,
     renderAll,
+    renderWorld,
     showView,
     showToast,
     escapeHtml

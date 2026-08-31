@@ -11558,3 +11558,56 @@ body.story-backlog-open { overflow: hidden; }
   .chain-log-menu-v273 button { width: 100%; }
   .chain-save-button-v273 { order: 2; }
 }
+
+
+/* =========================================================
+   V0.28.0 · Story Continuity + Interactive World
+   ========================================================= */
+.location-presence {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 10px 11px;
+  border: 1px solid rgba(82, 45, 72, .10);
+  border-radius: 14px;
+  background: rgba(255,255,255,.58);
+}
+.location-presence > img,
+.location-presence > span:first-child {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  object-fit: cover;
+  object-position: top center;
+  display: grid;
+  place-items: center;
+  background: rgba(232,137,169,.10);
+}
+.location-presence span:last-child { min-width: 0; }
+.location-presence strong, .location-presence small { display:block; }
+.location-presence strong { color:#58364f; font-size:.78rem; }
+.location-presence small { margin-top:2px; color:#927e89; font-size:.66rem; line-height:1.35; }
+.location-presence.is-active {
+  border-color: rgba(213,104,148,.22);
+  background: linear-gradient(135deg, rgba(252,231,239,.80), rgba(255,250,246,.75));
+}
+.location-presence.is-quiet { opacity:.72; }
+.location-visit-button { width:100%; margin-top:10px; }
+
+.story-visual-stage[data-character-count="3"] .story-sprite {
+  width: min(39%, 540px);
+  height: 92%;
+}
+.story-visual-stage[data-character-count="3"] .story-sprite-left { left: -2%; }
+.story-visual-stage[data-character-count="3"] .story-sprite-center { left:50%; transform:translateX(-50%) scale(1.02); z-index:3; }
+.story-visual-stage[data-character-count="3"] .story-sprite-right { right:-2%; }
+.story-visual-stage[data-character-count="3"] .story-sprite.is-active { z-index:6; }
+
+@media (max-width: 720px) {
+  .story-visual-stage[data-character-count="3"] .story-sprite { width:54%; height:88%; }
+  .story-visual-stage[data-character-count="3"] .story-sprite-left { left:-18%; }
+  .story-visual-stage[data-character-count="3"] .story-sprite-center { left:50%; width:56%; }
+  .story-visual-stage[data-character-count="3"] .story-sprite-right { right:-18%; }
+}
