@@ -1001,7 +1001,7 @@
   }
 
   function isVariableQuest(quest) {
-    return quest?.xpMode === "Variable by Units" || quest?.mode === "variable";
+    return quest?.xpMode === "Variable by Units" || quest?.xpMode === "Batch by Units" || quest?.questType === "Unit Batch" || quest?.mode === "variable";
   }
 
   function questPriority(quest) {

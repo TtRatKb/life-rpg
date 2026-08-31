@@ -121,7 +121,9 @@
       hobbyLane: null,
       planningThemes: [],
       coinMultiplier: Number(quest.coinMultiplier || 1),
-      questType: null,
+      questType: quest.questType || null,
+      storyEnergyAtTarget: Number(quest.storyEnergyAtTarget || 0),
+      batchCarryOver: Boolean(quest.batchCarryOver),
       realmXpSource: "Quest",
       stat: quest.stat || "knowledge",
       statAtTarget: Number(quest.statAtTarget || Math.max(1, Math.round(Number(quest.xpAtTarget || 20) * .65)))
@@ -147,8 +149,35 @@
     return Number.isFinite(value) && value > 0 ? value : 1;
   }
 
+  function isVariableQuest(quest) {
+    return quest?.xpMode === "Variable by Units";
+  }
+
+  function isBatchQuest(quest) {
+    return quest?.xpMode === "Batch by Units" || quest?.questType === "Unit Batch";
+  }
+
+  function isUnitQuest(quest) {
+    return isVariableQuest(quest) || isBatchQuest(quest);
+  }
+
   function questUnitLabel(quest) {
-    return quest.unitLabel || (quest.xpMode === "Variable by Units" ? "units" : "completion");
+    return quest.unitLabel || (isUnitQuest(quest) ? "units" : "completion");
+  }
+
+  function batchQuestProgress(quest, addedUnits = 0) {
+    const batchSize = questTarget(quest);
+    const previousUnits = (state.completionLog || [])
+      .filter(log => log.questId === quest.id)
+      .reduce((sum, log) => sum + Math.max(0, Number(log.units || 0)), 0);
+    const added = Math.max(0, Number(addedUnits || 0));
+    const beforeBatches = Math.floor((previousUnits + 1e-9) / batchSize);
+    const afterTotal = previousUnits + added;
+    const afterBatches = Math.floor((afterTotal + 1e-9) / batchSize);
+    const earnedBatches = Math.max(0, afterBatches - beforeBatches);
+    const remainder = Math.max(0, afterTotal - afterBatches * batchSize);
+    const beforeRemainder = Math.max(0, previousUnits - beforeBatches * batchSize);
+    return { batchSize, previousUnits, added, beforeRemainder, earnedBatches, afterTotal, remainder, afterBatches };
   }
 
   function questCoinBase(quest) {
@@ -967,6 +996,8 @@
       createQuestFromForm(true);
     });
 
+    byId("newQuestXPMode")?.addEventListener("change", updateQuestModeFields);
+
     byId("confirmCompleteButton").addEventListener("click", event => {
       event.preventDefault();
       if (!els.completeForm.reportValidity()) return;
@@ -1138,7 +1169,10 @@
   function loadoutQuestHtml(quest) {
     const todayUnits = getTodayUnitsForQuest(quest.id);
     const target = questTarget(quest);
-    const progress = Math.min(100, (todayUnits / target) * 100);
+    const batch = isBatchQuest(quest);
+    const batchProgress = batch ? batchQuestProgress(quest) : null;
+    const displayedUnits = batch ? batchProgress.remainder : todayUnits;
+    const progress = Math.min(100, (displayedUnits / target) * 100);
     const availability = getQuestAvailability(quest);
     const stat = quest.stat;
 
@@ -1156,8 +1190,8 @@
           <div class="quest-title">${escapeHtml(quest.name)}</div>
 
           <div class="quest-reward-line">
-            <span>${trimNumber(todayUnits)} / ${trimNumber(target)} ${escapeHtml(questUnitLabel(quest))}</span>
-            <span>⚔️ ${Number(quest.xp || 0)} XP</span>
+            <span>${batch ? `${trimNumber(displayedUnits)} / ${trimNumber(target)} ${escapeHtml(questUnitLabel(quest))} to next reward` : `${trimNumber(todayUnits)} / ${trimNumber(target)} ${escapeHtml(questUnitLabel(quest))}`}</span>
+            <span>⚔️ ${Number(quest.xp || 0)} XP${batch ? ` · ${formatEnergy(Number(quest.storyEnergyAtTarget || 0))} 🔥 / batch` : ""}</span>
             <span>${STAT_META[stat]?.icon || "✨"} ${escapeHtml(STAT_META[stat]?.label || stat)}</span>
             ${availability.available ? "" : `<span>⏳ ${escapeHtml(availability.reason)}</span>`}
           </div>
@@ -1359,7 +1393,8 @@
       const todayUnits = getTodayUnitsForQuest(quest.id);
       const target = questTarget(quest);
       const availability = getQuestAvailability(quest);
-      const variable = quest.xpMode === "Variable by Units";
+      const variable = isVariableQuest(quest);
+      const batch = isBatchQuest(quest);
       const coinPreview = questCoinBase(quest);
       const extraMeta = [quest.sessionSize, quest.hobbyLane, quest.questType].filter(Boolean);
 
@@ -1369,22 +1404,25 @@
             <span>${escapeHtml(quest.energy || "Normal")}</span>
             <span>${escapeHtml(quest.realm)}</span>
             <span>${escapeHtml(quest.frequency || "Repeatable")}</span>
-            <span>${variable ? "Variable by Units" : "Fixed"}</span>
+            <span>${batch ? "Reward every N units" : variable ? "Variable by Units" : "Fixed"}</span>
           </div>
 
           <h3>${escapeHtml(quest.name)}</h3>
 
           <p class="card-copy">
-            ${variable
-              ? `${Number(quest.xp || 0)} XP at ${trimNumber(target)} ${escapeHtml(questUnitLabel(quest))}. Actual XP scales with the units you log.`
-              : `${Number(quest.xp || 0)} XP for completing the quest.`}
+            ${batch
+              ? `${Number(quest.xp || 0)} XP + ${formatEnergy(Number(quest.storyEnergyAtTarget || 0))} 🔥 every ${trimNumber(target)} ${escapeHtml(questUnitLabel(quest))}. Partial progress carries over.`
+              : variable
+                ? `${Number(quest.xp || 0)} XP at ${trimNumber(target)} ${escapeHtml(questUnitLabel(quest))}. Actual XP scales with the units you log.`
+                : `${Number(quest.xp || 0)} XP for completing the quest.`}
             ${quest.cooldownDays ? ` Cooldown: ${trimNumber(quest.cooldownDays)} day${Number(quest.cooldownDays) === 1 ? "" : "s"}.` : ""}
             ${extraMeta.length ? ` ${escapeHtml(extraMeta.join(" · "))}.` : ""}
           </p>
 
           <div class="quest-reward-line">
             <span>Today: ${trimNumber(todayUnits)} ${escapeHtml(questUnitLabel(quest))}</span>
-            <span>🪙 ~${coinPreview}</span>
+            ${batch ? `<span>Next reward: ${trimNumber(batchQuestProgress(quest).remainder)} / ${trimNumber(target)}</span>` : ""}
+            <span>🪙 ~${batch ? 0 : coinPreview}</span>
             <span>${STAT_META[quest.stat]?.icon || "✨"} ${escapeHtml(STAT_META[quest.stat]?.label || quest.stat)}</span>
             ${quest.offDutyDeck ? `<span>🌙 Off-Duty</span>` : ""}
           </div>
@@ -1448,8 +1486,15 @@
     byId("newQuestEnergy").value = defaults.energy || "Normal";
     byId("newQuestFrequency").value = defaults.frequency || "Repeatable";
     byId("newQuestXPMode").value = defaults.xpMode || "Fixed";
+    byId("newQuestStoryEnergy").value = Number.isFinite(Number(defaults.storyEnergyAtTarget)) ? String(defaults.storyEnergyAtTarget) : "0.5";
     if (defaults.realm) byId("newQuestRealm").value = defaults.realm;
     if (defaults.stat) byId("newQuestStat").value = defaults.stat;
+    updateQuestModeFields();
+  }
+
+  function updateQuestModeFields() {
+    const mode = byId("newQuestXPMode")?.value || "Fixed";
+    byId("newQuestBatchFields")?.classList.toggle("hidden", mode !== "Batch by Units");
   }
 
   function openCreateQuestDialog() {
@@ -1482,7 +1527,9 @@
       hobbyLane: null,
       planningThemes: [],
       coinMultiplier: 1,
-      questType: null,
+      questType: byId("newQuestXPMode").value === "Batch by Units" ? "Unit Batch" : null,
+      storyEnergyAtTarget: byId("newQuestXPMode").value === "Batch by Units" ? Math.max(0, Number(byId("newQuestStoryEnergy")?.value || 0)) : 0,
+      batchCarryOver: byId("newQuestXPMode").value === "Batch by Units",
       realmXpSource: "Quest",
       stat: byId("newQuestStat").value,
       statAtTarget: Math.max(1, Math.round(xp * .65))
@@ -1501,7 +1548,8 @@
         energy: quest.energy,
         frequency: quest.frequency,
         xpMode: quest.xpMode,
-        unitLabel: quest.unitLabel
+        unitLabel: quest.unitLabel,
+        storyEnergyAtTarget: quest.storyEnergyAtTarget
       });
       window.setTimeout(() => byId("newQuestName")?.focus(), 20);
     } else {
@@ -1520,7 +1568,7 @@
     }
 
     const target = questTarget(quest);
-    const isVariable = quest.xpMode === "Variable by Units";
+    const isVariable = isUnitQuest(quest);
 
     els.completeQuestId.value = quest.id;
     els.completeQuestTitle.textContent = quest.name;
@@ -1540,35 +1588,47 @@
     const target = questTarget(quest);
     const units = Math.max(.1, Number(els.actualUnits.value) || target);
     const reward = calculateQuestReward(quest, units);
+    const progress = isBatchQuest(quest) ? reward.batchProgress : null;
+    const batchNote = progress
+      ? `<div class="library-minimal-note-v16"><span>↻</span><div><strong>${progress.earnedBatches ? `${progress.earnedBatches} reward batch${progress.earnedBatches === 1 ? "" : "es"} reached` : "Progress saved toward the next reward"}</strong><p>${trimNumber(progress.remainder)} / ${trimNumber(progress.batchSize)} ${escapeHtml(questUnitLabel(quest))} will remain after this log.</p></div></div>`
+      : "";
 
     els.completePreview.innerHTML = `
       <div class="reward-box"><strong>${reward.xp}</strong><small>⚔️ XP</small></div>
       <div class="reward-box"><strong>${formatEnergy(reward.storyEnergy)}</strong><small>🔥 Story</small></div>
       <div class="reward-box"><strong>${reward.coins}</strong><small>🪙 Coins</small></div>
       <div class="reward-box"><strong>${reward.statXP}</strong><small>${STAT_META[quest.stat]?.icon || "✨"} Capability XP</small></div>
+      ${batchNote}
     `;
   }
 
   function questStoryEnergyBase(quest, units) {
+    if (isBatchQuest(quest)) {
+      const progress = batchQuestProgress(quest, units);
+      return floor2(Math.max(0, Number(quest.storyEnergyAtTarget || 0)) * progress.earnedBatches);
+    }
     const base = {
       "Low Energy": 0.8,
       "Normal": 1.4,
       "Boss": 2.1
     }[quest.energy] ?? 1.4;
-    if (quest.xpMode !== "Variable by Units") return base;
+    if (!isVariableQuest(quest)) return base;
     const ratio = Math.max(0, Number(units || 0) / questTarget(quest));
     return floor2(base * Math.min(2.5, ratio));
   }
 
   function calculateQuestReward(quest, units) {
     const target = questTarget(quest);
-    const multiplier = quest.xpMode === "Variable by Units"
-      ? Math.max(0, units / target)
-      : 1;
+    const batchProgress = isBatchQuest(quest) ? batchQuestProgress(quest, units) : null;
+    const multiplier = batchProgress
+      ? batchProgress.earnedBatches
+      : isVariableQuest(quest)
+        ? Math.max(0, units / target)
+        : 1;
 
-    const xp = Math.max(1, Math.round(Number(quest.xp || 0) * multiplier));
-    const statXP = Math.max(1, Math.round(Number(quest.statAtTarget || 1) * multiplier));
-    const coins = Math.max(1, Math.round(questCoinBase(quest) * Math.min(multiplier, 2)));
+    const xp = Math.max(0, Math.round(Number(quest.xp || 0) * multiplier));
+    const statXP = Math.max(0, Math.round(Number(quest.statAtTarget || 1) * multiplier));
+    const coins = batchProgress ? 0 : Math.max(1, Math.round(questCoinBase(quest) * Math.min(multiplier, 2)));
     const preview = previewActivityReward({
       source: "quest",
       sourceId: quest.id,
@@ -1583,7 +1643,7 @@
       dedupeFamily: dedupeFamilyForQuest(quest)
     });
 
-    return { ...preview, requestedXP: xp, requestedStatXP: statXP, requestedCoins: coins };
+    return { ...preview, requestedXP: xp, requestedStatXP: statXP, requestedCoins: coins, batchProgress };
   }
 
   function completeQuest(questId, units) {
@@ -1596,11 +1656,12 @@
       return;
     }
 
-    const normalizedUnits = quest.xpMode === "Variable by Units"
+    const normalizedUnits = isUnitQuest(quest)
       ? Math.max(.1, Number(units) || questTarget(quest))
       : questTarget(quest);
     const baseReward = calculateQuestReward(quest, normalizedUnits);
-    const reward = awardActivity({
+    const shouldAward = !isBatchQuest(quest) || Number(baseReward.batchProgress?.earnedBatches || 0) > 0;
+    const reward = shouldAward ? awardActivity({
       source: "quest",
       sourceId: quest.id,
       label: quest.name,
@@ -1612,8 +1673,9 @@
       coins: baseReward.requestedCoins,
       storyEnergyBase: questStoryEnergyBase(quest, normalizedUnits),
       dedupeFamily: dedupeFamilyForQuest(quest),
-      metadata: { units: normalizedUnits, unitLabel: questUnitLabel(quest) }
-    });
+      metadata: { units: normalizedUnits, unitLabel: questUnitLabel(quest), batchCount: baseReward.batchProgress?.earnedBatches || 0 }
+    }) : { xp: 0, realmXP: 0, statXP: 0, storyEnergy: 0, rawStoryEnergy: 0, coins: 0, eventId: null, deduped: false };
+    if (baseReward.batchProgress) reward.batchProgress = baseReward.batchProgress;
 
     state.completionLog.push({
       id: `log-${Date.now()}`,
@@ -1630,6 +1692,8 @@
       coins: reward.coins,
       rewardEventId: reward.eventId,
       deduped: reward.deduped,
+      batchCount: Number(reward.batchProgress?.earnedBatches || 0),
+      batchRemainder: Number(reward.batchProgress?.remainder || 0),
       at: new Date().toISOString()
     });
 
@@ -1789,6 +1853,7 @@
       <span>+${reward.coins} 🪙</span>
       <span>+${reward.statXP} ${STAT_META[quest.stat]?.icon || "✨"} ${escapeHtml(STAT_META[quest.stat]?.label || quest.stat)}</span>
       ${reward.deduped ? `<span>↺ Already counted from a linked activity log.</span>` : ""}
+      ${reward.batchProgress ? `<span>↻ ${trimNumber(reward.batchProgress.remainder)} / ${trimNumber(reward.batchProgress.batchSize)} ${escapeHtml(questUnitLabel(quest))} toward the next batch</span>` : ""}
     `;
     els.clearOverlay.classList.remove("hidden");
   }

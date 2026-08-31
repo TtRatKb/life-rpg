@@ -81,3 +81,14 @@ GitHub Pages will then update automatically after the new commit is deployed.
 - Corrected current-home state so visiting the future/shared apartment does not make it Luca's home before the move-in story state.
 - Added more Talks, Messages with reply choices, Hangouts, and repeatable World moments.
 - No canon CGs added; CG calibration remains separate.
+
+
+## V0.28.1 — Unit Quests & Reading Progress
+
+- Added generic carry-over batch quests: log any number of units, earn rewards whenever a full batch is crossed, and keep the remainder toward the next batch.
+- Added **Sort / Declutter Files** as a repeatable Home quest: every 10 files grants 5 XP + 0.5 raw Story Energy before the normal daily diminishing-return curve.
+- Custom quests can now use **Batch by Units** and choose their own units-per-batch, XP, and Story Energy per batch.
+- Reading logs now show the stored current page and let you log either pages read or the page you are on now.
+- Page logs automatically update the book's current page and reaching the final page automatically marks the book Finished.
+- Added **Finish Book** when total pages are known; it logs all remaining pages in one action and finishes the book.
+- Existing saves, reading logs, quest logs, Story Energy rules, and V0.28.0 story/world content are preserved.

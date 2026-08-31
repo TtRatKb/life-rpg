@@ -97,12 +97,16 @@
     logChainStatus: byId("bookLogChainStatus"),
     logClose: byId("bookLogClose"),
     logCancel: byId("bookLogCancel"),
+    logPosition: byId("bookLogPosition"),
     logPagesWrap: byId("bookLogPagesWrap"),
     logPages: byId("bookLogPages"),
+    logEndPage: byId("bookLogEndPage"),
     logMinutesWrap: byId("bookLogMinutesWrap"),
     logMinutes: byId("bookLogMinutes"),
     logChapter: byId("bookLogChapter"),
     logPreview: byId("bookLogPreview"),
+    finishButton: byId("bookFinishButton"),
+    finishHint: byId("bookFinishHint"),
 
     toast: byId("libraryToast"),
     toastTitle: byId("libraryToastTitle"),
@@ -113,6 +117,7 @@
   let selectedRole = "all";
   let toastTimer = null;
   let logSuggestion = null;
+  let logEntryMode = "pages";
   let lookupResults = [];
   let selectedLookup = null;
   let lookupCleared = false;
@@ -215,7 +220,18 @@
       const book = findBook(els.logPicker.value);
       if (book) configureLogForm(book);
     });
-    [els.logPages, els.logMinutes, els.logChapter].forEach(input => input?.addEventListener("input", renderLogPreview));
+    els.logPages?.addEventListener("input", () => {
+      logEntryMode = "pages";
+      if (els.logEndPage) els.logEndPage.value = "";
+      renderLogPreview();
+    });
+    els.logEndPage?.addEventListener("input", () => {
+      logEntryMode = "position";
+      if (els.logPages) els.logPages.value = "";
+      renderLogPreview();
+    });
+    [els.logMinutes, els.logChapter].forEach(input => input?.addEventListener("input", renderLogPreview));
+    els.finishButton?.addEventListener("click", finishCurrentBook);
     document.addEventListener("click", event => {
       const nudge = event.target.closest?.("[data-book-log-nudge]");
       if (!nudge) return;
@@ -223,6 +239,10 @@
       const amount = Number(nudge.dataset.bookLogNudge || 0);
       const input = field === "minutes" ? els.logMinutes : els.logPages;
       if (!input) return;
+      if (field === "pages") {
+        logEntryMode = "pages";
+        if (els.logEndPage) els.logEndPage.value = "";
+      }
       input.value = String(Math.max(0, Number(input.value || 0) + amount));
       renderLogPreview();
     });
@@ -263,6 +283,11 @@
       book.totalPages = safePositive(book.totalPages);
       book.currentPage = Math.max(0, Number(book.currentPage || 0));
       if (book.totalPages) book.currentPage = Math.min(book.currentPage, book.totalPages);
+      if (book.totalPages && book.currentPage >= book.totalPages && book.status === "reading") {
+        book.status = "finished";
+        book.finishedAt ||= book.updatedAt || Date.now();
+        changed = true;
+      }
       if (!book.createdAt) { book.createdAt = Date.now(); changed = true; }
       if (!book.updatedAt) { book.updatedAt = book.createdAt; changed = true; }
       if (book.status === "reading" && !book.startedAt) { book.startedAt = book.updatedAt; changed = true; }
@@ -946,10 +971,57 @@
     const audio = book.source === "audio";
     els.logPagesWrap?.classList.toggle("hidden", audio);
     els.logMinutesWrap?.classList.toggle("hidden", !audio);
+    els.logPosition?.classList.toggle("hidden", audio);
+    logEntryMode = "pages";
     if (els.logPages) els.logPages.value = !audio && suggestion?.type === "pages" ? String(suggestion.amount || 10) : "";
+    if (els.logEndPage) {
+      els.logEndPage.value = "";
+      els.logEndPage.min = String(Math.max(0, Number(book.currentPage || 0)));
+      els.logEndPage.max = book.totalPages ? String(book.totalPages) : "";
+      els.logEndPage.placeholder = book.currentPage > 0 ? `currently ${formatNumber(book.currentPage)}` : "e.g. 143";
+    }
     if (els.logMinutes) els.logMinutes.value = audio && suggestion?.type === "minutes" ? String(suggestion.amount || 20) : "";
     if (els.logChapter) els.logChapter.checked = suggestion?.type === "chapter";
+    renderLogPosition(book);
+    renderFinishAction(book);
     renderLogPreview();
+  }
+
+  function renderLogPosition(book) {
+    if (!els.logPosition || !book || book.source === "audio") return;
+    const current = Math.max(0, Number(book.currentPage || 0));
+    const total = safePositive(book.totalPages);
+    const pct = total ? Math.floor(clamp(current / total * 100, 0, 100)) : null;
+    els.logPosition.innerHTML = `<span>📍</span><div><strong>Current position: page ${formatNumber(current)}${total ? ` / ${formatNumber(total)}` : ""}</strong><p>${pct === null ? "Add total pages whenever you know them; the current page still stays tracked." : `${pct}% complete · every page log updates this automatically.`}</p></div>`;
+  }
+
+  function renderFinishAction(book) {
+    if (!els.finishButton || !els.finishHint) return;
+    const total = safePositive(book?.totalPages);
+    const current = Math.max(0, Number(book?.currentPage || 0));
+    const canFinish = Boolean(book && book.source !== "audio" && total && book.status !== "finished");
+    els.finishButton.classList.toggle("hidden", !canFinish);
+    els.finishHint.classList.toggle("hidden", Boolean(total) || book?.source === "audio" || book?.status === "finished");
+    if (canFinish) {
+      const remaining = Math.max(0, total - current);
+      els.finishButton.textContent = remaining > 0 ? `Finish Book · log remaining ${formatNumber(remaining)} pages` : "Finish Book";
+      els.finishHint.textContent = "";
+    } else if (book?.source !== "audio" && book?.status !== "finished" && !total) {
+      els.finishHint.textContent = "Add the book's total page count to use Finish Book and log the exact remaining pages automatically.";
+    } else {
+      els.finishHint.textContent = "";
+    }
+  }
+
+  function resolvedLogPages(book) {
+    if (!book || book.source === "audio") return 0;
+    const before = Math.max(0, Number(book.currentPage || 0));
+    if (logEntryMode === "position" && String(els.logEndPage?.value || "").trim() !== "") {
+      let end = Math.max(before, Number(els.logEndPage.value || before));
+      if (book.totalPages) end = Math.min(end, Number(book.totalPages));
+      return Math.max(0, end - before);
+    }
+    return Math.max(0, Number(els.logPages?.value || 0));
   }
 
   function setChainLogStatus(message) {
@@ -973,19 +1045,23 @@
       els.logPreview.innerHTML = `<span>🎧</span><div><small>THIS LOG</small><strong>${minutes ? formatDuration(minutes) : "One listening session"}</strong><p>Last touched updates automatically. No extra database editing.</p></div>`;
       return;
     }
-    const pages = Math.max(0, Number(els.logPages?.value || 0));
-    const after = book.currentPage + pages;
+    const pages = resolvedLogPages(book);
+    const before = Math.max(0, Number(book.currentPage || 0));
+    const after = before + pages;
     const capped = book.totalPages ? Math.min(after, book.totalPages) : after;
     const pct = book.totalPages ? Math.floor(capped / book.totalPages * 100) : null;
     const chapter = Boolean(els.logChapter?.checked);
-    els.logPreview.innerHTML = `<span>📖</span><div><small>AFTER THIS LOG</small><strong>${pages ? `Page ${formatNumber(capped)}${pct === null ? "" : ` · ${pct}%`}` : chapter ? "Chapter logged" : "Reading session logged"}</strong><p>${book.totalPages && capped >= book.totalPages ? "This reaches the end — the book will be marked Finished automatically." : "Your current page and last-read date update automatically."}</p></div>`;
+    const positionText = pages > 0
+      ? `Page ${formatNumber(before)} → ${formatNumber(capped)}${pct === null ? "" : ` · ${pct}%`}`
+      : chapter ? "Chapter logged" : "Reading session logged";
+    els.logPreview.innerHTML = `<span>📖</span><div><small>AFTER THIS LOG</small><strong>${positionText}</strong><p>${book.totalPages && capped >= book.totalPages ? "This reaches the end — the book will be marked Finished automatically." : "Your current page and last-read date update automatically."}</p></div>`;
   }
 
   function saveLog(event) {
     event.preventDefault();
     const book = findBook(els.logId?.value);
     if (!book) return;
-    const pages = book.source === "audio" ? 0 : Math.max(0, Number(els.logPages?.value || 0));
+    const pages = book.source === "audio" ? 0 : resolvedLogPages(book);
     const minutes = book.source === "audio" ? Math.max(0, Number(els.logMinutes?.value || 0)) : 0;
     const chapter = Boolean(els.logChapter?.checked);
     const addAnother = event.submitter?.dataset.logAnother === "true";
@@ -999,6 +1075,23 @@
     } else {
       closeLogDialog();
     }
+  }
+
+  function finishCurrentBook() {
+    const book = findBook(els.logId?.value);
+    if (!book || book.source === "audio") return;
+    const total = safePositive(book.totalPages);
+    if (!total) {
+      showToast("Total pages needed", "Add the book's total page count first so Life RPG can log the exact remaining pages.");
+      return;
+    }
+    const remaining = Math.max(0, total - Math.max(0, Number(book.currentPage || 0)));
+    const result = logBook(book, { pages: remaining, minutes: 0, chapter: false, source: "finish-book" });
+    populateLogPicker(book.id);
+    configureLogForm(book);
+    const reward = result?.reward || {};
+    const rewardText = reward.deduped ? "already counted from a linked reading quest" : `+${app.formatEnergy?.(reward.storyEnergy) ?? reward.storyEnergy} 🔥 · +${Number(reward.xp || 0)} XP`;
+    setChainLogStatus(`✓ ${book.title} finished · ${formatNumber(remaining)} remaining page${remaining === 1 ? "" : "s"} logged · ${rewardText}.`);
   }
 
   function quickLog(id, type, amount) {
@@ -1079,6 +1172,7 @@
       ? " · already counted from a linked reading quest"
       : ` · +${app.formatEnergy?.(reward.storyEnergy) ?? reward.storyEnergy} 🔥 · +${Number(reward.xp || 0)} XP`;
     showToast("Reading logged", `${book.title} · ${detail}${rewardText}`);
+    return { book, reward, actualPages, minutes: Number(minutes || 0), chapter: Boolean(chapter) };
   }
 
   function bookProgress(book) {

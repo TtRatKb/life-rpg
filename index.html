@@ -14,7 +14,7 @@
   <link rel="manifest" href="manifest.webmanifest?v=0.25.1" />
   <link rel="apple-touch-icon" href="assets/app-icon-180.png?v=0.25.1" />
   <link rel="icon" type="image/png" sizes="192x192" href="assets/app-icon-192.png?v=0.25.1" />
-  <link rel="stylesheet" href="styles.css?v=0.28.0" />
+  <link rel="stylesheet" href="styles.css?v=0.28.1" />
 </head>
 <body>
   <section id="mobileCloudGate" class="mobile-cloud-gate-v251" data-state="checking" aria-live="polite" aria-label="Life RPG cloud sign in">
@@ -1329,9 +1329,13 @@ Project Hail Mary — Andy Weir
         <select id="bookLogPicker" aria-label="Choose a book to log"></select>
       </label>
       <div id="bookLogChainStatus" class="chain-log-status-v273 hidden" aria-live="polite"></div>
+      <div id="bookLogPosition" class="library-minimal-note-v16 hidden" aria-live="polite"></div>
       <div id="bookLogPagesWrap" class="book-log-unit-v16">
         <label>Pages read this time<input id="bookLogPages" type="number" min="0" step="1" placeholder="e.g. 17" /></label>
         <div class="book-log-nudges-v16"><button type="button" data-book-log-field="pages" data-book-log-nudge="10">+10</button><button type="button" data-book-log-field="pages" data-book-log-nudge="25">+25</button><button type="button" data-book-log-field="pages" data-book-log-nudge="50">+50</button></div>
+        <div class="library-manual-divider-v161"><span>or log where you are now</span></div>
+        <label>Current page after reading<input id="bookLogEndPage" type="number" min="0" step="1" placeholder="e.g. 143" /></label>
+        <small class="muted">If you enter a current page, Life RPG calculates how many pages you read since the previous position.</small>
       </div>
       <div id="bookLogMinutesWrap" class="book-log-unit-v16 hidden">
         <label>Minutes listened<input id="bookLogMinutes" type="number" min="0" step="1" placeholder="e.g. 30" /></label>
@@ -1339,6 +1343,8 @@ Project Hail Mary — Andy Weir
       </div>
       <label class="library-check-v16"><input id="bookLogChapter" type="checkbox" /><span><strong>I finished a chapter.</strong><small>Useful when Today's Pick was “read one chapter”; page count can still stay optional.</small></span></label>
       <div id="bookLogPreview" class="book-log-preview-v16"></div>
+      <button id="bookFinishButton" class="secondary-button hidden" type="button">Finish Book</button>
+      <p id="bookFinishHint" class="muted hidden"></p>
       <menu class="chain-log-menu-v273"><button class="secondary-button" id="bookLogCancel" type="button">Done</button><button class="secondary-button" type="submit">Log & done</button><button class="primary-button" type="submit" data-log-another="true">Log & another</button></menu>
     </form>
   </dialog>
@@ -1776,6 +1782,7 @@ Project Hail Mary — Andy Weir
           <select id="newQuestXPMode">
             <option>Fixed</option>
             <option>Variable by Units</option>
+            <option>Batch by Units</option>
           </select>
         </label>
       </div>
@@ -1794,14 +1801,24 @@ Project Hail Mary — Andy Weir
 
       <div class="form-grid">
         <label>
-          XP at target
-          <input id="newQuestXP" type="number" min="1" value="20" required />
+          XP at target / batch
+          <input id="newQuestXP" type="number" min="0" value="20" required />
         </label>
 
         <label>
           Growth stat
           <select id="newQuestStat"></select>
         </label>
+      </div>
+
+      <div id="newQuestBatchFields" class="form-grid hidden">
+        <label>
+          Story Energy per batch
+          <input id="newQuestStoryEnergy" type="number" min="0" step="0.1" value="0.5" />
+        </label>
+        <div class="library-minimal-note-v16">
+          <span>↻</span><div><strong>Progress carries over.</strong><p>For example: a 10-file batch + logs of 17 and 6 files pays once, keeps 7/10, then pays again and keeps 3/10.</p></div>
+        </div>
       </div>
 
       <menu>
@@ -2045,18 +2062,18 @@ Project Hail Mary — Andy Weir
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <script src="data/quests.js"></script>
-  <script src="story-engine.js?v=0.28.0"></script>
-  <script src="app.js?v=0.28.0"></script>
-  <script src="stewardship.js?v=0.28.0"></script>
-  <script src="habits.js?v=0.28.0"></script>
-  <script src="adventures.js?v=0.28.0"></script>
-  <script src="library.js?v=0.28.0"></script>
-  <script src="games.js?v=0.28.0"></script>
-  <script src="daily.js?v=0.28.0"></script>
-  <script src="story-ui.js?v=0.28.0"></script>
-  <script src="achievements.js?v=0.28.0"></script>
-  <script type="module" src="cloud-save.js?v=0.28.0"></script>
-  <script src="pwa.js?v=0.28.0"></script>
+  <script src="data/quests.js?v=0.28.1"></script>
+  <script src="story-engine.js?v=0.28.1"></script>
+  <script src="app.js?v=0.28.1"></script>
+  <script src="stewardship.js?v=0.28.1"></script>
+  <script src="habits.js?v=0.28.1"></script>
+  <script src="adventures.js?v=0.28.1"></script>
+  <script src="library.js?v=0.28.1"></script>
+  <script src="games.js?v=0.28.1"></script>
+  <script src="daily.js?v=0.28.1"></script>
+  <script src="story-ui.js?v=0.28.1"></script>
+  <script src="achievements.js?v=0.28.1"></script>
+  <script type="module" src="cloud-save.js?v=0.28.1"></script>
+  <script src="pwa.js?v=0.28.1"></script>
 </body>
 </html>
