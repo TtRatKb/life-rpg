@@ -92,3 +92,12 @@ GitHub Pages will then update automatically after the new commit is deployed.
 - Page logs automatically update the book's current page and reaching the final page automatically marks the book Finished.
 - Added **Finish Book** when total pages are known; it logs all remaining pages in one action and finishes the book.
 - Existing saves, reading logs, quest logs, Story Energy rules, and V0.28.0 story/world content are preserved.
+
+## V0.28.2 — Café Continuity & Visual Pass
+
+- Replaced the legacy flat café placeholder with the illustrated **Koharu Café** VN background.
+- The first canonical café meeting now unlocks Koharu Café as a World location when completed.
+- Café-based hangouts explicitly require that first story café meeting, keeping repeat visits from appearing before the location has been established in the main story.
+- Existing saves that already completed the first café scene automatically restore the café World unlock.
+- No story prose, choices, relationship rewards, or existing completion history were removed.
+

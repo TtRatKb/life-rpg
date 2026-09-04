@@ -891,6 +891,9 @@
     if (state.flags.LOCATION_SHARED_APARTMENT_INTRODUCED) {
       state.locations.sharedApartment = true;
     }
+    if (state.flags.MINA_REAL_COFFEE_COMPLETE) {
+      state.locations.cafe = true;
+    }
 
     state.selectedQuestIds = (Array.isArray(state.selectedQuestIds)
       ? state.selectedQuestIds
@@ -932,6 +935,7 @@
     }
 
     if (state.flags.LOCATION_SHARED_APARTMENT_INTRODUCED) state.locations.sharedApartment = true;
+    if (state.flags.MINA_REAL_COFFEE_COMPLETE) state.locations.cafe = true;
     if (state.flags.LOCATION_GYM_INTRODUCED) state.locations.gym = true;
     if (state.flags.LOCATION_AGENCY_INTRODUCED) state.locations.agency = true;
 
@@ -1841,6 +1845,7 @@
 
     // Growth can influence future story checks, but locations remain narrative unlocks.
     if (state.flags.LOCATION_SHARED_APARTMENT_INTRODUCED) state.locations.sharedApartment = true;
+    if (state.flags.MINA_REAL_COFFEE_COMPLETE) state.locations.cafe = true;
     if (state.flags.LOCATION_GYM_INTRODUCED) state.locations.gym = true;
     if (state.flags.LOCATION_AGENCY_INTRODUCED) state.locations.agency = true;
   }
