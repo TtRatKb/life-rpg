@@ -7,7 +7,7 @@
     return;
   }
 
-  const SCHEMA = 4;
+  const SCHEMA = 5;
   const SHADOW_KEY = "life-rpg-daily-planner-shadow-v1";
   const MAX_DAY_HISTORY = 120;
   const MAX_COMPANION_HISTORY = 45;
@@ -340,6 +340,13 @@
         ensureDayBatchState(day);
       });
       planner.migrations.dailyLifeV23 = true;
+      changed = true;
+    }
+
+    if (!planner.migrations.adaptiveQuestFitV283) {
+      // Do not silently swap an already-generated daily set on update. The stronger
+      // effort/time matching applies to the next check-in, edit or manual reroll.
+      planner.migrations.adaptiveQuestFitV283 = true;
       changed = true;
     }
 
@@ -710,7 +717,11 @@
           ${done ? '<span class="daily-pick-done-v14">✓ Done</span>' : ""}
         </div>
         <div class="daily-pick-quest-v14">
-          <span class="daily-realm-pill-v14">${realmIcon(quest.realm)} ${esc(quest.realm || "Quest")}</span>
+          <div class="daily-adventure-meta-v15">
+            <span class="daily-realm-pill-v14">${realmIcon(quest.realm)} ${esc(quest.realm || "Quest")}</span>
+            <span class="daily-adventure-source-v15">${esc(planningEffortLabel(quest))}</span>
+            <span class="daily-adventure-progress-v15">~${formatNumber(estimatedMinutes(quest))} min</span>
+          </div>
           <h3>${esc(quest.name || "Untitled quest")}</h3>
           <div class="daily-goal-v14"><span>✦</span><div><small>TODAY'S FINISH LINE</small><strong>${esc(done ? progressText : goalText)}</strong></div></div>
           <p class="daily-pick-reason-v14"><b>Why this today?</b> ${esc(pick.reason || reasonFor(quest, pick.slot, todayRecord()?.checkIn || {}))}</p>
@@ -1011,6 +1022,19 @@
     return "Optional";
   }
 
+  function planningEffort(quest) {
+    const explicit = String(quest?.planningEffort || "").toLowerCase();
+    if (["low", "medium", "high"].includes(explicit)) return explicit;
+    if (quest?.energy === "Low Energy") return "low";
+    if (quest?.energy === "Boss") return "high";
+    return "medium";
+  }
+
+  function planningEffortLabel(quest) {
+    const effort = planningEffort(quest);
+    return effort === "low" ? "Low effort" : effort === "high" ? "High effort" : "Medium effort";
+  }
+
   function eligibleQuests() {
     const quests = typeof app.getQuestCatalog === "function" ? app.getQuestCatalog() : [];
     return quests.filter(quest => {
@@ -1213,6 +1237,7 @@
 
     let score = 0;
     score += matchDemand(capacity, demand) * 2.2;
+    score += adaptiveQuestFitAdjustment(quest, slot, checkIn, duration);
     if (duration) score += duration <= timeBudget ? 1.5 : -Math.min(4, (duration - timeBudget) / 20);
     score += Math.min(1.6, Math.max(0, daysSince - 2) * 0.09);
     if (doneToday) score -= 5;
@@ -1247,6 +1272,52 @@
       if (demand > 1.6) score -= 2.5;
     }
 
+    return score;
+  }
+
+  function adaptiveCapacityBand(checkIn) {
+    const capacity = effectiveCapacity(checkIn);
+    if (checkIn.gentle || checkIn.energy === "fumes" || (checkIn.sleep === "bad" && capacity < 1.35)) return "very-low";
+    if (capacity < 1.35) return "low";
+    if (capacity < 2.3) return "medium";
+    return "high";
+  }
+
+  function adaptiveQuestFitAdjustment(quest, slot, checkIn, duration = estimatedMinutes(quest)) {
+    const band = adaptiveCapacityBand(checkIn);
+    const effort = planningEffort(quest);
+    const budget = TIME_BUDGET[checkIn.time] || 30;
+    const minutes = Math.max(0, Number(duration || 0));
+    let score = 0;
+
+    if (band === "very-low") {
+      score += effort === "low" ? 4.2 : effort === "medium" ? -2.4 : -10;
+      if (minutes && minutes <= 10) score += 2.2;
+      else if (minutes && minutes <= 20) score += 1;
+      else if (minutes > 30) score -= 5.5;
+      else if (minutes > 20) score -= 2;
+    } else if (band === "low") {
+      score += effort === "low" ? 2.8 : effort === "medium" ? 0.15 : -5.8;
+      if (minutes && minutes <= 20) score += 1.5;
+      if (minutes > 45) score -= 4.5;
+      else if (minutes > 30) score -= 1.8;
+    } else if (band === "medium") {
+      score += effort === "medium" ? 1.35 : effort === "low" ? 0.45 : (slot === "focus" ? 0.15 : -0.9);
+      if (minutes > 75) score -= 2.2;
+    } else {
+      score += effort === "high" ? (slot === "focus" ? 3.2 : 0.6) : effort === "medium" ? 1.1 : 0;
+      if (slot === "focus" && minutes >= 25 && minutes <= Math.max(45, budget)) score += 1;
+    }
+
+    // Sleep and stated battery get their own veto/boost so a single optimistic
+    // answer elsewhere cannot completely cancel a rough morning.
+    if (checkIn.sleep === "bad" && effort === "high") score -= 2.2;
+    if (checkIn.energy === "fumes" && effort !== "low") score -= 3.5;
+    if (checkIn.energy === "lots" && slot === "focus" && effort === "high") score += 1.4;
+    if (["help", "busy"].includes(checkIn.obligations) && effort === "high") score -= 1.7;
+
+    if (minutes > budget) score -= Math.min(5, (minutes - budget) / 12);
+    if (["none", "little"].includes(checkIn.time) && minutes > 30) score -= 2.5;
     return score;
   }
 
@@ -1520,13 +1591,17 @@
   }
 
   function questDemand(quest) {
-    let demand = DEMAND_BY_REALM[quest.realm] ?? 1.25;
-    if (questPriority(quest) === "Low Energy") demand -= 0.65;
-    if (questPriority(quest) === "Must Do") demand += 0.15;
+    const effort = planningEffort(quest);
+    let demand = effort === "low" ? 0.55 : effort === "high" ? 2.35 : 1.45;
     const minutes = estimatedMinutes(quest);
-    if (minutes >= 60) demand += 0.55;
-    else if (minutes >= 35) demand += 0.25;
-    else if (minutes && minutes <= 15) demand -= 0.25;
+    if (minutes >= 75) demand += 0.45;
+    else if (minutes >= 45) demand += 0.25;
+    else if (minutes && minutes <= 10) demand -= 0.2;
+
+    // Realm is only a small friction hint now. Explicit effort metadata wins.
+    if (quest.realm === "Recovery") demand -= 0.15;
+    if (quest.realm === "Work") demand += 0.12;
+    if (quest.realm === "Health" && effort !== "low") demand += 0.06;
     return clamp(demand, 0.1, 3);
   }
 
@@ -1536,6 +1611,18 @@
   }
 
   function estimatedMinutes(quest) {
+    const explicit = Number(quest?.planningMinutes || 0);
+    if (Number.isFinite(explicit) && explicit > 0) return explicit;
+
+    const session = String(quest?.sessionSize || "").toLowerCase();
+    const sessionNumbers = [...session.matchAll(/\d+/g)].map(match => Number(match[0])).filter(Number.isFinite);
+    if (sessionNumbers.length >= 2) return (sessionNumbers[0] + sessionNumbers[1]) / 2;
+    if (sessionNumbers.length === 1) return sessionNumbers[0];
+    if (session.includes("tiny")) return 10;
+    if (session.includes("short")) return 25;
+    if (session.includes("medium")) return 45;
+    if (session.includes("long")) return 75;
+
     const target = questTargetValue(quest);
     const unit = String(quest.unitLabel || "").toLowerCase();
     if (!target) return 0;
@@ -1543,7 +1630,7 @@
     if (/(page|seite)/.test(unit)) return target * 2;
     if (/(hour|stunde)/.test(unit)) return target * 60;
     if (/(chapter|kapitel)/.test(unit)) return target * 25;
-    return 0;
+    return planningEffort(quest) === "low" ? 10 : planningEffort(quest) === "high" ? 45 : 25;
   }
 
   function suggestedUnits(quest, slot, checkIn) {
@@ -1594,8 +1681,11 @@
       return `It keeps a ${realm} option in the day on purpose, so the plan isn't just a productivity list.`;
     }
     if (slot === "gentle") {
-      if (low) return `Your check-in points toward lower friction today. This is one of the easier ways to still make the day count.`;
+      if (low) return `Your check-in points toward lower friction today. This is tagged ${planningEffortLabel(quest).toLowerCase()} and is roughly ${formatNumber(estimatedMinutes(quest))} minutes, so it fits the smaller battery.`;
       return `This gives you an easy fallback if the day gets heavier than the morning plan expected.`;
+    }
+    if (slot === "focus" && adaptiveCapacityBand(checkIn) === "high" && planningEffort(quest) === "high") {
+      return `Sleep, battery and available time leave room for a bigger move today, so the planner is deliberately surfacing a higher-effort ${realm} option.`;
     }
     if (busy) return `Your available time is limited, so this is a concrete ${realm} move without asking you to browse the whole Quest Board.`;
     if (days >= 14) return `This ${realm} quest has been out of rotation for a while, and today has enough room to bring it back.`;

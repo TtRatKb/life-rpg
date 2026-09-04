@@ -115,8 +115,10 @@
       frequency: quest.frequency || "Repeatable",
       cooldownDays: Number(quest.cooldownDays || 0) || null,
       energy: quest.energy || legacyPriorityToEnergy(quest.priority),
+      planningEffort: quest.planningEffort || planningEffortFromEnergy(quest.energy || legacyPriorityToEnergy(quest.priority)),
+      planningMinutes: questPlanningMinutes(quest),
       manualStatus: "Available",
-      sessionSize: null,
+      sessionSize: quest.sessionSize || planningSessionLabel(questPlanningMinutes(quest)),
       offDutyDeck: false,
       hobbyLane: null,
       planningThemes: [],
@@ -134,6 +136,46 @@
     if (priority === "Low Energy") return "Low Energy";
     if (priority === "Main" || priority === "Must Do") return "Boss";
     return "Normal";
+  }
+
+  function planningEffortFromEnergy(energy) {
+    if (energy === "Low Energy") return "low";
+    if (energy === "Boss") return "high";
+    return "medium";
+  }
+
+  function planningMinutesFromSessionSize(sessionSize) {
+    const text = String(sessionSize || "").toLowerCase();
+    const numbers = [...text.matchAll(/\d+/g)].map(match => Number(match[0])).filter(Number.isFinite);
+    if (numbers.length >= 2) return Math.round((numbers[0] + numbers[1]) / 2);
+    if (numbers.length === 1) return numbers[0];
+    if (text.includes("tiny")) return 10;
+    if (text.includes("short")) return 25;
+    if (text.includes("medium")) return 45;
+    if (text.includes("long")) return 75;
+    return 0;
+  }
+
+  function questPlanningMinutes(quest) {
+    const explicit = Number(quest?.planningMinutes || 0);
+    if (Number.isFinite(explicit) && explicit > 0) return Math.round(explicit);
+    const fromSession = planningMinutesFromSessionSize(quest?.sessionSize);
+    if (fromSession > 0) return fromSession;
+    const target = Number(quest?.units ?? quest?.target ?? 0);
+    const unit = String(quest?.unitLabel || "").toLowerCase();
+    if (target > 0 && /(min|minute)/.test(unit)) return Math.max(1, Math.round(target));
+    if (target > 0 && /(page|seite)/.test(unit)) return Math.max(5, Math.round(target * 2));
+    if (target > 0 && /(hour|stunde)/.test(unit)) return Math.max(5, Math.round(target * 60));
+    return planningEffortFromEnergy(quest?.energy) === "low" ? 10 : planningEffortFromEnergy(quest?.energy) === "high" ? 45 : 25;
+  }
+
+  function planningSessionLabel(minutes) {
+    const value = Math.max(1, Number(minutes || 0));
+    if (value <= 10) return "Tiny (≤10 min)";
+    if (value <= 20) return "Short (10-20 min)";
+    if (value <= 45) return "Medium (20-45 min)";
+    if (value <= 60) return "Long (45-60 min)";
+    return "Long (60+ min)";
   }
 
   function getAllQuests() {
@@ -1400,7 +1442,9 @@
       const variable = isVariableQuest(quest);
       const batch = isBatchQuest(quest);
       const coinPreview = questCoinBase(quest);
-      const extraMeta = [quest.sessionSize, quest.hobbyLane, quest.questType].filter(Boolean);
+      const planningMinutes = questPlanningMinutes(quest);
+      const effortLabel = planningEffortFromEnergy(quest.energy) === "low" ? "Low effort" : planningEffortFromEnergy(quest.energy) === "high" ? "High effort" : "Medium effort";
+      const extraMeta = [effortLabel, planningMinutes ? `~${planningMinutes} min` : null, quest.hobbyLane, quest.questType].filter(Boolean);
 
       return `
         <article class="library-card ${selected ? "selected" : ""}">
@@ -1488,6 +1532,7 @@
     byId("newQuestXP").value = 20;
     byId("newQuestUnitLabel").value = defaults.unitLabel || "task";
     byId("newQuestEnergy").value = defaults.energy || "Normal";
+    byId("newQuestPlanningMinutes").value = Number.isFinite(Number(defaults.planningMinutes)) ? String(defaults.planningMinutes) : "20";
     byId("newQuestFrequency").value = defaults.frequency || "Repeatable";
     byId("newQuestXPMode").value = defaults.xpMode || "Fixed";
     byId("newQuestStoryEnergy").value = Number.isFinite(Number(defaults.storyEnergyAtTarget)) ? String(defaults.storyEnergyAtTarget) : "0.5";
@@ -1525,8 +1570,10 @@
       frequency: byId("newQuestFrequency").value,
       cooldownDays: null,
       energy: byId("newQuestEnergy").value,
+      planningEffort: planningEffortFromEnergy(byId("newQuestEnergy").value),
+      planningMinutes: Math.max(1, Number(byId("newQuestPlanningMinutes")?.value || 20)),
       manualStatus: "Available",
-      sessionSize: null,
+      sessionSize: planningSessionLabel(Math.max(1, Number(byId("newQuestPlanningMinutes")?.value || 20))),
       offDutyDeck: false,
       hobbyLane: null,
       planningThemes: [],
@@ -1550,6 +1597,7 @@
         realm: quest.realm,
         stat: quest.stat,
         energy: quest.energy,
+        planningMinutes: quest.planningMinutes,
         frequency: quest.frequency,
         xpMode: quest.xpMode,
         unitLabel: quest.unitLabel,

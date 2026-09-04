@@ -101,3 +101,13 @@ GitHub Pages will then update automatically after the new commit is deployed.
 - Existing saves that already completed the first café scene automatically restore the café World unlock.
 - No story prose, choices, relationship rewards, or existing completion history were removed.
 
+## V0.28.3 — Adaptive Daily Plan Categorization
+
+- Added explicit planner metadata to the full built-in Quest catalog: **planning effort** (low / medium / high) and a **typical time estimate**.
+- Daily Check-in answers now have a much stronger effect on the three recommendations: rough-sleep / low-battery / gentle days heavily favor low-effort, shorter options; good-sleep / high-energy days can deliberately surface higher-effort focus quests.
+- Quest Realm is now only a small friction hint; explicit effort + time are the primary planner signals.
+- Daily recommendation cards show the quest's effort category and approximate time so the adaptation is visible rather than hidden.
+- New custom Quests can set a typical time in minutes. Energy + typical time are planner-only metadata and do not change XP or Story Energy rewards.
+- Existing custom Quests without planner metadata continue to work via safe fallback estimates. Existing saves, rewards, Story content, and V0.28.2 café continuity are preserved.
+- Existing recommendations already generated for the day are not silently replaced during the update; the stronger matching applies on the next check-in, check-in edit, or reroll.
+
