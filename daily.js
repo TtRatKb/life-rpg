@@ -350,6 +350,48 @@
       changed = true;
     }
 
+    if (!planner.migrations.stableBuiltInQuestIdsV0284) {
+      const migrateQuestId = id => app.migrateQuestId?.(id) || id;
+      const migrateSourceKey = key => {
+        if (typeof key !== "string" || !key.startsWith("quest:")) return key;
+        return `quest:${migrateQuestId(key.slice("quest:".length)) || ""}`;
+      };
+      const migratePick = pick => (
+        pick?.sourceType === "quest" && pick.sourceId
+          ? { ...pick, sourceId: migrateQuestId(pick.sourceId) }
+          : pick
+      );
+
+      Object.values(planner.days || {}).forEach(day => {
+        if (!day || typeof day !== "object") return;
+        if (Array.isArray(day.picks)) day.picks = day.picks.map(migratePick);
+        if (Array.isArray(day.batchHistory)) {
+          day.batchHistory = day.batchHistory.map(batch => ({
+            ...batch,
+            picks: Array.isArray(batch?.picks) ? batch.picks.map(migratePick) : batch?.picks
+          }));
+        }
+        if (day.rerollHistory && typeof day.rerollHistory === "object") {
+          Object.keys(day.rerollHistory).forEach(slot => {
+            if (Array.isArray(day.rerollHistory[slot])) {
+              day.rerollHistory[slot] = day.rerollHistory[slot].map(migrateSourceKey);
+            }
+          });
+        }
+      });
+
+      if (planner.rerollMemory && typeof planner.rerollMemory === "object") {
+        const migrated = {};
+        Object.entries(planner.rerollMemory).forEach(([key, value]) => {
+          migrated[migrateSourceKey(key)] = value;
+        });
+        planner.rerollMemory = migrated;
+      }
+
+      planner.migrations.stableBuiltInQuestIdsV0284 = true;
+      changed = true;
+    }
+
     trimHistory(planner);
     writeShadow(planner);
     return changed;

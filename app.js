@@ -40,6 +40,12 @@
   ];
 
   const IMPORTED_QUESTS = (window.LIFE_RPG_QUESTS || []).map(normalizeImportedQuest);
+  const IMPORTED_QUEST_LEGACY_ID_MAP = new Map();
+  IMPORTED_QUESTS.forEach(quest => {
+    (Array.isArray(quest.legacyIds) ? quest.legacyIds : []).forEach(legacyId => {
+      if (legacyId) IMPORTED_QUEST_LEGACY_ID_MAP.set(legacyId, quest.id);
+    });
+  });
 
   const LEGACY_QUEST_ID_MAP = {
     "q-work-focus": "🧠 Focus Work",
@@ -96,8 +102,73 @@
   }
 
   function migrateLegacyQuestId(id) {
+    if (!id) return id;
+    const stableImportedId = IMPORTED_QUEST_LEGACY_ID_MAP.get(id);
+    if (stableImportedId) return stableImportedId;
     const mappedName = LEGACY_QUEST_ID_MAP[id];
     return mappedName ? importedQuestIdByName(mappedName) || id : id;
+  }
+
+  function migratePlannerSourceKey(key) {
+    if (typeof key !== "string" || !key.startsWith("quest:")) return key;
+    const migrated = migrateLegacyQuestId(key.slice("quest:".length));
+    return `quest:${migrated || ""}`;
+  }
+
+  function migrateQuestReferencesInState() {
+    state.selectedQuestIds = (Array.isArray(state.selectedQuestIds) ? state.selectedQuestIds : [])
+      .map(migrateLegacyQuestId)
+      .filter((id, index, ids) => id && ids.indexOf(id) === index)
+      .filter(id => Boolean(getQuestById(id)));
+
+    state.completionLog = (Array.isArray(state.completionLog) ? state.completionLog : []).map(log => ({
+      ...log,
+      questId: migrateLegacyQuestId(log.questId)
+    }));
+
+    if (Array.isArray(state.rewardLedger?.events)) {
+      state.rewardLedger.events = state.rewardLedger.events.map(event => (
+        event?.source === "quest" && event.sourceId
+          ? { ...event, sourceId: migrateLegacyQuestId(event.sourceId) }
+          : event
+      ));
+    }
+
+    const planner = state.dailyPlanner;
+    if (planner && typeof planner === "object") {
+      Object.values(planner.days || {}).forEach(day => {
+        if (!day || typeof day !== "object") return;
+        const migratePick = pick => (
+          pick?.sourceType === "quest" && pick.sourceId
+            ? { ...pick, sourceId: migrateLegacyQuestId(pick.sourceId) }
+            : pick
+        );
+        if (Array.isArray(day.picks)) day.picks = day.picks.map(migratePick);
+        if (Array.isArray(day.batchHistory)) {
+          day.batchHistory = day.batchHistory.map(batch => ({
+            ...batch,
+            picks: Array.isArray(batch?.picks) ? batch.picks.map(migratePick) : batch?.picks
+          }));
+        }
+        if (day.rerollHistory && typeof day.rerollHistory === "object") {
+          Object.keys(day.rerollHistory).forEach(slot => {
+            if (Array.isArray(day.rerollHistory[slot])) {
+              day.rerollHistory[slot] = day.rerollHistory[slot].map(migratePlannerSourceKey);
+            }
+          });
+        }
+      });
+
+      if (planner.rerollMemory && typeof planner.rerollMemory === "object") {
+        const migratedMemory = {};
+        Object.entries(planner.rerollMemory).forEach(([key, value]) => {
+          migratedMemory[migratePlannerSourceKey(key)] = value;
+        });
+        planner.rerollMemory = migratedMemory;
+      }
+      planner.migrations ||= {};
+      planner.migrations.stableBuiltInQuestIdsV0284 = true;
+    }
   }
 
   function migrateLegacyCustomQuest(quest) {
@@ -937,17 +1008,8 @@
       state.locations.cafe = true;
     }
 
-    state.selectedQuestIds = (Array.isArray(state.selectedQuestIds)
-      ? state.selectedQuestIds
-      : defaultState().selectedQuestIds)
-      .map(migrateLegacyQuestId)
-      .filter((id, index, ids) => id && ids.indexOf(id) === index)
-      .filter(id => Boolean(getQuestById(id)));
-
-    state.completionLog = (state.completionLog || []).map(log => ({
-      ...log,
-      questId: migrateLegacyQuestId(log.questId)
-    }));
+    if (!Array.isArray(state.selectedQuestIds)) state.selectedQuestIds = defaultState().selectedQuestIds;
+    migrateQuestReferencesInState();
 
     migrateCapabilityCurve();
     ensureProgressionState();
@@ -981,6 +1043,7 @@
     if (state.flags.LOCATION_GYM_INTRODUCED) state.locations.gym = true;
     if (state.flags.LOCATION_AGENCY_INTRODUCED) state.locations.agency = true;
 
+    migrateQuestReferencesInState();
     migrateCapabilityCurve();
     ensureProgressionState();
     migrateLegacyRewardLedger();
@@ -2214,6 +2277,7 @@
     getStorageKey: () => STORAGE_KEY,
     getQuestCatalog: () => getAllQuests().map(quest => ({ ...quest })),
     getQuestById,
+    migrateQuestId: migrateLegacyQuestId,
     getQuestAvailability,
     getCapabilityInfo: key => statLevelInfo(state.stats?.[key] || 0),
     getRealmRankInfo: realm => realmRankInfo(state.realms?.[realm] || 0),

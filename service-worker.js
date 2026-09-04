@@ -1,16 +1,26 @@
-const CACHE_NAME = "life-rpg-v0283-shell";
+const CACHE_NAME = "life-rpg-v0284-shell";
 const CORE = [
   "./",
   "./index.html",
-  "./styles.css?v=0.28.3",
-  "./manifest.webmanifest?v=0.25.1",
-  "./pwa.js?v=0.28.3",
+  "./styles.css?v=0.28.4",
+  "./manifest.webmanifest?v=0.28.4",
+  "./pwa.js?v=0.28.4",
   "./assets/app-icon-192.png",
   "./assets/app-icon-512.png"
 ];
 
 self.addEventListener("install", event => {
-  event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(CORE)).then(() => self.skipWaiting()));
+  event.waitUntil((async () => {
+    const cache = await caches.open(CACHE_NAME);
+    await Promise.all(CORE.map(async asset => {
+      try {
+        await cache.add(asset);
+      } catch (error) {
+        console.warn("Life RPG precache skipped an unavailable asset", asset, error);
+      }
+    }));
+    await self.skipWaiting();
+  })());
 });
 
 self.addEventListener("activate", event => {

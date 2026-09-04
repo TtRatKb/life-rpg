@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "updated": "2026-08-26",
+  "updated": "2026-09-05",
   "purpose": "Human-readable source of truth for approved story character visuals. Future visual passes should preserve locked designs unless explicitly re-approved.",
   "characters": {
     "luca": {
@@ -69,10 +69,6 @@
         "caughtOffGuard": "assets/story/characters/bakugo-caught-off-guard.png",
         "flustered": "assets/story/characters/bakugo-flustered.png",
         "flusteredIntense": "assets/story/characters/bakugo-flustered-intense.png",
-        "tired": "assets/story/characters/bakugo-tired.png",
-        "tiredNeckRub": "assets/story/characters/bakugo-tired-neck-rub.png",
-        "vulnerableGuarded": "assets/story/characters/bakugo-vulnerable-guarded.png",
-        "lateNightDrained": "assets/story/characters/bakugo-late-night-drained.png",
         "smugHandsPockets": "assets/story/characters/bakugo-smug-hands-pockets.png",
         "smugNeckRub": "assets/story/characters/bakugo-smug-neck-rub.png",
         "smugLeanBack": "assets/story/characters/bakugo-smug-lean-back.png",
@@ -90,8 +86,15 @@
         "heroHappy": "assets/story/characters/bakugo-hero-happy.png",
         "heroProfile": "assets/story/characters/bakugo-hero-profile.png"
       },
-      "temporaryFallbacks": {},
-      "planned": [],
+      "temporaryFallbacks": {
+        "tired": "assets/story/characters/bakugo-annoyed-away.png",
+        "tiredNeckRub": "assets/story/characters/bakugo-annoyed-away.png",
+        "vulnerableGuarded": "assets/story/characters/bakugo-soft.png",
+        "lateNightDrained": "assets/story/characters/bakugo-annoyed-away.png"
+      },
+      "planned": [
+        "Restore/export the already-approved locked tired/vulnerable runtime PNGs before using their nuanced variants; current repo uses safe approved V2 fallbacks instead of missing files."
+      ],
       "legacyRule": "Older Bakugo character images are not canonical visual references and should not be selected for new story content.",
       "compatibilityAliases": {
         "angry": "assets/story/characters/bakugo-angry.png (approved alias of angryClenched for older expression references)",
@@ -99,9 +102,9 @@
         "soft": "assets/story/characters/bakugo-soft.png (approved alias for softer/warmed expression references)",
         "caughtOffGuard": "assets/story/characters/bakugo-caught-off-guard.png (approved alias for surprised/startled references)",
         "flustered": "assets/story/characters/bakugo-flustered.png (approved alias for generic flustered references)",
-        "tired": "assets/story/characters/bakugo-tired.png (approved alias for generic tired/exhausted expression references)",
-        "vulnerable": "assets/story/characters/bakugo-vulnerable-guarded.png (approved alias for guarded low-energy vulnerability references)",
-        "lateNight": "assets/story/characters/bakugo-late-night-drained.png (approved alias for late-night drained expression references)",
+        "tired": "assets/story/characters/bakugo-annoyed-away.png (temporary installed fallback; approved tired sprite source PNG is currently absent)",
+        "vulnerable": "assets/story/characters/bakugo-soft.png (temporary installed fallback; approved vulnerable sprite source PNG is currently absent)",
+        "lateNight": "assets/story/characters/bakugo-annoyed-away.png (temporary installed fallback; approved late-night sprite source PNG is currently absent)",
         "smug": "assets/story/characters/bakugo-smug.png (approved generic alias of smugHandsPockets)",
         "cocky": "assets/story/characters/bakugo-cocky-swagger.png (approved generic alias for cocky/confident references)",
         "heroNeutral": "assets/story/characters/bakugo-hero-neutral.png (default expression for Hero outfit)",

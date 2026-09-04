@@ -66,12 +66,10 @@ GitHub Pages will then update automatically after the new commit is deployed.
 
 ## Next milestones
 
-1. Review the new Base Camp / daily loop.
-2. Import the real quest library from the existing Life RPG data.
-3. Define the exact Realm + Character Stat mapping.
-4. Add the first **private spoiler-safe story pack**.
-5. Add social Talk / Messages / Hangouts.
-6. Add Firebase login + cloud save after the game loop feels right.
+1. Keep the current daily loop stable while testing it on desktop and mobile/PWA.
+2. Build **V0.29.0 — Living World & Locations** on top of this consolidated baseline.
+3. Continue Library / Collections polish after real-use feedback.
+4. Resume noncanonical CG calibration only after the normal VN presentation remains stable.
 
 ## V0.28.0 — Story Continuity & World Expansion
 
@@ -111,3 +109,13 @@ GitHub Pages will then update automatically after the new commit is deployed.
 - Existing custom Quests without planner metadata continue to work via safe fallback estimates. Existing saves, rewards, Story content, and V0.28.2 café continuity are preserved.
 - Existing recommendations already generated for the day are not silently replaced during the update; the stronger matching applies on the next check-in, check-in edit, or reroll.
 
+
+## V0.28.4 — Consolidation & QA Fix
+
+- Restored installable PWA support with a real `manifest.webmanifest`, 180/192/512 app icons, a fresh shell cache, and precache logic that no longer aborts the entire install because one optional asset is unavailable.
+- Replaced the final active legacy SVG location backgrounds with illustrated `city_dusk.png` and `station_evening.png` VN backgrounds.
+- Corrected three story visual-state transitions where Mina could remain on the stage after leaving or after the interaction had become remote/text-only.
+- Synchronized Bakugo runtime references with files that actually exist in the repo. The already-approved tired/vulnerable family remains canon, but missing source PNGs now use explicit safe V2 runtime fallbacks instead of broken paths.
+- Changed all 45 built-in Quests to permanent, position-independent `core-*` IDs and added migration for existing loadouts, completion logs, reward-ledger quest references, and Daily Planner picks/memory.
+- Bumped shell and Story Pack revision/cache references to V0.28.4 and refreshed outdated Side Adventure helper copy.
+- No Story prose, choices, rewards, relationship progression, unlock conditions, book/game data, habit history, or existing save progress were intentionally changed.

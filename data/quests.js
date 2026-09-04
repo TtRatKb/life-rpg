@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  // V0.28.3: quest planning metadata is intentionally separate from rewards.
+  // V0.28.4: stable quest IDs + adaptive planning metadata. Planning metadata remains separate from rewards.
   // Energy/planningEffort describes friction; planningMinutes describes a typical session.
   // The Daily Check-in uses both to adapt recommendations to the day.
   const quests = [
@@ -1119,9 +1119,15 @@
       .toLowerCase();
   }
 
-  window.LIFE_RPG_QUESTS = quests.map((quest, index) => ({
-    id: `notion-${String(index + 1).padStart(2, "0")}-${slugify(quest.name) || "quest"}`,
-    source: "notion-import-2026-08-18",
-    ...quest
-  }));
+  // V0.28.4: built-in quest IDs are permanent and no longer depend on list order.
+  // legacyIds lets existing saves migrate safely from the old position-based IDs.
+  window.LIFE_RPG_QUESTS = quests.map((quest, index) => {
+    const slug = slugify(quest.name) || `quest-${index + 1}`;
+    return {
+      id: `core-${slug}`,
+      legacyIds: [`notion-${String(index + 1).padStart(2, "0")}-${slug}`],
+      source: "notion-import-2026-08-18",
+      ...quest
+    };
+  });
 })();
