@@ -7,15 +7,16 @@
     return;
   }
 
-  const SCHEMA = 1;
+  const SCHEMA = 2;
   const SHADOW_KEY = "life-rpg-games-shadow-v1";
   const MAX_LOGS = 800;
 
   const STATUSES = {
     playing: { icon: "▶", label: "Playing" },
-    backlog: { icon: "✦", label: "Backlog" },
+    backlog: { icon: "✦", label: "Want to Play" },
     paused: { icon: "◷", label: "Paused" },
-    finished: { icon: "✓", label: "Finished" },
+    finished: { icon: "✓", label: "Completed" },
+    dropped: { icon: "×", label: "Dropped" },
     endless: { icon: "∞", label: "Endless" }
   };
 
@@ -34,6 +35,11 @@
     empty: byId("gameEmpty"),
     search: byId("gameSearch"),
     status: byId("gameStatusFilter"),
+    sort: byId("gameSort"),
+    viewToggle: byId("gameViewToggle"),
+    mobileAdd: byId("gameMobileAdd"),
+    mobileBulk: byId("gameMobileBulk"),
+    bulk: byId("bulkAddGamesButton"),
     roleFilters: byId("gameRoleFilters"),
     playingSummary: byId("gameSummaryPlaying"),
     backlogSummary: byId("gameSummaryBacklog"),
@@ -58,6 +64,17 @@
     goalsSeed: byId("gameGoalsSeed"),
     notes: byId("gameNotes"),
     preview: byId("gamePreview"),
+    rewardHint: byId("gameRewardHint"),
+
+    bulkDialog: byId("gameBulkDialog"),
+    bulkForm: byId("gameBulkForm"),
+    bulkClose: byId("gameBulkClose"),
+    bulkCancel: byId("gameBulkCancel"),
+    bulkText: byId("gameBulkText"),
+    bulkStatus: byId("gameBulkStatus"),
+    bulkRole: byId("gameBulkRole"),
+    bulkMinutes: byId("gameBulkMinutes"),
+    bulkPreview: byId("gameBulkPreview"),
 
     logDialog: byId("gameLogDialog"),
     logForm: byId("gameLogForm"),
@@ -87,6 +104,8 @@
   };
 
   let selectedRole = "all";
+  let selectedSort = safeStorageGet("life-rpg-games-sort-v291") || "smart";
+  let viewMode = safeStorageGet("life-rpg-games-view-v291") || "grid";
   let initialized = false;
   let toastTimer = null;
 
@@ -102,7 +121,8 @@
   }
 
   function bindEvents() {
-    [els.add, els.secondaryAdd, els.emptyAdd].forEach(button => button?.addEventListener("click", () => openGameDialog()));
+    [els.add, els.secondaryAdd, els.emptyAdd, els.mobileAdd].forEach(button => button?.addEventListener("click", () => openGameDialog()));
+    [els.bulk, els.mobileBulk].forEach(button => button?.addEventListener("click", openBulkDialog));
     els.close?.addEventListener("click", closeGameDialog);
     els.cancel?.addEventListener("click", closeGameDialog);
     els.form?.addEventListener("submit", saveGame);
@@ -112,6 +132,15 @@
 
     els.search?.addEventListener("input", renderBoard);
     els.status?.addEventListener("change", renderBoard);
+    els.sort?.addEventListener("change", () => { selectedSort = els.sort.value || "smart"; safeStorageSet("life-rpg-games-sort-v291", selectedSort); renderBoard(); });
+    els.viewToggle?.addEventListener("click", event => {
+      const button = event.target.closest?.("[data-game-view]");
+      if (!button) return;
+      viewMode = button.dataset.gameView === "list" ? "list" : "grid";
+      safeStorageSet("life-rpg-games-view-v291", viewMode);
+      syncViewControls();
+      renderBoard();
+    });
     els.roleFilters?.addEventListener("click", event => {
       const button = event.target.closest?.("[data-game-role]");
       if (!button) return;
@@ -155,6 +184,14 @@
       if (goalDelete) {
         deleteGoal(goalDelete.dataset.gameId, goalDelete.dataset.gameGoalDelete);
       }
+    });
+
+    els.bulkClose?.addEventListener("click", closeBulkDialog);
+    els.bulkCancel?.addEventListener("click", closeBulkDialog);
+    els.bulkForm?.addEventListener("submit", saveBulkGames);
+    [els.bulkText, els.bulkStatus, els.bulkRole, els.bulkMinutes].forEach(input => {
+      input?.addEventListener("input", renderBulkPreview);
+      input?.addEventListener("change", renderBulkPreview);
     });
 
     els.logClose?.addEventListener("click", closeLogDialog);
@@ -264,6 +301,8 @@
   }
 
   function render() {
+    if (els.sort && els.sort.value !== selectedSort) els.sort.value = selectedSort;
+    syncViewControls();
     renderSummary();
     renderBoard();
   }
@@ -294,12 +333,18 @@
       return true;
     }).sort(sortGames);
 
+    els.board.classList.toggle("collection-list-mode-v291", viewMode === "list");
+    els.board.classList.toggle("collection-grid-mode-v291", viewMode !== "list");
     els.board.innerHTML = games.map(gameCardMarkup).join("");
     els.empty.classList.toggle("hidden", games.length > 0);
   }
 
   function sortGames(a, b) {
-    const statusOrder = { playing: 0, endless: 1, paused: 2, backlog: 3, finished: 4 };
+    if (selectedSort === "title") return String(a.title || "").localeCompare(String(b.title || ""));
+    if (selectedSort === "updated") return Number(b.updatedAt || 0) - Number(a.updatedAt || 0);
+    if (selectedSort === "played") return Number(b.lastPlayedAt || 0) - Number(a.lastPlayedAt || 0) || String(a.title || "").localeCompare(String(b.title || ""));
+    if (selectedSort === "progress") return Number(b.progress || 0) - Number(a.progress || 0) || String(a.title || "").localeCompare(String(b.title || ""));
+    const statusOrder = { playing: 0, endless: 1, paused: 2, backlog: 3, finished: 4, dropped: 5 };
     const aOrder = statusOrder[a.status] ?? 9;
     const bOrder = statusOrder[b.status] ?? 9;
     if (aOrder !== bOrder) return aOrder - bOrder;
@@ -475,6 +520,81 @@
     if (els.progress) els.progress.value = "0";
     renderGameFormState();
     window.setTimeout(() => els.title?.focus(), 20);
+  }
+
+  function openBulkDialog() {
+    if (!els.bulkDialog || !els.bulkForm) return;
+    els.bulkForm.reset();
+    if (els.bulkStatus) els.bulkStatus.value = "backlog";
+    if (els.bulkRole) els.bulkRole.value = "fun";
+    if (els.bulkMinutes) els.bulkMinutes.value = "45";
+    renderBulkPreview();
+    els.bulkDialog.showModal();
+    window.setTimeout(() => els.bulkText?.focus(), 20);
+  }
+
+  function closeBulkDialog() {
+    if (els.bulkDialog?.open) els.bulkDialog.close();
+  }
+
+  function parseBulkGames() {
+    const lines = String(els.bulkText?.value || "").split(/\r?\n/).map(line => line.trim()).filter(Boolean);
+    return lines.map(line => {
+      const parts = line.split(/\t|\s+—\s+|\s+\|\s+/).map(value => value.trim()).filter(Boolean);
+      return { title: parts[0] || "", platform: parts.slice(1).join(" — ") };
+    }).filter(item => item.title);
+  }
+
+  function renderBulkPreview() {
+    if (!els.bulkPreview) return;
+    const entries = parseBulkGames();
+    const status = STATUSES[els.bulkStatus?.value] || STATUSES.backlog;
+    const role = ROLES[els.bulkRole?.value] || ROLES.fun;
+    const minutes = Math.max(5, Number(els.bulkMinutes?.value || 45));
+    els.bulkPreview.innerHTML = entries.length
+      ? `<strong>${entries.length} game${entries.length === 1 ? "" : "s"} ready</strong><span>${status.icon} ${esc(status.label)} · ${role.icon} ${esc(role.label)} · ${minutes}m default session</span><small>Tip: “Title — Platform”, “Title | Platform”, or just one title per line.</small>`
+      : `<strong>Paste one game per line.</strong><span>Great for moving an existing backlog into Life RPG without opening the add dialog over and over.</span>`;
+  }
+
+  function saveBulkGames(event) {
+    event.preventDefault();
+    const entries = parseBulkGames();
+    if (!entries.length) return;
+    const current = model();
+    const status = STATUSES[els.bulkStatus?.value] ? els.bulkStatus.value : "backlog";
+    const role = ROLES[els.bulkRole?.value] ? els.bulkRole.value : "fun";
+    const sessionMinutes = Math.max(5, Number(els.bulkMinutes?.value || 45));
+    const existing = new Set(current.items.map(game => duplicateKey(game.title, game.platform)));
+    const addedGames = [];
+    const now = Date.now();
+    let skipped = 0;
+
+    entries.forEach((entry, index) => {
+      const key = duplicateKey(entry.title, entry.platform);
+      if (existing.has(key)) { skipped += 1; return; }
+      existing.add(key);
+      const game = {
+        id: makeId("game"), title: entry.title, platform: entry.platform, status, role, sessionMinutes,
+        progressMode: "none", progress: 0, goals: [], notes: "", totalMinutes: 0, sessions: 0,
+        createdAt: now + index, updatedAt: now + index, lastPlayedAt: null
+      };
+      current.items.push(game);
+      addedGames.push(game);
+    });
+
+    const reward = window.LifeRPGStewardship?.rewardMany?.(addedGames.map(game => ({
+      type: "game", id: game.id, label: game.title, fields: [game.title, game.platform]
+    })));
+    closeBulkDialog();
+    persist("games-bulk-add");
+    if (Number(reward?.xp || 0) > 0 || Number(reward?.storyEnergy || 0) > 0) app.renderAll?.();
+    const upkeepText = window.LifeRPGStewardship?.statusText?.(reward) || "";
+    const duplicateText = skipped ? `${skipped} duplicate${skipped === 1 ? "" : "s"} skipped.` : "Added in one pass.";
+    showToast(`${addedGames.length} game${addedGames.length === 1 ? "" : "s"} added`, [duplicateText, upkeepText].filter(Boolean).join(" · "));
+  }
+
+  function duplicateKey(title, platform) {
+    return `${String(title || "").trim().toLowerCase()}|${String(platform || "").trim().toLowerCase()}`;
   }
 
   function deleteCurrentGame() {
@@ -777,6 +897,22 @@
       els.toast.classList.remove("show");
       window.setTimeout(() => els.toast.classList.add("hidden"), 220);
     }, 3200);
+  }
+
+  function syncViewControls() {
+    els.viewToggle?.querySelectorAll?.("[data-game-view]").forEach(button => {
+      const active = (button.dataset.gameView || "grid") === viewMode;
+      button.classList.toggle("active", active);
+      button.setAttribute("aria-pressed", active ? "true" : "false");
+    });
+  }
+
+  function safeStorageGet(key) {
+    try { return localStorage.getItem(key); } catch { return null; }
+  }
+
+  function safeStorageSet(key, value) {
+    try { localStorage.setItem(key, value); } catch { /* preference is non-critical */ }
   }
 
   function formatDuration(minutes) {

@@ -130,3 +130,16 @@ GitHub Pages will then update automatically after the new commit is deployed.
 - Added lightweight world visit history to social save state for future reactivity without changing relationship values or Story Energy.
 - Added Station as a narratively unlocked location tied to the existing commute story state; existing saves migrate automatically once that story state is already complete.
 - Preserved the one-relationship-gain-per-character-per-day rule for Talks and all existing Story/Message/Hangout/World Moment content and rewards.
+
+
+## V0.29.1 — Library & Collections Polish
+
+- Added persistent Grid / Compact List views and sorting controls for Books and Games.
+- Books now support an explicit Owned / Unread shelf state in addition to Want to Read, Reading, Paused, Finished, and DNF.
+- Book-series metadata now includes optional total series length and cards surface series completion progress from tracked books.
+- Existing current-page / Finish Book reading progress remains intact and is more visible in the collection views.
+- Games now label the backlog as Want to Play, add a Dropped state, and keep Playing / Paused / Completed / Endless states.
+- Added bulk game import (one title per line, with optional platform) with duplicate protection and existing stewardship rewards/caps.
+- Added mobile sticky quick-add controls for Books and Games so adding a title or pasting a list is reachable without scrolling back to the hero.
+- Add dialogs now show the base Life RPG upkeep reward before saving.
+- No story content, progression conditions, relationship values, or existing activity rewards were changed.

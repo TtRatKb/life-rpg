@@ -11879,3 +11879,143 @@ body.world-location-open { overflow: hidden; }
   .world-location-section-heading > span { display: none; }
   .location-card-art { height: 112px; }
 }
+
+/* ========================================================================== 
+   V0.29.1 · Library & Collections Polish
+   ========================================================================== */
+.collection-view-toggle-v291 {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.28rem;
+  border: 1px solid rgba(90, 52, 74, 0.14);
+  border-radius: 999px;
+  background: rgba(255,255,255,0.72);
+  box-shadow: 0 8px 22px rgba(73, 42, 59, 0.06);
+}
+.collection-view-toggle-v291 button {
+  width: 2.15rem;
+  height: 2.15rem;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink-soft, #745a69);
+  cursor: pointer;
+  font: inherit;
+}
+.collection-view-toggle-v291 button.active {
+  background: var(--plum, #4f2946);
+  color: #fff;
+  box-shadow: 0 5px 14px rgba(79, 41, 70, 0.2);
+}
+.library-controls-v16 select#librarySort,
+.games-controls-v17 select#gameSort {
+  min-width: 9.7rem;
+}
+.collection-reward-hint-v291 {
+  margin-top: -0.1rem;
+  padding: 0.72rem 0.9rem;
+  border: 1px dashed rgba(173, 91, 129, 0.3);
+  border-radius: 0.9rem;
+  background: linear-gradient(135deg, rgba(255,244,248,0.96), rgba(250,246,238,0.92));
+  color: var(--ink-soft, #745a69);
+  font-size: 0.82rem;
+}
+.collection-reward-hint-v291 strong { color: var(--plum, #4f2946); }
+.collection-three-v291 { grid-template-columns: minmax(0, 1.4fr) minmax(6rem, .55fr) minmax(7rem, .65fr); }
+.library-series-progress-v291 {
+  margin: .25rem 0 0;
+  color: #8d5870;
+  font-size: .78rem;
+  font-weight: 700;
+  letter-spacing: .02em;
+}
+.games-hero-actions-v291 {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .55rem;
+  margin-top: .85rem;
+}
+.collection-mobile-quickbar-v291 { display: none; }
+
+/* Compact shelf mode: keep information, remove visual height. */
+.library-board-v16.collection-list-mode-v291,
+.game-board-v17.collection-list-mode-v291 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: .72rem;
+}
+.library-board-v16.collection-list-mode-v291 .library-book-card-v16 {
+  display: grid;
+  grid-template-columns: 70px minmax(0, 1fr);
+  min-height: 0;
+}
+.library-board-v16.collection-list-mode-v291 .library-book-cover-v161,
+.library-board-v16.collection-list-mode-v291 .library-book-spine-v16 {
+  width: 70px;
+  min-height: 100%;
+  border-radius: 1rem 0 0 1rem;
+}
+.library-board-v16.collection-list-mode-v291 .library-book-cover-v161 img { height: 100%; object-fit: cover; }
+.library-board-v16.collection-list-mode-v291 .library-book-body-v16 { padding: .9rem 1rem; }
+.library-board-v16.collection-list-mode-v291 .library-book-copy-v16 h3 { font-size: 1rem; }
+.library-board-v16.collection-list-mode-v291 .library-book-meta-v16 { margin-top: .55rem; }
+.library-board-v16.collection-list-mode-v291 .library-book-actions-v16 { margin-top: .65rem; }
+.library-board-v16.collection-list-mode-v291 .library-book-actions-v16 button { min-height: 2.2rem; }
+.game-board-v17.collection-list-mode-v291 .game-card-v17 {
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr);
+}
+.game-board-v17.collection-list-mode-v291 .game-card-accent-v17 { min-height: 100%; border-radius: 1rem 0 0 1rem; }
+.game-board-v17.collection-list-mode-v291 .game-card-body-v17 { padding: .95rem 1rem; }
+.game-board-v17.collection-list-mode-v291 .game-goals-v17 { padding-top: .65rem; }
+.game-board-v17.collection-list-mode-v291 .game-card-actions-v17 { margin-top: .65rem; }
+.game-bulk-dialog-v291 .library-bulk-preview-v16 { margin-top: .75rem; }
+
+@media (max-width: 900px) {
+  .collection-three-v291 { grid-template-columns: 1fr 1fr; }
+  .collection-three-v291 > label:first-child { grid-column: 1 / -1; }
+  .library-controls-v16,
+  .games-controls-v17 { align-items: stretch; }
+  .library-controls-v16 > *,
+  .games-controls-v17 > * { min-width: 0; }
+}
+
+@media (max-width: 720px) {
+  .library-controls-v16,
+  .games-controls-v17 {
+    display: grid;
+    grid-template-columns: minmax(0,1fr) minmax(0,1fr);
+    gap: .5rem;
+  }
+  .library-controls-v16 input,
+  .games-controls-v17 input { grid-column: 1 / -1; }
+  .library-controls-v16 .collection-view-toggle-v291,
+  .games-controls-v17 .collection-view-toggle-v291 { justify-self: stretch; justify-content: center; }
+  .library-controls-v16 #addBookButtonSecondary,
+  .games-controls-v17 #addGameButtonSecondary { display: none; }
+  .collection-three-v291 { grid-template-columns: 1fr; }
+  .collection-three-v291 > label:first-child { grid-column: auto; }
+  .collection-mobile-quickbar-v291 {
+    position: sticky;
+    z-index: 24;
+    bottom: calc(.75rem + env(safe-area-inset-bottom));
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: .55rem;
+    width: min(calc(100% - 1.2rem), 34rem);
+    margin: .8rem auto 0;
+    padding: .55rem;
+    border: 1px solid rgba(93, 49, 77, .14);
+    border-radius: 1.15rem;
+    background: rgba(255, 250, 248, .94);
+    box-shadow: 0 14px 36px rgba(64, 34, 55, .18);
+    backdrop-filter: blur(16px);
+  }
+  .collection-mobile-quickbar-v291 button { min-height: 2.85rem; }
+  .library-board-v16.collection-list-mode-v291 .library-book-card-v16 { grid-template-columns: 58px minmax(0,1fr); }
+  .library-board-v16.collection-list-mode-v291 .library-book-cover-v161,
+  .library-board-v16.collection-list-mode-v291 .library-book-spine-v16 { width: 58px; }
+  .library-board-v16.collection-list-mode-v291 .library-book-meta-v16 { display: none; }
+  .game-board-v17.collection-list-mode-v291 .game-meta-row-v17 { flex-wrap: wrap; }
+}

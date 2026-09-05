@@ -7,7 +7,7 @@
     return;
   }
 
-  const SCHEMA = 2;
+  const SCHEMA = 3;
   const LOOKUP_CACHE_KEY = "life-rpg-book-lookup-cache-v1";
   const LOOKUP_CACHE_TTL = 7 * 24 * 60 * 60 * 1000;
   const LOOKUP_LIMIT = 6;
@@ -17,6 +17,7 @@
   const STATUSES = {
     reading: { label: "Reading", icon: "📖" },
     want: { label: "Want to Read", icon: "✦" },
+    owned: { label: "Owned / Unread", icon: "⌂" },
     paused: { label: "Paused", icon: "◷" },
     finished: { label: "Finished", icon: "✓" },
     dnf: { label: "DNF", icon: "×" }
@@ -48,6 +49,10 @@
     empty: byId("libraryEmpty"),
     search: byId("librarySearch"),
     status: byId("libraryStatusFilter"),
+    sort: byId("librarySort"),
+    viewToggle: byId("libraryViewToggle"),
+    mobileAdd: byId("libraryMobileAdd"),
+    mobileBulk: byId("libraryMobileBulk"),
     roleFilters: byId("libraryRoleFilters"),
     readingSummary: byId("librarySummaryReading"),
     wantSummary: byId("librarySummaryWant"),
@@ -68,6 +73,7 @@
     currentPage: byId("bookCurrentPage"),
     series: byId("bookSeries"),
     seriesNumber: byId("bookSeriesNumber"),
+    seriesTotal: byId("bookSeriesTotal"),
     continueSeries: byId("bookContinueSeries"),
     preferredGoal: byId("bookPreferredGoal"),
     notes: byId("bookNotes"),
@@ -88,6 +94,7 @@
     bulkRole: byId("bookBulkRole"),
     bulkSource: byId("bookBulkSource"),
     bulkPreview: byId("bookBulkPreview"),
+    rewardHint: byId("bookRewardHint"),
 
     logDialog: byId("bookLogDialog"),
     logForm: byId("bookLogForm"),
@@ -115,6 +122,8 @@
 
   let initialized = false;
   let selectedRole = "all";
+  let selectedSort = safeStorageGet("life-rpg-library-sort-v291") || "smart";
+  let viewMode = safeStorageGet("life-rpg-library-view-v291") || "grid";
   let toastTimer = null;
   let logSuggestion = null;
   let logEntryMode = "pages";
@@ -135,8 +144,8 @@
   }
 
   function bindEvents() {
-    [els.add, els.addSecondary, els.emptyAdd].forEach(button => button?.addEventListener("click", () => openBookDialog()));
-    els.bulk?.addEventListener("click", openBulkDialog);
+    [els.add, els.addSecondary, els.emptyAdd, els.mobileAdd].forEach(button => button?.addEventListener("click", () => openBookDialog()));
+    [els.bulk, els.mobileBulk].forEach(button => button?.addEventListener("click", openBulkDialog));
     els.close?.addEventListener("click", closeBookDialog);
     els.cancel?.addEventListener("click", closeBookDialog);
     els.form?.addEventListener("submit", saveBookFromDialog);
@@ -148,7 +157,7 @@
       runBookLookup();
     });
 
-    [els.title, els.author, els.source, els.totalPages, els.currentPage, els.series, els.seriesNumber, els.preferredGoal].forEach(input => {
+    [els.title, els.author, els.source, els.totalPages, els.currentPage, els.series, els.seriesNumber, els.seriesTotal, els.preferredGoal].forEach(input => {
       input?.addEventListener("input", renderQuickPreview);
       input?.addEventListener("change", renderQuickPreview);
     });
@@ -157,6 +166,15 @@
 
     els.search?.addEventListener("input", renderBoard);
     els.status?.addEventListener("change", renderBoard);
+    els.sort?.addEventListener("change", () => { selectedSort = els.sort.value || "smart"; safeStorageSet("life-rpg-library-sort-v291", selectedSort); renderBoard(); });
+    els.viewToggle?.addEventListener("click", event => {
+      const button = event.target.closest?.("[data-library-view]");
+      if (!button) return;
+      viewMode = button.dataset.libraryView === "list" ? "list" : "grid";
+      safeStorageSet("life-rpg-library-view-v291", viewMode);
+      syncViewControls();
+      renderBoard();
+    });
     els.roleFilters?.addEventListener("click", event => {
       const button = event.target.closest?.("[data-library-role]");
       if (!button) return;
@@ -293,6 +311,8 @@
       if (book.status === "reading" && !book.startedAt) { book.startedAt = book.updatedAt; changed = true; }
       if (book.status === "finished" && !book.finishedAt) { book.finishedAt = book.updatedAt; changed = true; }
       if (typeof book.continueSeries !== "boolean") { book.continueSeries = false; changed = true; }
+      const normalizedSeriesTotal = safePositive(book.seriesTotal);
+      if (book.seriesTotal !== normalizedSeriesTotal) { book.seriesTotal = normalizedSeriesTotal; changed = true; }
     });
 
     if (library.logs.length > MAX_LOGS) library.logs = library.logs.slice(-MAX_LOGS);
@@ -338,6 +358,8 @@
   }
 
   function render() {
+    if (els.sort && els.sort.value !== selectedSort) els.sort.value = selectedSort;
+    syncViewControls();
     renderSummary();
     renderBoard();
   }
@@ -363,6 +385,8 @@
     }
 
     items.sort(compareBooks);
+    els.board.classList.toggle("collection-list-mode-v291", viewMode === "list");
+    els.board.classList.toggle("collection-grid-mode-v291", viewMode !== "list");
     els.board.innerHTML = items.map(bookCardMarkup).join("");
     els.empty.classList.toggle("hidden", items.length > 0);
     if (!items.length) {
@@ -375,13 +399,21 @@
   }
 
   function compareBooks(a, b) {
-    const statusOrder = { reading: 0, want: 1, paused: 2, finished: 3, dnf: 4 };
-    const s = (statusOrder[a.status] ?? 9) - (statusOrder[b.status] ?? 9);
-    if (s) return s;
+    if (selectedSort === "title") return String(a.title || "").localeCompare(String(b.title || ""));
+    if (selectedSort === "updated") return Number(b.updatedAt || 0) - Number(a.updatedAt || 0);
+    if (selectedSort === "progress") return Number(bookProgress(b) || 0) - Number(bookProgress(a) || 0) || String(a.title || "").localeCompare(String(b.title || ""));
+    if (selectedSort === "series") {
+      const series = String(a.series || "~").localeCompare(String(b.series || "~"));
+      if (series) return series;
+      return Number(a.seriesNumber || 9999) - Number(b.seriesNumber || 9999) || String(a.title || "").localeCompare(String(b.title || ""));
+    }
+    const statusOrder = { reading: 0, owned: 1, want: 2, paused: 3, finished: 4, dnf: 5 };
+    const statusDiff = (statusOrder[a.status] ?? 9) - (statusOrder[b.status] ?? 9);
+    if (statusDiff) return statusDiff;
     if (a.status === "reading") {
       const aTime = Number(a.lastReadAt || a.startedAt || a.createdAt || 0);
       const bTime = Number(b.lastReadAt || b.startedAt || b.createdAt || 0);
-      return aTime - bTime; // neglected current reads surface first
+      return aTime - bTime;
     }
     return Number(b.updatedAt || 0) - Number(a.updatedAt || 0);
   }
@@ -399,6 +431,7 @@
     if (book.status === "reading" && daysSinceTimestamp(book.lastReadAt || book.startedAt || book.createdAt) >= 14) reasonBits.push("waiting for you");
     const cover = safeCoverUrl(book.coverUrl);
     const catalogBits = [book.publishYear, book.publisher].filter(Boolean).slice(0, 2).join(" · ");
+    const seriesInfo = seriesProgressText(book);
 
     return `
       <article class="library-book-card-v16 status-${escAttr(book.status)}${cover ? " has-cover-v161" : ""}">
@@ -416,6 +449,7 @@
             <h3>${esc(book.title)}</h3>
             <p class="library-author-v16">${book.author ? esc(book.author) : "Author not added"}</p>
             ${seriesText ? `<p class="library-series-v16">✦ ${seriesText}</p>` : ""}
+            ${seriesInfo ? `<p class="library-series-progress-v291">${esc(seriesInfo)}</p>` : ""}
             ${catalogBits ? `<p class="library-catalog-line-v161">${esc(catalogBits)}</p>` : ""}
           </div>
           ${progressMarkup(book, progress)}
@@ -425,7 +459,7 @@
             ${reasonBits.length ? `<span><small>NOTE</small><strong>${esc(reasonBits.join(" · "))}</strong></span>` : ""}
           </div>
           <div class="library-book-actions-v16">
-            ${book.status === "want" ? `<button class="primary-button" data-book-start="${escAttr(book.id)}" type="button">Start reading</button>` : ""}
+            ${["want", "owned"].includes(book.status) ? `<button class="primary-button" data-book-start="${escAttr(book.id)}" type="button">Start reading</button>` : ""}
             ${book.status === "reading" && !isAudio ? `
               <button class="primary-button" data-book-quick-log="${escAttr(book.id)}" data-book-log-type="pages" data-book-log-amount="10" type="button">+10 pages</button>
               <button class="secondary-button" data-book-quick-log="${escAttr(book.id)}" data-book-log-type="pages" data-book-log-amount="25" type="button">+25</button>
@@ -713,6 +747,7 @@
     if (els.currentPage) els.currentPage.value = book?.currentPage || "";
     if (els.series) els.series.value = book?.series || "";
     if (els.seriesNumber) els.seriesNumber.value = book?.seriesNumber || "";
+    if (els.seriesTotal) els.seriesTotal.value = book?.seriesTotal || "";
     if (els.continueSeries) els.continueSeries.checked = Boolean(book?.continueSeries);
     if (els.preferredGoal) els.preferredGoal.value = book?.preferredGoal || "auto";
     if (els.notes) els.notes.value = book?.notes || "";
@@ -725,7 +760,7 @@
     renderLookupSelection();
     setRadio("bookStatus", book?.status || "want");
     setRadio("bookRole", book?.role || "fun");
-    if (els.advanced) els.advanced.open = Boolean(book && (book.totalPages || book.currentPage || book.series || book.notes || book.preferredGoal !== "auto"));
+    if (els.advanced) els.advanced.open = Boolean(book && (book.totalPages || book.currentPage || book.series || book.seriesTotal || book.notes || book.preferredGoal !== "auto"));
     renderQuickPreview();
     els.dialog.showModal();
     window.setTimeout(() => els.title?.focus(), 20);
@@ -760,6 +795,7 @@
       currentPage,
       series: String(els.series?.value || "").trim(),
       seriesNumber: String(els.seriesNumber?.value || "").trim(),
+      seriesTotal: safePositive(els.seriesTotal?.value),
       continueSeries: Boolean(els.continueSeries?.checked),
       preferredGoal: ["auto", "pages", "chapter", "minutes"].includes(els.preferredGoal?.value) ? els.preferredGoal.value : "auto",
       notes: String(els.notes?.value || "").trim(),
@@ -916,7 +952,7 @@
       existingKeys.add(key);
       const book = {
         id: makeId("book"), title: entry.title, author: entry.author, status, role, source,
-        totalPages: null, currentPage: 0, series: "", seriesNumber: "", continueSeries: false,
+        totalPages: null, currentPage: 0, series: "", seriesNumber: "", seriesTotal: null, continueSeries: false,
         preferredGoal: "auto", notes: "", coverUrl: "", isbn: "", publishYear: null, publisher: "", language: "",
         catalogProvider: "", catalogKey: "", catalogUpdatedAt: null, catalogPageCountApprox: false,
         createdAt: now + index, updatedAt: now + index,
@@ -1220,6 +1256,33 @@
     if (book.role === "growth") return "✦";
     if (book.role === "work") return "W";
     return "❀";
+  }
+
+  function seriesProgressText(book) {
+    const series = String(book?.series || "").trim();
+    if (!series) return "";
+    const siblings = model().items.filter(item => String(item.series || "").trim().toLowerCase() === series.toLowerCase());
+    const finished = siblings.filter(item => item.status === "finished").length;
+    const configuredTotal = Math.max(...siblings.map(item => Number(item.seriesTotal || 0)), Number(book.seriesTotal || 0), 0);
+    if (configuredTotal > 0) return `Series progress · ${finished}/${configuredTotal} finished`;
+    if (siblings.length > 1) return `Series progress · ${finished}/${siblings.length} tracked finished`;
+    return "";
+  }
+
+  function syncViewControls() {
+    els.viewToggle?.querySelectorAll?.("[data-library-view]").forEach(button => {
+      const active = (button.dataset.libraryView || "grid") === viewMode;
+      button.classList.toggle("active", active);
+      button.setAttribute("aria-pressed", active ? "true" : "false");
+    });
+  }
+
+  function safeStorageGet(key) {
+    try { return localStorage.getItem(key); } catch { return null; }
+  }
+
+  function safeStorageSet(key, value) {
+    try { localStorage.setItem(key, value); } catch { /* preference is non-critical */ }
   }
 
   function humanAgo(value) {

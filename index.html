@@ -11,10 +11,10 @@
   <meta name="application-name" content="Life RPG" />
   <meta name="format-detection" content="telephone=no" />
   <title>Life RPG — Base Camp</title>
-  <link rel="manifest" href="manifest.webmanifest?v=0.29.0" />
-  <link rel="apple-touch-icon" href="assets/app-icon-180.png?v=0.29.0" />
-  <link rel="icon" type="image/png" sizes="192x192" href="assets/app-icon-192.png?v=0.29.0" />
-  <link rel="stylesheet" href="styles.css?v=0.29.0" />
+  <link rel="manifest" href="manifest.webmanifest?v=0.29.1" />
+  <link rel="apple-touch-icon" href="assets/app-icon-180.png?v=0.29.1" />
+  <link rel="icon" type="image/png" sizes="192x192" href="assets/app-icon-192.png?v=0.29.1" />
+  <link rel="stylesheet" href="styles.css?v=0.29.1" />
 </head>
 <body>
   <section id="mobileCloudGate" class="mobile-cloud-gate-v251" data-state="checking" aria-live="polite" aria-label="Life RPG cloud sign in">
@@ -442,11 +442,23 @@
               <select id="libraryStatusFilter" aria-label="Filter Library by status">
                 <option value="reading">Reading now</option>
                 <option value="want">Want to Read</option>
+                <option value="owned">Owned / Unread</option>
                 <option value="paused">Paused</option>
                 <option value="finished">Finished</option>
                 <option value="dnf">DNF</option>
                 <option value="all">All books</option>
               </select>
+              <select id="librarySort" aria-label="Sort Library">
+                <option value="smart">Smart shelf</option>
+                <option value="updated">Recently updated</option>
+                <option value="title">Title A–Z</option>
+                <option value="progress">Progress</option>
+                <option value="series">Series</option>
+              </select>
+              <div id="libraryViewToggle" class="collection-view-toggle-v291" aria-label="Library view">
+                <button class="active" type="button" data-library-view="grid" aria-pressed="true">▦</button>
+                <button type="button" data-library-view="list" aria-pressed="false">☷</button>
+              </div>
               <button class="secondary-button" id="addBookButtonSecondary" type="button">＋ New book</button>
             </div>
           </div>
@@ -468,6 +480,10 @@
             <button class="primary-button" id="libraryEmptyCreate" type="button">Add the first book</button>
           </div>
         </section>
+        <div class="collection-mobile-quickbar-v291" aria-label="Library quick add">
+          <button class="primary-button" id="libraryMobileAdd" type="button">＋ Book</button>
+          <button class="secondary-button" id="libraryMobileBulk" type="button">Paste list</button>
+        </div>
       </section>
 
 
@@ -493,13 +509,13 @@
               <strong>“Complete the Community Center” is a real goal.</strong>
               <p>Personal goals give open-ended games concrete threads. If a game does not need goals, just log play and enjoy it.</p>
             </div>
-            <button class="primary-button" id="addGameButton" type="button">＋ Add a game</button>
+            <div class="games-hero-actions-v291"><button class="primary-button" id="addGameButton" type="button">＋ Add a game</button><button class="secondary-button" id="bulkAddGamesButton" type="button">Paste a list</button></div>
           </aside>
         </section>
 
         <section class="games-summary-grid-v17" aria-label="Games summary">
           <article class="games-summary-card-v17"><span>▶</span><div><small>PLAYING NOW</small><strong id="gameSummaryPlaying">0</strong></div></article>
-          <article class="games-summary-card-v17"><span>✦</span><div><small>BACKLOG</small><strong id="gameSummaryBacklog">0</strong></div></article>
+          <article class="games-summary-card-v17"><span>✦</span><div><small>WANT TO PLAY</small><strong id="gameSummaryBacklog">0</strong></div></article>
           <article class="games-summary-card-v17"><span>☐</span><div><small>OPEN PERSONAL GOALS</small><strong id="gameSummaryGoals">0</strong></div></article>
         </section>
 
@@ -514,12 +530,24 @@
               <input id="gameSearch" type="search" placeholder="Search title, platform, goal…" aria-label="Search Games" />
               <select id="gameStatusFilter" aria-label="Filter Games by status">
                 <option value="playing">Playing now</option>
-                <option value="backlog">Backlog</option>
+                <option value="backlog">Want to Play</option>
                 <option value="paused">Paused</option>
-                <option value="finished">Finished</option>
+                <option value="finished">Completed</option>
+                <option value="dropped">Dropped</option>
                 <option value="endless">Endless only</option>
                 <option value="all">All games</option>
               </select>
+              <select id="gameSort" aria-label="Sort Games">
+                <option value="smart">Smart shelf</option>
+                <option value="played">Recently played</option>
+                <option value="updated">Recently updated</option>
+                <option value="title">Title A–Z</option>
+                <option value="progress">Progress</option>
+              </select>
+              <div id="gameViewToggle" class="collection-view-toggle-v291" aria-label="Games view">
+                <button class="active" type="button" data-game-view="grid" aria-pressed="true">▦</button>
+                <button type="button" data-game-view="list" aria-pressed="false">☷</button>
+              </div>
               <button class="secondary-button" id="addGameButtonSecondary" type="button">＋ New game</button>
             </div>
           </div>
@@ -540,6 +568,10 @@
             <button class="primary-button" id="gameEmptyCreate" type="button">Add the first game</button>
           </div>
         </section>
+        <div class="collection-mobile-quickbar-v291" aria-label="Games quick add">
+          <button class="primary-button" id="gameMobileAdd" type="button">＋ Game</button>
+          <button class="secondary-button" id="gameMobileBulk" type="button">Paste list</button>
+        </div>
       </section>
 
       <!-- QUESTS -->
@@ -1261,6 +1293,7 @@
         <div class="library-choice-grid-v16 status">
           <label><input type="radio" name="bookStatus" value="reading" /><span>📖<b>Reading</b></span></label>
           <label><input type="radio" name="bookStatus" value="want" checked /><span>✦<b>Want to Read</b></span></label>
+          <label><input type="radio" name="bookStatus" value="owned" /><span>⌂<b>Owned / Unread</b></span></label>
           <label><input type="radio" name="bookStatus" value="paused" /><span>◷<b>Paused</b></span></label>
           <label><input type="radio" name="bookStatus" value="finished" /><span>✓<b>Finished</b></span></label>
           <label><input type="radio" name="bookStatus" value="dnf" /><span>×<b>DNF</b></span></label>
@@ -1291,6 +1324,7 @@
       </label>
 
       <div id="bookQuickPreview" class="library-quick-preview-v16"></div>
+      <div id="bookRewardHint" class="collection-reward-hint-v291">New book · up to <strong>+0.4 🔥 · +2 XP</strong> from Life RPG upkeep today.</div>
 
       <details id="bookAdvancedDetails" class="library-advanced-v16">
         <summary><span>＋</span> Add useful details <small>pages, series, planner style, notes</small></summary>
@@ -1299,9 +1333,10 @@
             <label>Total pages <span class="optional-label-v16">optional</span><input id="bookTotalPages" type="number" min="1" step="1" placeholder="496" /></label>
             <label>Current page <span class="optional-label-v16">optional</span><input id="bookCurrentPage" type="number" min="0" step="1" placeholder="0" /></label>
           </div>
-          <div class="form-grid">
+          <div class="form-grid collection-three-v291">
             <label>Series <span class="optional-label-v16">optional</span><input id="bookSeries" maxlength="140" placeholder="A Court of Thorns and Roses" /></label>
             <label>Book # <span class="optional-label-v16">optional</span><input id="bookSeriesNumber" maxlength="12" placeholder="1" /></label>
+            <label>Books in series <span class="optional-label-v16">optional</span><input id="bookSeriesTotal" type="number" min="1" step="1" placeholder="5" /></label>
           </div>
           <label class="library-check-v16"><input id="bookContinueSeries" type="checkbox" /><span><strong>I want to continue this series.</strong><small>The planner may use that as a reason to bring the current book back.</small></span></label>
           <label>How should Today's Picks phrase a reading step?
@@ -1338,7 +1373,7 @@
 Project Hail Mary — Andy Weir
 ..." required></textarea></label>
       <div class="form-grid library-bulk-category-grid-v16">
-        <label>Status<select id="bookBulkStatus"><option value="want">Want to Read</option><option value="reading">Reading</option><option value="paused">Paused</option><option value="finished">Finished</option></select></label>
+        <label>Status<select id="bookBulkStatus"><option value="want">Want to Read</option><option value="owned">Owned / Unread</option><option value="reading">Reading</option><option value="paused">Paused</option><option value="finished">Finished</option><option value="dnf">DNF</option></select></label>
         <label>Purpose<select id="bookBulkRole"><option value="fun">🌸 For Fun</option><option value="knowledge">📚 Knowledge</option><option value="growth">✨ Personal Growth</option><option value="japanese">あ Japanese</option><option value="work">📎 Work</option></select></label>
         <label>Source<select id="bookBulkSource"><option value="physical">📕 Physical</option><option value="kindle">▣ Kindle</option><option value="ku">∞ Kindle Unlimited</option><option value="borrowed">↗ Borrowed</option><option value="audio">🎧 Audiobook</option><option value="other">✦ Other</option></select></label>
       </div>
@@ -1380,6 +1415,27 @@ Project Hail Mary — Andy Weir
   </dialog>
 
 
+  <!-- BULK ADD GAMES -->
+  <dialog id="gameBulkDialog" class="rpg-dialog game-bulk-dialog-v291">
+    <form id="gameBulkForm" class="rpg-dialog-form game-bulk-form-v291">
+      <div class="dialog-heading">
+        <div><p class="eyebrow">FAST TRANSFER</p><h2>Paste your game shelf.</h2></div>
+        <button class="close-button" id="gameBulkClose" type="button" aria-label="Close">×</button>
+      </div>
+      <p class="muted">One game per line. Use <b>Title — Platform</b>, <b>Title | Platform</b>, or just a title. The whole batch gets the same shelf status, purpose and default session length.</p>
+      <label>Games<textarea id="gameBulkText" rows="10" placeholder="Persona 5 Royal — Switch
+Hades — PC
+League of Legends — PC" required></textarea></label>
+      <div class="form-grid library-bulk-category-grid-v16">
+        <label>Status<select id="gameBulkStatus"><option value="backlog">Want to Play</option><option value="playing">Playing</option><option value="paused">Paused</option><option value="finished">Completed</option><option value="dropped">Dropped</option><option value="endless">Endless / ongoing</option></select></label>
+        <label>Purpose<select id="gameBulkRole"><option value="fun">🎮 For Fun</option><option value="social">♡ Social</option><option value="japanese">あ Japanese</option><option value="challenge">✦ Goals / challenge</option></select></label>
+        <label>Default session<select id="gameBulkMinutes"><option value="15">15 min</option><option value="30">30 min</option><option value="45" selected>45 min</option><option value="60">1 hour</option><option value="90">1.5 hours</option><option value="120">2 hours</option></select></label>
+      </div>
+      <div id="gameBulkPreview" class="library-bulk-preview-v16"></div>
+      <menu><button class="secondary-button" id="gameBulkCancel" type="button">Cancel</button><button class="primary-button" type="submit">Add all games</button></menu>
+    </form>
+  </dialog>
+
   <!-- ADD / EDIT GAME -->
   <dialog id="gameDialog" class="rpg-dialog game-dialog-v17">
     <form id="gameForm" class="rpg-dialog-form game-form-v17">
@@ -1399,9 +1455,10 @@ Project Hail Mary — Andy Weir
         <label>Status
           <select id="gameStatus">
             <option value="playing">▶ Playing</option>
-            <option value="backlog">✦ Backlog</option>
+            <option value="backlog">✦ Want to Play</option>
             <option value="paused">◷ Paused</option>
-            <option value="finished">✓ Finished</option>
+            <option value="finished">✓ Completed</option>
+            <option value="dropped">× Dropped</option>
             <option value="endless">∞ Endless / ongoing</option>
           </select>
         </label>
@@ -1446,6 +1503,7 @@ Project Hail Mary — Andy Weir
 
       <label>Private note <span class="optional-label-v16">optional</span><textarea id="gameNotes" rows="3" maxlength="600" placeholder="Anything worth remembering. Not required for recommendations."></textarea></label>
       <div id="gamePreview" class="game-preview-v17"></div>
+      <div id="gameRewardHint" class="collection-reward-hint-v291">New game · up to <strong>+0.2 🔥 · +3 XP</strong> from Life RPG upkeep today.</div>
 
       <menu>
         <button class="text-button danger-button hidden" id="deleteGameButton" type="button">Remove game</button>
@@ -2103,18 +2161,18 @@ Project Hail Mary — Andy Weir
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <script src="data/quests.js?v=0.29.0"></script>
-  <script src="story-engine.js?v=0.29.0"></script>
-  <script src="app.js?v=0.29.0"></script>
-  <script src="stewardship.js?v=0.29.0"></script>
-  <script src="habits.js?v=0.29.0"></script>
-  <script src="adventures.js?v=0.29.0"></script>
-  <script src="library.js?v=0.29.0"></script>
-  <script src="games.js?v=0.29.0"></script>
-  <script src="daily.js?v=0.29.0"></script>
-  <script src="story-ui.js?v=0.29.0"></script>
-  <script src="achievements.js?v=0.29.0"></script>
-  <script type="module" src="cloud-save.js?v=0.29.0"></script>
-  <script src="pwa.js?v=0.29.0"></script>
+  <script src="data/quests.js?v=0.29.1"></script>
+  <script src="story-engine.js?v=0.29.1"></script>
+  <script src="app.js?v=0.29.1"></script>
+  <script src="stewardship.js?v=0.29.1"></script>
+  <script src="habits.js?v=0.29.1"></script>
+  <script src="adventures.js?v=0.29.1"></script>
+  <script src="library.js?v=0.29.1"></script>
+  <script src="games.js?v=0.29.1"></script>
+  <script src="daily.js?v=0.29.1"></script>
+  <script src="story-ui.js?v=0.29.1"></script>
+  <script src="achievements.js?v=0.29.1"></script>
+  <script type="module" src="cloud-save.js?v=0.29.1"></script>
+  <script src="pwa.js?v=0.29.1"></script>
 </body>
 </html>
