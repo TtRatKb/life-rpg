@@ -66,10 +66,10 @@ GitHub Pages will then update automatically after the new commit is deployed.
 
 ## Next milestones
 
-1. Keep the current daily loop stable while testing it on desktop and mobile/PWA.
-2. Build **V0.29.0 — Living World & Locations** on top of this consolidated baseline.
-3. Continue Library / Collections polish after real-use feedback.
-4. Resume noncanonical CG calibration only after the normal VN presentation remains stable.
+1. Playtest **V0.30.0 Social World Content Expansion** in normal use, especially World presence, repeatable Talks and phone replies.
+2. Continue targeted Story / Social content growth from actual play feedback rather than flooding every pool at once.
+3. Resume noncanonical CG calibration only after the normal VN presentation remains stable.
+4. Synchronize Project Sources at the next chat handoff rather than after each patch.
 
 ## V0.28.0 — Story Continuity & World Expansion
 
@@ -110,14 +110,14 @@ GitHub Pages will then update automatically after the new commit is deployed.
 - Existing recommendations already generated for the day are not silently replaced during the update; the stronger matching applies on the next check-in, check-in edit, or reroll.
 
 
-## V0.29.0 — Consolidation & QA Fix
+## V0.28.4 — Consolidation & QA Fix
 
 - Restored installable PWA support with a real `manifest.webmanifest`, 180/192/512 app icons, a fresh shell cache, and precache logic that no longer aborts the entire install because one optional asset is unavailable.
 - Replaced the final active legacy SVG location backgrounds with illustrated `city_dusk.png` and `station_evening.png` VN backgrounds.
 - Corrected three story visual-state transitions where Mina could remain on the stage after leaving or after the interaction had become remote/text-only.
 - Synchronized Bakugo runtime references with files that actually exist in the repo. The already-approved tired/vulnerable family remains canon, but missing source PNGs now use explicit safe V2 runtime fallbacks instead of broken paths.
 - Changed all 45 built-in Quests to permanent, position-independent `core-*` IDs and added migration for existing loadouts, completion logs, reward-ledger quest references, and Daily Planner picks/memory.
-- Bumped shell and Story Pack revision/cache references to V0.29.0 and refreshed outdated Side Adventure helper copy.
+- Bumped shell and Story Pack revision/cache references to V0.28.4 and refreshed outdated Side Adventure helper copy.
 - No Story prose, choices, rewards, relationship progression, unlock conditions, book/game data, habit history, or existing save progress were intentionally changed.
 
 ## V0.29.0 — Living World & Locations
@@ -143,3 +143,17 @@ GitHub Pages will then update automatically after the new commit is deployed.
 - Added mobile sticky quick-add controls for Books and Games so adding a title or pasting a list is reachable without scrolling back to the hero.
 - Add dialogs now show the base Life RPG upkeep reward before saving.
 - No story content, progression conditions, relationship values, or existing activity rewards were changed.
+
+
+## V0.30.0 — Social World Content Expansion
+
+- Expanded the installed social layer without advancing the Main Story past its current 14 canonical chapters.
+- Increased Talk coverage from 58 to 76, with substantially larger post-move-in pools for Kirishima and Bakugo plus more location-aware Mina conversations.
+- Increased story-linked message entries from 23 to 32; every new thread has real Luca reply choices and persistent trait memory.
+- Increased Hangouts from 8 to 12 with low-pressure, story-appropriate optional time together rather than disguised Main Story chapters.
+- Increased World Moments from 14 to 22, including Station and Shared Apartment moments plus multi-character household staging.
+- Added more real-life reactivity: selected Talks / World Moments can be prioritized by recent Work, Reading, Gaming, Recovery or low-energy Daily Check-in context.
+- Expanded daypart-aware Station presence so eligible Mina / Kirishima / Bakugo interactions can actually surface through World instead of existing only in People.
+- Updated People relationship labels and known-details text so Bakugo and Kirishima stop reading as mere “new acquaintances” after Luca has actually moved in.
+- Preserved the one-relationship-gain-per-character-per-day Talk rule, free extra Talks, free Hangouts / World Moments, existing Story Energy economy, Main Story prose, current chapter unlocks and all prior save data.
+- No canon CGs were added.

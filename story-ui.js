@@ -790,7 +790,12 @@
       if (state.flags?.MINA_HANGOUTS_UNLOCKED) return "Making plans";
       if (state.flags?.STORY_MINA_FRIENDSHIP_STARTED) return "New connection";
     }
-    if (["kirishima", "bakugo"].includes(person.id) && state.flags?.DYNARIOT_ROOMMATE_MEETING_COMPLETE) return "New acquaintance";
+    if (["kirishima", "bakugo"].includes(person.id)) {
+      if (state.flags?.HOUSEHOLD_FORMATION_PHASE_ONE_COMPLETE) return "Roommate · getting familiar";
+      if (state.flags?.DYNARIOT_MOVE_IN_COMPLETE) return "Roommate";
+      if (state.flags?.DYNARIOT_ROOMMATE_ACCEPTED) return "Future roommate";
+      if (state.flags?.DYNARIOT_ROOMMATE_MEETING_COMPLETE) return "New acquaintance";
+    }
     return "Known person";
   }
 
@@ -813,11 +818,15 @@
       if (state.flags?.STORY_MET_KIRISHIMA) details.push("Mina introduced you during a possible-roommate viewing.");
       if (state.flags?.STORY_MET_KIRISHIMA) details.push("You knew Red Riot’s public hero work for years before meeting Eijiro privately. He does not know how much.");
       if (state.flags?.DYNARIOT_ROOMMATE_MEETING_COMPLETE) details.push("He was warm, practical and unexpectedly easy to talk to in person.");
+      if (state.flags?.DYNARIOT_MOVE_IN_COMPLETE) details.push("You now share a home, which means ordinary routines matter more than first impressions.");
+      if (state.flags?.HOUSEHOLD_ROUTINE_STARTED) details.push("Shared errands, kitchen overlap and low-pressure downtime are becoming normal instead of notable.");
     }
     if (person.id === "bakugo") {
       if (state.flags?.STORY_MET_BAKUGO) details.push("Mina introduced you during a possible-roommate viewing.");
       if (state.flags?.STORY_MET_BAKUGO) details.push("You knew Dynamight’s public hero work for years before meeting Katsuki privately. He does not know how much.");
       if (state.flags?.DYNARIOT_ROOMMATE_MEETING_COMPLETE) details.push("He made it clear that the spare room comes with rules, not instant friendship.");
+      if (state.flags?.DYNARIOT_MOVE_IN_COMPLETE) details.push("You now share a home. Reliability and respecting each other’s space are doing more work than small talk.");
+      if (state.flags?.HOUSEHOLD_ROUTINE_STARTED) details.push("Household standards, schedules and practical care are becoming a language you can both understand.");
     }
     if (!details.length) details.push("You are still learning what this connection might become.");
     return details;
