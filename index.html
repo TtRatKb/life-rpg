@@ -11,10 +11,10 @@
   <meta name="application-name" content="Life RPG" />
   <meta name="format-detection" content="telephone=no" />
   <title>Life RPG — Base Camp</title>
-  <link rel="manifest" href="manifest.webmanifest?v=0.28.4" />
-  <link rel="apple-touch-icon" href="assets/app-icon-180.png?v=0.28.4" />
-  <link rel="icon" type="image/png" sizes="192x192" href="assets/app-icon-192.png?v=0.28.4" />
-  <link rel="stylesheet" href="styles.css?v=0.28.4" />
+  <link rel="manifest" href="manifest.webmanifest?v=0.29.0" />
+  <link rel="apple-touch-icon" href="assets/app-icon-180.png?v=0.29.0" />
+  <link rel="icon" type="image/png" sizes="192x192" href="assets/app-icon-192.png?v=0.29.0" />
+  <link rel="stylesheet" href="styles.css?v=0.29.0" />
 </head>
 <body>
   <section id="mobileCloudGate" class="mobile-cloud-gate-v251" data-state="checking" aria-live="polite" aria-label="Life RPG cloud sign in">
@@ -650,6 +650,36 @@
           <div id="locationGrid" class="location-grid location-grid-v5"></div>
         </section>
       </section>
+
+
+
+      <div id="worldLocationOverlay" class="world-location-overlay hidden" aria-hidden="true">
+        <section class="world-location-sheet" role="dialog" aria-modal="true" aria-labelledby="worldLocationTitle">
+          <button id="closeWorldLocationOverlay" class="world-location-close" type="button" aria-label="Close location">×</button>
+          <div id="worldLocationHero" class="world-location-hero">
+            <div class="world-location-hero-copy">
+              <span id="worldLocationIcon" class="world-location-hero-icon">✦</span>
+              <div>
+                <small id="worldLocationStatus">Checking the world...</small>
+                <h2 id="worldLocationTitle">Location</h2>
+              </div>
+            </div>
+          </div>
+          <div class="world-location-sheet-body">
+            <p id="worldLocationDescription" class="world-location-description"></p>
+            <div class="world-location-section-heading">
+              <div><small>RIGHT NOW</small><strong>Who’s around</strong></div>
+              <span>Presence changes naturally</span>
+            </div>
+            <div id="worldLocationPresenceList" class="world-location-presence-list"></div>
+            <div class="world-location-section-heading world-location-actions-heading">
+              <div><small>FREE SOCIAL TIME</small><strong>What you can do here</strong></div>
+              <span>No Story Energy</span>
+            </div>
+            <div id="worldLocationActions" class="world-location-actions"></div>
+          </div>
+        </section>
+      </div>
 
       <!-- MEMORIES -->
       <section id="view-memories" class="view memories-view-v5">
@@ -2073,18 +2103,18 @@ Project Hail Mary — Andy Weir
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <script src="data/quests.js?v=0.28.4"></script>
-  <script src="story-engine.js?v=0.28.4"></script>
-  <script src="app.js?v=0.28.4"></script>
-  <script src="stewardship.js?v=0.28.4"></script>
-  <script src="habits.js?v=0.28.4"></script>
-  <script src="adventures.js?v=0.28.4"></script>
-  <script src="library.js?v=0.28.4"></script>
-  <script src="games.js?v=0.28.4"></script>
-  <script src="daily.js?v=0.28.4"></script>
-  <script src="story-ui.js?v=0.28.4"></script>
-  <script src="achievements.js?v=0.28.4"></script>
-  <script type="module" src="cloud-save.js?v=0.28.4"></script>
-  <script src="pwa.js?v=0.28.4"></script>
+  <script src="data/quests.js?v=0.29.0"></script>
+  <script src="story-engine.js?v=0.29.0"></script>
+  <script src="app.js?v=0.29.0"></script>
+  <script src="stewardship.js?v=0.29.0"></script>
+  <script src="habits.js?v=0.29.0"></script>
+  <script src="adventures.js?v=0.29.0"></script>
+  <script src="library.js?v=0.29.0"></script>
+  <script src="games.js?v=0.29.0"></script>
+  <script src="daily.js?v=0.29.0"></script>
+  <script src="story-ui.js?v=0.29.0"></script>
+  <script src="achievements.js?v=0.29.0"></script>
+  <script type="module" src="cloud-save.js?v=0.29.0"></script>
+  <script src="pwa.js?v=0.29.0"></script>
 </body>
 </html>

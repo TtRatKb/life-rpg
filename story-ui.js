@@ -324,6 +324,8 @@
       lastTalkId: null,
       selectedPhonePersonId: null,
       selectedPeoplePersonId: null,
+      worldVisitHistory: [],
+      lastWorldVisitByLocation: {},
       ...previous
     };
     state.story.social.seenTalkIds = array(state.story.social.seenTalkIds);
@@ -339,6 +341,9 @@
     state.story.social.completedRandomEventIds = array(state.story.social.completedRandomEventIds);
     state.story.social.randomEventHistory = array(state.story.social.randomEventHistory)
       .filter(item => item && typeof item === "object" && item.id);
+    state.story.social.worldVisitHistory = array(state.story.social.worldVisitHistory)
+      .filter(item => item && typeof item === "object" && item.locationKey);
+    state.story.social.lastWorldVisitByLocation = object(state.story.social.lastWorldVisitByLocation);
   }
 
   function migrateLegacyStoryIfNeeded() {
@@ -1037,25 +1042,223 @@
     });
   }
 
+  function inferWorldLocation(item) {
+    if (!item) return null;
+    if (item.worldLocation) return item.worldLocation;
+    const value = String(item.location || "").toLowerCase();
+    if (value.includes("collector") || value.includes("storefront") || value.includes("bookstore")) return "district";
+    if (value.includes("koharu") || value.includes("café") || value.includes("cafe")) return "cafe";
+    if (value.includes("shared apartment") || value.includes("near home")) return "sharedApartment";
+    if (value.includes("nishikawa") || value.includes("school")) return "school";
+    if (value.includes("station") || value.includes("commute")) return "station";
+    if (value.includes("luca’s apartment") || value.includes("luca's apartment") || value.includes("current apartment")) return "currentHome";
+    return null;
+  }
+
+  function stableWorldFraction(key) {
+    let hash = 2166136261;
+    const text = String(key || "");
+    for (let i = 0; i < text.length; i += 1) {
+      hash ^= text.charCodeAt(i);
+      hash = Math.imul(hash, 16777619);
+    }
+    return (hash >>> 0) / 4294967295;
+  }
+
+  function currentWorldDaypart() {
+    const hour = new Date().getHours();
+    if (hour < 6) return "late";
+    if (hour < 11) return "morning";
+    if (hour < 16) return "day";
+    if (hour < 21) return "evening";
+    return "night";
+  }
+
+  function presenceChance(personId, locationKey) {
+    const state = app.getState();
+    const part = currentWorldDaypart();
+    const movedIn = Boolean(state.flags?.DYNARIOT_MOVE_IN_COMPLETE || state.flags?.SHARED_APARTMENT_IS_HOME);
+    const closeMina = Boolean(state.flags?.MINA_FRIENDSHIP_ESTABLISHED || state.flags?.MINA_CLOSE_FRIEND);
+
+    if (personId === "mina") {
+      if (locationKey === "school") return part === "morning" || part === "day" ? .58 : .18;
+      if (locationKey === "cafe") return closeMina ? (part === "day" || part === "evening" ? .72 : .38) : .34;
+      if (locationKey === "district") return closeMina ? .46 : .24;
+      if (locationKey === "sharedApartment") return movedIn && closeMina ? .20 : 0;
+      return 0;
+    }
+
+    if (["kirishima", "bakugo"].includes(personId)) {
+      if (locationKey === "sharedApartment") {
+        if (!movedIn) return .14;
+        if (part === "morning" || part === "evening" || part === "night") return .78;
+        return .38;
+      }
+      if (locationKey === "agency") return .62;
+      if (locationKey === "gym") return .48;
+      if (locationKey === "district") return .14;
+    }
+    return 0;
+  }
+
+  function selectTalkFromEligible(personId, eligible) {
+    const state = app.getState();
+    const social = state.story.social;
+    if (!eligible.length) return null;
+
+    if (social.activeTalkId) {
+      const active = eligible.find(talk => talk.id === social.activeTalkId);
+      if (active) return active;
+    }
+
+    const unseenOnce = eligible.filter(talk => talk.once && !social.seenTalkIds.includes(talk.id));
+    if (unseenOnce.length) {
+      const highestPriority = Math.max(...unseenOnce.map(talk => Number(talk.priority || 0)));
+      const timely = unseenOnce.filter(talk => Number(talk.priority || 0) === highestPriority);
+      return weightedPick(timely, talk => 1 + reactivityScore(talk) * 4);
+    }
+
+    const repeatable = eligible.filter(talk => !talk.once);
+    if (!repeatable.length) return null;
+    const recent = new Set(array(social.recentTalkIdsByPerson?.[personId]));
+    const fresh = repeatable.filter(talk => !recent.has(talk.id));
+    const notLast = repeatable.filter(talk => talk.id !== social.lastTalkId);
+    const pool = fresh.length ? fresh : notLast.length ? notLast : repeatable;
+    return weightedPick(pool, talk => 1 + reactivityScore(talk) * 5);
+  }
+
+  function nextWorldTalkForPerson(personId, locationKey) {
+    const eligible = socialTalks().filter(talk =>
+      talk.personId === personId &&
+      conditionMatches(talk) &&
+      inferWorldLocation(talk) === locationKey
+    );
+    return selectTalkFromEligible(personId, eligible);
+  }
+
+  function nextWorldHangoutForPerson(personId, locationKey) {
+    const state = app.getState();
+    const social = state.story.social;
+    const person = knownPeople().find(item => item.id === personId);
+    if (!person) return null;
+    if (person.hangoutUnlockFlag && !state.flags?.[person.hangoutUnlockFlag]) return null;
+
+    if (social.activeHangoutId) {
+      const active = hangoutById(social.activeHangoutId);
+      if (active && active.personId === personId && inferWorldLocation(active) === locationKey && conditionMatches(active)) return active;
+    }
+
+    return socialHangouts()
+      .filter(hangout => hangout.personId === personId && inferWorldLocation(hangout) === locationKey && conditionMatches(hangout))
+      .find(hangout => !hangout.once || !social.completedHangoutIds.includes(hangout.id)) || null;
+  }
+
+  function worldPresenceForLocation(locationKey) {
+    const people = knownPeople();
+    const events = worldEventsForLocation(locationKey);
+    const forcedPeople = new Set(events.map(event => event.personId).filter(Boolean));
+    const today = localDateKey();
+    const part = currentWorldDaypart();
+
+    return people.map(person => {
+      const talk = nextWorldTalkForPerson(person.id, locationKey);
+      const hangout = nextWorldHangoutForPerson(person.id, locationKey);
+      const event = events.find(item => item.personId === person.id) || null;
+      if (!event && !talk && !hangout) return null;
+
+      const forced = forcedPeople.has(person.id);
+      const chance = presenceChance(person.id, locationKey);
+      const roll = stableWorldFraction(`${today}:${part}:${locationKey}:${person.id}`);
+      if (!forced && (chance <= 0 || roll > chance)) return null;
+
+      const actions = [];
+      if (event) actions.push({ kind: "event", id: event.id, personId: person.id, icon: "✦", label: event.actionLabel || "See what happened", note: "World moment · free" });
+      if (talk) actions.push({ kind: "talk", id: talk.id, personId: person.id, icon: "💬", label: `Talk to ${person.name}`, note: talkBondEarnedToday(person.id) ? "Free · social progress already earned today" : "Free · first Talk today can deepen familiarity" });
+      if (hangout) actions.push({ kind: "hangout", id: hangout.id, personId: person.id, icon: "♡", label: `Spend time with ${person.name}`, note: "Hangout · free" });
+
+      return {
+        id: person.id,
+        name: person.name,
+        cardAsset: person.cardAsset || null,
+        icon: person.id === "mina" ? "✿" : person.id === "kirishima" ? "◆" : "✦",
+        hint: event?.worldHint || (hangout ? "You have enough time for more than a quick hello." : "You could stop and talk for a minute."),
+        actions
+      };
+    }).filter(Boolean);
+  }
+
+  function getWorldLocationDetails(locationKey) {
+    if (!pack || !locationKey) return { available: false, presences: [], actions: [], summary: "Quiet right now." };
+    const events = worldEventsForLocation(locationKey);
+    const presences = worldPresenceForLocation(locationKey);
+    const actions = presences.flatMap(person => person.actions || []);
+
+    // Some world moments are environmental or remote rather than tied to a visible person.
+    events.filter(event => !event.personId).forEach(event => {
+      actions.unshift({ kind: "event", id: event.id, personId: null, icon: "✦", label: event.actionLabel || "See what happened", note: "World moment · free" });
+    });
+
+    const unique = [];
+    const seen = new Set();
+    actions.forEach(action => {
+      const key = `${action.kind}:${action.id}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+      unique.push(action);
+    });
+
+    const summary = presences.length
+      ? presences.length === 1
+        ? `${presences[0].name} is around.`
+        : `${presences.map(person => person.name).join(" · ")} are around.`
+      : unique.length
+        ? "A small moment is waiting here."
+        : "Quiet right now.";
+
+    return { available: unique.length > 0, presences, actions: unique, summary };
+  }
+
+  function recordWorldVisit(locationKey) {
+    if (!locationKey) return false;
+    const state = app.getState();
+    ensureStoryState();
+    const social = state.story.social;
+    const entry = { locationKey, at: new Date().toISOString() };
+    social.worldVisitHistory = [...array(social.worldVisitHistory), entry].slice(-250);
+    social.lastWorldVisitByLocation = object(social.lastWorldVisitByLocation);
+    social.lastWorldVisitByLocation[locationKey] = entry.at;
+    app.saveState({ source: "world-location-visit" });
+    return true;
+  }
+
+  function openWorldInteraction(kind, interactionId, personId = null) {
+    if (kind === "event") return openRandomEvent(interactionId);
+    if (kind === "talk") return interactionId ? openTalk(interactionId) : openNextTalk(personId);
+    if (kind === "hangout") return interactionId ? openHangout(interactionId) : openNextHangout(personId);
+    return false;
+  }
+
   function getWorldLocationStatus(locationKey) {
-    if (!pack || !locationKey) return { available: false };
-    const event = worldEventsForLocation(locationKey)[0];
-    if (!event) return { available: false };
-    const person = event.personId ? knownPeople().find(item => item.id === event.personId) : null;
+    const details = getWorldLocationDetails(locationKey);
+    const first = details.presences?.[0] || null;
+    const firstEvent = details.actions?.find(action => action.kind === "event") || null;
     return {
-      available: true,
-      eventId: event.id,
-      personId: person?.id || null,
-      personName: person?.name || "Someone",
-      cardAsset: person?.cardAsset || null,
-      hint: event.worldHint || "A small free moment is available here."
+      available: details.available,
+      eventId: firstEvent?.id || null,
+      personId: first?.id || null,
+      personName: first?.name || null,
+      cardAsset: first?.cardAsset || null,
+      hint: first?.hint || details.summary,
+      presences: details.presences,
+      summary: details.summary
     };
   }
 
   function visitWorldLocation(locationKey) {
-    const status = getWorldLocationStatus(locationKey);
-    if (!status.available || !status.eventId) return false;
-    return openRandomEvent(status.eventId);
+    const details = getWorldLocationDetails(locationKey);
+    const first = details.actions?.[0];
+    if (!first) return false;
+    return openWorldInteraction(first.kind, first.id, first.personId);
   }
 
   function currentWorldMoment() {
@@ -1341,29 +1544,8 @@
   }
 
   function nextTalkForPerson(personId) {
-    const state = app.getState();
-    const social = state.story.social;
     const eligible = socialTalks().filter(talk => talk.personId === personId && conditionMatches(talk));
-
-    if (social.activeTalkId) {
-      const active = eligible.find(talk => talk.id === social.activeTalkId);
-      if (active) return active;
-    }
-
-    const unseenOnce = eligible.filter(talk => talk.once && !social.seenTalkIds.includes(talk.id));
-    if (unseenOnce.length) {
-      const highestPriority = Math.max(...unseenOnce.map(talk => Number(talk.priority || 0)));
-      const timely = unseenOnce.filter(talk => Number(talk.priority || 0) === highestPriority);
-      return weightedPick(timely, talk => 1 + reactivityScore(talk) * 4);
-    }
-
-    const repeatable = eligible.filter(talk => !talk.once);
-    if (!repeatable.length) return null;
-    const recent = new Set(array(social.recentTalkIdsByPerson?.[personId]));
-    const fresh = repeatable.filter(talk => !recent.has(talk.id));
-    const notLast = repeatable.filter(talk => talk.id !== social.lastTalkId);
-    const pool = fresh.length ? fresh : notLast.length ? notLast : repeatable;
-    return weightedPick(pool, talk => 1 + reactivityScore(talk) * 5);
+    return selectTalkFromEligible(personId, eligible);
   }
 
   function openNextTalk(personId) {
@@ -2777,6 +2959,9 @@
     openTalk: openNextTalk,
     openPhone,
     getWorldLocationStatus,
+    getWorldLocationDetails,
+    recordWorldVisit,
+    openWorldInteraction,
     visitWorldLocation
   };
 })();

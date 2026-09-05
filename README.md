@@ -110,12 +110,23 @@ GitHub Pages will then update automatically after the new commit is deployed.
 - Existing recommendations already generated for the day are not silently replaced during the update; the stronger matching applies on the next check-in, check-in edit, or reroll.
 
 
-## V0.28.4 — Consolidation & QA Fix
+## V0.29.0 — Consolidation & QA Fix
 
 - Restored installable PWA support with a real `manifest.webmanifest`, 180/192/512 app icons, a fresh shell cache, and precache logic that no longer aborts the entire install because one optional asset is unavailable.
 - Replaced the final active legacy SVG location backgrounds with illustrated `city_dusk.png` and `station_evening.png` VN backgrounds.
 - Corrected three story visual-state transitions where Mina could remain on the stage after leaving or after the interaction had become remote/text-only.
 - Synchronized Bakugo runtime references with files that actually exist in the repo. The already-approved tired/vulnerable family remains canon, but missing source PNGs now use explicit safe V2 runtime fallbacks instead of broken paths.
 - Changed all 45 built-in Quests to permanent, position-independent `core-*` IDs and added migration for existing loadouts, completion logs, reward-ledger quest references, and Daily Planner picks/memory.
-- Bumped shell and Story Pack revision/cache references to V0.28.4 and refreshed outdated Side Adventure helper copy.
+- Bumped shell and Story Pack revision/cache references to V0.29.0 and refreshed outdated Side Adventure helper copy.
 - No Story prose, choices, rewards, relationship progression, unlock conditions, book/game data, habit history, or existing save progress were intentionally changed.
+
+## V0.29.0 — Living World & Locations
+- Turned World locations into visitable places rather than event-only cards: every unlocked location can now be opened even when it is quiet.
+- Added full visual location sheets using the current VN background art, including responsive mobile bottom-sheet behavior.
+- Added deterministic daypart-aware character presence. Familiar characters can appear at appropriate unlocked locations when story state, available Talk/Hangout content and time of day support it; availability is stable within a daypart instead of rerolling on every render.
+- Location visits can now expose free World Moments, location-appropriate Talks and unlocked Hangouts directly from the place where they make sense.
+- Multiple familiar characters can be present at the same place; World cards show stacked portraits and the location sheet exposes each available interaction separately.
+- Added quiet-location states so the map still feels explorable when nobody is currently there.
+- Added lightweight world visit history to social save state for future reactivity without changing relationship values or Story Energy.
+- Added Station as a narratively unlocked location tied to the existing commute story state; existing saves migrate automatically once that story state is already complete.
+- Preserved the one-relationship-gain-per-character-per-day rule for Talks and all existing Story/Message/Hangout/World Moment content and rewards.

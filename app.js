@@ -311,37 +311,50 @@
     currentHome: {
       label: "Current Apartment",
       icon: "🏠",
+      art: "assets/story/backgrounds/home_morning.png",
       description: "Familiar, private, and much too far from work."
     },
     school: {
       label: "School",
       icon: "🏫",
+      art: "assets/story/backgrounds/school_hallway.png",
       description: "Luca's real daily world: lessons, colleagues, students and everything that comes with teaching."
+    },
+    station: {
+      label: "Station",
+      icon: "🚉",
+      art: "assets/story/backgrounds/station_evening.png",
+      description: "A familiar part of the commute — sometimes just a transfer point, sometimes where the day changes direction."
     },
     sharedApartment: {
       label: "Shared Apartment",
       icon: "🛋️",
+      art: "assets/story/backgrounds/shared_apartment_evening.png",
       description: "A place that can only become home after the story makes it part of Luca's life."
     },
     agency: {
       label: "DynaRiot Agency",
       icon: "💥",
+      art: "assets/story/backgrounds/city_dusk.png",
       description: "Not part of Luca's ordinary world yet."
     },
     gym: {
       label: "Training Gym",
       icon: "🏋️",
+      art: "assets/story/backgrounds/gym_training_space.png",
       description: "A location that should unlock through narrative introduction."
     },
     cafe: {
       label: "Koharu Café",
       icon: "☕",
+      art: "assets/story/backgrounds/koharu_cafe.png",
       description: "A small café Mina introduced — easy to reach, low-pressure, and starting to feel like a shared spot."
     },
     district: {
-      label: "Unknown Location",
+      label: "Collector District",
       icon: "🌙",
-      description: "A part of the world not yet introduced."
+      art: "assets/story/backgrounds/city_dusk.png",
+      description: "Shops, side streets and little detours that are starting to become part of Luca's own map."
     }
   };
 
@@ -833,6 +846,7 @@
       locations: {
         currentHome: true,
         school: true,
+        station: false,
         sharedApartment: false,
         agency: false,
         gym: false,
@@ -877,6 +891,14 @@
     realmFilters: byId("realmFilters"),
     questSearch: byId("questSearch"),
     locationGrid: byId("locationGrid"),
+    worldLocationOverlay: byId("worldLocationOverlay"),
+    worldLocationHero: byId("worldLocationHero"),
+    worldLocationIcon: byId("worldLocationIcon"),
+    worldLocationTitle: byId("worldLocationTitle"),
+    worldLocationDescription: byId("worldLocationDescription"),
+    worldLocationStatus: byId("worldLocationStatus"),
+    worldLocationPresenceList: byId("worldLocationPresenceList"),
+    worldLocationActions: byId("worldLocationActions"),
     memoryList: byId("memoryList"),
     realmCards: byId("realmCards"),
     fullStats: byId("fullStats"),
@@ -1007,6 +1029,9 @@
     if (state.flags.MINA_REAL_COFFEE_COMPLETE) {
       state.locations.cafe = true;
     }
+    if (state.flags.MINA_KNOWS_COMMUTE_BAD) {
+      state.locations.station = true;
+    }
 
     if (!Array.isArray(state.selectedQuestIds)) state.selectedQuestIds = defaultState().selectedQuestIds;
     migrateQuestReferencesInState();
@@ -1040,6 +1065,7 @@
 
     if (state.flags.LOCATION_SHARED_APARTMENT_INTRODUCED) state.locations.sharedApartment = true;
     if (state.flags.MINA_REAL_COFFEE_COMPLETE) state.locations.cafe = true;
+    if (state.flags.MINA_KNOWS_COMMUTE_BAD) state.locations.station = true;
     if (state.flags.LOCATION_GYM_INTRODUCED) state.locations.gym = true;
     if (state.flags.LOCATION_AGENCY_INTRODUCED) state.locations.agency = true;
 
@@ -1175,9 +1201,20 @@
     els.locationGrid?.addEventListener("click", event => {
       const button = event.target.closest?.("[data-world-location]");
       if (!button || button.disabled) return;
-      const locationKey = button.dataset.worldLocation;
-      const opened = window.LifeRPGStoryUI?.visitWorldLocation?.(locationKey);
-      if (!opened) showToast("Nothing specific is happening there right now.");
+      openWorldLocation(button.dataset.worldLocation);
+    });
+
+    byId("closeWorldLocationOverlay")?.addEventListener("click", closeWorldLocation);
+    els.worldLocationOverlay?.addEventListener("click", event => {
+      if (event.target === els.worldLocationOverlay) closeWorldLocation();
+      const action = event.target.closest?.("[data-world-interaction]");
+      if (!action || action.disabled) return;
+      const opened = window.LifeRPGStoryUI?.openWorldInteraction?.(
+        action.dataset.worldInteraction,
+        action.dataset.worldInteractionId,
+        action.dataset.worldPersonId || null
+      );
+      if (opened) closeWorldLocation();
     });
 
     byId("closeClearOverlay").addEventListener("click", () => {
@@ -1957,6 +1994,7 @@
     // Growth can influence future story checks, but locations remain narrative unlocks.
     if (state.flags.LOCATION_SHARED_APARTMENT_INTRODUCED) state.locations.sharedApartment = true;
     if (state.flags.MINA_REAL_COFFEE_COMPLETE) state.locations.cafe = true;
+    if (state.flags.MINA_KNOWS_COMMUTE_BAD) state.locations.station = true;
     if (state.flags.LOCATION_GYM_INTRODUCED) state.locations.gym = true;
     if (state.flags.LOCATION_AGENCY_INTRODUCED) state.locations.agency = true;
   }
@@ -1974,7 +2012,77 @@
     els.clearOverlay.classList.remove("hidden");
   }
 
+  function worldDaypartLabel() {
+    const hour = new Date().getHours();
+    if (hour < 6) return "Late night";
+    if (hour < 11) return "Morning";
+    if (hour < 16) return "Daytime";
+    if (hour < 21) return "Evening";
+    return "Night";
+  }
+
+  function closeWorldLocation() {
+    els.worldLocationOverlay?.classList.add("hidden");
+    document.body.classList.remove("world-location-open");
+  }
+
+  function openWorldLocation(locationKey) {
+    const meta = LOCATION_META[locationKey];
+    if (!meta || !state.locations?.[locationKey]) return false;
+    const details = window.LifeRPGStoryUI?.getWorldLocationDetails?.(locationKey) || { available: false, presences: [], actions: [] };
+    window.LifeRPGStoryUI?.recordWorldVisit?.(locationKey);
+
+    const movedIntoSharedHome = Boolean(state.flags?.SHARED_APARTMENT_IS_HOME || state.flags?.DYNARIOT_MOVE_IN_COMPLETE);
+    const displayMeta = locationKey === "currentHome" && movedIntoSharedHome
+      ? { ...meta, label: "Previous Apartment", description: "Luca’s old apartment — familiar, inconveniently far away, and no longer home." }
+      : meta;
+
+    if (els.worldLocationHero) {
+      els.worldLocationHero.style.backgroundImage = displayMeta.art
+        ? `linear-gradient(180deg, rgba(45,25,42,.04), rgba(45,25,42,.52)), url("${displayMeta.art}")`
+        : "";
+    }
+    if (els.worldLocationIcon) els.worldLocationIcon.textContent = displayMeta.icon || "✦";
+    if (els.worldLocationTitle) els.worldLocationTitle.textContent = displayMeta.label;
+    if (els.worldLocationDescription) els.worldLocationDescription.textContent = displayMeta.description;
+    if (els.worldLocationStatus) {
+      els.worldLocationStatus.textContent = `${worldDaypartLabel()} · ${details.presences?.length ? `${details.presences.length} familiar ${details.presences.length === 1 ? "face" : "faces"} around` : details.available ? "something is happening" : "quiet right now"}`;
+    }
+
+    if (els.worldLocationPresenceList) {
+      const presences = details.presences || [];
+      els.worldLocationPresenceList.innerHTML = presences.length
+        ? presences.map(person => `
+            <article class="world-presence-card">
+              ${person.cardAsset ? `<img src="${escapeHtml(person.cardAsset)}" alt="" />` : `<span class="world-presence-fallback">${escapeHtml(person.icon || "♡")}</span>`}
+              <div><small>HERE NOW</small><strong>${escapeHtml(person.name)}</strong><p>${escapeHtml(person.hint || "You could say hi.")}</p></div>
+            </article>
+          `).join("")
+        : `<div class="world-location-quiet"><span>☁</span><div><strong>No familiar faces right now.</strong><p>You can still stop by. The world changes with story, time of day and what has already happened.</p></div></div>`;
+    }
+
+    if (els.worldLocationActions) {
+      const actions = details.actions || [];
+      els.worldLocationActions.innerHTML = actions.length
+        ? actions.map((action, index) => `
+            <button class="${index === 0 ? "primary-button" : "secondary-button"} world-location-action" type="button"
+              data-world-interaction="${escapeHtml(action.kind)}"
+              data-world-interaction-id="${escapeHtml(action.id || "")}" 
+              data-world-person-id="${escapeHtml(action.personId || "")}">
+              <span>${escapeHtml(action.icon || "✦")}</span>
+              <span><strong>${escapeHtml(action.label)}</strong><small>${escapeHtml(action.note || "Free · autosaved")}</small></span>
+            </button>
+          `).join("")
+        : `<div class="world-location-no-actions"><strong>Nothing you need to do.</strong><span>This place is part of your world even when it is quiet.</span></div>`;
+    }
+
+    els.worldLocationOverlay?.classList.remove("hidden");
+    document.body.classList.add("world-location-open");
+    return true;
+  }
+
   function renderWorld() {
+    if (!els.locationGrid) return;
     els.locationGrid.innerHTML = Object.entries(LOCATION_META)
       .map(([key, meta]) => {
         const movedIntoSharedHome = Boolean(state.flags?.SHARED_APARTMENT_IS_HOME || state.flags?.DYNARIOT_MOVE_IN_COMPLETE);
@@ -1982,25 +2090,29 @@
           ? { ...meta, label: "Previous Apartment", description: "Luca’s old apartment — familiar, inconveniently far away, and no longer home." }
           : meta;
         const unlocked = Boolean(state.locations[key]);
-        const worldStatus = unlocked ? window.LifeRPGStoryUI?.getWorldLocationStatus?.(key) : null;
-        const hasMoment = Boolean(worldStatus?.available);
-        const avatar = worldStatus?.cardAsset
-          ? `<img src="${escapeHtml(worldStatus.cardAsset)}" alt="" />`
-          : `<span>${worldStatus?.icon || "✦"}</span>`;
+        const worldStatus = unlocked ? window.LifeRPGStoryUI?.getWorldLocationDetails?.(key) : null;
+        const presences = worldStatus?.presences || [];
+        const hasActivity = Boolean(worldStatus?.available);
+        const art = unlocked && displayMeta.art ? `<div class="location-card-art"><img src="${escapeHtml(displayMeta.art)}" alt="" /></div>` : "";
         const presence = unlocked
-          ? hasMoment
-            ? `<div class="location-presence is-active">${avatar}<span><strong>${escapeHtml(worldStatus.personName || "Someone")}</strong><small>${escapeHtml(worldStatus.hint || "Something is happening here.")}</small></span></div>`
-            : `<div class="location-presence is-quiet"><span>☁</span><span><strong>Quiet right now</strong><small>Come back later; availability changes with story and recent moments.</small></span></div>`
+          ? presences.length
+            ? `<div class="location-presence is-active"><div class="location-presence-stack">${presences.slice(0, 3).map(person => person.cardAsset ? `<img src="${escapeHtml(person.cardAsset)}" alt="" />` : `<span>${escapeHtml(person.icon || "♡")}</span>`).join("")}</div><span><strong>${escapeHtml(presences.map(person => person.name).join(" · "))}</strong><small>${escapeHtml(worldStatus.summary || "Someone familiar is here right now.")}</small></span></div>`
+            : hasActivity
+              ? `<div class="location-presence is-active"><span>✦</span><span><strong>Something is happening</strong><small>${escapeHtml(worldStatus.summary || "A small free moment is available here.")}</small></span></div>`
+              : `<div class="location-presence is-quiet"><span>☁</span><span><strong>Quiet right now</strong><small>Still visitable · availability changes with story and time of day.</small></span></div>`
           : "";
 
         return `
           <article class="location-card ${unlocked ? "unlocked" : "locked"}">
             ${unlocked ? "" : `<span class="location-lock">🔒 Unknown</span>`}
-            <span class="location-icon">${unlocked ? displayMeta.icon : "✦"}</span>
-            <strong>${escapeHtml(unlocked ? displayMeta.label : "Unknown Location")}</strong>
-            <small>${escapeHtml(unlocked ? displayMeta.description : "This place has not been introduced in Luca's story yet.")}</small>
-            ${presence}
-            ${unlocked ? `<button class="secondary-button location-visit-button" type="button" data-world-location="${escapeHtml(key)}" ${hasMoment ? "" : "disabled"}>${hasMoment ? "Visit" : "Nothing happening"}</button>` : ""}
+            ${art}
+            <div class="location-card-copy">
+              <span class="location-icon">${unlocked ? displayMeta.icon : "✦"}</span>
+              <strong>${escapeHtml(unlocked ? displayMeta.label : "Unknown Location")}</strong>
+              <small>${escapeHtml(unlocked ? displayMeta.description : "This place has not been introduced in Luca's story yet.")}</small>
+              ${presence}
+              ${unlocked ? `<button class="secondary-button location-visit-button" type="button" data-world-location="${escapeHtml(key)}">${hasActivity ? "Visit · something's here" : "Visit"}</button>` : ""}
+            </div>
           </article>
         `;
       })
