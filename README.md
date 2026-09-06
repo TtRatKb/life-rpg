@@ -66,9 +66,9 @@ GitHub Pages will then update automatically after the new commit is deployed.
 
 ## Next milestones
 
-1. Playtest **V0.30.0 Social World Content Expansion** in normal use, especially World presence, repeatable Talks and phone replies.
-2. Continue targeted Story / Social content growth from actual play feedback rather than flooding every pool at once.
-3. Resume noncanonical CG calibration only after the normal VN presentation remains stable.
+1. Playtest **V0.30.1 CG Runtime Readiness + Luca Portrait Cleanup** in normal use, especially Luca portrait edges in Story Mode and existing Story/Social continuity.
+2. Keep hidden canon CG art disabled until each render passes the approved visual preflight and anatomy/continuity QA gate.
+3. Continue targeted Story / Social content growth from actual play feedback rather than flooding every pool at once.
 4. Synchronize Project Sources at the next chat handoff rather than after each patch.
 
 ## V0.28.0 — Story Continuity & World Expansion
@@ -157,3 +157,14 @@ GitHub Pages will then update automatically after the new commit is deployed.
 - Updated People relationship labels and known-details text so Bakugo and Kirishima stop reading as mere “new acquaintances” after Luca has actually moved in.
 - Preserved the one-relationship-gain-per-character-per-day Talk rule, free extra Talks, free Hangouts / World Moments, existing Story Energy economy, Main Story prose, current chapter unlocks and all prior save data.
 - No canon CGs were added.
+
+
+## V0.30.1 — CG Runtime Readiness + Luca Portrait Cleanup
+
+- Rebuilt Luca's active Story/runtime portrait family with true transparent PNG edges so loose hair strands no longer carry the old white matte/halo against the VN portrait card.
+- Refreshed the active Neutral, Warm/Amused, Skeptical/Side-eye, Mild Annoyed and Flustered/Caught-Off-Guard portrait mappings, plus the existing happy/soft-smile/thinking compatibility images used elsewhere in the app.
+- Added a data-driven dormant CG-slot layer to the current encrypted Story Pack. Five current-story moments are pre-wired with opaque CG slot IDs while retaining the normal VN background+sprite presentation until approved art is explicitly enabled.
+- CG rendering now automatically switches to full-CG mode only when a slot is enabled and has a valid image source; disabled/missing CG art safely falls back to the canonical VN scene instead of blanking the stage.
+- Added the calibrated CG QA gate and Luca wardrobe-direction metadata to the Story Pack's visual-direction data for future hidden rendering work.
+- Canon CG art is intentionally **not bundled in this build**: the current chat image-generation surface visibly renders generated images to the player, so hidden story art remains disabled rather than breaking spoiler protection.
+- No Main Story prose, choices, rewards, relationship progression, unlock conditions, social content, or existing save progress were changed.

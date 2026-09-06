@@ -2469,6 +2469,7 @@
       mode: "dialogue",
       background: contextualBackgroundForRuntime(runtime),
       cg: null,
+      cgSlot: null,
       characters: [],
       focus: null,
       portrait: null,
@@ -2498,11 +2499,21 @@
     if (Object.prototype.hasOwnProperty.call(patch, "mode")) next.mode = patch.mode || "dialogue";
     if (Object.prototype.hasOwnProperty.call(patch, "background")) {
       next.background = patch.background || null;
-      if (patch.background) next.cg = null;
+      if (patch.background) {
+        next.cg = null;
+        next.cgSlot = null;
+      }
     }
     if (Object.prototype.hasOwnProperty.call(patch, "cg")) {
       next.cg = patch.cg || null;
-      if (patch.cg) next.background = null;
+      if (patch.cg) {
+        next.background = null;
+        next.cgSlot = null;
+      }
+    }
+    if (Object.prototype.hasOwnProperty.call(patch, "cgSlot")) {
+      next.cgSlot = patch.cgSlot || null;
+      if (patch.cgSlot) next.cg = null;
     }
     if (Object.prototype.hasOwnProperty.call(patch, "characters")) {
       next.characters = Array.isArray(patch.characters) ? [...patch.characters] : [];
@@ -2553,8 +2564,18 @@
     return candidates.find(key => backgrounds?.[key]?.src) || null;
   }
 
+  function cgAssetForVisual(visual) {
+    if (visual?.cg) return { src: visual.cg, enabled: true };
+    const slotId = visual?.cgSlot;
+    if (!slotId) return null;
+    const slot = pack?.assets?.cgs?.[slotId];
+    if (!slot?.enabled || !slot?.src) return null;
+    return slot;
+  }
+
   function backgroundAssetForVisual(visual, backgroundAssets) {
-    if (visual?.cg) return { src: visual.cg };
+    const cg = cgAssetForVisual(visual);
+    if (cg?.src) return cg;
     const requested = visual?.background;
     if (requested && backgroundAssets?.[requested]?.src) return backgroundAssets[requested];
     const fallback = contextualBackgroundForRuntime(runtime);
@@ -2564,7 +2585,9 @@
   function applyVisual(visual, node = null) {
     const characterAssets = pack?.assets?.characters || {};
     const backgroundAssets = pack?.assets?.backgrounds || {};
-    const mode = visual?.mode || "dialogue";
+    const cgAsset = cgAssetForVisual(visual);
+    const requestedMode = visual?.mode || "dialogue";
+    const mode = cgAsset?.src ? "cg" : (requestedMode === "cg" ? "dialogue" : requestedMode);
     const bg = backgroundAssetForVisual(visual, backgroundAssets);
     const characters = Array.isArray(visual?.characters) ? visual.characters : [];
     const portraitSpec = resolvePortraitSpec(visual, characters, characterAssets);
@@ -2828,7 +2851,8 @@
     for (const node of runtime.sequence) {
       const visual = node?.visual;
       if (!visual || typeof visual !== "object") continue;
-      if (visual.cg) urls.add(String(visual.cg));
+      const cgAsset = cgAssetForVisual(visual);
+      if (cgAsset?.src) urls.add(String(cgAsset.src));
       if (visual.background && backgroundAssets?.[visual.background]?.src) urls.add(String(backgroundAssets[visual.background].src));
       for (const item of array(visual.characters)) {
         const asset = resolveCharacterAsset(characterAssets?.[item?.id], item);
