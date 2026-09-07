@@ -831,6 +831,9 @@
       version: 9,
       progressionSchemaVersion: 1,
       coinEconomyVersion: 0,
+      profile: {
+        birthDate: ""
+      },
       characterXP: 0,
       coins: 0,
       storyEnergy: 0,
@@ -946,6 +949,10 @@
     profileXP: byId("profileXP"),
     profileEnergy: byId("profileEnergy"),
     profileDays: byId("profileDays"),
+    growthProfileMeta: byId("growthProfileMeta"),
+    navProfileMeta: byId("navProfileMeta"),
+    profileBirthDate: byId("profileBirthDate"),
+    profileAgePreview: byId("profileAgePreview"),
 
     devModeToggle: byId("devModeToggle"),
     devControls: byId("devControls"),
@@ -1018,6 +1025,9 @@
       version: 9,
       progressionSchemaVersion: Number(saved.progressionSchemaVersion || 0),
       coinEconomyVersion: Number(saved.coinEconomyVersion || 0),
+      profile: saved.profile && typeof saved.profile === "object" && !Array.isArray(saved.profile)
+        ? { ...base.profile, ...saved.profile }
+        : { ...base.profile },
       rewardLedger: saved.rewardLedger && typeof saved.rewardLedger === "object"
         ? { ...defaultRewardLedger(), ...saved.rewardLedger, events: Array.isArray(saved.rewardLedger.events) ? saved.rewardLedger.events : [] }
         : defaultRewardLedger(),
@@ -1277,6 +1287,20 @@
       renderQuestLibrary();
     });
 
+    els.profileBirthDate?.addEventListener("change", () => {
+      const value = String(els.profileBirthDate.value || "").trim();
+      if (value && !isValidBirthDate(value)) {
+        showToast("Choose a valid birth date that is not in the future.");
+        renderProfileMeta();
+        return;
+      }
+      state.profile ||= { birthDate: "" };
+      state.profile.birthDate = value;
+      saveState({ source: "profile-birth-date" });
+      renderProfileMeta();
+      showToast(value ? `Profile updated · age ${calculateAge(value)}` : "Birth date cleared.");
+    });
+
     els.devModeToggle.addEventListener("change", () => {
       state.devMode = els.devModeToggle.checked;
       saveState();
@@ -1375,6 +1399,7 @@
 
   function renderAll() {
     renderResources();
+    renderProfileMeta();
     renderLoadout();
     renderHome();
     renderSocialPulse();
@@ -2269,6 +2294,52 @@
       .join("");
   }
 
+  function renderProfileMeta() {
+    state.profile ||= { birthDate: "" };
+    const birthDate = String(state.profile.birthDate || "");
+    const age = birthDate && isValidBirthDate(birthDate) ? calculateAge(birthDate) : null;
+    const line = `${age == null ? "30" : age} · Math Teacher`;
+    if (els.growthProfileMeta) els.growthProfileMeta.textContent = line;
+    if (els.navProfileMeta) els.navProfileMeta.textContent = line;
+    if (els.profileBirthDate) {
+      els.profileBirthDate.value = birthDate;
+      els.profileBirthDate.max = localDateKey(new Date());
+    }
+    if (els.profileAgePreview) {
+      els.profileAgePreview.textContent = age == null
+        ? "Set your real birth date once and Life RPG will update Luca's age automatically."
+        : `Current age: ${age} · updates automatically on your birthday.`;
+    }
+  }
+
+  function parseBirthDate(value) {
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value || ""));
+    if (!match) return null;
+    const year = Number(match[1]);
+    const month = Number(match[2]);
+    const day = Number(match[3]);
+    const date = new Date(year, month - 1, day, 12, 0, 0, 0);
+    if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) return null;
+    return date;
+  }
+
+  function isValidBirthDate(value) {
+    const birth = parseBirthDate(value);
+    if (!birth) return false;
+    const today = new Date();
+    const earliest = new Date(1900, 0, 1, 12);
+    return birth >= earliest && birth <= today;
+  }
+
+  function calculateAge(value, now = new Date()) {
+    const birth = parseBirthDate(value);
+    if (!birth) return null;
+    let age = now.getFullYear() - birth.getFullYear();
+    const beforeBirthday = now.getMonth() < birth.getMonth() || (now.getMonth() === birth.getMonth() && now.getDate() < birth.getDate());
+    if (beforeBirthday) age -= 1;
+    return Math.max(0, age);
+  }
+
   function renderGrowthOverview() {
     const info = getLevelInfo(state.characterXP);
     els.profileLevel.textContent = info.level;
@@ -2340,8 +2411,16 @@
       return { available: false, reason: "Completed" };
     }
 
-    if (quest.frequency === "Daily" && logs.some(log => isSameLocalDay(new Date(log.at), new Date()))) {
-      return { available: false, reason: "Done today" };
+    if (quest.frequency === "Daily") {
+      const todayLogs = logs.filter(log => isSameLocalDay(new Date(log.at), new Date()));
+      if (todayLogs.length > 0) {
+        if (isUnitQuest(quest)) {
+          const totalUnits = todayLogs.reduce((sum, log) => sum + Math.max(0, Number(log.units || 0)), 0);
+          if (totalUnits >= questTarget(quest) - 1e-9) return { available: false, reason: "Done today" };
+        } else {
+          return { available: false, reason: "Done today" };
+        }
+      }
     }
 
     if (quest.frequency === "Weekly" && logs.some(log => localWeekKey(new Date(log.at)) === localWeekKey(new Date()))) {
@@ -2531,6 +2610,11 @@
     getCapabilityInfo: key => statLevelInfo(state.stats?.[key] || 0),
     getRealmRankInfo: realm => realmRankInfo(state.realms?.[realm] || 0),
     getProgressionSnapshot,
+    getProfileAge: () => {
+      const birthDate = String(state.profile?.birthDate || "");
+      return birthDate && isValidBirthDate(birthDate) ? calculateAge(birthDate) : null;
+    },
+    getProfileBirthDate: () => String(state.profile?.birthDate || ""),
     getActivityCount,
     evaluateProgressionCondition,
     capabilityXpRequiredForLevel,

@@ -14,7 +14,7 @@
   <link rel="manifest" href="manifest.webmanifest?v=0.30.3a" />
   <link rel="apple-touch-icon" href="assets/app-icon-180.png?v=0.30.3a" />
   <link rel="icon" type="image/png" sizes="192x192" href="assets/app-icon-192.png?v=0.30.3a" />
-  <link rel="stylesheet" href="styles.css?v=0.30.6" />
+  <link rel="stylesheet" href="styles.css?v=0.30.6a" />
 </head>
 <body>
   <section id="mobileCloudGate" class="mobile-cloud-gate-v251" data-state="checking" aria-live="polite" aria-label="Life RPG cloud sign in">
@@ -974,7 +974,7 @@
           <div class="growth-profile-art-v3" aria-hidden="true">
             <div class="growth-profile-glow"></div>
             <img src="assets/story/portraits/luca_neutral.png" alt="" />
-            <div class="growth-profile-nameplate"><strong>Luca</strong><span>30 · Math Teacher</span><em id="growthPlayerTitleLine" class="profile-title-line-v21 hidden"></em></div>
+            <div class="growth-profile-nameplate"><strong>Luca</strong><span id="growthProfileMeta">30 · Math Teacher</span><em id="growthPlayerTitleLine" class="profile-title-line-v21 hidden"></em></div>
           </div>
 
           <div class="growth-profile-copy-v3">
@@ -1411,6 +1411,22 @@
         </section>
 
           <aside class="settings-side-v6">
+            <section class="panel settings-profile-panel-v306a">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">PLAYER PROFILE</p>
+                  <h2>Real-life age</h2>
+                  <p class="panel-subcopy">Life RPG can calculate Luca's age from your real birth date instead of keeping a hard-coded number.</p>
+                </div>
+                <span class="settings-panel-mark-v6">✦</span>
+              </div>
+              <label class="profile-birthdate-field-v306a">
+                <span>Birth date</span>
+                <input id="profileBirthDate" type="date" min="1900-01-01" />
+              </label>
+              <p id="profileAgePreview" class="profile-age-preview-v306a">Set your real birth date once and Life RPG will update Luca's age automatically.</p>
+            </section>
+
             <section class="panel settings-content-panel-v6">
               <div class="panel-heading">
                 <div>
@@ -1476,7 +1492,7 @@
       <button class="nav-button" data-view="settings"><span>⚙</span><small>Settings</small></button>
       <div class="nav-profile-card" aria-hidden="true">
         <img src="assets/story/portraits/luca_neutral.png" alt="" />
-        <div><strong>Luca</strong><span>30 · Math Teacher</span></div>
+        <div><strong>Luca</strong><span id="navProfileMeta">30 · Math Teacher</span></div>
       </div>
     </nav>
   </div>
@@ -2519,21 +2535,21 @@ League of Legends — PC" required></textarea></label>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <script src="data/quests.js?v=0.30.3a"></script>
+  <script src="data/quests.js?v=0.30.6a"></script>
   <script src="story-engine.js?v=0.30.3a"></script>
-  <script src="app.js?v=0.30.6"></script>
+  <script src="app.js?v=0.30.6a"></script>
   <script src="stewardship.js?v=0.30.6"></script>
   <script src="habits.js?v=0.30.6"></script>
   <script src="adventures.js?v=0.30.6"></script>
   <script src="library.js?v=0.30.6"></script>
   <script src="games.js?v=0.30.6"></script>
-  <script src="time.js?v=0.30.6"></script>
-  <script src="daily.js?v=0.30.6"></script>
+  <script src="time.js?v=0.30.6a"></script>
+  <script src="daily.js?v=0.30.6a"></script>
   <script src="journal.js?v=0.30.6"></script>
   <script src="story-ui.js?v=0.30.3a"></script>
   <script src="shop.js?v=0.30.6"></script>
   <script src="achievements.js?v=0.30.6"></script>
   <script type="module" src="cloud-save.js?v=0.30.6"></script>
-  <script src="pwa.js?v=0.30.6"></script>
+  <script src="pwa.js?v=0.30.6a"></script>
 </body>
 </html>

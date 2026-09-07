@@ -366,6 +366,7 @@
   let provisionalCompanion = null;
   let conversationStep = 0;
   let conversationEditing = false;
+  let actionTimerTicker = null;
 
   init();
 
@@ -376,6 +377,7 @@
     initialized = true;
     if (changed || rewardUpgraded) persist(rewardUpgraded ? "daily-checkin-v272-reward-migration" : "daily-planner-init", { render: false });
     render();
+    actionTimerTicker = window.setInterval(updateLiveActionTimers, 1000);
   }
 
   function bindEvents() {
@@ -401,6 +403,35 @@
       const reroll = event.target.closest?.("[data-daily-reroll]");
       if (reroll) {
         rerollSlot(reroll.dataset.dailyReroll);
+        return;
+      }
+
+      const timerStart = event.target.closest?.("[data-daily-timer-start]");
+      if (timerStart) {
+        const quest = findQuest(timerStart.dataset.dailyTimerStart);
+        if (!quest) return;
+        const minutes = Math.max(1, Number(timerStart.dataset.dailyTimerMinutes || estimatedMinutes(quest) || questTargetValue(quest) || 15));
+        const context = dailyTimerContext(quest);
+        window.LifeRPGTime?.startAction?.({
+          linkedQuestId: quest.id,
+          label: quest.name,
+          minutes,
+          categoryId: context.categoryId,
+          subcategory: context.subcategory
+        });
+        updateLiveActionTimers();
+        return;
+      }
+
+      const timerFinish = event.target.closest?.("[data-daily-timer-finish]");
+      if (timerFinish) {
+        window.LifeRPGTime?.finishActive?.();
+        return;
+      }
+
+      const timerCancel = event.target.closest?.("[data-daily-timer-cancel]");
+      if (timerCancel) {
+        window.LifeRPGTime?.cancelActive?.();
         return;
       }
 
@@ -990,11 +1021,79 @@
           ${quest.completionHint ? `<p class="daily-pick-definition-v303"><b>Definition:</b> ${esc(quest.completionHint)}</p>` : ""}
           <p class="daily-pick-reason-v14"><b>Why this today?</b> ${esc(pick.reason || reasonFor(quest, pick.slot, todayRecord()?.checkIn || {}))}</p>
         </div>
-        <div class="daily-pick-actions-v14">
-          <button class="primary-button" data-daily-log="${escAttr(quest.id)}" data-daily-units="${goal}" type="button">${done ? "Log more" : "Log progress"}</button>
-          <button class="secondary-button" data-daily-reroll="${escAttr(pick.slot)}" type="button">↻ Not today</button>
+        <div class="daily-pick-actions-v14 ${isTimedQuest(quest) && !done ? "has-direct-timer-v306a" : ""}">
+          ${isTimedQuest(quest) && !done ? timedQuestActionsMarkup(quest, goal, pick.slot, progress) : `<button class="primary-button" data-daily-log="${escAttr(quest.id)}" data-daily-units="${goal}" type="button">${done ? "Log more" : "Log progress"}</button><button class="secondary-button" data-daily-reroll="${escAttr(pick.slot)}" type="button">↻ Not today</button>`}
         </div>
       </article>`;
+  }
+
+  function isTimedQuest(quest) {
+    const unit = String(quest?.unitLabel || "").toLowerCase();
+    return /(min|minute|minutes)/.test(unit) && questTargetValue(quest) > 0;
+  }
+
+  function timedQuestActionsMarkup(quest, goal, slotName, currentProgress = 0) {
+    const active = window.LifeRPGTime?.getActive?.();
+    const sameAction = active?.mode === "action" && active?.linkedQuestId === quest.id;
+    if (sameAction) {
+      const elapsedSeconds = Math.max(0, Number(window.LifeRPGTime?.getElapsedSeconds?.() || 0));
+      const targetSeconds = Math.max(60, Number(active.targetMinutes || goal || 1) * 60);
+      const reached = elapsedSeconds >= targetSeconds;
+      const clock = reached ? `+${formatTimerClock(elapsedSeconds - targetSeconds)}` : formatTimerClock(targetSeconds - elapsedSeconds);
+      return `
+        <div class="daily-action-timer-v306a ${reached ? "minimum-reached" : ""}" data-daily-action-live="${escAttr(quest.id)}">
+          <div><small>${reached ? "MINIMUM REACHED" : "MINIMUM REMAINING"}</small><strong data-daily-action-clock>${clock}</strong><span data-daily-action-status>${reached ? "Overtime counts too — stop whenever you want." : `${formatNumber(active.targetMinutes || goal)} minutes completes this Daily Action.`}</span></div>
+          <button class="primary-button" data-daily-timer-finish="${escAttr(quest.id)}" type="button">${reached ? "Finish & complete" : "Stop & log time"}</button>
+          <button class="text-button" data-daily-timer-cancel="${escAttr(quest.id)}" type="button">Cancel</button>
+        </div>`;
+    }
+
+    if (active) {
+      return `<button class="primary-button" type="button" disabled>◷ Another timer is running</button><button class="secondary-button" data-daily-log="${escAttr(quest.id)}" data-daily-units="${goal}" type="button">Log manually</button><button class="text-button" data-daily-reroll="${escAttr(slotName)}" type="button">↻ Not today</button>`;
+    }
+
+    const remaining = Math.max(1, Number(goal || 0) - Math.max(0, Number(currentProgress || 0)));
+    return `<button class="primary-button" data-daily-timer-start="${escAttr(quest.id)}" data-daily-timer-minutes="${Number(remaining)}" type="button">▶ Start ${formatNumber(remaining)}m</button><button class="secondary-button" data-daily-log="${escAttr(quest.id)}" data-daily-units="${remaining}" type="button">Log manually</button><button class="text-button" data-daily-reroll="${escAttr(slotName)}" type="button">↻ Not today</button>`;
+  }
+
+  function dailyTimerContext(quest) {
+    const realm = String(quest?.realm || "");
+    const name = String(quest?.name || "").toLowerCase();
+    if (realm === "Home") return { categoryId: "life_admin", subcategory: "Household" };
+    if (realm === "Recovery") return { categoryId: "recovery", subcategory: "Quiet time" };
+    if (realm === "Health" && /walk/.test(name)) return { categoryId: "recovery", subcategory: "Walk" };
+    if (realm === "Health") return { categoryId: "other", subcategory: "Other" };
+    if (realm === "Work") return { categoryId: "work_home", subcategory: "Preparation" };
+    if (realm === "Japanese" || realm === "Knowledge") return { categoryId: "focus", subcategory: "Study" };
+    if (realm === "Hobbies") return { categoryId: "hobby", subcategory: "Creative" };
+    return { categoryId: "other", subcategory: "Other" };
+  }
+
+  function updateLiveActionTimers() {
+    if (!initialized) return;
+    const active = window.LifeRPGTime?.getActive?.();
+    document.querySelectorAll("[data-daily-action-live]").forEach(panel => {
+      if (!active || active.mode !== "action" || active.linkedQuestId !== panel.dataset.dailyActionLive) return;
+      const elapsedSeconds = Math.max(0, Number(window.LifeRPGTime?.getElapsedSeconds?.() || 0));
+      const targetSeconds = Math.max(60, Number(active.targetMinutes || 1) * 60);
+      const reached = elapsedSeconds >= targetSeconds;
+      panel.classList.toggle("minimum-reached", reached);
+      const clock = panel.querySelector("[data-daily-action-clock]");
+      const status = panel.querySelector("[data-daily-action-status]");
+      const button = panel.querySelector("[data-daily-timer-finish]");
+      const kicker = panel.querySelector("small");
+      if (clock) clock.textContent = reached ? `+${formatTimerClock(elapsedSeconds - targetSeconds)}` : formatTimerClock(targetSeconds - elapsedSeconds);
+      if (status) status.textContent = reached ? "Overtime counts too — stop whenever you want." : `${formatNumber(active.targetMinutes)} minutes completes this Daily Action.`;
+      if (button) button.textContent = reached ? "Finish & complete" : "Stop & log time";
+      if (kicker) kicker.textContent = reached ? "MINIMUM REACHED" : "MINIMUM REMAINING";
+    });
+  }
+
+  function formatTimerClock(seconds) {
+    const total = Math.max(0, Math.floor(Number(seconds || 0)));
+    const minutes = Math.floor(total / 60);
+    const secs = total % 60;
+    return `${String(minutes).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
   }
 
   function unavailablePickMarkup(pick, slot, message) {

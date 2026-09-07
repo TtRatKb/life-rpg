@@ -13397,3 +13397,108 @@ body.world-location-open { overflow: hidden; }
   font-style: normal;
   color: var(--muted, #796b74);
 }
+
+/* V0.30.6a — real-age profile + direct Daily Action timers */
+.settings-profile-panel-v306a {
+  display: grid;
+  gap: 16px;
+}
+
+.profile-birthdate-field-v306a {
+  display: grid;
+  gap: 7px;
+}
+
+.profile-birthdate-field-v306a > span {
+  font-size: .72rem;
+  font-weight: 900;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: #7a566b;
+}
+
+.profile-birthdate-field-v306a input {
+  width: 100%;
+  border: 1px solid rgba(91, 48, 80, .16);
+  background: rgba(255,255,255,.84);
+  color: inherit;
+  border-radius: 14px;
+  padding: 11px 12px;
+  font: inherit;
+}
+
+.profile-age-preview-v306a {
+  margin: 0;
+  padding: 11px 13px;
+  border-radius: 14px;
+  background: rgba(248, 232, 241, .72);
+  color: var(--muted, #796b74);
+  font-size: .78rem;
+  line-height: 1.45;
+}
+
+.daily-pick-actions-v14.has-direct-timer-v306a {
+  align-items: stretch;
+  flex-wrap: wrap;
+}
+
+.daily-action-timer-v306a {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 10px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid rgba(91, 48, 80, .13);
+  border-radius: 16px;
+  background: linear-gradient(145deg, rgba(255,255,255,.92), rgba(250,236,244,.76));
+}
+
+.daily-action-timer-v306a > div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.daily-action-timer-v306a small {
+  font-size: .65rem;
+  letter-spacing: .1em;
+  font-weight: 900;
+  color: #916479;
+}
+
+.daily-action-timer-v306a strong {
+  font-size: 1.45rem;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: #4b2d45;
+}
+
+.daily-action-timer-v306a span {
+  font-size: .72rem;
+  color: var(--muted, #796b74);
+}
+
+.daily-action-timer-v306a.minimum-reached {
+  border-color: rgba(98, 126, 93, .28);
+  background: linear-gradient(145deg, rgba(255,255,255,.94), rgba(236,246,234,.84));
+}
+
+.daily-action-timer-v306a.minimum-reached small,
+.daily-action-timer-v306a.minimum-reached strong {
+  color: #52694e;
+}
+
+@media (max-width: 720px) {
+  .daily-action-timer-v306a {
+    grid-template-columns: 1fr;
+  }
+
+  .daily-action-timer-v306a .primary-button,
+  .daily-action-timer-v306a .text-button,
+  .daily-pick-actions-v14.has-direct-timer-v306a > .primary-button,
+  .daily-pick-actions-v14.has-direct-timer-v306a > .secondary-button,
+  .daily-pick-actions-v14.has-direct-timer-v306a > .text-button {
+    width: 100%;
+  }
+}

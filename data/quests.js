@@ -1166,17 +1166,17 @@
 
     "🚶 10-Minute Walk": {
       plannerEligible: true, plannerRoles: ["care", "optional"], adaptiveUnits: false,
-      completionHint: "Walk for 10 minutes. It can be slow and it does not need to become a workout."
+      completionHint: "Walk for at least 10 minutes. It can be slow and it does not need to become a workout; if you keep going, the extra minutes still count."
     },
     "🛋️ 15-Minute Real Rest": {
       plannerEligible: true, plannerRoles: ["care", "optional"], adaptiveUnits: false,
-      completionHint: "Take 15 minutes with no work/admin goal. Sit, lie down, stare out the window, breathe, or do something genuinely restful."
+      completionHint: "Take at least 15 minutes with no work/admin goal. Sit, lie down, stare out the window, breathe, or do something genuinely restful; extra time can count too."
     },
     "🛏️ Room Reset": {
       name: "🛏️ 15-Minute Room Reset", plannerEligible: true, plannerRoles: ["anchor", "optional"], adaptiveUnits: false,
       xpMode: "Variable by Units", units: 15, unitLabel: "minutes", energy: "Normal",
       sessionSize: "Short (10-20 min)", planningEffort: "medium", planningMinutes: 15,
-      completionHint: "Reset one visible room/zone for 15 minutes, then stop when the timer ends."
+      completionHint: "Reset one visible room/zone for at least 15 minutes. The timer marks the minimum; if you want to keep going, it keeps counting."
     },
     "📦 Throw 1 Thing away": {
       plannerEligible: true, plannerRoles: ["optional"],
@@ -1184,7 +1184,7 @@
     },
     "🧹 10-Minute Clean": {
       plannerEligible: true, plannerRoles: ["anchor", "optional"], adaptiveUnits: false,
-      completionHint: "Clean one defined area for 10 minutes. Stop when the timer ends."
+      completionHint: "Clean one defined area for at least 10 minutes. The timer marks the minimum; extra minutes still count if you keep going."
     },
     "🗂️ Sort / Declutter Files": {
       plannerEligible: true, plannerRoles: ["anchor", "optional"],

@@ -245,7 +245,10 @@
       render();
       return;
     }
-    const elapsed = Math.max(1, Math.round((end - start) / 60000));
+    const elapsedMs = Math.max(0, end - start);
+    const elapsed = Math.max(1, Math.round(elapsedMs / 60000));
+    const targetMinutes = Math.max(0, Number(active.targetMinutes || 0));
+    const minimumReached = targetMinutes <= 0 || elapsedMs >= targetMinutes * 60000;
     if (elapsed > MAX_ACTIVE_HOURS * 60) {
       app.showToast?.("That session ran for more than 18 hours. Add the correct time manually instead.");
       return;
@@ -267,10 +270,17 @@
       lastBreakOffer = Number(active.breakMinutes || 0);
     }
     if (active.mode === "focus" && active.linkedQuestId) maybeLogLinkedQuest(active.linkedQuestId, elapsed);
+    if (active.mode === "action" && active.linkedQuestId && minimumReached) {
+      maybeLogLinkedQuest(active.linkedQuestId, elapsed);
+    }
     app.saveState({ source: `time-${active.mode}-finish` });
     app.renderAll?.();
     render();
     dispatchChange();
+    if (active.mode === "action") {
+      if (minimumReached) app.showToast?.(`${active.label} · ${elapsed} min logged and Daily Action completed.`);
+      else app.showToast?.(`${elapsed} min logged. The ${targetMinutes} min minimum was not reached, so the Daily Action stays open.`);
+    }
   }
 
   function cancelActive() {
@@ -507,7 +517,7 @@
     const started = new Date(active.startedAt).getTime();
     if (!Number.isFinite(started)) return;
     const target = Number(active.targetMinutes || 0);
-    if (target > 0) {
+    if (target > 0 && active.mode !== "action") {
       const due = started + target * 60000;
       if (Date.now() >= due && !active.alarmFired && alarmLocalFiredFor !== active.id) {
         active.alarmFired = true;
@@ -588,9 +598,9 @@
     const meta = `${category.icon} ${category.label}${active.subcategory ? ` · ${active.subcategory}` : ""}`;
     els.activeCard.innerHTML = `
       <article class="rhythm-running-v304 ${reached ? "is-finished" : ""}">
-        <div class="rhythm-running-copy-v304"><small>${active.mode === "break" ? "BREAK TIMER" : active.mode === "focus" ? "FOCUS SESSION" : "CLOCKED IN"}</small><h2>${esc(active.label)}</h2><p>${esc(meta)}</p></div>
-        <div class="rhythm-clock-v304"><strong>${mainClock}</strong><span>${targetSeconds > 0 ? (reached ? `${active.targetMinutes}m target complete` : `${formatDuration(Math.floor(elapsedSeconds / 60))} elapsed`) : `${formatDuration(Math.floor(elapsedSeconds / 60))} logged so far`}</span></div>
-        <div class="rhythm-running-actions-v304"><button class="primary-button" data-time-stop type="button">${active.mode === "break" ? "Finish break & log" : reached ? "Finish & log" : "Stop & log"}</button><button class="secondary-button" data-time-cancel type="button">Cancel</button></div>
+        <div class="rhythm-running-copy-v304"><small>${active.mode === "break" ? "BREAK TIMER" : active.mode === "focus" ? "FOCUS SESSION" : active.mode === "action" ? "DAILY ACTION" : "CLOCKED IN"}</small><h2>${esc(active.label)}</h2><p>${esc(meta)}</p></div>
+        <div class="rhythm-clock-v304"><strong>${mainClock}</strong><span>${targetSeconds > 0 ? (reached ? (active.mode === "action" ? `${active.targetMinutes}m minimum reached · overtime counts` : `${active.targetMinutes}m target complete`) : `${formatDuration(Math.floor(elapsedSeconds / 60))} elapsed`) : `${formatDuration(Math.floor(elapsedSeconds / 60))} logged so far`}</span></div>
+        <div class="rhythm-running-actions-v304"><button class="primary-button" data-time-stop type="button">${active.mode === "break" ? "Finish break & log" : active.mode === "action" ? (reached ? "Finish & complete" : "Stop & log time") : reached ? "Finish & log" : "Stop & log"}</button><button class="secondary-button" data-time-cancel type="button">Cancel</button></div>
       </article>`;
   }
 
@@ -796,6 +806,16 @@
     getTodaySummary: () => ({ ...todaySummary() }),
     getWeekSummary: () => ({ ...weekSummary() }),
     getEntries: () => state().entries.map(entry => ({ ...entry })),
-    startFocus: options => startActive({ mode: "focus", categoryId: options?.categoryId || "focus", subcategory: options?.subcategory || "Deep work", label: options?.label || "Focus session", targetMinutes: options?.minutes || 50, breakMinutes: options?.breakMinutes || 10, linkedQuestId: options?.linkedQuestId || null })
+    getActive: () => state().active ? { ...state().active } : null,
+    getElapsedSeconds: () => {
+      const active = state().active;
+      if (!active) return 0;
+      const started = new Date(active.startedAt).getTime();
+      return Number.isFinite(started) ? Math.max(0, Math.floor((Date.now() - started) / 1000)) : 0;
+    },
+    finishActive,
+    cancelActive,
+    startFocus: options => startActive({ mode: "focus", categoryId: options?.categoryId || "focus", subcategory: options?.subcategory || "Deep work", label: options?.label || "Focus session", targetMinutes: options?.minutes || 50, breakMinutes: options?.breakMinutes || 10, linkedQuestId: options?.linkedQuestId || null }),
+    startAction: options => startActive({ mode: "action", categoryId: options?.categoryId || "life_admin", subcategory: options?.subcategory || "Other admin", label: options?.label || "Daily action", targetMinutes: options?.minutes || 15, breakMinutes: 0, linkedQuestId: options?.linkedQuestId || null })
   };
 })();
