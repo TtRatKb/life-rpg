@@ -1964,6 +1964,9 @@
     const normalizedUnits = isUnitQuest(quest)
       ? Math.max(.1, Number(units) || questTarget(quest))
       : questTarget(quest);
+    if (window.LifeRPGSmartQuests?.interceptQuestCompletion?.(quest, normalizedUnits, options)) {
+      return { pending: true, quest: { ...quest }, units: normalizedUnits };
+    }
     const baseReward = calculateQuestReward(quest, normalizedUnits);
     const shouldAward = !isBatchQuest(quest) || Number(baseReward.batchProgress?.earnedBatches || 0) > 0;
     const reward = shouldAward ? awardActivity({
@@ -2002,6 +2005,12 @@
       at: new Date().toISOString()
     });
 
+    window.LifeRPGSmartQuests?.afterQuestComplete?.({
+      quest,
+      units: normalizedUnits,
+      reward: { ...reward },
+      log: { ...(state.completionLog[state.completionLog.length - 1] || {}) }
+    });
     applyHiddenEngineChecks();
     saveState();
     renderAll();
@@ -2403,6 +2412,9 @@
       return { available: false, reason: quest.manualStatus };
     }
 
+    const smartAvailability = window.LifeRPGSmartQuests?.availabilityForQuest?.(quest);
+    if (smartAvailability && smartAvailability.available === false) return smartAvailability;
+
     const logs = state.completionLog
       .filter(log => log.questId === quest.id)
       .sort((a, b) => new Date(b.at) - new Date(a.at));
@@ -2624,7 +2636,7 @@
     previewActivityReward,
     awardActivity,
     revokeActivityReward,
-    logQuestProgress: (questId, units) => completeQuest(questId, units, { showOverlay: false }),
+    logQuestProgress: (questId, units, options = {}) => completeQuest(questId, units, { showOverlay: false, ...options }),
     getTodayStoryEnergyEarned: () => storyEnergyEarnedOnDate(new Date()),
     getTodayRewardActionCount,
     formatEnergy,

@@ -1,23 +1,24 @@
-const CACHE_NAME = "life-rpg-v0306a-shell";
+const CACHE_NAME = "life-rpg-v0307-shell";
 const CORE = [
   "./",
   "./index.html",
-  "./data/quests.js?v=0.30.6a",
-  "./styles.css?v=0.30.6a",
+  "./data/quests.js?v=0.30.7",
+  "./styles.css?v=0.30.7",
   "./manifest.webmanifest?v=0.30.3a",
-  "./pwa.js?v=0.30.6a",
-  "./app.js?v=0.30.6a",
+  "./pwa.js?v=0.30.7",
+  "./app.js?v=0.30.7",
   "./stewardship.js?v=0.30.6",
   "./habits.js?v=0.30.6",
   "./adventures.js?v=0.30.6",
   "./library.js?v=0.30.6",
   "./games.js?v=0.30.6",
-  "./time.js?v=0.30.6a",
-  "./daily.js?v=0.30.6a",
+  "./time.js?v=0.30.7",
+  "./smart-quests.js?v=0.30.7",
+  "./daily.js?v=0.30.7",
   "./journal.js?v=0.30.6",
   "./shop.js?v=0.30.6",
   "./achievements.js?v=0.30.6",
-  "./cloud-save.js?v=0.30.6",
+  "./cloud-save.js?v=0.30.7",
   "./assets/app-icon-192.png",
   "./assets/app-icon-512.png"
 ];

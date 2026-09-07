@@ -412,13 +412,24 @@
         if (!quest) return;
         const minutes = Math.max(1, Number(timerStart.dataset.dailyTimerMinutes || estimatedMinutes(quest) || questTargetValue(quest) || 15));
         const context = dailyTimerContext(quest);
-        window.LifeRPGTime?.startAction?.({
-          linkedQuestId: quest.id,
-          label: quest.name,
-          minutes,
-          categoryId: context.categoryId,
-          subcategory: context.subcategory
-        });
+        if (quest.systemRole === "focus-work") {
+          window.LifeRPGTime?.startFocus?.({
+            linkedQuestId: quest.id,
+            label: quest.name,
+            minutes,
+            breakMinutes: minutes >= 45 ? 10 : 5,
+            categoryId: "work_home",
+            subcategory: "Preparation"
+          });
+        } else {
+          window.LifeRPGTime?.startAction?.({
+            linkedQuestId: quest.id,
+            label: quest.name,
+            minutes,
+            categoryId: context.categoryId,
+            subcategory: context.subcategory
+          });
+        }
         updateLiveActionTimers();
         return;
       }
@@ -1000,7 +1011,8 @@
     const goal = Number(pick.suggestedUnits || questTargetValue(quest));
     const done = completion.done;
     const unitLabel = friendlyUnitLabel(quest.unitLabel, goal);
-    const goalText = goalLabel(quest, goal);
+    const smartContext = window.LifeRPGSmartQuests?.contextForQuest?.(quest) || null;
+    const goalText = smartContext?.goal || goalLabel(quest, goal);
     const progressText = progress > 0 ? `${formatNumber(progress)} / ${formatNumber(goal)} ${unitLabel}` : goalText;
 
     return `
@@ -1017,6 +1029,7 @@
             <span class="daily-adventure-progress-v15">~${formatNumber(estimatedMinutes(quest))} min</span>
           </div>
           <h3>${esc(quest.name || "Untitled quest")}</h3>
+          ${smartContext?.label ? `<p class="daily-smart-context-v307"><b>Right now:</b> ${esc(smartContext.label)}</p>` : ""}
           <div class="daily-goal-v14"><span>✦</span><div><small>WHAT COUNTS AS DONE</small><strong>${esc(done ? progressText : goalText)}</strong></div></div>
           ${quest.completionHint ? `<p class="daily-pick-definition-v303"><b>Definition:</b> ${esc(quest.completionHint)}</p>` : ""}
           <p class="daily-pick-reason-v14"><b>Why this today?</b> ${esc(pick.reason || reasonFor(quest, pick.slot, todayRecord()?.checkIn || {}))}</p>
@@ -1034,7 +1047,7 @@
 
   function timedQuestActionsMarkup(quest, goal, slotName, currentProgress = 0) {
     const active = window.LifeRPGTime?.getActive?.();
-    const sameAction = active?.mode === "action" && active?.linkedQuestId === quest.id;
+    const sameAction = active?.linkedQuestId === quest.id && (active?.mode === "action" || (quest.systemRole === "focus-work" && active?.mode === "focus"));
     if (sameAction) {
       const elapsedSeconds = Math.max(0, Number(window.LifeRPGTime?.getElapsedSeconds?.() || 0));
       const targetSeconds = Math.max(60, Number(active.targetMinutes || goal || 1) * 60);
@@ -1053,19 +1066,21 @@
     }
 
     const remaining = Math.max(1, Number(goal || 0) - Math.max(0, Number(currentProgress || 0)));
-    return `<button class="primary-button" data-daily-timer-start="${escAttr(quest.id)}" data-daily-timer-minutes="${Number(remaining)}" type="button">▶ Start ${formatNumber(remaining)}m</button><button class="secondary-button" data-daily-log="${escAttr(quest.id)}" data-daily-units="${remaining}" type="button">Log manually</button><button class="text-button" data-daily-reroll="${escAttr(slotName)}" type="button">↻ Not today</button>`;
+    const startLabel = quest.systemRole === "focus-work" ? `▶ Start Focus ${formatNumber(remaining)}m` : `▶ Start ${formatNumber(remaining)}m`;
+    return `<button class="primary-button" data-daily-timer-start="${escAttr(quest.id)}" data-daily-timer-minutes="${Number(remaining)}" type="button">${startLabel}</button><button class="secondary-button" data-daily-log="${escAttr(quest.id)}" data-daily-units="${remaining}" type="button">Log manually</button><button class="text-button" data-daily-reroll="${escAttr(slotName)}" type="button">↻ Not today</button>`;
   }
 
   function dailyTimerContext(quest) {
     const realm = String(quest?.realm || "");
     const name = String(quest?.name || "").toLowerCase();
     if (realm === "Home") return { categoryId: "life_admin", subcategory: "Household" };
-    if (realm === "Recovery") return { categoryId: "recovery", subcategory: "Quiet time" };
+    if (realm === "Recovery") return { categoryId: "recovery", subcategory: /stretch|yoga|mobility/.test(name) ? "Other recovery" : "Quiet time" };
     if (realm === "Health" && /walk/.test(name)) return { categoryId: "recovery", subcategory: "Walk" };
-    if (realm === "Health") return { categoryId: "other", subcategory: "Other" };
+    if (realm === "Health" && /fresh-air/.test(name)) return { categoryId: "recovery", subcategory: "Other recovery" };
+    if (realm === "Health") return { categoryId: "recovery", subcategory: "Other recovery" };
     if (realm === "Work") return { categoryId: "work_home", subcategory: "Preparation" };
     if (realm === "Japanese" || realm === "Knowledge") return { categoryId: "focus", subcategory: "Study" };
-    if (realm === "Hobbies") return { categoryId: "hobby", subcategory: "Creative" };
+    if (realm === "Hobbies") return { categoryId: "hobby", subcategory: quest?.systemRole === "craft-session" ? "Craft" : "Creative" };
     return { categoryId: "other", subcategory: "Other" };
   }
 
@@ -1073,7 +1088,7 @@
     if (!initialized) return;
     const active = window.LifeRPGTime?.getActive?.();
     document.querySelectorAll("[data-daily-action-live]").forEach(panel => {
-      if (!active || active.mode !== "action" || active.linkedQuestId !== panel.dataset.dailyActionLive) return;
+      if (!active || !["action", "focus"].includes(active.mode) || active.linkedQuestId !== panel.dataset.dailyActionLive) return;
       const elapsedSeconds = Math.max(0, Number(window.LifeRPGTime?.getElapsedSeconds?.() || 0));
       const targetSeconds = Math.max(60, Number(active.targetMinutes || 1) * 60);
       const reached = elapsedSeconds >= targetSeconds;

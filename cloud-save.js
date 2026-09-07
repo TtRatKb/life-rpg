@@ -518,6 +518,8 @@ function progressScore(state) {
   const shopTransactions = Array.isArray(state?.shop?.transactions) ? state.shop.transactions.length : 0;
   const achievementUnlocks = state?.achievements?.unlocked && typeof state.achievements.unlocked === "object" ? Object.keys(state.achievements.unlocked).length : 0;
   const achievementPins = Array.isArray(state?.achievements?.pinned) ? state.achievements.pinned.length : 0;
+  const curiosityItems = Array.isArray(state?.smartQuests?.curiosity?.items) ? state.smartQuests.curiosity.items.length : 0;
+  const explainNotes = Array.isArray(state?.smartQuests?.curiosity?.explainNotes) ? state.smartQuests.curiosity.explainNotes.length : 0;
 
   return (
     completedScenes * 1000 +
@@ -534,6 +536,7 @@ function progressScore(state) {
     timeLogs * 8 +
     shopItems * 4 + shopTransactions * 12 +
     achievementUnlocks * 8 + achievementPins * 2 +
+    curiosityItems * 5 + explainNotes * 8 +
     rewardEvents * 2 +
     Math.max(0, Number(state?.characterXP || 0)) +
     Math.max(0, Number(state?.storyEnergy || 0)) +
@@ -556,6 +559,7 @@ function summarizeState(state, savedAt = null) {
   const timeCount = Array.isArray(state?.timeTracking?.entries) ? state.timeTracking.entries.length : 0;
   const shopTransactionCount = Array.isArray(state?.shop?.transactions) ? state.shop.transactions.length : 0;
   const achievementCount = state?.achievements?.unlocked && typeof state.achievements.unlocked === "object" ? Object.keys(state.achievements.unlocked).length : 0;
+  const curiosityCount = Array.isArray(state?.smartQuests?.curiosity?.items) ? state.smartQuests.curiosity.items.length : 0;
   const xp = Math.max(0, Number(state?.characterXP || 0));
   const activityCount = questCount + externalCount + habitCount + adventureCount + bookCount + gameCount + timeCount;
   const collectionCount =
@@ -571,6 +575,7 @@ function summarizeState(state, savedAt = null) {
     `${journalCount} journal day${journalCount === 1 ? "" : "s"}`,
     `${timeCount} time block${timeCount === 1 ? "" : "s"}`,
     `${achievementCount} achievement${achievementCount === 1 ? "" : "s"}`,
+    `${curiosityCount} curiosity item${curiosityCount === 1 ? "" : "s"}`,
     `${shopTransactionCount} shop log${shopTransactionCount === 1 ? "" : "s"}`
   ];
   if (savedAt) parts.push(`saved ${formatDateTime(savedAt)}`);

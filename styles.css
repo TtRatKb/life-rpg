@@ -13502,3 +13502,72 @@ body.world-location-open { overflow: hidden; }
     width: 100%;
   }
 }
+
+/* V0.30.7 — Smart Quest Expansion + Curiosity Queue */
+.smart-quest-grid-v307 {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(290px, .85fr);
+  gap: 18px;
+  margin: 18px 0;
+}
+
+.smart-panel-heading-v307 { align-items: flex-start; }
+.curiosity-add-v307 { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; margin: 14px 0; }
+.curiosity-add-v307 input,
+.smart-signal-fields-v307 input,
+.smart-signal-fields-v307 select,
+.smart-note-dialog-v307 textarea {
+  width: 100%;
+  border: 1px solid rgba(91, 48, 80, .16);
+  border-radius: 14px;
+  background: rgba(255,255,255,.92);
+  color: var(--ink, #372c35);
+  padding: 11px 12px;
+  font: inherit;
+}
+
+.curiosity-list-v307 { display: grid; gap: 10px; }
+.curiosity-item-v307 {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 13px 14px;
+  border: 1px solid rgba(91,48,80,.11);
+  border-radius: 16px;
+  background: rgba(255,255,255,.7);
+}
+.curiosity-item-v307 > div:first-child { display: grid; gap: 4px; min-width: 0; }
+.curiosity-item-v307 small { font-size: .63rem; letter-spacing: .09em; font-weight: 900; color: #976a7f; }
+.curiosity-item-v307 strong { overflow-wrap: anywhere; }
+.curiosity-item-v307 span { font-size: .72rem; color: var(--muted, #796b74); }
+.curiosity-actions-v307 { display: flex; gap: 7px; flex-wrap: wrap; justify-content: flex-end; }
+.curiosity-done-v307 { border-top: 1px dashed rgba(91,48,80,.13); padding-top: 10px; }
+.curiosity-done-v307 summary { cursor: pointer; font-size: .76rem; font-weight: 800; color: #765366; }
+.curiosity-done-v307 > div { display: grid; gap: 3px; padding: 9px 2px; }
+.curiosity-done-v307 > div + div { border-top: 1px solid rgba(91,48,80,.08); }
+.curiosity-done-v307 span { font-size: .75rem; color: var(--muted, #796b74); }
+.smart-empty-v307 { display: grid; gap: 4px; padding: 18px; border-radius: 16px; background: rgba(249,238,244,.64); color: var(--muted, #796b74); }
+.smart-empty-v307 strong { color: var(--ink, #372c35); }
+
+.smart-signal-fields-v307 { display: grid; gap: 13px; margin-top: 14px; }
+.smart-signal-fields-v307 label { display: grid; gap: 6px; font-size: .78rem; font-weight: 800; color: #57434f; }
+.smart-signal-fields-v307 label small { font-weight: 500; color: var(--muted, #796b74); line-height: 1.4; }
+.smart-inline-v307 { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; }
+.smart-check-v307 { grid-template-columns: auto 1fr !important; align-items: start; }
+.smart-check-v307 input { width: auto; margin-top: 3px; }
+.smart-check-v307 span { display: grid; gap: 2px; }
+.smart-context-line-v307 { margin: 14px 0 0; padding: 10px 12px; border-radius: 13px; background: rgba(248,232,241,.72); font-size: .74rem; color: #715565; line-height: 1.45; }
+.daily-smart-context-v307 { margin: 7px 0 0; padding: 8px 10px; border-left: 3px solid rgba(135, 82, 111, .35); background: rgba(250,241,246,.65); border-radius: 0 10px 10px 0; font-size: .78rem; }
+.smart-note-source-v307 { margin: 2px 0 10px; padding: 10px 12px; border-radius: 13px; background: rgba(248,232,241,.68); font-weight: 750; color: #654b5b; }
+
+@media (max-width: 900px) {
+  .smart-quest-grid-v307 { grid-template-columns: 1fr; }
+}
+@media (max-width: 680px) {
+  .curiosity-add-v307,
+  .curiosity-item-v307,
+  .smart-inline-v307 { grid-template-columns: 1fr; }
+  .curiosity-actions-v307 { justify-content: stretch; }
+  .curiosity-actions-v307 button { width: 100%; }
+}
