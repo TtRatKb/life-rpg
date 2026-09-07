@@ -7,7 +7,7 @@
     return;
   }
 
-  const SCHEMA = 6;
+  const SCHEMA = 7;
   const SHADOW_KEY = "life-rpg-daily-planner-shadow-v1";
   const MAX_DAY_HISTORY = 120;
   const MAX_COMPANION_HISTORY = 45;
@@ -23,21 +23,24 @@
   const SLOTS = {
     focus: {
       icon: "🎯",
-      kicker: "FOCUS PICK",
-      title: "One useful thing",
-      className: "focus"
+      kicker: "ANCHOR",
+      title: "Worth doing today",
+      className: "focus",
+      role: "anchor"
     },
     joy: {
       icon: "🌸",
-      kicker: "JOY PICK",
-      title: "Something for you",
-      className: "joy"
+      kicker: "CARE",
+      title: "Protect some actual life",
+      className: "joy",
+      role: "care"
     },
     gentle: {
-      icon: "☕",
-      kicker: "GENTLE PICK",
-      title: "Low-pressure option",
-      className: "gentle"
+      icon: "✨",
+      kicker: "OPTIONAL",
+      title: "Only if capacity remains",
+      className: "gentle",
+      role: "optional"
     }
   };
 
@@ -47,7 +50,7 @@
     energy: { fumes: "Running on fumes", low: "Low", okay: "Okay", lots: "Lots" },
     stress: { calm: "Calm", light: "Light", medium: "Noticeable", high: "High", overload: "Overloaded" },
     time: { none: "Almost none", little: "A little", decent: "A decent amount", plenty: "Plenty" },
-    obligations: { help: "Please send help", busy: "Busy", normal: "Normal", open: "Pretty open" }
+    obligations: { help: "Packed / very heavy", busy: "Busy", normal: "Normal", open: "Pretty open" }
   };
 
   const VALUE = {
@@ -114,7 +117,7 @@
         }
       },
       obligations: {
-        question: "How crowded is the must-do pile?",
+        question: "How heavy is the fixed load today?",
         reactions: {
           help: "Yep. That's a lot. The planner does not get to add a second invisible workload on top of it.",
           busy: "Busy. So anything optional needs to actually earn its place today.",
@@ -179,7 +182,7 @@
         }
       },
       obligations: {
-        question: "And how scary is the must-do pile today?",
+        question: "How packed is the stuff you already have to do today?",
         reactions: {
           help: "Okay, wow. The pile is being rude. We are not adding guilt as a bonus task.",
           busy: "Busy. Got it. Optional stuff has to stay actually optional.",
@@ -244,7 +247,7 @@
         }
       },
       obligations: {
-        question: "How full is the must-do pile?",
+        question: "How heavy is the fixed part of the day?",
         reactions: {
           help: "Okay, that's heavy. We don't stack optional pressure on top.",
           busy: "Busy. Then the rest needs to earn its space.",
@@ -309,7 +312,7 @@
         }
       },
       obligations: {
-        question: "Must-do pile?",
+        question: "What are you already stuck doing today?",
         reactions: {
           help: "Too much. Don't add fake obligations because you're feeling guilty.",
           busy: "Busy. Fine. Optional means optional.",
@@ -344,6 +347,7 @@
     picksEmpty: byId("dailyPicksEmpty"),
     picksCount: byId("dailyPicksCount"),
     batchStatus: byId("dailyBatchStatus"),
+    rebalance: byId("dailyRebalanceButton"),
     dialog: byId("dailyBriefingDialog"),
     form: byId("dailyBriefingForm"),
     dialogTitle: byId("dailyBriefingDialogTitle"),
@@ -351,6 +355,7 @@
     close: byId("dailyBriefingClose"),
     cancel: byId("dailyBriefingCancel"),
     gentle: byId("dailyGentle"),
+    loadNote: byId("dailyLoadNote"),
     conversationCounter: byId("dailyConversationCounter"),
     conversationDots: byId("dailyConversationDots"),
     conversationNext: byId("dailyConversationNext"),
@@ -384,6 +389,7 @@
     els.conversationBack?.addEventListener("click", () => showConversationStep(Math.max(0, conversationStep - 1)));
     els.form?.addEventListener("change", handleConversationAnswer);
     els.form?.addEventListener("submit", saveBriefing);
+    els.rebalance?.addEventListener("click", rebalanceForHeavierDay);
 
     document.addEventListener("click", event => {
       const newBatch = event.target.closest?.("[data-daily-new-batch]");
@@ -421,7 +427,11 @@
 
       const gameLog = event.target.closest?.("[data-daily-game-log]");
       if (gameLog) {
-        window.LifeRPGGames?.openLog?.(gameLog.dataset.dailyGameLog, Number(gameLog.dataset.dailyGameMinutes || 0));
+        window.LifeRPGGames?.openLog?.(
+          gameLog.dataset.dailyGameLog,
+          Number(gameLog.dataset.dailyGameMinutes || 0),
+          { preserveBacklog: gameLog.dataset.dailyGameTrial === "true" }
+        );
       }
     });
 
@@ -752,8 +762,9 @@
         <div class="daily-summary-chip-v14"><span>⚡</span><div><small>ENERGY</small><strong>${esc(LABELS.energy[checkIn.energy] || checkIn.energy || "—")}</strong></div></div>
         <div class="daily-summary-chip-v14"><span>◇</span><div><small>STRESS</small><strong>${esc(LABELS.stress[checkIn.stress] || "—")}</strong></div></div>
         <div class="daily-summary-chip-v14"><span>◷</span><div><small>FREE TIME</small><strong>${esc(LABELS.time[checkIn.time] || checkIn.time)}</strong></div></div>
-        <div class="daily-summary-chip-v14"><span>☷</span><div><small>OBLIGATIONS</small><strong>${esc(LABELS.obligations[checkIn.obligations] || checkIn.obligations)}</strong></div></div>
+        <div class="daily-summary-chip-v14"><span>☷</span><div><small>FIXED LOAD</small><strong>${esc(LABELS.obligations[checkIn.obligations] || checkIn.obligations)}</strong></div></div>
       </div>
+      ${checkIn.loadNote ? `<div class="daily-plan-context-v303"><span>🗓</span><div><small>KNOWN TODAY</small><strong>${esc(checkIn.loadNote)}</strong></div></div>` : ""}
       ${checkInRewardMarkup(todayRecord()?.checkInReward)}
       <div class="daily-capacity-note-v14 ${checkIn.gentle ? "gentle" : ""}">
         <span>${checkIn.gentle ? "♡" : "✿"}</span>
@@ -772,19 +783,20 @@
     const score = sleep * 0.2 + energy * 0.4 + time * 0.2 + obligations * 0.2 - stressPenalty - moodPenalty - (checkIn.gentle ? 1.1 : 0);
 
     if (checkIn.gentle || score < 0.8) {
-      return { title: "Keep the floor low today.", text: "Short, forgiving options get priority. Finishing one small thing is enough." };
+      return { title: "Keep the floor low today.", text: "Care and recovery get priority. If the fixed load is already heavy, Life RPG may skip the Anchor entirely." };
     }
     if (score < 1.55) {
-      return { title: "A lighter day fits best.", text: "The planner will avoid stacking high-friction choices and keep the suggested chunks small." };
+      return { title: "A lighter day fits best.", text: "The plan stays small: one realistic Anchor at most, something restorative, and an Optional only if it earns its place." };
     }
     if (score < 2.35) {
-      return { title: "You have some usable room.", text: "A meaningful focus task can fit, but the day still gets a joy pick and an easy exit." };
+      return { title: "You have some usable room.", text: "A meaningful Anchor can fit, but Care still belongs in the plan and Optional stays genuinely optional." };
     }
-    return { title: "There is room for a bigger move.", text: "The focus pick can be more ambitious without turning the entire day into productivity mode." };
+    return { title: "There is room for a bigger move.", text: "The Anchor can be more ambitious without turning the whole day into productivity mode; hobbies and recovery still count." };
   }
 
   function renderPicks(day) {
     if (!els.picks || !els.picksEmpty || !els.picksCount) return;
+    els.rebalance?.classList.toggle("hidden", !day?.checkIn);
     if (!day?.checkIn) {
       els.picks.innerHTML = "";
       els.picksEmpty.classList.remove("hidden");
@@ -794,19 +806,20 @@
 
     const picks = Array.isArray(day.picks) ? day.picks : [];
     if (!picks.length) {
+      const heavy = ["help", "busy"].includes(day.checkIn.obligations) || ["none", "little"].includes(day.checkIn.time);
       els.picks.innerHTML = `
         <div class="daily-no-candidates-v14">
-          <span>☷</span><div><strong>I couldn't build a useful set yet.</strong><p>Add a few quests, Side Adventures, books marked Reading, or active games and the planner will have something concrete to choose from.</p></div>
+          <span>${heavy ? "♡" : "☷"}</span><div><strong>${heavy ? "Your existing day is already the main load." : "Nothing genuinely useful fits right now."}</strong><p>${heavy ? "Life RPG is deliberately not inventing extra work. Come back later, edit the check-in, or choose something from your libraries if you actually want it." : "Add a concrete Side Adventure next action, mark a book Reading, keep a game in rotation, or use one of the small bounded actions on the Quest Board."}</p></div>
         </div>`;
       els.picksEmpty.classList.add("hidden");
-      els.picksCount.textContent = "No candidates";
+      els.picksCount.textContent = "No extra action needed";
       return;
     }
 
     els.picksEmpty.classList.add("hidden");
     const completed = picks.filter(pick => pickCompletion(pick).done).length;
     const batch = Math.max(1, Number(day.batchIndex || 1));
-    els.picksCount.textContent = `Batch ${batch} · ${completed}/${picks.length} complete`;
+    els.picksCount.textContent = picks.length === 3 ? `Set ${batch} · ${completed}/${picks.length} complete` : `${picks.length} smart action${picks.length === 1 ? "" : "s"} · ${completed} done`;
     els.picks.innerHTML = picks.map(pickCardMarkup).join("");
   }
 
@@ -836,11 +849,12 @@
             <div class="daily-adventure-meta-v15 daily-book-meta-v16">
               <span class="daily-realm-pill-v14">${role.icon} ${esc(role.label)}</span>
               <span class="daily-adventure-source-v15">📚 Library</span>
+              <span class="daily-adventure-source-v15">${esc(sourceEffortLabel("book", book))} · ~${formatNumber(pickEstimatedMinutes(pick, book))} min</span>
               <span class="daily-adventure-progress-v15">${esc(completion.progressText || progressLine)}</span>
             </div>
             <h3>${esc(book.title || "Untitled book")}</h3>
             ${book.author ? `<p class="daily-book-author-v16">${esc(book.author)}</p>` : ""}
-            <div class="daily-goal-v14"><span>✦</span><div><small>TODAY'S FINISH LINE</small><strong>${esc(goal.label)}</strong></div></div>
+            <div class="daily-goal-v14"><span>✦</span><div><small>WHAT COUNTS AS DONE</small><strong>${esc(goal.label)}</strong></div></div>
             <p class="daily-pick-reason-v14"><b>Why this today?</b> ${esc(pick.reason || reasonForBook(book, pick.slot, todayRecord()?.checkIn || {}))}</p>
           </div>
           <div class="daily-pick-actions-v14">
@@ -855,7 +869,7 @@
       if (!game) return unavailablePickMarkup(pick, slot, "This game is no longer in the Games shelf. Reroll this card to replace it.");
       const completion = pickCompletion(pick);
       const done = completion.done;
-      if (!["playing", "endless"].includes(game.status) && !done) return unavailablePickMarkup(pick, slot, "This game is no longer in active rotation. Reroll this card to replace it.");
+      if (!["playing", "endless", "backlog"].includes(game.status) && !done) return unavailablePickMarkup(pick, slot, "This game is no longer available for today. Reroll this card to replace it.");
       const role = gameRoleMeta(game.role);
       const goal = pick.gameGoal || gameGoal(game, pick.slot, todayRecord()?.checkIn || {});
       const openGoals = Array.isArray(game.goals) ? game.goals.filter(item => !item.done) : [];
@@ -872,16 +886,17 @@
           <div class="daily-pick-quest-v14">
             <div class="daily-adventure-meta-v15 daily-game-meta-v17">
               <span class="daily-realm-pill-v14">${role.icon} ${esc(role.label)}</span>
-              <span class="daily-adventure-source-v15">🎮 Games</span>
+              <span class="daily-adventure-source-v15">${game.status === "backlog" ? "✦ Backlog trial" : "🎮 Games"}</span>
+              <span class="daily-adventure-source-v15">${esc(sourceEffortLabel("game", game))} · ~${formatNumber(pickEstimatedMinutes(pick, game))} min</span>
               <span class="daily-adventure-progress-v15">${esc(completion.progressText || progressLine)}</span>
             </div>
             <h3>${esc(game.title || "Untitled game")}</h3>
             ${game.platform ? `<p class="daily-game-platform-v17">${esc(game.platform)}</p>` : ""}
-            <div class="daily-goal-v14"><span>✦</span><div><small>TODAY'S FINISH LINE</small><strong>${esc(goal.label)}</strong></div></div>
+            <div class="daily-goal-v14"><span>✦</span><div><small>WHAT COUNTS AS DONE</small><strong>${esc(goal.label)}</strong></div></div>
             <p class="daily-pick-reason-v14"><b>Why this today?</b> ${esc(pick.reason || reasonForGame(game, pick.slot, todayRecord()?.checkIn || {}))}</p>
           </div>
           <div class="daily-pick-actions-v14">
-            <button class="primary-button" data-daily-game-log="${escAttr(game.id)}" data-daily-game-minutes="${Number(goal.minutes || game.sessionMinutes || 45)}" type="button">${done ? "Log more play" : "Log this session"}</button>
+            <button class="primary-button" data-daily-game-log="${escAttr(game.id)}" data-daily-game-minutes="${Number(goal.minutes || game.sessionMinutes || 45)}" data-daily-game-trial="${game.status === "backlog" ? "true" : "false"}" type="button">${done ? "Log more play" : game.status === "backlog" ? "Try for 30 min" : "Log this session"}</button>
             <button class="secondary-button" data-daily-reroll="${escAttr(pick.slot)}" type="button">↻ Not today</button>
           </div>
         </article>`;
@@ -905,10 +920,11 @@
             <div class="daily-adventure-meta-v15">
               <span class="daily-realm-pill-v14">${realmIcon(adventure.realm)} ${esc(adventure.realm || "Hobbies")}</span>
               <span class="daily-adventure-source-v15">✧ Side Adventure</span>
+              <span class="daily-adventure-source-v15">${esc(sourceEffortLabel("adventure", adventure))} · ~${formatNumber(pickEstimatedMinutes(pick, adventure))} min</span>
               ${progress === null ? "" : `<span class="daily-adventure-progress-v15">${progress}% complete</span>`}
             </div>
             <h3>${esc(adventure.name || "Untitled adventure")}</h3>
-            <div class="daily-goal-v14"><span>✦</span><div><small>TODAY'S FINISH LINE</small><strong>${esc(finishLine)}</strong></div></div>
+            <div class="daily-goal-v14"><span>✦</span><div><small>WHAT COUNTS AS DONE</small><strong>${esc(finishLine)}</strong></div></div>
             <p class="daily-pick-reason-v14"><b>Why this today?</b> ${esc(pick.reason || reasonForAdventure(adventure, pick.slot, todayRecord()?.checkIn || {}))}</p>
           </div>
           <div class="daily-pick-actions-v14">
@@ -920,6 +936,9 @@
 
     const quest = findQuest(pick.sourceId);
     if (!quest) return unavailablePickMarkup(pick, slot, "This item is no longer in the Quest Board. Reroll this card to replace it.");
+    if ((quest.manualStatus === "Archived" || quest.plannerEligible === false) && !pickCompletion(pick).done) {
+      return unavailablePickMarkup(pick, slot, "This legacy action has been retired from the Living Daily Plan. Reroll this card for a state-aware replacement.");
+    }
 
     const completion = pickCompletion(pick);
     const progress = Number(completion.progress || 0);
@@ -943,7 +962,8 @@
             <span class="daily-adventure-progress-v15">~${formatNumber(estimatedMinutes(quest))} min</span>
           </div>
           <h3>${esc(quest.name || "Untitled quest")}</h3>
-          <div class="daily-goal-v14"><span>✦</span><div><small>TODAY'S FINISH LINE</small><strong>${esc(done ? progressText : goalText)}</strong></div></div>
+          <div class="daily-goal-v14"><span>✦</span><div><small>WHAT COUNTS AS DONE</small><strong>${esc(done ? progressText : goalText)}</strong></div></div>
+          ${quest.completionHint ? `<p class="daily-pick-definition-v303"><b>Definition:</b> ${esc(quest.completionHint)}</p>` : ""}
           <p class="daily-pick-reason-v14"><b>Why this today?</b> ${esc(pick.reason || reasonFor(quest, pick.slot, todayRecord()?.checkIn || {}))}</p>
         </div>
         <div class="daily-pick-actions-v14">
@@ -971,6 +991,7 @@
 
     els.form.reset();
     if (conversationEditing) fillCheckIn(existing.checkIn);
+    else if (els.loadNote) els.loadNote.value = "";
     renderDialogCompanion(provisionalCompanion);
     if (els.dialogTitle) els.dialogTitle.textContent = conversationEditing ? "Adjust today's check-in." : dialogTitleFor(provisionalCompanion);
     els.dialog.showModal();
@@ -985,6 +1006,7 @@
     setRadio("dailyTime", checkIn.time);
     setRadio("dailyObligations", checkIn.obligations);
     setRadio("dailyGentleChoice", checkIn.gentle ? "yes" : "no");
+    if (els.loadNote) els.loadNote.value = String(checkIn.loadNote || "");
   }
 
   function setRadio(name, value) {
@@ -1146,6 +1168,7 @@
       stress: radioValue("dailyStress"),
       time: radioValue("dailyTime"),
       obligations: radioValue("dailyObligations"),
+      loadNote: String(els.loadNote?.value || "").trim(),
       gentle: radioValue("dailyGentleChoice") === "yes"
     };
 
@@ -1234,7 +1257,7 @@
     const usedRealms = [];
     const previousBySlot = Object.fromEntries(previousPicks.map(p => [p.slot, p]));
 
-    for (const slot of ["focus", "joy", "gentle"]) {
+    for (const slot of slotsForCheckIn(checkIn)) {
       const previous = previousBySlot[slot];
       const excluded = new Set([...(rerollHistory[slot] || []), ...globalExcluded]);
       const candidate = chooseSourceCandidate(slot, checkIn, quests, adventures, books, games, used, excluded, previous, usedTypes, usedRealms);
@@ -1246,6 +1269,20 @@
     }
 
     return picked;
+  }
+
+  function slotsForCheckIn(checkIn) {
+    const capacity = effectiveCapacity(checkIn);
+    const heavyFixedLoad = checkIn.obligations === "help" || (checkIn.obligations === "busy" && ["none", "little"].includes(checkIn.time));
+    const veryLow = checkIn.gentle || capacity < 0.95 || checkIn.energy === "fumes";
+    const slots = [];
+
+    // A full work/obligation day is allowed to be today's main quest. Do not invent
+    // an Anchor simply because the UI has a slot for one.
+    if (!heavyFixedLoad && !(veryLow && ["none", "little"].includes(checkIn.time))) slots.push("focus");
+    slots.push("joy");
+    if (checkIn.time !== "none" && !(heavyFixedLoad && veryLow)) slots.push("gentle");
+    return slots;
   }
 
   function questTargetValue(quest) {
@@ -1280,7 +1317,7 @@
   function eligibleQuests() {
     const quests = typeof app.getQuestCatalog === "function" ? app.getQuestCatalog() : [];
     return quests.filter(quest => {
-      if (!quest || !quest.id || !quest.name || quest.manualStatus === "Archived" || quest.active === false) return false;
+      if (!quest || !quest.id || !quest.name || quest.manualStatus === "Archived" || quest.active === false || quest.plannerEligible === false) return false;
       const availability = app.getQuestAvailability?.(quest);
       return availability ? availability.available : true;
     });
@@ -1288,7 +1325,7 @@
 
   function eligibleAdventures() {
     const items = app.getState().sideAdventures?.items;
-    return Array.isArray(items) ? items.filter(item => item && item.id && item.name && item.status === "active") : [];
+    return Array.isArray(items) ? items.filter(item => item && item.id && item.name && item.status === "active" && String(item.nextAction || "").trim()) : [];
   }
 
   function eligibleBooks() {
@@ -1298,7 +1335,11 @@
 
   function eligibleGames() {
     const items = app.getState().gameLibrary?.items;
-    return Array.isArray(items) ? items.filter(game => game && game.id && game.title && ["playing", "endless"].includes(game.status)) : [];
+    return Array.isArray(items) ? items.filter(game => game && game.id && game.title && ["playing", "endless", "backlog"].includes(game.status)) : [];
+  }
+
+  function eligibleActiveGames() {
+    return eligibleGames().filter(game => ["playing", "endless"].includes(game.status));
   }
 
   function chooseSourceCandidate(slot, checkIn, quests, adventures, books, games, used, excluded, previous = null, usedTypes = [], usedRealms = []) {
@@ -1316,7 +1357,7 @@
         return true;
       };
       const push = (sourceType, item, baseScore) => {
-        if (!allowed(sourceType, item)) return;
+        if (!allowed(sourceType, item) || !sourceAllowedForSlot(sourceType, item, slot)) return;
         const key = sourceKey(sourceType, item.id);
         const memory = plannerMemoryAdjustment(key, sourceType, sourceRealm(sourceType, item), slot);
         const diversity = diversityAdjustment(sourceType, sourceRealm(sourceType, item), usedTypes, usedRealms, slot);
@@ -1340,9 +1381,37 @@
     const best = pool.sort((a, b) => b.score - a.score)[0] || null;
     if (!best) return null;
 
-    // V2 may deliberately leave a slot empty instead of recommending something that fits badly.
-    const floor = slot === "focus" ? -0.8 : slot === "joy" ? -0.35 : -0.15;
-    return best.score >= floor || pool.length === 1 ? best : null;
+    // V0.30.3 deliberately leaves slots empty instead of filling the dashboard with
+    // something merely because it is the least-bad candidate.
+    const floor = slot === "focus" ? 1.25 : slot === "joy" ? 1.15 : 1.35;
+    return best.score >= floor ? best : null;
+  }
+
+  function sourceAllowedForSlot(type, item, slot) {
+    const role = SLOTS[slot]?.role || slot;
+    if (type === "quest") {
+      const allowed = Array.isArray(item?.plannerRoles) ? item.plannerRoles : [];
+      return !allowed.length || allowed.includes(role);
+    }
+    if (type === "adventure") {
+      if (!String(item?.nextAction || "").trim()) return false;
+      if (slot === "gentle") return item.energy === "low" || Number(item.sessionMinutes || 30) <= 20;
+      return true;
+    }
+    if (type === "book") {
+      const bookRole = item?.role || "fun";
+      if (slot === "focus") return ["knowledge", "growth", "japanese", "work"].includes(bookRole);
+      if (slot === "joy") return ["fun", "growth", "japanese"].includes(bookRole);
+      return bookRole !== "work";
+    }
+    if (type === "game") {
+      const backlog = item?.status === "backlog";
+      const gameRole = item?.role || "fun";
+      if (slot === "focus") return !backlog && ["japanese", "challenge"].includes(gameRole);
+      if (slot === "gentle") return backlog || ["fun", "social"].includes(gameRole) || Number(item?.sessionMinutes || 45) <= 30;
+      return true;
+    }
+    return true;
   }
 
   function sourceRealm(type, item) {
@@ -1499,6 +1568,9 @@
     if (slot === "joy") {
       if (realm === "Hobbies") score += 4;
       if (realm === "Recovery") score += 3;
+      if (["high", "overload"].includes(checkIn.stress) && realm === "Recovery") score += 2.2;
+      if (checkIn.energy === "fumes" && realm === "Recovery") score += 1.1;
+      if (checkIn.energy === "fumes" && realm === "Health") score -= 0.6;
       if (priority === "Optional" || priority === "Bonus") score += 1.2;
       if (realm === "Work") score -= 4;
       if (realm === "Home") score -= 1;
@@ -1677,8 +1749,9 @@
 
   function scoreGame(game, slot, checkIn) {
     const role = game.role || "fun";
+    const backlog = game.status === "backlog";
     const capacity = effectiveCapacity(checkIn);
-    const duration = Number(game.sessionMinutes || 45);
+    const duration = backlog ? 30 : Number(game.sessionMinutes || 45);
     const timeBudget = TIME_BUDGET[checkIn.time] || 30;
     const days = daysSinceTimestamp(game.lastPlayedAt || game.createdAt);
     const openGoals = Array.isArray(game.goals) ? game.goals.filter(goal => !goal.done) : [];
@@ -1723,10 +1796,21 @@
       if (checkIn.gentle && duration <= 30) score += 0.8;
     }
 
+    if (backlog) {
+      if (slot === "focus") score -= 12;
+      if (slot === "joy") score += 1.4;
+      if (slot === "gentle") score += 0.6;
+      if (eligibleActiveGames().length) score -= 1.25;
+      if (["none", "little"].includes(checkIn.time)) score -= 1.2;
+    }
+
     return score;
   }
 
   function gameGoal(game, slot, checkIn) {
+    if (game.status === "backlog") {
+      return { minutes: 30, goalId: null, label: `Try ${game.title || "this game"} for 30 minutes. Then decide whether to keep it in rotation.` };
+    }
     const budget = TIME_BUDGET[checkIn.time] || 30;
     const capacity = effectiveCapacity(checkIn);
     const gentle = slot === "gentle" || checkIn.gentle || capacity < 1;
@@ -1776,10 +1860,15 @@
     if (slot === "joy" && !gentle && budget >= 30) amount = 15;
     const current = Math.max(0, Number(book.currentPage || 0));
     if (book.totalPages) {
-      const remaining = Math.max(0, Number(book.totalPages) - current);
+      const total = Math.max(1, Number(book.totalPages));
+      const remaining = Math.max(0, total - current);
+      const progressPct = clamp((current / total) * 100, 0, 100);
       if (remaining > 0) amount = Math.min(amount, remaining);
-      if (remaining > 0 && amount >= remaining) {
+      if (remaining > 0 && amount >= remaining && progressPct >= 85) {
         return { type: "pages", amount: remaining, label: `Finish the last ${formatNumber(remaining)} page${remaining === 1 ? "" : "s"} of ${title}` };
+      }
+      if (remaining > 0 && amount >= remaining && progressPct < 85) {
+        amount = Math.max(1, Math.min(amount, Math.ceil(remaining / 2)));
       }
     }
 
@@ -1879,7 +1968,7 @@
 
   function suggestedUnits(quest, slot, checkIn) {
     const target = Math.max(0.1, questTargetValue(quest));
-    if (!isVariableQuest(quest)) return target;
+    if (!isVariableQuest(quest) || quest?.adaptiveUnits === false) return target;
 
     const capacity = effectiveCapacity(checkIn);
     let fraction = slot === "gentle" ? 0.45 : slot === "joy" ? 0.65 : 0.8;
@@ -1921,12 +2010,13 @@
     const days = daysSinceLast(questLogs(quest.id));
 
     if (slot === "joy") {
-      if (days >= 10) return `It's a ${realm} thing you haven't touched in a while, and today's plan should include something chosen for you rather than only obligations.`;
-      return `It keeps a ${realm} option in the day on purpose, so the plan isn't just a productivity list.`;
+      if (["help", "busy"].includes(checkIn.obligations)) return `Your fixed load is already ${checkIn.obligations === "help" ? "very heavy" : "busy"}. Care is here to protect some energy or actual life outside obligations, not to add another achievement.`;
+      if (days >= 10) return `It's a ${realm} thing you haven't touched in a while, and today's Care slot should include something chosen for you rather than only obligations.`;
+      return `It keeps a ${realm} option in the Care slot on purpose, so the plan isn't just a productivity list.`;
     }
     if (slot === "gentle") {
       if (low) return `Your check-in points toward lower friction today. This is tagged ${planningEffortLabel(quest).toLowerCase()} and is roughly ${formatNumber(estimatedMinutes(quest))} minutes, so it fits the smaller battery.`;
-      return `This gives you an easy fallback if the day gets heavier than the morning plan expected.`;
+      return `This is genuinely optional: a small fallback only if the day leaves enough capacity.`;
     }
     if (slot === "focus" && adaptiveCapacityBand(checkIn) === "high" && planningEffort(quest) === "high") {
       return `Sleep, battery and available time leave room for a bigger move today, so the planner is deliberately surfacing a higher-effort ${realm} option.`;
@@ -1945,8 +2035,8 @@
     if (slot === "focus") {
       if (tags.has("takes-space")) return `You marked this as something that takes up space, so the planner is giving you one concrete step toward getting that space back.`;
       if (tags.has("deadline")) return `This project has a real deadline attached to it, and today's check-in leaves enough room for one defined next action.`;
-      if (tags.has("want-result") && progress !== null && progress >= 60) return `You want the finished result and you're already ${progress}% through it. One specific step is a better focus move than starting another new thing.`;
-      return `This has a defined next action and fits today's capacity, so it can act as the one useful thing without turning the whole project into today's job.`;
+      if (tags.has("want-result") && progress !== null && progress >= 60) return `You want the finished result and you're already ${progress}% through it. One specific step is a better Anchor than starting another new thing.`;
+      return `This has a defined next action and fits today's capacity, so it can act as today's Anchor without turning the whole project into today's job.`;
     }
     if (slot === "gentle" && item.energy === "low") {
       return `This is a low-friction project with a concrete stopping point, so it still fits if the day gets heavier than expected.`;
@@ -1967,6 +2057,36 @@
       return `Its next action is specific enough to stop after one session, which keeps the commitment small on a lower-capacity day.`;
     }
     return `It fits today's time and energy reasonably well, and the next action is already defined so you don't have to decide how to start.`;
+  }
+
+  function rebalanceForHeavierDay() {
+    const day = todayRecord();
+    if (!day?.checkIn) return;
+    if (day.batchReward?.eventId) {
+      app.showToast?.("This set is already cleared. Edit the check-in if the rest of the day changed.");
+      return;
+    }
+
+    const timeOrder = ["plenty", "decent", "little", "none"];
+    const loadOrder = ["open", "normal", "busy", "help"];
+    const timeIndex = Math.max(0, timeOrder.indexOf(day.checkIn.time));
+    const loadIndex = Math.max(0, loadOrder.indexOf(day.checkIn.obligations));
+    const nextTime = timeOrder[Math.min(timeOrder.length - 1, timeIndex + 1)] || day.checkIn.time;
+    const nextLoad = loadOrder[Math.min(loadOrder.length - 1, loadIndex + 1)] || day.checkIn.obligations;
+
+    if (nextTime === day.checkIn.time && nextLoad === day.checkIn.obligations) {
+      app.showToast?.("The plan is already using the heaviest day setting.");
+      return;
+    }
+
+    day.checkIn = { ...day.checkIn, time: nextTime, obligations: nextLoad };
+    if (nextLoad === "help" || nextTime === "none") day.checkIn.gentle = true;
+    day.picks = buildPicks(day.checkIn, [], { focus: [], joy: [], gentle: [] });
+    day.rerollHistory = { focus: [], joy: [], gentle: [] };
+    day.updatedAt = Date.now();
+    day.rebalancedAt = Date.now();
+    persist("daily-plan-heavier-rebalance");
+    app.showToast?.("Plan lightened. Your existing day is allowed to count as the main load.");
   }
 
   function rerollSlot(slotId) {
@@ -2102,7 +2222,7 @@
         portrait: "assets/story/sprites/mina_neutral.png",
         previewLine: "Some mornings, someone from Luca's actual social world may wander into the briefing. Not every day.",
         dialogLine: "Okay babe, emotional weather report. Where are we?",
-        doneLine: "Good. Tiny plan. No turning this into a twelve-step self-improvement challenge."
+        doneLine: "Good. Tiny plan. Anchor if it fits, Care on purpose, Optional if there is room. No self-improvement spiral."
       };
     }
     if (id === "kirishima") {
@@ -2114,7 +2234,7 @@
         portrait: "assets/story/characters/kirishima-neutral.png",
         previewLine: "Once everyday life overlaps enough, Kirishima can occasionally check in without turning it into a big conversation.",
         dialogLine: "Hey. Quick check — how are you actually doing today?",
-        doneLine: "Got it. One useful thing, one thing for you, and an easy exit. That's enough."
+        doneLine: "Got it. One useful Anchor if it fits, something that protects your life outside work, and an Optional only if there is room. That's enough."
       };
     }
     if (id === "bakugo") {
@@ -2503,13 +2623,13 @@
     const low = checkIn.gentle || ["fumes", "low"].includes(checkIn.energy);
     if (companion?.id === "mina") {
       if (low) return "Okay. Small plan. We are not turning low battery into a character flaw.";
-      if (moment.id === "evening") return "Three things max, and I am vetoing any plan that somehow becomes a second workday.";
-      return "Good. Tiny plan. No turning this into a twelve-step self-improvement challenge.";
+      if (moment.id === "evening") return "Anchor if it fits, Care on purpose, Optional only if you actually have room. I am vetoing any plan that becomes a second workday.";
+      return "Good. Tiny plan. Anchor if it fits, Care on purpose, Optional if there is room. No self-improvement spiral.";
     }
     if (companion?.id === "kirishima") {
       if (low) return "Keep it small today. Recovery counts as part of the plan, not what happens after you fail it.";
       if (moment.id === "evening") return "The day's already been a day. Pick what still fits and leave yourself an actual stopping point.";
-      return "Got it. One useful thing, one thing for you, and an easy exit. That's enough.";
+      return "Got it. One useful Anchor if it fits, something that protects your life outside work, and an Optional only if there is room. That's enough.";
     }
     if (companion?.id === "bakugo") {
       if (low) return "Low battery. So the plan gets smaller. Quit trying to spend energy you don't have.";
@@ -2523,10 +2643,41 @@
 
   function sourceEstimatedMinutes(type, item) {
     if (type === "quest") return estimatedMinutes(item);
-    if (type === "game") return Math.max(10, Number(item?.sessionMinutes || 45));
+    if (type === "game") return item?.status === "backlog" ? 30 : Math.max(10, Number(item?.sessionMinutes || 45));
     if (type === "adventure") return Math.max(10, Number(item?.sessionMinutes || 30));
     if (type === "book") return item?.source === "audio" ? 20 : 25;
     return 0;
+  }
+
+  function pickEstimatedMinutes(pick, item) {
+    const type = pick?.sourceType || "quest";
+    if (type === "book") {
+      const goal = pick.bookGoal || bookGoal(item || {}, pick.slot, todayRecord()?.checkIn || {});
+      if (goal.type === "minutes") return Math.max(5, Number(goal.amount || 0));
+      if (goal.type === "pages") return Math.max(5, Math.round(Number(goal.amount || 0) * 2));
+      if (goal.type === "chapter") return 25;
+    }
+    if (type === "game") return Math.max(10, Number((pick.gameGoal || {}).minutes || (item?.status === "backlog" ? 30 : (item?.sessionMinutes || 45))));
+    if (type === "adventure") return Math.max(10, Number((pick.adventureGoal || {}).minutes || item?.sessionMinutes || 30));
+    return Math.max(1, Math.round(estimatedMinutes(item || {})));
+  }
+
+  function sourceEffortLabel(type, item) {
+    if (type === "quest") return planningEffortLabel(item);
+    if (type === "adventure") {
+      const energy = String(item?.energy || "medium").toLowerCase();
+      return energy === "low" ? "Low effort" : energy === "high" ? "High effort" : "Medium effort";
+    }
+    if (type === "book") {
+      const demand = bookDemand(item || {});
+      return demand <= 0.8 ? "Low effort" : demand >= 1.25 ? "High effort" : "Medium effort";
+    }
+    if (type === "game") {
+      if (item?.status === "backlog") return "Low-medium effort";
+      const role = item?.role || "fun";
+      return ["challenge", "japanese"].includes(role) ? "Medium effort" : "Low effort";
+    }
+    return "Medium effort";
   }
 
   function momentAdjustment(type, item, slot) {
@@ -2555,6 +2706,10 @@
     const days = daysSinceTimestamp(game.lastPlayedAt || game.createdAt);
     const openGoals = Array.isArray(game.goals) ? game.goals.filter(goal => !goal.done) : [];
     const progress = game.progressMode === "percent" ? clamp(Number(game.progress || 0), 0, 100) : null;
+
+    if (game.status === "backlog") {
+      return `This is already in your Want to Play backlog, so the planner can surface one actual game instead of telling you to “try a backlog game.” A 30-minute trial is enough to decide whether it belongs in rotation.`;
+    }
 
     if (progress !== null && progress >= 70 && days >= 10) {
       return `You're already ${progress}% through this and haven't played in ${humanDays(days)}. A bounded session keeps the thread alive without turning the evening into a commitment.`;

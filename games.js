@@ -108,6 +108,7 @@
   let viewMode = safeStorageGet("life-rpg-games-view-v291") || "grid";
   let initialized = false;
   let toastTimer = null;
+  let activeLogContext = {};
 
   init();
 
@@ -613,11 +614,12 @@
     if (els.dialog?.open) els.dialog.close();
   }
 
-  function openLogDialog(id, suggestedMinutes = 0) {
+  function openLogDialog(id, suggestedMinutes = 0, options = {}) {
     if (!els.logDialog || !els.logForm) return;
     const game = findGame(id);
     if (!game) return;
     els.logForm.reset();
+    activeLogContext = options && typeof options === "object" ? { ...options } : {};
     populateLogPicker(game.id);
     configureLogForm(game, suggestedMinutes);
     setChainLogStatus("");
@@ -724,7 +726,7 @@
     game.updatedAt = now;
     if (goalId) game.lastGoalId = goalId;
     if (progressAfter !== null) game.progress = progressAfter;
-    if (game.status === "backlog" || game.status === "paused") game.status = "playing";
+    if (game.status === "paused" || (game.status === "backlog" && !activeLogContext.preserveBacklog)) game.status = "playing";
     if (game.progressMode === "percent" && game.progress >= 100 && game.status !== "endless") game.status = "finished";
 
     let finishReward = null;
@@ -755,7 +757,9 @@
       ? " · already counted from a linked gaming quest"
       : ` · +${Number(reward.xp || 0)} XP`;
     const finishText = finishReward ? ` · finished +${app.formatEnergy?.(finishReward.storyEnergy) ?? finishReward.storyEnergy} 🔥` : "";
-    showToast("Session logged", `${game.title} · ${formatDuration(minutes)}${goalId ? " · personal goal kept in focus" : ""}${rewardText}${finishText}`);
+    const trialText = activeLogContext.preserveBacklog && game.status === "backlog" ? " · still in Want to Play" : "";
+    showToast("Session logged", `${game.title} · ${formatDuration(minutes)}${goalId ? " · personal goal kept in focus" : ""}${rewardText}${finishText}${trialText}`);
+    activeLogContext = {};
     if (addAnother) {
       populateLogPicker(game.id);
       const nextGame = findGame(els.logPicker?.value || game.id) || game;

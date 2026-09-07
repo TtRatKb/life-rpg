@@ -11,10 +11,10 @@
   <meta name="application-name" content="Life RPG" />
   <meta name="format-detection" content="telephone=no" />
   <title>Life RPG — Base Camp</title>
-  <link rel="manifest" href="manifest.webmanifest?v=0.30.2" />
-  <link rel="apple-touch-icon" href="assets/app-icon-180.png?v=0.30.2" />
-  <link rel="icon" type="image/png" sizes="192x192" href="assets/app-icon-192.png?v=0.30.2" />
-  <link rel="stylesheet" href="styles.css?v=0.30.2" />
+  <link rel="manifest" href="manifest.webmanifest?v=0.30.3" />
+  <link rel="apple-touch-icon" href="assets/app-icon-180.png?v=0.30.3" />
+  <link rel="icon" type="image/png" sizes="192x192" href="assets/app-icon-192.png?v=0.30.3" />
+  <link rel="stylesheet" href="styles.css?v=0.30.3" />
 </head>
 <body>
   <section id="mobileCloudGate" class="mobile-cloud-gate-v251" data-state="checking" aria-live="polite" aria-label="Life RPG cloud sign in">
@@ -174,17 +174,17 @@
               <div class="panel-heading daily-picks-heading-v14">
                 <div>
                   <p class="eyebrow">TODAY'S PICKS</p>
-                  <h2 id="dailyPicksTitle">Three things. That's enough.</h2>
-                  <p class="panel-subcopy">One useful thing, one thing for you, and one low-pressure option. Reroll only the card that doesn't fit.</p>
+                  <h2 id="dailyPicksTitle">A plan that fits the day.</h2>
+                  <p class="panel-subcopy">Anchor, Care and Optional are filled only when something genuinely fits. Your workday can already be the main load.</p>
                 </div>
-                <span class="count-badge" id="dailyPicksCount">Waiting for briefing</span>
+                <div class="daily-picks-heading-actions-v303"><button class="mini-nav-button hidden" id="dailyRebalanceButton" type="button">Day got heavier ↻</button><span class="count-badge" id="dailyPicksCount">Waiting for briefing</span></div>
               </div>
               <div id="dailyPicks" class="daily-picks-grid-v14"></div>
               <div id="dailyBatchStatus" class="daily-batch-status-v23 hidden" aria-live="polite"></div>
               <div id="dailyPicksEmpty" class="daily-picks-empty-v14">
                 <span>✿</span>
                 <strong>No giant menu yet.</strong>
-                <p>Do the short briefing first. Life RPG will narrow your Quests, Side Adventures, current books and active games down to a tiny plan for today.</p>
+                <p>Do the short briefing first. Life RPG will use your real current state to surface only actions that make sense today — and it may deliberately leave slots empty.</p>
               </div>
               <footer class="daily-picks-footer-v14 daily-picks-footer-v15">
                 <button class="text-button" data-view-target="library" type="button">Open Library →</button>
@@ -583,7 +583,7 @@
             <p class="eyebrow">REAL LIFE → GAME PROGRESS</p>
             <h1>Quest Board</h1>
             <p class="lead">
-              Pick what fits the life you actually have today. Habits, hobbies, recovery and meaningful work all count as progress.
+              Keep only concrete standalone actions here. Habits live in Habits; books and games generate state-aware actions from their libraries; project work comes from Side Adventures; work/focus tracking gets its own system.
             </p>
 
             <div class="quest-loop-v4" aria-label="Quest flow">
@@ -602,7 +602,7 @@
             <div>
               <span class="quest-briefing-label">TODAY'S RULE</span>
               <strong>Progress does not have to look productive.</strong>
-              <p>Recovery and Hobbies are real progression. Variable quests reward what you actually completed, not an imaginary perfect target.</p>
+              <p>The Daily Plan no longer pulls vague filler. A quest should tell you exactly what done means; context-aware actions come from the systems that actually know your current state.</p>
             </div>
             <button class="primary-button quest-create-v4" id="addQuestButton">＋ Create a Quest</button>
           </aside>
@@ -629,7 +629,7 @@
             <div>
               <p class="eyebrow">AVAILABLE QUESTS</p>
               <h2>Quest Library</h2>
-              <p>Build a small loadout or simply clear something when it happens. Nothing here needs to become a daily obligation.</p>
+              <p>This is intentionally smaller now: bounded actions that make sense on their own. Dynamic reading, gaming and project recommendations are generated from their real state instead of duplicated here.</p>
             </div>
             <div class="quest-legend-v4" aria-label="Quest reward legend">
               <span>✦ Character XP</span>
@@ -1717,13 +1717,14 @@ League of Legends — PC" required></textarea></label>
       </fieldset>
 
       <fieldset class="daily-question-v14 daily-conversation-step-v271" data-daily-question="obligations">
-        <legend><span>06</span><strong>How full is the must-do part of today?</strong></legend>
+        <legend><span>06</span><strong>How heavy is the fixed load today?</strong></legend>
         <div class="daily-choice-row-v14">
-          <label><input type="radio" name="dailyObligations" value="help" required /><span>Please send help</span></label>
+          <label><input type="radio" name="dailyObligations" value="help" required /><span>Packed / very heavy</span></label>
           <label><input type="radio" name="dailyObligations" value="busy" /><span>Busy</span></label>
           <label><input type="radio" name="dailyObligations" value="normal" /><span>Normal</span></label>
           <label><input type="radio" name="dailyObligations" value="open" /><span>Pretty open</span></label>
         </div>
+        <label class="daily-load-note-v303"><span>Anything fixed worth remembering? <small>optional</small></span><input id="dailyLoadNote" maxlength="180" placeholder="e.g. 6 lessons + conference · home around 17:30" /></label>
       </fieldset>
 
       <fieldset class="daily-question-v14 daily-conversation-step-v271" data-daily-question="gentle">
@@ -2307,19 +2308,19 @@ League of Legends — PC" required></textarea></label>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <script src="data/quests.js?v=0.30.2"></script>
-  <script src="story-engine.js?v=0.30.2"></script>
-  <script src="app.js?v=0.30.2"></script>
-  <script src="stewardship.js?v=0.30.2"></script>
-  <script src="habits.js?v=0.30.2"></script>
-  <script src="adventures.js?v=0.30.2"></script>
-  <script src="library.js?v=0.30.2"></script>
-  <script src="games.js?v=0.30.2"></script>
-  <script src="daily.js?v=0.30.2"></script>
-  <script src="journal.js?v=0.30.2"></script>
-  <script src="story-ui.js?v=0.30.2"></script>
-  <script src="achievements.js?v=0.30.2"></script>
-  <script type="module" src="cloud-save.js?v=0.30.2"></script>
-  <script src="pwa.js?v=0.30.2"></script>
+  <script src="data/quests.js?v=0.30.3"></script>
+  <script src="story-engine.js?v=0.30.3"></script>
+  <script src="app.js?v=0.30.3"></script>
+  <script src="stewardship.js?v=0.30.3"></script>
+  <script src="habits.js?v=0.30.3"></script>
+  <script src="adventures.js?v=0.30.3"></script>
+  <script src="library.js?v=0.30.3"></script>
+  <script src="games.js?v=0.30.3"></script>
+  <script src="daily.js?v=0.30.3"></script>
+  <script src="journal.js?v=0.30.3"></script>
+  <script src="story-ui.js?v=0.30.3"></script>
+  <script src="achievements.js?v=0.30.3"></script>
+  <script type="module" src="cloud-save.js?v=0.30.3"></script>
+  <script src="pwa.js?v=0.30.3"></script>
 </body>
 </html>

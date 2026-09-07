@@ -66,10 +66,11 @@ GitHub Pages will then update automatically after the new commit is deployed.
 
 ## Next milestones
 
-1. Playtest **V0.30.2 Daily Reflection & Journal** in normal use: conversational Mood/Stress additions, optional reflections, monthly tracker rendering, mobile layout and exports.
-2. Keep hidden canon CG art disabled until a spoiler-safe render path is available and each render passes the approved visual preflight and anatomy/continuity QA gate.
-3. Let real journal use determine which later tracker/insight additions are actually useful instead of turning reflection into another data-entry chore.
-4. Synchronize Project Sources at the next chat handoff rather than after each patch.
+1. Playtest **V0.30.3 Living Daily Plan & Smart Actions** in real school/work weeks: whether Anchor/Care/Optional feels relevant, whether the plan correctly leaves space on heavy days, and whether “Day got heavier” is useful before automatic time tracking exists.
+2. Build **V0.30.4 Focus & Life Rhythm**: stopwatch + Pomodoro presets (including 50/10), work/time categories, moderate time-based XP/Story Energy, linked focus quests, week/month time views, Journal correlations and social reactivity.
+3. Expand Library review/journal features and the lightweight Capture Inbox before reintroducing any book-review or Second-Brain actions to the planner.
+4. Keep hidden canon CG art disabled until a spoiler-safe render path is available and each render passes the approved visual preflight and anatomy/continuity QA gate.
+5. Synchronize Project Sources at the next chat handoff rather than after each patch.
 
 ## V0.28.0 — Story Continuity & World Expansion
 
@@ -183,3 +184,17 @@ GitHub Pages will then update automatically after the new commit is deployed.
 - Journal design deliberately has **no streak punishment**, no negative-day counter and no diagnostic claims. Missing days stay blank; weekly observations describe co-occurrence without pretending to explain causation.
 - Existing Story/Social content, quests, rewards, relationship rules, libraries, CG slots and save history remain intact.
 
+## V0.30.3 — Living Daily Plan & Smart Actions
+
+- Reframed Today's Picks as **Anchor / Care / Optional** instead of a mandatory three-item productivity loadout. Slots are deliberately left empty when no good state-aware action exists.
+- Heavy fixed-load days can omit the Anchor entirely: school/work/appointments are allowed to already be the day's main load.
+- Added an optional **known fixed load** note to the conversational Daily Check-in (for example “6 lessons + conference · home around 17:30”).
+- Added **Day got heavier** rebalancing so the remaining plan can be lightened when reality changes after the morning check-in. This is the manual bridge to later automatic Work/Time tracking.
+- Daily cards now emphasize **Why this today?**, **What counts as done**, estimated time and effort instead of presenting vague task names.
+- Reduced the built-in Quest Board to concrete standalone actions. Habits (supplements/water routines), generic work sprints, vague Second-Brain actions, duplicate book/game actions and unsupported Japanese prompts are retired from the active built-in pool while their stable IDs remain for old logs.
+- Current reading, active games and Side Adventures are generated from their real system state. Side Adventures must have a concrete next action before the Daily Plan can recommend them.
+- Added state-aware **Want to Play backlog trials**: a specific backlog game may appear as a 30-minute Care/Optional action. Logging the trial does not automatically force it out of Want to Play.
+- Book finish wording is only surfaced near the end of a known-page-count book; the Library's existing Finish Book action remains the canonical finish/reward path.
+- Converted the vague Room Reset into a bounded **15-Minute Room Reset** and added explicit definitions for the remaining recovery/home actions.
+- Built-in Lesson Planning, Correction and generic Focus Work no longer compete as random Daily Quests; they are reserved for the planned Work/Focus/Time system.
+- Existing Daily Check-in rewards, Journal data, Library/Games/Adventures saves, Story/Social content and all previous progress are preserved.

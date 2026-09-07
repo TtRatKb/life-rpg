@@ -1119,15 +1119,91 @@
       .toLowerCase();
   }
 
+  // V0.30.3: the built-in Quest Board is intentionally smaller and more concrete.
+  // Smart/dynamic actions now come from the systems that actually know their state
+  // (Library, Games, Side Adventures). Archived legacy ideas keep their stable IDs so
+  // old logs remain readable without continuing to recommend vague or duplicate tasks.
+  const SMART_RULES = {
+    "Continue current book": { manualStatus: "Archived", plannerEligible: false, systemRole: "library-dynamic" },
+    "Continue current game objective": { manualStatus: "Archived", plannerEligible: false, systemRole: "games-dynamic" },
+    "Try one backlog game": { manualStatus: "Archived", plannerEligible: false, systemRole: "games-backlog-dynamic" },
+    "Write (in) one Exploration Note": { manualStatus: "Archived", plannerEligible: false, systemRole: "future-capture" },
+    "✍️ 250-Word Writing Quest": { manualStatus: "Archived", plannerEligible: false, systemRole: "adventure-dynamic" },
+    "✍️ Grammar Output": { manualStatus: "Archived", plannerEligible: false, systemRole: "requires-language-state" },
+    "⭐ Rate & Log a Book": { manualStatus: "Archived", plannerEligible: false, systemRole: "future-library-review" },
+    "🈶 Kanji Touch": { manualStatus: "Archived", plannerEligible: false, systemRole: "requires-kanji-source" },
+    "🌙 Vibes Only": { manualStatus: "Archived", plannerEligible: false },
+    "🎨 25-Minute Aesthetic Build": { manualStatus: "Archived", plannerEligible: false, systemRole: "adventure-dynamic" },
+    "🎮 Intentional Gaming Session": { manualStatus: "Archived", plannerEligible: false, systemRole: "games-dynamic" },
+    "🎵 Music Reset": { manualStatus: "Archived", plannerEligible: false },
+    "🏷️ Tab a Book": { manualStatus: "Archived", plannerEligible: false, systemRole: "library-feature" },
+    "💊 Take supplements": { manualStatus: "Archived", plannerEligible: false, systemRole: "habit" },
+    "💎 Line Miner": { plannerEligible: false, systemRole: "manual-language", completionHint: "Mine 3 useful lines from material you actually consumed today." },
+    "💡 Capture 1 Idea": { manualStatus: "Archived", plannerEligible: false, systemRole: "future-capture" },
+    "💧 Water Check": { manualStatus: "Archived", plannerEligible: false },
+    "📂 Work Desk Reset": { plannerEligible: false, systemRole: "manual-work", completionHint: "Clear the active work surface enough that the next task can start without moving clutter first." },
+    "📓 Reading Journal Entry": { manualStatus: "Archived", plannerEligible: false, systemRole: "future-library-journal" },
+    "📖 Read 10 Pages": { manualStatus: "Archived", plannerEligible: false, systemRole: "library-dynamic" },
+    "📘 Bunpo Apprentice": { manualStatus: "Archived", plannerEligible: false, systemRole: "requires-bunpro-state" },
+    "📚 Finish a Book": { manualStatus: "Archived", plannerEligible: false, systemRole: "library-dynamic" },
+    "📚 Lesson Planning Sprint": { manualStatus: "Archived", plannerEligible: false, systemRole: "future-work-focus" },
+    "📝 Correction Sprint": { manualStatus: "Archived", plannerEligible: false, systemRole: "future-work-focus" },
+    "📝 Create 1 Literature Note": { manualStatus: "Archived", plannerEligible: false, systemRole: "future-capture" },
+    "📺 Comfort Episode": { manualStatus: "Archived", plannerEligible: false, systemRole: "recovery-choice" },
+    "📺 Subtitle Scout": { manualStatus: "Archived", plannerEligible: false, systemRole: "requires-language-input" },
+    "🔗 Connect 2 Ideas": { manualStatus: "Archived", plannerEligible: false, systemRole: "future-second-brain" },
+    "🗃️ Second Brain Maintenance": { manualStatus: "Archived", plannerEligible: false, systemRole: "future-second-brain" },
+    "🗣️ Scene Recap": { manualStatus: "Archived", plannerEligible: false },
+    "🗺️ Create Topic Map": { manualStatus: "Archived", plannerEligible: false, systemRole: "future-second-brain" },
+    "😴 Sleep Setup": { manualStatus: "Archived", plannerEligible: false },
+    "🥤 Drink One Glass Before Breakfast": { manualStatus: "Archived", plannerEligible: false, systemRole: "habit" },
+    "🧠 Focus Work": { manualStatus: "Archived", plannerEligible: false, systemRole: "future-work-focus" },
+    "🧠 Grammar Echo": { manualStatus: "Archived", plannerEligible: false, systemRole: "requires-bunpro-state" },
+    "🧠 Grow Permanent Note": { manualStatus: "Archived", plannerEligible: false, systemRole: "future-second-brain" },
+    "🧪 Creative Experiment": { manualStatus: "Archived", plannerEligible: false, systemRole: "adventure-dynamic" },
+    "🧪 N3 Practice Set": { manualStatus: "Archived", plannerEligible: false, systemRole: "requires-language-state" },
+    "🧺 Laundry Step": { manualStatus: "Archived", plannerEligible: false, systemRole: "future-laundry-workflow" },
+
+    "🚶 10-Minute Walk": {
+      plannerEligible: true, plannerRoles: ["care", "optional"], adaptiveUnits: false,
+      completionHint: "Walk for 10 minutes. It can be slow and it does not need to become a workout."
+    },
+    "🛋️ 15-Minute Real Rest": {
+      plannerEligible: true, plannerRoles: ["care", "optional"], adaptiveUnits: false,
+      completionHint: "Take 15 minutes with no work/admin goal. Sit, lie down, stare out the window, breathe, or do something genuinely restful."
+    },
+    "🛏️ Room Reset": {
+      name: "🛏️ 15-Minute Room Reset", plannerEligible: true, plannerRoles: ["anchor", "optional"], adaptiveUnits: false,
+      xpMode: "Variable by Units", units: 15, unitLabel: "minutes", energy: "Normal",
+      sessionSize: "Short (10-20 min)", planningEffort: "medium", planningMinutes: 15,
+      completionHint: "Reset one visible room/zone for 15 minutes, then stop when the timer ends."
+    },
+    "📦 Throw 1 Thing away": {
+      plannerEligible: true, plannerRoles: ["optional"],
+      completionHint: "Choose one item you genuinely no longer want/need and put it in the correct bin, donation bag, or exit pile."
+    },
+    "🧹 10-Minute Clean": {
+      plannerEligible: true, plannerRoles: ["anchor", "optional"], adaptiveUnits: false,
+      completionHint: "Clean one defined area for 10 minutes. Stop when the timer ends."
+    },
+    "🗂️ Sort / Declutter Files": {
+      plannerEligible: true, plannerRoles: ["anchor", "optional"],
+      completionHint: "Sort, rename, move, or delete 10 files. Partial batches carry over."
+    }
+  };
+
   // V0.28.4: built-in quest IDs are permanent and no longer depend on list order.
   // legacyIds lets existing saves migrate safely from the old position-based IDs.
   window.LIFE_RPG_QUESTS = quests.map((quest, index) => {
-    const slug = slugify(quest.name) || `quest-${index + 1}`;
+    const originalName = quest.name;
+    const slug = slugify(originalName) || `quest-${index + 1}`;
     return {
       id: `core-${slug}`,
       legacyIds: [`notion-${String(index + 1).padStart(2, "0")}-${slug}`],
       source: "notion-import-2026-08-18",
-      ...quest
+      plannerEligible: true,
+      ...quest,
+      ...(SMART_RULES[originalName] || {})
     };
   });
 })();
