@@ -514,6 +514,10 @@ function progressScore(state) {
     : 0;
   const rewardEvents = Array.isArray(state?.rewardLedger?.events) ? state.rewardLedger.events.length : 0;
   const timeLogs = Array.isArray(state?.timeTracking?.entries) ? state.timeTracking.entries.length : 0;
+  const shopItems = Array.isArray(state?.shop?.items) ? state.shop.items.length : 0;
+  const shopTransactions = Array.isArray(state?.shop?.transactions) ? state.shop.transactions.length : 0;
+  const achievementUnlocks = state?.achievements?.unlocked && typeof state.achievements.unlocked === "object" ? Object.keys(state.achievements.unlocked).length : 0;
+  const achievementPins = Array.isArray(state?.achievements?.pinned) ? state.achievements.pinned.length : 0;
 
   return (
     completedScenes * 1000 +
@@ -528,6 +532,8 @@ function progressScore(state) {
     plannerDays * 4 +
     journalDays * 6 +
     timeLogs * 8 +
+    shopItems * 4 + shopTransactions * 12 +
+    achievementUnlocks * 8 + achievementPins * 2 +
     rewardEvents * 2 +
     Math.max(0, Number(state?.characterXP || 0)) +
     Math.max(0, Number(state?.storyEnergy || 0)) +
@@ -548,6 +554,8 @@ function summarizeState(state, savedAt = null) {
     ? Object.values(state.journal.entries).filter(entry => entry && (entry.mood || entry.energy || entry.sleep || entry.stress || entry.gratitude || entry.smallWin || entry.hardThing)).length
     : 0;
   const timeCount = Array.isArray(state?.timeTracking?.entries) ? state.timeTracking.entries.length : 0;
+  const shopTransactionCount = Array.isArray(state?.shop?.transactions) ? state.shop.transactions.length : 0;
+  const achievementCount = state?.achievements?.unlocked && typeof state.achievements.unlocked === "object" ? Object.keys(state.achievements.unlocked).length : 0;
   const xp = Math.max(0, Number(state?.characterXP || 0));
   const activityCount = questCount + externalCount + habitCount + adventureCount + bookCount + gameCount + timeCount;
   const collectionCount =
@@ -561,7 +569,9 @@ function summarizeState(state, savedAt = null) {
     `${activityCount} activity log${activityCount === 1 ? "" : "s"}`,
     `${collectionCount} tracked item${collectionCount === 1 ? "" : "s"}`,
     `${journalCount} journal day${journalCount === 1 ? "" : "s"}`,
-    `${timeCount} time block${timeCount === 1 ? "" : "s"}`
+    `${timeCount} time block${timeCount === 1 ? "" : "s"}`,
+    `${achievementCount} achievement${achievementCount === 1 ? "" : "s"}`,
+    `${shopTransactionCount} shop log${shopTransactionCount === 1 ? "" : "s"}`
   ];
   if (savedAt) parts.push(`saved ${formatDateTime(savedAt)}`);
   return parts.join(" · ");

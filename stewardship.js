@@ -7,14 +7,15 @@
     return;
   }
 
-  const SCHEMA = 2;
+  const SCHEMA = 3;
   const DAILY_XP_CAP = 20;
   const DAILY_STORY_CAP = 5;
+  const DAILY_COIN_CAP = 50;
   const TYPE_META = {
-    book: { xp: 2, storyEnergy: 0.40, label: "Library" },
-    game: { xp: 3, storyEnergy: 0.20, label: "Games" },
-    habit: { xp: 3, storyEnergy: 0.30, label: "Habits" },
-    adventure: { xp: 4, storyEnergy: 0.50, label: "Side Adventures" }
+    book: { xp: 2, storyEnergy: 0.40, coins: 5, label: "Library" },
+    game: { xp: 3, storyEnergy: 0.20, coins: 5, label: "Games" },
+    habit: { xp: 3, storyEnergy: 0.30, coins: 5, label: "Habits" },
+    adventure: { xp: 4, storyEnergy: 0.50, coins: 10, label: "Side Adventures" }
   };
 
   ensureState();
@@ -38,6 +39,7 @@
     day.xp = Math.max(0, Number(day.xp || 0));
     day.rawStoryEnergy = Math.max(0, Number(day.rawStoryEnergy || 0));
     day.storyEnergy = Math.max(0, Number(day.storyEnergy || 0));
+    day.coins = Math.max(0, Number(day.coins || 0));
     day.items = Math.max(0, Number(day.items || 0));
     day.cappedItems = Math.max(0, Number(day.cappedItems || 0));
   }
@@ -73,10 +75,13 @@
     const day = ensureDay(store, date);
     const xpRoom = Math.max(0, DAILY_XP_CAP - Number(day.xp || 0));
     const storyRoom = Math.max(0, DAILY_STORY_CAP - Number(day.rawStoryEnergy || 0));
+    const coinRoom = Math.max(0, DAILY_COIN_CAP - Number(day.coins || 0));
     const requestedXP = Number(meta.xp || 0);
     const requestedStory = Number(meta.storyEnergy || 0);
+    const requestedCoins = Math.max(0, Math.round(Number(meta.coins || 0)));
     const grantedXP = Math.min(requestedXP, xpRoom);
     const grantedRawStory = floor2(Math.min(requestedStory, storyRoom));
+    const grantedCoins = Math.min(requestedCoins, coinRoom);
 
     // Mark it seen even when a cap is full. The caps limit today's payout; they are
     // not queues that can be claimed tomorrow by editing or recreating old entries.
@@ -86,11 +91,12 @@
       firstSeenAt: Date.now(),
       rewardedXP: grantedXP,
       rewardedRawStoryEnergy: grantedRawStory,
-      rewardedDate: (grantedXP > 0 || grantedRawStory > 0) ? date : null
+      rewardedCoins: grantedCoins,
+      rewardedDate: (grantedXP > 0 || grantedRawStory > 0 || grantedCoins > 0) ? date : null
     };
 
     let reward = null;
-    if (grantedXP > 0 || grantedRawStory > 0) {
+    if (grantedXP > 0 || grantedRawStory > 0 || grantedCoins > 0) {
       reward = app.awardActivity({
         source: "stewardship",
         sourceId: key,
@@ -98,19 +104,21 @@
         xp: grantedXP,
         realmXP: 0,
         statXP: 0,
-        coins: 0,
+        coins: grantedCoins,
         storyEnergyBase: grantedRawStory,
         progressionRelevant: false,
         metadata: {
           type,
           stewardship: true,
           dailyXpCap: DAILY_XP_CAP,
-          dailyStoryCap: DAILY_STORY_CAP
+          dailyStoryCap: DAILY_STORY_CAP,
+          dailyCoinCap: DAILY_COIN_CAP
         }
       });
       day.xp = Number(day.xp || 0) + Number(reward?.xp || grantedXP);
       day.rawStoryEnergy = floor2(Number(day.rawStoryEnergy || 0) + grantedRawStory);
       day.storyEnergy = floor2(Number(day.storyEnergy || 0) + Number(reward?.storyEnergy || 0));
+      day.coins = Number(day.coins || 0) + Number(reward?.coins || grantedCoins);
       day.items = Number(day.items || 0) + 1;
       day.updatedAt = Date.now();
     } else {
@@ -123,12 +131,14 @@
       xp: Number(reward?.xp || 0),
       storyEnergy: Number(reward?.storyEnergy || 0),
       rawStoryEnergy: grantedRawStory,
+      coins: Number(reward?.coins || 0),
       requestedXP,
       requestedStoryEnergy: requestedStory,
+      requestedCoins,
       fingerprint: key,
       duplicate: false,
-      capped: grantedXP < requestedXP || grantedRawStory < requestedStory,
-      capReached: status.xpCapReached && status.storyCapReached,
+      capped: grantedXP < requestedXP || grantedRawStory < requestedStory || grantedCoins < requestedCoins,
+      capReached: status.xpCapReached && status.storyCapReached && status.coinCapReached,
       day: date,
       eventId: reward?.eventId || null,
       ...status
@@ -141,8 +151,9 @@
     const xp = results.reduce((sum, result) => sum + Number(result.xp || 0), 0);
     const storyEnergy = floor2(results.reduce((sum, result) => sum + Number(result.storyEnergy || 0), 0));
     const rawStoryEnergy = floor2(results.reduce((sum, result) => sum + Number(result.rawStoryEnergy || 0), 0));
-    const awarded = results.filter(result => Number(result.xp || 0) > 0 || Number(result.storyEnergy || 0) > 0).length;
-    return { results, xp, storyEnergy, rawStoryEnergy, awarded, ...todayStatus() };
+    const coins = results.reduce((sum, result) => sum + Number(result.coins || 0), 0);
+    const awarded = results.filter(result => Number(result.xp || 0) > 0 || Number(result.storyEnergy || 0) > 0 || Number(result.coins || 0) > 0).length;
+    return { results, xp, storyEnergy, rawStoryEnergy, coins, awarded, ...todayStatus() };
   }
 
   function todayStatus(date = todayKey()) {
@@ -151,6 +162,7 @@
     const dailyXpEarned = Number(day.xp || 0);
     const dailyRawStoryEnergy = floor2(Number(day.rawStoryEnergy || 0));
     const dailyStoryEnergy = floor2(Number(day.storyEnergy || 0));
+    const dailyCoins = Math.max(0, Number(day.coins || 0));
     return {
       dailyXpEarned,
       dailyXpCap: DAILY_XP_CAP,
@@ -160,7 +172,11 @@
       dailyStoryEnergy,
       dailyStoryCap: DAILY_STORY_CAP,
       storyRemaining: floor2(Math.max(0, DAILY_STORY_CAP - dailyRawStoryEnergy)),
-      storyCapReached: dailyRawStoryEnergy >= DAILY_STORY_CAP
+      storyCapReached: dailyRawStoryEnergy >= DAILY_STORY_CAP,
+      dailyCoins,
+      dailyCoinCap: DAILY_COIN_CAP,
+      coinRemaining: Math.max(0, DAILY_COIN_CAP - dailyCoins),
+      coinCapReached: dailyCoins >= DAILY_COIN_CAP
     };
   }
 
@@ -175,13 +191,15 @@
     const pieces = [];
     if (energy > 0) pieces.push(`+${formatEnergy(energy)} 🔥`);
     if (xp > 0) pieces.push(`+${xp} XP`);
+    if (Number(result.coins || 0) > 0) pieces.push(`+${Number(result.coins || 0)} 🪙`);
     if (pieces.length) {
       const capBits = [];
       if (Number(result.dailyStoryCap || 0) > 0) capBits.push(`${formatEnergy(result.dailyRawStoryEnergy || 0)}/${formatEnergy(result.dailyStoryCap)} 🔥 upkeep today`);
       if (Number(result.dailyXpCap || 0) > 0) capBits.push(`${Number(result.dailyXpEarned || 0)}/${Number(result.dailyXpCap)} XP`);
+      if (Number(result.dailyCoinCap || 0) > 0) capBits.push(`${Number(result.dailyCoins || 0)}/${Number(result.dailyCoinCap)} 🪙 upkeep`);
       return `${prefix}: ${pieces.join(" · ")}${capBits.length ? ` · ${capBits.join(" · ")}` : ""}`;
     }
-    if (result.storyCapReached && result.xpCapReached) return `${prefix}: today's upkeep reward caps reached`;
+    if (result.storyCapReached && result.xpCapReached && result.coinCapReached) return `${prefix}: today's upkeep reward caps reached`;
     if (result.storyCapReached) return `${prefix}: today's ${formatEnergy(result.dailyStoryCap)} 🔥 upkeep cap reached`;
     if (result.xpCapReached) return `${prefix}: today's ${Number(result.dailyXpCap)} XP upkeep cap reached`;
     return "";
@@ -189,7 +207,7 @@
 
   function ensureDay(store, date) {
     if (!store.days[date] || typeof store.days[date] !== "object") {
-      store.days[date] = { xp: 0, rawStoryEnergy: 0, storyEnergy: 0, items: 0, cappedItems: 0, updatedAt: Date.now() };
+      store.days[date] = { xp: 0, rawStoryEnergy: 0, storyEnergy: 0, coins: 0, items: 0, cappedItems: 0, updatedAt: Date.now() };
     }
     normalizeDay(store.days[date]);
     return store.days[date];
@@ -224,8 +242,10 @@
       xp: 0,
       storyEnergy: 0,
       rawStoryEnergy: 0,
+      coins: 0,
       requestedXP: 0,
       requestedStoryEnergy: 0,
+      requestedCoins: 0,
       duplicate: false,
       capped: false,
       capReached: false,
@@ -240,6 +260,7 @@
       const day = state?.stewardship?.days?.[todayKey()] || {};
       const dailyXpEarned = Number(day.xp || 0);
       const dailyRawStoryEnergy = floor2(Number(day.rawStoryEnergy || 0));
+      const dailyCoins = Math.max(0, Number(day.coins || 0));
       return {
         dailyXpEarned,
         dailyXpCap: DAILY_XP_CAP,
@@ -249,7 +270,11 @@
         dailyStoryEnergy: floor2(Number(day.storyEnergy || 0)),
         dailyStoryCap: DAILY_STORY_CAP,
         storyRemaining: floor2(Math.max(0, DAILY_STORY_CAP - dailyRawStoryEnergy)),
-        storyCapReached: dailyRawStoryEnergy >= DAILY_STORY_CAP
+        storyCapReached: dailyRawStoryEnergy >= DAILY_STORY_CAP,
+        dailyCoins,
+        dailyCoinCap: DAILY_COIN_CAP,
+        coinRemaining: Math.max(0, DAILY_COIN_CAP - dailyCoins),
+        coinCapReached: dailyCoins >= DAILY_COIN_CAP
       };
     } catch {
       return {
@@ -261,7 +286,11 @@
         dailyStoryEnergy: 0,
         dailyStoryCap: DAILY_STORY_CAP,
         storyRemaining: DAILY_STORY_CAP,
-        storyCapReached: false
+        storyCapReached: false,
+        dailyCoins: 0,
+        dailyCoinCap: DAILY_COIN_CAP,
+        coinRemaining: DAILY_COIN_CAP,
+        coinCapReached: false
       };
     }
   }
@@ -270,6 +299,7 @@
     DAILY_CAP: DAILY_XP_CAP,
     DAILY_XP_CAP,
     DAILY_STORY_CAP,
+    DAILY_COIN_CAP,
     rewardCreation,
     rewardMany,
     dailyEarned,

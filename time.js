@@ -320,7 +320,9 @@
     const before = rewardableEffectiveMinutes(date, entry.id);
     const effective = Math.min(REWARD_CAP_EFFECTIVE_MINUTES, Math.max(0, Number(entry.minutes || 0) * multiplier));
     const rewardSpec = marginalWorkReward(before, effective);
-    if (rewardSpec.xp <= 0 && rewardSpec.storyEnergyBase <= 0) return null;
+    const focusBonus = entry.mode === "focus" && Number(entry.targetMinutes || 0) > 0 && Number(entry.minutes || 0) >= Math.max(1, Number(entry.targetMinutes || 0) - 1) ? 10 : 0;
+    const coins = Math.max(0, Number(rewardSpec.coins || 0) + focusBonus);
+    if (rewardSpec.xp <= 0 && rewardSpec.storyEnergyBase <= 0 && coins <= 0) return null;
     const reward = app.awardActivity({
       source: "time",
       sourceId: entry.id,
@@ -330,12 +332,12 @@
       xp: rewardSpec.xp,
       realmXP: rewardSpec.xp,
       statXP: Math.max(0, Math.round(rewardSpec.xp * 0.65)),
-      coins: 0,
+      coins,
       storyEnergyBase: rewardSpec.storyEnergyBase,
-      metadata: { minutes: entry.minutes, categoryId: entry.categoryId, mode: entry.mode }
+      metadata: { minutes: entry.minutes, categoryId: entry.categoryId, mode: entry.mode, focusCompletionBonus: focusBonus }
     });
     entry.rewardEventId = reward.eventId || null;
-    entry.reward = { xp: reward.xp, storyEnergy: reward.storyEnergy, rawStoryEnergy: reward.rawStoryEnergy, statXP: reward.statXP };
+    entry.reward = { xp: reward.xp, storyEnergy: reward.storyEnergy, rawStoryEnergy: reward.rawStoryEnergy, statXP: reward.statXP, coins: reward.coins };
     return reward;
   }
 
@@ -344,7 +346,16 @@
     const after = clamp(before + Number(addedEffective || 0), 0, REWARD_CAP_EFFECTIVE_MINUTES);
     const story = Math.max(0, cumulativeStory(after) - cumulativeStory(before));
     const xp = Math.max(0, Math.round(cumulativeXp(after) - cumulativeXp(before)));
-    return { xp, storyEnergyBase: Math.round(story * 100) / 100 };
+    const coins = Math.max(0, Math.round(cumulativeCoins(after) - cumulativeCoins(before)));
+    return { xp, coins, storyEnergyBase: Math.round(story * 100) / 100 };
+  }
+
+  function cumulativeCoins(minutes) {
+    const m = clamp(minutes, 0, REWARD_CAP_EFFECTIVE_MINUTES);
+    const first = Math.min(m, 360) * (10 / 60);
+    const middle = Math.max(0, Math.min(m, 600) - 360) * (7 / 60);
+    const late = Math.max(0, m - 600) * (4 / 60);
+    return first + middle + late;
   }
 
   function cumulativeStory(minutes) {
@@ -427,7 +438,7 @@
     app.renderAll?.();
     render();
     dispatchChange();
-    app.showToast?.(`${formatDuration(minutes)} logged${entry.reward ? ` · +${entry.reward.storyEnergy || 0} 🔥 · +${entry.reward.xp || 0} XP` : ""}.`);
+    app.showToast?.(`${formatDuration(minutes)} logged${entry.reward ? ` · +${entry.reward.storyEnergy || 0} 🔥 · +${entry.reward.xp || 0} XP · +${entry.reward.coins || 0} 🪙` : ""}.`);
   }
 
   function editEntry(id) {

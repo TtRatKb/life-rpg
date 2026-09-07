@@ -502,7 +502,7 @@
           <span>×</span>
           <div><small>STREAK</small><strong>${formatMultiplier(multiplier)}</strong></div>
           <span>=</span>
-          <div class="habit-reward-current-v1"><small>${historical ? "BACKFILL CLEAR" : "NEXT CLEAR"}</small><strong>${formatEnergy(reward)} 🔥</strong></div>
+          <div class="habit-reward-current-v1"><small>${historical ? "BACKFILL CLEAR" : "NEXT CLEAR"}</small><strong>${formatEnergy(reward)} 🔥 · ${Number(snapshot.coinReward || 0)} 🪙</strong></div>
         </div>
 
         <footer class="habit-card-footer-v1">
@@ -531,6 +531,8 @@
     const candidateStreak = candidate ? calculateStreak(habit, candidateCompletions, dateKey) : streak;
     const rewardStreak = Math.max(streak, candidateStreak, 1);
     const multiplier = streakMultiplier(rewardStreak);
+    const coinMultiplier = coinStreakMultiplier(rewardStreak);
+    const coinReward = habitCoinReward(habit, rewardStreak);
     const baseReward = effortBase(habit);
     const rawReward = floor2(baseReward * multiplier);
     const previewAt = rewardDateForDateKey(dateKey).toISOString();
@@ -540,6 +542,7 @@
       label: habit.name,
       realm: habit.realm,
       capability: app.inferCapability?.({ realm: habit.realm, label: habit.name, kind: "habit" }),
+      coins: coinReward,
       storyEnergyBase: rawReward,
       at: previewAt
     });
@@ -561,6 +564,8 @@
       rawReward,
       baseReward,
       multiplier,
+      coinReward: Number(preview?.coins ?? coinReward),
+      coinMultiplier,
       nextSort: nextSortValue(habit, dateKey)
     };
   }
@@ -617,6 +622,8 @@
     const currentStreakAfter = calculateStreak(habit, after, today);
     const streakForReward = Math.max(snapshot.streak, rewardStreakAfter, 1);
     const multiplier = streakMultiplier(streakForReward);
+    const coinMultiplier = coinStreakMultiplier(streakForReward);
+    const coins = habitCoinReward(habit, streakForReward);
     const rawReward = floor2(effortBase(habit) * multiplier);
     const effort = EFFORTS[habit.effort] || EFFORTS.low;
     const xp = Math.max(1, Number(effort.xp || 5));
@@ -630,18 +637,20 @@
       xp,
       realmXP: xp,
       statXP: Math.max(1, Math.round(xp * 0.65)),
+      coins,
       storyEnergyBase: rawReward,
       at: rewardDate.toISOString(),
       metadata: {
         effort: habit.effort,
         streakAfter: currentStreakAfter,
         rewardStreakAfter,
+        coinMultiplier,
         periodKey: period.key,
         completedForDate: dateKey,
         loggedAt: provisional.loggedAt,
         backfilled: provisional.backfilled
       }
-    }) || { xp: 0, statXP: 0, storyEnergy: rawReward, rawStoryEnergy: rawReward };
+    }) || { xp: 0, statXP: 0, storyEnergy: rawReward, rawStoryEnergy: rawReward, coins: 0 };
 
     provisional.streakAfter = currentStreakAfter;
     provisional.rewardStreakAfter = rewardStreakAfter;
@@ -649,6 +658,7 @@
     provisional.rawReward = rawReward;
     provisional.reward = Number(reward.storyEnergy || 0);
     provisional.xp = Number(reward.xp || 0);
+    provisional.coins = Number(reward.coins || 0);
     provisional.realmXP = Number(reward.realmXP || 0);
     provisional.stat = capability;
     provisional.statXP = Number(reward.statXP || 0);
@@ -668,6 +678,7 @@
           habitId: habit.id,
           reward: reward.storyEnergy,
           xp: reward.xp,
+          coins: reward.coins,
           streakAfter: currentStreakAfter,
           date: provisional.date,
           backfilled: provisional.backfilled
@@ -686,7 +697,8 @@
     if (els.toastReward) {
       const streakText = streakAfter > 1 ? ` · ${streakAfter}-${streakUnitLabel(habit, 1)} streak` : "";
       const clearText = daypartBonus?.awarded ? ` · ${DAYPARTS[daypartBonus.daypart].label} cleared +${formatEnergy(daypartBonus.storyEnergy)} 🔥` : "";
-      els.toastReward.textContent = `+${formatEnergy(reward.storyEnergy)} Story Energy · +${Number(reward.xp || 0)} XP${streakText}${clearText}${historical ? " · backfilled" : ""}`;
+      const coinText = Number(reward.coins || 0) ? ` · +${Number(reward.coins || 0)} 🪙` : "";
+      els.toastReward.textContent = `+${formatEnergy(reward.storyEnergy)} Story Energy · +${Number(reward.xp || 0)} XP${coinText}${streakText}${clearText}${historical ? " · backfilled" : ""}`;
     }
     els.toast.classList.remove("hidden");
     els.toast.classList.add("show");
@@ -1213,6 +1225,22 @@
   function streakMultiplier(streak) {
     const safeStreak = Math.max(1, Number(streak || 1));
     return Math.min(STREAK_CAP, Math.pow(STREAK_GROWTH, safeStreak - 1));
+  }
+
+  function habitCoinBase(habit) {
+    return { tiny: 5, low: 8, normal: 10, high: 15, boss: 20 }[habit?.effort] || 10;
+  }
+
+  function coinStreakMultiplier(streak) {
+    const safe = Math.max(1, Math.round(Number(streak || 1)));
+    if (safe >= 90) return 1.20;
+    if (safe >= 30) return 1.15;
+    if (safe >= 7) return 1.10;
+    return 1;
+  }
+
+  function habitCoinReward(habit, streak) {
+    return Math.max(1, Math.round(habitCoinBase(habit) * coinStreakMultiplier(streak)));
   }
 
   function formatMultiplier(value) {

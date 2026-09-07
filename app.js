@@ -30,6 +30,9 @@
   };
 
   const REWARD_LEDGER_SCHEMA = 1;
+  const COIN_ECONOMY_SCHEMA = 2;
+  const LEGACY_COIN_SCALE = 10;
+  const LEGACY_STEWARDSHIP_BONUS_CAP = 500;
   const MAX_REWARD_EVENTS = 3000;
   const REWARD_DEDUPE_WINDOW_MS = 10 * 60 * 1000;
   const STORY_ENERGY_TIERS = [
@@ -298,7 +301,8 @@
     const multiplier = hasMultiplier && Number.isFinite(Number(quest.coinMultiplier))
       ? Number(quest.coinMultiplier)
       : 1;
-    return Math.max(1, Math.round((Number(quest.xp || 0) / 10) * multiplier));
+    const base = quest?.energy === "Boss" ? 40 : quest?.energy === "Low Energy" ? 10 : 20;
+    return Math.max(0, Math.round(base * multiplier));
   }
 
   function energyStyleKey(quest) {
@@ -824,8 +828,9 @@
 
   function defaultState() {
     return {
-      version: 8,
+      version: 9,
       progressionSchemaVersion: 1,
+      coinEconomyVersion: 0,
       characterXP: 0,
       coins: 0,
       storyEnergy: 0,
@@ -900,6 +905,7 @@
     storyEnergyValue: byId("storyEnergyValue"),
     storyEnergyValueLarge: byId("storyEnergyValueLarge"),
     coinsValue: byId("coinsValue"),
+    coinsMoneyValue: byId("coinsMoneyValue"),
     xpLabel: byId("xpLabel"),
     xpBar: byId("xpBar"),
     dateLine: byId("dateLine"),
@@ -1009,8 +1015,9 @@
     return {
       ...base,
       ...savedWithoutQuestLibrary,
-      version: 8,
+      version: 9,
       progressionSchemaVersion: Number(saved.progressionSchemaVersion || 0),
+      coinEconomyVersion: Number(saved.coinEconomyVersion || 0),
       rewardLedger: saved.rewardLedger && typeof saved.rewardLedger === "object"
         ? { ...defaultRewardLedger(), ...saved.rewardLedger, events: Array.isArray(saved.rewardLedger.events) ? saved.rewardLedger.events : [] }
         : defaultRewardLedger(),
@@ -1068,6 +1075,70 @@
     state.progressionSchemaVersion = 1;
   }
 
+  function migrateCoinEconomyV306() {
+    if (Number(state.coinEconomyVersion || 0) >= COIN_ECONOMY_SCHEMA) return false;
+
+    const scaleCoins = value => Math.max(0, Math.round(Number(value || 0) * LEGACY_COIN_SCALE));
+    state.coins = scaleCoins(state.coins);
+
+    (state.rewardLedger?.events || []).forEach(event => {
+      if (event && Object.prototype.hasOwnProperty.call(event, "coins")) event.coins = scaleCoins(event.coins);
+    });
+    (state.completionLog || []).forEach(log => {
+      if (log && Object.prototype.hasOwnProperty.call(log, "coins")) log.coins = scaleCoins(log.coins);
+    });
+    (state.externalCompletionLog || []).forEach(log => {
+      if (log && Object.prototype.hasOwnProperty.call(log, "coins")) log.coins = scaleCoins(log.coins);
+    });
+    Object.values(state.dailyPlanner?.days || {}).forEach(day => {
+      if (day?.batchReward && Object.prototype.hasOwnProperty.call(day.batchReward, "coins")) day.batchReward.coins = scaleCoins(day.batchReward.coins);
+      (day?.batchHistory || []).forEach(batch => {
+        if (batch?.reward && Object.prototype.hasOwnProperty.call(batch.reward, "coins")) batch.reward.coins = scaleCoins(batch.reward.coins);
+      });
+      if (day?.checkInReward && Object.prototype.hasOwnProperty.call(day.checkInReward, "coins")) day.checkInReward.coins = scaleCoins(day.checkInReward.coins);
+    });
+
+    const existingCollections = {
+      books: Array.isArray(state.bookLibrary?.items) ? state.bookLibrary.items.length : 0,
+      games: Array.isArray(state.gameLibrary?.items) ? state.gameLibrary.items.length : 0,
+      adventures: Array.isArray(state.sideAdventures?.items) ? state.sideAdventures.items.length : 0,
+      habits: Array.isArray(state.habits?.items) ? state.habits.items.length : 0
+    };
+    const legacyBonus = Math.min(LEGACY_STEWARDSHIP_BONUS_CAP,
+      existingCollections.books * 5 + existingCollections.games * 5 + existingCollections.adventures * 10 + existingCollections.habits * 5
+    );
+
+    if (legacyBonus > 0) {
+      const event = {
+        id: `reward-legacy-stewardship-v0306`,
+        source: "legacy-stewardship",
+        sourceId: "v0.30.6",
+        label: "Legacy Life RPG stewardship",
+        realm: null,
+        capability: null,
+        xp: 0,
+        realmXP: 0,
+        statXP: 0,
+        coins: legacyBonus,
+        rawStoryEnergy: 0,
+        storyEnergy: 0,
+        dedupeFamily: null,
+        duplicate: false,
+        duplicateOf: null,
+        progressionRelevant: false,
+        at: new Date().toISOString(),
+        metadata: { ...existingCollections, legacyStewardshipBonus: true, cap: LEGACY_STEWARDSHIP_BONUS_CAP }
+      };
+      if (!(state.rewardLedger.events || []).some(item => item?.id === event.id)) {
+        state.rewardLedger.events.push(event);
+        state.coins += legacyBonus;
+      }
+    }
+
+    state.coinEconomyVersion = COIN_ECONOMY_SCHEMA;
+    return true;
+  }
+
   function migrateLegacyState() {
     // V0.1 used "apartment" for an already-shared home.
     // V0.2 corrected that story state; V0.3 preserves the correction.
@@ -1091,8 +1162,9 @@
     migrateCapabilityCurve();
     ensureProgressionState();
     migrateLegacyRewardLedger();
-    state.version = 8;
-    saveState();
+    migrateCoinEconomyV306();
+    state.version = 9;
+    saveState({ source: "v0306-migration" });
   }
 
   function saveState(options = {}) {
@@ -1125,7 +1197,8 @@
     migrateCapabilityCurve();
     ensureProgressionState();
     migrateLegacyRewardLedger();
-    state.version = 8;
+    migrateCoinEconomyV306();
+    state.version = 9;
     saveState({ suppressCloud: Boolean(options.suppressCloud), source: options.source || "replace" });
     renderAll();
     return true;
@@ -1325,6 +1398,7 @@
     els.storyEnergyValue.textContent = formatEnergy(state.storyEnergy);
     els.storyEnergyValueLarge.textContent = formatEnergy(state.storyEnergy);
     els.coinsValue.textContent = state.coins;
+    if (els.coinsMoneyValue) els.coinsMoneyValue.textContent = formatCoinValue(state.coins);
 
     els.xpLabel.textContent = `${levelInfo.intoLevel} / ${levelInfo.required}`;
     els.xpBar.style.width = `${levelInfo.percent}%`;
@@ -1832,7 +1906,9 @@
 
     const xp = Math.max(0, Math.round(Number(quest.xp || 0) * multiplier));
     const statXP = Math.max(0, Math.round(Number(quest.statAtTarget || 1) * multiplier));
-    const coins = batchProgress ? 0 : Math.max(1, Math.round(questCoinBase(quest) * Math.min(multiplier, 2)));
+    const coins = batchProgress
+      ? Math.max(0, Math.round(questCoinBase(quest) * Number(batchProgress.earnedBatches || 0)))
+      : Math.max(1, Math.round(questCoinBase(quest) * Math.min(multiplier, 2)));
     const preview = previewActivityReward({
       source: "quest",
       sourceId: quest.id,
@@ -1946,10 +2022,10 @@
 
   function calculateExternalTaskReward(effort, realm = "Work") {
     const base = {
-      "Low Energy": { xp: 10, statXP: 7, coins: 1, storyEnergyBase: 0.8 },
-      "Normal": { xp: 20, statXP: 13, coins: 2, storyEnergyBase: 1.4 },
-      "Boss": { xp: 35, statXP: 23, coins: 4, storyEnergyBase: 2.1 }
-    }[effort] || { xp: 20, statXP: 13, coins: 2, storyEnergyBase: 1.4 };
+      "Low Energy": { xp: 10, statXP: 7, coins: 10, storyEnergyBase: 0.8 },
+      "Normal": { xp: 20, statXP: 13, coins: 20, storyEnergyBase: 1.4 },
+      "Boss": { xp: 35, statXP: 23, coins: 40, storyEnergyBase: 2.1 }
+    }[effort] || { xp: 20, statXP: 13, coins: 20, storyEnergyBase: 1.4 };
     const stat = externalTaskStatForRealm(realm);
     return {
       ...base,
@@ -2421,6 +2497,10 @@
     return number % 1 === 0 ? String(number) : number.toFixed(2).replace(/0$/, "");
   }
 
+  function formatCoinValue(coins) {
+    return new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR" }).format(Math.max(0, Number(coins || 0)) / 100);
+  }
+
   function escapeHtml(value) {
     return String(value)
       .replaceAll("&", "&amp;")
@@ -2464,6 +2544,7 @@
     getTodayStoryEnergyEarned: () => storyEnergyEarnedOnDate(new Date()),
     getTodayRewardActionCount,
     formatEnergy,
+    formatCoinValue,
     saveState,
     replaceState,
     renderAll,

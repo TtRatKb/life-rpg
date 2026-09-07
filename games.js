@@ -861,7 +861,7 @@
         xp: 10,
         realmXP: 10,
         statXP: 6,
-        coins: 0,
+        coins: 75,
         storyEnergyBase: 1.5,
         progressionRelevant: true,
         at: new Date(now).toISOString(),
@@ -877,7 +877,7 @@
     const rewardText = reward.deduped
       ? " · already counted from a linked gaming quest"
       : ` · +${Number(reward.xp || 0)} XP`;
-    const finishText = finishReward ? ` · finished +${app.formatEnergy?.(finishReward.storyEnergy) ?? finishReward.storyEnergy} 🔥` : "";
+    const finishText = finishReward ? ` · finished +${app.formatEnergy?.(finishReward.storyEnergy) ?? finishReward.storyEnergy} 🔥 · +${Number(finishReward.coins || 0)} 🪙` : "";
     const trialText = activeLogContext.preserveBacklog && game.status === "backlog" ? " · still in Want to Play" : "";
     showToast("Session logged", `${game.title} · ${formatDuration(minutes)}${goalId ? " · personal goal kept in focus" : ""}${rewardText}${finishText}${trialText}`);
     activeLogContext = {};
@@ -949,7 +949,7 @@
         xp: 6,
         realmXP: 6,
         statXP: 4,
-        coins: 0,
+        coins: 30,
         storyEnergyBase: 0.8,
         progressionRelevant: true,
         metadata: { gameGoal: true }
@@ -961,7 +961,7 @@
     game.updatedAt = Date.now();
     persist("game-goal-toggle");
     if (goal.done) {
-      const rewardText = goalReward ? ` · +${app.formatEnergy?.(goalReward.storyEnergy) ?? goalReward.storyEnergy} 🔥` : " · already rewarded";
+      const rewardText = goalReward ? ` · +${app.formatEnergy?.(goalReward.storyEnergy) ?? goalReward.storyEnergy} 🔥 · +${Number(goalReward.coins || 0)} 🪙` : " · already rewarded";
       showToast("Personal goal cleared ✦", `${game.title}: ${goal.text}${rewardText}`);
     }
   }

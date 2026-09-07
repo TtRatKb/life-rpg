@@ -7,7 +7,8 @@
     return;
   }
 
-  const SCHEMA = 1;
+  const SCHEMA = 2;
+  const LEGACY_ACHIEVEMENT_COIN_CAP = 500;
   const MAX_PINNED = 3;
   const CATEGORY_META = {
     all: { label: "All", icon: "✦" },
@@ -37,6 +38,7 @@
     icon,
     title: `${realm} Takes Root`,
     description: `Reach ${realm} Realm Rank 3.`,
+    coinReward: 75,
     progress: ctx => ({ value: ctx.realmRanks[realm] || 1, target: 3, unit: "Rank" }),
     test: ctx => (ctx.realmRanks[realm] || 1) >= 3
   }));
@@ -48,6 +50,7 @@
       icon: "✦",
       title: "First Step",
       description: "Log your first meaningful real-life action.",
+      coinReward: 25,
       profileTitle: "Adventurer",
       progress: ctx => ({ value: ctx.actionCount, target: 1, unit: "action" }),
       test: ctx => ctx.actionCount >= 1
@@ -58,6 +61,7 @@
       icon: "☀",
       title: "Three Adventure Days",
       description: "Make real-life progress on three different days.",
+      coinReward: 30,
       progress: ctx => ({ value: ctx.adventureDays, target: 3, unit: "days" }),
       test: ctx => ctx.adventureDays >= 3
     },
@@ -67,6 +71,7 @@
       icon: "🌸",
       title: "A Week With Yourself",
       description: "Make real-life progress on seven different days.",
+      coinReward: 50,
       profileTitle: "In Motion",
       progress: ctx => ({ value: ctx.adventureDays, target: 7, unit: "days" }),
       test: ctx => ctx.adventureDays >= 7
@@ -77,6 +82,7 @@
       icon: "↻",
       title: "Welcome Back",
       description: "Return to Life RPG after a break of at least seven days.",
+      coinReward: 50,
       profileTitle: "Returned",
       progress: ctx => ({ value: ctx.hasComeback ? 1 : 0, target: 1, unit: "return" }),
       test: ctx => ctx.hasComeback
@@ -87,8 +93,50 @@
       icon: "☕",
       title: "Read the Room",
       description: "Complete seven Daily Briefings.",
+      coinReward: 50,
       progress: ctx => ({ value: ctx.briefingCount, target: 7, unit: "briefings" }),
       test: ctx => ctx.briefingCount >= 7
+    },
+
+    {
+      id: "life-checkins-fourteen",
+      category: "life",
+      icon: "🌅",
+      title: "Morning Rhythm",
+      description: "Complete the Daily Check-in on fourteen days.",
+      coinReward: 75,
+      progress: ctx => ({ value: ctx.briefingCount, target: 14, unit: "check-ins" }),
+      test: ctx => ctx.briefingCount >= 14
+    },
+    {
+      id: "life-checkins-thirty",
+      category: "life",
+      icon: "☀",
+      title: "A Month of Showing Up",
+      description: "Complete the Daily Check-in on thirty days.",
+      coinReward: 150,
+      progress: ctx => ({ value: ctx.briefingCount, target: 30, unit: "check-ins" }),
+      test: ctx => ctx.briefingCount >= 30
+    },
+    {
+      id: "life-reflections-seven",
+      category: "life",
+      icon: "🌸",
+      title: "Seven Pages In",
+      description: "Save a Journal reflection on seven different days.",
+      coinReward: 50,
+      progress: ctx => ({ value: ctx.reflectionDays, target: 7, unit: "days" }),
+      test: ctx => ctx.reflectionDays >= 7
+    },
+    {
+      id: "life-focus-ten",
+      category: "life",
+      icon: "◷",
+      title: "Deep Focus",
+      description: "Complete ten intentional Focus sessions.",
+      coinReward: 75,
+      progress: ctx => ({ value: ctx.focusSessions, target: 10, unit: "sessions" }),
+      test: ctx => ctx.focusSessions >= 10
     },
 
     {
@@ -97,6 +145,7 @@
       icon: "☷",
       title: "Quest Cleared",
       description: "Complete your first Quest.",
+      coinReward: 25,
       progress: ctx => ({ value: ctx.questClears, target: 1, unit: "clear" }),
       test: ctx => ctx.questClears >= 1
     },
@@ -106,6 +155,7 @@
       icon: "⚔",
       title: "Ten Clears",
       description: "Complete ten Quests.",
+      coinReward: 75,
       progress: ctx => ({ value: ctx.questClears, target: 10, unit: "clears" }),
       test: ctx => ctx.questClears >= 10
     },
@@ -115,6 +165,7 @@
       icon: "✦",
       title: "Seasoned Adventurer",
       description: "Complete fifty Quests.",
+      coinReward: 200,
       profileTitle: "Questkeeper",
       progress: ctx => ({ value: ctx.questClears, target: 50, unit: "clears" }),
       test: ctx => ctx.questClears >= 50
@@ -126,6 +177,7 @@
       icon: "❀",
       title: "Small Things Count",
       description: "Complete your first Habit check-in.",
+      coinReward: 25,
       progress: ctx => ({ value: ctx.habitCompletions, target: 1, unit: "check-in" }),
       test: ctx => ctx.habitCompletions >= 1
     },
@@ -135,6 +187,7 @@
       icon: "🔥",
       title: "Steady Bloom",
       description: "Reach a seven-period Habit streak.",
+      coinReward: 50,
       profileTitle: "Steady Bloom",
       progress: ctx => ({ value: ctx.bestHabitStreak, target: 7, unit: "periods" }),
       test: ctx => ctx.bestHabitStreak >= 7
@@ -145,6 +198,7 @@
       icon: "🌱",
       title: "Quiet Consistency",
       description: "Log fifty Habit completions in total.",
+      coinReward: 100,
       progress: ctx => ({ value: ctx.habitCompletions, target: 50, unit: "check-ins" }),
       test: ctx => ctx.habitCompletions >= 50
     },
@@ -155,6 +209,7 @@
       icon: "📖",
       title: "One More Chapter",
       description: "Finish your first book in the Library.",
+      coinReward: 50,
       profileTitle: "Page Turner",
       progress: ctx => ({ value: ctx.finishedBooks, target: 1, unit: "book" }),
       test: ctx => ctx.finishedBooks >= 1
@@ -165,6 +220,7 @@
       icon: "📚",
       title: "Five Spines Down",
       description: "Finish five books.",
+      coinReward: 125,
       profileTitle: "Bookish",
       progress: ctx => ({ value: ctx.finishedBooks, target: 5, unit: "books" }),
       test: ctx => ctx.finishedBooks >= 5
@@ -175,6 +231,7 @@
       icon: "✦",
       title: "Five Hundred Pages",
       description: "Log 500 pages of reading through the Library.",
+      coinReward: 75,
       progress: ctx => ({ value: ctx.pagesRead, target: 500, unit: "pages" }),
       test: ctx => ctx.pagesRead >= 500
     },
@@ -184,6 +241,7 @@
       icon: "🌸",
       title: "Lost in the Stacks",
       description: "Log 2,000 pages of reading through the Library.",
+      coinReward: 200,
       profileTitle: "Library Dweller",
       progress: ctx => ({ value: ctx.pagesRead, target: 2000, unit: "pages" }),
       test: ctx => ctx.pagesRead >= 2000
@@ -195,6 +253,7 @@
       icon: "🎮",
       title: "Press Start",
       description: "Log your first game session.",
+      coinReward: 25,
       progress: ctx => ({ value: ctx.gameSessions, target: 1, unit: "session" }),
       test: ctx => ctx.gameSessions >= 1
     },
@@ -204,6 +263,7 @@
       icon: "✓",
       title: "Personal Victory",
       description: "Complete your first personal game goal.",
+      coinReward: 40,
       profileTitle: "Goal Getter",
       progress: ctx => ({ value: ctx.gameGoalsDone, target: 1, unit: "goal" }),
       test: ctx => ctx.gameGoalsDone >= 1
@@ -214,6 +274,7 @@
       icon: "🏁",
       title: "Credits Roll",
       description: "Mark your first game Finished.",
+      coinReward: 75,
       progress: ctx => ({ value: ctx.finishedGames, target: 1, unit: "game" }),
       test: ctx => ctx.finishedGames >= 1
     },
@@ -223,6 +284,7 @@
       icon: "∞",
       title: "Play Is Progress",
       description: "Log ten hours of intentional game time.",
+      coinReward: 75,
       progress: ctx => ({ value: Math.floor(ctx.gameMinutes / 60), target: 10, unit: "hours" }),
       test: ctx => ctx.gameMinutes >= 600
     },
@@ -233,6 +295,7 @@
       icon: "✧",
       title: "Side Quest Energy",
       description: "Log progress on your first Side Adventure.",
+      coinReward: 25,
       progress: ctx => ({ value: ctx.adventureSessions, target: 1, unit: "session" }),
       test: ctx => ctx.adventureSessions >= 1
     },
@@ -242,6 +305,7 @@
       icon: "✨",
       title: "Made It Real",
       description: "Finish your first Side Adventure or project.",
+      coinReward: 100,
       profileTitle: "Maker",
       progress: ctx => ({ value: ctx.finishedAdventures, target: 1, unit: "project" }),
       test: ctx => ctx.finishedAdventures >= 1
@@ -252,6 +316,7 @@
       icon: "📦",
       title: "Clear the Floor",
       description: "Finish a project that was taking up physical space.",
+      coinReward: 100,
       profileTitle: "Space Reclaimed",
       progress: ctx => ({ value: ctx.finishedSpaceProjects, target: 1, unit: "project" }),
       test: ctx => ctx.finishedSpaceProjects >= 1
@@ -263,6 +328,7 @@
       icon: "✦",
       title: "Character Level 5",
       description: "Reach Character Level 5.",
+      coinReward: 100,
       progress: ctx => ({ value: ctx.characterLevel, target: 5, unit: "Level" }),
       test: ctx => ctx.characterLevel >= 5
     },
@@ -272,6 +338,7 @@
       icon: "◇",
       title: "Capability Unlocked",
       description: "Reach Level 2 in any Capability.",
+      coinReward: 50,
       progress: ctx => ({ value: ctx.highestCapability, target: 2, unit: "Level" }),
       test: ctx => ctx.highestCapability >= 2
     },
@@ -281,6 +348,7 @@
       icon: "✧",
       title: "Skilled",
       description: "Reach Level 4 in any Capability.",
+      coinReward: 125,
       profileTitle: "Skilled",
       progress: ctx => ({ value: ctx.highestCapability, target: 4, unit: "Level" }),
       test: ctx => ctx.highestCapability >= 4
@@ -292,6 +360,7 @@
       icon: "🌿",
       title: "Deep Roots",
       description: "Reach Realm Rank 5 in any life domain.",
+      coinReward: 200,
       profileTitle: "Rooted",
       progress: ctx => ({ value: ctx.highestRealmRank, target: 5, unit: "Rank" }),
       test: ctx => ctx.highestRealmRank >= 5
@@ -303,6 +372,7 @@
       icon: "♡",
       title: "The Story Moves",
       description: "Complete a Main Story chapter.",
+      coinReward: 40,
       secret: true,
       progress: ctx => ({ value: ctx.storyChapters, target: 1, unit: "chapter" }),
       test: ctx => ctx.storyChapters >= 1
@@ -313,6 +383,7 @@
       icon: "✿",
       title: "Storybound",
       description: "Complete three Main Story chapters.",
+      coinReward: 100,
       profileTitle: "Storybound",
       secret: true,
       progress: ctx => ({ value: ctx.storyChapters, target: 3, unit: "chapters" }),
@@ -324,6 +395,7 @@
       icon: "☕",
       title: "Time Freely Given",
       description: "Complete a free Hang Out scene.",
+      coinReward: 50,
       secret: true,
       progress: ctx => ({ value: ctx.hangoutsCompleted, target: 1, unit: "hangout" }),
       test: ctx => ctx.hangoutsCompleted >= 1
@@ -334,6 +406,7 @@
       icon: "✉",
       title: "Your Reply Matters",
       description: "Send your first persistent message reply.",
+      coinReward: 40,
       secret: true,
       progress: ctx => ({ value: ctx.messageReplies, target: 1, unit: "reply" }),
       test: ctx => ctx.messageReplies >= 1
@@ -354,6 +427,8 @@
     titleHint: byId("achievementTitleHint"),
     showcase: byId("growthAchievementShowcase"),
     showcaseCount: byId("growthAchievementCount"),
+    dashboardTracker: byId("dashboardAchievementTracker"),
+    dashboardTrackerEmpty: byId("dashboardAchievementTrackerEmpty"),
     dashboardTitle: byId("dashboardPlayerTitleLine"),
     growthTitle: byId("growthPlayerTitleLine"),
     toast: byId("achievementToast"),
@@ -374,13 +449,14 @@
     const hadAchievementState = Boolean(state.achievements && typeof state.achievements === "object");
     const changed = ensureState();
     bindEvents();
+    migrateAchievementCoinsV306();
     scanAchievements({ retroactive: !hadAchievementState, silent: !hadAchievementState });
     render();
     if (changed && hadAchievementState) app.saveState({ source: "achievements-migrate" });
 
     window.addEventListener("life-rpg:state-saved", event => {
       const source = event?.detail?.source || "";
-      if (scanning || source === "achievements-unlock" || source === "achievements-ui") return;
+      if (scanning || source === "achievements-unlock" || source === "achievements-ui" || source === "achievements-coin-migrate") return;
       const restoredWithoutAchievements = ["cloud", "import", "replace"].includes(source) && !app.getState().achievements;
       if (restoredWithoutAchievements) {
         ensureState();
@@ -420,6 +496,13 @@
       if (button) app.showView("achievements");
     });
 
+    els.dashboardTracker?.addEventListener("click", event => {
+      const unpin = event.target.closest?.("[data-achievement-unpin]");
+      if (unpin) { togglePinned(unpin.dataset.achievementUnpin); return; }
+      const button = event.target.closest?.("[data-achievement-open]");
+      if (button) app.showView("achievements");
+    });
+
     els.titleSelect?.addEventListener("change", () => {
       const id = els.titleSelect.value || null;
       const state = achievementState();
@@ -437,19 +520,52 @@
     const root = app.getState();
     let changed = false;
     if (!root.achievements || typeof root.achievements !== "object" || Array.isArray(root.achievements)) {
-      root.achievements = { schemaVersion: SCHEMA, unlocked: {}, pinned: [], equippedTitleId: null, createdAt: Date.now() };
+      root.achievements = { schemaVersion: SCHEMA, unlocked: {}, pinned: [], coinRewarded: {}, migrations: {}, equippedTitleId: null, createdAt: Date.now() };
       changed = true;
     }
     const state = root.achievements;
     if (Number(state.schemaVersion || 0) < SCHEMA) { state.schemaVersion = SCHEMA; changed = true; }
     if (!state.unlocked || typeof state.unlocked !== "object" || Array.isArray(state.unlocked)) { state.unlocked = {}; changed = true; }
+    if (!state.coinRewarded || typeof state.coinRewarded !== "object" || Array.isArray(state.coinRewarded)) { state.coinRewarded = {}; changed = true; }
+    if (!state.migrations || typeof state.migrations !== "object" || Array.isArray(state.migrations)) { state.migrations = {}; changed = true; }
     if (!Array.isArray(state.pinned)) { state.pinned = []; changed = true; }
-    state.pinned = state.pinned.filter((id, index, ids) => BY_ID.has(id) && ids.indexOf(id) === index).slice(0, MAX_PINNED);
+    const nextPinned = state.pinned.filter((id, index, ids) => {
+      const def = BY_ID.get(id);
+      return def && (!def.secret || Boolean(state.unlocked[id])) && ids.indexOf(id) === index;
+    }).slice(0, MAX_PINNED);
+    if (JSON.stringify(nextPinned) !== JSON.stringify(state.pinned)) { state.pinned = nextPinned; changed = true; }
     if (state.equippedTitleId && (!BY_ID.get(state.equippedTitleId)?.profileTitle || !state.unlocked[state.equippedTitleId])) {
       state.equippedTitleId = null;
       changed = true;
     }
     return changed;
+  }
+
+  function migrateAchievementCoinsV306() {
+    const state = achievementState();
+    if (state.migrations?.coinRewardsV306) return 0;
+    const ctx = buildContext();
+    const eligible = DEFINITIONS.filter(def => {
+      if (state.coinRewarded[def.id]) return false;
+      if (state.unlocked[def.id]) return true;
+      try { return Boolean(def.test(ctx)); } catch { return false; }
+    });
+    const requested = eligible.reduce((sum, def) => sum + Math.max(0, Number(def.coinReward || 0)), 0);
+    const coins = Math.min(LEGACY_ACHIEVEMENT_COIN_CAP, requested);
+    eligible.forEach(def => { state.coinRewarded[def.id] = true; });
+    state.migrations.coinRewardsV306 = { at: new Date().toISOString(), eligible: eligible.length, requested, awarded: coins };
+    if (coins > 0) {
+      app.awardActivity?.({
+        source: "achievement-legacy",
+        sourceId: "v0306",
+        label: "Legacy achievement bonus",
+        xp: 0, realmXP: 0, statXP: 0, coins, storyEnergyBase: 0, progressionRelevant: false,
+        metadata: { achievementMigration: true, eligible: eligible.length, requested, cappedAt: LEGACY_ACHIEVEMENT_COIN_CAP }
+      });
+    }
+    app.saveState({ source: "achievements-coin-migrate" });
+    if (coins > 0) window.setTimeout(() => app.showToast?.(`🏆 Existing milestones recognized · +${coins} 🪙`), 650);
+    return coins;
   }
 
   function achievementState() {
@@ -476,7 +592,23 @@
           unlockedAt: now,
           retroactive: Boolean(retroactive)
         };
-        unlockedNow.push(def);
+        let awardedCoins = 0;
+        if (!state.coinRewarded[def.id]) {
+          const requestedCoins = Math.max(0, Number(def.coinReward || 0));
+          if (requestedCoins > 0) {
+            const reward = app.awardActivity?.({
+              source: "achievement",
+              sourceId: def.id,
+              label: `Achievement · ${def.title}`,
+              xp: 0, realmXP: 0, statXP: 0, coins: requestedCoins, storyEnergyBase: 0, progressionRelevant: false,
+              metadata: { achievementId: def.id, secret: Boolean(def.secret) }
+            });
+            awardedCoins = Number(reward?.coins || 0);
+          }
+          state.coinRewarded[def.id] = true;
+        }
+        state.unlocked[def.id].coinReward = awardedCoins;
+        unlockedNow.push({ ...def, awardedCoins });
       }
 
       if (unlockedNow.length) {
@@ -505,6 +637,8 @@
     const story = root.story || {};
     const social = story.social || {};
     const daily = root.dailyPlanner || {};
+    const journal = root.journal || {};
+    const timeTracking = root.timeTracking || {};
 
     const capabilityLevels = Object.values(snapshot.capabilities || {}).map(Number).filter(Number.isFinite);
     const realmRanks = snapshot.realmRanks || {};
@@ -516,12 +650,18 @@
     const gameLogs = Array.isArray(games.logs) ? games.logs : [];
     const adventureItems = Array.isArray(adventures.items) ? adventures.items : [];
     const adventureLogs = Array.isArray(adventures.logs) ? adventures.logs : [];
+    const journalEntries = journal.entries && typeof journal.entries === "object" ? Object.values(journal.entries) : [];
+    const reflectionDays = journalEntries.filter(entry => entry && (String(entry.gratitude || "").trim() || String(entry.smallWin || "").trim() || String(entry.hardThing || "").trim())).length;
+    const timeEntries = Array.isArray(timeTracking.entries) ? timeTracking.entries : [];
+    const focusSessions = timeEntries.filter(entry => entry?.mode === "focus" && Number(entry.minutes || 0) >= Math.max(1, Number(entry.targetMinutes || 0) - 1)).length;
 
     return {
       actionCount: events.length,
       adventureDays: rewardDates.length,
       hasComeback: hasComebackGap(rewardDates),
       briefingCount: Object.values(daily.days || {}).filter(day => day?.checkIn).length,
+      reflectionDays,
+      focusSessions,
       questClears: Array.isArray(root.completionLog) ? root.completionLog.length : 0,
       habitCompletions: habitCompletions.length,
       bestHabitStreak: habitCompletions.reduce((max, log) => Math.max(max, Number(log.streakAfter || 0)), 0),
@@ -578,6 +718,7 @@
     renderFilters();
     renderGrid();
     renderShowcase();
+    renderDashboardTracker();
     renderTitleControls();
   }
 
@@ -655,16 +796,16 @@
           <h3>${esc(def.title)}</h3>
           <p>${esc(def.description)}</p>
           ${def.profileTitle ? `<div class="achievement-unlock-reward-v21"><span>✧</span><div><small>PROFILE TITLE</small><strong>${esc(def.profileTitle)}</strong></div></div>` : ""}
+          ${Number(def.coinReward || 0) > 0 ? `<div class="achievement-coin-reward-v306"><span>🪙</span><div><small>${unlocked ? "EARNED" : "REWARD"}</small><strong>${formatNumber(def.coinReward)} · ${esc(app.formatCoinValue?.(def.coinReward) || "")}</strong></div></div>` : ""}
           ${!unlocked && progress ? `
             <div class="achievement-progress-v21">
               <div><span>${esc(progress.unit || "Progress")}</span><strong>${formatNumber(progress.value)} / ${formatNumber(progress.target)}</strong></div>
               <div class="progress"><span style="width:${percent}%"></span></div>
             </div>` : ""}
-          ${unlocked ? `
-            <div class="achievement-actions-v21">
-              <button class="secondary-button ${pinned ? "active" : ""}" data-achievement-pin="${escAttr(def.id)}" type="button">${pinned ? "Pinned ✓" : "Pin to Growth"}</button>
-              ${def.profileTitle ? `<button class="ghost-button ${equipped ? "active" : ""}" data-achievement-equip="${escAttr(def.id)}" type="button">${equipped ? "Equipped ✓" : "Use title"}</button>` : ""}
-            </div>` : ""}
+          <div class="achievement-actions-v21">
+            <button class="secondary-button ${pinned ? "active" : ""}" data-achievement-pin="${escAttr(def.id)}" type="button">${pinned ? "Tracked ✓" : unlocked ? "Track achievement" : "Track this goal"}</button>
+            ${unlocked && def.profileTitle ? `<button class="ghost-button ${equipped ? "active" : ""}" data-achievement-equip="${escAttr(def.id)}" type="button">${equipped ? "Equipped ✓" : "Use title"}</button>` : ""}
+          </div>
         </div>
       </article>`;
   }
@@ -672,8 +813,9 @@
   function renderShowcase() {
     if (!els.showcase) return;
     const state = achievementState();
+    const ctx = buildContext();
     const unlockedDefs = DEFINITIONS.filter(def => state.unlocked[def.id]);
-    const pinnedDefs = state.pinned.map(id => BY_ID.get(id)).filter(def => def && state.unlocked[def.id]);
+    const pinnedDefs = state.pinned.map(id => BY_ID.get(id)).filter(Boolean);
     const recentDefs = unlockedDefs
       .filter(def => !pinnedDefs.some(item => item.id === def.id))
       .sort((a, b) => Number(state.unlocked[b.id]?.unlockedAt || 0) - Number(state.unlocked[a.id]?.unlockedAt || 0));
@@ -682,16 +824,41 @@
     if (els.showcaseCount) els.showcaseCount.textContent = `${unlockedDefs.length} / ${DEFINITIONS.length}`;
 
     if (!picks.length) {
-      els.showcase.innerHTML = `<button class="growth-achievement-empty-v21" data-achievement-open="1" type="button"><span>🏆</span><div><strong>Your collection starts with real life.</strong><small>Log something meaningful and your first badge can appear here.</small></div><b>›</b></button>`;
+      els.showcase.innerHTML = `<button class="growth-achievement-empty-v21" data-achievement-open="1" type="button"><span>🏆</span><div><strong>Choose something to work toward.</strong><small>Visible achievements can be tracked before they unlock. Secret milestones stay hidden.</small></div><b>›</b></button>`;
       return;
     }
 
-    els.showcase.innerHTML = picks.map(def => `
-      <button class="growth-achievement-chip-v21" data-achievement-open="1" type="button">
+    els.showcase.innerHTML = picks.map(def => {
+      const unlocked = Boolean(state.unlocked[def.id]);
+      const progress = safeProgress(def, ctx);
+      const percent = progress?.target > 0 ? Math.min(100, Math.max(0, progress.value / progress.target * 100)) : unlocked ? 100 : 0;
+      return `<button class="growth-achievement-chip-v21 ${unlocked ? "unlocked" : "tracked"}" data-achievement-open="1" type="button">
         <span>${def.icon}</span>
-        <div><small>${state.pinned.includes(def.id) ? "PINNED" : "RECENT"}</small><strong>${esc(def.title)}</strong>${def.profileTitle ? `<em>Title: ${esc(def.profileTitle)}</em>` : ""}</div>
+        <div><small>${state.pinned.includes(def.id) ? (unlocked ? "TRACKED · COMPLETE" : "TRACKED GOAL") : "RECENT"}</small><strong>${esc(def.title)}</strong>${progress && !unlocked ? `<em>${formatNumber(progress.value)} / ${formatNumber(progress.target)} ${esc(progress.unit || "")}</em><i class="achievement-mini-progress-v306"><b style="width:${percent}%"></b></i>` : def.profileTitle ? `<em>Title: ${esc(def.profileTitle)}</em>` : ""}</div>
         <b>›</b>
-      </button>`).join("");
+      </button>`;
+    }).join("");
+  }
+
+  function renderDashboardTracker() {
+    if (!els.dashboardTracker) return;
+    const state = achievementState();
+    const ctx = buildContext();
+    const tracked = state.pinned.map(id => BY_ID.get(id)).filter(Boolean);
+    if (els.dashboardTrackerEmpty) els.dashboardTrackerEmpty.classList.toggle("hidden", tracked.length > 0);
+    els.dashboardTracker.innerHTML = tracked.map(def => {
+      const unlocked = Boolean(state.unlocked[def.id]);
+      const progress = safeProgress(def, ctx);
+      const percent = progress?.target > 0 ? Math.min(100, Math.max(0, progress.value / progress.target * 100)) : unlocked ? 100 : 0;
+      return `<article class="dashboard-achievement-track-v306 ${unlocked ? "complete" : ""}">
+        <button class="dashboard-achievement-main-v306" data-achievement-open="1" type="button">
+          <span class="dashboard-achievement-icon-v306">${def.icon}</span>
+          <span class="dashboard-achievement-copy-v306"><small>${unlocked ? "ACHIEVEMENT COMPLETE" : "TRACKED ACHIEVEMENT"}</small><strong>${esc(def.title)}</strong><em>${unlocked ? `+${formatNumber(def.coinReward || 0)} 🪙 earned` : progress ? `${formatNumber(progress.value)} / ${formatNumber(progress.target)} ${esc(progress.unit || "")}` : "In progress"}</em><i class="achievement-mini-progress-v306"><b style="width:${percent}%"></b></i></span>
+          <b>›</b>
+        </button>
+        <button class="dashboard-achievement-unpin-v306" data-achievement-unpin="${escAttr(def.id)}" type="button" aria-label="Stop tracking ${escAttr(def.title)}">×</button>
+      </article>`;
+    }).join("");
   }
 
   function renderTitleControls() {
@@ -719,13 +886,15 @@
   }
 
   function togglePinned(id) {
-    if (!BY_ID.has(id) || !isUnlocked(id)) return;
+    const def = BY_ID.get(id);
+    if (!def) return;
+    if (def.secret && !isUnlocked(id)) return;
     const state = achievementState();
     if (state.pinned.includes(id)) {
       state.pinned = state.pinned.filter(item => item !== id);
     } else {
       if (state.pinned.length >= MAX_PINNED) {
-        app.showToast?.("You can pin up to three achievements to Growth.");
+        app.showToast?.("You can track up to three achievements at a time.");
         return;
       }
       state.pinned.push(id);
@@ -782,7 +951,11 @@
     }
     if (els.toastIcon) els.toastIcon.textContent = def.icon;
     if (els.toastTitle) els.toastTitle.textContent = def.title;
-    if (els.toastDetail) els.toastDetail.textContent = def.profileTitle ? `Achievement unlocked · profile title “${def.profileTitle}” available` : "Achievement unlocked";
+    if (els.toastDetail) {
+      const coins = Number(def.awardedCoins ?? def.coinReward ?? 0);
+      const reward = coins > 0 ? ` · +${coins} 🪙` : "";
+      els.toastDetail.textContent = def.profileTitle ? `Achievement unlocked${reward} · profile title “${def.profileTitle}” available` : `Achievement unlocked${reward}`;
+    }
     els.toast.classList.remove("hidden");
     requestAnimationFrame(() => els.toast.classList.add("show"));
     toastTimer = window.setTimeout(() => {
@@ -819,7 +992,7 @@
   }
 
   window.LifeRPGAchievements = {
-    definitions: DEFINITIONS.map(def => ({ id: def.id, category: def.category, secret: Boolean(def.secret), profileTitle: def.profileTitle || null })),
+    definitions: DEFINITIONS.map(def => ({ id: def.id, category: def.category, secret: Boolean(def.secret), profileTitle: def.profileTitle || null, coinReward: Number(def.coinReward || 0) })),
     scan: () => scanAchievements({ retroactive: false, silent: false }),
     render,
     getUnlockedIds: () => Object.keys(achievementState().unlocked),

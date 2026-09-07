@@ -1270,8 +1270,9 @@
     populateLogPicker(book.id);
     configureLogForm(book);
     const reward = result?.reward || {};
-    const rewardText = reward.deduped ? "already counted from a linked reading quest" : `+${app.formatEnergy?.(reward.storyEnergy) ?? reward.storyEnergy} 🔥 · +${Number(reward.xp || 0)} XP`;
-    setChainLogStatus(`✓ ${book.title} finished · ${formatNumber(remaining)} remaining page${remaining === 1 ? "" : "s"} logged · ${rewardText}.`);
+    const rewardText = reward.deduped ? "already counted from a linked reading quest" : `+${app.formatEnergy?.(reward.storyEnergy) ?? reward.storyEnergy} 🔥 · +${Number(reward.xp || 0)} XP · +${Number(reward.coins || 0)} 🪙`;
+    const finishText = result?.finishReward ? ` · finish bonus +${Number(result.finishReward.coins || 0)} 🪙` : "";
+    setChainLogStatus(`✓ ${book.title} finished · ${formatNumber(remaining)} remaining page${remaining === 1 ? "" : "s"} logged · ${rewardText}${finishText}.`);
   }
 
   function quickLog(id, type, amount) {
@@ -1288,6 +1289,11 @@
 
     const role = ROLES[book.role] || ROLES.fun;
     const xp = Math.max(2, Math.round(storyEnergyBase * 10));
+    const coins = pages > 0
+      ? Math.min(15, Math.max(1, Math.round(Number(pages) / 2)))
+      : minutes > 0
+        ? Math.min(15, Math.max(1, Math.round(Number(minutes) / 6)))
+        : chapter ? 5 : 0;
     const capability = book.role === "japanese" ? "japanese" : "knowledge";
     return {
       source: "library",
@@ -1298,6 +1304,7 @@
       xp,
       realmXP: xp,
       statXP: Math.max(1, Math.round(xp * 0.65)),
+      coins,
       storyEnergyBase,
       dedupeFamily: "reading",
       at: new Date(at).toISOString(),
@@ -1307,7 +1314,8 @@
 
   function logBook(book, { pages = 0, minutes = 0, chapter = false, source = "manual" } = {}) {
     const now = Date.now();
-    if (book.status !== "reading") {
+    const wasFinished = book.status === "finished";
+    if (book.status !== "reading" && !wasFinished) {
       book.status = "reading";
       book.startedAt ||= now;
     }
@@ -1332,13 +1340,34 @@
       minutes: Number(minutes || 0),
       chapter,
       at: now
-    })) || { xp: 0, realmXP: 0, statXP: 0, storyEnergy: 0, rawStoryEnergy: 0 };
+    })) || { xp: 0, realmXP: 0, statXP: 0, storyEnergy: 0, rawStoryEnergy: 0, coins: 0 };
+
+    let finishReward = null;
+    if (!wasFinished && book.status === "finished" && !book.finishRewardEventId) {
+      finishReward = app.awardActivity?.({
+        source: "book-finish",
+        sourceId: book.id,
+        label: `Finished: ${book.title}`,
+        realm: (ROLES[book.role] || ROLES.fun).realm,
+        capability: book.role === "japanese" ? "japanese" : "knowledge",
+        xp: 10,
+        realmXP: 10,
+        statXP: 6,
+        coins: 50,
+        storyEnergyBase: 1,
+        progressionRelevant: true,
+        at: new Date(now).toISOString(),
+        metadata: { bookFinished: true }
+      }) || null;
+      book.finishRewardEventId = finishReward?.eventId || `local-book-finish-${now}`;
+    }
 
     model().logs.push({
       id: makeId("read"), bookId: book.id, at: now, date: dateKey(new Date(now)),
       pages: actualPages, minutes: Number(minutes || 0), chapter: Boolean(chapter), source,
       xp: Number(reward.xp || 0), realmXP: Number(reward.realmXP || 0), statXP: Number(reward.statXP || 0),
-      storyEnergy: Number(reward.storyEnergy || 0), rawStoryEnergy: Number(reward.rawStoryEnergy || 0),
+      storyEnergy: Number(reward.storyEnergy || 0), rawStoryEnergy: Number(reward.rawStoryEnergy || 0), coins: Number(reward.coins || 0),
+      finishCoins: Number(finishReward?.coins || 0), finishRewardEventId: finishReward?.eventId || null,
       rewardEventId: reward.eventId || null, deduped: Boolean(reward.deduped)
     });
     persist("book-library-log");
@@ -1350,9 +1379,10 @@
         : minutes > 0 ? `${formatDuration(minutes)} logged` : "Reading session logged";
     const rewardText = reward.deduped
       ? " · already counted from a linked reading quest"
-      : ` · +${app.formatEnergy?.(reward.storyEnergy) ?? reward.storyEnergy} 🔥 · +${Number(reward.xp || 0)} XP`;
-    showToast("Reading logged", `${book.title} · ${detail}${rewardText}`);
-    return { book, reward, actualPages, minutes: Number(minutes || 0), chapter: Boolean(chapter) };
+      : ` · +${app.formatEnergy?.(reward.storyEnergy) ?? reward.storyEnergy} 🔥 · +${Number(reward.xp || 0)} XP · +${Number(reward.coins || 0)} 🪙`;
+    const finishText = finishReward ? ` · finish bonus +${Number(finishReward.coins || 0)} 🪙` : "";
+    showToast("Reading logged", `${book.title} · ${detail}${rewardText}${finishText}`);
+    return { book, reward, finishReward, actualPages, minutes: Number(minutes || 0), chapter: Boolean(chapter) };
   }
 
   function bookProgress(book) {

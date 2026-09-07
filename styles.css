@@ -12680,3 +12680,720 @@ body.world-location-open { overflow: hidden; }
   .game-board-v17.collection-list-mode-v291 .game-card-v17.has-cover-v305 { grid-template-columns: 92px minmax(0, 1fr); }
   .game-board-v17.collection-list-mode-v291 .game-card-v17.has-cover-v305 .game-card-cover-v305 { width: 92px; min-height: 150px; }
 }
+
+/* ========================================================================== */
+/* V0.30.6 — Reward Shop, Coin Economy & Tracked Achievements                */
+/* ========================================================================== */
+
+.coin-wallet-pill-v306 {
+  gap: 7px;
+}
+
+.coin-wallet-copy-v306 {
+  display: grid;
+  line-height: 1;
+  gap: 3px;
+}
+
+.coin-wallet-copy-v306 small {
+  font-size: .62rem;
+  font-weight: 800;
+  letter-spacing: .04em;
+  opacity: .72;
+}
+
+.dashboard-achievement-panel-v306 {
+  overflow: hidden;
+}
+
+.dashboard-achievement-heading-v306 {
+  align-items: end;
+}
+
+.dashboard-achievement-tracker-v306 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.dashboard-achievement-track-v306 {
+  position: relative;
+  min-width: 0;
+  border: 1px solid rgba(91, 48, 80, .13);
+  border-radius: 20px;
+  background: linear-gradient(145deg, rgba(255,255,255,.9), rgba(252,240,246,.82));
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(76, 36, 63, .06);
+}
+
+.dashboard-achievement-track-v306.complete {
+  background: linear-gradient(145deg, rgba(255,251,238,.96), rgba(250,236,244,.9));
+}
+
+.dashboard-achievement-main-v306 {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  width: 100%;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 11px;
+  padding: 16px 42px 16px 16px;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+}
+
+.dashboard-achievement-icon-v306 {
+  width: 44px;
+  height: 44px;
+  border-radius: 15px;
+  display: grid;
+  place-items: center;
+  background: rgba(92, 42, 79, .08);
+  font-size: 1.35rem;
+}
+
+.dashboard-achievement-copy-v306 {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.dashboard-achievement-copy-v306 small,
+.dashboard-achievement-copy-v306 em {
+  font-size: .7rem;
+  font-style: normal;
+  color: var(--muted, #796b74);
+}
+
+.dashboard-achievement-copy-v306 small {
+  font-weight: 900;
+  letter-spacing: .08em;
+}
+
+.dashboard-achievement-copy-v306 strong {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dashboard-achievement-unpin-v306 {
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  width: 27px;
+  height: 27px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(93, 52, 79, .08);
+  color: rgba(71, 42, 63, .7);
+  cursor: pointer;
+}
+
+.dashboard-achievement-empty-v306,
+.shop-current-empty-v306 {
+  appearance: none;
+  width: 100%;
+  border: 1px dashed rgba(91, 48, 80, .2);
+  border-radius: 18px;
+  background: rgba(255,255,255,.52);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 18px;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.dashboard-achievement-empty-v306 > span,
+.shop-current-empty-v306 > span {
+  font-size: 1.45rem;
+}
+
+.dashboard-achievement-empty-v306 div,
+.shop-current-empty-v306 div {
+  display: grid;
+  gap: 2px;
+  flex: 1;
+}
+
+.dashboard-achievement-empty-v306 small,
+.shop-current-empty-v306 small {
+  color: var(--muted, #796b74);
+}
+
+.achievement-mini-progress-v306 {
+  display: block;
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(96, 54, 81, .09);
+  overflow: hidden;
+  margin-top: 4px;
+}
+
+.achievement-mini-progress-v306 b {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #9b667e, #d99ab4);
+}
+
+.achievement-coin-reward-v306 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  margin-top: 10px;
+  border-radius: 14px;
+  background: rgba(191, 143, 49, .09);
+  border: 1px solid rgba(191, 143, 49, .15);
+}
+
+.achievement-coin-reward-v306 > span {
+  font-size: 1.15rem;
+}
+
+.achievement-coin-reward-v306 > div {
+  display: grid;
+  gap: 1px;
+}
+
+.achievement-coin-reward-v306 small {
+  font-size: .62rem;
+  letter-spacing: .08em;
+  font-weight: 900;
+  color: #8c6b2f;
+}
+
+.achievement-coin-reward-v306 strong {
+  font-size: .82rem;
+}
+
+.shop-view-v306 {
+  padding-bottom: 48px;
+}
+
+.shop-hero-v306 {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(260px, .55fr);
+  gap: 22px;
+  margin-bottom: 22px;
+}
+
+.shop-hero-copy-v306,
+.shop-wallet-v306 {
+  border-radius: 28px;
+  border: 1px solid rgba(91, 48, 80, .12);
+  box-shadow: 0 16px 42px rgba(72, 35, 60, .07);
+}
+
+.shop-hero-copy-v306 {
+  padding: clamp(24px, 4vw, 44px);
+  background:
+    radial-gradient(circle at 95% 10%, rgba(232, 171, 195, .24), transparent 32%),
+    linear-gradient(145deg, rgba(255,252,247,.98), rgba(251,235,244,.93));
+}
+
+.shop-hero-copy-v306 h1 {
+  margin: 4px 0 10px;
+}
+
+.shop-rule-row-v306 {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.shop-rule-row-v306 span {
+  padding: 8px 11px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.68);
+  border: 1px solid rgba(91, 48, 80, .09);
+  font-size: .76rem;
+}
+
+.shop-wallet-v306 {
+  padding: 26px;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  text-align: center;
+  background: linear-gradient(155deg, #5b304f, #3c2537);
+  color: #fff7f3;
+}
+
+.shop-wallet-icon-v306 {
+  width: 62px;
+  height: 62px;
+  display: grid;
+  place-items: center;
+  border-radius: 22px;
+  background: rgba(255,255,255,.1);
+  font-size: 2rem;
+  margin-bottom: 12px;
+}
+
+.shop-wallet-v306 > small {
+  font-size: .7rem;
+  letter-spacing: .14em;
+  font-weight: 900;
+  opacity: .72;
+}
+
+.shop-wallet-v306 > strong {
+  font-size: clamp(2.1rem, 4vw, 3.4rem);
+  line-height: 1;
+  margin-top: 7px;
+}
+
+.shop-wallet-v306 > em {
+  font-style: normal;
+  font-weight: 800;
+  color: #f3cbd9;
+  margin-top: 5px;
+}
+
+.shop-wallet-v306 p {
+  margin: 14px 0 0;
+  max-width: 230px;
+  font-size: .82rem;
+  opacity: .72;
+}
+
+.shop-current-panel-v306 {
+  margin-bottom: 22px;
+}
+
+.shop-current-wish-card-v306 {
+  display: grid;
+  grid-template-columns: minmax(180px, 300px) minmax(0, 1fr);
+  gap: 22px;
+  align-items: stretch;
+  border-radius: 22px;
+  background: linear-gradient(135deg, rgba(255,255,255,.86), rgba(250,235,242,.72));
+  border: 1px solid rgba(92, 48, 80, .1);
+  overflow: hidden;
+}
+
+.shop-current-wish-image-v306,
+.shop-item-image-v306 {
+  background: linear-gradient(145deg, #f7e7ee, #eadfe7);
+  overflow: hidden;
+}
+
+.shop-current-wish-image-v306 {
+  min-height: 250px;
+}
+
+.shop-current-wish-image-v306 img,
+.shop-item-image-v306 img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.shop-current-wish-image-v306.placeholder,
+.shop-item-image-v306.placeholder {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 4px;
+  color: rgba(91, 48, 80, .45);
+}
+
+.shop-current-wish-image-v306.placeholder span,
+.shop-item-image-v306.placeholder span {
+  font-size: 2.4rem;
+}
+
+.shop-current-wish-image-v306.placeholder small,
+.shop-item-image-v306.placeholder small {
+  text-transform: uppercase;
+  letter-spacing: .12em;
+  font-weight: 900;
+}
+
+.shop-current-wish-copy-v306 {
+  padding: 24px 26px 24px 0;
+  display: grid;
+  align-content: center;
+  gap: 9px;
+}
+
+.shop-current-wish-copy-v306 > small,
+.shop-item-meta-v306 span,
+.shop-item-meta-v306 b {
+  font-size: .66rem;
+  font-weight: 900;
+  letter-spacing: .09em;
+  color: #8d6476;
+}
+
+.shop-current-wish-copy-v306 h3 {
+  font-size: clamp(1.45rem, 2.5vw, 2.1rem);
+  margin: 0;
+}
+
+.shop-price-pair-v306 {
+  display: flex;
+  align-items: baseline;
+  gap: 11px;
+  flex-wrap: wrap;
+}
+
+.shop-price-pair-v306 strong {
+  font-size: 1.08rem;
+  color: #5c304f;
+}
+
+.shop-price-pair-v306 span {
+  font-size: .78rem;
+  color: var(--muted, #796b74);
+}
+
+.shop-wish-progress-v306 {
+  margin-top: 8px;
+}
+
+.shop-wish-progress-v306 > div:first-child {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+  font-size: .78rem;
+}
+
+.shop-main-grid-v306 {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 330px;
+  gap: 22px;
+  align-items: start;
+}
+
+.shop-filters-v306 {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.shop-filter-v306 {
+  appearance: none;
+  border: 1px solid rgba(91, 48, 80, .12);
+  background: rgba(255,255,255,.72);
+  color: inherit;
+  border-radius: 999px;
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  padding: 9px 12px;
+  cursor: pointer;
+}
+
+.shop-filter-v306.active {
+  background: #5b304f;
+  color: #fff;
+  border-color: #5b304f;
+}
+
+.shop-filter-v306 small {
+  opacity: .7;
+}
+
+.shop-grid-v306 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.shop-item-card-v306 {
+  min-width: 0;
+  border: 1px solid rgba(91, 48, 80, .12);
+  border-radius: 20px;
+  background: rgba(255,255,255,.78);
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: 180px minmax(0, 1fr);
+  box-shadow: 0 8px 24px rgba(75, 35, 63, .05);
+}
+
+.shop-item-card-v306.current {
+  outline: 2px solid rgba(178, 111, 142, .38);
+  outline-offset: -2px;
+}
+
+.shop-item-card-v306.redeemed {
+  background: linear-gradient(145deg, rgba(255,251,234,.95), rgba(255,243,232,.86));
+}
+
+.shop-item-card-v306.purchased {
+  opacity: .83;
+}
+
+.shop-item-image-v306 {
+  height: 180px;
+}
+
+.shop-item-body-v306 {
+  padding: 16px;
+  display: grid;
+  align-content: start;
+  gap: 9px;
+}
+
+.shop-item-meta-v306 {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.shop-item-meta-v306 b {
+  color: #b17858;
+}
+
+.shop-item-body-v306 h3 {
+  margin: 0;
+  font-size: 1.02rem;
+}
+
+.shop-item-body-v306 p {
+  margin: 0;
+  color: var(--muted, #796b74);
+  font-size: .79rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.shop-item-progress-v306 {
+  display: grid;
+  gap: 5px;
+}
+
+.shop-item-progress-v306 small {
+  color: var(--muted, #796b74);
+}
+
+.shop-card-actions-v306 {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+  margin-top: 5px;
+}
+
+.shop-card-actions-v306 button {
+  min-height: 36px;
+  padding: 8px 11px;
+  font-size: .75rem;
+}
+
+.shop-card-actions-v306 .danger {
+  color: #a24f57;
+}
+
+.shop-history-v306 {
+  display: grid;
+  gap: 8px;
+}
+
+.shop-history-row-v306 {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 9px;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(91, 48, 80, .08);
+}
+
+.shop-history-row-v306 > span {
+  font-size: 1.1rem;
+}
+
+.shop-history-row-v306 div {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.shop-history-row-v306 strong {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: .82rem;
+}
+
+.shop-history-row-v306 small {
+  color: var(--muted, #796b74);
+  font-size: .7rem;
+}
+
+.shop-history-row-v306 > b {
+  font-size: .72rem;
+}
+
+.shop-dialog-v306 {
+  width: min(760px, calc(100vw - 28px));
+  border: 0;
+  border-radius: 24px;
+  padding: 0;
+  box-shadow: 0 28px 80px rgba(46, 25, 39, .3);
+  background: #fffaf7;
+}
+
+.shop-dialog-v306::backdrop {
+  background: rgba(45, 29, 39, .5);
+  backdrop-filter: blur(5px);
+}
+
+.shop-dialog-form-v306 {
+  padding: 24px;
+}
+
+.shop-dialog-fields-v306 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.shop-dialog-fields-v306 label {
+  display: grid;
+  gap: 6px;
+}
+
+.shop-dialog-fields-v306 label > span {
+  font-weight: 800;
+  font-size: .78rem;
+}
+
+.shop-dialog-fields-v306 label > span small,
+.shop-dialog-fields-v306 label > small {
+  font-weight: 500;
+  color: var(--muted, #796b74);
+}
+
+.shop-dialog-fields-v306 input,
+.shop-dialog-fields-v306 textarea,
+.shop-dialog-fields-v306 select {
+  width: 100%;
+  border: 1px solid rgba(91, 48, 80, .16);
+  border-radius: 12px;
+  background: #fff;
+  padding: 11px 12px;
+  color: inherit;
+  font: inherit;
+}
+
+.shop-field-wide-v306 {
+  grid-column: 1 / -1;
+}
+
+.shop-link-row-v306 {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.shop-metadata-status-v306 {
+  min-height: 1.2em;
+}
+
+.shop-metadata-status-v306.error {
+  color: #a24f57 !important;
+}
+
+@media (max-width: 1100px) {
+  .dashboard-achievement-tracker-v306 { grid-template-columns: 1fr; }
+  .shop-main-grid-v306 { grid-template-columns: 1fr; }
+  .shop-history-panel-v306 { order: 2; }
+}
+
+@media (max-width: 760px) {
+  .coin-wallet-copy-v306 small { display: none; }
+  .shop-hero-v306 { grid-template-columns: 1fr; }
+  .shop-wallet-v306 { grid-template-columns: auto 1fr; justify-items: start; text-align: left; column-gap: 14px; }
+  .shop-wallet-icon-v306 { grid-row: 1 / span 4; margin: 0; }
+  .shop-wallet-v306 > small, .shop-wallet-v306 > strong, .shop-wallet-v306 > em, .shop-wallet-v306 > p { grid-column: 2; }
+  .shop-wallet-v306 > strong { font-size: 2rem; }
+  .shop-wallet-v306 p { margin-top: 5px; }
+  .shop-current-wish-card-v306 { grid-template-columns: 1fr; }
+  .shop-current-wish-image-v306 { min-height: 190px; max-height: 280px; }
+  .shop-current-wish-copy-v306 { padding: 18px; }
+  .shop-grid-v306 { grid-template-columns: 1fr; }
+  .shop-dialog-fields-v306 { grid-template-columns: 1fr; }
+  .shop-field-wide-v306 { grid-column: 1; }
+  .shop-link-row-v306 { grid-template-columns: 1fr; }
+}
+
+.dashboard-shop-wish-v306 {
+  min-height: 72px;
+}
+
+.dashboard-shop-target-v306,
+.dashboard-shop-empty-v306 {
+  appearance: none;
+  width: 100%;
+  border: 1px solid rgba(91, 48, 80, .12);
+  border-radius: 18px;
+  background: linear-gradient(145deg, rgba(255,255,255,.9), rgba(250,236,244,.78));
+  color: inherit;
+  padding: 12px 14px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  text-align: left;
+  cursor: pointer;
+}
+
+.dashboard-shop-thumb-v306 {
+  width: 58px;
+  height: 58px;
+  border-radius: 16px;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  background: rgba(91, 48, 80, .08);
+}
+
+.dashboard-shop-thumb-v306 img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.dashboard-shop-thumb-v306.placeholder {
+  font-size: 1.45rem;
+}
+
+.dashboard-shop-copy-v306,
+.dashboard-shop-empty-v306 > div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.dashboard-shop-copy-v306 small {
+  font-size: .67rem;
+  letter-spacing: .09em;
+  font-weight: 900;
+  color: #8d6476;
+}
+
+.dashboard-shop-copy-v306 strong {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dashboard-shop-copy-v306 em,
+.dashboard-shop-empty-v306 small {
+  font-size: .72rem;
+  font-style: normal;
+  color: var(--muted, #796b74);
+}

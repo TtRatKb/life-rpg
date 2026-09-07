@@ -14,7 +14,7 @@
   <link rel="manifest" href="manifest.webmanifest?v=0.30.3a" />
   <link rel="apple-touch-icon" href="assets/app-icon-180.png?v=0.30.3a" />
   <link rel="icon" type="image/png" sizes="192x192" href="assets/app-icon-192.png?v=0.30.3a" />
-  <link rel="stylesheet" href="styles.css?v=0.30.5" />
+  <link rel="stylesheet" href="styles.css?v=0.30.6" />
 </head>
 <body>
   <section id="mobileCloudGate" class="mobile-cloud-gate-v251" data-state="checking" aria-live="polite" aria-label="Life RPG cloud sign in">
@@ -52,9 +52,9 @@
           <span>🔥</span>
           <strong id="storyEnergyValue">0</strong>
         </div>
-        <div class="resource-pill coins">
+        <div class="resource-pill coins coin-wallet-pill-v306" title="1 Coin = 1 cent of reward value">
           <span>🪙</span>
-          <strong id="coinsValue">0</strong>
+          <span class="coin-wallet-copy-v306"><strong id="coinsValue">0</strong><small id="coinsMoneyValue">€0.00</small></span>
         </div>
         <button class="resource-pill cloud-resource-button" id="cloudStatusButton" data-view-target="settings" type="button" aria-label="Open cloud save settings">
           <span>☁️</span>
@@ -135,6 +135,28 @@
           <button data-view-target="people"><span class="command-strip-icon">♧</span><span><strong>People</strong><small>Talk, message, connect.</small></span><b>›</b></button>
           <button data-view-target="story"><span class="command-strip-icon">♡</span><span><strong>Main Story</strong><small>Spend energy when you're ready.</small></span><b>›</b></button>
           <button data-view-target="achievements"><span class="command-strip-icon">🏆</span><span><strong>Achievements</strong><small>Collect milestones and hidden moments.</small></span><b>›</b></button>
+          <button data-view-target="shop"><span class="command-strip-icon">🛍️</span><span><strong>Reward Shop</strong><small>Turn earned Coins into guilt-free wants.</small></span><b>›</b></button>
+        </section>
+
+        <section class="panel dashboard-achievement-panel-v306" aria-labelledby="dashboardAchievementTitle">
+          <div class="panel-heading dashboard-achievement-heading-v306">
+            <div>
+              <p class="eyebrow">TRACKED GOALS</p>
+              <h2 id="dashboardAchievementTitle">What you're working toward</h2>
+              <p class="panel-subcopy">Pin up to three visible Achievements and keep their progress in sight like tracked quests.</p>
+            </div>
+            <button class="mini-nav-button" data-view-target="achievements" type="button">Choose achievements ›</button>
+          </div>
+          <div id="dashboardAchievementTracker" class="dashboard-achievement-tracker-v306"></div>
+          <button id="dashboardAchievementTrackerEmpty" class="dashboard-achievement-empty-v306" data-view-target="achievements" type="button"><span>🏆</span><div><strong>No Achievement tracked yet.</strong><small>Pick a visible milestone that feels worth aiming at right now.</small></div><b>›</b></button>
+        </section>
+
+        <section class="panel dashboard-shop-wish-panel-v306" aria-labelledby="dashboardShopWishTitle">
+          <div class="panel-heading">
+            <div><p class="eyebrow">REWARD TARGET</p><h2 id="dashboardShopWishTitle">Current Wish</h2><p class="panel-subcopy">A visible reminder of what your Coins are slowly turning into.</p></div>
+            <button class="mini-nav-button" data-view-target="shop" type="button">Open Shop ›</button>
+          </div>
+          <div id="dashboardShopWish" class="dashboard-shop-wish-v306"></div>
         </section>
 
         <section class="panel dashboard-habits-preview" aria-labelledby="dashboardHabitsTitle">
@@ -1023,7 +1045,7 @@
             <div>
               <p class="eyebrow">ACHIEVEMENT SHOWCASE</p>
               <h2 id="growthAchievementTitle">Moments worth keeping</h2>
-              <p class="panel-subcopy">Pin up to three unlocked achievements here. Secret achievements stay hidden until the moment actually happens.</p>
+              <p class="panel-subcopy">Track up to three visible achievements while you work toward them. Secret achievements stay hidden until the moment actually happens.</p>
             </div>
             <div class="growth-achievement-heading-actions-v21">
               <span class="count-badge" id="growthAchievementCount">0 / 0</span>
@@ -1220,16 +1242,62 @@
         </section>
       </section>
 
+      <!-- REWARD SHOP -->
+      <section id="view-shop" class="view shop-view-v306">
+        <section class="shop-hero-v306">
+          <div class="shop-hero-copy-v306">
+            <p class="eyebrow">EARNED WANTS · 1 COIN = 1 CENT</p>
+            <h1>Reward Shop</h1>
+            <p class="lead">Things you do not need, but would genuinely enjoy. Coins turn real-life effort into a visible reward budget without pretending ordinary necessities need permission.</p>
+            <div class="shop-rule-row-v306">
+              <span><b>🪙</b> 899 Coins = €8.99 reward value</span>
+              <span><b>✦</b> Wants, treats and nice-to-haves</span>
+              <span><b>◇</b> Necessary purchases stay outside the game</span>
+            </div>
+          </div>
+          <aside class="shop-wallet-v306">
+            <span class="shop-wallet-icon-v306">🪙</span>
+            <small>COIN PURSE</small>
+            <strong id="shopWalletCoins">0</strong>
+            <em id="shopWalletMoney">€0.00</em>
+            <p>Earned reward value currently available to spend.</p>
+          </aside>
+        </section>
+
+        <section class="panel shop-current-panel-v306" aria-labelledby="shopCurrentTitle">
+          <div class="panel-heading">
+            <div><p class="eyebrow">CURRENT WISH</p><h2 id="shopCurrentTitle">Something worth looking forward to</h2><p class="panel-subcopy">Pin one reward and watch your wallet close the distance.</p></div>
+            <button id="shopAddButton" class="primary-button" type="button">+ Add reward</button>
+          </div>
+          <div id="shopCurrentWish" class="shop-current-wish-v306"></div>
+          <button id="shopCurrentWishEmpty" class="shop-current-empty-v306" data-view-target="shop" type="button"><span>✦</span><div><strong>No Current Wish pinned.</strong><small>Choose any wishlist item below and make it the thing you're earning toward.</small></div></button>
+        </section>
+
+        <section class="shop-main-grid-v306">
+          <section class="panel shop-catalog-v306">
+            <div class="panel-heading"><div><p class="eyebrow">YOUR REWARD LIST</p><h2>Wishlist & Treats</h2><p class="panel-subcopy">Your earlier Notion reward list is brought in as a starting point. Edit or remove anything that no longer belongs here.</p></div></div>
+            <div id="shopFilters" class="shop-filters-v306" aria-label="Shop filters"></div>
+            <div id="shopGrid" class="shop-grid-v306"></div>
+            <div id="shopEmpty" class="empty-state compact hidden">Nothing in this part of the Shop yet.</div>
+          </section>
+          <aside class="panel shop-history-panel-v306">
+            <div class="panel-heading"><div><p class="eyebrow">SHOP LOG</p><h2>Earned & redeemed</h2><p class="panel-subcopy">Redeems, refunds and actual purchases stay visible without changing your real bank balance.</p></div></div>
+            <div id="shopHistory" class="shop-history-v306"></div>
+          </aside>
+        </section>
+      </section>
+
       <!-- ACHIEVEMENTS -->
       <section id="view-achievements" class="view achievements-view-v21">
         <section class="achievements-hero-v21">
           <div class="achievements-hero-copy-v21">
             <p class="eyebrow">MILESTONES · MEMORIES · LITTLE WINS</p>
             <h1>Achievements</h1>
-            <p class="lead">A collection of things that happened because you actually lived your life. No achievement can buy affection, and most rewards are cosmetic rather than another source of XP inflation.</p>
+            <p class="lead">A collection of things you can notice, track and earn through real life. Visible Achievements can be pinned before they unlock, and their Coin rewards are credited automatically.</p>
             <div class="achievement-rule-row-v21">
               <span><b>✦</b> Existing progress counts retroactively</span>
               <span><b>?</b> Secrets stay ??? until unlocked</span>
+              <span><b>🪙</b> Milestones award Coins automatically</span>
               <span><b>✧</b> Profile titles are cosmetic only</span>
             </div>
           </div>
@@ -1396,6 +1464,7 @@
       <button class="nav-button" data-view="games"><span>🎮</span><small>Games</small></button>
       <button class="nav-button" data-view="growth"><span>✦</span><small>Growth</small></button>
       <button class="nav-button" data-view="achievements"><span>🏆</span><small>Achievements</small></button>
+      <button class="nav-button" data-view="shop"><span>🛍️</span><small>Shop</small></button>
       <button class="nav-button" data-view="world"><span>◇</span><small>World</small></button>
       <div class="nav-section-label nav-section-story">STORY</div>
       <button class="nav-button" data-view="story"><span>♡</span><small>Story</small><b id="navStoryPulse" class="nav-unread-badge story-pulse-badge hidden">✦</b></button>
@@ -2422,6 +2491,27 @@ League of Legends — PC" required></textarea></label>
     </div>
   </section>
 
+  <dialog id="shopItemDialog" class="shop-dialog-v306">
+    <form id="shopItemForm" method="dialog" class="shop-dialog-form-v306">
+      <div class="dialog-heading">
+        <div><p class="eyebrow">REWARD SHOP</p><h2 id="shopItemDialogTitle">Add a reward</h2><p class="muted">Paste a product link for a best-effort title/image lookup, then keep full control over the reward price.</p></div>
+        <button class="close-button" value="cancel" type="button" onclick="this.closest('dialog').close()" aria-label="Close reward editor">×</button>
+      </div>
+      <input id="shopItemId" type="hidden" />
+      <div class="shop-dialog-fields-v306">
+        <label class="shop-field-wide-v306"><span>Product / reward link <small>optional</small></span><div class="shop-link-row-v306"><input id="shopItemUrl" type="url" placeholder="https://…" /><button id="shopFetchMetadata" class="secondary-button" type="button">Fetch details ✨</button></div><small id="shopMetadataStatus" class="shop-metadata-status-v306">Paste a product link to try automatic details.</small></label>
+        <label><span>Name</span><input id="shopItemName" required maxlength="180" placeholder="Sakura book nook" /></label>
+        <label><span>Image URL <small>optional</small></span><input id="shopItemImage" type="url" placeholder="https://…/image.jpg" /></label>
+        <label><span>Real price (€) <small>optional</small></span><input id="shopItemRealPrice" inputmode="decimal" placeholder="29,99" /></label>
+        <label><span>Coin cost</span><input id="shopItemCoinCost" type="number" min="1" step="1" placeholder="2999" /><small>1 Coin = 1 cent reward value by default.</small></label>
+        <label><span>Reward mode</span><select id="shopItemMode"><option value="one-time">One-time</option><option value="repeatable">Repeatable treat</option></select></label>
+        <label><span>Starting state</span><select id="shopItemStatus"><option value="wishlist">Wishlist</option><option value="available">Available treat</option></select></label>
+        <label class="shop-field-wide-v306"><span>Note / short description <small>optional</small></span><textarea id="shopItemDescription" rows="3" maxlength="600" placeholder="Why this would be nice…"></textarea></label>
+      </div>
+      <div class="dialog-actions"><button class="secondary-button" value="cancel" type="button" onclick="this.closest('dialog').close()">Cancel</button><button class="primary-button" type="submit">Save reward</button></div>
+    </form>
+  </dialog>
+
   <div id="achievementToast" class="achievement-toast-v21 hidden" role="status" aria-live="polite">
     <span id="achievementToastIcon" class="achievement-toast-icon-v21">🏆</span>
     <div><small>ACHIEVEMENT UNLOCKED</small><strong id="achievementToastTitle">Milestone</strong><span id="achievementToastDetail">Achievement unlocked</span></div>
@@ -2431,18 +2521,19 @@ League of Legends — PC" required></textarea></label>
 
   <script src="data/quests.js?v=0.30.3a"></script>
   <script src="story-engine.js?v=0.30.3a"></script>
-  <script src="app.js?v=0.30.4"></script>
-  <script src="stewardship.js?v=0.30.3a"></script>
-  <script src="habits.js?v=0.30.3a"></script>
-  <script src="adventures.js?v=0.30.3a"></script>
-  <script src="library.js?v=0.30.3a"></script>
-  <script src="games.js?v=0.30.5"></script>
-  <script src="time.js?v=0.30.4"></script>
-  <script src="daily.js?v=0.30.4"></script>
-  <script src="journal.js?v=0.30.4"></script>
+  <script src="app.js?v=0.30.6"></script>
+  <script src="stewardship.js?v=0.30.6"></script>
+  <script src="habits.js?v=0.30.6"></script>
+  <script src="adventures.js?v=0.30.6"></script>
+  <script src="library.js?v=0.30.6"></script>
+  <script src="games.js?v=0.30.6"></script>
+  <script src="time.js?v=0.30.6"></script>
+  <script src="daily.js?v=0.30.6"></script>
+  <script src="journal.js?v=0.30.6"></script>
   <script src="story-ui.js?v=0.30.3a"></script>
-  <script src="achievements.js?v=0.30.3a"></script>
-  <script type="module" src="cloud-save.js?v=0.30.4"></script>
-  <script src="pwa.js?v=0.30.5"></script>
+  <script src="shop.js?v=0.30.6"></script>
+  <script src="achievements.js?v=0.30.6"></script>
+  <script type="module" src="cloud-save.js?v=0.30.6"></script>
+  <script src="pwa.js?v=0.30.6"></script>
 </body>
 </html>

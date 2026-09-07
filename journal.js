@@ -481,9 +481,10 @@
     entry[reflectionField] = cleanText(els.reflectionTextarea.value);
     entry.updatedAt = Date.now();
     entry.lastReflectionCompanionId = reflectionCompanion.id;
+    const coinReward = maybeAwardReflectionCoins(reflectionDate, entry);
     app.saveState({ source: `journal-${reflectionField}` });
     renderReflectionCompanion(reflectionCompanion, reflectionCompanion.saved[reflectionField]);
-    app.showToast?.(`${REFLECTION_META[reflectionField].icon} Journal saved`);
+    app.showToast?.(`${REFLECTION_META[reflectionField].icon} Journal saved${coinReward ? ` · +${coinReward} 🪙` : ""}`);
     render();
     setTimeout(showReflectionChoices, 420);
   }
@@ -523,9 +524,10 @@
     entry.smallWin = cleanText(els.daySmallWin?.value);
     entry.hardThing = cleanText(els.dayHardThing?.value);
     entry.updatedAt = Date.now();
+    const coinReward = maybeAwardReflectionCoins(editingDate, entry);
     app.saveState({ source: "journal-day-edit" });
     els.dayDialog.close();
-    app.showToast?.("Journal day saved");
+    app.showToast?.(`Journal day saved${coinReward ? ` · +${coinReward} 🪙` : ""}`);
     render();
   }
 
@@ -735,6 +737,49 @@
 
   function monthEntries(month) {
     return Object.values(journalState().entries || {}).filter(entry => entry?.date?.startsWith(`${month}-`)).sort((a, b) => a.date.localeCompare(b.date));
+  }
+
+  function reflectionStreakEndingOn(dateKeyValue) {
+    let streak = 0;
+    let cursor = dateFromKey(dateKeyValue);
+    const entries = journalState().entries || {};
+    for (let guard = 0; guard < 3650; guard += 1) {
+      const key = localDateKey(cursor);
+      if (!hasReflection(entries[key])) break;
+      streak += 1;
+      cursor = new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate() - 1);
+    }
+    return streak;
+  }
+
+  function reflectionCoinRewardForStreak(streak) {
+    const safe = Math.max(1, Number(streak || 1));
+    if (safe >= 90) return 8;
+    if (safe >= 30) return 7;
+    if (safe >= 7) return 6;
+    return 5;
+  }
+
+  function maybeAwardReflectionCoins(dateKeyValue, entry) {
+    if (dateKeyValue !== todayKey() || !hasReflection(entry)) return 0;
+    const root = app.getState();
+    const already = (root.rewardLedger?.events || []).some(event => event?.source === "journal-reflection" && event.sourceId === dateKeyValue);
+    if (already) return 0;
+    const streak = reflectionStreakEndingOn(dateKeyValue);
+    const coins = reflectionCoinRewardForStreak(streak);
+    const reward = app.awardActivity?.({
+      source: "journal-reflection",
+      sourceId: dateKeyValue,
+      label: "Daily reflection",
+      xp: 0,
+      realmXP: 0,
+      statXP: 0,
+      coins,
+      storyEnergyBase: 0,
+      progressionRelevant: false,
+      metadata: { reflection: true, streak }
+    });
+    return Number(reward?.coins || 0);
   }
 
   function hasCoreCheckIn(entry) {

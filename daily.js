@@ -14,8 +14,8 @@
   const MAX_REROLL_MEMORY = 180;
   const MAX_BATCHES_PER_DAY = 3;
   const BATCH_BONUSES = [
-    { storyEnergyBase: 1.8, xp: 15, coins: 1 },
-    { storyEnergyBase: 1.2, xp: 10, coins: 1 },
+    { storyEnergyBase: 1.8, xp: 15, coins: 10 },
+    { storyEnergyBase: 1.2, xp: 10, coins: 10 },
     { storyEnergyBase: 0.8, xp: 5, coins: 0 }
   ];
   const LEGACY_LOADOUT_IDS = new Set(["q-work-focus", "q-home-clean", "q-recovery-gaming"]);
@@ -693,7 +693,7 @@
       return;
     }
     const projected = projectedCheckInReward();
-    els.heroButton.innerHTML = `<span>✦</span> Daily check-in · +${formatEnergy(projected.storyEnergy)} 🔥 · +${projected.xp} XP`;
+    els.heroButton.innerHTML = `<span>✦</span> Daily check-in · +${formatEnergy(projected.storyEnergy)} 🔥 · +${projected.xp} XP · +${projected.coins || 0} 🪙`;
   }
 
   function renderMobileCheckin(day) {
@@ -706,8 +706,9 @@
       const streak = Number(reward.streak || currentCheckInStreak());
       const xp = Number(reward.xp || 0);
       const storyEnergy = Number(reward.storyEnergy || 0);
+      const coins = Number(reward.coins || 0);
       if (els.mobileTitle) els.mobileTitle.textContent = streak > 1 ? `${streak}-day check-in streak.` : "Today's check-in is done.";
-      if (els.mobileMeta) els.mobileMeta.textContent = `${storyEnergy ? `+${formatEnergy(storyEnergy)} 🔥 · ` : ""}${xp ? `+${xp} XP · ` : ""}Your planner already knows what kind of day this is.`;
+      if (els.mobileMeta) els.mobileMeta.textContent = `${storyEnergy ? `+${formatEnergy(storyEnergy)} 🔥 · ` : ""}${xp ? `+${xp} XP · ` : ""}${coins ? `+${coins} 🪙 · ` : ""}Your planner already knows what kind of day this is.`;
       els.mobileButton.textContent = "Review day";
       els.mobileCard.classList.add("is-done-v271");
       return;
@@ -715,7 +716,7 @@
 
     const projected = projectedCheckInReward();
     if (els.mobileTitle) els.mobileTitle.textContent = moment.id === "morning" ? "Do the tiny morning check-in." : "You can still check in today.";
-    if (els.mobileMeta) els.mobileMeta.textContent = `+${formatEnergy(projected.storyEnergy)} 🔥 · +${projected.xp} XP today · ${projected.streak} day streak if completed`;
+    if (els.mobileMeta) els.mobileMeta.textContent = `+${formatEnergy(projected.storyEnergy)} 🔥 · +${projected.xp} XP · +${projected.coins || 0} 🪙 today · ${projected.streak} day streak if completed`;
     els.mobileButton.textContent = "Check in";
     els.mobileCard.classList.remove("is-done-v271");
   }
@@ -746,7 +747,7 @@
       els.start?.classList.remove("hidden");
       if (els.start) {
         const projected = projectedCheckInReward();
-        els.start.textContent = `Start check-in · +${formatEnergy(projected.storyEnergy)} 🔥 · +${projected.xp} XP`;
+        els.start.textContent = `Start check-in · +${formatEnergy(projected.storyEnergy)} 🔥 · +${projected.xp} XP · +${projected.coins || 0} 🪙`;
       }
       els.edit?.classList.add("hidden");
       return;
@@ -1112,7 +1113,7 @@
       const reward = todayRecord()?.checkIn ? null : projectedCheckInReward();
       els.conversationNext.textContent = conversationEditing
         ? "Save changes ✦"
-        : `Finish check-in${reward ? ` · +${formatEnergy(reward.storyEnergy)} 🔥 · +${reward.xp} XP` : ""}`;
+        : `Finish check-in${reward ? ` · +${formatEnergy(reward.storyEnergy)} 🔥 · +${reward.xp} XP · +${reward.coins || 0} 🪙` : ""}`;
       return;
     }
     els.conversationNext.textContent = "Continue →";
@@ -1224,6 +1225,7 @@
       const streak = checkInStreakOnCompletion(planner, key);
       const requestedXP = checkInXPForStreak(streak);
       const requestedStoryEnergy = checkInStoryEnergyForStreak(streak);
+      const requestedCoins = checkInCoinsForStreak(streak);
       const reward = app.awardActivity?.({
         source: "daily-checkin",
         sourceId: key,
@@ -1231,17 +1233,19 @@
         xp: requestedXP,
         realmXP: 0,
         statXP: 0,
-        coins: 0,
+        coins: requestedCoins,
         storyEnergyBase: requestedStoryEnergy,
         progressionRelevant: false,
         at: new Date().toISOString(),
         metadata: { streak, checkIn: true, dailyLoopReward: true }
-      }) || { xp: requestedXP, storyEnergy: requestedStoryEnergy, rawStoryEnergy: requestedStoryEnergy };
+      }) || { xp: requestedXP, storyEnergy: requestedStoryEnergy, rawStoryEnergy: requestedStoryEnergy, coins: requestedCoins };
       day.checkInReward = {
         xp: Number(reward.xp || 0),
         storyEnergy: Number(reward.storyEnergy || 0),
         rawStoryEnergy: Number(reward.rawStoryEnergy || requestedStoryEnergy),
+        coins: Number(reward.coins || 0),
         storyEnergyVersion: 2,
+        coinVersion: 1,
         streak,
         eventId: reward.eventId || null,
         awardedAt: Date.now()
@@ -1257,7 +1261,7 @@
     if (firstCheckIn) {
       app.renderAll?.();
       const reward = day.checkInReward;
-      app.showToast?.(`Daily check-in · +${formatEnergy(reward?.storyEnergy || 0)} Story Energy · +${Number(reward?.xp || 0)} XP · ${Number(reward?.streak || 1)} day streak`);
+      app.showToast?.(`Daily check-in · +${formatEnergy(reward?.storyEnergy || 0)} Story Energy · +${Number(reward?.xp || 0)} XP · +${Number(reward?.coins || 0)} 🪙 · ${Number(reward?.streak || 1)} day streak`);
       setTimeout(() => window.LifeRPGJournal?.promptAfterCheckIn?.(companion.id, key), 520);
     }
     requestAnimationFrame(() => els.panel?.scrollIntoView({ behavior: "smooth", block: "start" }));
@@ -2503,6 +2507,12 @@
     return Math.min(1, 0.6 + Math.floor((safe - 1) / 2) * 0.1);
   }
 
+  function checkInCoinsForStreak(streak) {
+    const safe = Math.max(1, Math.round(Number(streak || 1)));
+    const multiplier = safe >= 90 ? 1.20 : safe >= 30 ? 1.15 : safe >= 7 ? 1.10 : 1;
+    return Math.round(10 * multiplier);
+  }
+
   function checkInStreakOnCompletion(planner, key) {
     let streak = 1;
     let cursor = previousDateKey(key);
@@ -2530,6 +2540,7 @@
       return {
         xp: Number(existing.checkInReward?.xp || 0),
         storyEnergy: Number(existing.checkInReward?.storyEnergy || 0),
+        coins: Number(existing.checkInReward?.coins || 0),
         streak,
         alreadyDone: true
       };
@@ -2537,13 +2548,14 @@
     const streak = checkInStreakOnCompletion(planner, key);
     const xp = checkInXPForStreak(streak);
     const rawStoryEnergy = checkInStoryEnergyForStreak(streak);
+    const coins = checkInCoinsForStreak(streak);
     const preview = app.previewActivityReward?.({
       source: "daily-checkin-preview",
       sourceId: key,
       xp,
       realmXP: 0,
       statXP: 0,
-      coins: 0,
+      coins,
       storyEnergyBase: rawStoryEnergy,
       progressionRelevant: false
     });
@@ -2551,6 +2563,7 @@
       xp,
       storyEnergy: Number(preview?.storyEnergy ?? rawStoryEnergy),
       rawStoryEnergy,
+      coins: Number(preview?.coins ?? coins),
       streak,
       alreadyDone: false
     };
@@ -2571,7 +2584,7 @@
         : "";
     }
     const streak = Math.max(1, Number(reward.streak || 1));
-    return `<div class="daily-checkin-reward-v271"><span>+${formatEnergy(reward.storyEnergy || 0)} 🔥</span><div><small>DAILY LOOP REWARD · +${Number(reward.xp || 0)} XP</small><strong>${streak} day${streak === 1 ? "" : "s"} in a row</strong><p>Showing up counts. The streak gradually raises both rewards; Story Energy caps at +1/day and XP at +10/day.</p></div></div>`;
+    return `<div class="daily-checkin-reward-v271"><span>+${formatEnergy(reward.storyEnergy || 0)} 🔥</span><div><small>DAILY LOOP REWARD · +${Number(reward.xp || 0)} XP · +${Number(reward.coins || 0)} 🪙</small><strong>${streak} day${streak === 1 ? "" : "s"} in a row</strong><p>Showing up counts. Coin consistency bonuses stay intentionally small: 7, 30 and 90 days nudge the 10¢ base reward upward without making a missed day punitive.</p></div></div>`;
   }
 
   function ensureTodayCheckInStoryEnergyReward() {
@@ -2580,31 +2593,37 @@
     const day = planner.days?.[key];
     if (!day?.checkIn) return false;
     const existingReward = day.checkInReward || {};
-    if (Number(existingReward.storyEnergyVersion || 0) >= 2 || Number(existingReward.storyEnergy || 0) > 0) return false;
+    const needsStory = Number(existingReward.storyEnergyVersion || 0) < 2 && Number(existingReward.storyEnergy || 0) <= 0;
+    const needsCoins = Number(existingReward.coinVersion || 0) < 1;
+    if (!needsStory && !needsCoins) return false;
 
     const streak = Number(existingReward.streak || checkInStreakOnCompletion(planner, key));
-    const requestedStoryEnergy = checkInStoryEnergyForStreak(streak);
+    const requestedStoryEnergy = needsStory ? checkInStoryEnergyForStreak(streak) : 0;
+    const requestedCoins = needsCoins ? checkInCoinsForStreak(streak) : 0;
     const reward = app.awardActivity?.({
-      source: "daily-checkin-v272",
+      source: "daily-checkin-v306-upgrade",
       sourceId: key,
-      label: "Daily check-in Story Energy",
+      label: "Daily check-in reward upgrade",
       xp: 0,
       realmXP: 0,
       statXP: 0,
-      coins: 0,
+      coins: requestedCoins,
       storyEnergyBase: requestedStoryEnergy,
       progressionRelevant: false,
       at: new Date().toISOString(),
-      metadata: { streak, checkIn: true, dailyLoopRewardUpgrade: true }
-    }) || { storyEnergy: requestedStoryEnergy, rawStoryEnergy: requestedStoryEnergy };
+      metadata: { streak, checkIn: true, dailyLoopRewardUpgrade: true, coinEconomy: 2 }
+    }) || { storyEnergy: requestedStoryEnergy, rawStoryEnergy: requestedStoryEnergy, coins: requestedCoins };
 
     day.checkInReward = {
       ...existingReward,
-      storyEnergy: Number(reward.storyEnergy || 0),
-      rawStoryEnergy: Number(reward.rawStoryEnergy || requestedStoryEnergy),
+      storyEnergy: needsStory ? Number(reward.storyEnergy || 0) : Number(existingReward.storyEnergy || 0),
+      rawStoryEnergy: needsStory ? Number(reward.rawStoryEnergy || requestedStoryEnergy) : Number(existingReward.rawStoryEnergy || 0),
+      coins: Number(existingReward.coins || 0) + Number(reward.coins || 0),
       storyEnergyVersion: 2,
+      coinVersion: 1,
       streak,
-      storyEventId: reward.eventId || null,
+      storyEventId: needsStory ? reward.eventId || existingReward.storyEventId || null : existingReward.storyEventId || null,
+      coinEventId: needsCoins ? reward.eventId || existingReward.coinEventId || null : existingReward.coinEventId || null,
       awardedAt: existingReward.awardedAt || Date.now()
     };
     day.updatedAt = Date.now();
