@@ -7,7 +7,7 @@
     return;
   }
 
-  const SCHEMA = 2;
+  const SCHEMA = 3;
   const SHADOW_KEY = "life-rpg-games-shadow-v1";
   const MAX_LOGS = 800;
 
@@ -26,6 +26,25 @@
     japanese: { icon: "あ", label: "Japanese", realm: "Japanese" },
     challenge: { icon: "✦", label: "Challenge / Goals", realm: "Hobbies" }
   };
+
+  const GAME_TYPES = {
+    auto: { label: "Auto from metadata", icon: "✦" },
+    "farming-life": { label: "Farming / life sim", icon: "🌱" },
+    "story-rpg": { label: "Story RPG", icon: "📖" },
+    "story-adventure": { label: "Story / adventure", icon: "🗺" },
+    rpg: { label: "RPG", icon: "⚔" },
+    simulation: { label: "Simulation", icon: "⚙" },
+    strategy: { label: "Strategy", icon: "♟" },
+    roguelike: { label: "Roguelike / run-based", icon: "↻" },
+    multiplayer: { label: "Multiplayer / competitive", icon: "◎" },
+    sandbox: { label: "Sandbox / open-ended", icon: "◇" },
+    puzzle: { label: "Puzzle", icon: "◈" },
+    action: { label: "Action", icon: "⚡" },
+    cozy: { label: "Cozy / open-ended", icon: "☕" },
+    other: { label: "Other / unsure", icon: "·" }
+  };
+
+  const WIKIDATA_API = "https://www.wikidata.org/w/api.php";
 
   const els = {
     add: byId("addGameButton"),
@@ -54,6 +73,10 @@
     deleteButton: byId("deleteGameButton"),
     saveAnother: byId("saveGameAnotherButton"),
     title: byId("gameTitle"),
+    catalogSearch: byId("gameCatalogSearch"),
+    catalogStatus: byId("gameCatalogStatus"),
+    catalogResults: byId("gameCatalogResults"),
+    catalogSelected: byId("gameCatalogSelected"),
     platform: byId("gamePlatform"),
     statusField: byId("gameStatus"),
     role: byId("gameRole"),
@@ -61,6 +84,11 @@
     progressMode: byId("gameProgressMode"),
     progressWrap: byId("gameProgressWrap"),
     progress: byId("gameProgress"),
+    gameType: byId("gameType"),
+    genreChips: byId("gameGenreChips"),
+    suggestedGoals: byId("gameSuggestedGoals"),
+    suggestedGoalList: byId("gameSuggestedGoalList"),
+    refreshSuggestions: byId("gameRefreshSuggestions"),
     goalsSeed: byId("gameGoalsSeed"),
     notes: byId("gameNotes"),
     preview: byId("gamePreview"),
@@ -109,6 +137,10 @@
   let initialized = false;
   let toastTimer = null;
   let activeLogContext = {};
+  let selectedCatalog = null;
+  let catalogMatches = [];
+  let pendingGoalSuggestions = [];
+  let catalogSearchToken = 0;
 
   init();
 
@@ -130,6 +162,12 @@
     els.deleteButton?.addEventListener("click", deleteCurrentGame);
     els.progressMode?.addEventListener("change", renderGameFormState);
     [els.title, els.platform, els.statusField, els.role, els.minutes, els.progress].forEach(input => input?.addEventListener("input", renderGamePreview));
+    els.catalogSearch?.addEventListener("click", searchGameCatalog);
+    els.gameType?.addEventListener("change", () => {
+      refreshGoalSuggestions({ preserveSelection: false, autoSelect: !String(els.editId?.value || "") });
+      renderGamePreview();
+    });
+    els.refreshSuggestions?.addEventListener("click", () => refreshGoalSuggestions({ preserveSelection: true, autoSelect: false }));
 
     els.search?.addEventListener("input", renderBoard);
     els.status?.addEventListener("change", renderBoard);
@@ -165,7 +203,22 @@
 
       const quick = event.target.closest?.("[data-game-quick-log]");
       if (quick) {
-        openLogDialog(quick.dataset.gameQuickLog, Number(quick.dataset.gameMinutes || 0));
+        openLogDialog(quick.dataset.gameQuickLog, Number(quick.dataset.gameMinutes || 0), { preserveBacklog: quick.dataset.gamePreserveBacklog === "true" });
+        return;
+      }
+
+      const catalogChoice = event.target.closest?.("[data-game-catalog-choice]");
+      if (catalogChoice) {
+        chooseCatalogMatch(catalogChoice.dataset.gameCatalogChoice);
+        return;
+      }
+
+      const catalogChange = event.target.closest?.("[data-game-catalog-change]");
+      if (catalogChange) {
+        selectedCatalog = null;
+        renderCatalogSelected();
+        renderCatalogResults();
+        setCatalogStatus("Choose another match or search again.");
         return;
       }
 
@@ -249,6 +302,17 @@
         if (typeof goal.text !== "string") { goal.text = "Personal goal"; changed = true; }
         if (typeof goal.done !== "boolean") { goal.done = false; changed = true; }
       });
+      if (!GAME_TYPES[game.gameType]) { game.gameType = "auto"; changed = true; }
+      if (!Array.isArray(game.genres)) { game.genres = []; changed = true; }
+      if (!Array.isArray(game.platforms)) { game.platforms = game.platform ? [game.platform] : []; changed = true; }
+      if (typeof game.description !== "string") { game.description = ""; changed = true; }
+      if (typeof game.developer !== "string") { game.developer = ""; changed = true; }
+      if (typeof game.publisher !== "string") { game.publisher = ""; changed = true; }
+      if (typeof game.releaseDate !== "string") { game.releaseDate = ""; changed = true; }
+      if (typeof game.coverUrl !== "string") { game.coverUrl = ""; changed = true; }
+      if (typeof game.catalogProvider !== "string") { game.catalogProvider = ""; changed = true; }
+      if (typeof game.catalogId !== "string") { game.catalogId = ""; changed = true; }
+      if (typeof game.steamAppId !== "string") { game.steamAppId = ""; changed = true; }
       if (!Number.isFinite(Number(game.totalMinutes))) {
         game.totalMinutes = model.logs.filter(log => log.gameId === game.id).reduce((sum, log) => sum + Number(log.minutes || 0), 0);
         changed = true;
@@ -328,7 +392,7 @@
       } else if (status !== "all" && game.status !== status) return false;
       if (selectedRole !== "all" && game.role !== selectedRole) return false;
       if (query) {
-        const haystack = [game.title, game.platform, game.notes, ...game.goals.map(goal => goal.text)].join(" ").toLowerCase();
+        const haystack = [game.title, game.platform, game.notes, game.description, game.developer, game.publisher, ...(game.genres || []), ...game.goals.map(goal => goal.text)].join(" ").toLowerCase();
         if (!haystack.includes(query)) return false;
       }
       return true;
@@ -364,19 +428,25 @@
     const playtime = game.totalMinutes > 0 ? formatDuration(game.totalMinutes) : "No logged playtime";
     const progress = game.progressMode === "percent" ? clamp(Number(game.progress || 0), 0, 100) : null;
     const active = ["playing", "endless"].includes(game.status);
+    const effectiveType = resolvedGameType(game);
+    const typeMeta = GAME_TYPES[effectiveType] || GAME_TYPES.other;
+    const cover = safeGameCoverUrl(game.coverUrl);
+    const genreChips = (game.genres || []).slice(0, 3).map(label => `<span class="game-genre-chip-v305">${esc(label)}</span>`).join("");
 
     return `
-      <article class="game-card-v17 ${active ? "active" : ""}">
-        <div class="game-card-accent-v17"><span>${esc(role.icon)}</span></div>
+      <article class="game-card-v17 ${active ? "active" : ""} ${cover ? "has-cover-v305" : ""}">
+        ${cover ? `<div class="game-card-cover-v305"><img src="${escAttr(cover)}" alt="" loading="lazy" /></div>` : `<div class="game-card-accent-v17"><span>${esc(role.icon)}</span></div>`}
         <div class="game-card-body-v17">
           <div class="game-card-top-v17">
             <div class="game-card-heading-v17">
               <div class="game-chip-row-v17">
                 <span class="game-status-chip-v17">${status.icon} ${esc(status.label)}</span>
                 <span class="game-role-chip-v17">${role.icon} ${esc(role.label)}</span>
+                <span class="game-type-chip-v305">${typeMeta.icon} ${esc(typeMeta.label)}</span>
                 ${game.platform ? `<span class="game-platform-chip-v17">${esc(game.platform)}</span>` : ""}
               </div>
               <h3>${esc(game.title)}</h3>
+              ${genreChips ? `<div class="game-genre-chips-v305">${genreChips}</div>` : ""}
             </div>
             <button class="icon-button game-edit-button-v17" data-game-edit="${escAttr(game.id)}" type="button" aria-label="Edit ${escAttr(game.title)}">✎</button>
           </div>
@@ -398,12 +468,13 @@
               <div><small>PERSONAL GOALS</small><strong>${openGoals.length ? `${openGoals.length} still open` : game.goals.length ? "All current goals cleared" : "No goals needed"}</strong></div>
               <button class="text-button" data-game-add-goal="${escAttr(game.id)}" type="button">＋ Add goal</button>
             </div>
-            ${game.goals.length ? `<div class="game-goal-list-v17">${game.goals.slice(0, 6).map(goal => goalMarkup(game, goal)).join("")}${game.goals.length > 6 ? `<small class="game-more-goals-v17">+ ${game.goals.length - 6} more in Edit</small>` : ""}</div>` : `<p class="game-no-goals-v17">Optional. Great for games like Stardew Valley where “finish the game” is not the point.</p>`}
+            ${game.goals.length ? `<div class="game-goal-list-v17">${game.goals.slice(0, 6).map(goal => goalMarkup(game, goal)).join("")}${game.goals.length > 6 ? `<small class="game-more-goals-v17">+ ${game.goals.length - 6} more in Edit</small>` : ""}</div>` : `<p class="game-no-goals-v17">${game.catalogId ? "Life RPG knows what kind of game this is. Open Edit to generate a few useful objectives when you want them." : "Optional. Add metadata or choose a game type and Life RPG can suggest a few useful threads."}</p>`}
             ${doneGoals.length && openGoals.length ? `<small class="game-goal-cleared-v17">${doneGoals.length} goal${doneGoals.length === 1 ? "" : "s"} already cleared ✓</small>` : ""}
           </div>
 
           <div class="game-card-actions-v17">
             ${active ? `<button class="primary-button" data-game-quick-log="${escAttr(game.id)}" data-game-minutes="${Number(game.sessionMinutes || 45)}" type="button">▶ Play ${Number(game.sessionMinutes || 45)}m</button>` : ""}
+            ${game.status === "backlog" ? `<button class="primary-button" data-game-quick-log="${escAttr(game.id)}" data-game-minutes="30" data-game-preserve-backlog="true" type="button">▶ Try 30m</button>` : ""}
             <button class="secondary-button" data-game-log="${escAttr(game.id)}" type="button">Log session</button>
             <button class="text-button" data-game-edit="${escAttr(game.id)}" type="button">Edit details</button>
           </div>
@@ -424,6 +495,9 @@
     if (!els.dialog || !els.form) return;
     const game = id ? findGame(id) : null;
     els.form.reset();
+    selectedCatalog = game ? catalogFromGame(game) : null;
+    catalogMatches = [];
+    pendingGoalSuggestions = [];
     if (els.editId) els.editId.value = game?.id || "";
     if (els.dialogTitle) els.dialogTitle.textContent = game ? "Edit game" : "Add a game";
     if (els.title) els.title.value = game?.title || "";
@@ -433,10 +507,16 @@
     if (els.minutes) els.minutes.value = String(game?.sessionMinutes || 45);
     if (els.progressMode) els.progressMode.value = game?.progressMode || "none";
     if (els.progress) els.progress.value = String(game?.progress || 0);
+    if (els.gameType) els.gameType.value = GAME_TYPES[game?.gameType] ? game.gameType : "auto";
     if (els.goalsSeed) els.goalsSeed.value = "";
     if (els.notes) els.notes.value = game?.notes || "";
     els.deleteButton?.classList.toggle("hidden", !game);
     els.saveAnother?.classList.toggle("hidden", Boolean(game));
+    setCatalogStatus(game?.catalogId ? "Catalog details already attached. Search again only if you want to replace them." : "Search is optional. Life RPG uses the public Wikidata catalog so no API key is required.");
+    renderCatalogSelected();
+    renderCatalogResults();
+    renderGenreChips();
+    refreshGoalSuggestions({ preserveSelection: false, autoSelect: !game });
     renderGameFormState();
     renderGamePreview();
     els.dialog.showModal();
@@ -454,7 +534,10 @@
     const role = ROLES[els.role?.value] || ROLES.fun;
     const minutes = Math.max(5, Number(els.minutes?.value || 45));
     const progress = els.progressMode?.value === "percent" ? clamp(Number(els.progress?.value || 0), 0, 100) : null;
-    els.preview.innerHTML = `<span>${role.icon}</span><div><small>${status.icon} ${esc(status.label)} · ${role.label}</small><strong>${esc(title)}</strong><p>${esc(progress === null ? `${minutes}-minute default session` : `${progress}% complete · ${minutes}-minute default session`)}</p></div>`;
+    const typeKey = resolvedGameType({ gameType: els.gameType?.value || "auto", genres: selectedCatalog?.genres || [], description: selectedCatalog?.description || "" });
+    const typeMeta = GAME_TYPES[typeKey] || GAME_TYPES.other;
+    const cover = safeGameCoverUrl(selectedCatalog?.coverUrl || findGame(els.editId?.value)?.coverUrl || "");
+    els.preview.innerHTML = `${cover ? `<img class="game-preview-cover-v305" src="${escAttr(cover)}" alt="" />` : `<span>${role.icon}</span>`}<div><small>${status.icon} ${esc(status.label)} · ${role.label}</small><strong>${esc(title)}</strong><p>${esc(progress === null ? `${typeMeta.label} · ${minutes}-minute default session` : `${typeMeta.label} · ${progress}% complete · ${minutes}-minute default session`)}</p></div>`;
   }
 
   function saveGame(event) {
@@ -463,8 +546,19 @@
     const id = els.editId?.value || "";
     const existing = id ? findGame(id) : null;
     const now = Date.now();
-    const newGoals = parseGoalLines(els.goalsSeed?.value || "");
+    const manualGoals = parseGoalLines(els.goalsSeed?.value || "");
+    const selectedSuggestions = pendingGoalSuggestions
+      .filter(item => item.selected)
+      .map(item => ({ id: makeId("goal"), text: item.text, done: false, createdAt: now, completedAt: null, source: "smart", smartKey: item.key || "" }));
     const status = els.statusField?.value || "playing";
+    const metadata = selectedCatalog || (existing ? catalogFromGame(existing) : null) || {};
+    const priorGoalTexts = new Set((existing?.goals || []).map(goal => normalizeText(goal.text)));
+    const newGoals = [...manualGoals, ...selectedSuggestions].filter(goal => {
+      const key = normalizeText(goal.text);
+      if (!key || priorGoalTexts.has(key)) return false;
+      priorGoalTexts.add(key);
+      return true;
+    });
     const game = {
       ...(existing || {}),
       id: existing?.id || makeId("game"),
@@ -475,6 +569,18 @@
       sessionMinutes: Math.max(5, Number(els.minutes?.value || 45)),
       progressMode: els.progressMode?.value || "none",
       progress: els.progressMode?.value === "percent" ? clamp(Number(els.progress?.value || 0), 0, 100) : 0,
+      gameType: GAME_TYPES[els.gameType?.value] ? els.gameType.value : "auto",
+      genres: Array.isArray(metadata.genres) ? metadata.genres.slice(0, 12) : (existing?.genres || []),
+      platforms: Array.isArray(metadata.platforms) ? metadata.platforms.slice(0, 12) : (existing?.platforms || []),
+      description: String(metadata.description || existing?.description || ""),
+      developer: String(metadata.developer || existing?.developer || ""),
+      publisher: String(metadata.publisher || existing?.publisher || ""),
+      releaseDate: String(metadata.releaseDate || existing?.releaseDate || ""),
+      coverUrl: safeGameCoverUrl(metadata.coverUrl || existing?.coverUrl || ""),
+      catalogProvider: String(metadata.provider || existing?.catalogProvider || ""),
+      catalogId: String(metadata.id || existing?.catalogId || ""),
+      steamAppId: String(metadata.steamAppId || existing?.steamAppId || ""),
+      catalogUpdatedAt: metadata.id ? now : (existing?.catalogUpdatedAt || null),
       goals: [...(existing?.goals || []), ...newGoals],
       notes: String(els.notes?.value || "").trim(),
       createdAt: existing?.createdAt || now,
@@ -500,7 +606,8 @@
     persist(existing ? "game-edit" : "game-create");
     if (Number(stewardshipReward?.xp || 0) > 0 || Number(stewardshipReward?.storyEnergy || 0) > 0) app.renderAll?.();
     const upkeepText = window.LifeRPGStewardship?.statusText?.(stewardshipReward) || "";
-    showToast(existing ? "Game updated" : "Game added", [`${game.title} is ready for the planner.`, upkeepText].filter(Boolean).join(" · "));
+    const goalText = newGoals.length ? `${newGoals.length} new objective${newGoals.length === 1 ? "" : "s"} added.` : "";
+    showToast(existing ? "Game updated" : "Game added", [`${game.title} is ready for the planner.`, goalText, upkeepText].filter(Boolean).join(" · "));
     if (addAnother) {
       resetGameDialogForAnother({ status: game.status === "finished" ? "playing" : status, role: game.role, sessionMinutes: game.sessionMinutes });
     } else {
@@ -510,6 +617,9 @@
 
   function resetGameDialogForAnother(defaults = {}) {
     els.form?.reset();
+    selectedCatalog = null;
+    catalogMatches = [];
+    pendingGoalSuggestions = [];
     if (els.editId) els.editId.value = "";
     if (els.dialogTitle) els.dialogTitle.textContent = "Add a game";
     els.deleteButton?.classList.add("hidden");
@@ -519,6 +629,12 @@
     if (els.minutes) els.minutes.value = String(defaults.sessionMinutes || 45);
     if (els.progressMode) els.progressMode.value = "none";
     if (els.progress) els.progress.value = "0";
+    if (els.gameType) els.gameType.value = "auto";
+    setCatalogStatus("Search is optional. Life RPG uses the public Wikidata catalog so no API key is required.");
+    renderCatalogSelected();
+    renderCatalogResults();
+    renderGenreChips();
+    refreshGoalSuggestions({ preserveSelection: false, autoSelect: true });
     renderGameFormState();
     window.setTimeout(() => els.title?.focus(), 20);
   }
@@ -576,7 +692,9 @@
       existing.add(key);
       const game = {
         id: makeId("game"), title: entry.title, platform: entry.platform, status, role, sessionMinutes,
-        progressMode: "none", progress: 0, goals: [], notes: "", totalMinutes: 0, sessions: 0,
+        progressMode: "none", progress: 0, gameType: "auto", genres: [], platforms: entry.platform ? [entry.platform] : [],
+        description: "", developer: "", publisher: "", releaseDate: "", coverUrl: "", catalogProvider: "", catalogId: "", steamAppId: "",
+        goals: [], notes: "", totalMinutes: 0, sessions: 0,
         createdAt: now + index, updatedAt: now + index, lastPlayedAt: null
       };
       current.items.push(game);
@@ -612,6 +730,9 @@
 
   function closeGameDialog() {
     if (els.dialog?.open) els.dialog.close();
+    selectedCatalog = null;
+    catalogMatches = [];
+    pendingGoalSuggestions = [];
   }
 
   function openLogDialog(id, suggestedMinutes = 0, options = {}) {
@@ -853,6 +974,337 @@
     persist("game-goal-delete");
   }
 
+  async function searchGameCatalog() {
+    const query = String(els.title?.value || "").trim();
+    if (query.length < 2) {
+      setCatalogStatus("Type at least two characters of the game title first.", true);
+      return;
+    }
+    const token = ++catalogSearchToken;
+    setCatalogStatus("Searching the public game catalog…");
+    if (els.catalogSearch) els.catalogSearch.disabled = true;
+    catalogMatches = [];
+    renderCatalogResults();
+    try {
+      const params = new URLSearchParams({ action: "wbsearchentities", search: query, language: "en", uselang: "en", type: "item", limit: "12", format: "json", origin: "*" });
+      const searchResponse = await fetch(`${WIKIDATA_API}?${params.toString()}`, { headers: { Accept: "application/json" } });
+      if (!searchResponse.ok) throw new Error(`Catalog search failed (${searchResponse.status})`);
+      const searchData = await searchResponse.json();
+      const candidates = Array.isArray(searchData.search) ? searchData.search : [];
+      if (token !== catalogSearchToken) return;
+      const ids = candidates.map(item => item.id).filter(Boolean).slice(0, 12);
+      if (!ids.length) {
+        setCatalogStatus("No likely matches found. You can still add the game manually.", true);
+        return;
+      }
+      const entityParams = new URLSearchParams({ action: "wbgetentities", ids: ids.join("|"), props: "claims|labels|descriptions", languages: "en", format: "json", origin: "*" });
+      const entityResponse = await fetch(`${WIKIDATA_API}?${entityParams.toString()}`, { headers: { Accept: "application/json" } });
+      if (!entityResponse.ok) throw new Error(`Catalog details failed (${entityResponse.status})`);
+      const entityData = await entityResponse.json();
+      if (token !== catalogSearchToken) return;
+      const gameEntities = ids.map(id => entityData.entities?.[id]).filter(entity => isLikelyVideoGameEntity(entity));
+      const linkedIds = new Set();
+      gameEntities.forEach(entity => ["P136", "P400", "P178", "P123"].forEach(prop => entityClaimEntityIds(entity, prop).forEach(id => linkedIds.add(id))));
+      const labels = await fetchWikidataLabels([...linkedIds]);
+      if (token !== catalogSearchToken) return;
+      catalogMatches = gameEntities.map(entity => catalogEntryFromEntity(entity, labels)).filter(Boolean).slice(0, 8);
+      renderCatalogResults();
+      setCatalogStatus(catalogMatches.length ? `${catalogMatches.length} likely match${catalogMatches.length === 1 ? "" : "es"}. Pick the right one; the list will collapse after selection.` : "No video-game matches found. You can still add it manually.", !catalogMatches.length);
+    } catch (error) {
+      console.warn("Life RPG game catalog search failed", error);
+      setCatalogStatus("The public catalog could not be reached right now. Manual entry still works; you can try the search again later.", true);
+    } finally {
+      if (els.catalogSearch) els.catalogSearch.disabled = false;
+    }
+  }
+
+  async function fetchWikidataLabels(ids) {
+    const unique = [...new Set(ids.filter(Boolean))].slice(0, 50);
+    if (!unique.length) return {};
+    try {
+      const params = new URLSearchParams({ action: "wbgetentities", ids: unique.join("|"), props: "labels", languages: "en", format: "json", origin: "*" });
+      const response = await fetch(`${WIKIDATA_API}?${params.toString()}`, { headers: { Accept: "application/json" } });
+      if (!response.ok) return {};
+      const data = await response.json();
+      return Object.fromEntries(unique.map(id => [id, data.entities?.[id]?.labels?.en?.value || id]));
+    } catch {
+      return {};
+    }
+  }
+
+  function isLikelyVideoGameEntity(entity) {
+    if (!entity || entity.missing !== undefined) return false;
+    const instances = entityClaimEntityIds(entity, "P31");
+    if (instances.includes("Q7889")) return true;
+    const description = String(entity.descriptions?.en?.value || "").toLowerCase();
+    return /video game|visual novel|game expansion|game mod/.test(description);
+  }
+
+  function entityClaimEntityIds(entity, prop) {
+    return (entity?.claims?.[prop] || []).map(statement => statement?.mainsnak?.datavalue?.value?.id).filter(Boolean);
+  }
+
+  function entityClaimStrings(entity, prop) {
+    return (entity?.claims?.[prop] || []).map(statement => statement?.mainsnak?.datavalue?.value).filter(value => typeof value === "string");
+  }
+
+  function firstClaimTime(entity, prop) {
+    const value = entity?.claims?.[prop]?.[0]?.mainsnak?.datavalue?.value?.time;
+    if (!value) return "";
+    const match = String(value).match(/[+-](\d{4})-(\d{2})-(\d{2})/);
+    if (!match) return "";
+    const [, year, month, day] = match;
+    return month === "00" ? year : day === "00" ? `${year}-${month}` : `${year}-${month}-${day}`;
+  }
+
+  function firstCommonsImage(entity) {
+    const raw = entityClaimStrings(entity, "P18")[0] || "";
+    if (!raw) return "";
+    return `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(raw)}?width=560`;
+  }
+
+  function catalogEntryFromEntity(entity, labels) {
+    const id = entity.id;
+    const title = entity.labels?.en?.value || id;
+    const genres = entityClaimEntityIds(entity, "P136").map(qid => labels[qid] || qid).filter(Boolean);
+    const platforms = entityClaimEntityIds(entity, "P400").map(qid => simplifyPlatform(labels[qid] || qid)).filter(Boolean);
+    const developers = entityClaimEntityIds(entity, "P178").map(qid => labels[qid] || qid).filter(Boolean);
+    const publishers = entityClaimEntityIds(entity, "P123").map(qid => labels[qid] || qid).filter(Boolean);
+    const steamAppId = entityClaimStrings(entity, "P1733")[0] || "";
+    const coverUrl = steamAppId ? `https://cdn.akamai.steamstatic.com/steam/apps/${encodeURIComponent(steamAppId)}/header.jpg` : firstCommonsImage(entity);
+    const description = entity.descriptions?.en?.value || "";
+    return {
+      provider: "wikidata",
+      id,
+      title,
+      description,
+      genres: [...new Set(genres)],
+      platforms: [...new Set(platforms)],
+      developer: developers.join(", "),
+      publisher: publishers.join(", "),
+      releaseDate: firstClaimTime(entity, "P577"),
+      steamAppId,
+      coverUrl,
+      detectedGameType: inferGameType({ genres, description })
+    };
+  }
+
+  function simplifyPlatform(value) {
+    const text = String(value || "").trim();
+    const lower = text.toLowerCase();
+    if (/microsoft windows|windows/.test(lower)) return "PC";
+    if (/nintendo switch 2/.test(lower)) return "Switch 2";
+    if (/nintendo switch/.test(lower)) return "Switch";
+    if (/playstation 5/.test(lower)) return "PS5";
+    if (/playstation 4/.test(lower)) return "PS4";
+    if (/xbox series/.test(lower)) return "Xbox Series";
+    if (/xbox one/.test(lower)) return "Xbox One";
+    if (/macos|mac os/.test(lower)) return "Mac";
+    if (/linux/.test(lower)) return "Linux";
+    return text;
+  }
+
+  function chooseCatalogMatch(id) {
+    const match = catalogMatches.find(item => item.id === id);
+    if (!match) return;
+    selectedCatalog = { ...match };
+    if (els.title) els.title.value = match.title || els.title.value;
+    if (els.platform && !String(els.platform.value || "").trim() && match.platforms?.length) els.platform.value = match.platforms.slice(0, 3).join(", ");
+    if (els.gameType && (els.gameType.value || "auto") === "auto") els.gameType.value = "auto";
+    catalogMatches = [];
+    renderCatalogResults();
+    renderCatalogSelected();
+    renderGenreChips();
+    refreshGoalSuggestions({ preserveSelection: false, autoSelect: true });
+    renderGamePreview();
+    setCatalogStatus("Game details attached. You can still override the type, platform or goals before saving.");
+  }
+
+  function renderCatalogResults() {
+    if (!els.catalogResults) return;
+    els.catalogResults.classList.toggle("hidden", !catalogMatches.length);
+    els.catalogResults.innerHTML = catalogMatches.map(item => {
+      const cover = safeGameCoverUrl(item.coverUrl);
+      const details = [item.releaseDate ? String(item.releaseDate).slice(0, 4) : "", item.developer, (item.genres || []).slice(0, 2).join(" · ")].filter(Boolean).join(" · ");
+      return `<button class="game-catalog-result-v305" type="button" data-game-catalog-choice="${escAttr(item.id)}">${cover ? `<img src="${escAttr(cover)}" alt="" loading="lazy" />` : `<span class="game-catalog-result-mark-v305">🎮</span>`}<span><strong>${esc(item.title)}</strong><small>${esc(details || item.description || "Video game")}</small></span><b>Use</b></button>`;
+    }).join("");
+  }
+
+  function renderCatalogSelected() {
+    if (!els.catalogSelected) return;
+    const item = selectedCatalog;
+    els.catalogSelected.classList.toggle("hidden", !item);
+    if (!item) { els.catalogSelected.innerHTML = ""; return; }
+    const cover = safeGameCoverUrl(item.coverUrl);
+    const details = [item.releaseDate ? String(item.releaseDate).slice(0, 4) : "", item.developer, item.platforms?.slice(0, 3).join(", ")].filter(Boolean).join(" · ");
+    els.catalogSelected.innerHTML = `${cover ? `<img src="${escAttr(cover)}" alt="" />` : `<span class="game-catalog-selected-mark-v305">🎮</span>`}<div><small>CATALOG MATCH</small><strong>${esc(item.title || "Game")}</strong><p>${esc(details || item.description || "Public Wikidata metadata attached.")}</p></div><button class="text-button" type="button" data-game-catalog-change="true">Change match</button>`;
+  }
+
+  function setCatalogStatus(message, warn = false) {
+    if (!els.catalogStatus) return;
+    els.catalogStatus.textContent = message || "";
+    els.catalogStatus.classList.toggle("warning-v305", Boolean(warn));
+  }
+
+  function catalogFromGame(game) {
+    if (!game) return null;
+    const hasMetadata = game.catalogId || game.coverUrl || game.genres?.length || game.description;
+    if (!hasMetadata) return null;
+    return {
+      provider: game.catalogProvider || "",
+      id: game.catalogId || "",
+      title: game.title || "",
+      description: game.description || "",
+      genres: Array.isArray(game.genres) ? [...game.genres] : [],
+      platforms: Array.isArray(game.platforms) ? [...game.platforms] : (game.platform ? [game.platform] : []),
+      developer: game.developer || "",
+      publisher: game.publisher || "",
+      releaseDate: game.releaseDate || "",
+      steamAppId: game.steamAppId || "",
+      coverUrl: game.coverUrl || "",
+      detectedGameType: inferGameType(game)
+    };
+  }
+
+  function renderGenreChips() {
+    if (!els.genreChips) return;
+    const genres = selectedCatalog?.genres || findGame(els.editId?.value)?.genres || [];
+    els.genreChips.innerHTML = genres.length ? genres.slice(0, 5).map(label => `<span class="game-genre-chip-v305">${esc(label)}</span>`).join("") : `<span class="game-genre-chip-v305 subtle-v305">No catalog genres yet</span>`;
+  }
+
+  function resolvedGameType(game) {
+    const explicit = String(game?.gameType || "auto");
+    if (explicit !== "auto" && GAME_TYPES[explicit]) return explicit;
+    return inferGameType(game);
+  }
+
+  function inferGameType(source = {}) {
+    const text = [...(source.genres || []), source.description || ""].join(" ").toLowerCase();
+    if (/farming|farm life|life simulation|life sim|dating sim|social simulation/.test(text)) return "farming-life";
+    if (/roguelike|rogue-like|roguelite|rogue-lite/.test(text)) return "roguelike";
+    if (/massively multiplayer|multiplayer online battle arena|moba|battle royale|competitive/.test(text)) return "multiplayer";
+    if (/strategy|tactical role-playing|4x|real-time strategy|turn-based strategy/.test(text)) return "strategy";
+    if (/sandbox|open world survival|survival game|crafting/.test(text)) return "sandbox";
+    if (/puzzle/.test(text)) return "puzzle";
+    if (/role-playing|role playing|jrpg|computer role-playing/.test(text) && /adventure|story|narrative/.test(text)) return "story-rpg";
+    if (/role-playing|role playing|jrpg|computer role-playing/.test(text)) return "rpg";
+    if (/visual novel|interactive fiction|narrative|story-rich|story rich|adventure game/.test(text)) return "story-adventure";
+    if (/simulation|management game|city-building|business simulation/.test(text)) return "simulation";
+    if (/cozy|casual game|social simulation/.test(text)) return "cozy";
+    if (/action|platform game|shooter|fighting game|hack and slash/.test(text)) return "action";
+    return "other";
+  }
+
+  function refreshGoalSuggestions({ preserveSelection = true, autoSelect = false } = {}) {
+    const prior = preserveSelection ? new Map(pendingGoalSuggestions.map(item => [item.key, item.selected])) : new Map();
+    const source = selectedCatalog || catalogFromGame(findGame(els.editId?.value)) || { genres: [], description: "" };
+    const type = resolvedGameType({ ...source, gameType: els.gameType?.value || "auto" });
+    pendingGoalSuggestions = buildGoalSuggestions(type, source).map((item, index) => ({
+      ...item,
+      selected: prior.has(item.key) ? prior.get(item.key) : Boolean(autoSelect && index < 3)
+    }));
+    renderSuggestedGoals();
+  }
+
+  function buildGoalSuggestions(type, source = {}) {
+    const title = source.title || String(els.title?.value || "this game").trim() || "this game";
+    const common = [];
+    if (type === "farming-life") common.push(
+      goalSuggestion("first-season", "Play through your first full in-game season."),
+      goalSuggestion("year-two", "Reach the start of Year 2."),
+      goalSuggestion("relationship", "Reach one relationship or community milestone that you genuinely care about."),
+      goalSuggestion("home-upgrade", "Complete one meaningful farm, home or tool upgrade."),
+      goalSuggestion("major-world", "Complete one major town, community or story milestone.")
+    );
+    else if (type === "story-rpg") common.push(
+      goalSuggestion("next-story", "Reach the next major story chapter or act."),
+      goalSuggestion("character-arc", "Complete one companion or character arc you care about."),
+      goalSuggestion("side-chain", "Finish one meaningful side-quest chain."),
+      goalSuggestion("main-story", "Complete the main story.")
+    );
+    else if (type === "story-adventure") common.push(
+      goalSuggestion("next-chapter", "Reach the next major chapter or story beat."),
+      goalSuggestion("optional-thread", "Follow one optional narrative or character thread that catches your interest."),
+      goalSuggestion("main-story", "Complete the main story.")
+    );
+    else if (type === "rpg") common.push(
+      goalSuggestion("next-main", "Reach the next meaningful main-quest milestone."),
+      goalSuggestion("build", "Reach one character-build or progression milestone you actually care about."),
+      goalSuggestion("side-chain", "Finish one side-quest chain that interests you."),
+      goalSuggestion("main-story", "Complete the main story if the game has a clear ending.")
+    );
+    else if (type === "simulation" || type === "cozy") common.push(
+      goalSuggestion("cycle", "Complete one meaningful in-game cycle (month, season, scenario or equivalent)."),
+      goalSuggestion("upgrade", "Complete one major upgrade or expansion."),
+      goalSuggestion("personal-project", "Finish one self-chosen in-game project."),
+      goalSuggestion("milestone", "Reach one progression milestone that changes what you can do.")
+    );
+    else if (type === "strategy") common.push(
+      goalSuggestion("scenario", "Complete one full scenario, map or campaign chapter."),
+      goalSuggestion("win", "Win one complete match or run on a comfortable difficulty."),
+      goalSuggestion("strategy", "Successfully try one new strategy or build."),
+      goalSuggestion("campaign", "Complete the main campaign if there is one.")
+    );
+    else if (type === "roguelike") common.push(
+      goalSuggestion("full-run", "Complete one full successful run."),
+      goalSuggestion("unlock", "Unlock one major character, route, weapon or system."),
+      goalSuggestion("personal-best", "Reach a new personal-best progression milestone."),
+      goalSuggestion("ending", "Reach one ending or equivalent major clear.")
+    );
+    else if (type === "sandbox") common.push(
+      goalSuggestion("project", "Complete one self-chosen build or project."),
+      goalSuggestion("unlock", "Reach the next major progression or tech unlock."),
+      goalSuggestion("explore", "Explore one new area or system enough to decide what you want to do with it.")
+    );
+    else if (type === "puzzle") common.push(
+      goalSuggestion("puzzle-set", "Complete the next puzzle set, world or chapter."),
+      goalSuggestion("campaign", "Complete the main puzzle campaign."),
+      goalSuggestion("challenge", "Clear one optional challenge that looks fun rather than miserable.")
+    );
+    else if (type === "action") common.push(
+      goalSuggestion("mission", "Complete the next major mission or chapter."),
+      goalSuggestion("campaign", "Complete the main campaign."),
+      goalSuggestion("optional", "Clear one optional challenge that sounds genuinely fun.")
+    );
+    else if (type === "multiplayer") common.push(
+      goalSuggestion("three-sessions", `Play three intentional sessions of ${title}, then decide whether you want a longer-term goal.`),
+      goalSuggestion("skill", "Pick one concrete skill to practice for a few sessions and notice whether it improves."),
+      goalSuggestion("social", "Play one deliberately social session with friends when the opportunity comes up.")
+    );
+    return common.slice(0, 6);
+  }
+
+  function goalSuggestion(key, text) {
+    return { key, text };
+  }
+
+  function renderSuggestedGoals() {
+    if (!els.suggestedGoals || !els.suggestedGoalList) return;
+    const has = pendingGoalSuggestions.length > 0;
+    els.suggestedGoals.classList.toggle("hidden", !has);
+    if (!has) { els.suggestedGoalList.innerHTML = ""; return; }
+    els.suggestedGoalList.innerHTML = pendingGoalSuggestions.map((item, index) => `<label class="game-suggested-goal-row-v305"><input type="checkbox" data-game-smart-goal="${index}" ${item.selected ? "checked" : ""} /><span>${esc(item.text)}</span></label>`).join("");
+    els.suggestedGoalList.querySelectorAll("[data-game-smart-goal]").forEach(input => input.addEventListener("change", () => {
+      const index = Number(input.dataset.gameSmartGoal);
+      if (pendingGoalSuggestions[index]) pendingGoalSuggestions[index].selected = input.checked;
+    }));
+  }
+
+  function safeGameCoverUrl(value) {
+    const raw = String(value || "").trim();
+    if (!raw) return "";
+    try {
+      const url = new URL(raw, window.location.href);
+      const host = url.hostname.toLowerCase();
+      if (["cdn.akamai.steamstatic.com", "shared.akamai.steamstatic.com", "commons.wikimedia.org", "upload.wikimedia.org"].includes(host)) return url.href;
+    } catch { /* ignore */ }
+    return "";
+  }
+
+  function normalizeText(value) {
+    return String(value || "").trim().toLowerCase().replace(/\s+/g, " ");
+  }
+
   function parseGoalLines(value) {
     return String(value || "")
       .split(/\r?\n/)
@@ -886,6 +1338,8 @@
       openGoal: openGoalDialog,
       roleMeta: role => ROLES[role] || ROLES.fun,
       statusMeta: status => STATUSES[status] || STATUSES.backlog,
+      gameTypeMeta: type => GAME_TYPES[type] || GAME_TYPES.other,
+      resolvedGameType,
       render
     };
   }
