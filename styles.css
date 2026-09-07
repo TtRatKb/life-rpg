@@ -13643,3 +13643,14 @@ a.adventure-source-link-v308:hover{text-decoration:underline}
   .adventure-roadmap-step-v308{grid-template-columns:20px minmax(0,1fr)}
   .adventure-roadmap-skip-v308{grid-column:2;justify-self:start}
 }
+
+/* =========================================================
+   V0.30.8b · Ensemble inward-facing staging
+   When multiple stage characters are present, the right-side
+   sprite mirrors inward so the ensemble visually frames center.
+   Solo character staging remains unchanged.
+   ========================================================= */
+.story-visual-stage[data-character-count="2"] .story-sprite-right img,
+.story-visual-stage[data-character-count="3"] .story-sprite-right img {
+  transform: scaleX(-1);
+}
