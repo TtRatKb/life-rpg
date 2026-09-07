@@ -7,7 +7,7 @@
     return;
   }
 
-  const SCHEMA = 1;
+  const SCHEMA = 2;
   const SHADOW_KEY = "life-rpg-side-adventures-shadow-v1";
   const MAX_LOGS = 600;
   const REALMS = ["Hobbies", "Recovery", "Japanese", "Knowledge", "Home", "Health", "Work"];
@@ -31,6 +31,69 @@
     gift: { icon: "🎁", label: "For someone" },
     deadline: { icon: "◷", label: "Has a real deadline" }
   };
+
+
+  const CURATED_PACK_ID = "diy-project-pack-2026-09-07-a";
+  const CURATED_ADVENTURES = [
+    {
+      curatedId: "custom-anime-manga-jeans",
+      name: "Custom Anime / Manga Jeans",
+      kind: "creative",
+      realm: "Hobbies",
+      energy: "medium",
+      sessionMinutes: 30,
+      reasonTags: ["want-result", "fun"],
+      sourceLabel: "Your saved DIY reference video",
+      sourceNote: "The screenshots clearly show direct painting on light denim and the finished multi-motif jeans. Exact construction for every final motif is not visible, so technique choices are kept explicit instead of guessed.",
+      note: "Plan the design first, then work section by section. Use fabric-safe materials and follow their curing instructions.",
+      roadmap: [
+        { milestone: "1 · Design", label: "Choose the jeans you want to permanently customize", details: "Pick the actual pair and confirm the fit before putting permanent paint or attached elements on it.", minutes: 10, energy: "low" },
+        { milestone: "1 · Design", label: "Choose the exact anime / manga motifs and map them across both legs", details: "Collect the references you actually want, then decide which thigh, knee, shin or pocket area each one belongs to so the finished design feels balanced.", minutes: 30, energy: "medium" },
+        { milestone: "1 · Design", label: "Decide the technique for each motif", details: "For every planned element, decide whether you want direct fabric painting/marker work or a separate attached patch/panel effect. The reference shows direct painting, while every final motif's construction is not visible.", minutes: 20, energy: "medium" },
+        { milestone: "2 · Prep", label: "Prepare the first work area and fabric-safe supplies", details: "Gather the fabric paint/markers and brushes you intend to use, protect the work surface and place backing/cardboard inside the jeans so paint cannot transfer through.", minutes: 15, energy: "low" },
+        { milestone: "2 · Prep", label: "Sketch or transfer the placement for the first section", details: "Lightly mark the first motif and its surrounding shapes before committing to the permanent layer.", minutes: 20, energy: "medium" },
+        { milestone: "3 · Build", label: "Paint the first large black / red graphic shapes", details: "Work on one bounded section rather than trying to fill the whole pair in one session. The reference visibly uses a brush for bold dark shapes on the denim.", minutes: 30, energy: "medium" },
+        { milestone: "3 · Build", label: "Complete one main character or manga-panel motif", details: "Finish one focal image/panel in the first section, including the major outlines and fill needed for that motif, then let it dry as required.", minutes: 45, energy: "medium" },
+        { milestone: "3 · Build", label: "Complete one major motif on the other leg", details: "Move to a second focal area so the design develops across both legs instead of overworking only one side.", minutes: 45, energy: "medium" },
+        { milestone: "3 · Build", label: "Add lettering and smaller graphic accents", details: "Use the remaining planned gaps for lettering, symbols, red marks or smaller manga-style details rather than adding random filler.", minutes: 30, energy: "medium" },
+        { milestone: "4 · Finish", label: "Check the composition across both legs and add only missing details", details: "Try the jeans on or lay them out fully. Check visual balance, spacing and whether any planned area still looks unfinished before adding more.", minutes: 20, energy: "low" },
+        { milestone: "4 · Finish", label: "Let the design dry fully and cure/fix it according to the product instructions", details: "Use the instructions for the exact textile paint/marker you chose. Do not assume every fabric medium uses the same heat-setting method.", minutes: 15, energy: "low" },
+        { milestone: "4 · Finish", label: "Final wear test and tidy the finished jeans", details: "Check comfort and movement, inspect edges/details, and tidy any loose threads or small finish issues before calling the project complete.", minutes: 15, energy: "low" }
+      ]
+    },
+    {
+      curatedId: "crochet-ivy-choker",
+      name: "Crochet Ivy Choker",
+      kind: "skill",
+      realm: "Hobbies",
+      energy: "low",
+      sessionMinutes: 20,
+      reasonTags: ["want-result", "learn", "fun"],
+      sourceLabel: "CrochetEverything · Crochet Ivy Choker Pattern",
+      sourceUrl: "https://crocheteverything.com/crochet-ivy-choker-pattern-adorable-chic-accessory-for-stylish-look/",
+      sourceNote: "Roadmap is based on the pattern text you supplied. The source does not actually spell out the mushroom-cap increase sequence, so that gap stays explicit rather than being invented.",
+      note: "Pattern materials: yarn of your choice + a crochet hook suitable for the yarn. Decoration counts are intentionally your choice.",
+      roadmap: [
+        { milestone: "1 · Setup", label: "Choose yarn, hook and a comfortable choker length", details: "The pattern says to use yarn of your choice and a suitable hook. Make the starting chain fit comfortably around your neck; it gives about 60 chains only as an example.", minutes: 15, energy: "low" },
+        { milestone: "2 · Choker base", label: "Crochet the starting chain and first single-crochet side", details: "Slip knot → chain to the chosen neck length → chain 1 more → single crochet into the 2nd stitch from the hook → single crochet in every stitch to the end → cut yarn and pull through.", minutes: 25, energy: "low" },
+        { milestone: "2 · Choker base", label: "Single crochet along the opposite side of the initial chain", details: "Repeat the single-crochet process along the other side of the original foundation chain.", minutes: 20, energy: "low" },
+        { milestone: "3 · Texture", label: "Add the textured edge across the choker", details: "Reattach yarn at the first stitch of one side → chain 2 + slip stitch into the same stitch → slip stitch into the next stitch → chain 2 + slip stitch into that same stitch → continue across.", minutes: 20, energy: "low" },
+        { milestone: "4 · Straps", label: "Crochet the first tie strap", details: "Single crochet on one edge → chain about 60 or your desired strap length → slip stitch back along the chain toward the choker → attach with a single crochet on the side.", minutes: 20, energy: "low" },
+        { milestone: "4 · Straps", label: "Crochet the second tie strap", details: "Repeat the same strap construction on the opposite side so the choker can be tied comfortably.", minutes: 20, energy: "low" },
+        { milestone: "5 · Decoration plan", label: "Choose your ivy sizes and decide whether you want flowers and mushrooms", details: "Decide Small / Medium / Large ivy (or a mix), the approximate lengths you want, and whether flowers and mushrooms belong in your version. The pattern leaves amounts and placement up to you.", minutes: 10, energy: "low" },
+        { milestone: "6 · Ivy", label: "Crochet one small ivy strand if you chose Small", details: "Slip knot → chain 7 → slip stitch into 2nd chain → slip stitch again with hook brought behind the chain before pulling through → chain 7 again → repeat to desired length. Leave extra yarn for attaching.", minutes: 20, energy: "low", optional: true },
+        { milestone: "6 · Ivy", label: "Crochet one medium ivy strand if you chose Medium", details: "Slip knot → chain 11 → single crochet into 3rd chain from hook → slip stitch in next → go behind chain and pull through yarn → chain 11 again → continue to desired length.", minutes: 20, energy: "low", optional: true },
+        { milestone: "6 · Ivy", label: "Crochet one large ivy strand if you chose Large", details: "Slip knot → chain 17 → single crochet in 3rd chain → half double crochet in next → single crochet in next → slip stitch → work around/pull through as described → slip stitch → chain 17 again → continue to desired length.", minutes: 25, energy: "medium", optional: true },
+        { milestone: "7 · Extras", label: "Crochet the flowers you decided to use", details: "Magic ring → chain 2 → 2 double crochets → chain 2 → slip stitch into ring. Repeat inside the ring for 5 petals, then pull the ring closed. Make as many as you chose in the decoration plan.", minutes: 25, energy: "low", optional: true },
+        { milestone: "7 · Extras", label: "Crochet the mushrooms you decided to use", details: "Pattern text: magic ring + 6 single crochets → close and slip stitch to join. The source then says to increase in the next round to shape the cap but does not give the actual increase sequence. For the stem: chain 3 → slip stitch into first chain → single crochet into each, then attach stem to cap.", minutes: 30, energy: "medium", optional: true, warning: "Source gap: mushroom-cap increase sequence is not specified in the supplied pattern text." },
+        { milestone: "8 · Assembly", label: "Lay out the finished pieces and choose the final placement", details: "Lay the choker flat and arrange ivy chains, flowers and mushrooms before tying anything on permanently.", minutes: 10, energy: "low" },
+        { milestone: "8 · Assembly", label: "Attach the mushroom at the necklace centre if you are using mushrooms", details: "The pattern says to find the necklace centre first and secure the mushroom using its yarn ends through the necklace stitches.", minutes: 15, energy: "low", optional: true },
+        { milestone: "8 · Assembly", label: "Attach the ivy chains to the choker", details: "Place the ivy strands where you want them, use their extra yarn ends to tie them securely to the choker, then trim excess yarn appropriately.", minutes: 20, energy: "low" },
+        { milestone: "8 · Assembly", label: "Attach the flowers and secure the remaining yarn ends", details: "Attach flowers to ivy chains or directly to the choker as desired, secure them firmly, then tidy the remaining ends.", minutes: 20, energy: "low", optional: true },
+        { milestone: "8 · Assembly", label: "Try on the choker and make final fit or placement adjustments", details: "Check that the base and straps sit comfortably and that the decoration placement feels right before marking the adventure complete.", minutes: 10, energy: "low" }
+      ]
+    }
+  ];
 
   const els = {
     add: byId("addAdventureButton"),
@@ -132,6 +195,11 @@
         togglePause(pause.dataset.adventurePause);
         return;
       }
+      const skipStep = event.target.closest?.("[data-adventure-roadmap-skip]");
+      if (skipStep) {
+        skipRoadmapStep(skipStep.dataset.adventureRoadmapSkip, skipStep.dataset.adventureStepId);
+        return;
+      }
       const quick = event.target.closest?.("[data-adventure-quick-progress]");
       if (quick && els.logProgress) {
         const value = clamp(Number(quick.dataset.adventureQuickProgress || 0), 0, 100);
@@ -167,6 +235,12 @@
     if (Number(model.schemaVersion || 0) < SCHEMA) { model.schemaVersion = SCHEMA; changed = true; }
     if (!Array.isArray(model.items)) { model.items = []; changed = true; }
     if (!Array.isArray(model.logs)) { model.logs = []; changed = true; }
+    if (!model.curatedPacks || typeof model.curatedPacks !== "object" || Array.isArray(model.curatedPacks)) { model.curatedPacks = {}; changed = true; }
+    if (!model.curatedPacks[CURATED_PACK_ID]) {
+      importCuratedAdventurePack(model);
+      model.curatedPacks[CURATED_PACK_ID] = Date.now();
+      changed = true;
+    }
 
     model.items.forEach(item => {
       if (!item.id) { item.id = makeId("adv"); changed = true; }
@@ -180,6 +254,22 @@
       item.progress = clamp(Number(item.progress || 0), 0, 100);
       if (!Number.isFinite(Number(item.progressIncrement))) { item.progressIncrement = 5; changed = true; }
       if (!Array.isArray(item.reasonTags)) { item.reasonTags = []; changed = true; }
+      if (!Array.isArray(item.roadmap)) { item.roadmap = []; changed = true; }
+      item.roadmap.forEach((step, index) => {
+        if (!step.id) { step.id = `${item.curatedId || item.id}-step-${index + 1}`; changed = true; }
+        if (!step.label) { step.label = `Project step ${index + 1}`; changed = true; }
+        if (!step.milestone) { step.milestone = "Roadmap"; changed = true; }
+        if (!["pending", "done", "skipped"].includes(step.status)) { step.status = "pending"; changed = true; }
+        if (!ENERGY[step.energy]) { step.energy = item.energy || "medium"; changed = true; }
+        if (!Number.isFinite(Number(step.minutes))) { step.minutes = item.sessionMinutes || 30; changed = true; }
+        step.optional = Boolean(step.optional);
+      });
+      if (item.roadmap.length && item.roadmapManaged !== false) {
+        const beforeSync = `${item.nextAction}|${item.progress}|${item.status}|${item.energy}|${item.sessionMinutes}`;
+        syncRoadmapItem(item);
+        const afterSync = `${item.nextAction}|${item.progress}|${item.status}|${item.energy}|${item.sessionMinutes}`;
+        if (beforeSync !== afterSync) changed = true;
+      }
       if (!item.createdAt) { item.createdAt = Date.now(); changed = true; }
       if (!item.updatedAt) { item.updatedAt = item.createdAt; changed = true; }
     });
@@ -187,6 +277,107 @@
     if (model.logs.length > MAX_LOGS) model.logs = model.logs.slice(-MAX_LOGS);
     writeShadow(model);
     return changed;
+  }
+
+  function importCuratedAdventurePack(currentModel) {
+    const now = Date.now();
+    CURATED_ADVENTURES.forEach((spec, specIndex) => {
+      const existing = currentModel.items.find(item => item?.curatedId === spec.curatedId || String(item?.name || "").trim().toLowerCase() === spec.name.toLowerCase());
+      if (existing) {
+        if (!existing.curatedId) existing.curatedId = spec.curatedId;
+        if (!Array.isArray(existing.roadmap) || !existing.roadmap.length) {
+          existing.roadmap = cloneRoadmap(spec.roadmap, spec.curatedId);
+          existing.roadmapManaged = true;
+          existing.sourceLabel = existing.sourceLabel || spec.sourceLabel || "";
+          existing.sourceUrl = existing.sourceUrl || spec.sourceUrl || "";
+          existing.sourceNote = existing.sourceNote || spec.sourceNote || "";
+          existing.note = existing.note || spec.note || "";
+          existing.reasonTags = Array.isArray(existing.reasonTags) && existing.reasonTags.length ? existing.reasonTags : [...(spec.reasonTags || [])];
+          syncRoadmapItem(existing);
+        }
+        return;
+      }
+      const item = {
+        id: `adv-curated-${spec.curatedId}`,
+        curatedId: spec.curatedId,
+        name: spec.name,
+        kind: spec.kind || "other",
+        realm: spec.realm || "Hobbies",
+        status: "active",
+        energy: spec.energy || "medium",
+        sessionMinutes: Number(spec.sessionMinutes || 30),
+        nextAction: "",
+        progressMode: "percent",
+        progress: 0,
+        progressIncrement: 0,
+        reasonTags: [...(spec.reasonTags || [])],
+        note: spec.note || "",
+        sourceLabel: spec.sourceLabel || "",
+        sourceUrl: spec.sourceUrl || "",
+        sourceNote: spec.sourceNote || "",
+        roadmapManaged: true,
+        roadmap: cloneRoadmap(spec.roadmap, spec.curatedId),
+        sessions: 0,
+        createdAt: now + specIndex,
+        updatedAt: now + specIndex
+      };
+      syncRoadmapItem(item);
+      currentModel.items.push(item);
+    });
+  }
+
+  function cloneRoadmap(steps = [], prefix = "roadmap") {
+    return steps.map((step, index) => ({
+      id: `${prefix}-step-${index + 1}`,
+      milestone: String(step.milestone || "Roadmap"),
+      label: String(step.label || `Project step ${index + 1}`),
+      details: String(step.details || ""),
+      minutes: clamp(Math.round(Number(step.minutes || 30)), 5, 240),
+      energy: ENERGY[step.energy] ? step.energy : "medium",
+      optional: Boolean(step.optional),
+      warning: String(step.warning || ""),
+      status: "pending"
+    }));
+  }
+
+  function roadmapStats(item) {
+    const steps = Array.isArray(item?.roadmap) ? item.roadmap : [];
+    const done = steps.filter(step => step.status === "done").length;
+    const skipped = steps.filter(step => step.status === "skipped").length;
+    const resolved = done + skipped;
+    const pending = Math.max(0, steps.length - resolved);
+    return { total: steps.length, done, skipped, resolved, pending, percent: steps.length ? Math.round((resolved / steps.length) * 100) : 0 };
+  }
+
+  function currentRoadmapStep(item) {
+    if (!Array.isArray(item?.roadmap)) return null;
+    return item.roadmap.find(step => step.status === "pending") || null;
+  }
+
+  function syncRoadmapItem(item) {
+    if (!Array.isArray(item?.roadmap) || !item.roadmap.length) return item;
+    const stats = roadmapStats(item);
+    item.progressMode = "percent";
+    item.progressIncrement = 0;
+    item.progress = stats.percent;
+    const step = currentRoadmapStep(item);
+    if (!step) {
+      item.nextAction = "Roadmap complete";
+      item.status = "finished";
+      return item;
+    }
+    if (item.status === "finished") item.status = "active";
+    item.nextAction = step.label;
+    item.sessionMinutes = clamp(Math.round(Number(step.minutes || item.sessionMinutes || 30)), 5, 240);
+    item.energy = ENERGY[step.energy] ? step.energy : item.energy;
+    return item;
+  }
+
+  function roadmapNextProgress(item) {
+    const steps = Array.isArray(item?.roadmap) ? item.roadmap : [];
+    if (!steps.length) return clamp(Number(item?.progress || 0), 0, 100);
+    const stats = roadmapStats(item);
+    return Math.round((Math.min(steps.length, stats.resolved + 1) / steps.length) * 100);
   }
 
   function defaultState() {
@@ -249,7 +440,7 @@
     items = items.filter(item => status === "all" ? true : item.status === status);
     if (selectedKind !== "all") items = items.filter(item => item.kind === selectedKind);
     if (query) {
-      items = items.filter(item => [item.name, item.nextAction, item.note, item.realm, KINDS[item.kind]?.label].join(" ").toLowerCase().includes(query));
+      items = items.filter(item => [item.name, item.nextAction, item.note, item.realm, KINDS[item.kind]?.label, ...(item.roadmap || []).flatMap(step => [step.label, step.details, step.milestone])].join(" ").toLowerCase().includes(query));
     }
     items.sort(sortAdventures);
 
@@ -303,6 +494,7 @@
 
         ${reasons.length ? `<div class="adventure-reasons-v15">${reasons.map(reason => `<span>${reason.icon} ${esc(reason.label)}</span>`).join("")}</div>` : ""}
         ${item.note ? `<p class="adventure-note-v15">${esc(item.note)}</p>` : ""}
+        ${roadmapMarkup(item)}
 
         <footer class="adventure-card-footer-v15">
           <span class="adventure-last-v15">${doneToday ? "✓ Touched today" : esc(last)}</span>
@@ -312,6 +504,42 @@
           </div>
         </footer>
       </article>`;
+  }
+
+  function roadmapMarkup(item) {
+    if (!Array.isArray(item?.roadmap) || !item.roadmap.length) return "";
+    const stats = roadmapStats(item);
+    const current = currentRoadmapStep(item);
+    const milestones = [];
+    item.roadmap.forEach(step => {
+      let group = milestones.find(entry => entry.name === step.milestone);
+      if (!group) { group = { name: step.milestone, steps: [] }; milestones.push(group); }
+      group.steps.push(step);
+    });
+    const source = item.sourceUrl
+      ? `<a class="adventure-source-link-v308" href="${escAttr(item.sourceUrl)}" target="_blank" rel="noreferrer">${esc(item.sourceLabel || "Reference source")} ↗</a>`
+      : (item.sourceLabel ? `<span class="adventure-source-link-v308">${esc(item.sourceLabel)}</span>` : "");
+    return `
+      <details class="adventure-roadmap-v308">
+        <summary><span>☷ ROADMAP</span><strong>${stats.resolved}/${stats.total} steps resolved</strong></summary>
+        <div class="adventure-roadmap-body-v308">
+          ${source ? `<div class="adventure-roadmap-source-v308">${source}${item.sourceNote ? `<p>${esc(item.sourceNote)}</p>` : ""}</div>` : ""}
+          ${milestones.map(group => `
+            <section class="adventure-roadmap-milestone-v308">
+              <h4>${esc(group.name)}</h4>
+              ${group.steps.map(step => {
+                const isCurrent = current?.id === step.id;
+                const stateIcon = step.status === "done" ? "✓" : step.status === "skipped" ? "↷" : isCurrent ? "→" : "○";
+                const meta = `${ENERGY[step.energy]?.icon || "🌤️"} ${ENERGY[step.energy]?.label || "Medium energy"} · ~${Number(step.minutes || 30)} min${step.optional ? " · optional" : ""}`;
+                return `<article class="adventure-roadmap-step-v308 status-${escAttr(step.status)} ${isCurrent ? "current" : ""}">
+                  <span class="adventure-roadmap-state-v308">${stateIcon}</span>
+                  <div><strong>${esc(step.label)}</strong><small>${esc(meta)}</small>${step.details ? `<p>${esc(step.details)}</p>` : ""}${step.warning ? `<p class="adventure-roadmap-warning-v308">⚠ ${esc(step.warning)}</p>` : ""}</div>
+                  ${isCurrent && step.optional ? `<button class="secondary-button adventure-roadmap-skip-v308" type="button" data-adventure-roadmap-skip="${escAttr(item.id)}" data-adventure-step-id="${escAttr(step.id)}">Skip optional</button>` : ""}
+                </article>`;
+              }).join("")}
+            </section>`).join("")}
+        </div>
+      </details>`;
   }
 
   function openAdventureDialog(id = null) {
@@ -442,6 +670,21 @@
     persist(item.status === "paused" ? "side-adventure-pause" : "side-adventure-resume");
   }
 
+  function skipRoadmapStep(adventureId, stepId) {
+    const item = model().items.find(entry => entry.id === adventureId);
+    if (!item || !Array.isArray(item.roadmap) || !item.roadmap.length) return;
+    const step = item.roadmap.find(entry => entry.id === stepId);
+    const current = currentRoadmapStep(item);
+    if (!step || !step.optional || step.status !== "pending" || current?.id !== step.id) return;
+    step.status = "skipped";
+    step.skippedAt = Date.now();
+    item.updatedAt = step.skippedAt;
+    syncRoadmapItem(item);
+    persist("side-adventure-roadmap-skip");
+    app.renderAll?.();
+    app.showToast?.(`Skipped optional step · Next: ${item.nextAction || "roadmap complete"}`);
+  }
+
   function openLogDialog(id) {
     const item = model().items.find(entry => entry.id === id);
     if (!item || !els.logDialog || !els.logForm) return;
@@ -461,15 +704,20 @@
 
   function configureLogForm(item) {
     if (!item) return;
+    const hasRoadmap = Array.isArray(item.roadmap) && item.roadmap.length > 0 && item.roadmapManaged !== false;
+    const step = hasRoadmap ? currentRoadmapStep(item) : null;
     if (els.logId) els.logId.value = item.id;
     if (els.logPicker && els.logPicker.value !== item.id) els.logPicker.value = item.id;
     if (els.logTitle) els.logTitle.textContent = item.name;
-    if (els.logFinishLine) els.logFinishLine.textContent = item.nextAction || "Spend one focused session on this.";
+    if (els.logFinishLine) els.logFinishLine.textContent = step?.label || item.nextAction || "Spend one focused session on this.";
     const percent = item.progressMode === "percent";
-    els.logProgressWrap?.classList.toggle("hidden", !percent);
-    if (els.logProgress) els.logProgress.value = String(percent ? clamp(Number(item.progress || 0) + Number(item.progressIncrement || 0), 0, 100) : 0);
-    if (els.logNextAction) els.logNextAction.value = "";
-    renderLogQuickButtons(item);
+    els.logProgressWrap?.classList.toggle("hidden", !percent || hasRoadmap);
+    if (els.logProgress) els.logProgress.value = String(hasRoadmap ? roadmapNextProgress(item) : (percent ? clamp(Number(item.progress || 0) + Number(item.progressIncrement || 0), 0, 100) : 0));
+    if (els.logNextAction) {
+      els.logNextAction.value = "";
+      els.logNextAction.parentElement?.classList.toggle("hidden", hasRoadmap);
+    }
+    renderLogQuickButtons(hasRoadmap ? { ...item, progressMode: "simple" } : item);
   }
 
   function setChainLogStatus(message) {
@@ -501,9 +749,10 @@
     byId("adventureLogQuickProgress")?.querySelectorAll("[data-adventure-quick-progress]").forEach(button => button.classList.toggle("active", Number(button.dataset.adventureQuickProgress) === value));
   }
 
-  function adventureRewardSpec(item, at) {
-    const minutes = clamp(Number(item.minutes || 30), 10, 180);
-    const energyFactor = item.energy === "high" ? 1.12 : item.energy === "low" ? 0.9 : 1;
+  function adventureRewardSpec(item, at, roadmapStep = null) {
+    const minutes = clamp(Number(roadmapStep?.minutes || item.sessionMinutes || item.minutes || 30), 10, 180);
+    const rewardEnergy = roadmapStep?.energy || item.energy;
+    const energyFactor = rewardEnergy === "high" ? 1.12 : rewardEnergy === "low" ? 0.9 : 1;
     const storyEnergyBase = Math.min(2.8, Math.max(0.35, minutes * 0.025 * energyFactor));
     const xp = Math.max(4, Math.round(storyEnergyBase * 10));
     const capability = app.inferCapability?.({
@@ -524,7 +773,7 @@
       coins: 10,
       storyEnergyBase,
       at: new Date(at).toISOString(),
-      metadata: { minutes, energy: item.energy, kind: item.kind }
+      metadata: { minutes, energy: rewardEnergy, kind: item.kind, roadmapStepId: roadmapStep?.id || null, roadmapStepLabel: roadmapStep?.label || null }
     };
   }
 
@@ -535,17 +784,28 @@
     if (!item) return;
     const before = clamp(Number(item.progress || 0), 0, 100);
     const wasFinished = item.status === "finished";
-    const after = item.progressMode === "percent" ? clamp(Number(els.logProgress?.value || before), 0, 100) : before;
     const now = Date.now();
-    item.progress = after;
+    const roadmapStep = Array.isArray(item.roadmap) && item.roadmap.length && item.roadmapManaged !== false ? currentRoadmapStep(item) : null;
+
     item.sessions = Number(item.sessions || 0) + 1;
     item.lastTouchedAt = now;
     item.updatedAt = now;
-    const nextAction = String(els.logNextAction?.value || "").trim();
-    if (nextAction) item.nextAction = nextAction;
-    if (item.progressMode === "percent" && after >= 100) item.status = "finished";
 
-    const reward = app.awardActivity?.(adventureRewardSpec(item, now)) || {
+    let after = before;
+    if (roadmapStep) {
+      roadmapStep.status = "done";
+      roadmapStep.completedAt = now;
+      syncRoadmapItem(item);
+      after = clamp(Number(item.progress || 0), 0, 100);
+    } else {
+      after = item.progressMode === "percent" ? clamp(Number(els.logProgress?.value || before), 0, 100) : before;
+      item.progress = after;
+      const nextAction = String(els.logNextAction?.value || "").trim();
+      if (nextAction) item.nextAction = nextAction;
+      if (item.progressMode === "percent" && after >= 100) item.status = "finished";
+    }
+
+    const reward = app.awardActivity?.(adventureRewardSpec(item, now, roadmapStep)) || {
       xp: 0, realmXP: 0, statXP: 0, storyEnergy: 0, rawStoryEnergy: 0, coins: 0
     };
 
@@ -576,6 +836,8 @@
       date: todayKey(),
       progressBefore: before,
       progressAfter: after,
+      roadmapStepId: roadmapStep?.id || null,
+      roadmapStepLabel: roadmapStep?.label || null,
       xp: Number(reward.xp || 0),
       realmXP: Number(reward.realmXP || 0),
       statXP: Number(reward.statXP || 0),
@@ -590,13 +852,14 @@
     persist("side-adventure-progress");
     app.renderAll?.();
     const addAnother = event.submitter?.dataset.logAnother === "true";
-    showToast(item, before, after, reward, finishReward);
+    showToast(item, before, after, reward, finishReward, roadmapStep);
     if (addAnother) {
       populateLogPicker(item.status === "finished" ? "" : item.id);
       const nextItem = model().items.find(entry => entry.id === els.logPicker?.value);
       if (nextItem) {
         configureLogForm(nextItem);
-        setChainLogStatus(`✓ ${item.name} saved. Pick another side adventure above or log another session.`);
+        const nextLabel = nextItem.id === item.id && currentRoadmapStep(nextItem) ? ` Next: ${currentRoadmapStep(nextItem).label}` : "";
+        setChainLogStatus(`✓ ${item.name} saved.${nextLabel} Pick another side adventure above or log another step.`);
         window.setTimeout(() => els.logPicker?.focus(), 20);
       } else {
         closeLogDialog();
@@ -606,14 +869,15 @@
     }
   }
 
-  function showToast(item, before, after, reward = null, finishReward = null) {
+  function showToast(item, before, after, reward = null, finishReward = null, roadmapStep = null) {
     if (!els.toast) return;
     if (els.toastTitle) els.toastTitle.textContent = item.name;
     if (els.toastDetail) {
       const delta = item.progressMode === "percent" && after !== before ? ` · ${after}% complete` : "";
       const rewardText = reward ? ` · +${app.formatEnergy?.(reward.storyEnergy) ?? reward.storyEnergy} 🔥 · +${Number(reward.xp || 0)} XP · +${Number(reward.coins || 0)} 🪙` : "";
       const finishText = finishReward ? ` · project finished +${Number(finishReward.coins || 0)} 🪙` : "";
-      els.toastDetail.textContent = `Progress logged${delta}${rewardText}${finishText}`;
+      const stepText = roadmapStep ? ` · step complete${item.status === "finished" ? "" : ` · next: ${item.nextAction}`}` : "";
+      els.toastDetail.textContent = `Progress logged${stepText}${delta}${rewardText}${finishText}`;
     }
     els.toast.classList.remove("hidden");
     clearTimeout(showToast.timer);

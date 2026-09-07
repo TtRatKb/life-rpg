@@ -13571,3 +13571,75 @@ body.world-location-open { overflow: hidden; }
   .curiosity-actions-v307 { justify-content: stretch; }
   .curiosity-actions-v307 button { width: 100%; }
 }
+
+/* V0.30.8 — curated Adventure roadmaps */
+.adventure-roadmap-v308{
+  margin-top:12px;
+  border:1px solid rgba(91,47,70,.14);
+  border-radius:16px;
+  background:rgba(255,250,247,.72);
+  overflow:hidden;
+}
+.adventure-roadmap-v308>summary{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:11px 13px;
+  cursor:pointer;
+  list-style:none;
+  color:var(--ink, #3d2734);
+}
+.adventure-roadmap-v308>summary::-webkit-details-marker{display:none}
+.adventure-roadmap-v308>summary span{
+  font-size:.72rem;
+  letter-spacing:.08em;
+  font-weight:800;
+  color:var(--plum, #6f3d58);
+}
+.adventure-roadmap-v308>summary strong{font-size:.78rem;font-weight:700}
+.adventure-roadmap-body-v308{padding:0 12px 12px;display:grid;gap:12px}
+.adventure-roadmap-source-v308{
+  padding:10px 11px;
+  border-radius:12px;
+  background:rgba(113,70,91,.06);
+  font-size:.78rem;
+  line-height:1.45;
+}
+.adventure-roadmap-source-v308 p{margin:6px 0 0;color:var(--muted, #76656e)}
+.adventure-source-link-v308{font-weight:800;color:var(--plum, #6f3d58);text-decoration:none}
+a.adventure-source-link-v308:hover{text-decoration:underline}
+.adventure-roadmap-milestone-v308{display:grid;gap:7px}
+.adventure-roadmap-milestone-v308 h4{
+  margin:0;
+  padding-top:3px;
+  font-size:.72rem;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+  color:var(--muted, #76656e);
+}
+.adventure-roadmap-step-v308{
+  display:grid;
+  grid-template-columns:22px minmax(0,1fr) auto;
+  gap:8px;
+  align-items:start;
+  padding:9px 9px;
+  border-radius:12px;
+  border:1px solid transparent;
+}
+.adventure-roadmap-step-v308.current{
+  border-color:rgba(130,68,99,.22);
+  background:rgba(244,224,233,.52);
+}
+.adventure-roadmap-step-v308.status-done{opacity:.64}
+.adventure-roadmap-step-v308.status-skipped{opacity:.48}
+.adventure-roadmap-state-v308{font-weight:900;color:var(--plum, #6f3d58);line-height:1.25}
+.adventure-roadmap-step-v308 strong{display:block;font-size:.86rem;line-height:1.35}
+.adventure-roadmap-step-v308 small{display:block;margin-top:3px;color:var(--muted, #76656e);font-size:.72rem}
+.adventure-roadmap-step-v308 p{margin:6px 0 0;color:var(--muted, #76656e);font-size:.76rem;line-height:1.45}
+.adventure-roadmap-warning-v308{color:#875b2f!important;font-weight:700}
+.adventure-roadmap-skip-v308{font-size:.7rem;padding:6px 8px;white-space:nowrap}
+@media (max-width:700px){
+  .adventure-roadmap-step-v308{grid-template-columns:20px minmax(0,1fr)}
+  .adventure-roadmap-skip-v308{grid-column:2;justify-self:start}
+}
