@@ -587,12 +587,18 @@
   function weeklyHeadline(entries) {
     const checkIns = entries.filter(hasCoreCheckIn);
     const reflectionCount = entries.filter(hasReflection).length;
-    if (!checkIns.length) return `${reflectionCount} reflection${reflectionCount === 1 ? "" : "s"} saved`;
+    const time = timeSummaryForEntries(entries);
+    if (!checkIns.length) {
+      const parts = [`${reflectionCount} reflection${reflectionCount === 1 ? "" : "s"} saved`];
+      if (time.workMinutes) parts.push(`${formatMinutes(time.workMinutes)} work`);
+      return parts.join(" · ");
+    }
     const moodScores = checkIns.map(entry => MOOD[entry.mood]?.score).filter(Boolean);
     const energyScores = checkIns.map(entry => ENERGY[entry.energy]?.score).filter(Boolean);
     const parts = [`${checkIns.length} check-in${checkIns.length === 1 ? "" : "s"}`];
     if (moodScores.length) parts.push(`mood ${average(moodScores).toFixed(1)}/5`);
     if (energyScores.length) parts.push(`energy ${average(energyScores).toFixed(1)}/4`);
+    if (time.workMinutes) parts.push(`${formatMinutes(time.workMinutes)} work`);
     return parts.join(" · ");
   }
 
@@ -602,8 +608,11 @@
     const lowEnergy = checkIns.filter(entry => ["fumes", "low"].includes(entry.energy)).length;
     const goodMood = checkIns.filter(entry => ["good", "great"].includes(entry.mood)).length;
     const gratitude = entries.filter(entry => cleanText(entry.gratitude)).length;
+    const time = timeSummaryForEntries(entries);
     let observation = "Not enough check-ins to call this a pattern yet.";
-    if (checkIns.length >= 3 && lowSleep >= 2 && lowEnergy >= 2) observation = `Lower sleep and lower energy showed up together a few times this week.`;
+    if (time.workMinutes >= 2700 && lowEnergy >= 2) observation = `${formatMinutes(time.workMinutes)} of work and lower energy both showed up in this logged week. That's context, not proof of cause.`;
+    else if (time.workMinutes >= 2400) observation = `${formatMinutes(time.workMinutes)} of work is visible in this week. The workload belongs in the reflection instead of disappearing behind the optional quests.`;
+    else if (checkIns.length >= 3 && lowSleep >= 2 && lowEnergy >= 2) observation = `Lower sleep and lower energy showed up together a few times this week.`;
     else if (checkIns.length >= 3 && goodMood >= Math.ceil(checkIns.length / 2)) observation = `More than half of the logged days landed on the good side of the mood scale.`;
     else if (gratitude >= 2) observation = `${gratitude} little things made it into the gratitude notes.`;
     else if (checkIns.length >= 3) observation = `Enough days are logged here to see the week without turning it into a diagnosis.`;
@@ -612,6 +621,33 @@
     if (companion.id === "kirishima") return `${observation} That's useful context, not a verdict on the week.`;
     if (companion.id === "bakugo") return `${observation} Don't turn correlation into some dramatic life theory.`;
     return `${observation} Description first. Explanation can wait.`;
+  }
+
+  function timeSummaryForEntries(entries) {
+    const dates = entries.map(entry => entry?.date).filter(Boolean).sort();
+    if (!dates.length) return { totalMinutes: 0, workMinutes: 0, personalMinutes: 0, recoveryMinutes: 0 };
+    const start = new Date(`${dates[0]}T00:00:00`);
+    const end = new Date(`${dates[dates.length - 1]}T23:59:59.999`);
+    const result = { totalMinutes: 0, workMinutes: 0, personalMinutes: 0, recoveryMinutes: 0 };
+    (app.getState().timeTracking?.entries || []).forEach(item => {
+      const at = new Date(item?.startAt || 0);
+      if (!Number.isFinite(at.getTime()) || at < start || at > end) return;
+      const minutes = Math.max(0, Number(item.minutes || 0));
+      result.totalMinutes += minutes;
+      const category = String(item.categoryId || "");
+      if (["school", "work_home", "focus"].includes(category)) result.workMinutes += minutes;
+      else if (["hobby", "gaming", "reading"].includes(category)) result.personalMinutes += minutes;
+      else if (category === "recovery") result.recoveryMinutes += minutes;
+    });
+    return result;
+  }
+
+  function formatMinutes(minutes) {
+    const total = Math.max(0, Math.round(Number(minutes || 0)));
+    if (total < 60) return `${total}m`;
+    const h = Math.floor(total / 60);
+    const m = total % 60;
+    return m ? `${h}h ${m}m` : `${h}h`;
   }
 
   function exportJournalJson() {
@@ -632,12 +668,14 @@
       schemaVersion: SCHEMA,
       exportedAt: new Date().toISOString(),
       journal: state.journal,
-      checkIns
+      checkIns,
+      timeTracking: state.timeTracking || { schemaVersion: 1, entries: [] }
     }, null, 2), "application/json");
     app.showToast?.("Journal JSON exported");
   }
 
   function exportJournalMarkdown() {
+    const state = app.getState();
     const entries = Object.values(journalState().entries || {}).filter(entry => hasCoreCheckIn(entry) || hasReflection(entry)).sort((a, b) => a.date.localeCompare(b.date));
     const groups = new Map();
     entries.forEach(entry => {
@@ -664,6 +702,21 @@
       });
     });
     if (!entries.length) lines.push("No journal entries yet.", "");
+    const timeLogs = Array.isArray(state.timeTracking?.entries) ? state.timeTracking.entries.slice().sort((a, b) => new Date(a.startAt || 0) - new Date(b.startAt || 0)) : [];
+    if (timeLogs.length) {
+      lines.push("## Time Log", "", "> Tracked time is included so the journal export remains useful outside Life RPG.", "");
+      let lastDate = "";
+      timeLogs.forEach(item => {
+        const start = new Date(item.startAt || 0);
+        const end = new Date(item.endAt || 0);
+        if (!Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime())) return;
+        const key = localDateKey(start);
+        if (key !== lastDate) { lines.push(`### ${formatDateLong(key)}`); lastDate = key; }
+        const time = `${start.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}–${end.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}`;
+        lines.push(`- ${time} · ${formatMinutes(item.minutes)} · ${item.label || item.categoryId || "Time log"}`);
+      });
+      lines.push("");
+    }
     downloadFile(`life-rpg-journal-${todayKey()}.md`, lines.join("\n"), "text/markdown");
     app.showToast?.("Journal Markdown exported");
   }

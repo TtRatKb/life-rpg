@@ -799,6 +799,24 @@
     return reward;
   }
 
+  function revokeActivityReward(eventId) {
+    ensureProgressionState();
+    const index = state.rewardLedger.events.findIndex(event => event?.id === eventId);
+    if (index < 0) return false;
+    const event = state.rewardLedger.events[index];
+    state.characterXP = Math.max(0, Number(state.characterXP || 0) - Math.max(0, Number(event.xp || 0)));
+    state.coins = Math.max(0, Number(state.coins || 0) - Math.max(0, Number(event.coins || 0)));
+    state.storyEnergy = floor2(Math.max(0, Number(state.storyEnergy || 0) - Math.max(0, Number(event.storyEnergy || 0))));
+    if (event.realm && REALM_META[event.realm]) {
+      state.realms[event.realm] = Math.max(0, Number(state.realms[event.realm] || 0) - Math.max(0, Number(event.realmXP || 0)));
+    }
+    if (event.capability && STAT_META[event.capability]) {
+      state.stats[event.capability] = Math.max(0, Number(state.stats[event.capability] || 0) - Math.max(0, Number(event.statXP || 0)));
+    }
+    state.rewardLedger.events.splice(index, 1);
+    return true;
+  }
+
   function previewActivityReward(spec = {}) {
     return calculateActivityReward(spec, { mutate: false });
   }
@@ -843,6 +861,16 @@
         schemaVersion: 1,
         entries: {},
         migrations: {}
+      },
+      timeTracking: {
+        schemaVersion: 1,
+        entries: [],
+        active: null,
+        settings: {
+          tone: true,
+          notifications: false,
+          focusPreset: "50/10"
+        }
       },
       flags: {
         STORY_ENGINE_READY: true
@@ -1007,7 +1035,18 @@
             entries: saved.journal.entries && typeof saved.journal.entries === "object" && !Array.isArray(saved.journal.entries) ? saved.journal.entries : {},
             migrations: saved.journal.migrations && typeof saved.journal.migrations === "object" && !Array.isArray(saved.journal.migrations) ? saved.journal.migrations : {}
           }
-        : base.journal
+        : base.journal,
+      timeTracking: saved.timeTracking && typeof saved.timeTracking === "object" && !Array.isArray(saved.timeTracking)
+        ? {
+            ...base.timeTracking,
+            ...saved.timeTracking,
+            entries: Array.isArray(saved.timeTracking.entries) ? saved.timeTracking.entries : [],
+            active: saved.timeTracking.active && typeof saved.timeTracking.active === "object" ? saved.timeTracking.active : null,
+            settings: saved.timeTracking.settings && typeof saved.timeTracking.settings === "object"
+              ? { ...base.timeTracking.settings, ...saved.timeTracking.settings }
+              : { ...base.timeTracking.settings }
+          }
+        : base.timeTracking
     };
   }
 
@@ -1811,9 +1850,9 @@
     return { ...preview, requestedXP: xp, requestedStatXP: statXP, requestedCoins: coins, batchProgress };
   }
 
-  function completeQuest(questId, units) {
+  function completeQuest(questId, units, options = {}) {
     const quest = getQuestById(questId);
-    if (!quest) return;
+    if (!quest) return null;
 
     const availability = getQuestAvailability(quest);
     if (!availability.available) {
@@ -1865,7 +1904,12 @@
     applyHiddenEngineChecks();
     saveState();
     renderAll();
-    showQuestClear(quest, reward);
+    if (options.showOverlay === false) {
+      showToast(`${quest.name} · ${formatEnergy(reward.storyEnergy)} 🔥 · ${reward.xp} XP logged.`);
+    } else {
+      showQuestClear(quest, reward);
+    }
+    return { quest: { ...quest }, reward: { ...reward }, units: normalizedUnits };
   }
 
   function openExternalTaskDialog() {
@@ -2415,6 +2459,8 @@
     dedupeFamilyForQuest,
     previewActivityReward,
     awardActivity,
+    revokeActivityReward,
+    logQuestProgress: (questId, units) => completeQuest(questId, units, { showOverlay: false }),
     getTodayStoryEnergyEarned: () => storyEnergyEarnedOnDate(new Date()),
     getTodayRewardActionCount,
     formatEnergy,

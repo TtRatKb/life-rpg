@@ -455,6 +455,11 @@
       if (!initialized) return;
       render();
     });
+
+    window.addEventListener("life-rpg:time-change", () => {
+      if (!initialized) return;
+      render();
+    });
   }
 
   function byId(id) {
@@ -765,12 +770,26 @@
         <div class="daily-summary-chip-v14"><span>☷</span><div><small>FIXED LOAD</small><strong>${esc(LABELS.obligations[checkIn.obligations] || checkIn.obligations)}</strong></div></div>
       </div>
       ${checkIn.loadNote ? `<div class="daily-plan-context-v303"><span>🗓</span><div><small>KNOWN TODAY</small><strong>${esc(checkIn.loadNote)}</strong></div></div>` : ""}
+      ${actualTimeLoadMarkup()}
       ${checkInRewardMarkup(todayRecord()?.checkInReward)}
       <div class="daily-capacity-note-v14 ${checkIn.gentle ? "gentle" : ""}">
         <span>${checkIn.gentle ? "♡" : "✿"}</span>
         <div><small>PLANNER READ</small><strong>${esc(capacity.title)}</strong><p>${esc(capacity.text)}</p></div>
       </div>
       ${momentNoteMarkup(checkIn)}`;
+  }
+
+  function actualTimeLoadMarkup() {
+    const summary = window.LifeRPGTime?.getTodaySummary?.();
+    const workMinutes = Math.max(0, Number(summary?.workMinutes || 0));
+    if (workMinutes < 30) return "";
+    const focusMinutes = Math.max(0, Number(summary?.focusMinutes || 0));
+    const copy = workMinutes >= 420
+      ? "That is already a full, heavy workday. The planner should not treat the evening like unused capacity."
+      : workMinutes >= 300
+        ? "A substantial part of today's capacity is already accounted for. Rebalance if the morning estimate was too optimistic."
+        : "Real work is now part of today's load instead of invisible background effort.";
+    return `<div class="daily-plan-context-v303 actual-load-v304"><span>◷</span><div><small>ACTUAL LOAD SO FAR</small><strong>${esc(formatDuration(workMinutes))} work${focusMinutes ? ` · ${esc(formatDuration(focusMinutes))} focused` : ""}</strong><p>${esc(copy)}</p></div></div>`;
   }
 
   function capacityLabel(checkIn) {
@@ -797,6 +816,10 @@
   function renderPicks(day) {
     if (!els.picks || !els.picksEmpty || !els.picksCount) return;
     els.rebalance?.classList.toggle("hidden", !day?.checkIn);
+    if (day?.checkIn && els.rebalance) {
+      const workMinutes = Math.max(0, Number(window.LifeRPGTime?.getTodaySummary?.()?.workMinutes || 0));
+      els.rebalance.textContent = workMinutes >= 300 ? `${formatDuration(workMinutes)} work logged · lighten plan ↻` : "Day got heavier ↻";
+    }
     if (!day?.checkIn) {
       els.picks.innerHTML = "";
       els.picksEmpty.classList.remove("hidden");
@@ -1919,6 +1942,10 @@
     const stressPenalty = ({ calm: 0, light: 0.05, medium: 0.2, high: 0.48, overload: 0.8 })[checkIn.stress] || 0;
     const moodPenalty = ({ rough: 0.18, meh: 0.07 })[checkIn.mood] || 0;
     let capacity = energy * 0.58 + sleep * 0.25 + obligations * 0.17 - stressPenalty - moodPenalty;
+    const workMinutes = Math.max(0, Number(window.LifeRPGTime?.getTodaySummary?.()?.workMinutes || 0));
+    if (workMinutes >= 480) capacity -= 1.15;
+    else if (workMinutes >= 360) capacity -= 0.8;
+    else if (workMinutes >= 240) capacity -= 0.4;
     if (checkIn.gentle) capacity -= 1;
     return clamp(capacity, 0, 3);
   }
@@ -2071,8 +2098,16 @@
     const loadOrder = ["open", "normal", "busy", "help"];
     const timeIndex = Math.max(0, timeOrder.indexOf(day.checkIn.time));
     const loadIndex = Math.max(0, loadOrder.indexOf(day.checkIn.obligations));
-    const nextTime = timeOrder[Math.min(timeOrder.length - 1, timeIndex + 1)] || day.checkIn.time;
-    const nextLoad = loadOrder[Math.min(loadOrder.length - 1, loadIndex + 1)] || day.checkIn.obligations;
+    const actualWork = Math.max(0, Number(window.LifeRPGTime?.getTodaySummary?.()?.workMinutes || 0));
+    let nextTime = timeOrder[Math.min(timeOrder.length - 1, timeIndex + 1)] || day.checkIn.time;
+    let nextLoad = loadOrder[Math.min(loadOrder.length - 1, loadIndex + 1)] || day.checkIn.obligations;
+    if (actualWork >= 420) {
+      nextTime = "none";
+      nextLoad = "help";
+    } else if (actualWork >= 300) {
+      nextTime = ["none", "little"].includes(day.checkIn.time) ? day.checkIn.time : "little";
+      nextLoad = day.checkIn.obligations === "help" ? "help" : "busy";
+    }
 
     if (nextTime === day.checkIn.time && nextLoad === day.checkIn.obligations) {
       app.showToast?.("The plan is already using the heaviest day setting.");
@@ -2621,6 +2656,13 @@
     const checkIn = day?.checkIn || {};
     const moment = currentMoment();
     const low = checkIn.gentle || ["fumes", "low"].includes(checkIn.energy);
+    const workMinutes = Math.max(0, Number(window.LifeRPGTime?.getTodaySummary?.()?.workMinutes || 0));
+    if (workMinutes >= 420) {
+      if (companion?.id === "mina") return `Okay, you have already logged ${formatDuration(workMinutes)} of work today. I am officially vetoing the imaginary second workday.`;
+      if (companion?.id === "kirishima") return `That's ${formatDuration(workMinutes)} of work already. You did a lot today; recovery belongs in the plan now too.`;
+      if (companion?.id === "bakugo") return `${formatDuration(workMinutes)}. That's the workload. Quit acting like the evening is empty space.`;
+      return `We've already logged ${formatDuration(workMinutes)} of work. That explains a lot about what is actually left in the tank.`;
+    }
     if (companion?.id === "mina") {
       if (low) return "Okay. Small plan. We are not turning low battery into a character flaw.";
       if (moment.id === "evening") return "Anchor if it fits, Care on purpose, Optional only if you actually have room. I am vetoing any plan that becomes a second workday.";

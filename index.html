@@ -14,7 +14,7 @@
   <link rel="manifest" href="manifest.webmanifest?v=0.30.3a" />
   <link rel="apple-touch-icon" href="assets/app-icon-180.png?v=0.30.3a" />
   <link rel="icon" type="image/png" sizes="192x192" href="assets/app-icon-192.png?v=0.30.3a" />
-  <link rel="stylesheet" href="styles.css?v=0.30.3a" />
+  <link rel="stylesheet" href="styles.css?v=0.30.4" />
 </head>
 <body>
   <section id="mobileCloudGate" class="mobile-cloud-gate-v251" data-state="checking" aria-live="polite" aria-label="Life RPG cloud sign in">
@@ -127,6 +127,7 @@
         <section class="dashboard-command-strip dashboard-command-strip-habits" aria-label="Life RPG quick navigation">
           <button data-view-target="habits" data-habit-date-mode="today"><span class="command-strip-icon">❀</span><span><strong>Habits</strong><small>Build consistency without punishment.</small></span><b>›</b></button>
           <button data-view-target="journal"><span class="command-strip-icon">🌸</span><span><strong>Journal</strong><small>Check in, reflect, and see the month take shape.</small></span><b>›</b></button>
+          <button data-view-target="rhythm"><span class="command-strip-icon">◷</span><span><strong>Focus & Time</strong><small>Pomodoro, clock-in, and the real shape of your week.</small></span><b>›</b></button>
           <button data-view-target="quests"><span class="command-strip-icon">☷</span><span><strong>Quest Board</strong><small>Choose what fits today.</small></span><b>›</b></button>
           <button data-view-target="adventures"><span class="command-strip-icon">✧</span><span><strong>Side Adventures</strong><small>Come back to things you actually want.</small></span><b>›</b></button>
           <button data-view-target="library"><span class="command-strip-icon">📚</span><span><strong>Library</strong><small>Your books, without database homework.</small></span><b>›</b></button>
@@ -1060,6 +1061,86 @@
 
       </section>
 
+      <!-- FOCUS / TIME / LIFE RHYTHM -->
+      <section id="view-rhythm" class="view rhythm-view-v304">
+        <section class="rhythm-hero-v304">
+          <div>
+            <p class="eyebrow">FOCUS · WORK · LIFE RHYTHM</p>
+            <h1>Focus & Time</h1>
+            <p class="lead">Clock the day you actually lived. School and work count, focus can run on a real timer, and hobbies or recovery stay visible without becoming another productivity score.</p>
+            <div class="rhythm-rule-row-v304"><span>◷ Work earns modest progression</span><span>♡ Off-duty time stays valuable data</span><span>✦ No need to remember exact minutes later</span></div>
+          </div>
+          <aside class="rhythm-settings-v304">
+            <label><input id="rhythmToneToggle" type="checkbox" checked /> Timer sound</label>
+            <label><input id="rhythmNotificationToggle" type="checkbox" /> Browser notification</label>
+            <small>Notifications depend on browser/PWA permission. The timer itself survives reloads either way.</small>
+          </aside>
+        </section>
+
+        <section id="rhythmActiveCard" class="panel rhythm-active-v304"></section>
+
+        <section class="rhythm-start-grid-v304">
+          <article class="panel rhythm-focus-card-v304">
+            <div class="panel-heading"><div><p class="eyebrow">POMODORO / DEEP WORK</p><h2>Start Focus</h2><p class="panel-subcopy">25/5 is there, but 50/10 gets first-class treatment.</p></div><span class="journal-panel-mark-v302">🎯</span></div>
+            <div id="focusPresetButtons" class="rhythm-preset-row-v304">
+              <button class="secondary-button" data-focus-preset="25/5" type="button">25 / 5</button>
+              <button class="secondary-button active" data-focus-preset="50/10" type="button">50 / 10</button>
+              <button class="secondary-button" data-focus-preset="90/15" type="button">90 / 15</button>
+            </div>
+            <div class="rhythm-form-grid-v304">
+              <label><span>Focus minutes</span><input id="focusMinutes" type="number" min="5" max="240" value="50" /></label>
+              <label><span>Break minutes</span><input id="focusBreakMinutes" type="number" min="0" max="60" value="10" /></label>
+              <label><span>Category</span><select id="focusCategory"></select></label>
+              <label><span>Type</span><select id="focusSubcategory"></select></label>
+              <label class="wide"><span>What are you working on?</span><input id="focusLabel" type="text" placeholder="e.g. Lesson planning for Tuesday" /></label>
+              <label class="wide"><span>Link a minute-based quest (optional)</span><select id="focusQuest"><option value="">No quest link</option></select></label>
+            </div>
+            <button id="startFocusButton" class="primary-button" type="button">Start focus session</button>
+          </article>
+
+          <article class="panel rhythm-clock-card-v304">
+            <div class="panel-heading"><div><p class="eyebrow">FOREST-STYLE / CLOCK IN</p><h2>Start & stop</h2><p class="panel-subcopy">For school, conferences, work at home, hobbies, or anything where you just want the actual elapsed time.</p></div><span class="journal-panel-mark-v302">◷</span></div>
+            <div class="rhythm-form-grid-v304">
+              <label><span>Category</span><select id="clockCategory"></select></label>
+              <label><span>Type</span><select id="clockSubcategory"></select></label>
+              <label class="wide"><span>Label</span><input id="clockLabel" type="text" placeholder="e.g. School day, conference, corrections" /></label>
+            </div>
+            <button id="startClockButton" class="primary-button" type="button">Clock in now</button>
+            <p class="rhythm-small-note-v304">School/work time earns a small XP + Story Energy reward with diminishing returns on very long days. Hobbies and recovery are tracked, not farmed for passive rewards.</p>
+          </article>
+        </section>
+
+        <section class="panel rhythm-overview-v304">
+          <div class="panel-heading"><div><p class="eyebrow">THIS WEEK</p><h2>The week as it actually happened</h2><p class="panel-subcopy">Work, focus and off-duty time can all be true at once.</p></div><span class="journal-panel-mark-v302">✦</span></div>
+          <div id="rhythmWeekSummary" class="rhythm-summary-grid-v304"></div>
+          <div id="rhythmWeekBars" class="rhythm-bars-v304"></div>
+          <div id="rhythmInsights" class="rhythm-insights-v304"></div>
+        </section>
+
+        <section class="rhythm-bottom-grid-v304">
+          <article class="panel">
+            <div class="panel-heading"><div><p class="eyebrow">MANUAL CORRECTION</p><h2>Forgot to clock in?</h2><p class="panel-subcopy">Add the real interval afterwards. Overlapping logs are blocked so the same work block does not count twice.</p></div></div>
+            <form id="manualTimeForm" class="rhythm-manual-form-v304">
+              <label><span>Start</span><input id="manualTimeStart" type="datetime-local" required /></label>
+              <label><span>End</span><input id="manualTimeEnd" type="datetime-local" required /></label>
+              <label><span>Category</span><select id="manualTimeCategory"></select></label>
+              <label><span>Type</span><select id="manualTimeSubcategory"></select></label>
+              <label class="wide"><span>Label</span><input id="manualTimeLabel" type="text" placeholder="e.g. Six lessons + supervision" /></label>
+              <div class="rhythm-manual-actions-v304"><button id="manualTimeSave" class="primary-button" type="submit">Add time log</button><button id="manualTimeCancel" class="secondary-button hidden" type="button">Cancel edit</button></div>
+            </form>
+          </article>
+          <article class="panel">
+            <div class="panel-heading"><div><p class="eyebrow">THIS MONTH</p><h2>Monthly rhythm</h2><p class="panel-subcopy">A simple bird's-eye view for now; richer year-in-hours views can build on the same data later.</p></div></div>
+            <div id="rhythmMonthSummary" class="rhythm-summary-grid-v304 compact"></div>
+          </article>
+        </section>
+
+        <section class="panel rhythm-recent-v304">
+          <div class="panel-heading"><div><p class="eyebrow">TIME LOG</p><h2>Recent blocks</h2><p class="panel-subcopy">Edit mistakes without losing the whole history. Direct time rewards are recalculated when a log is corrected.</p></div></div>
+          <div id="rhythmRecentEntries"></div>
+        </section>
+      </section>
+
       <!-- JOURNAL / REFLECTION -->
       <section id="view-journal" class="view journal-view-v302">
         <section class="journal-hero-v302">
@@ -1308,6 +1389,7 @@
       <button class="nav-button active" data-view="basecamp"><span>⌂</span><small>Dashboard</small></button>
       <button class="nav-button" data-view="habits" data-habit-date-mode="today"><span>❀</span><small>Habits</small></button>
       <button class="nav-button" data-view="journal"><span>🌸</span><small>Journal</small></button>
+      <button class="nav-button" data-view="rhythm"><span>◷</span><small>Focus & Time</small></button>
       <button class="nav-button" data-view="quests"><span>☷</span><small>Quests</small></button>
       <button class="nav-button" data-view="adventures"><span>✧</span><small>Adventures</small></button>
       <button class="nav-button" data-view="library"><span>📚</span><small>Library</small></button>
@@ -2312,17 +2394,18 @@ League of Legends — PC" required></textarea></label>
 
   <script src="data/quests.js?v=0.30.3a"></script>
   <script src="story-engine.js?v=0.30.3a"></script>
-  <script src="app.js?v=0.30.3a"></script>
+  <script src="app.js?v=0.30.4"></script>
   <script src="stewardship.js?v=0.30.3a"></script>
   <script src="habits.js?v=0.30.3a"></script>
   <script src="adventures.js?v=0.30.3a"></script>
   <script src="library.js?v=0.30.3a"></script>
   <script src="games.js?v=0.30.3a"></script>
-  <script src="daily.js?v=0.30.3a"></script>
-  <script src="journal.js?v=0.30.3a"></script>
+  <script src="time.js?v=0.30.4"></script>
+  <script src="daily.js?v=0.30.4"></script>
+  <script src="journal.js?v=0.30.4"></script>
   <script src="story-ui.js?v=0.30.3a"></script>
   <script src="achievements.js?v=0.30.3a"></script>
-  <script type="module" src="cloud-save.js?v=0.30.3a"></script>
-  <script src="pwa.js?v=0.30.3a"></script>
+  <script type="module" src="cloud-save.js?v=0.30.4"></script>
+  <script src="pwa.js?v=0.30.4"></script>
 </body>
 </html>

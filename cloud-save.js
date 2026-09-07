@@ -513,6 +513,7 @@ function progressScore(state) {
     ? Object.values(state.journal.entries).filter(entry => entry && (entry.mood || entry.energy || entry.sleep || entry.stress || entry.gratitude || entry.smallWin || entry.hardThing)).length
     : 0;
   const rewardEvents = Array.isArray(state?.rewardLedger?.events) ? state.rewardLedger.events.length : 0;
+  const timeLogs = Array.isArray(state?.timeTracking?.entries) ? state.timeTracking.entries.length : 0;
 
   return (
     completedScenes * 1000 +
@@ -526,6 +527,7 @@ function progressScore(state) {
     games * 12 + gameLogs * 8 +
     plannerDays * 4 +
     journalDays * 6 +
+    timeLogs * 8 +
     rewardEvents * 2 +
     Math.max(0, Number(state?.characterXP || 0)) +
     Math.max(0, Number(state?.storyEnergy || 0)) +
@@ -545,8 +547,9 @@ function summarizeState(state, savedAt = null) {
   const journalCount = state?.journal?.entries && typeof state.journal.entries === "object"
     ? Object.values(state.journal.entries).filter(entry => entry && (entry.mood || entry.energy || entry.sleep || entry.stress || entry.gratitude || entry.smallWin || entry.hardThing)).length
     : 0;
+  const timeCount = Array.isArray(state?.timeTracking?.entries) ? state.timeTracking.entries.length : 0;
   const xp = Math.max(0, Number(state?.characterXP || 0));
-  const activityCount = questCount + externalCount + habitCount + adventureCount + bookCount + gameCount;
+  const activityCount = questCount + externalCount + habitCount + adventureCount + bookCount + gameCount + timeCount;
   const collectionCount =
     (Array.isArray(state?.bookLibrary?.items) ? state.bookLibrary.items.length : 0) +
     (Array.isArray(state?.gameLibrary?.items) ? state.gameLibrary.items.length : 0) +
@@ -557,7 +560,8 @@ function summarizeState(state, savedAt = null) {
     `${sceneCount} story scene${sceneCount === 1 ? "" : "s"}`,
     `${activityCount} activity log${activityCount === 1 ? "" : "s"}`,
     `${collectionCount} tracked item${collectionCount === 1 ? "" : "s"}`,
-    `${journalCount} journal day${journalCount === 1 ? "" : "s"}`
+    `${journalCount} journal day${journalCount === 1 ? "" : "s"}`,
+    `${timeCount} time block${timeCount === 1 ? "" : "s"}`
   ];
   if (savedAt) parts.push(`saved ${formatDateTime(savedAt)}`);
   return parts.join(" · ");
