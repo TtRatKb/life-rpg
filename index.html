@@ -11,10 +11,10 @@
   <meta name="application-name" content="Life RPG" />
   <meta name="format-detection" content="telephone=no" />
   <title>Life RPG — Base Camp</title>
-  <link rel="manifest" href="manifest.webmanifest?v=0.30.1" />
-  <link rel="apple-touch-icon" href="assets/app-icon-180.png?v=0.30.1" />
-  <link rel="icon" type="image/png" sizes="192x192" href="assets/app-icon-192.png?v=0.30.1" />
-  <link rel="stylesheet" href="styles.css?v=0.30.1" />
+  <link rel="manifest" href="manifest.webmanifest?v=0.30.2" />
+  <link rel="apple-touch-icon" href="assets/app-icon-180.png?v=0.30.2" />
+  <link rel="icon" type="image/png" sizes="192x192" href="assets/app-icon-192.png?v=0.30.2" />
+  <link rel="stylesheet" href="styles.css?v=0.30.2" />
 </head>
 <body>
   <section id="mobileCloudGate" class="mobile-cloud-gate-v251" data-state="checking" aria-live="polite" aria-label="Life RPG cloud sign in">
@@ -126,6 +126,7 @@
 
         <section class="dashboard-command-strip dashboard-command-strip-habits" aria-label="Life RPG quick navigation">
           <button data-view-target="habits" data-habit-date-mode="today"><span class="command-strip-icon">❀</span><span><strong>Habits</strong><small>Build consistency without punishment.</small></span><b>›</b></button>
+          <button data-view-target="journal"><span class="command-strip-icon">🌸</span><span><strong>Journal</strong><small>Check in, reflect, and see the month take shape.</small></span><b>›</b></button>
           <button data-view-target="quests"><span class="command-strip-icon">☷</span><span><strong>Quest Board</strong><small>Choose what fits today.</small></span><b>›</b></button>
           <button data-view-target="adventures"><span class="command-strip-icon">✧</span><span><strong>Side Adventures</strong><small>Come back to things you actually want.</small></span><b>›</b></button>
           <button data-view-target="library"><span class="command-strip-icon">📚</span><span><strong>Library</strong><small>Your books, without database homework.</small></span><b>›</b></button>
@@ -1059,6 +1060,85 @@
 
       </section>
 
+      <!-- JOURNAL / REFLECTION -->
+      <section id="view-journal" class="view journal-view-v302">
+        <section class="journal-hero-v302">
+          <div class="journal-hero-copy-v302">
+            <p class="eyebrow">DAILY REFLECTION · MONTHLY VIEW</p>
+            <h1>The Journal</h1>
+            <p class="lead">A place for the life behind the quests: mood, energy, sleep, gratitude, tiny wins, hard things, and the patterns that only become visible over time.</p>
+            <div class="journal-hero-actions-v302">
+              <button id="journalReflectButton" class="primary-button" type="button">🌸 Reflect today</button>
+              <button id="journalTodayButton" class="secondary-button" type="button">Jump to this month</button>
+            </div>
+            <p class="journal-no-pressure-v302"><span>♡</span> No streak punishment. Missing days stay blank. Private reflection never buys relationship progress.</p>
+          </div>
+          <aside id="journalHeroMessage" class="journal-hero-message-v302"></aside>
+        </section>
+
+        <section class="journal-month-toolbar-v302" aria-label="Journal month navigation">
+          <button id="journalPrevMonth" class="journal-month-arrow-v302" type="button" aria-label="Previous month">‹</button>
+          <div><small>MONTHLY SPREAD</small><h2 id="journalMonthLabel">September 2026</h2></div>
+          <button id="journalNextMonth" class="journal-month-arrow-v302" type="button" aria-label="Next month">›</button>
+        </section>
+
+        <section class="journal-summary-grid-v302" aria-label="Journal month summary">
+          <article><span>✦</span><div><small>CHECK-INS</small><strong id="journalCheckInCount">0</strong></div></article>
+          <article><span>✎</span><div><small>REFLECTION DAYS</small><strong id="journalReflectionCount">0</strong></div></article>
+          <article><span>🌸</span><div><small>MOOD AVG</small><strong id="journalMoodAverage">—</strong></div></article>
+          <article><span>❀</span><div><small>GRATITUDE DAYS</small><strong id="journalGratitudeCount">0</strong></div></article>
+        </section>
+
+        <section class="journal-spread-grid-v302">
+          <article class="panel journal-mood-panel-v302">
+            <div class="panel-heading"><div><p class="eyebrow">MOOD GARDEN</p><h2>How the month felt</h2><p class="panel-subcopy">One tiny bloom per logged day. Blank days are just blank days.</p></div><span class="journal-panel-mark-v302">🌸</span></div>
+            <div id="journalMoodCalendar" class="journal-mood-calendar-v302"></div>
+          </article>
+
+          <article class="panel journal-tracker-panel-v302">
+            <div class="panel-heading"><div><p class="eyebrow">BULLET-JOURNAL TRACKERS</p><h2>Energy, sleep & load</h2><p class="panel-subcopy">A bird's-eye view rather than a scorecard. Tap a mood day to open the full entry.</p></div><span class="journal-panel-mark-v302">✦</span></div>
+            <div class="journal-metric-block-v302"><div class="journal-metric-title-v302"><strong>Energy</strong><small>Higher bar = more battery</small></div><div id="journalEnergyTracker"></div></div>
+            <div class="journal-metric-block-v302"><div class="journal-metric-title-v302"><strong>Sleep quality</strong><small>Higher bar = better sleep</small></div><div id="journalSleepTracker"></div></div>
+            <div class="journal-metric-block-v302"><div class="journal-metric-title-v302"><strong>Stress / mental load</strong><small>Higher bar = calmer day</small></div><div id="journalStressTracker"></div></div>
+          </article>
+        </section>
+
+        <section class="journal-reflection-grid-v302">
+          <article class="panel journal-collection-panel-v302 gratitude">
+            <div class="panel-heading"><div><p class="eyebrow">GRATITUDE GARDEN</p><h2>Things worth keeping</h2><p class="panel-subcopy">Coffee counts. A quiet ten minutes counts. People count. Nothing has to be profound.</p></div><button class="mini-nav-button" data-journal-reflect="" type="button">Add today ›</button></div>
+            <div id="journalGratitudeGarden" class="journal-memory-list-v302"></div>
+          </article>
+          <article class="panel journal-collection-panel-v302 wins">
+            <div class="panel-heading"><div><p class="eyebrow">TINY VICTORIES</p><h2>Things that went right</h2><p class="panel-subcopy">Not just quests. Anything you want future-you to remember deserves a line.</p></div></div>
+            <div id="journalSmallWins" class="journal-memory-list-v302"></div>
+          </article>
+          <article class="panel journal-collection-panel-v302 hard">
+            <div class="panel-heading"><div><p class="eyebrow">CONTEXT, NOT A SCORE</p><h2>What felt hard</h2><p class="panel-subcopy">This stays quieter on purpose. Hard things are context for reflection, not a negative-days counter.</p></div></div>
+            <div id="journalHardThings" class="journal-memory-list-v302"></div>
+          </article>
+        </section>
+
+        <section class="panel journal-weekly-panel-v302">
+          <div class="panel-heading"><div><p class="eyebrow">WEEKLY REVIEW</p><h2>What changed across the month?</h2><p class="panel-subcopy">Descriptive patterns only. Life RPG can notice what co-occurred; it does not diagnose why.</p></div><span class="journal-panel-mark-v302">◇</span></div>
+          <div id="journalWeeklyRecap" class="journal-weekly-grid-v302"></div>
+        </section>
+
+        <section class="journal-bottom-grid-v302">
+          <article class="panel journal-archive-panel-v302">
+            <div class="panel-heading"><div><p class="eyebrow">ARCHIVE</p><h2>Your months</h2><p class="panel-subcopy">Past months remain readable instead of disappearing into a feed.</p></div></div>
+            <div id="journalArchive" class="journal-archive-list-v302"></div>
+          </article>
+          <article class="panel journal-export-panel-v302">
+            <div><p class="eyebrow">YOUR DATA</p><h2>Keep a copy outside the app.</h2><p>Your journal is part of the normal Life RPG save and cloud save. You can also export the journal itself whenever you want.</p></div>
+            <div class="journal-export-actions-v302">
+              <button id="journalExportJson" class="secondary-button" type="button">Export JSON</button>
+              <button id="journalExportMarkdown" class="secondary-button" type="button">Export Markdown</button>
+              <button id="journalPrint" class="secondary-button" type="button">Print / Save PDF</button>
+            </div>
+          </article>
+        </section>
+      </section>
+
       <!-- ACHIEVEMENTS -->
       <section id="view-achievements" class="view achievements-view-v21">
         <section class="achievements-hero-v21">
@@ -1227,6 +1307,7 @@
       <div class="nav-section-label">YOUR LIFE</div>
       <button class="nav-button active" data-view="basecamp"><span>⌂</span><small>Dashboard</small></button>
       <button class="nav-button" data-view="habits" data-habit-date-mode="today"><span>❀</span><small>Habits</small></button>
+      <button class="nav-button" data-view="journal"><span>🌸</span><small>Journal</small></button>
       <button class="nav-button" data-view="quests"><span>☷</span><small>Quests</small></button>
       <button class="nav-button" data-view="adventures"><span>✧</span><small>Adventures</small></button>
       <button class="nav-button" data-view="library"><span>📚</span><small>Library</small></button>
@@ -1579,12 +1660,23 @@ League of Legends — PC" required></textarea></label>
       <div id="dailyDialogCompanion" class="daily-dialog-companion-v14"></div>
 
       <div class="daily-conversation-progress-v271" aria-live="polite">
-        <span id="dailyConversationCounter">1 of 5</span>
+        <span id="dailyConversationCounter">1 of 7</span>
         <div id="dailyConversationDots" class="daily-conversation-dots-v271" aria-hidden="true"></div>
       </div>
 
+      <fieldset class="daily-question-v14 daily-conversation-step-v271" data-daily-question="mood">
+        <legend><span>01</span><strong>How are you actually feeling?</strong></legend>
+        <div class="daily-choice-row-v14 daily-choice-row-five-v302">
+          <label><input type="radio" name="dailyMood" value="rough" required /><span>😫 Rough</span></label>
+          <label><input type="radio" name="dailyMood" value="meh" /><span>😕 Meh</span></label>
+          <label><input type="radio" name="dailyMood" value="okay" /><span>🙂 Okay</span></label>
+          <label><input type="radio" name="dailyMood" value="good" /><span>😊 Good</span></label>
+          <label><input type="radio" name="dailyMood" value="great" /><span>✨ Great</span></label>
+        </div>
+      </fieldset>
+
       <fieldset class="daily-question-v14 daily-conversation-step-v271" data-daily-question="sleep">
-        <legend><span>01</span><strong id="dailyPromptSleep">How did you sleep?</strong></legend>
+        <legend><span>02</span><strong>How did you sleep?</strong></legend>
         <div class="daily-choice-row-v14">
           <label><input type="radio" name="dailySleep" value="bad" required /><span>Bad</span></label>
           <label><input type="radio" name="dailySleep" value="meh" /><span>Meh</span></label>
@@ -1594,7 +1686,7 @@ League of Legends — PC" required></textarea></label>
       </fieldset>
 
       <fieldset class="daily-question-v14 daily-conversation-step-v271" data-daily-question="energy">
-        <legend><span>02</span><strong id="dailyPromptEnergy">How much energy do you have?</strong></legend>
+        <legend><span>03</span><strong>How much energy do you have?</strong></legend>
         <div class="daily-choice-row-v14">
           <label><input type="radio" name="dailyEnergy" value="fumes" required /><span>Running on fumes</span></label>
           <label><input type="radio" name="dailyEnergy" value="low" /><span>Low</span></label>
@@ -1603,8 +1695,19 @@ League of Legends — PC" required></textarea></label>
         </div>
       </fieldset>
 
+      <fieldset class="daily-question-v14 daily-conversation-step-v271" data-daily-question="stress">
+        <legend><span>04</span><strong>How loud is the stress / mental-load situation?</strong></legend>
+        <div class="daily-choice-row-v14 daily-choice-row-five-v302">
+          <label><input type="radio" name="dailyStress" value="calm" required /><span>Calm</span></label>
+          <label><input type="radio" name="dailyStress" value="light" /><span>Light</span></label>
+          <label><input type="radio" name="dailyStress" value="medium" /><span>Noticeable</span></label>
+          <label><input type="radio" name="dailyStress" value="high" /><span>High</span></label>
+          <label><input type="radio" name="dailyStress" value="overload" /><span>Overloaded</span></label>
+        </div>
+      </fieldset>
+
       <fieldset class="daily-question-v14 daily-conversation-step-v271" data-daily-question="time">
-        <legend><span>03</span><strong id="dailyPromptTime">How much free time is actually yours?</strong></legend>
+        <legend><span>05</span><strong>How much free time is actually yours?</strong></legend>
         <div class="daily-choice-row-v14">
           <label><input type="radio" name="dailyTime" value="none" required /><span>Almost none</span></label>
           <label><input type="radio" name="dailyTime" value="little" /><span>A little</span></label>
@@ -1614,7 +1717,7 @@ League of Legends — PC" required></textarea></label>
       </fieldset>
 
       <fieldset class="daily-question-v14 daily-conversation-step-v271" data-daily-question="obligations">
-        <legend><span>04</span><strong id="dailyPromptObligations">How full is the must-do part of today?</strong></legend>
+        <legend><span>06</span><strong>How full is the must-do part of today?</strong></legend>
         <div class="daily-choice-row-v14">
           <label><input type="radio" name="dailyObligations" value="help" required /><span>Please send help</span></label>
           <label><input type="radio" name="dailyObligations" value="busy" /><span>Busy</span></label>
@@ -1624,20 +1727,63 @@ League of Legends — PC" required></textarea></label>
       </fieldset>
 
       <fieldset class="daily-question-v14 daily-conversation-step-v271" data-daily-question="gentle">
-        <legend><span>05</span><strong id="dailyPromptGentle">Do you need a deliberately gentle day?</strong></legend>
+        <legend><span>07</span><strong>Do you need a deliberately gentle day?</strong></legend>
         <div class="daily-choice-row-v14 daily-choice-row-two-v271">
           <label><input id="dailyGentle" type="radio" name="dailyGentleChoice" value="yes" required /><span>Yes. Keep it gentle ♡</span></label>
           <label><input type="radio" name="dailyGentleChoice" value="no" /><span>No, normal planning is fine</span></label>
         </div>
       </fieldset>
 
-      <p class="daily-conversation-hint-v271">One answer at a time. Your check-in changes the planner, not your relationship scores.</p>
+      <p class="daily-conversation-hint-v271">One answer at a time. Mood and reflection are tracked for your journal; none of this changes relationship scores.</p>
 
       <menu class="daily-conversation-menu-v271">
         <button class="secondary-button" id="dailyBriefingCancel" type="button">Not now</button>
         <button class="secondary-button hidden" id="dailyConversationBack" type="button">← Back</button>
         <button class="primary-button" id="dailyConversationNext" type="button" disabled>Choose an answer</button>
       </menu>
+    </form>
+  </dialog>
+
+
+  <!-- JOURNAL REFLECTION -->
+  <dialog id="journalReflectionDialog" class="rpg-dialog journal-reflection-dialog-v302">
+    <div class="rpg-dialog-form journal-reflection-shell-v302">
+      <div class="dialog-heading">
+        <div><p class="eyebrow">OPTIONAL REFLECTION</p><h2>Keep one more thing?</h2></div>
+        <button class="close-button" id="journalReflectionClose" type="button" aria-label="Close">×</button>
+      </div>
+      <div id="journalReflectionCompanion"></div>
+      <section id="journalReflectionChoiceStep" class="journal-reflection-choice-v302">
+        <button type="button" data-reflection-field="gratitude"><span>🌸</span><div><strong>Something I'm grateful for</strong><small>Optional</small></div><b>›</b></button>
+        <button type="button" data-reflection-field="smallWin"><span>⭐</span><div><strong>Something that went well</strong><small>Optional</small></div><b>›</b></button>
+        <button type="button" data-reflection-field="hardThing"><span>🌧</span><div><strong>Something that was hard</strong><small>Optional</small></div><b>›</b></button>
+        <button id="journalReflectionDone" class="text-button" type="button">I'm good for today</button>
+      </section>
+      <section id="journalReflectionWriteStep" class="journal-reflection-write-v302 hidden">
+        <label><strong id="journalReflectionPrompt">What do you want to keep?</strong><textarea id="journalReflectionTextarea" rows="5" maxlength="2400"></textarea></label>
+        <div class="journal-reflection-write-actions-v302"><button id="journalReflectionBack" class="secondary-button" type="button">← Back</button><button id="journalReflectionSave" class="primary-button" type="button">Save to journal</button></div>
+      </section>
+    </div>
+  </dialog>
+
+  <!-- JOURNAL DAY EDITOR -->
+  <dialog id="journalDayDialog" class="rpg-dialog journal-day-dialog-v302">
+    <form id="journalDayForm" class="rpg-dialog-form journal-day-form-v302">
+      <div class="dialog-heading"><div><p class="eyebrow">JOURNAL DAY</p><h2 id="journalDayDate">Today</h2></div><button class="close-button" id="journalDayClose" type="button" aria-label="Close">×</button></div>
+      <div class="journal-day-fields-v302">
+        <label><span>Mood</span><select id="journalDayMood"><option value="">Not logged</option><option value="rough">Rough</option><option value="meh">Meh</option><option value="okay">Okay</option><option value="good">Good</option><option value="great">Great</option></select></label>
+        <label><span>Energy</span><select id="journalDayEnergy"><option value="">Not logged</option><option value="fumes">Running on fumes</option><option value="low">Low</option><option value="okay">Okay</option><option value="lots">Lots</option></select></label>
+        <label><span>Sleep quality</span><select id="journalDaySleep"><option value="">Not logged</option><option value="bad">Bad</option><option value="meh">Meh</option><option value="fine">Fine</option><option value="great">Great</option></select></label>
+        <label><span>Stress / mental load</span><select id="journalDayStress"><option value="">Not logged</option><option value="calm">Calm</option><option value="light">Light</option><option value="medium">Noticeable</option><option value="high">High</option><option value="overload">Overloaded</option></select></label>
+        <label><span>Sleep hours <small>optional</small></span><input id="journalDaySleepHours" type="number" min="0" max="24" step="0.5" placeholder="e.g. 6.5" /></label>
+      </div>
+      <div class="journal-day-reflections-v302">
+        <label><span>🌸 Gratitude</span><textarea id="journalDayGratitude" rows="3" maxlength="2400" placeholder="Something worth keeping…"></textarea></label>
+        <label><span>⭐ Small win</span><textarea id="journalDaySmallWin" rows="3" maxlength="2400" placeholder="Something that went right…"></textarea></label>
+        <label><span>🌧 What was hard</span><textarea id="journalDayHardThing" rows="3" maxlength="2400" placeholder="Context, not a score…"></textarea></label>
+      </div>
+      <p class="journal-day-note-v302">Editing this page changes the journal record. If today's Daily Check-in is edited later, its mood/energy/sleep/stress values become the source of truth again; your written reflections stay untouched.</p>
+      <menu><button class="secondary-button" type="button" onclick="document.getElementById('journalDayDialog').close()">Cancel</button><button class="primary-button" type="submit">Save day</button></menu>
     </form>
   </dialog>
 
@@ -2161,18 +2307,19 @@ League of Legends — PC" required></textarea></label>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <script src="data/quests.js?v=0.30.1"></script>
-  <script src="story-engine.js?v=0.30.1"></script>
-  <script src="app.js?v=0.30.1"></script>
-  <script src="stewardship.js?v=0.30.1"></script>
-  <script src="habits.js?v=0.30.1"></script>
-  <script src="adventures.js?v=0.30.1"></script>
-  <script src="library.js?v=0.30.1"></script>
-  <script src="games.js?v=0.30.1"></script>
-  <script src="daily.js?v=0.30.1"></script>
-  <script src="story-ui.js?v=0.30.1"></script>
-  <script src="achievements.js?v=0.30.1"></script>
-  <script type="module" src="cloud-save.js?v=0.30.1"></script>
-  <script src="pwa.js?v=0.30.1"></script>
+  <script src="data/quests.js?v=0.30.2"></script>
+  <script src="story-engine.js?v=0.30.2"></script>
+  <script src="app.js?v=0.30.2"></script>
+  <script src="stewardship.js?v=0.30.2"></script>
+  <script src="habits.js?v=0.30.2"></script>
+  <script src="adventures.js?v=0.30.2"></script>
+  <script src="library.js?v=0.30.2"></script>
+  <script src="games.js?v=0.30.2"></script>
+  <script src="daily.js?v=0.30.2"></script>
+  <script src="journal.js?v=0.30.2"></script>
+  <script src="story-ui.js?v=0.30.2"></script>
+  <script src="achievements.js?v=0.30.2"></script>
+  <script type="module" src="cloud-save.js?v=0.30.2"></script>
+  <script src="pwa.js?v=0.30.2"></script>
 </body>
 </html>

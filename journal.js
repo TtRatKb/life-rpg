@@ -1,0 +1,770 @@
+(() => {
+  "use strict";
+
+  const app = window.LifeRPGApp;
+  if (!app?.getState || !app?.saveState) {
+    console.error("Life RPG Journal could not initialize because LifeRPGApp is unavailable.");
+    return;
+  }
+
+  const SCHEMA = 1;
+  const MOOD = {
+    rough: { label: "Rough", score: 1, icon: "✦" },
+    meh: { label: "Meh", score: 2, icon: "❀" },
+    okay: { label: "Okay", score: 3, icon: "✿" },
+    good: { label: "Good", score: 4, icon: "✿" },
+    great: { label: "Great", score: 5, icon: "✺" }
+  };
+  const ENERGY = {
+    fumes: { label: "Fumes", score: 1 },
+    low: { label: "Low", score: 2 },
+    okay: { label: "Okay", score: 3 },
+    lots: { label: "Lots", score: 4 }
+  };
+  const SLEEP = {
+    bad: { label: "Bad", score: 1 },
+    meh: { label: "Meh", score: 2 },
+    fine: { label: "Fine", score: 3 },
+    great: { label: "Great", score: 4 }
+  };
+  const STRESS = {
+    calm: { label: "Calm", score: 1 },
+    light: { label: "Light", score: 2 },
+    medium: { label: "Noticeable", score: 3 },
+    high: { label: "High", score: 4 },
+    overload: { label: "Overloaded", score: 5 }
+  };
+
+  const REFLECTION_META = {
+    gratitude: { icon: "🌸", label: "Something I'm grateful for" },
+    smallWin: { icon: "⭐", label: "Something that went well" },
+    hardThing: { icon: "🌧", label: "Something that was hard" }
+  };
+
+  const COMPANIONS = {
+    luca: {
+      id: "luca",
+      name: "Luca",
+      kicker: "PRIVATE JOURNAL",
+      portrait: "assets/story/portraits/luca_thinking.png",
+      prompts: {
+        choice: "Want to keep one more thing from today?",
+        gratitude: "One good thing. Tiny counts. What do I want to remember?",
+        smallWin: "What actually went right today?",
+        hardThing: "What was hard today? No fixing it required."
+      },
+      saved: {
+        gratitude: "Good. Worth keeping.",
+        smallWin: "That counts. No moving the goalposts.",
+        hardThing: "Okay. It can just be hard without becoming a project."
+      }
+    },
+    mina: {
+      id: "mina",
+      name: "Mina",
+      kicker: "MESSAGE FROM MINA",
+      portrait: "assets/story/sprites/mina_neutral.png",
+      prompts: {
+        choice: "Wanna do one more? Tiny counts, promise.",
+        gratitude: "Okay, one good thing. Coffee absolutely counts.",
+        smallWin: "Tiny victory check! What are we giving you credit for?",
+        hardThing: "Okay, what sucked? You can just say it."
+      },
+      saved: {
+        gratitude: "See? Keeping that one. 🌸",
+        smallWin: "YES. It counts. I'm putting a star on it.",
+        hardThing: "Yeah. That sounds rough. No silver lining required."
+      }
+    },
+    kirishima: {
+      id: "kirishima",
+      name: "Kirishima",
+      kicker: "MESSAGE FROM KIRISHIMA",
+      portrait: "assets/story/characters/kirishima-happy.png",
+      prompts: {
+        choice: "Hey, want to keep one more thing from today?",
+        gratitude: "Give me one good thing from today. Doesn't have to be huge.",
+        smallWin: "What went better than you expected?",
+        hardThing: "What felt heavy today?"
+      },
+      saved: {
+        gratitude: "That's a good one to keep.",
+        smallWin: "Nice. Seriously — give yourself that one.",
+        hardThing: "Got it. You don't have to make it smaller than it was."
+      }
+    },
+    bakugo: {
+      id: "bakugo",
+      name: "Bakugo",
+      kicker: "MESSAGE FROM BAKUGO",
+      portrait: "assets/story/characters/bakugo-neutral.png",
+      prompts: {
+        choice: "You done, or you keeping one more thing from today?",
+        gratitude: "One thing that didn't suck. Go.",
+        smallWin: "What actually went right today? And don't move the goalposts.",
+        hardThing: "What was the pain in the ass today?"
+      },
+      saved: {
+        gratitude: "Fine. Keep that one.",
+        smallWin: "Counts. Obviously.",
+        hardThing: "Yeah. Sounds like a pain. Doesn't mean you handled it badly."
+      }
+    }
+  };
+
+  const els = {
+    monthLabel: byId("journalMonthLabel"),
+    prevMonth: byId("journalPrevMonth"),
+    nextMonth: byId("journalNextMonth"),
+    todayButton: byId("journalTodayButton"),
+    reflectButton: byId("journalReflectButton"),
+    heroMessage: byId("journalHeroMessage"),
+    checkInCount: byId("journalCheckInCount"),
+    reflectionCount: byId("journalReflectionCount"),
+    moodAverage: byId("journalMoodAverage"),
+    gratitudeCount: byId("journalGratitudeCount"),
+    moodCalendar: byId("journalMoodCalendar"),
+    energyTracker: byId("journalEnergyTracker"),
+    sleepTracker: byId("journalSleepTracker"),
+    stressTracker: byId("journalStressTracker"),
+    gratitudeGarden: byId("journalGratitudeGarden"),
+    smallWins: byId("journalSmallWins"),
+    hardThings: byId("journalHardThings"),
+    weeklyRecap: byId("journalWeeklyRecap"),
+    archive: byId("journalArchive"),
+    exportJson: byId("journalExportJson"),
+    exportMarkdown: byId("journalExportMarkdown"),
+    print: byId("journalPrint"),
+    reflectionDialog: byId("journalReflectionDialog"),
+    reflectionClose: byId("journalReflectionClose"),
+    reflectionCompanion: byId("journalReflectionCompanion"),
+    reflectionChoiceStep: byId("journalReflectionChoiceStep"),
+    reflectionWriteStep: byId("journalReflectionWriteStep"),
+    reflectionPrompt: byId("journalReflectionPrompt"),
+    reflectionTextarea: byId("journalReflectionTextarea"),
+    reflectionBack: byId("journalReflectionBack"),
+    reflectionSave: byId("journalReflectionSave"),
+    reflectionDone: byId("journalReflectionDone"),
+    dayDialog: byId("journalDayDialog"),
+    dayClose: byId("journalDayClose"),
+    dayForm: byId("journalDayForm"),
+    dayDate: byId("journalDayDate"),
+    dayMood: byId("journalDayMood"),
+    dayEnergy: byId("journalDayEnergy"),
+    daySleep: byId("journalDaySleep"),
+    dayStress: byId("journalDayStress"),
+    daySleepHours: byId("journalDaySleepHours"),
+    dayGratitude: byId("journalDayGratitude"),
+    daySmallWin: byId("journalDaySmallWin"),
+    dayHardThing: byId("journalDayHardThing")
+  };
+
+  let activeMonth = monthKey(new Date());
+  let reflectionDate = todayKey();
+  let reflectionCompanion = COMPANIONS.luca;
+  let reflectionField = null;
+  let editingDate = null;
+  let initialized = false;
+
+  init();
+
+  function init() {
+    const changed = ensureState();
+    bindEvents();
+    initialized = true;
+    if (changed) app.saveState({ source: "journal-v0302-init" });
+    render();
+  }
+
+  function byId(id) {
+    return document.getElementById(id);
+  }
+
+  function ensureState() {
+    const state = app.getState();
+    let changed = false;
+    if (!state.journal || typeof state.journal !== "object" || Array.isArray(state.journal)) {
+      state.journal = { schemaVersion: SCHEMA, entries: {}, migrations: {} };
+      changed = true;
+    }
+    if (Number(state.journal.schemaVersion || 0) < SCHEMA) {
+      state.journal.schemaVersion = SCHEMA;
+      changed = true;
+    }
+    if (!state.journal.entries || typeof state.journal.entries !== "object" || Array.isArray(state.journal.entries)) {
+      state.journal.entries = {};
+      changed = true;
+    }
+    if (!state.journal.migrations || typeof state.journal.migrations !== "object" || Array.isArray(state.journal.migrations)) {
+      state.journal.migrations = {};
+      changed = true;
+    }
+    if (syncPlannerCheckIns(state)) changed = true;
+    return changed;
+  }
+
+  function syncPlannerCheckIns(state = app.getState()) {
+    const days = state.dailyPlanner?.days || {};
+    const entries = state.journal?.entries || {};
+    let changed = false;
+    Object.entries(days).forEach(([date, day]) => {
+      if (!day?.checkIn) return;
+      const checkIn = day.checkIn;
+      const existing = entries[date] || { date, createdAt: day.createdAt || Date.now() };
+      const synced = {
+        ...existing,
+        date,
+        mood: checkIn.mood || existing.mood || "",
+        sleep: checkIn.sleep || existing.sleep || "",
+        energy: checkIn.energy || existing.energy || "",
+        stress: checkIn.stress || existing.stress || "",
+        time: checkIn.time || existing.time || "",
+        obligations: checkIn.obligations || existing.obligations || "",
+        gentle: typeof checkIn.gentle === "boolean" ? checkIn.gentle : Boolean(existing.gentle),
+        companionId: day.companion?.id || existing.companionId || "luca",
+        checkInAt: day.createdAt || existing.checkInAt || Date.now(),
+        updatedAt: Math.max(Number(existing.updatedAt || 0), Number(day.updatedAt || 0), Number(day.createdAt || 0))
+      };
+      if (JSON.stringify(existing) !== JSON.stringify(synced)) {
+        entries[date] = synced;
+        changed = true;
+      }
+    });
+    return changed;
+  }
+
+  function bindEvents() {
+    els.prevMonth?.addEventListener("click", () => changeMonth(-1));
+    els.nextMonth?.addEventListener("click", () => changeMonth(1));
+    els.todayButton?.addEventListener("click", () => {
+      activeMonth = monthKey(new Date());
+      render();
+    });
+    els.reflectButton?.addEventListener("click", () => openReflection(todayKey()));
+    els.exportJson?.addEventListener("click", exportJournalJson);
+    els.exportMarkdown?.addEventListener("click", exportJournalMarkdown);
+    els.print?.addEventListener("click", () => window.print());
+
+    els.moodCalendar?.addEventListener("click", event => {
+      const button = event.target.closest?.("[data-journal-date]");
+      if (button) openDayEditor(button.dataset.journalDate);
+    });
+    els.archive?.addEventListener("click", event => {
+      const button = event.target.closest?.("[data-journal-month]");
+      if (!button) return;
+      activeMonth = button.dataset.journalMonth;
+      render();
+      document.querySelector("#view-journal")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+
+    els.reflectionClose?.addEventListener("click", closeReflection);
+    els.reflectionDone?.addEventListener("click", closeReflection);
+    els.reflectionBack?.addEventListener("click", showReflectionChoices);
+    els.reflectionSave?.addEventListener("click", saveReflectionField);
+    els.reflectionChoiceStep?.addEventListener("click", event => {
+      const choice = event.target.closest?.("[data-reflection-field]");
+      if (choice) showReflectionWrite(choice.dataset.reflectionField);
+    });
+
+    els.dayClose?.addEventListener("click", () => els.dayDialog?.close());
+    els.dayForm?.addEventListener("submit", saveDayEditor);
+
+    document.addEventListener("click", event => {
+      const open = event.target.closest?.("[data-journal-reflect]");
+      if (open) openReflection(open.dataset.journalReflect || todayKey());
+    });
+
+    window.addEventListener("life-rpg:render", () => {
+      if (!initialized) return;
+      const changed = ensureState();
+      if (changed) app.saveState({ source: "journal-sync" });
+      render();
+    });
+  }
+
+  function journalState() {
+    ensureState();
+    return app.getState().journal;
+  }
+
+  function entryFor(date, create = false) {
+    const journal = journalState();
+    if (!journal.entries[date] && create) {
+      journal.entries[date] = { date, createdAt: Date.now(), updatedAt: Date.now() };
+    }
+    return journal.entries[date] || null;
+  }
+
+  function changeMonth(delta) {
+    const [year, month] = activeMonth.split("-").map(Number);
+    activeMonth = monthKey(new Date(year, month - 1 + delta, 1));
+    render();
+  }
+
+  function render() {
+    if (!els.monthLabel) return;
+    const entries = monthEntries(activeMonth);
+    const companion = activeMonth === monthKey(new Date()) ? companionForDate(todayKey()) : companionForEntries(entries);
+    els.monthLabel.textContent = monthTitle(activeMonth);
+    renderHero(entries, companion);
+    renderMoodCalendar(entries);
+    renderMetricTracker(els.energyTracker, entries, "energy", ENERGY, "⚡");
+    renderMetricTracker(els.sleepTracker, entries, "sleep", SLEEP, "☾");
+    renderMetricTracker(els.stressTracker, entries, "stress", STRESS, "◇", true);
+    renderReflectionCollection(els.gratitudeGarden, entries, "gratitude", "🌸", "No gratitude notes yet. Tiny things count whenever you feel like adding one.");
+    renderReflectionCollection(els.smallWins, entries, "smallWin", "⭐", "No small wins saved yet. This section is for things that count even when they feel too small to brag about.");
+    renderReflectionCollection(els.hardThings, entries, "hardThing", "🌧", "Nothing written here this month. Hard days do not need to be logged to be real.");
+    renderWeeklyRecap(entries);
+    renderArchive();
+  }
+
+  function renderHero(entries, companion) {
+    const checkIns = entries.filter(entry => hasCoreCheckIn(entry));
+    const reflectionEntries = entries.filter(entry => hasReflection(entry));
+    const moodScores = checkIns.map(entry => MOOD[entry.mood]?.score).filter(Boolean);
+    const gratitudeDays = entries.filter(entry => cleanText(entry.gratitude)).length;
+    if (els.checkInCount) els.checkInCount.textContent = String(checkIns.length);
+    if (els.reflectionCount) els.reflectionCount.textContent = String(reflectionEntries.length);
+    if (els.gratitudeCount) els.gratitudeCount.textContent = String(gratitudeDays);
+    if (els.moodAverage) {
+      els.moodAverage.textContent = moodScores.length ? `${average(moodScores).toFixed(1)} / 5` : "—";
+    }
+    if (els.heroMessage) {
+      const line = monthVoiceLine(entries, companion);
+      els.heroMessage.innerHTML = companionMarkup(companion, line);
+    }
+  }
+
+  function renderMoodCalendar(entries) {
+    if (!els.moodCalendar) return;
+    const byDate = Object.fromEntries(entries.map(entry => [entry.date, entry]));
+    const [year, month] = activeMonth.split("-").map(Number);
+    const first = new Date(year, month - 1, 1);
+    const days = new Date(year, month, 0).getDate();
+    const offset = (first.getDay() + 6) % 7;
+    const today = todayKey();
+    const headers = ["M", "T", "W", "T", "F", "S", "S"].map(day => `<span class="journal-weekday-v302">${day}</span>`).join("");
+    const blanks = Array.from({ length: offset }, () => `<span class="journal-day-blank-v302"></span>`).join("");
+    const cells = Array.from({ length: days }, (_, index) => {
+      const day = index + 1;
+      const date = `${activeMonth}-${String(day).padStart(2, "0")}`;
+      const entry = byDate[date] || {};
+      const mood = MOOD[entry.mood];
+      const classes = ["journal-day-v302", mood ? `mood-${entry.mood}` : "empty", date === today ? "today" : ""].filter(Boolean).join(" ");
+      const sub = mood?.label || (hasReflection(entry) ? "Note" : "");
+      return `<button type="button" class="${classes}" data-journal-date="${escAttr(date)}" aria-label="${escAttr(formatDate(date))}${mood ? `, mood ${mood.label}` : ""}">
+        <small>${day}</small><span>${mood?.icon || "·"}</span><em>${esc(sub)}</em>
+      </button>`;
+    }).join("");
+    els.moodCalendar.innerHTML = `<div class="journal-weekdays-v302">${headers}</div><div class="journal-calendar-grid-v302">${blanks}${cells}</div>`;
+  }
+
+  function renderMetricTracker(container, entries, field, meta, icon, inverse = false) {
+    if (!container) return;
+    const byDate = Object.fromEntries(entries.map(entry => [entry.date, entry]));
+    const [year, month] = activeMonth.split("-").map(Number);
+    const days = new Date(year, month, 0).getDate();
+    const max = Math.max(...Object.values(meta).map(item => item.score));
+    const bars = Array.from({ length: days }, (_, index) => {
+      const day = index + 1;
+      const date = `${activeMonth}-${String(day).padStart(2, "0")}`;
+      const value = byDate[date]?.[field];
+      const item = meta[value];
+      const level = item ? (inverse ? max + 1 - item.score : item.score) : 0;
+      const title = item ? `${formatDate(date)} · ${item.label}` : `${formatDate(date)} · no entry`;
+      return `<span class="journal-metric-column-v302 ${item ? "filled" : ""}" title="${escAttr(title)}"><b style="--journal-level:${level};--journal-max:${max}"></b><small>${day}</small></span>`;
+    }).join("");
+    const values = entries.map(entry => {
+      const score = meta[entry[field]]?.score;
+      return score ? (inverse ? max + 1 - score : score) : 0;
+    }).filter(Boolean);
+    const summary = values.length ? `${average(values).toFixed(1)} / ${max}` : "No entries yet";
+    container.innerHTML = `<div class="journal-metric-summary-v302"><span>${icon}</span><strong>${esc(summary)}</strong></div><div class="journal-metric-scroll-v302"><div class="journal-metric-bars-v302">${bars}</div></div>`;
+  }
+
+  function renderReflectionCollection(container, entries, field, icon, emptyCopy) {
+    if (!container) return;
+    const items = entries.filter(entry => cleanText(entry[field])).sort((a, b) => b.date.localeCompare(a.date));
+    if (!items.length) {
+      container.innerHTML = `<div class="journal-collection-empty-v302"><span>${icon}</span><p>${esc(emptyCopy)}</p></div>`;
+      return;
+    }
+    container.innerHTML = items.map(entry => `<button type="button" class="journal-memory-card-v302" data-journal-date="${escAttr(entry.date)}"><span>${icon}</span><div><small>${esc(shortDate(entry.date))}</small><p>${esc(entry[field])}</p></div></button>`).join("");
+    container.querySelectorAll("[data-journal-date]").forEach(button => button.addEventListener("click", () => openDayEditor(button.dataset.journalDate)));
+  }
+
+  function renderWeeklyRecap(entries) {
+    if (!els.weeklyRecap) return;
+    const [year, month] = activeMonth.split("-").map(Number);
+    const daysInMonth = new Date(year, month, 0).getDate();
+    const offset = (new Date(year, month - 1, 1).getDay() + 6) % 7;
+    const byDate = Object.fromEntries(entries.map(entry => [entry.date, entry]));
+    const weekCount = Math.ceil((offset + daysInMonth) / 7);
+    const cards = [];
+    for (let week = 0; week < weekCount; week += 1) {
+      const start = Math.max(1, week * 7 - offset + 1);
+      const end = Math.min(daysInMonth, (week + 1) * 7 - offset);
+      if (start > end) continue;
+      const weekEntries = [];
+      for (let day = start; day <= end; day += 1) {
+        const date = `${activeMonth}-${String(day).padStart(2, "0")}`;
+        if (byDate[date]) weekEntries.push(byDate[date]);
+      }
+      if (!weekEntries.some(entry => hasCoreCheckIn(entry) || hasReflection(entry))) continue;
+      const companion = companionForEntries(weekEntries);
+      cards.push(`<article class="journal-week-card-v302"><div class="journal-week-head-v302"><span>W${week + 1}</span><div><small>${esc(shortDate(`${activeMonth}-${String(start).padStart(2, "0")}`))} – ${esc(shortDate(`${activeMonth}-${String(end).padStart(2, "0")}`))}</small><strong>${esc(weeklyHeadline(weekEntries))}</strong></div></div>${companionMarkup(companion, weeklyVoiceLine(weekEntries, companion), true)}</article>`);
+    }
+    els.weeklyRecap.innerHTML = cards.length ? cards.join("") : `<div class="journal-collection-empty-v302"><span>✦</span><p>Your weekly notes will appear here as the month fills in.</p></div>`;
+  }
+
+  function renderArchive() {
+    if (!els.archive) return;
+    const entries = Object.values(journalState().entries || {});
+    const months = [...new Set(entries.filter(entry => hasCoreCheckIn(entry) || hasReflection(entry)).map(entry => entry.date.slice(0, 7)))].sort().reverse();
+    if (!months.length) {
+      els.archive.innerHTML = `<span class="muted">Your first month will appear here once you check in or save a reflection.</span>`;
+      return;
+    }
+    els.archive.innerHTML = months.map(month => {
+      const count = monthEntries(month).filter(entry => hasCoreCheckIn(entry) || hasReflection(entry)).length;
+      return `<button type="button" class="journal-archive-chip-v302 ${month === activeMonth ? "active" : ""}" data-journal-month="${escAttr(month)}"><strong>${esc(monthTitle(month))}</strong><small>${count} day${count === 1 ? "" : "s"}</small></button>`;
+    }).join("");
+  }
+
+  function openReflection(date = todayKey(), companionId = null) {
+    if (!els.reflectionDialog) return;
+    reflectionDate = date;
+    reflectionCompanion = companionId && companionAvailable(companionId) ? COMPANIONS[companionId] : companionForDate(date);
+    reflectionField = null;
+    renderReflectionCompanion(reflectionCompanion, reflectionCompanion.prompts.choice);
+    showReflectionChoices();
+    els.reflectionDialog.showModal();
+  }
+
+  function closeReflection() {
+    if (els.reflectionDialog?.open) els.reflectionDialog.close();
+  }
+
+  function showReflectionChoices() {
+    reflectionField = null;
+    els.reflectionWriteStep?.classList.add("hidden");
+    els.reflectionChoiceStep?.classList.remove("hidden");
+    renderReflectionCompanion(reflectionCompanion, reflectionCompanion.prompts.choice);
+    if (!els.reflectionChoiceStep) return;
+    const entry = entryFor(reflectionDate, false) || {};
+    els.reflectionChoiceStep.querySelectorAll("[data-reflection-field]").forEach(button => {
+      const field = button.dataset.reflectionField;
+      button.classList.toggle("saved", Boolean(cleanText(entry[field])));
+      const status = button.querySelector("small");
+      if (status) status.textContent = cleanText(entry[field]) ? "Saved · tap to edit" : "Optional";
+    });
+  }
+
+  function showReflectionWrite(field) {
+    if (!REFLECTION_META[field]) return;
+    reflectionField = field;
+    const entry = entryFor(reflectionDate, true);
+    els.reflectionChoiceStep?.classList.add("hidden");
+    els.reflectionWriteStep?.classList.remove("hidden");
+    if (els.reflectionPrompt) els.reflectionPrompt.textContent = reflectionCompanion.prompts[field];
+    if (els.reflectionTextarea) {
+      els.reflectionTextarea.value = entry[field] || "";
+      els.reflectionTextarea.placeholder = field === "gratitude" ? "Tiny things count…" : field === "smallWin" ? "What deserves credit?" : "You don't have to solve it here…";
+      setTimeout(() => els.reflectionTextarea.focus(), 30);
+    }
+    renderReflectionCompanion(reflectionCompanion, reflectionCompanion.prompts[field]);
+  }
+
+  function saveReflectionField() {
+    if (!reflectionField || !els.reflectionTextarea) return;
+    const entry = entryFor(reflectionDate, true);
+    entry[reflectionField] = cleanText(els.reflectionTextarea.value);
+    entry.updatedAt = Date.now();
+    entry.lastReflectionCompanionId = reflectionCompanion.id;
+    app.saveState({ source: `journal-${reflectionField}` });
+    renderReflectionCompanion(reflectionCompanion, reflectionCompanion.saved[reflectionField]);
+    app.showToast?.(`${REFLECTION_META[reflectionField].icon} Journal saved`);
+    render();
+    setTimeout(showReflectionChoices, 420);
+  }
+
+  function renderReflectionCompanion(companion, line) {
+    if (!els.reflectionCompanion) return;
+    els.reflectionCompanion.innerHTML = companionMarkup(companion, line);
+  }
+
+  function openDayEditor(date) {
+    if (!els.dayDialog || !els.dayForm) return;
+    editingDate = date;
+    const entry = entryFor(date, true);
+    if (els.dayDate) els.dayDate.textContent = formatDateLong(date);
+    setValue(els.dayMood, entry.mood || "");
+    setValue(els.dayEnergy, entry.energy || "");
+    setValue(els.daySleep, entry.sleep || "");
+    setValue(els.dayStress, entry.stress || "");
+    if (els.daySleepHours) els.daySleepHours.value = Number.isFinite(Number(entry.sleepHours)) && entry.sleepHours !== "" ? String(entry.sleepHours) : "";
+    if (els.dayGratitude) els.dayGratitude.value = entry.gratitude || "";
+    if (els.daySmallWin) els.daySmallWin.value = entry.smallWin || "";
+    if (els.dayHardThing) els.dayHardThing.value = entry.hardThing || "";
+    els.dayDialog.showModal();
+  }
+
+  function saveDayEditor(event) {
+    event.preventDefault();
+    if (!editingDate) return;
+    const entry = entryFor(editingDate, true);
+    entry.mood = els.dayMood?.value || "";
+    entry.energy = els.dayEnergy?.value || "";
+    entry.sleep = els.daySleep?.value || "";
+    entry.stress = els.dayStress?.value || "";
+    const hours = Number(els.daySleepHours?.value || 0);
+    entry.sleepHours = hours > 0 ? Math.round(hours * 2) / 2 : "";
+    entry.gratitude = cleanText(els.dayGratitude?.value);
+    entry.smallWin = cleanText(els.daySmallWin?.value);
+    entry.hardThing = cleanText(els.dayHardThing?.value);
+    entry.updatedAt = Date.now();
+    app.saveState({ source: "journal-day-edit" });
+    els.dayDialog.close();
+    app.showToast?.("Journal day saved");
+    render();
+  }
+
+  function companionForEntries(entries) {
+    const counts = {};
+    (entries || []).forEach(entry => {
+      const id = entry?.lastReflectionCompanionId || entry?.companionId;
+      if (!id || !COMPANIONS[id]) return;
+      counts[id] = Number(counts[id] || 0) + 1;
+    });
+    const best = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0];
+    return best ? COMPANIONS[best] : COMPANIONS.luca;
+  }
+
+  function companionForDate(date) {
+    const state = app.getState();
+    const dayCompanion = state.dailyPlanner?.days?.[date]?.companion?.id;
+    if (dayCompanion && companionAvailable(dayCompanion, state)) return COMPANIONS[dayCompanion] || COMPANIONS.luca;
+    const options = [COMPANIONS.luca];
+    if (companionAvailable("mina", state)) options.push(COMPANIONS.mina, COMPANIONS.mina);
+    if (companionAvailable("kirishima", state)) options.push(COMPANIONS.kirishima);
+    if (companionAvailable("bakugo", state)) options.push(COMPANIONS.bakugo);
+    const index = Math.floor(seededRandom(`${date}|journal-companion`) * options.length);
+    return options[index] || COMPANIONS.luca;
+  }
+
+  function companionAvailable(id, state = app.getState()) {
+    const flags = state.flags || {};
+    if (id === "luca") return true;
+    if (id === "mina") return Boolean(flags.STORY_MINA_FRIENDSHIP_STARTED || flags.MINA_FRIENDSHIP_ESTABLISHED || flags.MINA_CLOSE_FRIEND);
+    if (["kirishima", "bakugo"].includes(id)) return Boolean(flags.DYNARIOT_MOVE_IN_COMPLETE || flags.SHARED_APARTMENT_IS_HOME || flags.HOME_SHARED_APARTMENT_ACTIVE);
+    return false;
+  }
+
+  function companionMarkup(companion, line, compact = false) {
+    const c = companion || COMPANIONS.luca;
+    return `<div class="journal-message-v302 ${escAttr(c.id)} ${compact ? "compact" : ""}"><div class="journal-message-avatar-v302"><img src="${escAttr(c.portrait)}" alt="${escAttr(c.name)}" /></div><div><small>${esc(c.kicker)}</small><strong>${esc(c.name)}</strong><p>${esc(line)}</p></div></div>`;
+  }
+
+  function monthVoiceLine(entries, companion) {
+    const checkIns = entries.filter(hasCoreCheckIn);
+    const reflections = entries.filter(hasReflection);
+    const current = activeMonth === monthKey(new Date());
+    if (!checkIns.length && !reflections.length) {
+      if (companion.id === "mina") return "Blank month. No panic. It'll fill itself in when life actually happens.";
+      if (companion.id === "kirishima") return "Nothing to summarize yet. Start wherever today actually is.";
+      if (companion.id === "bakugo") return "It's blank because you haven't logged anything. That's all. Not a moral failing.";
+      return "Blank page. Fine. It only needs to hold what actually happens, not perform productivity at me.";
+    }
+    const gratitude = entries.filter(entry => cleanText(entry.gratitude)).length;
+    const moodScores = checkIns.map(entry => MOOD[entry.mood]?.score).filter(Boolean);
+    const avgMood = moodScores.length ? average(moodScores) : 0;
+    if (companion.id === "mina") return `${current ? "This month so far" : "That month"}: ${checkIns.length} check-ins, ${gratitude} little things worth keeping${avgMood ? `, mood averaging ${avgMood.toFixed(1)}/5` : ""}. Look at all that actual life.`;
+    if (companion.id === "kirishima") return `${checkIns.length} check-ins${gratitude ? ` and ${gratitude} gratitude note${gratitude === 1 ? "" : "s"}` : ""}. Enough to start seeing the shape of the month without turning it into a scorecard.`;
+    if (companion.id === "bakugo") return `${checkIns.length} check-ins. ${gratitude ? `${gratitude} things you bothered to keep.` : "No gratitude quota. Good."} It's data, not a grade.`;
+    return `${checkIns.length} check-ins${reflections.length ? `, ${reflections.length} days with something written down` : ""}. Enough for a bird's-eye view without pretending a month can be reduced to one number.`;
+  }
+
+  function weeklyHeadline(entries) {
+    const checkIns = entries.filter(hasCoreCheckIn);
+    const reflectionCount = entries.filter(hasReflection).length;
+    if (!checkIns.length) return `${reflectionCount} reflection${reflectionCount === 1 ? "" : "s"} saved`;
+    const moodScores = checkIns.map(entry => MOOD[entry.mood]?.score).filter(Boolean);
+    const energyScores = checkIns.map(entry => ENERGY[entry.energy]?.score).filter(Boolean);
+    const parts = [`${checkIns.length} check-in${checkIns.length === 1 ? "" : "s"}`];
+    if (moodScores.length) parts.push(`mood ${average(moodScores).toFixed(1)}/5`);
+    if (energyScores.length) parts.push(`energy ${average(energyScores).toFixed(1)}/4`);
+    return parts.join(" · ");
+  }
+
+  function weeklyVoiceLine(entries, companion) {
+    const checkIns = entries.filter(hasCoreCheckIn);
+    const lowSleep = checkIns.filter(entry => ["bad", "meh"].includes(entry.sleep)).length;
+    const lowEnergy = checkIns.filter(entry => ["fumes", "low"].includes(entry.energy)).length;
+    const goodMood = checkIns.filter(entry => ["good", "great"].includes(entry.mood)).length;
+    const gratitude = entries.filter(entry => cleanText(entry.gratitude)).length;
+    let observation = "Not enough check-ins to call this a pattern yet.";
+    if (checkIns.length >= 3 && lowSleep >= 2 && lowEnergy >= 2) observation = `Lower sleep and lower energy showed up together a few times this week.`;
+    else if (checkIns.length >= 3 && goodMood >= Math.ceil(checkIns.length / 2)) observation = `More than half of the logged days landed on the good side of the mood scale.`;
+    else if (gratitude >= 2) observation = `${gratitude} little things made it into the gratitude notes.`;
+    else if (checkIns.length >= 3) observation = `Enough days are logged here to see the week without turning it into a diagnosis.`;
+
+    if (companion.id === "mina") return `${observation} We're observing, not grading.`;
+    if (companion.id === "kirishima") return `${observation} That's useful context, not a verdict on the week.`;
+    if (companion.id === "bakugo") return `${observation} Don't turn correlation into some dramatic life theory.`;
+    return `${observation} Description first. Explanation can wait.`;
+  }
+
+  function exportJournalJson() {
+    ensureState();
+    const state = app.getState();
+    const checkIns = {};
+    Object.entries(state.dailyPlanner?.days || {}).forEach(([date, day]) => {
+      if (!day?.checkIn) return;
+      checkIns[date] = {
+        checkIn: { ...day.checkIn },
+        companionId: day.companion?.id || null,
+        createdAt: day.createdAt || null,
+        updatedAt: day.updatedAt || null
+      };
+    });
+    downloadFile(`life-rpg-journal-${todayKey()}.json`, JSON.stringify({
+      format: "LifeRPGJournal",
+      schemaVersion: SCHEMA,
+      exportedAt: new Date().toISOString(),
+      journal: state.journal,
+      checkIns
+    }, null, 2), "application/json");
+    app.showToast?.("Journal JSON exported");
+  }
+
+  function exportJournalMarkdown() {
+    const entries = Object.values(journalState().entries || {}).filter(entry => hasCoreCheckIn(entry) || hasReflection(entry)).sort((a, b) => a.date.localeCompare(b.date));
+    const groups = new Map();
+    entries.forEach(entry => {
+      const month = entry.date.slice(0, 7);
+      if (!groups.has(month)) groups.set(month, []);
+      groups.get(month).push(entry);
+    });
+    const lines = ["# Life RPG Journal", "", `Exported: ${new Date().toLocaleString()}`, "", "> Your original reflections are preserved as written. Tracker labels are descriptive, not diagnostic.", ""];
+    [...groups.entries()].forEach(([month, monthItems]) => {
+      lines.push(`## ${monthTitle(month)}`, "");
+      monthItems.forEach(entry => {
+        lines.push(`### ${formatDateLong(entry.date)}`);
+        const core = [];
+        if (entry.mood) core.push(`Mood: ${MOOD[entry.mood]?.label || entry.mood}`);
+        if (entry.energy) core.push(`Energy: ${ENERGY[entry.energy]?.label || entry.energy}`);
+        if (entry.sleep) core.push(`Sleep: ${SLEEP[entry.sleep]?.label || entry.sleep}`);
+        if (entry.sleepHours) core.push(`Sleep hours: ${entry.sleepHours}`);
+        if (entry.stress) core.push(`Stress: ${STRESS[entry.stress]?.label || entry.stress}`);
+        if (core.length) lines.push(core.join(" · "));
+        if (cleanText(entry.gratitude)) lines.push("", `**Grateful for**  `, entry.gratitude);
+        if (cleanText(entry.smallWin)) lines.push("", `**Small win**  `, entry.smallWin);
+        if (cleanText(entry.hardThing)) lines.push("", `**What was hard**  `, entry.hardThing);
+        lines.push("");
+      });
+    });
+    if (!entries.length) lines.push("No journal entries yet.", "");
+    downloadFile(`life-rpg-journal-${todayKey()}.md`, lines.join("\n"), "text/markdown");
+    app.showToast?.("Journal Markdown exported");
+  }
+
+  function downloadFile(name, text, type) {
+    const blob = new Blob([text], { type: `${type};charset=utf-8` });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  function monthEntries(month) {
+    return Object.values(journalState().entries || {}).filter(entry => entry?.date?.startsWith(`${month}-`)).sort((a, b) => a.date.localeCompare(b.date));
+  }
+
+  function hasCoreCheckIn(entry) {
+    return Boolean(entry && (entry.mood || entry.sleep || entry.energy || entry.stress));
+  }
+
+  function hasReflection(entry) {
+    return Boolean(entry && (cleanText(entry.gratitude) || cleanText(entry.smallWin) || cleanText(entry.hardThing)));
+  }
+
+  function cleanText(value) {
+    return String(value || "").trim();
+  }
+
+  function setValue(element, value) {
+    if (element) element.value = value;
+  }
+
+  function average(values) {
+    return values.length ? values.reduce((sum, value) => sum + Number(value || 0), 0) / values.length : 0;
+  }
+
+  function monthKey(date) {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+  }
+
+  function todayKey() {
+    return localDateKey(new Date());
+  }
+
+  function localDateKey(date) {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+  }
+
+  function dateFromKey(key) {
+    const [year, month, day] = String(key).split("-").map(Number);
+    return new Date(year, month - 1, day || 1);
+  }
+
+  function monthTitle(month) {
+    return dateFromKey(`${month}-01`).toLocaleDateString(undefined, { month: "long", year: "numeric" });
+  }
+
+  function shortDate(date) {
+    return dateFromKey(date).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  }
+
+  function formatDate(date) {
+    return dateFromKey(date).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+  }
+
+  function formatDateLong(date) {
+    return dateFromKey(date).toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+  }
+
+  function seededRandom(seedText) {
+    let hash = 2166136261;
+    for (let i = 0; i < seedText.length; i += 1) {
+      hash ^= seedText.charCodeAt(i);
+      hash = Math.imul(hash, 16777619);
+    }
+    hash += hash << 13;
+    hash ^= hash >>> 7;
+    hash += hash << 3;
+    hash ^= hash >>> 17;
+    hash += hash << 5;
+    return (hash >>> 0) / 4294967296;
+  }
+
+  function esc(value) {
+    return app.escapeHtml ? app.escapeHtml(value) : String(value || "");
+  }
+
+  function escAttr(value) {
+    return esc(value).replaceAll("`", "&#096;");
+  }
+
+  window.LifeRPGJournal = {
+    render,
+    openReflection,
+    promptAfterCheckIn: (companionId = null, date = todayKey()) => openReflection(date, companionId),
+    getEntry: date => ({ ...(entryFor(date, false) || {}) }),
+    exportJson: exportJournalJson,
+    exportMarkdown: exportJournalMarkdown
+  };
+})();

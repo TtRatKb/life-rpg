@@ -7,7 +7,7 @@
     return;
   }
 
-  const SCHEMA = 5;
+  const SCHEMA = 6;
   const SHADOW_KEY = "life-rpg-daily-planner-shadow-v1";
   const MAX_DAY_HISTORY = 120;
   const MAX_COMPANION_HISTORY = 45;
@@ -42,15 +42,19 @@
   };
 
   const LABELS = {
+    mood: { rough: "Rough", meh: "Meh", okay: "Okay", good: "Good", great: "Great" },
     sleep: { bad: "Bad", meh: "Meh", fine: "Fine", great: "Great" },
     energy: { fumes: "Running on fumes", low: "Low", okay: "Okay", lots: "Lots" },
+    stress: { calm: "Calm", light: "Light", medium: "Noticeable", high: "High", overload: "Overloaded" },
     time: { none: "Almost none", little: "A little", decent: "A decent amount", plenty: "Plenty" },
     obligations: { help: "Please send help", busy: "Busy", normal: "Normal", open: "Pretty open" }
   };
 
   const VALUE = {
+    mood: { rough: 0, meh: 1, okay: 2, good: 3, great: 4 },
     sleep: { bad: 0, meh: 1, fine: 2, great: 3 },
     energy: { fumes: 0, low: 1, okay: 2, lots: 3 },
+    stress: { calm: 0, light: 1, medium: 2, high: 3, overload: 4 },
     time: { none: 0, little: 1, decent: 2, plenty: 3 },
     obligations: { help: 0, busy: 1, normal: 2, open: 3 }
   };
@@ -58,12 +62,22 @@
   const TIME_BUDGET = { none: 12, little: 30, decent: 65, plenty: 130 };
   const PRIORITY_SCORE = { "Must Do": 3.3, Main: 2.5, "Low Energy": 1.3, Optional: 0.7, Bonus: 0.2 };
   const DEMAND_BY_REALM = { Recovery: 0.35, Hobbies: 0.8, Home: 1.1, Japanese: 1.55, Knowledge: 1.65, Health: 1.85, Work: 2.15 };
-  const CONVERSATION_STEPS = ["sleep", "energy", "time", "obligations", "gentle"];
+  const CONVERSATION_STEPS = ["mood", "sleep", "energy", "stress", "time", "obligations", "gentle"];
 
   const CHECKIN_COPY = {
     luca: {
+      mood: {
+        question: "Okay. Emotional weather report: how am I actually feeling?",
+        reactions: {
+          rough: "Rough. Noted. I do not need to argue myself into feeling better before the day can start.",
+          meh: "Meh is a complete answer. No inspirational montage required.",
+          okay: "Okay. Neutral territory is still territory.",
+          good: "Good is nice. I am allowed to notice that without immediately asking what could ruin it.",
+          great: "Oh. Actually great. Keeping that information instead of suspiciously interrogating it."
+        }
+      },
       sleep: {
-        question: "Okay. First: how did I actually sleep?",
+        question: "And how did I actually sleep?",
         reactions: {
           bad: "Right. That explains some things. I am not budgeting today like I slept eight perfect hours.",
           meh: "Not catastrophic. Also not exactly a glowing endorsement of the night.",
@@ -72,12 +86,22 @@
         }
       },
       energy: {
-        question: "And what is the battery situation, realistically?",
+        question: "What is the battery situation, realistically?",
         reactions: {
           fumes: "Red battery icon. Understood. Friction needs to be very low today.",
           low: "Low. Not zero, but definitely not imaginary-high-energy-me either.",
           okay: "Okay is enough. I do not need to turn it into 'excellent' before I can start anything.",
           lots: "Huh. Actual energy. Useful information. Still not permission to overbook the day."
+        }
+      },
+      stress: {
+        question: "How loud is the stress / mental-load situation?",
+        reactions: {
+          calm: "Quiet brain. Suspicious, but welcome.",
+          light: "Some background noise. Fine. I can account for that.",
+          medium: "Noticeable. So transitions and decisions probably cost more than they look like.",
+          high: "High. Then pretending everything is normal-sized would be stupid.",
+          overload: "Okay. Too much. Today needs fewer moving parts, not better self-discipline."
         }
       },
       time: {
@@ -107,8 +131,18 @@
       }
     },
     mina: {
+      mood: {
+        question: "Okay babe, emotional weather report. Where are we?",
+        reactions: {
+          rough: "Oof. Rough day energy. You do not have to make it cute for me.",
+          meh: "Meh. Extremely valid weather condition.",
+          okay: "Okay! Stable little middle zone. We take those.",
+          good: "Good? Cute. Please actually let yourself have that.",
+          great: "Ohhh, GREAT great? Okay, I love this for you."
+        }
+      },
       sleep: {
-        question: "Hey girl. First things first: how did you sleep?",
+        question: "First practical thing: how did you sleep?",
         reactions: {
           bad: "Ugh, that's rough. Okay, we're not pretending that didn't happen.",
           meh: "Could've been worse, could've been way better. Noted.",
@@ -117,12 +151,22 @@
         }
       },
       energy: {
-        question: "Okay. And how much battery are we actually working with?",
+        question: "How much battery are we actually working with?",
         reactions: {
           fumes: "Yep. Battery icon is red. We plan accordingly.",
           low: "Low battery, heard. No heroic nonsense.",
           okay: "Okay is useful! We do not need to manufacture extra energy first.",
           lots: "Oh? Actual battery? Dangerous. Still not giving you twelve tasks."
+        }
+      },
+      stress: {
+        question: "And how spicy is the brain-noise situation?",
+        reactions: {
+          calm: "Peaceful?? Incredible. Nobody scare it away.",
+          light: "A little buzzing. Manageable.",
+          medium: "Okay, it's definitely taking up RAM.",
+          high: "Yeah, no. That's a lot of background tabs.",
+          overload: "Absolutely not. We are reducing input, not adding a self-improvement side quest."
         }
       },
       time: {
@@ -148,6 +192,136 @@
         reactions: {
           yes: "Done. Officially declared. No appeals, no guilt, tiny wins absolutely count.",
           no: "Cool. Normal mode. Still banning the twelve-step self-improvement spiral, though."
+        }
+      }
+    },
+    kirishima: {
+      mood: {
+        question: "Hey. Quick check — how are you actually feeling today?",
+        reactions: {
+          rough: "Rough, huh? Okay. You don't have to be upbeat just because the day started.",
+          meh: "Meh is fair. We work with the day that's here.",
+          okay: "Okay. That's enough of a baseline.",
+          good: "Good! Nice. Let that be real for a minute.",
+          great: "Hell yeah. That's good to hear."
+        }
+      },
+      sleep: {
+        question: "How'd you sleep?",
+        reactions: {
+          bad: "Oof. Then today shouldn't be built like you're fully charged.",
+          meh: "Not great, not disastrous. Got it.",
+          fine: "Fine works. Solid enough starting point.",
+          great: "Nice. Actual recovery makes a difference."
+        }
+      },
+      energy: {
+        question: "How's your battery?",
+        reactions: {
+          fumes: "Okay, that's basically empty. Keep the next step small.",
+          low: "Low. No reason to pretend otherwise.",
+          okay: "Okay is plenty to work with.",
+          lots: "Nice. Use it, but don't burn all of it just because it's there."
+        }
+      },
+      stress: {
+        question: "How much is your brain carrying in the background?",
+        reactions: {
+          calm: "Good. Some room to breathe.",
+          light: "A little load. Noted.",
+          medium: "Yeah, that's enough to make small stuff feel heavier.",
+          high: "That's a lot. The plan should respect that.",
+          overload: "Okay. Then getting through the day is already work. Keep the rest simple."
+        }
+      },
+      time: {
+        question: "How much time is actually yours today?",
+        reactions: {
+          none: "Almost none? Then don't plan like you have a secret extra evening.",
+          little: "A little can still be useful if we keep the finish line clear.",
+          decent: "That's some real room. Good.",
+          plenty: "Nice. Leave some of it for being a person, too."
+        }
+      },
+      obligations: {
+        question: "How full is the must-do pile?",
+        reactions: {
+          help: "Okay, that's heavy. We don't stack optional pressure on top.",
+          busy: "Busy. Then the rest needs to earn its space.",
+          normal: "Normal load. Got it.",
+          open: "Pretty open. That's nice — room for something you actually want."
+        }
+      },
+      gentle: {
+        question: "Want today set to gentle on purpose?",
+        reactions: {
+          yes: "Yeah. Do that. Recovery is part of the plan, not what happens if you fail it.",
+          no: "Got it. Normal planning, still no need to prove anything."
+        }
+      }
+    },
+    bakugo: {
+      mood: {
+        question: "Status. How bad is it?",
+        reactions: {
+          rough: "Rough. Fine. Call it what it is and plan around it.",
+          meh: "Meh. Whatever. That's still information.",
+          okay: "Okay. Usable.",
+          good: "Good. Then stop waiting for a reason you're not allowed to feel good.",
+          great: "Great? Hah. Don't waste it picking twelve fights with your own schedule."
+        }
+      },
+      sleep: {
+        question: "Sleep?",
+        reactions: {
+          bad: "Shit. Then don't act like your reaction time is normal today.",
+          meh: "Could've been better. Account for it.",
+          fine: "Fine. Good enough.",
+          great: "Good. One problem you don't have today."
+        }
+      },
+      energy: {
+        question: "Battery?",
+        reactions: {
+          fumes: "Empty. So quit budgeting energy you don't have.",
+          low: "Low. Means the plan gets smaller, not that you suddenly suck.",
+          okay: "Okay. Enough.",
+          lots: "Plenty. Don't blow all of it before noon."
+        }
+      },
+      stress: {
+        question: "How overloaded is your head?",
+        reactions: {
+          calm: "Good. Keep it that way.",
+          light: "Some noise. Fine.",
+          medium: "Noticeable. Means stupid little decisions cost more. Account for it.",
+          high: "High. Then cut the unnecessary crap.",
+          overload: "Too much. Reduce inputs. You're not fixing overload by trying harder."
+        }
+      },
+      time: {
+        question: "How much time do you actually have?",
+        reactions: {
+          none: "None. Then stop pretending you can fit a full day into leftovers.",
+          little: "A little. Pick something with an actual end point.",
+          decent: "Decent. Enough to do one real thing without making it your whole night.",
+          plenty: "Plenty. Doesn't mean every minute needs a job."
+        }
+      },
+      obligations: {
+        question: "Must-do pile?",
+        reactions: {
+          help: "Too much. Don't add fake obligations because you're feeling guilty.",
+          busy: "Busy. Fine. Optional means optional.",
+          normal: "Normal. Manage it.",
+          open: "Open. Then maybe do something because you actually want to."
+        }
+      },
+      gentle: {
+        question: "Need the day kept deliberately light?",
+        reactions: {
+          yes: "Then keep it light. That's the decision. Stop retrying the argument.",
+          no: "Fine. Normal plan. Still don't be an idiot about it."
         }
       }
     }
@@ -573,8 +747,10 @@
     const capacity = capacityLabel(checkIn);
     return `
       <div class="daily-summary-v14">
-        <div class="daily-summary-chip-v14"><span>☾</span><div><small>SLEEP</small><strong>${esc(LABELS.sleep[checkIn.sleep] || checkIn.sleep)}</strong></div></div>
-        <div class="daily-summary-chip-v14"><span>⚡</span><div><small>ENERGY</small><strong>${esc(LABELS.energy[checkIn.energy] || checkIn.energy)}</strong></div></div>
+        <div class="daily-summary-chip-v14"><span>🌸</span><div><small>MOOD</small><strong>${esc(LABELS.mood[checkIn.mood] || "—")}</strong></div></div>
+        <div class="daily-summary-chip-v14"><span>☾</span><div><small>SLEEP</small><strong>${esc(LABELS.sleep[checkIn.sleep] || checkIn.sleep || "—")}</strong></div></div>
+        <div class="daily-summary-chip-v14"><span>⚡</span><div><small>ENERGY</small><strong>${esc(LABELS.energy[checkIn.energy] || checkIn.energy || "—")}</strong></div></div>
+        <div class="daily-summary-chip-v14"><span>◇</span><div><small>STRESS</small><strong>${esc(LABELS.stress[checkIn.stress] || "—")}</strong></div></div>
         <div class="daily-summary-chip-v14"><span>◷</span><div><small>FREE TIME</small><strong>${esc(LABELS.time[checkIn.time] || checkIn.time)}</strong></div></div>
         <div class="daily-summary-chip-v14"><span>☷</span><div><small>OBLIGATIONS</small><strong>${esc(LABELS.obligations[checkIn.obligations] || checkIn.obligations)}</strong></div></div>
       </div>
@@ -591,7 +767,9 @@
     const energy = VALUE.energy[checkIn.energy] ?? 1;
     const time = VALUE.time[checkIn.time] ?? 1;
     const obligations = VALUE.obligations[checkIn.obligations] ?? 1;
-    const score = sleep * 0.2 + energy * 0.4 + time * 0.2 + obligations * 0.2 - (checkIn.gentle ? 1.1 : 0);
+    const stressPenalty = ({ calm: 0, light: 0.08, medium: 0.28, high: 0.62, overload: 1.0 })[checkIn.stress] || 0;
+    const moodPenalty = ({ rough: 0.28, meh: 0.12 })[checkIn.mood] || 0;
+    const score = sleep * 0.2 + energy * 0.4 + time * 0.2 + obligations * 0.2 - stressPenalty - moodPenalty - (checkIn.gentle ? 1.1 : 0);
 
     if (checkIn.gentle || score < 0.8) {
       return { title: "Keep the floor low today.", text: "Short, forgiving options get priority. Finishing one small thing is enough." };
@@ -800,8 +978,10 @@
   }
 
   function fillCheckIn(checkIn) {
+    setRadio("dailyMood", checkIn.mood);
     setRadio("dailySleep", checkIn.sleep);
     setRadio("dailyEnergy", checkIn.energy);
+    setRadio("dailyStress", checkIn.stress);
     setRadio("dailyTime", checkIn.time);
     setRadio("dailyObligations", checkIn.obligations);
     setRadio("dailyGentleChoice", checkIn.gentle ? "yes" : "no");
@@ -816,7 +996,8 @@
     if (!els.dialogCompanion) return;
     const c = companion || companionById("luca");
     els.dialog?.classList.toggle("mina-chat-v271", c.id === "mina");
-    els.dialog?.classList.toggle("luca-monologue-v271", c.id !== "mina");
+    els.dialog?.classList.toggle("character-chat-v302", c.id !== "luca");
+    els.dialog?.classList.toggle("luca-monologue-v271", c.id === "luca");
     els.dialogCompanion.innerHTML = `
       <div id="dailyDialogAvatar" class="daily-dialog-avatar-v14 ${escAttr(c.id)}">${companionImage(c, true)}</div>
       <div><small>${esc(c.kicker)}</small><strong>${esc(c.name)}</strong><p id="dailyDialogLine">${esc(c.dialogLine)}</p></div>`;
@@ -893,12 +1074,12 @@
   }
 
   function conversationQuestion(companion, key) {
-    const id = companion?.id === "mina" ? "mina" : "luca";
+    const id = CHECKIN_COPY[companion?.id] ? companion.id : "luca";
     return CHECKIN_COPY[id]?.[key]?.question || "How are we doing?";
   }
 
   function conversationReaction(companion, key, value) {
-    const id = companion?.id === "mina" ? "mina" : "luca";
+    const id = CHECKIN_COPY[companion?.id] ? companion.id : "luca";
     return CHECKIN_COPY[id]?.[key]?.reactions?.[value] || "Okay. Noted.";
   }
 
@@ -908,9 +1089,9 @@
   }
 
   function reactionMood(key, value) {
-    if (["great", "lots", "plenty", "open", "no"].includes(value)) return "positive";
-    if (["bad", "fumes", "help", "yes"].includes(value)) return "low";
-    if (["meh", "low", "busy"].includes(value)) return "skeptical";
+    if (["great", "good", "lots", "plenty", "open", "calm", "no"].includes(value)) return "positive";
+    if (["rough", "bad", "fumes", "help", "overload", "high", "yes"].includes(value)) return "low";
+    if (["meh", "low", "busy", "medium"].includes(value)) return "skeptical";
     return key === "gentle" ? "warm" : "neutral";
   }
 
@@ -925,6 +1106,22 @@
           : mood === "question"
             ? "assets/story/sprites/mina_curious.png"
             : "assets/story/sprites/mina_neutral.png";
+      return;
+    }
+    if (provisionalCompanion.id === "kirishima") {
+      img.src = mood === "positive" || mood === "warm"
+        ? "assets/story/characters/kirishima-happy.png"
+        : mood === "skeptical" || mood === "low"
+          ? "assets/story/characters/kirishima-serious.png"
+          : "assets/story/characters/kirishima-neutral.png";
+      return;
+    }
+    if (provisionalCompanion.id === "bakugo") {
+      img.src = mood === "positive" || mood === "warm"
+        ? "assets/story/characters/bakugo-happy-soft-smirk.png"
+        : mood === "skeptical" || mood === "low"
+          ? "assets/story/characters/bakugo-annoyed-mild.png"
+          : "assets/story/characters/bakugo-neutral.png";
       return;
     }
     img.src = mood === "positive" || mood === "warm"
@@ -943,8 +1140,10 @@
     if (!els.form?.reportValidity()) return;
 
     const checkIn = {
+      mood: radioValue("dailyMood"),
       sleep: radioValue("dailySleep"),
       energy: radioValue("dailyEnergy"),
+      stress: radioValue("dailyStress"),
       time: radioValue("dailyTime"),
       obligations: radioValue("dailyObligations"),
       gentle: radioValue("dailyGentleChoice") === "yes"
@@ -1013,6 +1212,7 @@
       app.renderAll?.();
       const reward = day.checkInReward;
       app.showToast?.(`Daily check-in · +${formatEnergy(reward?.storyEnergy || 0)} Story Energy · +${Number(reward?.xp || 0)} XP · ${Number(reward?.streak || 1)} day streak`);
+      setTimeout(() => window.LifeRPGJournal?.promptAfterCheckIn?.(companion.id, key), 520);
     }
     requestAnimationFrame(() => els.panel?.scrollIntoView({ behavior: "smooth", block: "start" }));
   }
@@ -1627,7 +1827,9 @@
     const sleep = VALUE.sleep[checkIn.sleep] ?? 1;
     const energy = VALUE.energy[checkIn.energy] ?? 1;
     const obligations = VALUE.obligations[checkIn.obligations] ?? 1;
-    let capacity = energy * 0.58 + sleep * 0.25 + obligations * 0.17;
+    const stressPenalty = ({ calm: 0, light: 0.05, medium: 0.2, high: 0.48, overload: 0.8 })[checkIn.stress] || 0;
+    const moodPenalty = ({ rough: 0.18, meh: 0.07 })[checkIn.mood] || 0;
+    let capacity = energy * 0.58 + sleep * 0.25 + obligations * 0.17 - stressPenalty - moodPenalty;
     if (checkIn.gentle) capacity -= 1;
     return clamp(capacity, 0, 3);
   }
@@ -1864,6 +2066,14 @@
       options.push(mina);
     }
 
+    if (flags.DYNARIOT_MOVE_IN_COMPLETE || flags.SHARED_APARTMENT_IS_HOME || flags.HOME_SHARED_APARTMENT_ACTIVE) {
+      const kirishima = companionById("kirishima");
+      const bakugo = companionById("bakugo");
+      kirishima.weight = 1.1;
+      bakugo.weight = 0.9;
+      options.push(kirishima, bakugo);
+    }
+
     const history = plannerState().companionHistory || [];
     const recent = history.filter(item => item.date < todayKey()).slice(-3).reverse();
     options.forEach(option => {
@@ -1891,8 +2101,32 @@
         weight: 1,
         portrait: "assets/story/sprites/mina_neutral.png",
         previewLine: "Some mornings, someone from Luca's actual social world may wander into the briefing. Not every day.",
-        dialogLine: "Okay, important question: how alive are we today?",
+        dialogLine: "Okay babe, emotional weather report. Where are we?",
         doneLine: "Good. Tiny plan. No turning this into a twelve-step self-improvement challenge."
+      };
+    }
+    if (id === "kirishima") {
+      return {
+        id: "kirishima",
+        name: "Kirishima",
+        kicker: "A QUICK CHECK-IN",
+        weight: 1,
+        portrait: "assets/story/characters/kirishima-neutral.png",
+        previewLine: "Once everyday life overlaps enough, Kirishima can occasionally check in without turning it into a big conversation.",
+        dialogLine: "Hey. Quick check — how are you actually doing today?",
+        doneLine: "Got it. One useful thing, one thing for you, and an easy exit. That's enough."
+      };
+    }
+    if (id === "bakugo") {
+      return {
+        id: "bakugo",
+        name: "Bakugo",
+        kicker: "A QUICK CHECK-IN",
+        weight: 1,
+        portrait: "assets/story/characters/bakugo-neutral.png",
+        previewLine: "On some days, Bakugo's version of checking in is mostly just demanding accurate information.",
+        dialogLine: "Status. How bad is it?",
+        doneLine: "There. Now the plan matches reality. Stop adding fake work to it."
       };
     }
     return {
@@ -1925,7 +2159,7 @@
   }
 
   function dialogTitleFor(companion) {
-    return companion?.id === "mina" ? "Quick status report." : "Let's make the day smaller.";
+    return companion?.id === "luca" ? "Let's make the day smaller." : "Quick status report.";
   }
 
 
@@ -2251,6 +2485,14 @@
       if (moment.id === "evening") return "Sometimes Mina catches Luca at the edge of the day, when the useful question is mostly how much is left in the tank.";
       return "Some days, Mina wanders into the check-in naturally. She still does not get access to the app's private planner brain.";
     }
+    if (companion?.id === "kirishima") {
+      if (moment.id === "evening") return "Sometimes Kirishima's check-in is just a warm, ordinary message at the end of a long day.";
+      return "Once everyday life overlaps enough, Kirishima may occasionally ask how the battery is doing before plans get made.";
+    }
+    if (companion?.id === "bakugo") {
+      if (moment.id === "evening") return "Bakugo's evening check-in is less 'share your feelings' and more 'stop lying about how tired you are.'";
+      return "Some days Bakugo contributes by demanding accurate status information and rejecting imaginary capacity.";
+    }
     if (moment.id === "evening") return "Most days can end with Luca deciding what is still worth doing — and what can stay tomorrow's problem.";
     return "Most days can simply begin with Luca checking in with herself.";
   }
@@ -2263,6 +2505,16 @@
       if (low) return "Okay. Small plan. We are not turning low battery into a character flaw.";
       if (moment.id === "evening") return "Three things max, and I am vetoing any plan that somehow becomes a second workday.";
       return "Good. Tiny plan. No turning this into a twelve-step self-improvement challenge.";
+    }
+    if (companion?.id === "kirishima") {
+      if (low) return "Keep it small today. Recovery counts as part of the plan, not what happens after you fail it.";
+      if (moment.id === "evening") return "The day's already been a day. Pick what still fits and leave yourself an actual stopping point.";
+      return "Got it. One useful thing, one thing for you, and an easy exit. That's enough.";
+    }
+    if (companion?.id === "bakugo") {
+      if (low) return "Low battery. So the plan gets smaller. Quit trying to spend energy you don't have.";
+      if (moment.id === "evening") return "Day's mostly over. Do what still fits and stop trying to resurrect the whole backlog.";
+      return "There. Now the plan matches reality. Stop adding fake work to it.";
     }
     if (low) return "Keep the floor low. One finished thing counts more than an ambitious list you cannot enter.";
     if (moment.id === "evening") return "The day already happened. Pick what still fits; do not negotiate with the whole backlog.";

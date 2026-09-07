@@ -806,7 +806,7 @@
 
   function defaultState() {
     return {
-      version: 7,
+      version: 8,
       progressionSchemaVersion: 1,
       characterXP: 0,
       coins: 0,
@@ -839,6 +839,11 @@
       completionLog: [],
       externalCompletionLog: [],
       memories: [],
+      journal: {
+        schemaVersion: 1,
+        entries: {},
+        migrations: {}
+      },
       flags: {
         STORY_ENGINE_READY: true
       },
@@ -976,7 +981,7 @@
     return {
       ...base,
       ...savedWithoutQuestLibrary,
-      version: 7,
+      version: 8,
       progressionSchemaVersion: Number(saved.progressionSchemaVersion || 0),
       rewardLedger: saved.rewardLedger && typeof saved.rewardLedger === "object"
         ? { ...defaultRewardLedger(), ...saved.rewardLedger, events: Array.isArray(saved.rewardLedger.events) ? saved.rewardLedger.events : [] }
@@ -994,7 +999,15 @@
         : base.selectedQuestIds,
       completionLog: Array.isArray(saved.completionLog) ? saved.completionLog : [],
       externalCompletionLog: Array.isArray(saved.externalCompletionLog) ? saved.externalCompletionLog : [],
-      memories: Array.isArray(saved.memories) ? saved.memories : []
+      memories: Array.isArray(saved.memories) ? saved.memories : [],
+      journal: saved.journal && typeof saved.journal === "object" && !Array.isArray(saved.journal)
+        ? {
+            ...base.journal,
+            ...saved.journal,
+            entries: saved.journal.entries && typeof saved.journal.entries === "object" && !Array.isArray(saved.journal.entries) ? saved.journal.entries : {},
+            migrations: saved.journal.migrations && typeof saved.journal.migrations === "object" && !Array.isArray(saved.journal.migrations) ? saved.journal.migrations : {}
+          }
+        : base.journal
     };
   }
 
@@ -1039,7 +1052,7 @@
     migrateCapabilityCurve();
     ensureProgressionState();
     migrateLegacyRewardLedger();
-    state.version = 7;
+    state.version = 8;
     saveState();
   }
 
@@ -1073,7 +1086,7 @@
     migrateCapabilityCurve();
     ensureProgressionState();
     migrateLegacyRewardLedger();
-    state.version = 7;
+    state.version = 8;
     saveState({ suppressCloud: Boolean(options.suppressCloud), source: options.source || "replace" });
     renderAll();
     return true;

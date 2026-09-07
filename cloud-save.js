@@ -509,6 +509,9 @@ function progressScore(state) {
   const plannerDays = state?.dailyPlanner?.days && typeof state.dailyPlanner.days === "object"
     ? Object.keys(state.dailyPlanner.days).length
     : 0;
+  const journalDays = state?.journal?.entries && typeof state.journal.entries === "object"
+    ? Object.values(state.journal.entries).filter(entry => entry && (entry.mood || entry.energy || entry.sleep || entry.stress || entry.gratitude || entry.smallWin || entry.hardThing)).length
+    : 0;
   const rewardEvents = Array.isArray(state?.rewardLedger?.events) ? state.rewardLedger.events.length : 0;
 
   return (
@@ -522,6 +525,7 @@ function progressScore(state) {
     books * 12 + bookLogs * 8 +
     games * 12 + gameLogs * 8 +
     plannerDays * 4 +
+    journalDays * 6 +
     rewardEvents * 2 +
     Math.max(0, Number(state?.characterXP || 0)) +
     Math.max(0, Number(state?.storyEnergy || 0)) +
@@ -538,6 +542,9 @@ function summarizeState(state, savedAt = null) {
   const adventureCount = Array.isArray(state?.sideAdventures?.logs) ? state.sideAdventures.logs.length : 0;
   const bookCount = Array.isArray(state?.bookLibrary?.logs) ? state.bookLibrary.logs.length : 0;
   const gameCount = Array.isArray(state?.gameLibrary?.logs) ? state.gameLibrary.logs.length : 0;
+  const journalCount = state?.journal?.entries && typeof state.journal.entries === "object"
+    ? Object.values(state.journal.entries).filter(entry => entry && (entry.mood || entry.energy || entry.sleep || entry.stress || entry.gratitude || entry.smallWin || entry.hardThing)).length
+    : 0;
   const xp = Math.max(0, Number(state?.characterXP || 0));
   const activityCount = questCount + externalCount + habitCount + adventureCount + bookCount + gameCount;
   const collectionCount =
@@ -549,7 +556,8 @@ function summarizeState(state, savedAt = null) {
     `${xp} Character XP`,
     `${sceneCount} story scene${sceneCount === 1 ? "" : "s"}`,
     `${activityCount} activity log${activityCount === 1 ? "" : "s"}`,
-    `${collectionCount} tracked item${collectionCount === 1 ? "" : "s"}`
+    `${collectionCount} tracked item${collectionCount === 1 ? "" : "s"}`,
+    `${journalCount} journal day${journalCount === 1 ? "" : "s"}`
   ];
   if (savedAt) parts.push(`saved ${formatDateTime(savedAt)}`);
   return parts.join(" · ");

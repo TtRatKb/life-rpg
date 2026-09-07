@@ -66,9 +66,9 @@ GitHub Pages will then update automatically after the new commit is deployed.
 
 ## Next milestones
 
-1. Playtest **V0.30.1 CG Runtime Readiness + Luca Portrait Cleanup** in normal use, especially Luca portrait edges in Story Mode and existing Story/Social continuity.
-2. Keep hidden canon CG art disabled until each render passes the approved visual preflight and anatomy/continuity QA gate.
-3. Continue targeted Story / Social content growth from actual play feedback rather than flooding every pool at once.
+1. Playtest **V0.30.2 Daily Reflection & Journal** in normal use: conversational Mood/Stress additions, optional reflections, monthly tracker rendering, mobile layout and exports.
+2. Keep hidden canon CG art disabled until a spoiler-safe render path is available and each render passes the approved visual preflight and anatomy/continuity QA gate.
+3. Let real journal use determine which later tracker/insight additions are actually useful instead of turning reflection into another data-entry chore.
 4. Synchronize Project Sources at the next chat handoff rather than after each patch.
 
 ## V0.28.0 — Story Continuity & World Expansion
@@ -168,3 +168,18 @@ GitHub Pages will then update automatically after the new commit is deployed.
 - Added the calibrated CG QA gate and Luca wardrobe-direction metadata to the Story Pack's visual-direction data for future hidden rendering work.
 - Canon CG art is intentionally **not bundled in this build**: the current chat image-generation surface visibly renders generated images to the player, so hidden story art remains disabled rather than breaking spoiler protection.
 - No Main Story prose, choices, rewards, relationship progression, unlock conditions, social content, or existing save progress were changed.
+
+## V0.30.2 — Daily Reflection & Journal
+
+- Expanded the conversational Daily Check-in with **Mood** and **Stress / mental load** while preserving Sleep, Energy, Time, Obligations and Gentle-day planning context.
+- Mood and mental load now gently influence Daily Plan capacity alongside the existing sleep/energy context; they guide recommendations rather than locking content.
+- Daily Check-ins can now be framed as Luca self-reflection or, once narratively appropriate, occasional messages from **Mina, Kirishima or Bakugo** with character-specific question/reaction language. Kirishima/Bakugo participation stays locked until shared everyday life is established.
+- Added an optional post-check-in reflection conversation for **Gratitude**, **Small Win** and **Hard Thing**. Each prompt can be skipped, revisited or edited; private reflection never awards relationship progress.
+- Added a dedicated **Journal** page with a Bullet-Journal-inspired monthly spread: Mood Garden, Energy tracker, Sleep-quality tracker, Stress/load tracker, Gratitude Garden, Tiny Victories, quieter Hard-Thing context, weekly descriptive recaps and a month archive.
+- Existing historical Daily Check-ins migrate into the Journal automatically where data exists; old days simply leave the new Mood/Stress fields blank rather than inventing values.
+- Added a per-day Journal editor, including optional manual sleep-hours logging for people who want a more concrete sleep history without making it a mandatory Daily Check-in question.
+- Added journal ownership / portability from day one: Journal data lives inside the normal Life RPG local/cloud save and can also be exported separately as **JSON** or readable **Markdown**; the Journal page supports browser **Print / Save PDF**.
+- Cloud conflict scoring now recognizes Journal-only progress so reflection data is not treated as an empty save.
+- Journal design deliberately has **no streak punishment**, no negative-day counter and no diagnostic claims. Missing days stay blank; weekly observations describe co-occurrence without pretending to explain causation.
+- Existing Story/Social content, quests, rewards, relationship rules, libraries, CG slots and save history remain intact.
+
