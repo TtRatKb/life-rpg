@@ -7,7 +7,7 @@
     return;
   }
 
-  const SCHEMA = 2;
+  const SCHEMA = 3;
   const SHADOW_KEY = "life-rpg-side-adventures-shadow-v1";
   const MAX_LOGS = 600;
   const REALMS = ["Hobbies", "Recovery", "Japanese", "Knowledge", "Home", "Health", "Work"];
@@ -33,7 +33,7 @@
   };
 
 
-  const CURATED_PACK_ID = "diy-project-pack-2026-09-07-a";
+  const CURATED_PACK_ID = "diy-project-pack-2026-09-07-b";
   const CURATED_ADVENTURES = [
     {
       curatedId: "custom-anime-manga-jeans",
@@ -45,20 +45,23 @@
       reasonTags: ["want-result", "fun"],
       sourceLabel: "Your saved DIY reference video",
       sourceNote: "The screenshots clearly show direct painting on light denim and the finished multi-motif jeans. Exact construction for every final motif is not visible, so technique choices are kept explicit instead of guessed.",
-      note: "Plan the design first, then work section by section. Use fabric-safe materials and follow their curing instructions.",
+      note: "Research and gather fabric-safe materials before painting. Then plan the composition and work section by section.",
       roadmap: [
-        { milestone: "1 · Design", label: "Choose the jeans you want to permanently customize", details: "Pick the actual pair and confirm the fit before putting permanent paint or attached elements on it.", minutes: 10, energy: "low" },
-        { milestone: "1 · Design", label: "Choose the exact anime / manga motifs and map them across both legs", details: "Collect the references you actually want, then decide which thigh, knee, shin or pocket area each one belongs to so the finished design feels balanced.", minutes: 30, energy: "medium" },
-        { milestone: "1 · Design", label: "Decide the technique for each motif", details: "For every planned element, decide whether you want direct fabric painting/marker work or a separate attached patch/panel effect. The reference shows direct painting, while every final motif's construction is not visible.", minutes: 20, energy: "medium" },
-        { milestone: "2 · Prep", label: "Prepare the first work area and fabric-safe supplies", details: "Gather the fabric paint/markers and brushes you intend to use, protect the work surface and place backing/cardboard inside the jeans so paint cannot transfer through.", minutes: 15, energy: "low" },
-        { milestone: "2 · Prep", label: "Sketch or transfer the placement for the first section", details: "Lightly mark the first motif and its surrounding shapes before committing to the permanent layer.", minutes: 20, energy: "medium" },
-        { milestone: "3 · Build", label: "Paint the first large black / red graphic shapes", details: "Work on one bounded section rather than trying to fill the whole pair in one session. The reference visibly uses a brush for bold dark shapes on the denim.", minutes: 30, energy: "medium" },
-        { milestone: "3 · Build", label: "Complete one main character or manga-panel motif", details: "Finish one focal image/panel in the first section, including the major outlines and fill needed for that motif, then let it dry as required.", minutes: 45, energy: "medium" },
-        { milestone: "3 · Build", label: "Complete one major motif on the other leg", details: "Move to a second focal area so the design develops across both legs instead of overworking only one side.", minutes: 45, energy: "medium" },
-        { milestone: "3 · Build", label: "Add lettering and smaller graphic accents", details: "Use the remaining planned gaps for lettering, symbols, red marks or smaller manga-style details rather than adding random filler.", minutes: 30, energy: "medium" },
-        { milestone: "4 · Finish", label: "Check the composition across both legs and add only missing details", details: "Try the jeans on or lay them out fully. Check visual balance, spacing and whether any planned area still looks unfinished before adding more.", minutes: 20, energy: "low" },
-        { milestone: "4 · Finish", label: "Let the design dry fully and cure/fix it according to the product instructions", details: "Use the instructions for the exact textile paint/marker you chose. Do not assume every fabric medium uses the same heat-setting method.", minutes: 15, energy: "low" },
-        { milestone: "4 · Finish", label: "Final wear test and tidy the finished jeans", details: "Check comfort and movement, inspect edges/details, and tidy any loose threads or small finish issues before calling the project complete.", minutes: 15, energy: "low" }
+        { key: "research-denim-paint", type: "research", milestone: "1 · Research & materials", label: "Research suitable paint or markers for denim", details: "Check which textile/fabric paints or markers are appropriate for denim, how they are cured, how washable they are, and whether the exact product needs heat-setting, textile medium or a sealer. Do not assume all products use the same finishing method.", minutes: 20, energy: "low" },
+        { key: "inventory-denim-supplies", type: "materials", milestone: "1 · Research & materials", label: "Check what jeans-customizing supplies you already own", details: "Inventory brushes, fine detail tools, masking tape, backing cardboard, pencils/chalk and any fabric-safe paint/markers you already have. Turn the missing items into a concrete shopping list.", minutes: 10, energy: "low" },
+        { key: "get-denim-supplies", type: "materials", milestone: "1 · Research & materials", label: "Get the missing jeans-painting supplies", details: "Buy/order the missing fabric-safe colours and prep/finishing supplies. Keep this step open until the required materials are actually available to use.", minutes: 15, energy: "low" },
+        { key: "choose-jeans", type: "decision", milestone: "2 · Design", label: "Choose the jeans you want to permanently customize", details: "Pick the actual pair and confirm the fit before putting permanent paint or attached elements on it.", minutes: 10, energy: "low" },
+        { key: "map-motifs", type: "decision", milestone: "2 · Design", label: "Choose the exact anime / manga motifs and map them across both legs", details: "Collect the references you actually want, then decide which thigh, knee, shin or pocket area each one belongs to so the finished design feels balanced.", minutes: 30, energy: "medium" },
+        { key: "choose-techniques", type: "decision", milestone: "2 · Design", label: "Decide the technique for each motif", details: "For every planned element, decide whether you want direct fabric painting/marker work or a separate attached patch/panel effect. The reference shows direct painting, while every final motif's construction is not visible.", minutes: 20, energy: "medium" },
+        { key: "prep-denim-work-area", type: "make", milestone: "3 · Prep", label: "Prepare the jeans and work area for painting", details: "Protect the work surface, prepare the selected textile products and place backing/cardboard inside the jeans so paint cannot transfer through.", minutes: 15, energy: "low" },
+        { key: "transfer-first-section", type: "make", milestone: "3 · Prep", label: "Sketch or transfer the placement for the first section", details: "Lightly mark the first motif and its surrounding shapes before committing to the permanent layer.", minutes: 20, energy: "medium" },
+        { key: "paint-first-graphics", type: "make", milestone: "4 · Build", label: "Paint the first large black / red graphic shapes", details: "Work on one bounded section rather than trying to fill the whole pair in one session. The reference visibly uses a brush for bold dark shapes on the denim.", minutes: 30, energy: "medium" },
+        { key: "first-main-motif", type: "make", milestone: "4 · Build", label: "Complete one main character or manga-panel motif", details: "Finish one focal image/panel in the first section, including the major outlines and fill needed for that motif, then let it dry as required.", minutes: 45, energy: "medium" },
+        { key: "second-main-motif", type: "make", milestone: "4 · Build", label: "Complete one major motif on the other leg", details: "Move to a second focal area so the design develops across both legs instead of overworking only one side.", minutes: 45, energy: "medium" },
+        { key: "lettering-accents", type: "make", milestone: "4 · Build", label: "Add lettering and smaller graphic accents", details: "Use the remaining planned gaps for lettering, symbols, red marks or smaller manga-style details rather than adding random filler.", minutes: 30, energy: "medium" },
+        { key: "composition-check", type: "finish", milestone: "5 · Finish", label: "Check the composition across both legs and add only missing details", details: "Try the jeans on or lay them out fully. Check visual balance, spacing and whether any planned area still looks unfinished before adding more.", minutes: 20, energy: "low" },
+        { key: "cure-denim", type: "finish", milestone: "5 · Finish", label: "Let the design dry fully and cure/fix it according to the product instructions", details: "Follow the instructions for the exact textile paint/marker you chose, including any wait time, heat-setting or sealing required by that product.", minutes: 15, energy: "low" },
+        { key: "wear-test-jeans", type: "finish", milestone: "5 · Finish", label: "Final wear test and tidy the finished jeans", details: "Check comfort and movement, inspect edges/details, and tidy any loose threads or small finish issues before calling the project complete.", minutes: 15, energy: "low" }
       ]
     },
     {
@@ -72,25 +75,129 @@
       sourceLabel: "CrochetEverything · Crochet Ivy Choker Pattern",
       sourceUrl: "https://crocheteverything.com/crochet-ivy-choker-pattern-adorable-chic-accessory-for-stylish-look/",
       sourceNote: "Roadmap is based on the pattern text you supplied. The source does not actually spell out the mushroom-cap increase sequence, so that gap stays explicit rather than being invented.",
-      note: "Pattern materials: yarn of your choice + a crochet hook suitable for the yarn. Decoration counts are intentionally your choice.",
+      note: "Pattern materials: yarn of your choice + a crochet hook suitable for the yarn. Missing materials are handled before the crochet steps. Decoration counts are intentionally your choice.",
       roadmap: [
-        { milestone: "1 · Setup", label: "Choose yarn, hook and a comfortable choker length", details: "The pattern says to use yarn of your choice and a suitable hook. Make the starting chain fit comfortably around your neck; it gives about 60 chains only as an example.", minutes: 15, energy: "low" },
-        { milestone: "2 · Choker base", label: "Crochet the starting chain and first single-crochet side", details: "Slip knot → chain to the chosen neck length → chain 1 more → single crochet into the 2nd stitch from the hook → single crochet in every stitch to the end → cut yarn and pull through.", minutes: 25, energy: "low" },
-        { milestone: "2 · Choker base", label: "Single crochet along the opposite side of the initial chain", details: "Repeat the single-crochet process along the other side of the original foundation chain.", minutes: 20, energy: "low" },
-        { milestone: "3 · Texture", label: "Add the textured edge across the choker", details: "Reattach yarn at the first stitch of one side → chain 2 + slip stitch into the same stitch → slip stitch into the next stitch → chain 2 + slip stitch into that same stitch → continue across.", minutes: 20, energy: "low" },
-        { milestone: "4 · Straps", label: "Crochet the first tie strap", details: "Single crochet on one edge → chain about 60 or your desired strap length → slip stitch back along the chain toward the choker → attach with a single crochet on the side.", minutes: 20, energy: "low" },
-        { milestone: "4 · Straps", label: "Crochet the second tie strap", details: "Repeat the same strap construction on the opposite side so the choker can be tied comfortably.", minutes: 20, energy: "low" },
-        { milestone: "5 · Decoration plan", label: "Choose your ivy sizes and decide whether you want flowers and mushrooms", details: "Decide Small / Medium / Large ivy (or a mix), the approximate lengths you want, and whether flowers and mushrooms belong in your version. The pattern leaves amounts and placement up to you.", minutes: 10, energy: "low" },
-        { milestone: "6 · Ivy", label: "Crochet one small ivy strand if you chose Small", details: "Slip knot → chain 7 → slip stitch into 2nd chain → slip stitch again with hook brought behind the chain before pulling through → chain 7 again → repeat to desired length. Leave extra yarn for attaching.", minutes: 20, energy: "low", optional: true },
-        { milestone: "6 · Ivy", label: "Crochet one medium ivy strand if you chose Medium", details: "Slip knot → chain 11 → single crochet into 3rd chain from hook → slip stitch in next → go behind chain and pull through yarn → chain 11 again → continue to desired length.", minutes: 20, energy: "low", optional: true },
-        { milestone: "6 · Ivy", label: "Crochet one large ivy strand if you chose Large", details: "Slip knot → chain 17 → single crochet in 3rd chain → half double crochet in next → single crochet in next → slip stitch → work around/pull through as described → slip stitch → chain 17 again → continue to desired length.", minutes: 25, energy: "medium", optional: true },
-        { milestone: "7 · Extras", label: "Crochet the flowers you decided to use", details: "Magic ring → chain 2 → 2 double crochets → chain 2 → slip stitch into ring. Repeat inside the ring for 5 petals, then pull the ring closed. Make as many as you chose in the decoration plan.", minutes: 25, energy: "low", optional: true },
-        { milestone: "7 · Extras", label: "Crochet the mushrooms you decided to use", details: "Pattern text: magic ring + 6 single crochets → close and slip stitch to join. The source then says to increase in the next round to shape the cap but does not give the actual increase sequence. For the stem: chain 3 → slip stitch into first chain → single crochet into each, then attach stem to cap.", minutes: 30, energy: "medium", optional: true, warning: "Source gap: mushroom-cap increase sequence is not specified in the supplied pattern text." },
-        { milestone: "8 · Assembly", label: "Lay out the finished pieces and choose the final placement", details: "Lay the choker flat and arrange ivy chains, flowers and mushrooms before tying anything on permanently.", minutes: 10, energy: "low" },
-        { milestone: "8 · Assembly", label: "Attach the mushroom at the necklace centre if you are using mushrooms", details: "The pattern says to find the necklace centre first and secure the mushroom using its yarn ends through the necklace stitches.", minutes: 15, energy: "low", optional: true },
-        { milestone: "8 · Assembly", label: "Attach the ivy chains to the choker", details: "Place the ivy strands where you want them, use their extra yarn ends to tie them securely to the choker, then trim excess yarn appropriately.", minutes: 20, energy: "low" },
-        { milestone: "8 · Assembly", label: "Attach the flowers and secure the remaining yarn ends", details: "Attach flowers to ivy chains or directly to the choker as desired, secure them firmly, then tidy the remaining ends.", minutes: 20, energy: "low", optional: true },
-        { milestone: "8 · Assembly", label: "Try on the choker and make final fit or placement adjustments", details: "Check that the base and straps sit comfortably and that the decoration placement feels right before marking the adventure complete.", minutes: 10, energy: "low" }
+        { key: "choose-yarn-hook", type: "materials", milestone: "1 · Setup & materials", label: "Choose yarn, colour and a suitable crochet hook", details: "The pattern says to use yarn of your choice and a hook suitable for that yarn. Choose the yarn first, then check its label/recommendation for an appropriate hook size.", minutes: 15, energy: "low" },
+        { key: "inventory-choker-materials", type: "materials", milestone: "1 · Setup & materials", label: "Check whether you already have the yarn and hook you need", details: "Confirm the chosen yarn quantity/colour and hook are actually available. Add only missing items to a shopping list.", minutes: 5, energy: "low" },
+        { key: "get-choker-materials", type: "materials", milestone: "1 · Setup & materials", label: "Get any missing choker materials", details: "Buy/order the missing yarn or hook. Keep this step open until the required materials are actually available to crochet with.", minutes: 10, energy: "low" },
+        { key: "choose-choker-length", type: "decision", milestone: "1 · Setup & materials", label: "Choose a comfortable choker length", details: "The pattern says to make the starting chain fit comfortably around your neck; about 60 chains is only an example, not a fixed count.", minutes: 10, energy: "low" },
+        { key: "base-first-side", type: "make", milestone: "2 · Choker base", label: "Crochet the starting chain and first single-crochet side", details: "Slip knot → chain to the chosen neck length → chain 1 more → single crochet into the 2nd stitch from the hook → single crochet in every stitch to the end → cut yarn and pull through.", minutes: 25, energy: "low" },
+        { key: "base-opposite-side", type: "make", milestone: "2 · Choker base", label: "Single crochet along the opposite side of the initial chain", details: "Repeat the single-crochet process along the other side of the original foundation chain.", minutes: 20, energy: "low" },
+        { key: "textured-edge", type: "make", milestone: "3 · Texture", label: "Add the textured edge across the choker", details: "Reattach yarn at the first stitch of one side → chain 2 + slip stitch into the same stitch → slip stitch into the next stitch → chain 2 + slip stitch into that same stitch → continue across.", minutes: 20, energy: "low" },
+        { key: "strap-one", type: "make", milestone: "4 · Straps", label: "Crochet the first tie strap", details: "Single crochet on one edge → chain about 60 or your desired strap length → slip stitch back along the chain toward the choker → attach with a single crochet on the side.", minutes: 20, energy: "low" },
+        { key: "strap-two", type: "make", milestone: "4 · Straps", label: "Crochet the second tie strap", details: "Repeat the same strap construction on the opposite side so the choker can be tied comfortably.", minutes: 20, energy: "low" },
+        { key: "decoration-plan", type: "decision", milestone: "5 · Decoration plan", label: "Choose your ivy sizes and decide whether you want flowers and mushrooms", details: "Decide Small / Medium / Large ivy (or a mix), the approximate lengths you want, and whether flowers and mushrooms belong in your version. The pattern leaves amounts and placement up to you.", minutes: 10, energy: "low" },
+        { key: "small-ivy", type: "make", milestone: "6 · Ivy", label: "Crochet one small ivy strand if you chose Small", details: "Slip knot → chain 7 → slip stitch into 2nd chain → slip stitch again with hook brought behind the chain before pulling through → chain 7 again → repeat to desired length. Leave extra yarn for attaching.", minutes: 20, energy: "low", optional: true },
+        { key: "medium-ivy", type: "make", milestone: "6 · Ivy", label: "Crochet one medium ivy strand if you chose Medium", details: "Slip knot → chain 11 → single crochet into 3rd chain from hook → slip stitch in next → go behind chain and pull through yarn → chain 11 again → continue to desired length.", minutes: 20, energy: "low", optional: true },
+        { key: "large-ivy", type: "make", milestone: "6 · Ivy", label: "Crochet one large ivy strand if you chose Large", details: "Slip knot → chain 17 → single crochet in 3rd chain → half double crochet in next → single crochet in next → slip stitch → work around/pull through as described → slip stitch → chain 17 again → continue to desired length.", minutes: 25, energy: "medium", optional: true },
+        { key: "flowers", type: "make", milestone: "7 · Extras", label: "Crochet the flowers you decided to use", details: "Magic ring → chain 2 → 2 double crochets → chain 2 → slip stitch into ring. Repeat inside the ring for 5 petals, then pull the ring closed. Make as many as you chose in the decoration plan.", minutes: 25, energy: "low", optional: true },
+        { key: "mushrooms", type: "make", milestone: "7 · Extras", label: "Crochet the mushrooms you decided to use", details: "Pattern text: magic ring + 6 single crochets → close and slip stitch to join. The source then says to increase in the next round to shape the cap but does not give the actual increase sequence. For the stem: chain 3 → slip stitch into first chain → single crochet into each, then attach stem to cap.", minutes: 30, energy: "medium", optional: true, warning: "Source gap: mushroom-cap increase sequence is not specified in the supplied pattern text." },
+        { key: "layout-choker", type: "make", milestone: "8 · Assembly", label: "Lay out the finished pieces and choose the final placement", details: "Lay the choker flat and arrange ivy chains, flowers and mushrooms before tying anything on permanently.", minutes: 10, energy: "low" },
+        { key: "attach-mushroom", type: "make", milestone: "8 · Assembly", label: "Attach the mushroom at the necklace centre if you are using mushrooms", details: "The pattern says to find the necklace centre first and secure the mushroom using its yarn ends through the necklace stitches.", minutes: 15, energy: "low", optional: true },
+        { key: "attach-ivy", type: "make", milestone: "8 · Assembly", label: "Attach the ivy chains to the choker", details: "Place the ivy strands where you want them, use their extra yarn ends to tie them securely to the choker, then trim excess yarn appropriately.", minutes: 20, energy: "low" },
+        { key: "attach-flowers", type: "make", milestone: "8 · Assembly", label: "Attach the flowers and secure the remaining yarn ends", details: "Attach flowers to ivy chains or directly to the choker as desired, secure them firmly, then tidy the remaining ends.", minutes: 20, energy: "low", optional: true },
+        { key: "fit-choker", type: "finish", milestone: "8 · Assembly", label: "Try on the choker and make final fit or placement adjustments", details: "Check that the base and straps sit comfortably and that the decoration placement feels right before marking the adventure complete.", minutes: 10, energy: "low" }
+      ]
+    },
+    {
+      curatedId: "bakugo-paper-doll",
+      name: "Bakugo Paper Doll / Paper Figure",
+      kind: "creative",
+      realm: "Hobbies",
+      energy: "low",
+      sessionMinutes: 20,
+      reasonTags: ["want-result", "fun"],
+      sourceLabel: "Your saved Bakugo paper-doll template reference",
+      sourceNote: "The supplied image clearly shows a printable sheet with separate body, hair and costume/accessory pieces. The exact intended attachment method is not visible, so the roadmap includes a short research step instead of guessing glue/brads/folds.",
+      note: "Secure the printable and confirm the intended assembly method before cutting the final copy.",
+      roadmap: [
+        { key: "save-paper-template", type: "research", milestone: "1 · Source & method", label: "Save the Bakugo template in the best resolution you can find", details: "Keep the original reference/template file somewhere you can print from without repeatedly compressing it.", minutes: 10, energy: "low" },
+        { key: "research-paper-assembly", type: "research", milestone: "1 · Source & method", label: "Confirm how this specific paper doll is meant to be assembled", details: "Check whether the template is intended as a flat layered figure, folded papercraft, glued pieces, movable joints/brads, or another construction. Use the original pin/tutorial if available rather than guessing from the parts sheet.", minutes: 15, energy: "low" },
+        { key: "choose-paper-size", type: "decision", milestone: "2 · Materials", label: "Choose the finished size and suitable paper weight", details: "Decide how large you want the figure, then pick printer paper/cardstock appropriate for the confirmed assembly method.", minutes: 10, energy: "low" },
+        { key: "inventory-paper-doll", type: "materials", milestone: "2 · Materials", label: "Check your paper-craft supplies and make a missing-material list", details: "Check printer access, paper/cardstock, scissors or craft knife, cutting mat, adhesive and any brads/joint hardware required by the confirmed method.", minutes: 10, energy: "low" },
+        { key: "get-paper-doll-materials", type: "materials", milestone: "2 · Materials", label: "Get the missing paper-doll materials", details: "Buy/order only what is missing and keep this step open until the required materials are actually ready to use.", minutes: 10, energy: "low" },
+        { key: "print-paper-doll", type: "make", milestone: "3 · Print & cut", label: "Print the final template at the chosen size", details: "Print a clean final copy using the paper and scaling chosen in the setup steps.", minutes: 10, energy: "low" },
+        { key: "cut-paper-parts", type: "make", milestone: "3 · Print & cut", label: "Cut out all body, hair and costume pieces", details: "Cut carefully around each component and keep small accessory pieces grouped so nothing is lost.", minutes: 30, energy: "medium" },
+        { key: "prep-folds-joins", type: "make", milestone: "3 · Print & cut", label: "Prepare any folds, tabs or joint points required by the template", details: "Score/fold tabs or prepare joint holes only if the confirmed assembly method calls for them.", minutes: 15, energy: "medium" },
+        { key: "assemble-paper-body", type: "make", milestone: "4 · Assemble", label: "Assemble the body base", details: "Join the main head/body/limb components using the method confirmed from the source.", minutes: 20, energy: "medium" },
+        { key: "assemble-paper-hair", type: "make", milestone: "4 · Assemble", label: "Attach the front and back hair pieces", details: "Align the separate spiky hair components around the head and secure them according to the template method.", minutes: 15, energy: "medium" },
+        { key: "assemble-paper-costume", type: "make", milestone: "4 · Assemble", label: "Add the costume and accessory pieces", details: "Attach the belt/costume/details from the sheet in the intended layer/order.", minutes: 20, energy: "medium" },
+        { key: "paper-doll-final", type: "finish", milestone: "5 · Finish", label: "Check alignment, joins and loose edges", details: "Make any small corrections, reinforce weak joins if needed and make sure the finished figure sits/moves as intended by the template.", minutes: 10, energy: "low" }
+      ]
+    },
+    {
+      curatedId: "anime-paper-waterfall",
+      name: "Anime Paper Waterfall",
+      kind: "creative",
+      realm: "Hobbies",
+      energy: "medium",
+      sessionMinutes: 25,
+      reasonTags: ["want-result", "learn", "fun"],
+      sourceLabel: "Your saved paper-waterfall tutorial reference",
+      sourceNote: "The screenshot clearly shows an illustrated multi-panel paper waterfall, but not the full fold/glue mechanics. The roadmap therefore makes understanding the tutorial mechanism a required first step before final assembly.",
+      note: "Verify the mechanism first, ideally with a quick scrap-paper prototype, before spending time on finished artwork.",
+      roadmap: [
+        { key: "study-waterfall-tutorial", type: "research", milestone: "1 · Understand the mechanism", label: "Watch/save the paper-waterfall tutorial and identify the exact fold/glue sequence", details: "Work out the actual pull-strip, fold spacing, panel attachment points and backing method from the source tutorial. Do not rely on guessed dimensions from the single screenshot.", minutes: 20, energy: "low" },
+        { key: "waterfall-material-research", type: "research", milestone: "1 · Understand the mechanism", label: "Choose suitable paper/cardstock and adhesive for the waterfall", details: "Pick paper sturdy enough for repeated movement but still foldable, and an adhesive/tape that will not make the mechanism too bulky.", minutes: 10, energy: "low" },
+        { key: "inventory-waterfall", type: "materials", milestone: "2 · Materials", label: "Check your paper-craft supplies for the waterfall", details: "Check cardstock/paper, ruler, pencil, cutting tool, cutting mat, adhesive/tape and colouring/drawing supplies. Make a list of only what is missing.", minutes: 10, energy: "low" },
+        { key: "get-waterfall-materials", type: "materials", milestone: "2 · Materials", label: "Get any missing paper-waterfall materials", details: "Buy/order the missing supplies and keep this step open until the project can actually be built.", minutes: 10, energy: "low" },
+        { key: "prototype-waterfall", type: "make", milestone: "3 · Prototype", label: "Build a quick scrap-paper prototype of the waterfall mechanism", details: "Use plain scrap paper first. Confirm that pulling the tab flips the panels cleanly before making the final illustrated version.", minutes: 25, energy: "medium" },
+        { key: "plan-waterfall-panels", type: "decision", milestone: "4 · Artwork", label: "Choose the anime theme and plan the panel sequence", details: "Decide which character(s)/moments go on each panel and how many panels your verified mechanism supports.", minutes: 20, energy: "medium" },
+        { key: "make-waterfall-art", type: "make", milestone: "4 · Artwork", label: "Draw, print or paint the finished panel artwork", details: "Create the individual images at the dimensions confirmed by the prototype/tutorial. Work panel by panel rather than trying to finish the whole set at once.", minutes: 45, energy: "medium" },
+        { key: "cut-final-waterfall", type: "make", milestone: "5 · Final build", label: "Cut and mark the final waterfall strip, backing and panels", details: "Transfer the verified measurements/fold marks from the tutorial/prototype onto the final materials.", minutes: 20, energy: "medium" },
+        { key: "assemble-final-waterfall", type: "make", milestone: "5 · Final build", label: "Assemble the final waterfall using the verified tutorial sequence", details: "Attach the panels and pull mechanism in the exact order/positions you confirmed during research and prototyping.", minutes: 30, energy: "medium" },
+        { key: "test-waterfall", type: "finish", milestone: "5 · Final build", label: "Test the waterfall repeatedly and fix any catching or weak joins", details: "Pull it through several full cycles. Reinforce or trim only where needed so the panels flip reliably.", minutes: 15, energy: "low" },
+        { key: "decorate-waterfall", type: "finish", milestone: "6 · Finish", label: "Add the final cover/backing decoration", details: "Once the mechanism works, add any final border, cover or decorative details that will not interfere with movement.", minutes: 20, energy: "low" }
+      ]
+    },
+    {
+      curatedId: "bakugo-charm-keychain",
+      name: "Bakugo-Inspired Charm Keychain",
+      kind: "creative",
+      realm: "Hobbies",
+      energy: "low",
+      sessionMinutes: 20,
+      reasonTags: ["want-result", "fun"],
+      sourceLabel: "Your saved Bakugo-inspired keychain reference",
+      sourceNote: "The reference shows orange hardware, letter beads, black/orange accent beads, a grenade-style charm and a small black plush/felt element. Exact purchased components can vary, so the project starts with a component plan and compatibility check.",
+      note: "Plan the hardware and bead/charm sizes before buying so the pieces actually connect cleanly.",
+      roadmap: [
+        { key: "plan-keychain-components", type: "decision", milestone: "1 · Design", label: "Choose the exact Bakugo-inspired keychain components you want", details: "Decide which elements you actually want to recreate: clip colour, letter beads/name, grenade/explosion charm, accent beads and optional plush/felt charm.", minutes: 15, energy: "low" },
+        { key: "research-keychain-hardware", type: "research", milestone: "1 · Design", label: "Check keychain hardware and component compatibility", details: "Check jump-ring size/gauge, bead holes, eye/head pins if needed, clip attachment points and whether you have suitable jewellery pliers. Make sure the planned pieces can physically connect before ordering them.", minutes: 15, energy: "low" },
+        { key: "inventory-keychain", type: "materials", milestone: "2 · Materials", label: "Inventory the keychain supplies you already own", details: "Check clips, jump rings, pliers, beads, letters and charms; make one concrete list of missing components.", minutes: 10, energy: "low" },
+        { key: "get-keychain-materials", type: "materials", milestone: "2 · Materials", label: "Get the missing keychain hardware, beads and charms", details: "Buy/order the missing components and keep this step open until everything needed for assembly is actually available.", minutes: 15, energy: "low" },
+        { key: "layout-keychain", type: "make", milestone: "3 · Assembly", label: "Lay out all keychain components before connecting them", details: "Arrange the strands/charms next to the main clip to balance length, weight and colour before opening any jump rings.", minutes: 10, energy: "low" },
+        { key: "make-letter-strand", type: "make", milestone: "3 · Assembly", label: "Assemble the letter-bead strand", details: "Build the planned letter/name element with the chosen spacer/accent beads and appropriate jewellery hardware.", minutes: 20, energy: "low" },
+        { key: "make-bead-strands", type: "make", milestone: "3 · Assembly", label: "Assemble the orange/black accent bead sections", details: "Create the smaller bead connectors/segments you planned and attach them securely to their rings/pins.", minutes: 20, energy: "low" },
+        { key: "attach-main-charms", type: "make", milestone: "3 · Assembly", label: "Attach the main themed charms to the keychain", details: "Add the grenade/explosion and any plush/felt or character-inspired pieces using correctly sized jump rings/hardware.", minutes: 20, energy: "low" },
+        { key: "keychain-security-check", type: "finish", milestone: "4 · Finish", label: "Close every ring securely and test the finished keychain", details: "Check that jump rings are fully closed, nothing catches or falls off, and the finished weight/layout works on a bag or keys.", minutes: 10, energy: "low" }
+      ]
+    },
+    {
+      curatedId: "custom-bakugo-high-tops",
+      name: "Custom Bakugo High-Top Sneakers",
+      kind: "creative",
+      realm: "Hobbies",
+      energy: "medium",
+      sessionMinutes: 30,
+      reasonTags: ["want-result", "learn", "fun"],
+      sourceLabel: "Your saved Bakugo-inspired sneaker reference",
+      sourceNote: "The reference shows black canvas high-tops with orange laces/eyelets and Bakugo/explosion-style graphics. You said you do not currently own fabric paint, so material research and purchasing are explicit dependencies before painting begins.",
+      note: "Research the exact paint/marker system for canvas shoes before buying supplies, then follow that product's preparation and curing/sealing instructions.",
+      roadmap: [
+        { key: "research-shoe-paint", type: "research", milestone: "1 · Research", label: "Research suitable paint or markers for canvas sneakers", details: "Compare products intended for canvas/fabric shoes, including durability, flex/cracking risk, colour opacity, preparation, curing and whether a finisher/sealer is actually recommended for that system.", minutes: 20, energy: "low" },
+        { key: "research-shoe-prep", type: "research", milestone: "1 · Research", label: "Confirm the preparation and finishing steps for the paint system you choose", details: "Check cleaning/prep requirements, drying times, heat-setting or sealing instructions and care/washing guidance for the exact product. Do not mix generic advice with incompatible product instructions.", minutes: 15, energy: "low" },
+        { key: "choose-shoes", type: "decision", milestone: "2 · Materials", label: "Choose the black high-top sneakers you want to customize", details: "Use a pair with a suitable canvas/fabric upper and confirm the fit before committing permanent artwork to them.", minutes: 15, energy: "low" },
+        { key: "inventory-shoe-supplies", type: "materials", milestone: "2 · Materials", label: "Make a complete sneaker-customizing supply list", details: "Check what you already own, then list the missing paint/markers, brushes/detail tools, masking tape, prep materials, any required finisher/sealer and orange laces if you want the reference look.", minutes: 10, energy: "low" },
+        { key: "get-shoe-supplies", type: "materials", milestone: "2 · Materials", label: "Get the missing sneaker paint and supplies", details: "Buy/order the missing canvas-safe products and accessories. Keep this step open until the shoes and required painting materials are actually in hand.", minutes: 15, energy: "low" },
+        { key: "plan-shoe-design", type: "decision", milestone: "3 · Design", label: "Plan the Bakugo/explosion graphics for both shoes", details: "Collect the references you want and decide what belongs on each outer side, inner side and heel so the two shoes feel related without needing to be identical.", minutes: 30, energy: "medium" },
+        { key: "prep-shoes", type: "make", milestone: "4 · Prep", label: "Clean, prepare and mask the sneakers", details: "Follow the chosen product's prep instructions, remove the laces and mask soles/edges or areas that should stay clean.", minutes: 20, energy: "medium" },
+        { key: "sketch-shoe-design", type: "make", milestone: "4 · Prep", label: "Lightly sketch the planned graphics onto the shoes", details: "Transfer the major shapes and placement before applying permanent colour.", minutes: 30, energy: "medium" },
+        { key: "paint-shoe-base", type: "make", milestone: "5 · Paint", label: "Paint the first major colour blocks and explosion shapes", details: "Work in controlled sections and respect drying/layering instructions for the paint system you chose.", minutes: 40, energy: "medium" },
+        { key: "paint-shoe-details", type: "make", milestone: "5 · Paint", label: "Add lettering, outlines and smaller Bakugo-style details", details: "Finish the comic/explosion accents, outlines and any contrasting details after the larger colour areas are ready for them.", minutes: 40, energy: "medium" },
+        { key: "balance-second-shoe", type: "make", milestone: "5 · Paint", label: "Complete and balance the design across the second shoe", details: "Compare the pair together and finish any planned graphics needed to make the set feel coherent.", minutes: 40, energy: "medium" },
+        { key: "cure-shoes", type: "finish", milestone: "6 · Finish", label: "Let the artwork cure and finish/seal it exactly as the product requires", details: "Follow the actual paint/marker manufacturer's curing and finishing instructions, including any required wait time before wear.", minutes: 15, energy: "low" },
+        { key: "relace-shoes", type: "finish", milestone: "6 · Finish", label: "Add the final laces and do a wear test", details: "Relace the shoes (orange if you chose that reference detail), inspect the artwork and check comfort/flex before calling the project complete.", minutes: 15, energy: "low" }
       ]
     }
   ];
@@ -262,6 +369,8 @@
         if (!["pending", "done", "skipped"].includes(step.status)) { step.status = "pending"; changed = true; }
         if (!ENERGY[step.energy]) { step.energy = item.energy || "medium"; changed = true; }
         if (!Number.isFinite(Number(step.minutes))) { step.minutes = item.sessionMinutes || 30; changed = true; }
+        if (!["research", "materials", "decision", "make", "finish"].includes(step.type)) { step.type = "make"; changed = true; }
+        if (!step.key) { step.key = String(step.id || `${item.curatedId || item.id}-step-${index + 1}`); changed = true; }
         step.optional = Boolean(step.optional);
       });
       if (item.roadmap.length && item.roadmapManaged !== false) {
@@ -285,16 +394,14 @@
       const existing = currentModel.items.find(item => item?.curatedId === spec.curatedId || String(item?.name || "").trim().toLowerCase() === spec.name.toLowerCase());
       if (existing) {
         if (!existing.curatedId) existing.curatedId = spec.curatedId;
-        if (!Array.isArray(existing.roadmap) || !existing.roadmap.length) {
-          existing.roadmap = cloneRoadmap(spec.roadmap, spec.curatedId);
-          existing.roadmapManaged = true;
-          existing.sourceLabel = existing.sourceLabel || spec.sourceLabel || "";
-          existing.sourceUrl = existing.sourceUrl || spec.sourceUrl || "";
-          existing.sourceNote = existing.sourceNote || spec.sourceNote || "";
-          existing.note = existing.note || spec.note || "";
-          existing.reasonTags = Array.isArray(existing.reasonTags) && existing.reasonTags.length ? existing.reasonTags : [...(spec.reasonTags || [])];
-          syncRoadmapItem(existing);
-        }
+        existing.sourceLabel = spec.sourceLabel || existing.sourceLabel || "";
+        existing.sourceUrl = spec.sourceUrl || existing.sourceUrl || "";
+        existing.sourceNote = spec.sourceNote || existing.sourceNote || "";
+        if (!existing.note) existing.note = spec.note || "";
+        if (!Array.isArray(existing.reasonTags) || !existing.reasonTags.length) existing.reasonTags = [...(spec.reasonTags || [])];
+        existing.roadmap = mergeCuratedRoadmap(existing.roadmap, spec.roadmap, spec.curatedId);
+        existing.roadmapManaged = true;
+        syncRoadmapItem(existing);
         return;
       }
       const item = {
@@ -326,18 +433,44 @@
     });
   }
 
+  function normalizeRoadmapLabel(value) {
+    return String(value || "").trim().toLowerCase().replace(/\s+/g, " ");
+  }
+
+  function mergeCuratedRoadmap(existingSteps = [], newSteps = [], prefix = "roadmap") {
+    const old = Array.isArray(existingSteps) ? existingSteps : [];
+    const byKey = new Map(old.filter(step => step?.key).map(step => [String(step.key), step]));
+    const byLabel = new Map(old.filter(step => step?.label).map(step => [normalizeRoadmapLabel(step.label), step]));
+    return newSteps.map((step, index) => {
+      const key = String(step.key || `step-${index + 1}`);
+      const prior = byKey.get(key) || byLabel.get(normalizeRoadmapLabel(step.label));
+      const fresh = cloneRoadmap([{ ...step, key }], prefix)[0];
+      if (prior && ["done", "skipped"].includes(prior.status)) {
+        fresh.status = prior.status;
+        if (prior.completedAt) fresh.completedAt = prior.completedAt;
+        if (prior.skippedAt) fresh.skippedAt = prior.skippedAt;
+      }
+      return fresh;
+    });
+  }
+
   function cloneRoadmap(steps = [], prefix = "roadmap") {
-    return steps.map((step, index) => ({
-      id: `${prefix}-step-${index + 1}`,
-      milestone: String(step.milestone || "Roadmap"),
-      label: String(step.label || `Project step ${index + 1}`),
-      details: String(step.details || ""),
-      minutes: clamp(Math.round(Number(step.minutes || 30)), 5, 240),
-      energy: ENERGY[step.energy] ? step.energy : "medium",
-      optional: Boolean(step.optional),
-      warning: String(step.warning || ""),
-      status: "pending"
-    }));
+    return steps.map((step, index) => {
+      const key = String(step.key || `step-${index + 1}`);
+      return {
+        id: `${prefix}-${key}`,
+        key,
+        type: ["research", "materials", "decision", "make", "finish"].includes(step.type) ? step.type : "make",
+        milestone: String(step.milestone || "Roadmap"),
+        label: String(step.label || `Project step ${index + 1}`),
+        details: String(step.details || ""),
+        minutes: clamp(Math.round(Number(step.minutes || 30)), 5, 240),
+        energy: ENERGY[step.energy] ? step.energy : "medium",
+        optional: Boolean(step.optional),
+        warning: String(step.warning || ""),
+        status: "pending"
+      };
+    });
   }
 
   function roadmapStats(item) {
@@ -530,7 +663,8 @@
               ${group.steps.map(step => {
                 const isCurrent = current?.id === step.id;
                 const stateIcon = step.status === "done" ? "✓" : step.status === "skipped" ? "↷" : isCurrent ? "→" : "○";
-                const meta = `${ENERGY[step.energy]?.icon || "🌤️"} ${ENERGY[step.energy]?.label || "Medium energy"} · ~${Number(step.minutes || 30)} min${step.optional ? " · optional" : ""}`;
+                const typeLabel = { research: "Research", materials: "Materials", decision: "Plan", make: "Make", finish: "Finish" }[step.type] || "Make";
+                const meta = `${typeLabel} · ${ENERGY[step.energy]?.icon || "🌤️"} ${ENERGY[step.energy]?.label || "Medium energy"} · ~${Number(step.minutes || 30)} min${step.optional ? " · optional" : ""}`;
                 return `<article class="adventure-roadmap-step-v308 status-${escAttr(step.status)} ${isCurrent ? "current" : ""}">
                   <span class="adventure-roadmap-state-v308">${stateIcon}</span>
                   <div><strong>${esc(step.label)}</strong><small>${esc(meta)}</small>${step.details ? `<p>${esc(step.details)}</p>` : ""}${step.warning ? `<p class="adventure-roadmap-warning-v308">⚠ ${esc(step.warning)}</p>` : ""}</div>
