@@ -184,6 +184,16 @@ GitHub Pages will then update automatically after the new commit is deployed.
 - Journal design deliberately has **no streak punishment**, no negative-day counter and no diagnostic claims. Missing days stay blank; weekly observations describe co-occurrence without pretending to explain causation.
 - Existing Story/Social content, quests, rewards, relationship rules, libraries, CG slots and save history remain intact.
 
+
+## V0.30.3a — Library Series & Search UX Polish
+
+- Open Library series metadata is now used when available when adding a catalog match.
+- Existing series in the Library are suggested while adding another book, including same-author series.
+- Choosing an existing series can inherit its canonical name/known total and suggest the next likely volume number.
+- The Series field now offers existing Library series as selectable autocomplete options instead of requiring exact retyping.
+- After choosing an Open Library result, the search-result stack collapses automatically; “Change match” reopens it when needed.
+- This is a cumulative polish pass on top of V0.30.3; no Project Sources were changed.
+
 ## V0.30.3 — Living Daily Plan & Smart Actions
 
 - Reframed Today's Picks as **Anchor / Care / Optional** instead of a mandatory three-item productivity loadout. Slots are deliberately left empty when no good state-aware action exists.

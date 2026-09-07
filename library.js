@@ -8,7 +8,7 @@
   }
 
   const SCHEMA = 3;
-  const LOOKUP_CACHE_KEY = "life-rpg-book-lookup-cache-v1";
+  const LOOKUP_CACHE_KEY = "life-rpg-book-lookup-cache-v2";
   const LOOKUP_CACHE_TTL = 7 * 24 * 60 * 60 * 1000;
   const LOOKUP_LIMIT = 6;
   const SHADOW_KEY = "life-rpg-book-library-shadow-v1";
@@ -74,6 +74,8 @@
     series: byId("bookSeries"),
     seriesNumber: byId("bookSeriesNumber"),
     seriesTotal: byId("bookSeriesTotal"),
+    seriesDatalist: byId("bookSeriesDatalist"),
+    seriesSuggestions: byId("bookSeriesSuggestions"),
     continueSeries: byId("bookContinueSeries"),
     preferredGoal: byId("bookPreferredGoal"),
     notes: byId("bookNotes"),
@@ -131,6 +133,7 @@
   let selectedLookup = null;
   let lookupCleared = false;
   let lookupController = null;
+  let lookupResultsCollapsed = false;
 
   init();
 
@@ -160,6 +163,10 @@
     [els.title, els.author, els.source, els.totalPages, els.currentPage, els.series, els.seriesNumber, els.seriesTotal, els.preferredGoal].forEach(input => {
       input?.addEventListener("input", renderQuickPreview);
       input?.addEventListener("change", renderQuickPreview);
+    });
+    [els.title, els.author, els.series].forEach(input => {
+      input?.addEventListener("input", renderSeriesSuggestions);
+      input?.addEventListener("change", renderSeriesSuggestions);
     });
     els.continueSeries?.addEventListener("change", renderQuickPreview);
     els.form?.querySelectorAll('input[name="bookStatus"], input[name="bookRole"]').forEach(input => input.addEventListener("change", renderQuickPreview));
@@ -193,6 +200,20 @@
       const lookupClear = event.target.closest?.("[data-book-lookup-clear]");
       if (lookupClear) {
         clearLookupSelection();
+        return;
+      }
+
+      const lookupChange = event.target.closest?.("[data-book-lookup-change]");
+      if (lookupChange) {
+        lookupResultsCollapsed = false;
+        renderLookupResults();
+        renderLookupStatus(`${lookupResults.length} match${lookupResults.length === 1 ? "" : "es"} available — choose another match.`, "note");
+        return;
+      }
+
+      const seriesUse = event.target.closest?.("[data-book-series-use]");
+      if (seriesUse) {
+        applySeriesSuggestion(decodeURIComponent(seriesUse.dataset.bookSeriesUse || ""));
         return;
       }
 
@@ -500,6 +521,7 @@
     if (lookupController) lookupController.abort();
     lookupController = new AbortController();
     lookupResults = [];
+    lookupResultsCollapsed = false;
     renderLookupResults();
     setLookupBusy(true);
     renderLookupStatus("Searching Open Library…", "loading");
@@ -558,7 +580,8 @@
     const coverUrl = coverId
       ? `https://covers.openlibrary.org/b/id/${coverId}-M.jpg`
       : isbn ? `https://covers.openlibrary.org/b/isbn/${encodeURIComponent(isbn)}-M.jpg` : "";
-    const series = Array.isArray(doc?.series) ? String(doc.series[0] || "") : String(doc?.series || "");
+    const rawSeries = Array.isArray(doc?.series) ? String(doc.series[0] || "") : String(doc?.series || "");
+    const parsedSeries = parseSeriesMetadata(rawSeries);
     const publisher = Array.isArray(doc?.publisher) ? String(doc.publisher[0] || "") : String(doc?.publisher || "");
     const languages = Array.isArray(doc?.language) ? doc.language.filter(Boolean) : [];
     return {
@@ -568,8 +591,8 @@
       author: Array.isArray(doc?.author_name) ? doc.author_name.filter(Boolean).join(", ") : "",
       totalPages: safePositive(doc?.number_of_pages_median),
       pageCountApprox: Boolean(safePositive(doc?.number_of_pages_median)),
-      series: series.trim(),
-      seriesNumber: "",
+      series: parsedSeries.name,
+      seriesNumber: parsedSeries.number,
       isbn,
       publishYear: safePositive(doc?.first_publish_year),
       publisher: publisher.trim(),
@@ -583,6 +606,7 @@
 
   function renderLookupResults() {
     if (!els.lookupResults) return;
+    els.lookupResults.classList.toggle("hidden", lookupResultsCollapsed || !lookupResults.length);
     els.lookupResults.innerHTML = lookupResults.map((book, index) => {
       const meta = [book.publishYear, book.totalPages ? `~${formatNumber(book.totalPages)} pages` : "", book.editionCount ? `${book.editionCount} edition${book.editionCount === 1 ? "" : "s"}` : ""]
         .filter(Boolean).join(" · ");
@@ -607,15 +631,131 @@
     if (els.title) els.title.value = book.title || els.title.value;
     if (els.author) els.author.value = book.author || els.author.value;
     if (els.totalPages && book.totalPages) els.totalPages.value = String(book.totalPages);
-    if (els.series && book.series) els.series.value = book.series;
+    if (book.series) {
+      const existingSeries = findSeriesByName(book.series);
+      const canonicalName = existingSeries?.name || book.series;
+      if (els.series) els.series.value = canonicalName;
+      if (els.seriesNumber && !els.seriesNumber.value) els.seriesNumber.value = book.seriesNumber || suggestedNextSeriesNumber(canonicalName);
+      if (els.seriesTotal && !els.seriesTotal.value && existingSeries?.total) els.seriesTotal.value = String(existingSeries.total);
+      if (els.advanced) els.advanced.open = true;
+    }
+    lookupResultsCollapsed = true;
+    renderLookupResults();
     renderLookupSelection();
+    renderSeriesSuggestions();
     renderQuickPreview();
-    renderLookupStatus("Match applied. You only need to choose your status, purpose, and where you have it.", "success");
+    renderLookupStatus("Match applied. Search results folded away — you can change the match if needed.", "success");
+  }
+
+  function parseSeriesMetadata(value) {
+    let raw = String(value || "").trim();
+    if (!raw) return { name: "", number: "" };
+    raw = raw.replace(/\s+/g, " ");
+    const patterns = [
+      /^(.*?)[\s,;:\-–—]+(?:book|vol(?:ume)?|#)\s*(\d+(?:\.\d+)?)\s*$/i,
+      /^(.*?)\s*[#№]\s*(\d+(?:\.\d+)?)\s*$/i,
+      /^(.*?)\s*\((\d+(?:\.\d+)?)\)\s*$/i
+    ];
+    for (const pattern of patterns) {
+      const match = raw.match(pattern);
+      if (match && String(match[1] || "").trim()) return { name: String(match[1]).trim(), number: String(match[2] || "").trim() };
+    }
+    return { name: raw, number: "" };
+  }
+
+  function seriesKey(value) {
+    return String(value || "").trim().toLowerCase().replace(/[’']/g, "'").replace(/[^a-z0-9À-ž]+/gi, " ").replace(/\s+/g, " ").trim();
+  }
+
+  function allSeriesInfo() {
+    const map = new Map();
+    model().items.forEach(book => {
+      const name = String(book.series || "").trim();
+      if (!name) return;
+      const key = seriesKey(name);
+      if (!key) return;
+      const current = map.get(key) || { name, key, count: 0, numbers: [], total: 0, authors: new Set(), updatedAt: 0 };
+      current.count += 1;
+      const n = Number.parseFloat(String(book.seriesNumber || "").replace(",", "."));
+      if (Number.isFinite(n) && n > 0) current.numbers.push(n);
+      current.total = Math.max(current.total, Number(book.seriesTotal || 0));
+      if (book.author) current.authors.add(String(book.author).trim().toLowerCase());
+      current.updatedAt = Math.max(current.updatedAt, Number(book.updatedAt || book.createdAt || 0));
+      map.set(key, current);
+    });
+    return [...map.values()].sort((a, b) => b.updatedAt - a.updatedAt || a.name.localeCompare(b.name));
+  }
+
+  function findSeriesByName(name) {
+    const key = seriesKey(name);
+    return allSeriesInfo().find(item => item.key === key) || null;
+  }
+
+  function suggestedNextSeriesNumber(name) {
+    const info = findSeriesByName(name);
+    if (!info?.numbers?.length) return info?.count ? String(info.count + 1) : "";
+    const integers = info.numbers.filter(Number.isInteger);
+    if (!integers.length) return "";
+    return String(Math.max(...integers) + 1);
+  }
+
+  function matchingSeriesSuggestions() {
+    const all = allSeriesInfo();
+    const author = String(els.author?.value || selectedLookup?.author || "").trim().toLowerCase();
+    const imported = String(selectedLookup?.series || "").trim();
+    const importedKey = seriesKey(imported);
+    const matches = [];
+    if (imported) {
+      const existing = all.find(item => item.key === importedKey);
+      matches.push({ name: existing?.name || imported, reason: existing ? "Open Library match · already in your Library" : "Open Library series", priority: 0 });
+    }
+    if (author) {
+      all.filter(item => item.authors.has(author)).forEach(item => {
+        if (!matches.some(match => seriesKey(match.name) === item.key)) matches.push({ name: item.name, reason: `${item.count} book${item.count === 1 ? "" : "s"} by this author already linked`, priority: 1 });
+      });
+    }
+    return matches.sort((a, b) => a.priority - b.priority).slice(0, 4);
+  }
+
+  function renderSeriesSuggestions() {
+    const all = allSeriesInfo();
+    if (els.seriesDatalist) els.seriesDatalist.innerHTML = all.map(item => `<option value="${escAttr(item.name)}"></option>`).join("");
+    if (!els.seriesSuggestions) return;
+    const suggestions = matchingSeriesSuggestions();
+    const current = String(els.series?.value || "").trim();
+    const exact = current ? findSeriesByName(current) : null;
+    if (exact && current !== exact.name && els.series) els.series.value = exact.name;
+    if (!suggestions.length) {
+      els.seriesSuggestions.classList.add("hidden");
+      els.seriesSuggestions.innerHTML = "";
+      return;
+    }
+    els.seriesSuggestions.innerHTML = `<small>SERIES SUGGESTIONS</small><div>${suggestions.map(item => {
+      const info = findSeriesByName(item.name);
+      const next = suggestedNextSeriesNumber(item.name);
+      const suffix = info ? ` · next likely #${esc(next || "?")}` : "";
+      return `<button type="button" class="library-series-chip-v303a" data-book-series-use="${encodeURIComponent(item.name)}"><strong>${esc(item.name)}</strong><span>${esc(item.reason + suffix)}</span></button>`;
+    }).join("")}</div>`;
+    els.seriesSuggestions.classList.remove("hidden");
+  }
+
+  function applySeriesSuggestion(name) {
+    const cleaned = String(name || "").trim();
+    if (!cleaned) return;
+    const info = findSeriesByName(cleaned);
+    if (els.series) els.series.value = info?.name || cleaned;
+    if (els.seriesNumber && !String(els.seriesNumber.value || "").trim()) els.seriesNumber.value = suggestedNextSeriesNumber(cleaned);
+    if (els.seriesTotal && !String(els.seriesTotal.value || "").trim() && info?.total) els.seriesTotal.value = String(info.total);
+    if (els.advanced) els.advanced.open = true;
+    renderSeriesSuggestions();
+    renderQuickPreview();
   }
 
   function clearLookupSelection() {
     selectedLookup = null;
     lookupCleared = true;
+    lookupResultsCollapsed = false;
+    renderLookupResults();
     renderLookupSelection();
     renderQuickPreview();
     renderLookupStatus("Imported catalog link removed. Your typed fields stay as they are.", "note");
@@ -633,7 +773,7 @@
     const cover = safeCoverUrl(selectedLookup.coverUrl);
     els.lookupSelection.innerHTML = `${cover ? `<img src="${escAttr(cover)}" alt="" />` : `<span class="library-lookup-selected-mark-v161">✓</span>`}
       <div><small>CATALOG MATCH SELECTED</small><strong>${esc(selectedLookup.title || "Book")}</strong><span>${esc(meta || "Open Library")}</span></div>
-      <button class="text-button" type="button" data-book-lookup-clear>Remove match</button>`;
+      <div class="library-lookup-selection-actions-v303a">${lookupResults.length > 1 ? `<button class="text-button" type="button" data-book-lookup-change>Change match</button>` : ""}<button class="text-button" type="button" data-book-lookup-clear>Remove match</button></div>`;
     els.lookupSelection.classList.remove("hidden");
   }
 
@@ -752,12 +892,14 @@
     if (els.preferredGoal) els.preferredGoal.value = book?.preferredGoal || "auto";
     if (els.notes) els.notes.value = book?.notes || "";
     lookupResults = [];
+    lookupResultsCollapsed = false;
     lookupCleared = false;
     selectedLookup = book ? lookupFromBook(book) : null;
     if (els.lookupQuery) els.lookupQuery.value = book ? [book.title, book.author].filter(Boolean).join(" ") : "";
     renderLookupStatus("");
     renderLookupResults();
     renderLookupSelection();
+    renderSeriesSuggestions();
     setRadio("bookStatus", book?.status || "want");
     setRadio("bookRole", book?.role || "fun");
     if (els.advanced) els.advanced.open = Boolean(book && (book.totalPages || book.currentPage || book.series || book.seriesTotal || book.notes || book.preferredGoal !== "auto"));
@@ -843,10 +985,12 @@
     selectedLookup = null;
     lookupCleared = false;
     lookupResults = [];
+    lookupResultsCollapsed = false;
     if (els.lookupQuery) els.lookupQuery.value = "";
     renderLookupStatus("");
     renderLookupResults();
     renderLookupSelection();
+    renderSeriesSuggestions();
     setRadio("bookStatus", defaults.status || "want");
     setRadio("bookRole", defaults.role || "fun");
     if (els.source) els.source.value = defaults.source || "physical";
