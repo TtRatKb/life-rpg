@@ -1,11 +1,11 @@
-const CACHE_NAME = "life-rpg-v0314d-modal-framework";
+const CACHE_NAME = "life-rpg-v0314e-sudoku-regions";
 const CORE = [
   "./",
   "./index.html",
   "./data/quests.js?v=0.31.0",
-  "./styles.css?v=0.31.4d",
+  "./styles.css?v=0.31.4e",
   "./manifest.webmanifest?v=0.30.3a",
-  "./pwa.js?v=0.31.4d",
+  "./pwa.js?v=0.31.4e",
   "./visual-performance.js?v=0.31.4c",
   "./modal-manager.js?v=0.31.4d",
   "./app.js?v=0.31.4c",
@@ -18,7 +18,7 @@ const CORE = [
   "./time.js?v=0.31.1",
   "./universal-timers.js?v=0.31.1",
   "./inspirations.js?v=0.31.4c",
-  "./sudoku.js?v=0.31.4b",
+  "./sudoku.js?v=0.31.4e",
   "./smart-quests.js?v=0.31.0",
   "./daily.js?v=0.31.4c",
   "./journal.js?v=0.31.4c",
