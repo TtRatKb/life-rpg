@@ -7,13 +7,15 @@
     return;
   }
 
-  const SCHEMA = 3;
+  const SCHEMA = 4;
   const DAILY_XP_CAP = 20;
   const DAILY_STORY_CAP = 5;
   const DAILY_COIN_CAP = 50;
   const TYPE_META = {
     book: { xp: 2, storyEnergy: 0.40, coins: 5, label: "Library" },
     game: { xp: 3, storyEnergy: 0.20, coins: 5, label: "Games" },
+    gameDetails: { xp: 2, storyEnergy: 0.15, coins: 5, label: "Game details" },
+    gameSteam: { xp: 2, storyEnergy: 0.15, coins: 5, label: "Steam curation" },
     habit: { xp: 3, storyEnergy: 0.30, coins: 5, label: "Habits" },
     adventure: { xp: 4, storyEnergy: 0.50, coins: 10, label: "Side Adventures" }
   };

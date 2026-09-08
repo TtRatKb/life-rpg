@@ -7,7 +7,7 @@
     return;
   }
 
-  const SCHEMA = 4;
+  const SCHEMA = 5;
   const SHADOW_KEY = "life-rpg-games-shadow-v1";
   const MAX_LOGS = 800;
 
@@ -196,6 +196,7 @@
     if (changed) persist("games-init", { render: false });
     render();
     exposeApi();
+    repairRecentGameStewardship();
   }
 
   function bindEvents() {
@@ -803,6 +804,104 @@
     els.preview.innerHTML = `${cover ? `<img class="game-preview-cover-v305" src="${escAttr(cover)}" alt="" />` : `<span>${role.icon}</span>`}<div><small>${status.icon} ${esc(status.label)} · ${role.label}</small><strong>${esc(title)}</strong><p>${esc(`${typeMeta.label} · ${trackingText}${progress === null ? "" : ` · ${progress}% complete`}`)}</p></div>`;
   }
 
+  function sameLocalDate(timestamp, date = new Date()) {
+    const value = new Date(Number(timestamp || 0));
+    if (!Number.isFinite(value.getTime())) return false;
+    return value.getFullYear() === date.getFullYear()
+      && value.getMonth() === date.getMonth()
+      && value.getDate() === date.getDate();
+  }
+
+  function steamGoalCount(game = {}) {
+    return (Array.isArray(game.goals) ? game.goals : []).filter(goal => goal?.source === "steam" || goal?.steamApiName).length;
+  }
+
+  function newestSteamGoalAt(game = {}) {
+    return (Array.isArray(game.goals) ? game.goals : [])
+      .filter(goal => goal?.source === "steam" || goal?.steamApiName)
+      .reduce((latest, goal) => Math.max(latest, Number(goal?.createdAt || 0), Number(goal?.completedAt || 0)), 0);
+  }
+
+  function gameRewardKey(game = {}) {
+    return String(game.steamAppId || game.catalogId || `${game.title || "game"}|${game.platform || ""}`).trim().toLowerCase();
+  }
+
+  function rewardGameCuration(game, { includeCreation = false, includeDetails = false, includeSteam = false } = {}) {
+    const stewardship = window.LifeRPGStewardship;
+    if (!stewardship?.rewardCreation || !game) return null;
+    const results = [];
+    const key = gameRewardKey(game);
+
+    if (includeCreation) {
+      results.push(stewardship.rewardCreation({
+        type: "game",
+        id: game.id,
+        label: game.title,
+        fields: [game.title, game.platform]
+      }));
+    }
+
+    if (includeDetails && (game.catalogId || game.coverUrl || game.steamAppId || game.gameType !== "auto" || game.trackingMode !== "auto")) {
+      results.push(stewardship.rewardCreation({
+        type: "gameDetails",
+        label: game.title,
+        fingerprint: `game-details:${key}:v1`
+      }));
+    }
+
+    if (includeSteam) {
+      const count = steamGoalCount(game);
+      [1, 5, 10].forEach(threshold => {
+        if (count < threshold) return;
+        results.push(stewardship.rewardCreation({
+          type: "gameSteam",
+          label: `${game.title} · ${threshold}+ Steam goal${threshold === 1 ? "" : "s"}`,
+          fingerprint: `game-steam:${key}:goals-${threshold}`
+        }));
+      });
+    }
+
+    if (!results.length) return null;
+    const xp = results.reduce((sum, result) => sum + Number(result?.xp || 0), 0);
+    const storyEnergy = results.reduce((sum, result) => sum + Number(result?.storyEnergy || 0), 0);
+    const rawStoryEnergy = results.reduce((sum, result) => sum + Number(result?.rawStoryEnergy || 0), 0);
+    const coins = results.reduce((sum, result) => sum + Number(result?.coins || 0), 0);
+    const status = stewardship.todayStatus?.() || {};
+    return { results, xp, storyEnergy, rawStoryEnergy, coins, ...status };
+  }
+
+  function repairRecentGameStewardship() {
+    const current = model();
+    if (!Array.isArray(current.items) || !current.items.length) return;
+    const today = new Date();
+    const totals = { xp: 0, storyEnergy: 0, coins: 0, changed: false };
+
+    current.items.forEach(game => {
+      const createdToday = sameLocalDate(game.createdAt, today);
+      const detailsAddedToday = sameLocalDate(game.catalogUpdatedAt, today) || createdToday;
+      const steamCuratedToday = sameLocalDate(newestSteamGoalAt(game), today);
+      if (!createdToday && !detailsAddedToday && !steamCuratedToday) return;
+      const reward = rewardGameCuration(game, {
+        includeCreation: createdToday,
+        includeDetails: detailsAddedToday,
+        includeSteam: steamCuratedToday
+      });
+      if (!reward) return;
+      totals.xp += Number(reward.xp || 0);
+      totals.storyEnergy += Number(reward.storyEnergy || 0);
+      totals.coins += Number(reward.coins || 0);
+      if (Number(reward.xp || 0) > 0 || Number(reward.storyEnergy || 0) > 0 || Number(reward.coins || 0) > 0) totals.changed = true;
+    });
+
+    if (!totals.changed) return;
+    persist("game-stewardship-repair", { render: false });
+    app.renderAll?.();
+    showToast(
+      "Game library rewards repaired ✦",
+      `Your recent game setup now counts · +${Math.round(totals.xp)} XP · +${app.formatEnergy?.(totals.storyEnergy) ?? Number(totals.storyEnergy || 0).toFixed(2)} 🔥 · +${Math.round(totals.coins)} 🪙`
+    );
+  }
+
   function saveGame(event) {
     event.preventDefault();
     if (!els.form?.reportValidity()) return;
@@ -883,16 +982,16 @@
     } else {
       model().items.push(game);
     }
-    const stewardshipReward = existing ? null : window.LifeRPGStewardship?.rewardCreation?.({
-      type: "game",
-      id: game.id,
-      label: game.title,
-      fields: [game.title, game.platform]
+    const addedSteamGoals = newGoals.filter(goal => goal.source === "steam" || goal.steamApiName).length;
+    const curationReward = rewardGameCuration(game, {
+      includeCreation: !existing,
+      includeDetails: Boolean(!existing || metadata.id || selectedCatalog || game.catalogUpdatedAt === now),
+      includeSteam: addedSteamGoals > 0
     });
     const addAnother = !existing && event.submitter?.dataset.saveAnother === "true";
     persist(existing ? "game-edit" : "game-create");
-    if (Number(stewardshipReward?.xp || 0) > 0 || Number(stewardshipReward?.storyEnergy || 0) > 0) app.renderAll?.();
-    const upkeepText = window.LifeRPGStewardship?.statusText?.(stewardshipReward) || "";
+    if (Number(curationReward?.xp || 0) > 0 || Number(curationReward?.storyEnergy || 0) > 0 || Number(curationReward?.coins || 0) > 0) app.renderAll?.();
+    const upkeepText = window.LifeRPGStewardship?.statusText?.(curationReward) || "";
     const goalText = newGoals.length ? `${newGoals.length} new objective${newGoals.length === 1 ? "" : "s"} added.` : "";
     showToast(existing ? "Game updated" : "Game added", [`${game.title} is ready for the planner.`, goalText, upkeepText].filter(Boolean).join(" · "));
     if (addAnother) {
