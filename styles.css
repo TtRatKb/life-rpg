@@ -14124,3 +14124,76 @@ a.adventure-source-link-v308:hover{text-decoration:underline}
   .activity-ledger-title-v314 { display: block; }
   .activity-reward-pills-v314 { justify-content: flex-start; margin-top: 8px; }
 }
+
+/* V0.31.4a — Health-aware Daily Check-in / recovery-first planning */
+.daily-symptom-grid-v314a {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+}
+.daily-symptom-grid-v314a label { margin: 0; cursor: pointer; }
+.daily-symptom-grid-v314a input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.daily-symptom-grid-v314a label > span {
+  display: flex;
+  align-items: center;
+  min-height: 48px;
+  padding: 9px 11px;
+  border: 1px solid rgba(87,61,82,.14);
+  border-radius: 14px;
+  color: #6b5263;
+  background: rgba(255,255,255,.74);
+  font-size: .76rem;
+  font-weight: 750;
+  transition: transform .16s ease, border-color .16s ease, background .16s ease, color .16s ease;
+}
+.daily-symptom-grid-v314a label:hover > span { transform: translateY(-1px); border-color: rgba(157,91,126,.32); }
+.daily-symptom-grid-v314a input:checked + span {
+  border-color: rgba(146,83,119,.42);
+  color: #653b59;
+  background: linear-gradient(135deg, #f8e3ec, #f4ebf4);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.7), 0 6px 14px rgba(105,66,96,.07);
+}
+.daily-symptom-grid-v314a input:focus-visible + span { outline: 2px solid #8e6484; outline-offset: 2px; }
+.daily-choice-row-three-v314a { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.daily-choice-row-five-v314a { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.daily-health-note-v314a {
+  display: grid;
+  gap: .35rem;
+  margin-top: .75rem;
+  padding: .7rem .8rem;
+  border: 1px solid rgba(100,57,86,.11);
+  border-radius: 15px;
+  background: rgba(255,255,255,.5);
+}
+.daily-health-note-v314a > span { color: var(--ink, #382936); font-size: .8rem; font-weight: 700; }
+.daily-health-note-v314a small { opacity: .62; font-weight: 500; }
+.daily-health-note-v314a input { width: 100%; }
+.daily-health-context-v314a {
+  background: linear-gradient(135deg, rgba(244,236,247,.92), rgba(249,240,238,.9));
+  border-color: rgba(119,75,111,.16);
+}
+.daily-health-context-v314a p { line-height: 1.5; }
+.journal-day-health-v314a {
+  grid-column: 1 / -1;
+  display: none;
+  gap: .25rem;
+  padding: .8rem .9rem;
+  border: 1px solid rgba(111,59,91,.12);
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(244,236,247,.82), rgba(249,240,238,.8));
+  color: #6b5263;
+}
+.journal-day-health-v314a.is-visible { display: grid; }
+.journal-day-health-v314a small { color: #9a7187; font-weight: 850; letter-spacing: .08em; }
+.journal-day-health-v314a strong { color: #523b4d; }
+.journal-day-health-v314a p { margin: 0; font-size: .78rem; line-height: 1.45; }
+
+@media (max-width: 720px) {
+  .daily-choice-row-three-v314a,
+  .daily-choice-row-five-v314a { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 480px) {
+  .daily-symptom-grid-v314a,
+  .daily-choice-row-three-v314a,
+  .daily-choice-row-five-v314a { grid-template-columns: 1fr; }
+}

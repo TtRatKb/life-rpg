@@ -7,7 +7,7 @@
     return;
   }
 
-  const SCHEMA = 7;
+  const SCHEMA = 8;
   const SHADOW_KEY = "life-rpg-daily-planner-shadow-v1";
   const MAX_DAY_HISTORY = 120;
   const MAX_COMPANION_HISTORY = 45;
@@ -50,7 +50,8 @@
     energy: { fumes: "Running on fumes", low: "Low", okay: "Okay", lots: "Lots" },
     stress: { calm: "Calm", light: "Light", medium: "Noticeable", high: "High", overload: "Overloaded" },
     time: { none: "Almost none", little: "A little", decent: "A decent amount", plenty: "Plenty" },
-    obligations: { help: "Packed / very heavy", busy: "Busy", normal: "Normal", open: "Pretty open" }
+    obligations: { help: "Packed / very heavy", busy: "Busy", normal: "Normal", open: "Pretty open" },
+    physicalImpact: { none: "No physical issue", mild: "Mild", moderate: "Noticeable", strong: "Strong" }
   };
 
   const VALUE = {
@@ -65,7 +66,51 @@
   const TIME_BUDGET = { none: 12, little: 30, decent: 65, plenty: 130 };
   const PRIORITY_SCORE = { "Must Do": 3.3, Main: 2.5, "Low Energy": 1.3, Optional: 0.7, Bonus: 0.2 };
   const DEMAND_BY_REALM = { Recovery: 0.35, Hobbies: 0.8, Home: 1.1, Japanese: 1.55, Knowledge: 1.65, Health: 1.85, Work: 2.15 };
-  const CONVERSATION_STEPS = ["mood", "sleep", "energy", "stress", "time", "obligations", "gentle"];
+  const CONVERSATION_STEPS = ["mood", "sleep", "energy", "physicalImpact", "symptoms", "illness", "sickLeave", "sickLeaveWhy", "stress", "time", "obligations", "gentle"];
+
+  const HEALTH_LABELS = {
+    impact: { none: "No physical issue", mild: "Mild", moderate: "Noticeable", strong: "Strong" },
+    symptoms: {
+      headache: "Headache / migraine",
+      backPain: "Back pain",
+      stomachPain: "Stomach / abdominal pain",
+      periodCramps: "Period cramps",
+      muscleSoreness: "Muscle soreness",
+      exhaustion: "General exhaustion",
+      fatigue: "Fatigue / sleepiness",
+      coldFlu: "Cold / flu symptoms",
+      nausea: "Nausea",
+      other: "Other"
+    },
+    illness: { yes: "Yes — I feel sick", no: "No — symptoms, but not sick" },
+    sickLeave: { yes: "Called in sick", no: "Worked / did not call in", "not-needed": "No sick note needed today" },
+    sickLeaveWhy: {
+      manageable: "Symptoms felt manageable",
+      pressure: "I felt I couldn't miss work",
+      duties: "Work / appointments felt too important",
+      remote: "I could work from home / flexibly",
+      other: "Other reason"
+    }
+  };
+
+  const HEALTH_COPY = {
+    physicalImpact: { question: "Anything physical getting in your way today?", reactions: {
+      none: "Good. No extra body-tax to account for.", mild: "Mild, but real. I'll keep it in the plan instead of pretending it costs nothing.",
+      moderate: "Noticeable. Then recovery needs actual space today, not just a smaller productivity target.", strong: "Strong. That changes the day. Recovery comes first and effort gets cut back."
+    }},
+    symptoms: { question: "What is your body dealing with? Pick everything that applies.", reactions: {} },
+    illness: { question: "Do you feel actually sick today — as in illness, not just discomfort or soreness?", reactions: {
+      yes: "Okay. Then this is an illness day, and the planner should act like one.", no: "Got it. Physical symptoms, but not an illness day. Still worth accounting for."
+    }},
+    sickLeave: { question: "Did you call in sick from work today?", reactions: {
+      yes: "Good. Work is not secretly going back onto today's recovery budget.", no: "Okay. I'll keep both the illness and the work load visible instead of treating either one as imaginary.",
+      "not-needed": "Right. No sick call was needed today, so there is nothing to justify."
+    }},
+    sickLeaveWhy: { question: "What made you decide not to call in sick?", reactions: {
+      manageable: "Makes sense. Logging the reason is enough; it is not a judgement.", pressure: "Noted. That kind of pressure is part of the day too.",
+      duties: "Noted. The sense that things couldn't be dropped is useful context.", remote: "Okay. Flexibility changes the decision, even if being sick still costs energy.", other: "Okay. Keeping the context without turning it into a verdict."
+    }}
+  };
 
   const CHECKIN_COPY = {
     luca: {
@@ -833,6 +878,7 @@
         <div class="daily-summary-chip-v14"><span>◷</span><div><small>FREE TIME</small><strong>${esc(LABELS.time[checkIn.time] || checkIn.time)}</strong></div></div>
         <div class="daily-summary-chip-v14"><span>☷</span><div><small>FIXED LOAD</small><strong>${esc(LABELS.obligations[checkIn.obligations] || checkIn.obligations)}</strong></div></div>
       </div>
+      ${healthSummaryMarkup(checkIn)}
       ${checkIn.loadNote ? `<div class="daily-plan-context-v303"><span>🗓</span><div><small>KNOWN TODAY</small><strong>${esc(checkIn.loadNote)}</strong></div></div>` : ""}
       ${actualTimeLoadMarkup()}
       ${checkInRewardMarkup(todayRecord()?.checkInReward)}
@@ -841,6 +887,17 @@
         <div><small>PLANNER READ</small><strong>${esc(capacity.title)}</strong><p>${esc(capacity.text)}</p></div>
       </div>
       ${momentNoteMarkup(checkIn)}`;
+  }
+
+  function healthSummaryMarkup(checkIn) {
+    const health = normalizedHealth(checkIn);
+    if (health.impact === "none") return "";
+    const symptomLabels = health.symptoms.map(key => HEALTH_LABELS.symptoms[key]).filter(Boolean);
+    if (health.other) symptomLabels.push(health.other);
+    const illness = HEALTH_LABELS.illness[health.illness] || "";
+    const leave = health.sickLeave ? HEALTH_LABELS.sickLeave[health.sickLeave] : "";
+    const why = health.sickLeaveWhy ? HEALTH_LABELS.sickLeaveWhy[health.sickLeaveWhy] : "";
+    return `<div class="daily-plan-context-v303 daily-health-context-v314a"><span>🩹</span><div><small>BODY / RECOVERY CONTEXT</small><strong>${esc(HEALTH_LABELS.impact[health.impact] || health.impact)}${illness ? ` · ${esc(illness)}` : ""}</strong><p>${esc(symptomLabels.join(" · ") || "Physical symptoms logged")}${leave ? `<br>${esc(leave)}${why ? ` · ${esc(why)}` : ""}${health.sickLeaveNote ? ` · ${esc(health.sickLeaveNote)}` : ""}` : ""}</p></div></div>`;
   }
 
   function actualTimeLoadMarkup() {
@@ -863,8 +920,12 @@
     const obligations = VALUE.obligations[checkIn.obligations] ?? 1;
     const stressPenalty = ({ calm: 0, light: 0.08, medium: 0.28, high: 0.62, overload: 1.0 })[checkIn.stress] || 0;
     const moodPenalty = ({ rough: 0.28, meh: 0.12 })[checkIn.mood] || 0;
-    const score = sleep * 0.2 + energy * 0.4 + time * 0.2 + obligations * 0.2 - stressPenalty - moodPenalty - (checkIn.gentle ? 1.1 : 0);
+    const recoveryNeed = healthRecoveryNeed(checkIn);
+    const score = sleep * 0.2 + energy * 0.4 + time * 0.2 + obligations * 0.2 - stressPenalty - moodPenalty - (checkIn.gentle ? 1.1 : 0) - recoveryNeed * 0.42;
 
+    if (recoveryNeed >= 2.5) {
+      return { title: "This is a recovery-first day.", text: "Physical symptoms / illness count as real load. Rest keeps its full useful duration; demanding actions shrink or disappear instead." };
+    }
     if (checkIn.gentle || score < 0.8) {
       return { title: "Keep the floor low today.", text: "Care and recovery get priority. If the fixed load is already heavy, Life RPG may skip the Anchor entirely." };
     }
@@ -1166,7 +1227,11 @@
 
     els.form.reset();
     if (conversationEditing) fillCheckIn(existing.checkIn);
-    else if (els.loadNote) els.loadNote.value = "";
+    else {
+      if (els.loadNote) els.loadNote.value = "";
+      setRadio("dailyPhysicalImpact", "none");
+      setRadio("dailyIllness", "no");
+    }
     renderDialogCompanion(provisionalCompanion);
     if (els.dialogTitle) els.dialogTitle.textContent = conversationEditing ? "Adjust today's check-in." : dialogTitleFor(provisionalCompanion);
     els.dialog.showModal();
@@ -1177,6 +1242,16 @@
     setRadio("dailyMood", checkIn.mood);
     setRadio("dailySleep", checkIn.sleep);
     setRadio("dailyEnergy", checkIn.energy);
+    const health = normalizedHealth(checkIn);
+    setRadio("dailyPhysicalImpact", health.impact);
+    els.form?.querySelectorAll('input[name="dailySymptoms"]').forEach(input => { input.checked = health.symptoms.includes(input.value); });
+    const symptomOther = byId("dailySymptomOther");
+    if (symptomOther) symptomOther.value = health.other || "";
+    setRadio("dailyIllness", health.illness);
+    if (health.sickLeave) setRadio("dailySickLeave", health.sickLeave);
+    if (health.sickLeaveWhy) setRadio("dailySickLeaveWhy", health.sickLeaveWhy);
+    const sickLeaveNote = byId("dailySickLeaveNote");
+    if (sickLeaveNote) sickLeaveNote.value = health.sickLeaveNote || "";
     setRadio("dailyStress", checkIn.stress);
     setRadio("dailyTime", checkIn.time);
     setRadio("dailyObligations", checkIn.obligations);
@@ -1200,16 +1275,70 @@
       <div><small>${esc(c.kicker)}</small><strong>${esc(c.name)}</strong><p id="dailyDialogLine">${esc(c.dialogLine)}</p></div>`;
   }
 
+  function activeConversationSteps() {
+    if (!els.form) return [];
+    const all = [...els.form.querySelectorAll("[data-daily-question]")];
+    const impact = radioValue("dailyPhysicalImpact") || "none";
+    const illness = impact === "none" ? "no" : (radioValue("dailyIllness") || "");
+    const sickLeave = radioValue("dailySickLeave") || "";
+    const weekday = isWeekdayToday();
+    return all.filter(step => {
+      const key = step.dataset.dailyQuestion;
+      if (key === "symptoms" || key === "illness") return impact !== "none";
+      if (key === "sickLeave") return impact !== "none" && illness === "yes" && weekday;
+      if (key === "sickLeaveWhy") return impact !== "none" && illness === "yes" && weekday && sickLeave === "no";
+      return true;
+    });
+  }
+
+  function isWeekdayToday() {
+    const day = new Date().getDay();
+    return day >= 1 && day <= 5;
+  }
+
+  function stepAnswered(step) {
+    if (!step) return false;
+    const key = step.dataset.dailyQuestion;
+    if (key === "symptoms") return Boolean(step.querySelector('input[name="dailySymptoms"]:checked'));
+    return Boolean(step.querySelector("input[type='radio']:checked"));
+  }
+
+  function normalizeConditionalHealthForm() {
+    const impact = radioValue("dailyPhysicalImpact") || "none";
+    if (impact === "none") {
+      els.form?.querySelectorAll('input[name="dailySymptoms"]').forEach(input => { input.checked = false; });
+      const other = byId("dailySymptomOther"); if (other) other.value = "";
+      setRadio("dailyIllness", "no");
+      els.form?.querySelectorAll('input[name="dailySickLeave"], input[name="dailySickLeaveWhy"]').forEach(input => { input.checked = false; });
+      const note = byId("dailySickLeaveNote"); if (note) note.value = "";
+      return;
+    }
+    if (radioValue("dailyIllness") === "no") {
+      els.form?.querySelectorAll('input[name="dailySickLeave"], input[name="dailySickLeaveWhy"]').forEach(input => { input.checked = false; });
+      const note = byId("dailySickLeaveNote"); if (note) note.value = "";
+    } else if (radioValue("dailySickLeave") !== "no") {
+      els.form?.querySelectorAll('input[name="dailySickLeaveWhy"]').forEach(input => { input.checked = false; });
+      const note = byId("dailySickLeaveNote"); if (note) note.value = "";
+    }
+  }
+
   function showConversationStep(index) {
     if (!els.form) return;
-    const steps = [...els.form.querySelectorAll("[data-daily-question]")];
+    normalizeConditionalHealthForm();
+    const allSteps = [...els.form.querySelectorAll("[data-daily-question]")];
+    const steps = activeConversationSteps();
     if (!steps.length) return;
     conversationStep = clamp(Number(index || 0), 0, steps.length - 1);
 
-    steps.forEach((step, stepIndex) => {
-      const active = stepIndex === conversationStep;
+    allSteps.forEach(step => {
+      const active = step === steps[conversationStep];
       step.classList.toggle("is-active-v271", active);
       step.setAttribute("aria-hidden", active ? "false" : "true");
+    });
+
+    steps.forEach((step, i) => {
+      const number = step.querySelector("legend > span");
+      if (number) number.textContent = String(i + 1).padStart(2, "0");
     });
 
     const key = steps[conversationStep]?.dataset.dailyQuestion || CONVERSATION_STEPS[conversationStep];
@@ -1224,28 +1353,39 @@
       els.conversationDots.innerHTML = steps.map((_, i) => `<span class="${i < conversationStep ? "done" : i === conversationStep ? "active" : ""}"></span>`).join("");
     }
     if (els.conversationBack) els.conversationBack.classList.toggle("hidden", conversationStep === 0);
-
-    const checked = steps[conversationStep]?.querySelector("input[type='radio']:checked");
-    updateConversationNext(Boolean(checked), conversationStep === steps.length - 1);
+    updateConversationNext(stepAnswered(steps[conversationStep]), conversationStep === steps.length - 1);
   }
 
   function handleConversationAnswer(event) {
     const input = event.target;
-    if (!(input instanceof HTMLInputElement) || input.type !== "radio") return;
+    if (!(input instanceof HTMLInputElement)) return;
     const step = input.closest?.("[data-daily-question]");
     if (!step?.classList.contains("is-active-v271")) return;
     const key = step.dataset.dailyQuestion;
-    const reaction = conversationReaction(provisionalCompanion, key, input.value);
-    if (reaction) setDialogLine(reaction);
-    setDialogPortraitMood(reactionMood(key, input.value));
-    updateConversationNext(true, conversationStep === CONVERSATION_STEPS.length - 1);
+    if (input.type === "radio") {
+      if (input.name === "dailyPhysicalImpact" && input.value !== "none") {
+        els.form?.querySelectorAll('input[name="dailyIllness"], input[name="dailySickLeave"], input[name="dailySickLeaveWhy"]').forEach(option => { option.checked = false; });
+      }
+      normalizeConditionalHealthForm();
+      const reaction = conversationReaction(provisionalCompanion, key, input.value);
+      if (reaction) setDialogLine(reaction);
+      setDialogPortraitMood(reactionMood(key, input.value));
+    } else if (key === "symptoms") {
+      const count = step.querySelectorAll('input[name="dailySymptoms"]:checked').length;
+      setDialogLine(count ? `${count} symptom${count === 1 ? "" : "s"} noted. Anything else can stay unselected.` : conversationQuestion(provisionalCompanion, key));
+      setDialogPortraitMood("low");
+    }
+    const steps = activeConversationSteps();
+    const currentIndex = Math.max(0, steps.indexOf(step));
+    conversationStep = currentIndex;
+    updateConversationNext(stepAnswered(step), currentIndex === steps.length - 1);
   }
 
   function continueConversation() {
     if (!els.form) return;
-    const steps = [...els.form.querySelectorAll("[data-daily-question]")];
+    const steps = activeConversationSteps();
     const current = steps[conversationStep];
-    if (!current?.querySelector("input[type='radio']:checked")) return;
+    if (!stepAnswered(current)) return;
     if (conversationStep >= steps.length - 1) {
       els.form.requestSubmit();
       return;
@@ -1272,12 +1412,12 @@
 
   function conversationQuestion(companion, key) {
     const id = CHECKIN_COPY[companion?.id] ? companion.id : "luca";
-    return CHECKIN_COPY[id]?.[key]?.question || "How are we doing?";
+    return CHECKIN_COPY[id]?.[key]?.question || HEALTH_COPY[key]?.question || "How are we doing?";
   }
 
   function conversationReaction(companion, key, value) {
     const id = CHECKIN_COPY[companion?.id] ? companion.id : "luca";
-    return CHECKIN_COPY[id]?.[key]?.reactions?.[value] || "Okay. Noted.";
+    return CHECKIN_COPY[id]?.[key]?.reactions?.[value] || HEALTH_COPY[key]?.reactions?.[value] || "Okay. Noted.";
   }
 
   function setDialogLine(text) {
@@ -1332,6 +1472,47 @@
     if (els.dialog?.open) els.dialog.close();
   }
 
+  function normalizedHealth(checkIn) {
+    const raw = checkIn?.health && typeof checkIn.health === "object" ? checkIn.health : {};
+    const impact = ["none", "mild", "moderate", "strong"].includes(raw.impact) ? raw.impact : "none";
+    const symptoms = Array.isArray(raw.symptoms) ? raw.symptoms.filter(key => HEALTH_LABELS.symptoms[key]) : [];
+    const illness = impact === "none" ? "no" : (["yes", "no"].includes(raw.illness) ? raw.illness : "no");
+    return {
+      impact, symptoms, other: String(raw.other || ""), illness,
+      sickLeave: ["yes", "no", "not-needed"].includes(raw.sickLeave) ? raw.sickLeave : "",
+      sickLeaveWhy: Object.hasOwn(HEALTH_LABELS.sickLeaveWhy, raw.sickLeaveWhy) ? raw.sickLeaveWhy : "",
+      sickLeaveNote: String(raw.sickLeaveNote || "")
+    };
+  }
+
+  function readHealthForm() {
+    const impact = radioValue("dailyPhysicalImpact") || "none";
+    if (impact === "none") return { impact: "none", symptoms: [], other: "", illness: "no", sickLeave: "", sickLeaveWhy: "", sickLeaveNote: "" };
+    const symptoms = [...(els.form?.querySelectorAll('input[name="dailySymptoms"]:checked') || [])].map(input => input.value).filter(key => HEALTH_LABELS.symptoms[key]);
+    const illness = radioValue("dailyIllness") || "no";
+    const sickLeave = illness === "yes" && isWeekdayToday() ? radioValue("dailySickLeave") : "";
+    return {
+      impact, symptoms, other: String(byId("dailySymptomOther")?.value || "").trim(), illness, sickLeave,
+      sickLeaveWhy: sickLeave === "no" ? radioValue("dailySickLeaveWhy") : "",
+      sickLeaveNote: sickLeave === "no" ? String(byId("dailySickLeaveNote")?.value || "").trim() : ""
+    };
+  }
+
+  function healthRecoveryNeed(checkIn) {
+    const health = normalizedHealth(checkIn);
+    let need = ({ none: 0, mild: 1, moderate: 2, strong: 3 })[health.impact] || 0;
+    if (health.illness === "yes") need += 1.25;
+    return clamp(need, 0, 4);
+  }
+
+  function isPassiveRecoveryQuest(quest) {
+    return ["recovery-meditation", "recovery-body-scan", "recovery-breathing", "recovery-lie-down"].includes(String(quest?.systemRole || ""));
+  }
+
+  function isMovementRecoveryQuest(quest) {
+    return ["recovery-stretch", "recovery-yoga", "mobility-break", "gentle-walk", "fresh-air-break"].includes(String(quest?.systemRole || ""));
+  }
+
   function saveBriefing(event) {
     event.preventDefault();
     if (!els.form?.reportValidity()) return;
@@ -1340,6 +1521,7 @@
       mood: radioValue("dailyMood"),
       sleep: radioValue("dailySleep"),
       energy: radioValue("dailyEnergy"),
+      health: readHealthForm(),
       stress: radioValue("dailyStress"),
       time: radioValue("dailyTime"),
       obligations: radioValue("dailyObligations"),
@@ -1455,14 +1637,15 @@
   function slotsForCheckIn(checkIn) {
     const capacity = effectiveCapacity(checkIn);
     const heavyFixedLoad = checkIn.obligations === "help" || (checkIn.obligations === "busy" && ["none", "little"].includes(checkIn.time));
-    const veryLow = checkIn.gentle || capacity < 0.95 || checkIn.energy === "fumes";
+    const recoveryNeed = healthRecoveryNeed(checkIn);
+    const veryLow = checkIn.gentle || capacity < 0.95 || checkIn.energy === "fumes" || recoveryNeed >= 2.5;
     const slots = [];
 
-    // A full work/obligation day is allowed to be today's main quest. Do not invent
-    // an Anchor simply because the UI has a slot for one.
-    if (!heavyFixedLoad && !(veryLow && ["none", "little"].includes(checkIn.time))) slots.push("focus");
+    // Illness/strong symptoms are load, not spare capacity. The planner removes effort
+    // before it removes recovery; a sick day should not manufacture a productivity Anchor.
+    if (recoveryNeed < 2.5 && !heavyFixedLoad && !(veryLow && ["none", "little"].includes(checkIn.time))) slots.push("focus");
     slots.push("joy");
-    if (checkIn.time !== "none" && !(heavyFixedLoad && veryLow)) slots.push("gentle");
+    if ((checkIn.time !== "none" || recoveryNeed >= 2) && !(heavyFixedLoad && veryLow && recoveryNeed < 2)) slots.push("gentle");
     return slots;
   }
 
@@ -1762,6 +1945,15 @@
       if (priority === "Optional" || priority === "Bonus") score += 1.2;
       if (realm === "Work") score -= 4;
       if (realm === "Home") score -= 1;
+    }
+
+    const recoveryNeed = healthRecoveryNeed(checkIn);
+    if (recoveryNeed > 0) {
+      if (realm === "Recovery") score += recoveryNeed * 2.25;
+      if (isPassiveRecoveryQuest(quest)) score += recoveryNeed * 1.6;
+      if (isMovementRecoveryQuest(quest) && recoveryNeed >= 2.5) score -= 3.2;
+      if (realm === "Health" && !isPassiveRecoveryQuest(quest) && demand > 0.9) score -= recoveryNeed * 1.1;
+      if (["Work", "Home"].includes(realm) && recoveryNeed >= 2.5) score -= 2.8;
     }
 
     if (slot === "gentle") {
@@ -2145,6 +2337,7 @@
     else if (workMinutes >= 360) capacity -= 0.8;
     else if (workMinutes >= 240) capacity -= 0.4;
     if (checkIn.gentle) capacity -= 1;
+    capacity -= healthRecoveryNeed(checkIn) * 0.38;
     return clamp(capacity, 0, 3);
   }
 
@@ -2193,6 +2386,7 @@
 
   function suggestedUnits(quest, slot, checkIn) {
     const target = Math.max(0.1, questTargetValue(quest));
+    if (quest?.realm === "Recovery" || String(quest?.systemRole || "").startsWith("recovery-")) return target;
     if (!isVariableQuest(quest) || quest?.adaptiveUnits === false) return target;
 
     const capacity = effectiveCapacity(checkIn);
@@ -2233,6 +2427,11 @@
     const low = effectiveCapacity(checkIn) < 1.25 || checkIn.gentle;
     const busy = ["help", "busy"].includes(checkIn.obligations) || ["none", "little"].includes(checkIn.time);
     const days = daysSinceLast(questLogs(quest.id));
+
+    const recoveryNeed = healthRecoveryNeed(checkIn);
+    if (realm === "Recovery" && recoveryNeed >= 2) {
+      return `Your body is already using capacity today. Recovery gets priority, and this keeps its full ${formatNumber(questTargetValue(quest))} ${quest.unitLabel || "units"} instead of being shortened just because the day is rough.`;
+    }
 
     if (slot === "joy") {
       if (["help", "busy"].includes(checkIn.obligations)) return `Your fixed load is already ${checkIn.obligations === "help" ? "very heavy" : "busy"}. Care is here to protect some energy or actual life outside obligations, not to add another achievement.`;

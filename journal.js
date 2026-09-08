@@ -163,6 +163,7 @@
     daySleep: byId("journalDaySleep"),
     dayStress: byId("journalDayStress"),
     daySleepHours: byId("journalDaySleepHours"),
+    dayHealthSummary: byId("journalDayHealthSummary"),
     dayGratitude: byId("journalDayGratitude"),
     daySmallWin: byId("journalDaySmallWin"),
     dayHardThing: byId("journalDayHardThing"),
@@ -233,6 +234,7 @@
         time: checkIn.time || existing.time || "",
         obligations: checkIn.obligations || existing.obligations || "",
         gentle: typeof checkIn.gentle === "boolean" ? checkIn.gentle : Boolean(existing.gentle),
+        health: checkIn.health && typeof checkIn.health === "object" ? JSON.parse(JSON.stringify(checkIn.health)) : (existing.health || null),
         companionId: day.companion?.id || existing.companionId || "luca",
         checkInAt: day.createdAt || existing.checkInAt || Date.now(),
         updatedAt: Math.max(Number(existing.updatedAt || 0), Number(day.updatedAt || 0), Number(day.createdAt || 0))
@@ -519,11 +521,30 @@
     setValue(els.daySleep, entry.sleep || "");
     setValue(els.dayStress, entry.stress || "");
     if (els.daySleepHours) els.daySleepHours.value = Number.isFinite(Number(entry.sleepHours)) && entry.sleepHours !== "" ? String(entry.sleepHours) : "";
+    renderDayHealthSummary(entry.health);
     if (els.dayGratitude) els.dayGratitude.value = entry.gratitude || "";
     if (els.daySmallWin) els.daySmallWin.value = entry.smallWin || "";
     if (els.dayHardThing) els.dayHardThing.value = entry.hardThing || "";
     renderDayRewardMeter();
     els.dayDialog.showModal();
+  }
+
+  function renderDayHealthSummary(health) {
+    if (!els.dayHealthSummary) return;
+    const raw = health && typeof health === "object" ? health : null;
+    if (!raw || !raw.impact || raw.impact === "none") {
+      els.dayHealthSummary.classList.remove("is-visible");
+      els.dayHealthSummary.innerHTML = "";
+      return;
+    }
+    const impactLabels = { mild: "Mild physical impact", moderate: "Noticeable physical impact", strong: "Strong physical impact" };
+    const symptomLabels = { headache: "Headache / migraine", backPain: "Back pain", stomachPain: "Stomach / abdominal pain", periodCramps: "Period cramps", muscleSoreness: "Muscle soreness", exhaustion: "General exhaustion", fatigue: "Fatigue / sleepiness", coldFlu: "Cold / flu symptoms", nausea: "Nausea", other: "Other" };
+    const symptoms = Array.isArray(raw.symptoms) ? raw.symptoms.map(key => symptomLabels[key]).filter(Boolean) : [];
+    if (raw.other) symptoms.push(String(raw.other));
+    const sick = raw.illness === "yes" ? "Felt sick / ill" : "Symptoms, but not marked as illness";
+    const leave = raw.sickLeave === "yes" ? "Called in sick" : raw.sickLeave === "no" ? "Worked / did not call in sick" : raw.sickLeave === "not-needed" ? "No sick call needed" : "";
+    els.dayHealthSummary.classList.add("is-visible");
+    els.dayHealthSummary.innerHTML = `<small>BODY / RECOVERY CONTEXT FROM CHECK-IN</small><strong>${esc(impactLabels[raw.impact] || raw.impact)} · ${esc(sick)}</strong><p>${esc(symptoms.join(" · ") || "Physical symptoms logged")}${leave ? `<br>${esc(leave)}` : ""}${raw.sickLeaveNote ? ` · ${esc(String(raw.sickLeaveNote))}` : ""}</p>`;
   }
 
   function saveDayEditor(event) {
@@ -712,6 +733,12 @@
         if (entry.sleep) core.push(`Sleep: ${SLEEP[entry.sleep]?.label || entry.sleep}`);
         if (entry.sleepHours) core.push(`Sleep hours: ${entry.sleepHours}`);
         if (entry.stress) core.push(`Stress: ${STRESS[entry.stress]?.label || entry.stress}`);
+        if (entry.health?.impact && entry.health.impact !== "none") {
+          const symptomLabels = { headache: "Headache / migraine", backPain: "Back pain", stomachPain: "Stomach / abdominal pain", periodCramps: "Period cramps", muscleSoreness: "Muscle soreness", exhaustion: "General exhaustion", fatigue: "Fatigue / sleepiness", coldFlu: "Cold / flu symptoms", nausea: "Nausea", other: "Other" };
+          const symptoms = Array.isArray(entry.health.symptoms) ? entry.health.symptoms.map(key => symptomLabels[key]).filter(Boolean) : [];
+          if (entry.health.other) symptoms.push(entry.health.other);
+          core.push(`Body: ${entry.health.impact}${entry.health.illness === "yes" ? " · sick" : ""}${symptoms.length ? ` · ${symptoms.join(", ")}` : ""}${entry.health.sickLeave === "yes" ? " · called in sick" : entry.health.sickLeave === "no" ? " · worked while sick" : ""}`);
+        }
         if (core.length) lines.push(core.join(" · "));
         if (cleanText(entry.gratitude)) lines.push("", `**Grateful for**  `, entry.gratitude);
         if (cleanText(entry.smallWin)) lines.push("", `**Small win**  `, entry.smallWin);
