@@ -41,6 +41,14 @@
     hardThing: { icon: "🌧", label: "Something that was hard" }
   };
 
+  const JOURNAL_EFFORT_THRESHOLDS = [50, 150, 300, 600];
+  const JOURNAL_EFFORT_REWARDS = [
+    { xp: 5, coins: 5, storyEnergyBase: 0 },
+    { xp: 5, coins: 5, storyEnergyBase: 0.10 },
+    { xp: 10, coins: 10, storyEnergyBase: 0.15 },
+    { xp: 15, coins: 15, storyEnergyBase: 0.25 }
+  ];
+
   const COMPANIONS = {
     luca: {
       id: "luca",
@@ -142,6 +150,7 @@
     reflectionWriteStep: byId("journalReflectionWriteStep"),
     reflectionPrompt: byId("journalReflectionPrompt"),
     reflectionTextarea: byId("journalReflectionTextarea"),
+    reflectionRewardMeter: byId("journalReflectionRewardMeter"),
     reflectionBack: byId("journalReflectionBack"),
     reflectionSave: byId("journalReflectionSave"),
     reflectionDone: byId("journalReflectionDone"),
@@ -156,7 +165,8 @@
     daySleepHours: byId("journalDaySleepHours"),
     dayGratitude: byId("journalDayGratitude"),
     daySmallWin: byId("journalDaySmallWin"),
-    dayHardThing: byId("journalDayHardThing")
+    dayHardThing: byId("journalDayHardThing"),
+    dayRewardMeter: byId("journalDayRewardMeter")
   };
 
   let activeMonth = monthKey(new Date());
@@ -171,10 +181,10 @@
   function init() {
     const changed = ensureState();
     const todayEntry = app.getState().journal?.entries?.[todayKey()] || null;
-    const repairedCoins = todayEntry ? maybeAwardReflectionCoins(todayKey(), todayEntry) : 0;
+    const repairedRewards = todayEntry ? maybeAwardReflectionRewards(todayKey(), todayEntry) : emptyRewardTotal();
     bindEvents();
     initialized = true;
-    if (changed || repairedCoins) app.saveState({ source: repairedCoins ? "journal-v0309-coin-repair" : "journal-v0302-init" });
+    if (changed || rewardTotalHasValue(repairedRewards)) app.saveState({ source: rewardTotalHasValue(repairedRewards) ? "journal-v0310-reward-repair" : "journal-v0302-init" });
     render();
   }
 
@@ -263,6 +273,8 @@
     els.reflectionDone?.addEventListener("click", closeReflection);
     els.reflectionBack?.addEventListener("click", showReflectionChoices);
     els.reflectionSave?.addEventListener("click", saveReflectionField);
+    els.reflectionTextarea?.addEventListener("input", renderReflectionRewardMeter);
+    [els.dayGratitude, els.daySmallWin, els.dayHardThing].forEach(input => input?.addEventListener("input", renderDayRewardMeter));
     els.reflectionChoiceStep?.addEventListener("click", event => {
       const choice = event.target.closest?.("[data-reflection-field]");
       if (choice) showReflectionWrite(choice.dataset.reflectionField);
@@ -472,6 +484,7 @@
     if (els.reflectionTextarea) {
       els.reflectionTextarea.value = entry[field] || "";
       els.reflectionTextarea.placeholder = field === "gratitude" ? "Tiny things count…" : field === "smallWin" ? "What deserves credit?" : "You don't have to solve it here…";
+      renderReflectionRewardMeter();
       setTimeout(() => els.reflectionTextarea.focus(), 30);
     }
     renderReflectionCompanion(reflectionCompanion, reflectionCompanion.prompts[field]);
@@ -483,10 +496,10 @@
     entry[reflectionField] = cleanText(els.reflectionTextarea.value);
     entry.updatedAt = Date.now();
     entry.lastReflectionCompanionId = reflectionCompanion.id;
-    const coinReward = maybeAwardReflectionCoins(reflectionDate, entry);
+    const rewards = maybeAwardReflectionRewards(reflectionDate, entry);
     app.saveState({ source: `journal-${reflectionField}` });
     renderReflectionCompanion(reflectionCompanion, reflectionCompanion.saved[reflectionField]);
-    app.showToast?.(`${REFLECTION_META[reflectionField].icon} Journal saved${coinReward ? ` · +${coinReward} 🪙` : ""}`);
+    app.showToast?.(`${REFLECTION_META[reflectionField].icon} Journal saved${rewardSummary(rewards)}`);
     render();
     setTimeout(showReflectionChoices, 420);
   }
@@ -509,6 +522,7 @@
     if (els.dayGratitude) els.dayGratitude.value = entry.gratitude || "";
     if (els.daySmallWin) els.daySmallWin.value = entry.smallWin || "";
     if (els.dayHardThing) els.dayHardThing.value = entry.hardThing || "";
+    renderDayRewardMeter();
     els.dayDialog.showModal();
   }
 
@@ -526,10 +540,10 @@
     entry.smallWin = cleanText(els.daySmallWin?.value);
     entry.hardThing = cleanText(els.dayHardThing?.value);
     entry.updatedAt = Date.now();
-    const coinReward = maybeAwardReflectionCoins(editingDate, entry);
+    const rewards = maybeAwardReflectionRewards(editingDate, entry);
     app.saveState({ source: "journal-day-edit" });
     els.dayDialog.close();
-    app.showToast?.(`Journal day saved${coinReward ? ` · +${coinReward} 🪙` : ""}`);
+    app.showToast?.(`Journal day saved${rewardSummary(rewards)}`);
     render();
   }
 
@@ -762,26 +776,114 @@
     return 5;
   }
 
-  function maybeAwardReflectionCoins(dateKeyValue, entry) {
-    if (dateKeyValue !== todayKey() || !hasReflection(entry)) return 0;
+  function maybeAwardReflectionRewards(dateKeyValue, entry) {
+    const total = emptyRewardTotal();
+    if (dateKeyValue !== todayKey() || !hasReflection(entry)) return total;
     const root = app.getState();
-    const already = (root.rewardLedger?.events || []).some(event => event?.source === "journal-reflection" && event.sourceId === dateKeyValue);
-    if (already) return 0;
-    const streak = reflectionStreakEndingOn(dateKeyValue);
-    const coins = reflectionCoinRewardForStreak(streak);
-    const reward = app.awardActivity?.({
-      source: "journal-reflection",
-      sourceId: dateKeyValue,
-      label: "Daily reflection",
-      xp: 0,
-      realmXP: 0,
-      statXP: 0,
-      coins,
-      storyEnergyBase: 0,
-      progressionRelevant: false,
-      metadata: { reflection: true, streak }
+    const events = root.rewardLedger?.events || [];
+    const oldCoinEvent = events.some(event => event?.source === "journal-reflection" && event.sourceId === dateKeyValue);
+    const baseId = `${dateKeyValue}:base-v0310`;
+    const hasBase = events.some(event => event?.source === "journal-reflection-base" && event.sourceId === baseId);
+    if (!hasBase) {
+      const streak = reflectionStreakEndingOn(dateKeyValue);
+      const base = app.awardActivity?.({
+        source: "journal-reflection-base",
+        sourceId: baseId,
+        label: "Daily reflection",
+        realm: "Recovery",
+        capability: "wellbeing",
+        xp: 5,
+        realmXP: 3,
+        statXP: 3,
+        coins: oldCoinEvent ? 0 : reflectionCoinRewardForStreak(streak),
+        storyEnergyBase: 0.10,
+        progressionRelevant: true,
+        metadata: { reflection: true, streak, journalCharacters: reflectionCharacterCount(entry) }
+      });
+      addRewardTotal(total, base);
+    }
+
+    const chars = reflectionCharacterCount(entry);
+    JOURNAL_EFFORT_THRESHOLDS.forEach((threshold, index) => {
+      if (chars < threshold) return;
+      const sourceId = `${dateKeyValue}:tier-${index + 1}`;
+      const already = events.some(event => event?.source === "journal-reflection-effort" && event.sourceId === sourceId)
+        || (app.getState().rewardLedger?.events || []).some(event => event?.source === "journal-reflection-effort" && event.sourceId === sourceId);
+      if (already) return;
+      const spec = JOURNAL_EFFORT_REWARDS[index];
+      const reward = app.awardActivity?.({
+        source: "journal-reflection-effort",
+        sourceId,
+        label: `Journal depth · ${threshold}+ characters`,
+        realm: "Recovery",
+        capability: "wellbeing",
+        xp: spec.xp,
+        realmXP: Math.max(0, Math.round(spec.xp * 0.5)),
+        statXP: Math.max(0, Math.round(spec.xp * 0.5)),
+        coins: spec.coins,
+        storyEnergyBase: spec.storyEnergyBase,
+        progressionRelevant: true,
+        metadata: { reflection: true, journalCharacters: chars, threshold, effortTier: index + 1 }
+      });
+      addRewardTotal(total, reward);
     });
-    return Number(reward?.coins || 0);
+    return total;
+  }
+
+  function reflectionCharacterCount(entry) {
+    return ["gratitude", "smallWin", "hardThing"].reduce((sum, field) => sum + cleanText(entry?.[field]).length, 0);
+  }
+
+  function reflectionDraftCharacterCount() {
+    const entry = entryFor(reflectionDate, false) || {};
+    const draft = { ...entry };
+    if (reflectionField && els.reflectionTextarea) draft[reflectionField] = String(els.reflectionTextarea.value || "").trim();
+    return reflectionCharacterCount(draft);
+  }
+
+  function dayDraftCharacterCount() {
+    return [els.dayGratitude, els.daySmallWin, els.dayHardThing].reduce((sum, input) => sum + String(input?.value || "").trim().length, 0);
+  }
+
+  function rewardMeterMarkup(chars, dateKeyValue = todayKey()) {
+    const reached = JOURNAL_EFFORT_THRESHOLDS.filter(value => chars >= value).length;
+    const next = JOURNAL_EFFORT_THRESHOLDS.find(value => chars < value);
+    const nextIndex = next ? JOURNAL_EFFORT_THRESHOLDS.indexOf(next) : -1;
+    const nextReward = nextIndex >= 0 ? JOURNAL_EFFORT_REWARDS[nextIndex] : null;
+    const nextText = next
+      ? `<strong>${next - chars} character${next - chars === 1 ? "" : "s"} to the next depth reward</strong><span>Next: +${nextReward.xp} XP · +${nextReward.coins} 🪙${nextReward.storyEnergyBase ? ` · +${nextReward.storyEnergyBase} 🔥 base` : ""}</span>`
+      : `<strong>Maximum writing bonus reached for this day ✨</strong><span>Keep writing only if you want to — there is no extra length farming past ${JOURNAL_EFFORT_THRESHOLDS.at(-1)} characters.</span>`;
+    const width = next ? Math.min(100, Math.round((chars / next) * 100)) : 100;
+    const historical = dateKeyValue !== todayKey();
+    return `<div class="journal-effort-meter-v310 ${historical ? "historical" : ""}"><div class="journal-effort-meter-top-v310"><span><b>${chars}</b> characters today</span><em>${reached}/${JOURNAL_EFFORT_THRESHOLDS.length} depth bonuses</em></div><i><b style="width:${width}%"></b></i><div>${historical ? `<strong>Saved reflection depth</strong><span>Length bonuses are awarded on the day you write; older entries stay editable without becoming backdated reward farming.</span>` : nextText}</div></div>`;
+  }
+
+  function renderReflectionRewardMeter() {
+    if (!els.reflectionRewardMeter) return;
+    els.reflectionRewardMeter.innerHTML = rewardMeterMarkup(reflectionDraftCharacterCount(), reflectionDate);
+  }
+
+  function renderDayRewardMeter() {
+    if (!els.dayRewardMeter || !editingDate) return;
+    els.dayRewardMeter.innerHTML = rewardMeterMarkup(dayDraftCharacterCount(), editingDate);
+  }
+
+  function emptyRewardTotal() { return { xp: 0, coins: 0, storyEnergy: 0 }; }
+  function addRewardTotal(total, reward) {
+    if (!reward) return total;
+    total.xp += Number(reward.xp || 0);
+    total.coins += Number(reward.coins || 0);
+    total.storyEnergy += Number(reward.storyEnergy || 0);
+    return total;
+  }
+  function rewardTotalHasValue(total) { return Boolean(Number(total?.xp || 0) || Number(total?.coins || 0) || Number(total?.storyEnergy || 0)); }
+  function rewardSummary(total) {
+    if (!rewardTotalHasValue(total)) return "";
+    const parts = [];
+    if (Number(total.xp || 0)) parts.push(`+${Number(total.xp || 0)} XP`);
+    if (Number(total.storyEnergy || 0)) parts.push(`+${app.formatEnergy?.(total.storyEnergy) || total.storyEnergy} 🔥`);
+    if (Number(total.coins || 0)) parts.push(`+${Number(total.coins || 0)} 🪙`);
+    return parts.length ? ` · ${parts.join(" · ")}` : "";
   }
 
   function hasCoreCheckIn(entry) {

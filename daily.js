@@ -446,6 +446,18 @@
         return;
       }
 
+      const inspiration = event.target.closest?.("[data-daily-inspiration]");
+      if (inspiration) {
+        window.LifeRPGInspirations?.openForQuest?.(inspiration.dataset.dailyInspiration, inspiration.dataset.dailyInspirationRole || "");
+        return;
+      }
+
+      const sudoku = event.target.closest?.("[data-daily-sudoku]");
+      if (sudoku) {
+        window.LifeRPGSudoku?.openForQuest?.(sudoku.dataset.dailySudoku);
+        return;
+      }
+
       const log = event.target.closest?.("[data-daily-log]");
       if (log) {
         openQuestLog(log.dataset.dailyLog, Number(log.dataset.dailyUnits || 0));
@@ -455,6 +467,12 @@
       const adventureLog = event.target.closest?.("[data-daily-adventure-log]");
       if (adventureLog) {
         window.LifeRPGAdventures?.openLog?.(adventureLog.dataset.dailyAdventureLog);
+        return;
+      }
+
+      const adventureWorkspace = event.target.closest?.("[data-daily-adventure-workspace]");
+      if (adventureWorkspace) {
+        window.LifeRPGAdventureWorkspace?.openWorkspace?.(adventureWorkspace.dataset.dailyAdventureWorkspace);
         return;
       }
 
@@ -975,6 +993,7 @@
       const done = completion.done;
       const progress = adventure.progressMode === "percent" ? clamp(Number(adventure.progress || 0), 0, 100) : null;
       const finishLine = pick.adventureGoal?.label || adventureGoal(adventure, pick.slot, todayRecord()?.checkIn || {}).label;
+      const workspaceContext = window.LifeRPGAdventureWorkspace?.contextForItem?.(adventure) || null;
       return `
         <article class="daily-pick-v14 ${slot.className} daily-adventure-pick-v15 ${done ? "done" : ""}">
           <div class="daily-pick-top-v14">
@@ -990,11 +1009,13 @@
               ${progress === null ? "" : `<span class="daily-adventure-progress-v15">${progress}% complete</span>`}
             </div>
             <h3>${esc(adventure.name || "Untitled adventure")}</h3>
+            ${workspaceContext?.summary ? `<div class="daily-project-memory-v310"><span>🗂️</span><div><small>SAVED PROJECT MEMORY</small><strong>${esc(workspaceContext.summary)}</strong></div></div>` : ""}
             <div class="daily-goal-v14"><span>✦</span><div><small>WHAT COUNTS AS DONE</small><strong>${esc(finishLine)}</strong></div></div>
             <p class="daily-pick-reason-v14"><b>Why this today?</b> ${esc(pick.reason || reasonForAdventure(adventure, pick.slot, todayRecord()?.checkIn || {}))}</p>
           </div>
           <div class="daily-pick-actions-v14">
             <button class="primary-button" data-daily-adventure-log="${escAttr(adventure.id)}" type="button">${done ? "Log more" : "Log this step"}</button>
+            <button class="secondary-button" data-daily-adventure-workspace="${escAttr(adventure.id)}" type="button">Project memory</button>
             <button class="secondary-button" data-daily-reroll="${escAttr(pick.slot)}" type="button">↻ Not today</button>
           </div>
         </article>`;
@@ -1029,13 +1050,19 @@
             <span class="daily-adventure-progress-v15">~${formatNumber(estimatedMinutes(quest))} min</span>
           </div>
           <h3>${esc(quest.name || "Untitled quest")}</h3>
-          ${smartContext?.label ? `<p class="daily-smart-context-v307"><b>Right now:</b> ${esc(smartContext.label)}</p>` : ""}
+          ${smartContext?.image ? `<div class="daily-inspiration-preview-v310"><img src="${escAttr(smartContext.image)}" alt="" /><div><small>TODAY'S REFERENCE</small><strong>${esc(smartContext.label || "Saved inspiration")}</strong>${smartContext.url ? `<span>${esc(smartContext.url.replace(/^https?:\/\/(?:www\.)?/, "").split("/")[0])}</span>` : ""}</div></div>` : (smartContext?.label ? `<p class="daily-smart-context-v307"><b>Right now:</b> ${esc(smartContext.label)}</p>` : "")}
           <div class="daily-goal-v14"><span>✦</span><div><small>WHAT COUNTS AS DONE</small><strong>${esc(done ? progressText : goalText)}</strong></div></div>
           ${quest.completionHint ? `<p class="daily-pick-definition-v303"><b>Definition:</b> ${esc(quest.completionHint)}</p>` : ""}
           <p class="daily-pick-reason-v14"><b>Why this today?</b> ${esc(pick.reason || reasonFor(quest, pick.slot, todayRecord()?.checkIn || {}))}</p>
         </div>
         <div class="daily-pick-actions-v14 ${isTimedQuest(quest) && !done ? "has-direct-timer-v306a" : ""}">
-          ${isTimedQuest(quest) && !done ? timedQuestActionsMarkup(quest, goal, pick.slot, progress) : `<button class="primary-button" data-daily-log="${escAttr(quest.id)}" data-daily-units="${goal}" type="button">${done ? "Log more" : "Log progress"}</button><button class="secondary-button" data-daily-reroll="${escAttr(pick.slot)}" type="button">↻ Not today</button>`}
+          ${!done && ["new-hairstyle", "makeup-look"].includes(quest.systemRole)
+            ? `<button class="primary-button" data-daily-inspiration="${escAttr(quest.id)}" data-daily-inspiration-role="${escAttr(quest.systemRole)}" type="button">Open today's reference</button><button class="secondary-button" data-daily-reroll="${escAttr(pick.slot)}" type="button">↻ Not today</button>`
+            : !done && quest.systemRole === "sudoku"
+              ? `<button class="primary-button" data-daily-sudoku="${escAttr(quest.id)}" type="button">🧩 Play in Life RPG</button><button class="secondary-button" data-daily-reroll="${escAttr(pick.slot)}" type="button">↻ Not today</button>`
+              : isTimedQuest(quest) && !done
+                ? timedQuestActionsMarkup(quest, goal, pick.slot, progress)
+                : `<button class="primary-button" data-daily-log="${escAttr(quest.id)}" data-daily-units="${goal}" type="button">${done ? "Log more" : "Log progress"}</button><button class="secondary-button" data-daily-reroll="${escAttr(pick.slot)}" type="button">↻ Not today</button>`}
         </div>
       </article>`;
   }
@@ -1080,7 +1107,13 @@
     if (realm === "Health") return { categoryId: "recovery", subcategory: "Other recovery" };
     if (realm === "Work") return { categoryId: "work_home", subcategory: "Preparation" };
     if (realm === "Japanese" || realm === "Knowledge") return { categoryId: "focus", subcategory: "Study" };
-    if (realm === "Hobbies") return { categoryId: "hobby", subcategory: quest?.systemRole === "craft-session" ? "Craft" : "Creative" };
+    if (realm === "Hobbies") {
+      const lane = String(quest?.hobbyLane || "");
+      if (lane === "Craft") return { categoryId: "hobby", subcategory: "Craft" };
+      if (lane === "Music") return { categoryId: "hobby", subcategory: "Music" };
+      if (["Self-Care", "Puzzle"].includes(lane)) return { categoryId: "hobby", subcategory: "Other hobby" };
+      return { categoryId: "hobby", subcategory: "Creative" };
+    }
     return { categoryId: "other", subcategory: "Other" };
   }
 
@@ -1396,16 +1429,19 @@
     const used = new Set();
     const usedTypes = [];
     const usedRealms = [];
+    const usedGroups = [];
     const previousBySlot = Object.fromEntries(previousPicks.map(p => [p.slot, p]));
 
     for (const slot of slotsForCheckIn(checkIn)) {
       const previous = previousBySlot[slot];
       const excluded = new Set([...(rerollHistory[slot] || []), ...globalExcluded]);
-      const candidate = chooseSourceCandidate(slot, checkIn, quests, adventures, books, games, used, excluded, previous, usedTypes, usedRealms);
+      const candidate = chooseSourceCandidate(slot, checkIn, quests, adventures, books, games, used, excluded, previous, usedTypes, usedRealms, usedGroups);
       if (!candidate) continue;
       used.add(sourceKey(candidate.sourceType, candidate.item.id));
       usedTypes.push(candidate.sourceType);
       usedRealms.push(sourceRealm(candidate.sourceType, candidate.item));
+      const group = plannerGroup(candidate.sourceType, candidate.item);
+      if (group) usedGroups.push(group);
       picked.push(makePickFromCandidate(slot, candidate, checkIn, previous));
     }
 
@@ -1483,7 +1519,7 @@
     return eligibleGames().filter(game => ["playing", "endless"].includes(game.status));
   }
 
-  function chooseSourceCandidate(slot, checkIn, quests, adventures, books, games, used, excluded, previous = null, usedTypes = [], usedRealms = []) {
+  function chooseSourceCandidate(slot, checkIn, quests, adventures, books, games, used, excluded, previous = null, usedTypes = [], usedRealms = [], usedGroups = []) {
     const currentKey = previous ? sourceKey(previous.sourceType || "quest", previous.sourceId) : "";
     const currentId = previous?.sourceId || "";
     const seed = `${todayKey()}|${slot}|${Object.values(checkIn).join("|")}|${[...excluded].join(",")}`;
@@ -1499,6 +1535,8 @@
       };
       const push = (sourceType, item, baseScore) => {
         if (!allowed(sourceType, item) || !sourceAllowedForSlot(sourceType, item, slot)) return;
+        const group = plannerGroup(sourceType, item);
+        if (group && usedGroups.includes(group)) return;
         const key = sourceKey(sourceType, item.id);
         const memory = plannerMemoryAdjustment(key, sourceType, sourceRealm(sourceType, item), slot);
         const diversity = diversityAdjustment(sourceType, sourceRealm(sourceType, item), usedTypes, usedRealms, slot);
@@ -1559,6 +1597,11 @@
     if (type === "book") return bookRoleMeta(item?.role).realm;
     if (type === "game") return gameRoleMeta(item?.role).realm;
     return String(item?.realm || (type === "adventure" ? "Hobbies" : ""));
+  }
+
+  function plannerGroup(type, item) {
+    if (type !== "quest") return "";
+    return String(item?.plannerGroup || "").trim();
   }
 
   function diversityAdjustment(type, realm, usedTypes, usedRealms, slot) {

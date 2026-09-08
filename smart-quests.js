@@ -271,6 +271,10 @@
     if (role === "paper-pile") return model().paperPileOpen ? { available: true, reason: "Paper pile marked waiting" } : { available: false, reason: "No paper pile marked waiting" };
     if (role === "laundry-cycle") return model().laundry.state === "needs_washing" ? { available: true, reason: "Laundry is waiting" } : { available: false, reason: laundryReason() };
     if (role === "laundry-fold") return model().laundry.state === "ready_fold" ? { available: true, reason: "Dry load ready to fold" } : { available: false, reason: laundryReason() };
+    const inspirationAvailability = window.LifeRPGInspirations?.availabilityForQuest?.(quest);
+    if (inspirationAvailability) return inspirationAvailability;
+    const sudokuAvailability = window.LifeRPGSudoku?.availabilityForQuest?.(quest);
+    if (sudokuAvailability) return sudokuAvailability;
     return null;
   }
 
@@ -294,11 +298,21 @@
     if (role === "paper-pile") return { label: "A paper/post pile is marked as waiting" };
     if (role === "laundry-cycle") return { label: "Laundry state: needs washing" };
     if (role === "laundry-fold") return { label: "Laundry state: ready to fold" };
+    const inspirationContext = window.LifeRPGInspirations?.contextForQuest?.(quest);
+    if (inspirationContext) return inspirationContext;
+    const sudokuContext = window.LifeRPGSudoku?.contextForQuest?.(quest);
+    if (sudokuContext) return sudokuContext;
     return null;
   }
 
   function interceptQuestCompletion(quest, units, options = {}) {
     if (options.smartBypass) return false;
+    if (["new-hairstyle", "makeup-look"].includes(quest?.systemRole)) {
+      return Boolean(window.LifeRPGInspirations?.openForQuest?.(quest.id, quest.systemRole));
+    }
+    if (quest?.systemRole === "sudoku") {
+      return Boolean(window.LifeRPGSudoku?.openForQuest?.(quest.id));
+    }
     if (quest?.systemRole !== "explain-it-back") return false;
     const source = latestLearningSource();
     if (!source) {

@@ -7,7 +7,7 @@
     return;
   }
 
-  const SCHEMA = 3;
+  const SCHEMA = 4;
   const SHADOW_KEY = "life-rpg-side-adventures-shadow-v1";
   const MAX_LOGS = 600;
   const REALMS = ["Hobbies", "Recovery", "Japanese", "Knowledge", "Home", "Health", "Work"];
@@ -33,7 +33,7 @@
   };
 
 
-  const CURATED_PACK_ID = "diy-project-pack-2026-09-07-b";
+  const CURATED_PACK_ID = "diy-project-pack-2026-09-08-v0310";
   const CURATED_ADVENTURES = [
     {
       curatedId: "custom-anime-manga-jeans",
@@ -198,6 +198,35 @@
         { key: "balance-second-shoe", type: "make", milestone: "5 · Paint", label: "Complete and balance the design across the second shoe", details: "Compare the pair together and finish any planned graphics needed to make the set feel coherent.", minutes: 40, energy: "medium" },
         { key: "cure-shoes", type: "finish", milestone: "6 · Finish", label: "Let the artwork cure and finish/seal it exactly as the product requires", details: "Follow the actual paint/marker manufacturer's curing and finishing instructions, including any required wait time before wear.", minutes: 15, energy: "low" },
         { key: "relace-shoes", type: "finish", milestone: "6 · Finish", label: "Add the final laces and do a wear test", details: "Relace the shoes (orange if you chose that reference detail), inspect the artwork and check comfort/flex before calling the project complete.", minutes: 15, energy: "low" }
+      ]
+    },
+    {
+      curatedId: "write-my-first-song",
+      name: "Write My First Song",
+      kind: "creative",
+      realm: "Hobbies",
+      energy: "medium",
+      sessionMinutes: 30,
+      reasonTags: ["learn", "fun", "want-result"],
+      sourceLabel: "Life RPG · personal music project",
+      sourceNote: "This is a hobby project, not a generic daily songwriting task. Research, references, lyrics, tool choices and later decisions should stay in the project workspace so each session can continue from the last one.",
+      note: "Goal: make one first song with lyrics and melody that you can actually listen back to. It does not need to be release-ready or technically impressive.",
+      roadmap: [
+        { key: "research-song-tools", type: "research", milestone: "1 · Setup", label: "Research beginner-friendly tools for writing and recording a first song", details: "Compare a few realistic options for writing lyrics, chords/melody and making a rough demo with the devices you already own. Save the useful links and what each option is good for instead of trying to research every DAW on earth.", minutes: 25, energy: "low" },
+        { key: "choose-song-setup", type: "decision", milestone: "1 · Setup", label: "Choose the tool/setup you will actually use for this song", details: "Pick one practical setup and record the decision in the project workspace so later steps can refer back to it.", minutes: 15, energy: "low" },
+        { key: "save-reference-songs", type: "research", milestone: "2 · Direction", label: "Save 2–3 reference songs or sounds for the direction you want", details: "Choose references for mood, structure, production, vocal feel or instrumentation. Add links and a sentence about what you want to borrow from each one — not the copyrighted content itself.", minutes: 20, energy: "low" },
+        { key: "choose-song-theme", type: "decision", milestone: "2 · Direction", label: "Choose the theme, feeling or idea for the song", details: "Write down what the song is about and what you want it to feel like. One clear paragraph is enough.", minutes: 20, energy: "medium" },
+        { key: "capture-song-ideas", type: "make", milestone: "2 · Direction", label: "Capture phrases, images, sounds or musical ideas that fit the song", details: "Collect raw material without forcing it into finished lyrics yet. A handful of useful fragments is enough to move on.", minutes: 25, energy: "medium" },
+        { key: "rough-song-structure", type: "decision", milestone: "3 · Write", label: "Choose a rough song structure", details: "Decide on a simple working structure such as verse / chorus / verse / chorus / bridge / chorus, or another structure that fits your references.", minutes: 15, energy: "low" },
+        { key: "draft-hook", type: "make", milestone: "3 · Write", label: "Draft the hook or chorus idea", details: "Create a first memorable lyrical or melodic center for the song. It can be rough and change later.", minutes: 30, energy: "medium" },
+        { key: "draft-lyrics", type: "make", milestone: "3 · Write", label: "Draft the remaining lyrics around the hook", details: "Write enough lyric material for the chosen structure. Prioritize a complete rough draft over polishing every line.", minutes: 45, energy: "medium" },
+        { key: "find-melody", type: "make", milestone: "4 · Music", label: "Find a melody for the main sections", details: "Hum, play or enter melody ideas into the chosen tool and save enough that you can reproduce them next session.", minutes: 35, energy: "medium" },
+        { key: "find-harmony", type: "make", milestone: "4 · Music", label: "Choose chords or harmonic support", details: "Build a simple harmonic foundation that supports the melody. Complexity is optional; the goal is a coherent first song.", minutes: 35, energy: "medium" },
+        { key: "rough-demo", type: "make", milestone: "5 · Build", label: "Make a rough demo from beginning to end", details: "Put the current lyrics, melody and harmony into the chosen setup so you can listen through the whole song, even if the sound is very rough.", minutes: 60, energy: "high" },
+        { key: "arrange-song", type: "make", milestone: "5 · Build", label: "Add a simple arrangement and shape the sections", details: "Add only enough instrumentation, rhythm or section contrast to make the song feel like a song rather than a loop.", minutes: 45, energy: "medium" },
+        { key: "guide-vocal", type: "make", milestone: "5 · Build", label: "Record a guide vocal or melody performance", details: "Record something that captures the intended phrasing and melody. It is a working reference, not a performance exam.", minutes: 30, energy: "medium" },
+        { key: "revise-song", type: "make", milestone: "6 · Finish", label: "Listen back and revise the parts that actually bother you", details: "Make one focused revision pass on lyrics, melody, timing or arrangement instead of endlessly rebuilding everything.", minutes: 45, energy: "medium" },
+        { key: "export-first-song", type: "finish", milestone: "6 · Finish", label: "Export a finished-enough version you can listen to", details: "Export one version and save it as the endpoint of the Adventure. The point is to have written your first song, not to prove it could go on Spotify tomorrow.", minutes: 20, energy: "low" }
       ]
     }
   ];
@@ -700,6 +729,7 @@
           <span class="adventure-last-v15">${doneToday ? "✓ Touched today" : esc(last)}</span>
           <div class="adventure-card-actions-v15">
             ${item.status === "active" ? `<button class="primary-button" type="button" data-adventure-log="${escAttr(item.id)}">${doneToday ? "Log more" : "Log progress"}</button>` : ""}
+            <button class="secondary-button" type="button" data-adventure-workspace="${escAttr(item.id)}">Project memory</button>
             ${item.status !== "finished" ? `<button class="secondary-button" type="button" data-adventure-pause="${escAttr(item.id)}">${item.status === "paused" ? "Resume" : "Pause"}</button>` : ""}
           </div>
         </footer>

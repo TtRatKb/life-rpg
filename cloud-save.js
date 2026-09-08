@@ -516,6 +516,9 @@ function progressScore(state) {
   const timeLogs = Array.isArray(state?.timeTracking?.entries) ? state.timeTracking.entries.length : 0;
   const shopItems = Array.isArray(state?.shop?.items) ? state.shop.items.length : 0;
   const shopTransactions = Array.isArray(state?.shop?.transactions) ? state.shop.transactions.length : 0;
+  const inspirationItems = Array.isArray(state?.inspirations?.items) ? state.inspirations.items.length : 0;
+  const sudokuSolved = Number(state?.sudoku?.stats?.solved || 0);
+  const adventureWorkspaceDepth = Array.isArray(state?.sideAdventures?.items) ? state.sideAdventures.items.reduce((sum, item) => sum + Number(item?.workspace?.references?.length || 0) + Number(item?.workspace?.images?.length || 0) + Number(item?.workspace?.materials?.length || 0), 0) : 0;
   const achievementUnlocks = state?.achievements?.unlocked && typeof state.achievements.unlocked === "object" ? Object.keys(state.achievements.unlocked).length : 0;
   const achievementPins = Array.isArray(state?.achievements?.pinned) ? state.achievements.pinned.length : 0;
   const curiosityItems = Array.isArray(state?.smartQuests?.curiosity?.items) ? state.smartQuests.curiosity.items.length : 0;
@@ -535,6 +538,7 @@ function progressScore(state) {
     journalDays * 6 +
     timeLogs * 8 +
     shopItems * 4 + shopTransactions * 12 +
+    inspirationItems * 4 + sudokuSolved * 8 + adventureWorkspaceDepth * 3 +
     achievementUnlocks * 8 + achievementPins * 2 +
     curiosityItems * 5 + explainNotes * 8 +
     rewardEvents * 2 +

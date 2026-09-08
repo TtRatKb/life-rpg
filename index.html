@@ -14,7 +14,7 @@
   <link rel="manifest" href="manifest.webmanifest?v=0.30.3a" />
   <link rel="apple-touch-icon" href="assets/app-icon-180.png?v=0.30.3a" />
   <link rel="icon" type="image/png" sizes="192x192" href="assets/app-icon-192.png?v=0.30.3a" />
-  <link rel="stylesheet" href="styles.css?v=0.30.9" />
+  <link rel="stylesheet" href="styles.css?v=0.31.0" />
 </head>
 <body>
   <section id="mobileCloudGate" class="mobile-cloud-gate-v251" data-state="checking" aria-live="polite" aria-label="Life RPG cloud sign in">
@@ -692,6 +692,15 @@
             </div>
             <p id="smartQuestContextHint" class="smart-context-line-v307">Smart context not set yet.</p>
           </article>
+        </section>
+
+        <section class="panel inspiration-library-panel-v310" id="inspirationLibraryPanel">
+          <div class="panel-heading inspiration-heading-v310">
+            <div><p class="eyebrow">SAVED INSPIRATION</p><h2>Looks I actually want to try</h2><p class="panel-subcopy">Paste a Pinterest, TikTok or web link. Life RPG tries to pull the title and thumbnail automatically, then Daily Picks can hand you one concrete reference instead of another decision.</p></div>
+            <div class="inspiration-counts-v310"><span>💇 <b id="inspirationHairstyleCount">0</b></span><span>💄 <b id="inspirationMakeupCount">0</b></span></div>
+          </div>
+          <div class="inspiration-actions-v310"><button id="addHairstyleInspiration" class="secondary-button" type="button">＋ Hairstyle</button><button id="addMakeupInspiration" class="secondary-button" type="button">＋ Makeup look</button></div>
+          <div id="inspirationLibraryGrid" class="inspiration-library-grid-v310"></div>
         </section>
 
         <section class="quest-library-shell-v4">
@@ -2014,7 +2023,7 @@ League of Legends — PC" required></textarea></label>
         <button id="journalReflectionDone" class="text-button" type="button">I'm good for today</button>
       </section>
       <section id="journalReflectionWriteStep" class="journal-reflection-write-v302 hidden">
-        <label><strong id="journalReflectionPrompt">What do you want to keep?</strong><textarea id="journalReflectionTextarea" rows="5" maxlength="2400"></textarea></label>
+        <label><strong id="journalReflectionPrompt">What do you want to keep?</strong><textarea id="journalReflectionTextarea" rows="5" maxlength="2400"></textarea></label><div id="journalReflectionRewardMeter" class="journal-effort-meter-v310" aria-live="polite"></div>
         <div class="journal-reflection-write-actions-v302"><button id="journalReflectionBack" class="secondary-button" type="button">← Back</button><button id="journalReflectionSave" class="primary-button" type="button">Save to journal</button></div>
       </section>
     </div>
@@ -2036,6 +2045,7 @@ League of Legends — PC" required></textarea></label>
         <label><span>⭐ Small win</span><textarea id="journalDaySmallWin" rows="3" maxlength="2400" placeholder="Something that went right…"></textarea></label>
         <label><span>🌧 What was hard</span><textarea id="journalDayHardThing" rows="3" maxlength="2400" placeholder="Context, not a score…"></textarea></label>
       </div>
+      <div id="journalDayRewardMeter" class="journal-effort-meter-v310" aria-live="polite"></div>
       <p class="journal-day-note-v302">Editing this page changes the journal record. If today's Daily Check-in is edited later, its mood/energy/sleep/stress values become the source of truth again; your written reflections stay untouched.</p>
       <menu><button class="secondary-button" type="button" onclick="document.getElementById('journalDayDialog').close()">Cancel</button><button class="primary-button" type="submit">Save day</button></menu>
     </form>
@@ -2218,9 +2228,29 @@ League of Legends — PC" required></textarea></label>
         <div id="adventureLogQuickProgress" class="adventure-log-quick-v15"></div>
       </div>
       <label>Next action after this <span class="muted">(optional)</span><input id="adventureLogNextAction" maxlength="140" placeholder="e.g. Attach the eyes" /><small>Leave blank if the current next action still applies.</small></label>
+      <section id="adventureStepWorkspace" class="adventure-step-workspace-v310 hidden">
+        <div class="workspace-step-heading-v310"><div><small id="adventureStepWorkspaceType">PROJECT MEMORY</small><strong>Keep what future-you will need</strong></div><span>optional, but rewarded</span></div>
+        <p id="adventureStepWorkspaceHint" class="muted"></p>
+        <label>What did you find / do?<textarea id="adventureStepNotes" rows="4" maxlength="3000" placeholder="Notes, measurements, what worked, what you learned…"></textarea></label>
+        <label>Decision made <span class="muted">optional</span><input id="adventureStepDecision" maxlength="500" placeholder="e.g. I’m using black canvas shoes + Angelus 2-Soft" /></label>
+        <div class="workspace-capture-row-v310"><input id="adventureStepLinkInput" type="url" placeholder="Paste a useful link…" /><button id="adventureStepLinkAdd" class="secondary-button" type="button">＋ Link</button></div><small id="adventureStepLinkStatus" class="muted"></small><div id="adventureStepReferences" class="workspace-chip-list-v310"></div>
+        <div class="workspace-capture-row-v310"><input id="adventureStepMaterialInput" type="text" maxlength="160" placeholder="Material/product to remember…" /><button id="adventureStepMaterialAdd" class="secondary-button" type="button">＋ Material</button></div><div id="adventureStepMaterials" class="workspace-chip-list-v310"></div>
+        <label class="workspace-image-upload-v310">Reference images / screenshots<input id="adventureStepImageInput" type="file" accept="image/*" multiple /></label><div id="adventureStepImages" class="workspace-image-list-v310"></div>
+        <div id="adventureStepRewardMeter" class="workspace-reward-meter-v310" aria-live="polite"></div>
+      </section>
       <menu class="chain-log-menu-v273"><button class="secondary-button" id="adventureLogCancel" type="button">Done</button><button class="secondary-button" type="submit">Log & done</button><button class="primary-button" type="submit" data-log-another="true">✓ Log & another</button></menu>
     </form>
   </dialog>
+
+  <!-- INSPIRATION LIBRARY -->
+  <dialog id="inspirationDialog" class="rpg-dialog inspiration-dialog-v310"><form id="inspirationForm" class="rpg-dialog-form"><input id="inspirationId" type="hidden"/><div class="dialog-heading"><div><p class="eyebrow">SAVE INSPIRATION</p><h2>One link is enough</h2></div><button id="inspirationClose" class="close-button" type="button">×</button></div><div class="form-grid"><label>Type<select id="inspirationType"><option value="hairstyle">💇 Hairstyle</option><option value="makeup">💄 Makeup look</option></select></label><label>Source link<input id="inspirationUrl" type="url" placeholder="Pinterest, TikTok, website…"/></label></div><div class="workspace-capture-row-v310"><button id="inspirationFetchMetadata" class="secondary-button" type="button">✨ Fetch preview</button><small id="inspirationMetadataStatus" class="muted"></small></div><label>Title <small>optional</small><input id="inspirationTitle" maxlength="160" placeholder="Life RPG can often fill this"/></label><label>Image URL <small>optional</small><input id="inspirationImage" type="url"/></label><label>Or upload a screenshot<input id="inspirationImageUpload" type="file" accept="image/*"/></label><label>Note <small>optional</small><textarea id="inspirationNote" rows="3" maxlength="500"></textarea></label><div id="inspirationPreview"></div><menu><button id="inspirationDelete" class="danger-text-button hidden" type="button">Delete</button><span class="dialog-menu-spacer"></span><button class="primary-button" type="submit">Save</button></menu></form></dialog>
+  <dialog id="inspirationTryDialog" class="rpg-dialog inspiration-try-dialog-v310"><div class="rpg-dialog-form"><div class="dialog-heading"><div><p class="eyebrow">TODAY'S REFERENCE</p><h2 id="inspirationTryTitle">Try this</h2></div><button id="inspirationTryClose" class="close-button" type="button">×</button></div><img id="inspirationTryImage" class="inspiration-try-image-v310 hidden" alt="Saved inspiration"/><p id="inspirationTrySource" class="muted"></p><p id="inspirationTryNote"></p><div class="dialog-actions"><a id="inspirationTryOpen" class="secondary-button" target="_blank" rel="noopener">Open reference ↗</a><button id="inspirationTryComplete" class="primary-button" type="button">✓ Tried it & complete</button></div></div></dialog>
+
+  <!-- SUDOKU -->
+  <dialog id="sudokuDialog" class="rpg-dialog sudoku-dialog-v310"><div class="rpg-dialog-form"><div class="dialog-heading"><div><p class="eyebrow">KNOWLEDGE · LOGIC</p><h2 id="sudokuTitle">Sudoku</h2></div><button id="sudokuClose" class="close-button" type="button">×</button></div><p id="sudokuMeta" class="muted"></p><div id="sudokuBoard" class="sudoku-board-v310"></div><p id="sudokuStatus" class="sudoku-status-v310" aria-live="polite"></p><div class="dialog-actions"><button id="sudokuNewButton" class="secondary-button" type="button">New puzzle</button><button id="sudokuClearButton" class="secondary-button" type="button">Clear cell</button><button id="sudokuCheckButton" class="primary-button" type="button">Check</button></div></div></dialog>
+
+  <!-- PROJECT MEMORY -->
+  <dialog id="adventureWorkspaceDialog" class="rpg-dialog adventure-workspace-dialog-v310"><form id="adventureWorkspaceForm" class="rpg-dialog-form"><input id="adventureWorkspaceId" type="hidden"/><div class="dialog-heading"><div><p class="eyebrow">PROJECT MEMORY</p><h2 id="adventureWorkspaceTitle">Adventure</h2></div><button id="adventureWorkspaceClose" class="close-button" type="button">×</button></div><label>Project notes<textarea id="adventureWorkspaceNotes" rows="4" maxlength="5000" placeholder="Anything future-you should remember…"></textarea></label><section><h3>References</h3><div class="workspace-capture-row-v310"><input id="adventureWorkspaceLinkInput" type="url" placeholder="Paste a link…"/><button id="adventureWorkspaceLinkAdd" class="secondary-button" type="button">＋ Add</button></div><div id="adventureWorkspaceReferences" class="workspace-reference-list-v310"></div></section><section><h3>Materials</h3><div class="workspace-capture-row-v310"><input id="adventureWorkspaceMaterialInput" maxlength="160" placeholder="Add material…"/><button id="adventureWorkspaceMaterialAdd" class="secondary-button" type="button">＋ Add</button></div><div id="adventureWorkspaceMaterials"></div></section><section><h3>Decisions</h3><div id="adventureWorkspaceDecisions"></div></section><section><h3>Images</h3><div id="adventureWorkspaceImages" class="workspace-gallery-v310"></div></section><section><h3>Step notes</h3><div id="adventureWorkspaceStepNotes"></div></section><menu><button class="primary-button" type="submit">Save project memory</button></menu></form></dialog>
 
   <!-- CREATE QUEST -->
   <dialog id="questDialog" class="rpg-dialog quest-create-dialog">
@@ -2599,22 +2629,25 @@ League of Legends — PC" required></textarea></label>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <script src="data/quests.js?v=0.30.7"></script>
+  <script src="data/quests.js?v=0.31.0"></script>
   <script src="story-engine.js?v=0.30.3a"></script>
   <script src="app.js?v=0.30.9"></script>
   <script src="stewardship.js?v=0.30.6"></script>
   <script src="habits.js?v=0.30.9"></script>
-  <script src="adventures.js?v=0.30.9a"></script>
+  <script src="adventures.js?v=0.31.0"></script>
+  <script src="adventure-workspace.js?v=0.31.0"></script>
   <script src="library.js?v=0.30.6"></script>
   <script src="games.js?v=0.30.6"></script>
   <script src="time.js?v=0.30.9"></script>
-  <script src="smart-quests.js?v=0.30.7"></script>
-  <script src="daily.js?v=0.30.9"></script>
-  <script src="journal.js?v=0.30.9"></script>
+  <script src="inspirations.js?v=0.31.0"></script>
+  <script src="sudoku.js?v=0.31.0"></script>
+  <script src="smart-quests.js?v=0.31.0"></script>
+  <script src="daily.js?v=0.31.0"></script>
+  <script src="journal.js?v=0.31.0"></script>
   <script src="story-ui.js?v=0.30.9"></script>
   <script src="shop.js?v=0.30.6"></script>
-  <script src="achievements.js?v=0.30.6"></script>
-  <script type="module" src="cloud-save.js?v=0.30.7"></script>
-  <script src="pwa.js?v=0.30.9a"></script>
+  <script src="achievements.js?v=0.31.0"></script>
+  <script type="module" src="cloud-save.js?v=0.31.0"></script>
+  <script src="pwa.js?v=0.31.0"></script>
 </body>
 </html>

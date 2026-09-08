@@ -129,6 +129,48 @@
       test: ctx => ctx.reflectionDays >= 7
     },
     {
+      id: "life-journal-chars-1000",
+      category: "life",
+      icon: "✎",
+      title: "A Thousand Words-ish",
+      description: "Write 1,000 characters across your Journal reflections.",
+      coinReward: 75,
+      progress: ctx => ({ value: ctx.journalCharacters, target: 1000, unit: "characters" }),
+      test: ctx => ctx.journalCharacters >= 1000
+    },
+    {
+      id: "life-journal-chars-5000",
+      category: "life",
+      icon: "📓",
+      title: "Margins Filling Up",
+      description: "Write 5,000 characters across your Journal reflections.",
+      coinReward: 150,
+      progress: ctx => ({ value: ctx.journalCharacters, target: 5000, unit: "characters" }),
+      test: ctx => ctx.journalCharacters >= 5000
+    },
+    {
+      id: "life-journal-chars-25000",
+      category: "life",
+      icon: "🌸",
+      title: "A Journal of My Own",
+      description: "Write 25,000 characters across your Journal reflections.",
+      coinReward: 350,
+      profileTitle: "Journal Keeper",
+      progress: ctx => ({ value: ctx.journalCharacters, target: 25000, unit: "characters" }),
+      test: ctx => ctx.journalCharacters >= 25000
+    },
+    {
+      id: "life-journal-chars-100000",
+      category: "life",
+      icon: "📚",
+      title: "Volume One",
+      description: "Write 100,000 characters across your Journal reflections.",
+      coinReward: 750,
+      profileTitle: "Chronicler",
+      progress: ctx => ({ value: ctx.journalCharacters, target: 100000, unit: "characters" }),
+      test: ctx => ctx.journalCharacters >= 100000
+    },
+    {
       id: "life-focus-ten",
       category: "life",
       icon: "◷",
@@ -300,6 +342,26 @@
       test: ctx => ctx.adventureSessions >= 1
     },
     {
+      id: "adventure-notes-1000",
+      category: "adventures",
+      icon: "🗂️",
+      title: "Project Memory",
+      description: "Save 1,000 characters of useful notes and decisions across Adventure workspaces.",
+      coinReward: 100,
+      progress: ctx => ({ value: ctx.adventureOutputCharacters, target: 1000, unit: "characters" }),
+      test: ctx => ctx.adventureOutputCharacters >= 1000
+    },
+    {
+      id: "adventure-references-10",
+      category: "adventures",
+      icon: "🔗",
+      title: "Reference Binder",
+      description: "Save ten useful project references, images or material links.",
+      coinReward: 125,
+      progress: ctx => ({ value: ctx.adventureReferences, target: 10, unit: "references" }),
+      test: ctx => ctx.adventureReferences >= 10
+    },
+    {
       id: "adventure-first-finish",
       category: "adventures",
       icon: "✨",
@@ -320,6 +382,27 @@
       profileTitle: "Space Reclaimed",
       progress: ctx => ({ value: ctx.finishedSpaceProjects, target: 1, unit: "project" }),
       test: ctx => ctx.finishedSpaceProjects >= 1
+    },
+
+    {
+      id: "knowledge-sudoku-five",
+      category: "growth",
+      icon: "🧩",
+      title: "Pattern Seeker I",
+      description: "Solve five Sudokus inside Life RPG.",
+      coinReward: 75,
+      progress: ctx => ({ value: ctx.sudokuSolved, target: 5, unit: "Sudokus" }),
+      test: ctx => ctx.sudokuSolved >= 5
+    },
+    {
+      id: "knowledge-sudoku-twenty-five",
+      category: "growth",
+      icon: "◇",
+      title: "Pattern Seeker II",
+      description: "Solve twenty-five Sudokus inside Life RPG.",
+      coinReward: 200,
+      progress: ctx => ({ value: ctx.sudokuSolved, target: 25, unit: "Sudokus" }),
+      test: ctx => ctx.sudokuSolved >= 25
     },
 
     {
@@ -652,6 +735,10 @@
     const adventureLogs = Array.isArray(adventures.logs) ? adventures.logs : [];
     const journalEntries = journal.entries && typeof journal.entries === "object" ? Object.values(journal.entries) : [];
     const reflectionDays = journalEntries.filter(entry => entry && (String(entry.gratitude || "").trim() || String(entry.smallWin || "").trim() || String(entry.hardThing || "").trim())).length;
+    const journalCharacters = journalEntries.reduce((sum, entry) => sum + ["gratitude", "smallWin", "hardThing"].reduce((inner, field) => inner + String(entry?.[field] || "").trim().length, 0), 0);
+    const adventureOutputCharacters = adventureItems.reduce((sum, item) => sum + (Array.isArray(item.roadmap) ? item.roadmap.reduce((stepSum, step) => stepSum + String(step?.output?.notes || "").trim().length + String(step?.output?.decision || "").trim().length, 0) : 0) + String(item?.workspace?.notes || "").trim().length, 0);
+    const adventureReferences = adventureItems.reduce((sum, item) => sum + Number(item?.workspace?.references?.length || 0) + Number(item?.workspace?.images?.length || 0) + Number(item?.workspace?.materials?.filter?.(material => material?.url)?.length || 0), 0);
+    const sudokuSolved = Math.max(0, Number(root.sudoku?.stats?.solved || 0));
     const timeEntries = Array.isArray(timeTracking.entries) ? timeTracking.entries : [];
     const focusSessions = timeEntries.filter(entry => entry?.mode === "focus" && Number(entry.minutes || 0) >= Math.max(1, Number(entry.targetMinutes || 0) - 1)).length;
 
@@ -661,6 +748,10 @@
       hasComeback: hasComebackGap(rewardDates),
       briefingCount: Object.values(daily.days || {}).filter(day => day?.checkIn).length,
       reflectionDays,
+      journalCharacters,
+      adventureOutputCharacters,
+      adventureReferences,
+      sudokuSolved,
       focusSessions,
       questClears: Array.isArray(root.completionLog) ? root.completionLog.length : 0,
       habitCompletions: habitCompletions.length,
