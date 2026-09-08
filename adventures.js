@@ -1093,7 +1093,7 @@
     const timestamp = item.lastTouchedAt || item.createdAt;
     const days = daysSince(timestamp);
     if (!item.lastTouchedAt && days <= 0) return "Added today";
-    if (!item.lastTouchedAt) return `Not started · added ${humanDays(days)} ago`;
+    if (!item.lastTouchedAt) return days === 1 ? "Not started · added 1 day ago" : `Not started · added ${days} days ago`;
     if (days <= 0) return "Touched today";
     if (days === 1) return "Last touched yesterday";
     if (days < 7) return `Last touched ${days} days ago`;

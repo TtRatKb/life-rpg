@@ -1,15 +1,15 @@
-const CACHE_NAME = "life-rpg-v0309-shell";
+const CACHE_NAME = "life-rpg-v0309a-shell";
 const CORE = [
   "./",
   "./index.html",
   "./data/quests.js?v=0.30.7",
   "./styles.css?v=0.30.9",
   "./manifest.webmanifest?v=0.30.3a",
-  "./pwa.js?v=0.30.9",
+  "./pwa.js?v=0.30.9a",
   "./app.js?v=0.30.9",
   "./stewardship.js?v=0.30.6",
   "./habits.js?v=0.30.9",
-  "./adventures.js?v=0.30.9",
+  "./adventures.js?v=0.30.9a",
   "./library.js?v=0.30.6",
   "./games.js?v=0.30.6",
   "./time.js?v=0.30.9",
