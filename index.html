@@ -14,7 +14,7 @@
   <link rel="manifest" href="manifest.webmanifest?v=0.30.3a" />
   <link rel="apple-touch-icon" href="assets/app-icon-180.png?v=0.30.3a" />
   <link rel="icon" type="image/png" sizes="192x192" href="assets/app-icon-192.png?v=0.30.3a" />
-  <link rel="stylesheet" href="styles.css?v=0.31.4a" />
+  <link rel="stylesheet" href="styles.css?v=0.31.4b" />
 </head>
 <body>
   <section id="mobileCloudGate" class="mobile-cloud-gate-v251" data-state="checking" aria-live="polite" aria-label="Life RPG cloud sign in">
@@ -133,6 +133,7 @@
           <button data-view-target="adventures"><span class="command-strip-icon">✧</span><span><strong>Side Adventures</strong><small>Come back to things you actually want.</small></span><b>›</b></button>
           <button data-view-target="library"><span class="command-strip-icon">📚</span><span><strong>Library</strong><small>Your books, without database homework.</small></span><b>›</b></button>
           <button data-view-target="games"><span class="command-strip-icon">🎮</span><span><strong>Games</strong><small>Keep active games and personal goals in rotation.</small></span><b>›</b></button>
+          <button data-sudoku-open type="button"><span class="command-strip-icon">🧩</span><span><strong>Sudoku</strong><small id="sudokuQuickStatus">Play a logic puzzle inside Life RPG.</small></span><b>›</b></button>
           <button data-view-target="people"><span class="command-strip-icon">♧</span><span><strong>People</strong><small>Talk, message, connect.</small></span><b>›</b></button>
           <button data-view-target="story"><span class="command-strip-icon">♡</span><span><strong>Main Story</strong><small>Spend energy when you're ready.</small></span><b>›</b></button>
           <button data-view-target="achievements"><span class="command-strip-icon">🏆</span><span><strong>Achievements</strong><small>Collect milestones and hidden moments.</small></span><b>›</b></button>
@@ -213,6 +214,7 @@
               <footer class="daily-picks-footer-v14 daily-picks-footer-v15">
                 <button class="text-button" data-view-target="library" type="button">Open Library →</button>
                 <button class="text-button" data-view-target="games" type="button">Open Games →</button>
+                <button class="text-button" data-sudoku-open type="button">Play Sudoku →</button>
                 <button class="text-button" data-view-target="adventures" type="button">Open Side Adventures →</button>
                 <button class="text-button" data-view-target="quests" type="button">Browse the Quest Board →</button>
               </footer>
@@ -1095,6 +1097,16 @@
             <span><b>♡</b> Growth never buys affection</span>
             <span><b>↻</b> Hard growth gates should be rare and have a reasonable catch-up path</span>
           </div>
+        </section>
+
+        <section class="panel sudoku-growth-panel-v314" aria-labelledby="sudokuGrowthTitle">
+          <div class="sudoku-growth-copy-v314">
+            <p class="eyebrow">KNOWLEDGE · LOGICAL THINKING</p>
+            <h2 id="sudokuGrowthTitle">Sudoku</h2>
+            <p>Train logical thinking directly inside Life RPG. Your puzzle saves automatically, and every solve awards Knowledge progress, Story Energy and Coins.</p>
+            <div id="sudokuGrowthStats" class="sudoku-growth-stats-v314"><span><b>0</b> solved</span><span>🌱 0</span><span>✦ 0</span><span>⚡ 0</span></div>
+          </div>
+          <button class="primary-button sudoku-growth-play-v314" data-sudoku-open type="button">🧩 Play Sudoku</button>
         </section>
 
         <section class="panel growth-achievement-panel-v21" aria-labelledby="growthAchievementTitle">
@@ -2410,7 +2422,28 @@ League of Legends — PC" required></textarea></label>
   <dialog id="inspirationTryDialog" class="rpg-dialog inspiration-try-dialog-v310"><div class="rpg-dialog-form"><div class="dialog-heading"><div><p class="eyebrow">TODAY'S REFERENCE</p><h2 id="inspirationTryTitle">Try this</h2></div><button id="inspirationTryClose" class="close-button" type="button">×</button></div><img id="inspirationTryImage" class="inspiration-try-image-v310 hidden" alt="Saved inspiration"/><p id="inspirationTrySource" class="muted"></p><p id="inspirationTryNote"></p><div class="dialog-actions"><a id="inspirationTryOpen" class="secondary-button" target="_blank" rel="noopener">Open reference ↗</a><button id="inspirationTryComplete" class="primary-button" type="button">✓ Tried it & complete</button></div></div></dialog>
 
   <!-- SUDOKU -->
-  <dialog id="sudokuDialog" class="rpg-dialog sudoku-dialog-v310"><div class="rpg-dialog-form"><div class="dialog-heading"><div><p class="eyebrow">KNOWLEDGE · LOGIC</p><h2 id="sudokuTitle">Sudoku</h2></div><button id="sudokuClose" class="close-button" type="button">×</button></div><p id="sudokuMeta" class="muted"></p><div id="sudokuBoard" class="sudoku-board-v310"></div><p id="sudokuStatus" class="sudoku-status-v310" aria-live="polite"></p><div class="dialog-actions"><button id="sudokuNewButton" class="secondary-button" type="button">New puzzle</button><button id="sudokuClearButton" class="secondary-button" type="button">Clear cell</button><button id="sudokuCheckButton" class="primary-button" type="button">Check</button></div></div></dialog>
+  <dialog id="sudokuDialog" class="rpg-dialog sudoku-dialog-v310 sudoku-dialog-v314">
+    <div class="rpg-dialog-form sudoku-shell-v314">
+      <div class="dialog-heading">
+        <div><p class="eyebrow">KNOWLEDGE · LOGICAL THINKING</p><h2 id="sudokuTitle">Sudoku</h2></div>
+        <button id="sudokuClose" class="close-button" type="button">×</button>
+      </div>
+      <p id="sudokuMeta" class="muted">Knowledge Realm · Logical Thinking</p>
+      <div id="sudokuSuggestion" class="sudoku-suggestion-v314"></div>
+      <div class="sudoku-difficulty-grid-v314" aria-label="Choose Sudoku difficulty">
+        <button class="sudoku-difficulty-card-v314" data-sudoku-new="easy" type="button"><span>🌱</span><strong>Easy</strong><small>Gentle logic</small></button>
+        <button class="sudoku-difficulty-card-v314" data-sudoku-new="medium" type="button"><span>✦</span><strong>Medium</strong><small>Normal challenge</small></button>
+        <button class="sudoku-difficulty-card-v314" data-sudoku-new="hard" type="button"><span>⚡</span><strong>Hard</strong><small>Stronger challenge</small></button>
+      </div>
+      <div id="sudokuRewardPreview" class="sudoku-reward-preview-v314"></div>
+      <div id="sudokuBoard" class="sudoku-board-v310"></div>
+      <p id="sudokuStatus" class="sudoku-status-v310" aria-live="polite"></p>
+      <div class="dialog-actions sudoku-actions-v314">
+        <button id="sudokuClearButton" class="secondary-button" type="button">Clear my entries</button>
+        <button id="sudokuCheckButton" class="primary-button" type="button">Check puzzle</button>
+      </div>
+    </div>
+  </dialog>
 
   <!-- PROJECT MEMORY -->
   <dialog id="adventureWorkspaceDialog" class="rpg-dialog adventure-workspace-dialog-v310"><form id="adventureWorkspaceForm" class="rpg-dialog-form"><input id="adventureWorkspaceId" type="hidden"/><div class="dialog-heading"><div><p class="eyebrow">PROJECT MEMORY</p><h2 id="adventureWorkspaceTitle">Adventure</h2></div><button id="adventureWorkspaceClose" class="close-button" type="button">×</button></div><label>Project notes<textarea id="adventureWorkspaceNotes" rows="4" maxlength="5000" placeholder="Anything future-you should remember…"></textarea></label><section><h3>References</h3><div class="workspace-capture-row-v310"><input id="adventureWorkspaceLinkInput" type="url" placeholder="Paste a link…"/><button id="adventureWorkspaceLinkAdd" class="secondary-button" type="button">＋ Add</button></div><div id="adventureWorkspaceReferences" class="workspace-reference-list-v310"></div></section><section><h3>Materials</h3><div class="workspace-capture-row-v310"><input id="adventureWorkspaceMaterialInput" maxlength="160" placeholder="Add material…"/><button id="adventureWorkspaceMaterialAdd" class="secondary-button" type="button">＋ Add</button></div><div id="adventureWorkspaceMaterials"></div></section><section><h3>Decisions</h3><div id="adventureWorkspaceDecisions"></div></section><section><h3>Images</h3><div id="adventureWorkspaceImages" class="workspace-gallery-v310"></div></section><section><h3>Step notes</h3><div id="adventureWorkspaceStepNotes"></div></section><menu><button class="primary-button" type="submit">Save project memory</button></menu></form></dialog>
@@ -2804,7 +2837,7 @@ League of Legends — PC" required></textarea></label>
   <script src="time.js?v=0.31.1"></script>
   <script src="universal-timers.js?v=0.31.1"></script>
   <script src="inspirations.js?v=0.31.0"></script>
-  <script src="sudoku.js?v=0.31.0"></script>
+  <script src="sudoku.js?v=0.31.4b"></script>
   <script src="smart-quests.js?v=0.31.0"></script>
   <script src="daily.js?v=0.31.4a"></script>
   <script src="journal.js?v=0.31.4a"></script>

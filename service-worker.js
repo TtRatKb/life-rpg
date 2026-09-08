@@ -1,9 +1,9 @@
-const CACHE_NAME = "life-rpg-v0314a-shell";
+const CACHE_NAME = "life-rpg-v0314b-shell";
 const CORE = [
   "./",
   "./index.html",
   "./data/quests.js?v=0.31.0",
-  "./styles.css?v=0.31.4a",
+  "./styles.css?v=0.31.4b",
   "./manifest.webmanifest?v=0.30.3a",
   "./pwa.js?v=0.31.4",
   "./app.js?v=0.31.1",
@@ -16,7 +16,7 @@ const CORE = [
   "./time.js?v=0.31.1",
   "./universal-timers.js?v=0.31.1",
   "./inspirations.js?v=0.31.0",
-  "./sudoku.js?v=0.31.0",
+  "./sudoku.js?v=0.31.4b",
   "./smart-quests.js?v=0.31.0",
   "./daily.js?v=0.31.4a",
   "./journal.js?v=0.31.4a",
