@@ -124,6 +124,8 @@
       if (!current || current.completedAt) return;
       current.values[index] = value ? Number(value) : 0;
       current.updatedAt = Date.now();
+      input.classList.toggle("user-entry-v314g", Boolean(value));
+      input.closest(".sudoku-cell-v310")?.classList.toggle("user-filled-v314g", Boolean(value));
       app.saveState({ source: "sudoku-progress" });
       validateCell(input, current, index, false);
       updateStatus(current);
@@ -351,12 +353,15 @@
       const value = current.values[index] || "";
       const row = Math.floor(index / 9);
       const col = index % 9;
+      const isUserFilled = !given && Boolean(value);
       const cls = [
         "sudoku-cell-v310",
         col % 3 === 2 && col !== 8 ? "box-right" : "",
-        row % 3 === 2 && row !== 8 ? "box-bottom" : ""
-      ].filter(Boolean).join(" ");
-      return `<label class="${cls}"><input inputmode="numeric" pattern="[1-9]*" maxlength="1" aria-label="Sudoku row ${row + 1}, column ${col + 1}" data-sudoku-cell="${index}" ${given ? "disabled" : ""} value="${value || ""}" /></label>`;
+        row % 3 === 2 && row !== 8 ? "box-bottom" : "",
+        isUserFilled ? "user-filled-v314g" : ""
+      ].filter(Boolean).join(" " );
+      const inputClass = isUserFilled ? "user-entry-v314g" : "";
+      return `<label class="${cls}"><input class="${inputClass}" inputmode="numeric" pattern="[1-9]*" maxlength="1" aria-label="Sudoku row ${row + 1}, column ${col + 1}" data-sudoku-cell="${index}" ${given ? "disabled" : ""} value="${value || ""}" /></label>`;
     }).join("");
     els.board.querySelectorAll("input[data-sudoku-cell]").forEach(input => validateCell(input, current, Number(input.dataset.sudokuCell), false));
     updateStatus(current);

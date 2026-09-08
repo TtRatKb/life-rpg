@@ -14458,12 +14458,47 @@ body.rpg-modal-open {
   border-bottom-width: 0;
 }
 
-/* Classic Sudoku grouping: only the 3×3 boundaries are stronger. */
+/* V0.31.4g · Continuous classic 3×3 separators.
+   Draw the box lines as one overlay so they run cleanly through the entire board
+   instead of being broken into separate per-cell border segments. */
+.sudoku-board-v310 {
+  position: relative;
+  isolation: isolate;
+}
+.sudoku-board-v310::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  background:
+    linear-gradient(to right,
+      transparent calc(33.333333% - 1.5px),
+      #4c294b calc(33.333333% - 1.5px),
+      #4c294b calc(33.333333% + 1.5px),
+      transparent calc(33.333333% + 1.5px)),
+    linear-gradient(to right,
+      transparent calc(66.666667% - 1.5px),
+      #4c294b calc(66.666667% - 1.5px),
+      #4c294b calc(66.666667% + 1.5px),
+      transparent calc(66.666667% + 1.5px)),
+    linear-gradient(to bottom,
+      transparent calc(33.333333% - 1.5px),
+      #4c294b calc(33.333333% - 1.5px),
+      #4c294b calc(33.333333% + 1.5px),
+      transparent calc(33.333333% + 1.5px)),
+    linear-gradient(to bottom,
+      transparent calc(66.666667% - 1.5px),
+      #4c294b calc(66.666667% - 1.5px),
+      #4c294b calc(66.666667% + 1.5px),
+      transparent calc(66.666667% + 1.5px));
+}
 .sudoku-cell-v310.box-right {
-  border-right: 3px solid #4c294b;
+  /* Reset the older per-cell thick border; the continuous overlay draws the box boundary. */
+  border-right: 1px solid rgba(76, 41, 75, .72);
 }
 .sudoku-cell-v310.box-bottom {
-  border-bottom: 3px solid #4c294b;
+  border-bottom: 1px solid rgba(76, 41, 75, .72);
 }
 
 .sudoku-cell-v310 input,
@@ -14487,6 +14522,15 @@ body.rpg-modal-open {
   background: transparent !important;
   color: #472541;
   font-weight: 800;
+}
+
+/* Player-entered cells are gently distinguished from the original clues. */
+.sudoku-cell-v310.user-filled-v314g {
+  background: #fff0f5;
+}
+.sudoku-cell-v310 input.user-entry-v314g {
+  color: #a14f77;
+  font-weight: 700;
 }
 
 /* Validation and focus states still override the neutral grid when needed. */
