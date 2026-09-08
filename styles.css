@@ -14428,8 +14428,8 @@ body.rpg-modal-open {
 }
 
 /* ========================================================================== 
-   V0.31.4e · Sudoku 3×3 region readability
-   Clear block grouping without turning the board into nine disconnected strips.
+   V0.31.4f · Classic Sudoku grid
+   Plain cells, thin cell lines, and moderately stronger 3×3 box boundaries.
    ========================================================================== */
 .sudoku-board-v310 {
   display: grid;
@@ -14439,7 +14439,7 @@ body.rpg-modal-open {
   box-sizing: border-box;
   overflow: hidden;
   border: 4px solid #4c294b;
-  background: #fffaf8;
+  background: #fff;
 }
 
 .sudoku-cell-v310 {
@@ -14447,8 +14447,9 @@ body.rpg-modal-open {
   min-width: 0;
   min-height: 0;
   box-sizing: border-box;
-  border-right: 1px solid rgba(76, 41, 75, .52);
-  border-bottom: 1px solid rgba(76, 41, 75, .52);
+  border-right: 1px solid rgba(76, 41, 75, .72);
+  border-bottom: 1px solid rgba(76, 41, 75, .72);
+  background: #fff;
 }
 .sudoku-cell-v310:nth-child(9n) {
   border-right-width: 0;
@@ -14457,20 +14458,12 @@ body.rpg-modal-open {
   border-bottom-width: 0;
 }
 
-/* The alternating cream/blush treatment makes each 3×3 box read as a unit. */
-.sudoku-cell-v310.block-warm {
-  background: #fffaf8;
-}
-.sudoku-cell-v310.block-soft {
-  background: #f5ebf1;
-}
-
-/* Strong block boundaries; thin lines remain between individual cells. */
+/* Classic Sudoku grouping: only the 3×3 boundaries are stronger. */
 .sudoku-cell-v310.box-right {
-  border-right: 4px solid #4c294b;
+  border-right: 3px solid #4c294b;
 }
 .sudoku-cell-v310.box-bottom {
-  border-bottom: 4px solid #4c294b;
+  border-bottom: 3px solid #4c294b;
 }
 
 .sudoku-cell-v310 input,
@@ -14488,17 +14481,15 @@ body.rpg-modal-open {
   background: transparent;
 }
 
-/* Given numbers remain slightly more anchored while preserving block tint. */
-.sudoku-cell-v310.block-warm input:disabled,
-.sudoku-cell-v310.block-warm input.given {
-  background: rgba(244, 232, 239, .72);
-}
-.sudoku-cell-v310.block-soft input:disabled,
-.sudoku-cell-v310.block-soft input.given {
-  background: rgba(232, 214, 225, .72);
+/* Keep the grid visually uniform; givens differ by weight, not cell fill. */
+.sudoku-cell-v310 input:disabled,
+.sudoku-cell-v310 input.given {
+  background: transparent !important;
+  color: #472541;
+  font-weight: 800;
 }
 
-/* Validation and focus states still need to win over the region tint. */
+/* Validation and focus states still override the neutral grid when needed. */
 .sudoku-cell-v310 input.invalid,
 .sudoku-cell-v310 input.wrong {
   background: #ffe6e6 !important;
@@ -14509,7 +14500,8 @@ body.rpg-modal-open {
 .sudoku-dialog-v314 .sudoku-cell-v310 input:focus {
   position: relative;
   z-index: 1;
-  background: rgba(255, 255, 255, .58);
-  outline: 3px solid rgba(180, 90, 137, .56);
-  outline-offset: -3px;
+  background: rgba(245, 232, 239, .72);
+  outline: 2px solid rgba(180, 90, 137, .78);
+  outline-offset: -2px;
 }
+

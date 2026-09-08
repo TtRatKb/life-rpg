@@ -351,11 +351,8 @@
       const value = current.values[index] || "";
       const row = Math.floor(index / 9);
       const col = index % 9;
-      const blockRow = Math.floor(row / 3);
-      const blockCol = Math.floor(col / 3);
       const cls = [
         "sudoku-cell-v310",
-        (blockRow + blockCol) % 2 === 0 ? "block-warm" : "block-soft",
         col % 3 === 2 && col !== 8 ? "box-right" : "",
         row % 3 === 2 && row !== 8 ? "box-bottom" : ""
       ].filter(Boolean).join(" ");
