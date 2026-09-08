@@ -601,7 +601,7 @@
 
   function companionMarkup(companion, line, compact = false) {
     const c = companion || COMPANIONS.luca;
-    return `<div class="journal-message-v302 ${escAttr(c.id)} ${compact ? "compact" : ""}"><div class="journal-message-avatar-v302"><img src="${escAttr(c.portrait)}" alt="${escAttr(c.name)}" /></div><div><small>${esc(c.kicker)}</small><strong>${esc(c.name)}</strong><p>${esc(line)}</p></div></div>`;
+    return `<div class="journal-message-v302 ${escAttr(c.id)} ${compact ? "compact" : ""}"><div class="journal-message-avatar-v302"><img src="${escAttr(uiThumb(c.portrait))}" alt="${escAttr(c.name)}" loading="lazy" decoding="async" /></div><div><small>${esc(c.kicker)}</small><strong>${esc(c.name)}</strong><p>${esc(line)}</p></div></div>`;
   }
 
   function monthVoiceLine(entries, companion) {
@@ -980,6 +980,7 @@
     return (hash >>> 0) / 4294967296;
   }
 
+  function uiThumb(src) { return window.LifeRPGVisuals?.thumbnail?.(src) || String(src || ""); }
   function esc(value) {
     return app.escapeHtml ? app.escapeHtml(value) : String(value || "");
   }

@@ -1115,7 +1115,7 @@
             <span class="daily-adventure-progress-v15">~${formatNumber(estimatedMinutes(quest))} min</span>
           </div>
           <h3>${esc(quest.name || "Untitled quest")}</h3>
-          ${smartContext?.image ? `<div class="daily-inspiration-preview-v310"><img src="${escAttr(smartContext.image)}" alt="" /><div><small>TODAY'S REFERENCE</small><strong>${esc(smartContext.label || "Saved inspiration")}</strong>${smartContext.url ? `<span>${esc(smartContext.url.replace(/^https?:\/\/(?:www\.)?/, "").split("/")[0])}</span>` : ""}</div></div>` : (smartContext?.label ? `<p class="daily-smart-context-v307"><b>Right now:</b> ${esc(smartContext.label)}</p>` : "")}
+          ${smartContext?.image ? `<div class="daily-inspiration-preview-v310"><img src="${escAttr(smartContext.image)}" alt="" loading="lazy" decoding="async" /><div><small>TODAY'S REFERENCE</small><strong>${esc(smartContext.label || "Saved inspiration")}</strong>${smartContext.url ? `<span>${esc(smartContext.url.replace(/^https?:\/\/(?:www\.)?/, "").split("/")[0])}</span>` : ""}</div></div>` : (smartContext?.label ? `<p class="daily-smart-context-v307"><b>Right now:</b> ${esc(smartContext.label)}</p>` : "")}
           <div class="daily-goal-v14"><span>✦</span><div><small>WHAT COUNTS AS DONE</small><strong>${esc(done ? progressText : goalText)}</strong></div></div>
           ${quest.completionHint ? `<p class="daily-pick-definition-v303"><b>Definition:</b> ${esc(quest.completionHint)}</p>` : ""}
           <p class="daily-pick-reason-v14"><b>Why this today?</b> ${esc(pick.reason || reasonFor(quest, pick.slot, todayRecord()?.checkIn || {}))}</p>
@@ -1437,35 +1437,35 @@
     if (!img || !provisionalCompanion) return;
     if (provisionalCompanion.id === "mina") {
       img.src = mood === "positive"
-        ? "assets/story/sprites/mina_excited.png"
+        ? uiThumb("assets/story/sprites/mina_excited.png")
         : mood === "skeptical"
-          ? "assets/story/sprites/mina_teasing.png"
+          ? uiThumb("assets/story/sprites/mina_teasing.png")
           : mood === "question"
-            ? "assets/story/sprites/mina_curious.png"
-            : "assets/story/sprites/mina_neutral.png";
+            ? uiThumb("assets/story/sprites/mina_curious.png")
+            : uiThumb("assets/story/sprites/mina_neutral.png");
       return;
     }
     if (provisionalCompanion.id === "kirishima") {
       img.src = mood === "positive" || mood === "warm"
-        ? "assets/story/characters/kirishima-happy.png"
+        ? uiThumb("assets/story/characters/kirishima-happy.png")
         : mood === "skeptical" || mood === "low"
-          ? "assets/story/characters/kirishima-serious.png"
-          : "assets/story/characters/kirishima-neutral.png";
+          ? uiThumb("assets/story/characters/kirishima-serious.png")
+          : uiThumb("assets/story/characters/kirishima-neutral.png");
       return;
     }
     if (provisionalCompanion.id === "bakugo") {
       img.src = mood === "positive" || mood === "warm"
-        ? "assets/story/characters/bakugo-happy-soft-smirk.png"
+        ? uiThumb("assets/story/characters/bakugo-happy-soft-smirk.png")
         : mood === "skeptical" || mood === "low"
-          ? "assets/story/characters/bakugo-annoyed-mild.png"
-          : "assets/story/characters/bakugo-neutral.png";
+          ? uiThumb("assets/story/characters/bakugo-annoyed-mild.png")
+          : uiThumb("assets/story/characters/bakugo-neutral.png");
       return;
     }
     img.src = mood === "positive" || mood === "warm"
-      ? "assets/story/portraits/luca_warm.png"
+      ? uiThumb("assets/story/portraits/luca_warm.png")
       : mood === "skeptical" || mood === "low"
-        ? "assets/story/portraits/luca_skeptical.png"
-        : "assets/story/portraits/luca_neutral.png";
+        ? uiThumb("assets/story/portraits/luca_skeptical.png")
+        : uiThumb("assets/story/portraits/luca_neutral.png");
   }
 
   function closeBriefing() {
@@ -2707,7 +2707,7 @@
 
   function companionImage(companion, dialog = false) {
     if (!companion?.portrait) return `<span>${companion?.id === "mina" ? "✦" : "L"}</span>`;
-    return `<img src="${escAttr(companion.portrait)}" alt="${escAttr(companion.name)}" class="${dialog ? "daily-dialog-image-v14" : "daily-companion-image-v14"}" />`;
+    return `<img src="${escAttr(uiThumb(companion.portrait))}" alt="${escAttr(companion.name)}" class="${dialog ? "daily-dialog-image-v14" : "daily-companion-image-v14"}" loading="lazy" decoding="async" />`;
   }
 
   function dialogTitleFor(companion) {
@@ -3435,6 +3435,7 @@
     return String(value ?? "").replace(/(["'\\.#:[\]()=+~*^$|<> ])/g, "\\$1");
   }
 
+  function uiThumb(src) { return window.LifeRPGVisuals?.thumbnail?.(src) || String(src || ""); }
   function esc(value) {
     if (app.escapeHtml) return app.escapeHtml(value);
     return String(value ?? "")

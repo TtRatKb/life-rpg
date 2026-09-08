@@ -1017,6 +1017,10 @@
     return document.getElementById(id);
   }
 
+  function uiThumb(src) {
+    return window.LifeRPGVisuals?.thumbnail?.(src) || String(src || "");
+  }
+
   function loadState() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -2274,7 +2278,7 @@
       els.worldLocationPresenceList.innerHTML = presences.length
         ? presences.map(person => `
             <article class="world-presence-card">
-              ${person.cardAsset ? `<img src="${escapeHtml(person.cardAsset)}" alt="" />` : `<span class="world-presence-fallback">${escapeHtml(person.icon || "♡")}</span>`}
+              ${person.cardAsset ? `<img src="${escapeHtml(uiThumb(person.cardAsset))}" alt="" loading="lazy" decoding="async" />` : `<span class="world-presence-fallback">${escapeHtml(person.icon || "♡")}</span>`}
               <div><small>HERE NOW</small><strong>${escapeHtml(person.name)}</strong><p>${escapeHtml(person.hint || "You could say hi.")}</p></div>
             </article>
           `).join("")
@@ -2313,10 +2317,10 @@
         const worldStatus = unlocked ? window.LifeRPGStoryUI?.getWorldLocationDetails?.(key) : null;
         const presences = worldStatus?.presences || [];
         const hasActivity = Boolean(worldStatus?.available);
-        const art = unlocked && displayMeta.art ? `<div class="location-card-art"><img src="${escapeHtml(displayMeta.art)}" alt="" /></div>` : "";
+        const art = unlocked && displayMeta.art ? `<div class="location-card-art"><img src="${escapeHtml(uiThumb(displayMeta.art))}" alt="" loading="lazy" decoding="async" /></div>` : "";
         const presence = unlocked
           ? presences.length
-            ? `<div class="location-presence is-active"><div class="location-presence-stack">${presences.slice(0, 3).map(person => person.cardAsset ? `<img src="${escapeHtml(person.cardAsset)}" alt="" />` : `<span>${escapeHtml(person.icon || "♡")}</span>`).join("")}</div><span><strong>${escapeHtml(presences.map(person => person.name).join(" · "))}</strong><small>${escapeHtml(worldStatus.summary || "Someone familiar is here right now.")}</small></span></div>`
+            ? `<div class="location-presence is-active"><div class="location-presence-stack">${presences.slice(0, 3).map(person => person.cardAsset ? `<img src="${escapeHtml(uiThumb(person.cardAsset))}" alt="" loading="lazy" decoding="async" />` : `<span>${escapeHtml(person.icon || "♡")}</span>`).join("")}</div><span><strong>${escapeHtml(presences.map(person => person.name).join(" · "))}</strong><small>${escapeHtml(worldStatus.summary || "Someone familiar is here right now.")}</small></span></div>`
             : hasActivity
               ? `<div class="location-presence is-active"><span>✦</span><span><strong>Something is happening</strong><small>${escapeHtml(worldStatus.summary || "A small free moment is available here.")}</small></span></div>`
               : `<div class="location-presence is-quiet"><span>☁</span><span><strong>Quiet right now</strong><small>Still visitable · availability changes with story and time of day.</small></span></div>`

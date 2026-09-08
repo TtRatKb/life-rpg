@@ -198,7 +198,7 @@
     const image = uploadData || normalizeUrl(els.image?.value);
     const title = clean(els.title?.value) || titleFromUrl(els.url?.value) || "Your saved inspiration";
     const source = hostname(els.url?.value);
-    els.preview.innerHTML = `<article class="inspiration-preview-card-v310">${image ? `<img src="${escAttr(image)}" alt="" />` : `<span class="inspiration-placeholder-v310">${type.icon}</span>`}<div><small>${esc(type.label.toUpperCase())}${source ? ` · ${esc(source)}` : ""}</small><strong>${esc(title)}</strong><p>${esc(clean(els.note?.value) || "No extra typing required.")}</p></div></article>`;
+    els.preview.innerHTML = `<article class="inspiration-preview-card-v310">${image ? `<img src="${escAttr(image)}" alt="" decoding="async" />` : `<span class="inspiration-placeholder-v310">${type.icon}</span>`}<div><small>${esc(type.label.toUpperCase())}${source ? ` · ${esc(source)}` : ""}</small><strong>${esc(title)}</strong><p>${esc(clean(els.note?.value) || "No extra typing required.")}</p></div></article>`;
   }
 
   function setStatus(id, status) {
@@ -320,7 +320,7 @@
       const type = TYPES[item.type];
       const statusLabel = ({ want: "Want to try", tried: "Tried", favorite: "Favorite", not_for_me: "Not for me" })[item.status];
       return `<article class="inspiration-card-v310 status-${escAttr(item.status)}">
-        ${item.image ? `<button class="inspiration-card-image-v310" type="button" data-inspiration-try="${escAttr(item.id)}"><img src="${escAttr(item.image)}" alt="" /></button>` : `<button class="inspiration-card-image-v310 placeholder" type="button" data-inspiration-try="${escAttr(item.id)}">${type.icon}</button>`}
+        ${item.image ? `<button class="inspiration-card-image-v310" type="button" data-inspiration-try="${escAttr(item.id)}"><img src="${escAttr(item.image)}" alt="" loading="lazy" decoding="async" /></button>` : `<button class="inspiration-card-image-v310 placeholder" type="button" data-inspiration-try="${escAttr(item.id)}">${type.icon}</button>`}
         <div class="inspiration-card-copy-v310"><small>${type.icon} ${esc(type.label)} · ${esc(statusLabel)}</small><strong>${esc(item.title)}</strong>${item.url ? `<span>${esc(hostname(item.url))}</span>` : ""}</div>
         <div class="inspiration-card-actions-v310">
           ${item.status === "want" ? `<button class="primary-button" type="button" data-inspiration-try="${escAttr(item.id)}">Open</button>` : ""}

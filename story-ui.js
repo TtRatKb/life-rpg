@@ -16,6 +16,8 @@
   let runtime = null;
   let loadError = null;
   const prefetchedStoryAssets = new Set();
+  const STORY_PREFETCH_LOOKAHEAD = 1;
+  let storyPrefetchTimer = null;
 
   const els = {
     arcTitle: byId("storyArcTitle"),
@@ -92,6 +94,10 @@
 
   function byId(id) {
     return document.getElementById(id);
+  }
+
+  function uiThumb(src) {
+    return window.LifeRPGVisuals?.thumbnail?.(src) || String(src || "");
   }
 
   async function init() {
@@ -1123,7 +1129,7 @@
       const unread = unreadMessageCount(person.id);
       const pending = pendingReplyCount(person.id);
       const avatar = person.cardAsset
-        ? `<span class="story-person-avatar"><img src="${escapeHtml(person.cardAsset)}" alt="" /></span>`
+        ? `<span class="story-person-avatar"><img src="${escapeHtml(uiThumb(person.cardAsset))}" alt="" loading="lazy" decoding="async" /></span>`
         : `<span class="story-person-initial">${escapeHtml(person.name?.charAt(0) || "✦")}</span>`;
       const dailyBondDone = talkBondEarnedToday(person.id);
       const talkLabel = talk ? (dailyBondDone ? "Talk · ✓ today" : "Talk") : "Talk";
@@ -1220,7 +1226,7 @@
       const unread = unreadMessageCount(person.id);
       return `
         <button class="people-directory-card ${active ? "active" : ""}" type="button" data-people-select="${escapeHtml(person.id)}">
-          <span class="people-directory-avatar">${person.cardAsset ? `<img src="${escapeHtml(person.cardAsset)}" alt="" />` : escapeHtml(person.name?.charAt(0) || "✦")}</span>
+          <span class="people-directory-avatar">${person.cardAsset ? `<img src="${escapeHtml(uiThumb(person.cardAsset))}" alt="" loading="lazy" decoding="async" />` : escapeHtml(person.name?.charAt(0) || "✦")}</span>
           <span class="people-directory-copy"><strong>${escapeHtml(person.name)}</strong><small>${escapeHtml(relationshipLabel(person))}</small></span>
           ${unread ? `<span class="people-directory-unread">${unread}</span>` : ""}
         </button>`;
@@ -1229,7 +1235,7 @@
     const label = relationshipLabel(selected);
     els.peopleProfileHero.innerHTML = `
       <div class="people-profile-art ${escapeClass(selected.tone || "default")}">
-        ${selected.cardAsset ? `<img src="${escapeHtml(selected.cardAsset)}" alt="${escapeHtml(selected.name)}" />` : `<span>${escapeHtml(selected.name?.charAt(0) || "✦")}</span>`}
+        ${selected.cardAsset ? `<img src="${escapeHtml(uiThumb(selected.cardAsset))}" alt="${escapeHtml(selected.name)}" loading="lazy" decoding="async" />` : `<span>${escapeHtml(selected.name?.charAt(0) || "✦")}</span>`}
       </div>
       <div class="people-profile-copy">
         <p class="eyebrow">${escapeHtml(label)}</p>
@@ -1735,7 +1741,7 @@
     };
     runtime.sequence = buildSequence(runtime);
     resetVisualRenderState();
-    prefetchRuntimeVisuals();
+    scheduleRuntimeVisualPrefetch();
     const savedStep = state.story.social.activeRandomEventId === event.id
       ? Math.max(0, Number(state.story.social.randomEventStep || 0))
       : 0;
@@ -1897,7 +1903,7 @@
     };
     runtime.sequence = buildSequence(runtime);
     resetVisualRenderState();
-    prefetchRuntimeVisuals();
+    scheduleRuntimeVisualPrefetch();
     const savedStep = state.story.social.activeHangoutId === hangout.id
       ? Math.max(0, Number(state.story.social.hangoutStep || 0))
       : 0;
@@ -1948,7 +1954,7 @@
     };
     runtime.sequence = buildSequence(runtime);
     resetVisualRenderState();
-    prefetchRuntimeVisuals();
+    scheduleRuntimeVisualPrefetch();
     const savedStep = state.story.social.activeTalkId === talk.id
       ? Math.max(0, Number(state.story.social.talkStep || 0))
       : 0;
@@ -2082,7 +2088,7 @@
       const active = person.id === selected;
       return `
         <button class="story-phone-contact ${active ? "active" : ""}" type="button" data-phone-person="${escapeHtml(person.id)}">
-          <span class="story-phone-contact-avatar">${person.cardAsset ? `<img src="${escapeHtml(person.cardAsset)}" alt="" />` : escapeHtml(person.name?.charAt(0) || "✦")}</span>
+          <span class="story-phone-contact-avatar">${person.cardAsset ? `<img src="${escapeHtml(uiThumb(person.cardAsset))}" alt="" loading="lazy" decoding="async" />` : escapeHtml(person.name?.charAt(0) || "✦")}</span>
           <span><strong>${escapeHtml(person.name)}</strong><small>${count ? `${count} unread` : replyOpen ? "Reply open · no expiry" : "Messages"}</small></span>
           ${count ? `<b class="phone-contact-unread">${count}</b>` : replyOpen ? `<b class="phone-contact-unread reply-waiting">↩</b>` : ""}
         </button>`;
@@ -2122,7 +2128,7 @@
     const messages = eligibleMessagesForPerson(personId);
     const headerHtml = `
       <div class="phone-thread-person">
-        <span class="phone-thread-avatar">${person.cardAsset ? `<img src="${escapeHtml(person.cardAsset)}" alt="" />` : escapeHtml(person.name?.charAt(0) || "✦")}</span>
+        <span class="phone-thread-avatar">${person.cardAsset ? `<img src="${escapeHtml(uiThumb(person.cardAsset))}" alt="" loading="lazy" decoding="async" />` : escapeHtml(person.name?.charAt(0) || "✦")}</span>
         <div><small>Messages with</small><strong>${escapeHtml(person.name)}</strong></div>
       </div>
       <span class="story-phone-thread-status">Story-linked · no expiry</span>`;
@@ -2271,7 +2277,7 @@
 
     runtime.sequence = buildSequence(runtime);
     resetVisualRenderState();
-    prefetchRuntimeVisuals();
+    scheduleRuntimeVisualPrefetch();
     const savedStep = !replay && state.story.activeSceneId === sceneId
       ? Math.max(0, Number(state.story.readerStep || 0))
       : 0;
@@ -2293,6 +2299,8 @@
   function closeReader() {
     if (!runtime) return;
     closeBacklog();
+    cancelRuntimeVisualPrefetch();
+    prefetchedStoryAssets.clear();
     els.readerPage.classList.add("hidden");
     document.body.classList.remove("story-mode-open");
     resetVisualRenderState();
@@ -2448,6 +2456,7 @@
     }
 
     animateNodeContent();
+    scheduleRuntimeVisualPrefetch();
   }
 
   function renderReaderChrome() {
@@ -2577,7 +2586,7 @@
     if (runtime.replay) {
       runtime.replaySelections[key] = option.id;
       runtime.sequence = buildSequence(runtime);
-      prefetchRuntimeVisuals();
+      scheduleRuntimeVisualPrefetch();
       const newIndex = runtime.sequence.findIndex(item => item.id === node.id);
       runtime.step = Math.max(0, newIndex + 1);
       runtime.finished = false;
@@ -2592,7 +2601,7 @@
     selectionStore[key] = option.id;
     applyEffects(option.effects || []);
     runtime.sequence = buildSequence(runtime);
-    prefetchRuntimeVisuals();
+    scheduleRuntimeVisualPrefetch();
     const newIndex = runtime.sequence.findIndex(item => item.id === node.id);
     runtime.step = Math.max(0, newIndex + 1);
     if (runtime.kind === "talk") {
@@ -3045,9 +3054,12 @@
 
     if (!img) {
       img = document.createElement("img");
+      img.decoding = "async";
+      img.loading = "eager";
       target.replaceChildren(img);
     }
 
+    try { img.fetchPriority = "high"; } catch (_) {}
     if (previousSrc !== src) img.src = src;
     img.alt = label;
     target.dataset.characterId = item.id || "";
@@ -3178,6 +3190,9 @@
     els.textboxPortrait.dataset.expression = spec.expression || "neutral";
     els.textboxPortrait.dataset.assetSrc = src;
     if (previousSrc !== src) {
+      els.textboxPortraitImg.decoding = "async";
+      els.textboxPortraitImg.loading = "eager";
+      try { els.textboxPortraitImg.fetchPriority = "high"; } catch (_) {}
       els.textboxPortraitImg.src = src;
       restartAnimationClass(els.textboxPortrait, previousSrc ? "is-expression-changing" : "is-entering");
     }
@@ -3250,36 +3265,69 @@
     if (!els.choices?.classList.contains("hidden")) restartAnimationClass(els.choices, "is-node-entering");
   }
 
+  function cancelRuntimeVisualPrefetch() {
+    if (storyPrefetchTimer !== null) {
+      window.clearTimeout(storyPrefetchTimer);
+      storyPrefetchTimer = null;
+    }
+  }
+
+  function scheduleRuntimeVisualPrefetch() {
+    if (!runtime?.sequence?.length || !pack?.assets) return;
+    cancelRuntimeVisualPrefetch();
+    // Give the current beat a short head start. This prevents the next sprites
+    // from competing with the image the player is actually waiting to see.
+    storyPrefetchTimer = window.setTimeout(() => {
+      storyPrefetchTimer = null;
+      prefetchRuntimeVisuals();
+    }, 180);
+  }
+
   function prefetchRuntimeVisuals() {
     if (!runtime?.sequence?.length || !pack?.assets) return;
     const urls = new Set();
     const characterAssets = pack.assets.characters || {};
     const backgroundAssets = pack.assets.backgrounds || {};
-    const contextualBackground = contextualBackgroundForRuntime(runtime);
-    if (contextualBackground && backgroundAssets?.[contextualBackground]?.src) {
-      urls.add(String(backgroundAssets[contextualBackground].src));
-    }
+    const start = Math.max(0, Number(runtime.step || 0) + 1);
+    const end = Math.min(runtime.sequence.length, start + STORY_PREFETCH_LOOKAHEAD);
+    const currentlyDisplayed = new Set([
+      els.visualBackdrop?.dataset?.assetSrc,
+      els.spriteLeft?.dataset?.assetSrc,
+      els.spriteCenter?.dataset?.assetSrc,
+      els.spriteRight?.dataset?.assetSrc,
+      els.textboxPortrait?.dataset?.assetSrc
+    ].filter(Boolean).map(String));
 
-    for (const node of runtime.sequence) {
-      const visual = node?.visual;
+    for (let index = start; index < end; index += 1) {
+      const visual = resolveVisualStateAtStep(index);
       if (!visual || typeof visual !== "object") continue;
       const cgAsset = cgAssetForVisual(visual);
       if (cgAsset?.src) urls.add(String(cgAsset.src));
-      if (visual.background && backgroundAssets?.[visual.background]?.src) urls.add(String(backgroundAssets[visual.background].src));
-      for (const item of array(visual.characters)) {
+      const background = backgroundAssetForVisual(visual, backgroundAssets);
+      if (background?.src) urls.add(String(background.src));
+      const characters = array(visual.characters);
+      for (const item of characters) {
         const asset = resolveCharacterAsset(characterAssets?.[item?.id], item);
         if (asset?.src) urls.add(String(asset.src));
       }
-      const portrait = resolvePortraitSpec(visual, array(visual.characters), characterAssets);
+      const portrait = resolvePortraitSpec(visual, characters, characterAssets);
       const portraitAsset = resolveCharacterAsset(characterAssets?.[portrait?.id], portrait);
       if (portraitAsset?.src) urls.add(String(portraitAsset.src));
     }
 
     for (const src of urls) {
-      if (!src || prefetchedStoryAssets.has(src)) continue;
+      if (!src || currentlyDisplayed.has(src) || prefetchedStoryAssets.has(src)) continue;
+      // Keep the tracking set bounded. It is only a short-term "already warmed"
+      // hint, not a second asset cache.
+      while (prefetchedStoryAssets.size >= 24) {
+        const oldest = prefetchedStoryAssets.values().next().value;
+        if (!oldest) break;
+        prefetchedStoryAssets.delete(oldest);
+      }
       prefetchedStoryAssets.add(src);
       const image = new Image();
       image.decoding = "async";
+      try { image.fetchPriority = "low"; } catch (_) {}
       image.src = src;
     }
   }

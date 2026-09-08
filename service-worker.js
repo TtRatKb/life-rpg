@@ -1,32 +1,34 @@
-const CACHE_NAME = "life-rpg-v0314b-shell";
+const CACHE_NAME = "life-rpg-v0314c-performance";
 const CORE = [
   "./",
   "./index.html",
   "./data/quests.js?v=0.31.0",
   "./styles.css?v=0.31.4b",
   "./manifest.webmanifest?v=0.30.3a",
-  "./pwa.js?v=0.31.4",
-  "./app.js?v=0.31.1",
+  "./pwa.js?v=0.31.4c",
+  "./visual-performance.js?v=0.31.4c",
+  "./app.js?v=0.31.4c",
   "./stewardship.js?v=0.31.3a",
   "./habits.js?v=0.30.9",
   "./adventures.js?v=0.31.1",
-  "./adventure-workspace.js?v=0.31.0",
+  "./adventure-workspace.js?v=0.31.4c",
   "./library.js?v=0.30.6",
   "./games.js?v=0.31.3a",
   "./time.js?v=0.31.1",
   "./universal-timers.js?v=0.31.1",
-  "./inspirations.js?v=0.31.0",
+  "./inspirations.js?v=0.31.4c",
   "./sudoku.js?v=0.31.4b",
   "./smart-quests.js?v=0.31.0",
-  "./daily.js?v=0.31.4a",
-  "./journal.js?v=0.31.4a",
-  "./story-ui.js?v=0.31.3",
+  "./daily.js?v=0.31.4c",
+  "./journal.js?v=0.31.4c",
+  "./story-ui.js?v=0.31.4c",
   "./shop.js?v=0.30.6",
   "./achievements.js?v=0.31.0",
   "./activity-log.js?v=0.31.4",
   "./cloud-save.js?v=0.31.0",
   "./assets/app-icon-192.png",
-  "./assets/app-icon-512.png"
+  "./assets/app-icon-512.png",
+  "./assets/ui/thumbs/characters/luca_neutral.webp"
 ];
 
 self.addEventListener("install", event => {
@@ -51,27 +53,49 @@ self.addEventListener("activate", event => {
   );
 });
 
+async function cacheFirstAsset(request) {
+  const cached = await caches.match(request, { ignoreSearch: false });
+  if (cached) return cached;
+
+  const response = await fetch(request);
+  if (response && response.ok) {
+    const cache = await caches.open(CACHE_NAME);
+    cache.put(request, response.clone()).catch(() => {});
+  }
+  return response;
+}
+
+async function networkFirst(request) {
+  try {
+    const response = await fetch(request);
+    if (response && response.ok) {
+      const cache = await caches.open(CACHE_NAME);
+      cache.put(request, response.clone()).catch(() => {});
+    }
+    return response;
+  } catch {
+    const cached = await caches.match(request, { ignoreSearch: false });
+    if (cached) return cached;
+    if (request.mode === "navigate") {
+      return (await caches.match("./index.html")) || (await caches.match("./"));
+    }
+    throw new Error("Offline and not cached");
+  }
+}
+
 self.addEventListener("fetch", event => {
   const request = event.request;
   if (request.method !== "GET") return;
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
 
-  event.respondWith((async () => {
-    try {
-      const response = await fetch(request);
-      if (response && response.ok) {
-        const cache = await caches.open(CACHE_NAME);
-        cache.put(request, response.clone()).catch(() => {});
-      }
-      return response;
-    } catch {
-      const cached = await caches.match(request, { ignoreSearch: false });
-      if (cached) return cached;
-      if (request.mode === "navigate") {
-        return (await caches.match("./index.html")) || (await caches.match("./"));
-      }
-      throw new Error("Offline and not cached");
-    }
-  })());
+  // Artwork and app icons are immutable within a release cache. Cache-first
+  // makes revisiting Story/World/People feel instant instead of waiting for the
+  // network before the browser can paint an image it already downloaded.
+  if (request.destination === "image" || url.pathname.includes("/assets/")) {
+    event.respondWith(cacheFirstAsset(request));
+    return;
+  }
+
+  event.respondWith(networkFirst(request));
 });
