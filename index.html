@@ -14,7 +14,7 @@
   <link rel="manifest" href="manifest.webmanifest?v=0.30.3a" />
   <link rel="apple-touch-icon" href="assets/app-icon-180.png?v=0.30.3a" />
   <link rel="icon" type="image/png" sizes="192x192" href="assets/app-icon-192.png?v=0.30.3a" />
-  <link rel="stylesheet" href="styles.css?v=0.31.3" />
+  <link rel="stylesheet" href="styles.css?v=0.31.4" />
 </head>
 <body>
   <section id="mobileCloudGate" class="mobile-cloud-gate-v251" data-state="checking" aria-live="polite" aria-label="Life RPG cloud sign in">
@@ -128,6 +128,7 @@
           <button data-view-target="habits" data-habit-date-mode="today"><span class="command-strip-icon">❀</span><span><strong>Habits</strong><small>Build consistency without punishment.</small></span><b>›</b></button>
           <button data-view-target="journal"><span class="command-strip-icon">🌸</span><span><strong>Journal</strong><small>Check in, reflect, and see the month take shape.</small></span><b>›</b></button>
           <button data-view-target="rhythm"><span class="command-strip-icon">◷</span><span><strong>Focus & Time</strong><small>Pomodoro, clock-in, and the real shape of your week.</small></span><b>›</b></button>
+          <button data-view-target="activity"><span class="command-strip-icon">≡</span><span><strong>Activity Log</strong><small>See exactly what counted and what it paid.</small></span><b>›</b></button>
           <button data-view-target="quests"><span class="command-strip-icon">☷</span><span><strong>Quest Board</strong><small>Choose what fits today.</small></span><b>›</b></button>
           <button data-view-target="adventures"><span class="command-strip-icon">✧</span><span><strong>Side Adventures</strong><small>Come back to things you actually want.</small></span><b>›</b></button>
           <button data-view-target="library"><span class="command-strip-icon">📚</span><span><strong>Library</strong><small>Your books, without database homework.</small></span><b>›</b></button>
@@ -1219,6 +1220,44 @@
         </section>
       </section>
 
+      <!-- ACTIVITY / REWARD LEDGER -->
+      <section id="view-activity" class="view activity-view-v314">
+        <section class="activity-hero-v314">
+          <div>
+            <p class="eyebrow">ACTIVITY · REWARDS · AUDIT TRAIL</p>
+            <h1>What counted today?</h1>
+            <p class="lead">Every logged action in one place — Habits, Journal, Quests, Focus time, Books, Games, Adventures and the exact XP, Story Energy and Coins they actually paid.</p>
+          </div>
+          <aside class="activity-hero-note-v314"><span>✓</span><div><strong>No guessing.</strong><p>If a reward was reduced by diminishing returns, duplicate protection or a capped system, the ledger says so instead of hiding the reason.</p></div></aside>
+        </section>
+
+        <section class="activity-date-toolbar-v314" aria-label="Activity date navigation">
+          <button id="activityPrevDay" class="activity-day-arrow-v314" type="button" aria-label="Previous day">‹</button>
+          <div class="activity-date-main-v314"><small>LEDGER DATE</small><h2 id="activityDateLabel">Today</h2><input id="activityDateInput" type="date" aria-label="Choose ledger date" /></div>
+          <button id="activityNextDay" class="activity-day-arrow-v314" type="button" aria-label="Next day">›</button>
+          <button id="activityTodayButton" class="secondary-button hidden" type="button">Back to today</button>
+        </section>
+
+        <section class="activity-summary-grid-v314" aria-label="Activity totals">
+          <article><span>✓</span><div><small>LOGGED ITEMS</small><strong id="activitySummaryCount">0</strong></div></article>
+          <article><span>◷</span><div><small>TIME LOGGED</small><strong id="activitySummaryTime">0m</strong></div></article>
+          <article><span>✦</span><div><small>XP EARNED</small><strong id="activitySummaryXp">+0</strong></div></article>
+          <article><span>🔥</span><div><small>STORY ENERGY</small><strong id="activitySummaryEnergy">+0</strong></div></article>
+          <article><span>🪙</span><div><small>COINS</small><strong id="activitySummaryCoins">+0</strong></div></article>
+        </section>
+
+        <section class="panel activity-ledger-panel-v314">
+          <div class="panel-heading activity-ledger-heading-v314">
+            <div><p class="eyebrow">DAILY LEDGER</p><h2>Everything that was logged</h2><p class="panel-subcopy">Main rewards are transaction-backed. Older actions only show an amount when Life RPG can prove it from the saved history.</p></div>
+            <label class="activity-search-v314"><span>⌕</span><input id="activitySearch" type="search" placeholder="Search today's log…" /></label>
+          </div>
+          <div id="activityFilterBar" class="activity-filter-bar-v314" aria-label="Activity filters"></div>
+          <div id="activityHistoryHint" class="activity-history-hint-v314 hidden"></div>
+          <div id="activityLedgerList" class="activity-ledger-list-v314"></div>
+          <div id="activityLedgerEmpty" class="activity-ledger-empty-v314 hidden"><span>✿</span><strong>Nothing logged here yet.</strong><p>Choose another date, or come back after your next Habit, Quest, Focus block or reflection.</p></div>
+        </section>
+      </section>
+
       <!-- JOURNAL / REFLECTION -->
       <section id="view-journal" class="view journal-view-v302">
         <section class="journal-hero-v302">
@@ -1548,6 +1587,7 @@
       <button class="nav-button" data-view="habits" data-habit-date-mode="today"><span>❀</span><small>Habits</small></button>
       <button class="nav-button" data-view="journal"><span>🌸</span><small>Journal</small></button>
       <button class="nav-button" data-view="rhythm"><span>◷</span><small>Focus & Time</small></button>
+      <button class="nav-button" data-view="activity"><span>≡</span><small>Activity</small></button>
       <button class="nav-button" data-view="quests"><span>☷</span><small>Quests</small></button>
       <button class="nav-button" data-view="adventures"><span>✧</span><small>Adventures</small></button>
       <button class="nav-button" data-view="library"><span>📚</span><small>Library</small></button>
@@ -2712,7 +2752,8 @@ League of Legends — PC" required></textarea></label>
   <script src="story-ui.js?v=0.31.3"></script>
   <script src="shop.js?v=0.30.6"></script>
   <script src="achievements.js?v=0.31.0"></script>
+  <script src="activity-log.js?v=0.31.4"></script>
   <script type="module" src="cloud-save.js?v=0.31.0"></script>
-  <script src="pwa.js?v=0.31.3a"></script>
+  <script src="pwa.js?v=0.31.4"></script>
 </body>
 </html>
