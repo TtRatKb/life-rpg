@@ -1,12 +1,13 @@
-const CACHE_NAME = "life-rpg-v0314c-performance";
+const CACHE_NAME = "life-rpg-v0314d-modal-framework";
 const CORE = [
   "./",
   "./index.html",
   "./data/quests.js?v=0.31.0",
-  "./styles.css?v=0.31.4b",
+  "./styles.css?v=0.31.4d",
   "./manifest.webmanifest?v=0.30.3a",
-  "./pwa.js?v=0.31.4c",
+  "./pwa.js?v=0.31.4d",
   "./visual-performance.js?v=0.31.4c",
+  "./modal-manager.js?v=0.31.4d",
   "./app.js?v=0.31.4c",
   "./stewardship.js?v=0.31.3a",
   "./habits.js?v=0.30.9",

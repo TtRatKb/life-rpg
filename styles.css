@@ -14208,3 +14208,221 @@ a.adventure-source-link-v308:hover{text-decoration:underline}
 .sudoku-reward-preview-v314{padding:12px 14px;margin:10px 0 14px;border-radius:16px;background:rgba(76,41,75,.045);border:1px solid rgba(76,41,75,.08)}.sudoku-reward-head-v314{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}.sudoku-reward-head-v314 small{display:block;color:#947788;font-size:.66rem;letter-spacing:.08em}.sudoku-reward-head-v314 strong{display:block;margin-top:2px;font-size:.84rem}.sudoku-reward-head-v314>span{font-size:1.35rem}.sudoku-reward-grid-v314{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;margin-top:10px}.sudoku-reward-grid-v314 span{padding:7px 5px;border-radius:10px;background:#fff;text-align:center}.sudoku-reward-grid-v314 b{display:block;color:#4c294b;font-size:.9rem}.sudoku-reward-grid-v314 small{display:block;color:#8d7885;font-size:.6rem;line-height:1.15}.sudoku-reward-preview-v314>p{margin:8px 0 0;color:#806f7c;font-size:.72rem}
 .sudoku-dialog-v314 .sudoku-board-v310{width:min(78vw,450px)}.sudoku-dialog-v314 .sudoku-cell-v310 input:focus{outline:3px solid rgba(180,90,137,.35);outline-offset:-3px}.sudoku-actions-v314{justify-content:center}
 @media(max-width:680px){.sudoku-growth-panel-v314{align-items:stretch;flex-direction:column}.sudoku-growth-play-v314{width:100%}.sudoku-reward-grid-v314{grid-template-columns:repeat(3,minmax(0,1fr))}.sudoku-difficulty-card-v314.recommended::after{position:static;margin-top:2px}.sudoku-dialog-v314 .sudoku-board-v310{width:min(88vw,450px)}}
+
+/* ========================================================================== 
+   V0.31.4d · Modal & overlay ergonomics
+   Centralized gutters, viewport-safe scrolling and reliable background lock.
+   Story/VN presentation remains intentionally separate.
+   ========================================================================== */
+:root {
+  --rpg-modal-gutter: 24px;
+  --rpg-modal-viewport-gap: 18px;
+}
+
+html.rpg-modal-open {
+  overflow: hidden !important;
+  overscroll-behavior: none;
+}
+body.rpg-modal-open {
+  position: fixed !important;
+  top: var(--rpg-scroll-lock-top, 0px);
+  right: 0;
+  left: 0;
+  width: 100%;
+  overflow: hidden !important;
+  overscroll-behavior: none;
+  padding-right: var(--rpg-scrollbar-compensation, 0px);
+}
+
+/* Ordinary foreground windows own their scroll instead of leaking it to page. */
+.rpg-dialog:not(.story-phone-dialog) {
+  box-sizing: border-box;
+  width: min(650px, calc(100vw - var(--rpg-modal-viewport-gap) - var(--rpg-modal-viewport-gap)));
+  max-width: calc(100vw - var(--rpg-modal-viewport-gap) - var(--rpg-modal-viewport-gap));
+  max-height: min(860px, calc(100vh - var(--rpg-modal-viewport-gap) - var(--rpg-modal-viewport-gap)));
+  max-height: min(860px, calc(100dvh - var(--rpg-modal-viewport-gap) - var(--rpg-modal-viewport-gap)));
+  margin: auto;
+  overflow: hidden;
+  overscroll-behavior: contain;
+}
+
+.rpg-dialog-form {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  max-height: min(860px, calc(100vh - var(--rpg-modal-viewport-gap) - var(--rpg-modal-viewport-gap)));
+  max-height: min(860px, calc(100dvh - var(--rpg-modal-viewport-gap) - var(--rpg-modal-viewport-gap)));
+  padding: 0 var(--rpg-modal-gutter) calc(var(--rpg-modal-gutter) + env(safe-area-inset-bottom)) !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  scroll-padding-top: 92px;
+  scroll-padding-bottom: 96px;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* The content gutter now belongs to the shell, so old per-child gutters must not stack. */
+.rpg-dialog-form > label,
+.rpg-dialog-form > .form-grid,
+.rpg-dialog-form > .reward-preview,
+.rpg-dialog-form > .muted,
+.rpg-dialog-form > menu {
+  margin-left: 0;
+  margin-right: 0;
+}
+.rpg-dialog-form > * {
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
+}
+.rpg-dialog img,
+.rpg-dialog video,
+.rpg-dialog canvas,
+.rpg-dialog svg {
+  max-width: 100%;
+}
+.rpg-dialog textarea {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+}
+
+/* Full-width sticky chrome while the actual form content keeps its inset. */
+.rpg-dialog .dialog-heading {
+  margin-right: calc(0px - var(--rpg-modal-gutter)) !important;
+  margin-left: calc(0px - var(--rpg-modal-gutter)) !important;
+  padding-right: var(--rpg-modal-gutter);
+  padding-left: var(--rpg-modal-gutter);
+}
+.rpg-dialog menu {
+  width: calc(100% + var(--rpg-modal-gutter) + var(--rpg-modal-gutter));
+  margin-right: calc(0px - var(--rpg-modal-gutter)) !important;
+  margin-left: calc(0px - var(--rpg-modal-gutter)) !important;
+  padding-right: var(--rpg-modal-gutter);
+  padding-bottom: calc(20px + env(safe-area-inset-bottom));
+  padding-left: var(--rpg-modal-gutter);
+}
+.rpg-dialog .dialog-actions {
+  box-sizing: border-box;
+  max-width: 100%;
+  margin-top: 18px;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+}
+
+/* The shop editor predates rpg-dialog classes; index.html now opts it in. */
+.shop-dialog-v306.rpg-dialog {
+  width: min(760px, calc(100vw - var(--rpg-modal-viewport-gap) - var(--rpg-modal-viewport-gap)));
+}
+.shop-dialog-v306.rpg-dialog .shop-dialog-form-v306 {
+  max-height: min(880px, calc(100vh - var(--rpg-modal-viewport-gap) - var(--rpg-modal-viewport-gap)));
+  max-height: min(880px, calc(100dvh - var(--rpg-modal-viewport-gap) - var(--rpg-modal-viewport-gap)));
+}
+.shop-dialog-v306.rpg-dialog .dialog-actions {
+  position: sticky;
+  z-index: 5;
+  bottom: calc(0px - var(--rpg-modal-gutter));
+  width: calc(100% + var(--rpg-modal-gutter) + var(--rpg-modal-gutter));
+  margin-right: calc(0px - var(--rpg-modal-gutter));
+  margin-left: calc(0px - var(--rpg-modal-gutter));
+  padding: 15px var(--rpg-modal-gutter) calc(18px + env(safe-area-inset-bottom));
+  border-top: 1px solid rgba(102,63,95,.09);
+  background: rgba(255,249,247,.95);
+  backdrop-filter: blur(18px);
+}
+
+/* Cloud conflict has its own safety layout, but still must be viewport-scrollable. */
+.cloud-conflict-dialog.rpg-dialog {
+  max-height: min(860px, calc(100dvh - var(--rpg-modal-viewport-gap) - var(--rpg-modal-viewport-gap)));
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain;
+}
+
+/* Sudoku: use the shared modal scroll container, plus a real empty state. */
+.sudoku-dialog-v314 {
+  width: min(760px, calc(100vw - var(--rpg-modal-viewport-gap) - var(--rpg-modal-viewport-gap)));
+  max-height: min(900px, calc(100dvh - var(--rpg-modal-viewport-gap) - var(--rpg-modal-viewport-gap)));
+}
+.sudoku-shell-v314 {
+  max-height: min(900px, calc(100dvh - var(--rpg-modal-viewport-gap) - var(--rpg-modal-viewport-gap)));
+  padding-right: var(--rpg-modal-gutter) !important;
+}
+.sudoku-suggestion-v314,
+.sudoku-difficulty-grid-v314,
+.sudoku-reward-preview-v314,
+.sudoku-status-v310,
+.sudoku-actions-v314 {
+  width: 100%;
+  max-width: 100%;
+}
+.sudoku-empty-v310 {
+  grid-column: 1 / -1;
+  grid-row: 1 / -1;
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 7px;
+  padding: clamp(24px, 6vw, 48px);
+  color: #765e6f;
+  background:
+    radial-gradient(circle at 88% 12%, rgba(214,128,162,.12), transparent 10rem),
+    linear-gradient(145deg, #fffaf8, #f8edf2);
+  text-align: center;
+}
+.sudoku-empty-v310 > span {
+  font-size: 2.25rem;
+  line-height: 1;
+}
+.sudoku-empty-v310 > strong {
+  color: #4c294b;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(1.1rem, 3vw, 1.45rem);
+}
+.sudoku-empty-v310 > p {
+  max-width: 320px;
+  margin: 0;
+  color: #836f7d;
+  font-size: .88rem;
+  line-height: 1.5;
+}
+
+@media (max-width: 720px) {
+  :root {
+    --rpg-modal-gutter: 18px;
+    --rpg-modal-viewport-gap: 8px;
+  }
+  .rpg-dialog:not(.story-phone-dialog),
+  .shop-dialog-v306.rpg-dialog,
+  .sudoku-dialog-v314 {
+    width: calc(100vw - 16px);
+    max-width: calc(100vw - 16px);
+    max-height: calc(100vh - 16px);
+    max-height: calc(100dvh - 16px);
+    border-radius: 22px;
+  }
+  .rpg-dialog-form,
+  .shop-dialog-v306.rpg-dialog .shop-dialog-form-v306,
+  .sudoku-shell-v314 {
+    max-height: calc(100vh - 16px);
+    max-height: calc(100dvh - 16px);
+  }
+  .rpg-dialog .dialog-heading {
+    padding-top: max(18px, env(safe-area-inset-top));
+  }
+  .sudoku-dialog-v314 .sudoku-board-v310 {
+    width: min(100%, 450px);
+  }
+}
+
+@media (max-width: 480px) {
+  .rpg-dialog .dialog-actions > button,
+  .rpg-dialog .dialog-actions > a {
+    flex: 1 1 100%;
+    width: 100%;
+  }
+}
