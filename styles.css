@@ -13731,3 +13731,52 @@ a.adventure-source-link-v308:hover{text-decoration:underline}
 @media(max-width:700px){.inspiration-heading-v310{display:block}.inspiration-counts-v310{margin-top:10px}.workspace-capture-row-v310{align-items:stretch;flex-direction:column}.workspace-reference-card-v310{grid-template-columns:48px 1fr}.workspace-reference-card-v310>a{grid-column:1/-1}.workspace-step-heading-v310{display:block}}
 .sudoku-cell-v310{display:block;background:#fff}.sudoku-cell-v310.box-right{border-right:3px solid #4c294b}.sudoku-cell-v310.box-bottom{border-bottom:3px solid #4c294b}.sudoku-cell-v310 input{width:100%;height:100%;padding:0;border:0;border-radius:0;text-align:center;font-size:clamp(1rem,3.2vw,1.45rem);background:#fff}.sudoku-cell-v310 input:disabled{font-weight:800;background:#f5e9ef;color:#472541}.sudoku-cell-v310 input.invalid{background:#ffe6e6;color:#a52f42}.sudoku-cell-v310 input.correct{background:#edf8ef}.journal-effort-meter-v310 i,.workspace-reward-meter-v310 i{display:block;height:8px;margin:8px 0;border-radius:999px;background:rgba(76,41,75,.1);overflow:hidden}.journal-effort-meter-v310 i>b,.workspace-reward-meter-v310 i>b{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#b45a89,#e09ab9)}.journal-effort-meter-top-v310,.workspace-reward-head-v310{display:flex;justify-content:space-between;gap:12px;align-items:center}.journal-effort-meter-v310>div:last-child,.workspace-reward-meter-v310>div:last-child{display:flex;flex-direction:column;gap:3px}.inspiration-card-actions-v310{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px}.inspiration-card-v310{align-items:flex-start}.inspiration-card-v310>div{min-width:0}.inspiration-card-v310 p{margin:.25rem 0}.inspiration-status-v310{font-size:.75rem}.workspace-empty-v310,.workspace-empty-inline-v310{color:#806f7c;font-size:.88rem}.workspace-gallery-image-v310{margin:0}.workspace-gallery-image-v310 figcaption{font-size:.75rem;margin-top:4px}.workspace-material-row-v310 a{display:block;font-size:.78rem}.workspace-reference-list-v310{display:grid;gap:8px}
 .sudoku-cell-v310 input.given{font-weight:800;background:#f5e9ef;color:#472541}.sudoku-cell-v310 input.wrong{background:#ffe6e6;color:#a52f42}.inspiration-card-image-v310{width:82px;height:82px;object-fit:cover;border-radius:14px;flex:0 0 auto}.inspiration-card-image-v310.placeholder{display:grid;place-items:center;font-size:30px;background:#f5e6ef}.inspiration-card-copy-v310{flex:1;min-width:0}
+
+/* V0.31.1 — Universal Action Timers */
+.universal-timer-actions-v311 {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.universal-action-timer-v311 {
+  margin-top: 8px;
+}
+
+.universal-action-timer-v311.compact {
+  min-width: min(100%, 390px);
+  margin-top: 0;
+}
+
+.universal-timer-start-v311 {
+  white-space: nowrap;
+}
+
+.adventure-card-actions-v15 .universal-action-timer-v311 {
+  flex: 1 1 100%;
+}
+
+.adventure-roadmap-actions-v311 {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  min-width: 210px;
+}
+
+.adventure-roadmap-actions-v311 .universal-action-timer-v311 {
+  flex: 1 1 280px;
+}
+
+@media (max-width: 720px) {
+  .universal-timer-actions-v311,
+  .adventure-roadmap-actions-v311 {
+    width: 100%;
+  }
+  .universal-timer-actions-v311 > button,
+  .adventure-roadmap-actions-v311 > button,
+  .universal-action-timer-v311 {
+    width: 100%;
+  }
+}

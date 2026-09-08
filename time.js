@@ -214,6 +214,8 @@
       subcategory: clean(spec.subcategory) || category.subcategories[0],
       label: clean(spec.label) || category.label,
       linkedQuestId: spec.linkedQuestId || null,
+      linkedAdventureId: spec.linkedAdventureId || null,
+      linkedRoadmapStepId: spec.linkedRoadmapStepId || null,
       startedAt: new Date(now).toISOString(),
       targetMinutes: spec.targetMinutes == null ? null : Math.max(1, Number(spec.targetMinutes)),
       breakMinutes: Math.max(0, Number(spec.breakMinutes || 0)),
@@ -262,6 +264,9 @@
       label: active.label,
       mode: active.mode,
       linkedQuestId: active.linkedQuestId,
+      linkedAdventureId: active.linkedAdventureId,
+      linkedRoadmapStepId: active.linkedRoadmapStepId,
+      durationSeconds: Math.max(1, Math.floor(elapsedMs / 1000)),
       targetMinutes: active.targetMinutes
     });
     tracker.active = null;
@@ -273,13 +278,17 @@
     if (active.mode === "action" && active.linkedQuestId && minimumReached) {
       maybeLogLinkedQuest(active.linkedQuestId, elapsed);
     }
+    if (active.mode === "action" && active.linkedAdventureId && minimumReached) {
+      maybeLogLinkedAdventure(active.linkedAdventureId, active.linkedRoadmapStepId, elapsed);
+    }
     app.saveState({ source: `time-${active.mode}-finish` });
     app.renderAll?.();
     render();
     dispatchChange();
     if (active.mode === "action") {
-      if (minimumReached) app.showToast?.(`${active.label} · ${elapsed} min logged and Daily Action completed.`);
-      else app.showToast?.(`${elapsed} min logged. The ${targetMinutes} min minimum was not reached, so the Daily Action stays open.`);
+      const linkedLabel = active.linkedAdventureId ? "Adventure step" : active.linkedQuestId ? "Quest" : "action";
+      if (minimumReached) app.showToast?.(`${active.label} · ${elapsed} min logged and ${linkedLabel} completed.`);
+      else app.showToast?.(`${elapsed} min logged. The ${targetMinutes} min minimum was not reached, so the ${linkedLabel} stays open.`);
     }
   }
 
@@ -304,6 +313,9 @@
       label: clean(data.label) || CATEGORIES[data.categoryId]?.label || "Time log",
       mode: data.mode || "manual",
       linkedQuestId: data.linkedQuestId || null,
+      linkedAdventureId: data.linkedAdventureId || null,
+      linkedRoadmapStepId: data.linkedRoadmapStepId || null,
+      durationSeconds: Math.max(1, Math.round(Number(data.durationSeconds || (Number(data.minutes || 0) * 60) || 60))),
       targetMinutes: data.targetMinutes == null ? null : Number(data.targetMinutes),
       rewardEventId: data.rewardEventId || null,
       reward: data.reward && typeof data.reward === "object" ? { ...data.reward } : null,
@@ -400,6 +412,64 @@
     app.logQuestProgress?.(questId, Math.max(1, Math.round(minutes)));
   }
 
+  function maybeLogLinkedAdventure(adventureId, roadmapStepId, minutes) {
+    const api = window.LifeRPGAdventures;
+    if (!api?.completeTimedSession) return false;
+    return Boolean(api.completeTimedSession(adventureId, roadmapStepId || null, Math.max(1, Math.round(minutes))));
+  }
+
+  function timerContextForQuest(quest) {
+    const realm = String(quest?.realm || "");
+    const name = String(quest?.name || "").toLowerCase();
+    if (realm === "Home") return { categoryId: "life_admin", subcategory: "Household" };
+    if (realm === "Recovery") return { categoryId: "recovery", subcategory: /stretch|yoga|mobility/.test(name) ? "Other recovery" : "Quiet time" };
+    if (realm === "Health" && /walk/.test(name)) return { categoryId: "recovery", subcategory: "Walk" };
+    if (realm === "Health") return { categoryId: "recovery", subcategory: "Other recovery" };
+    if (realm === "Work") return { categoryId: "work_home", subcategory: "Preparation" };
+    if (realm === "Japanese" || realm === "Knowledge") return { categoryId: "focus", subcategory: "Study" };
+    if (realm === "Hobbies") {
+      const lane = String(quest?.hobbyLane || "");
+      if (lane === "Craft") return { categoryId: "hobby", subcategory: "Craft" };
+      if (lane === "Music") return { categoryId: "hobby", subcategory: "Music" };
+      return { categoryId: "hobby", subcategory: "Other hobby" };
+    }
+    return { categoryId: "other", subcategory: "Other" };
+  }
+
+  function timerContextForAdventure(item) {
+    const realm = String(item?.realm || "");
+    const kind = String(item?.kind || "");
+    if (realm === "Home") return { categoryId: "life_admin", subcategory: "Household" };
+    if (realm === "Work") return { categoryId: "work_home", subcategory: "Preparation" };
+    if (realm === "Recovery" || realm === "Health") return { categoryId: "recovery", subcategory: "Other recovery" };
+    if (realm === "Knowledge" || realm === "Japanese") return { categoryId: "focus", subcategory: "Study" };
+    if (realm === "Hobbies") return { categoryId: "hobby", subcategory: /music/i.test(kind) ? "Music" : /craft|skill|creative/i.test(kind) ? "Craft" : "Other hobby" };
+    return { categoryId: "other", subcategory: "Other" };
+  }
+
+  function startQuestTimer(options = {}) {
+    const quest = app.getQuestById?.(options.questId);
+    if (!quest) return false;
+    const minutes = Math.max(1, Number(options.minutes || quest.units || quest.planningMinutes || 15));
+    const context = timerContextForQuest(quest);
+    if (quest.systemRole === "focus-work") {
+      startActive({ mode: "focus", categoryId: context.categoryId === "work_home" ? "work_home" : "focus", subcategory: context.subcategory, label: quest.name, targetMinutes: minutes, breakMinutes: minutes >= 45 ? 10 : 5, linkedQuestId: quest.id });
+    } else {
+      startActive({ mode: "action", categoryId: context.categoryId, subcategory: context.subcategory, label: quest.name, targetMinutes: minutes, breakMinutes: 0, linkedQuestId: quest.id });
+    }
+    return true;
+  }
+
+  function startAdventureTimer(options = {}) {
+    const item = window.LifeRPGAdventures?.getItem?.(options.adventureId);
+    if (!item) return false;
+    const step = Array.isArray(item.roadmap) ? item.roadmap.find(entry => entry.id === options.roadmapStepId) : null;
+    const minutes = Math.max(1, Number(options.minutes || step?.minutes || item.sessionMinutes || 30));
+    const context = timerContextForAdventure(item);
+    startActive({ mode: "action", categoryId: context.categoryId, subcategory: context.subcategory, label: options.label || step?.label || item.nextAction || item.name, targetMinutes: minutes, breakMinutes: 0, linkedAdventureId: item.id, linkedRoadmapStepId: step?.id || null });
+    return true;
+  }
+
   function saveManualEntry() {
     const start = new Date(els.manualStart?.value || "");
     const end = new Date(els.manualEnd?.value || "");
@@ -430,6 +500,7 @@
       startAt: start.toISOString(),
       endAt: end.toISOString(),
       minutes,
+      durationSeconds: Math.max(60, Math.round((end - start) / 1000)),
       categoryId: els.manualCategory?.value || "other",
       subcategory: els.manualSubcategory?.value || "",
       label: els.manualLabel?.value || "",
@@ -816,6 +887,10 @@
     finishActive,
     cancelActive,
     startFocus: options => startActive({ mode: "focus", categoryId: options?.categoryId || "focus", subcategory: options?.subcategory || "Deep work", label: options?.label || "Focus session", targetMinutes: options?.minutes || 50, breakMinutes: options?.breakMinutes || 10, linkedQuestId: options?.linkedQuestId || null }),
-    startAction: options => startActive({ mode: "action", categoryId: options?.categoryId || "life_admin", subcategory: options?.subcategory || "Other admin", label: options?.label || "Daily action", targetMinutes: options?.minutes || 15, breakMinutes: 0, linkedQuestId: options?.linkedQuestId || null })
+    startAction: options => startActive({ mode: "action", categoryId: options?.categoryId || "life_admin", subcategory: options?.subcategory || "Other admin", label: options?.label || "Action", targetMinutes: options?.minutes || 15, breakMinutes: 0, linkedQuestId: options?.linkedQuestId || null, linkedAdventureId: options?.linkedAdventureId || null, linkedRoadmapStepId: options?.linkedRoadmapStepId || null }),
+    startQuest: startQuestTimer,
+    startAdventure: startAdventureTimer,
+    contextForQuest: timerContextForQuest,
+    contextForAdventure: timerContextForAdventure
   };
 })();

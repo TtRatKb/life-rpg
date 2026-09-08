@@ -686,6 +686,28 @@
     return Number(b.progress || 0) - Number(a.progress || 0) || String(a.name || "").localeCompare(String(b.name || ""));
   }
 
+  function adventureTimerKey(item, step = null) {
+    return `adventure:${item?.id || ""}:${step?.id || "session"}`;
+  }
+
+  function adventureTimerMarkup(item, step = null, { compact = false } = {}) {
+    if (!item || item.status !== "active") return "";
+    const active = window.LifeRPGTime?.getActive?.();
+    const current = step || currentRoadmapStep(item);
+    const minutes = Math.max(1, Number(current?.minutes || item.sessionMinutes || 30));
+    const key = adventureTimerKey(item, current);
+    const same = active?.mode === "action" && active?.linkedAdventureId === item.id && (active?.linkedRoadmapStepId || null) === (current?.id || null);
+    if (same) {
+      return `<div class="daily-action-timer-v306a universal-action-timer-v311 ${compact ? "compact" : ""}" data-universal-timer-live="${escAttr(key)}">
+        <div><small data-universal-timer-kicker>MINIMUM REMAINING</small><strong data-universal-timer-clock>${String(minutes).padStart(2, "0")}:00</strong><span data-universal-timer-status>${minutes} minutes completes this Adventure step.</span></div>
+        <button class="primary-button" data-universal-timer-finish type="button">Stop & log time</button>
+        <button class="text-button" data-universal-timer-cancel type="button">Cancel</button>
+      </div>`;
+    }
+    if (active) return `<button class="secondary-button" type="button" disabled>◷ Another timer is running</button>`;
+    return `<button class="primary-button universal-timer-start-v311" type="button" data-universal-adventure-timer-start="${escAttr(item.id)}" data-universal-adventure-step="${escAttr(current?.id || "")}" data-universal-timer-minutes="${minutes}" data-universal-timer-label="${escAttr(current?.label || item.nextAction || item.name)}">▶ Start ${minutes}m</button>`;
+  }
+
   function adventureCardMarkup(item) {
     const kind = KINDS[item.kind] || KINDS.other;
     const energy = ENERGY[item.energy] || ENERGY.medium;
@@ -693,7 +715,9 @@
     const reasons = (Array.isArray(item.reasonTags) ? item.reasonTags : []).map(tag => REASONS[tag]).filter(Boolean);
     const progress = item.progressMode === "percent" ? clamp(Number(item.progress || 0), 0, 100) : null;
     const doneToday = touchedToday(item.id);
+    const currentStep = currentRoadmapStep(item);
     const action = item.nextAction || "Choose one small next step";
+    const actionMinutes = Math.max(1, Number(currentStep?.minutes || item.sessionMinutes || 30));
     const statusLabel = item.status === "finished" ? "Finished" : item.status === "paused" ? "Paused" : "Active";
 
     return `
@@ -718,7 +742,7 @@
         <section class="adventure-next-action-v15">
           <small>NEXT ACTION</small>
           <strong>${esc(action)}</strong>
-          <span>${energy.icon} ${esc(energy.label)} · about ${Number(item.sessionMinutes || 30)} min</span>
+          <span>${ENERGY[currentStep?.energy]?.icon || energy.icon} ${esc(ENERGY[currentStep?.energy]?.label || energy.label)} · about ${actionMinutes} min</span>
         </section>
 
         ${reasons.length ? `<div class="adventure-reasons-v15">${reasons.map(reason => `<span>${reason.icon} ${esc(reason.label)}</span>`).join("")}</div>` : ""}
@@ -728,7 +752,8 @@
         <footer class="adventure-card-footer-v15">
           <span class="adventure-last-v15">${doneToday ? "✓ Touched today" : esc(last)}</span>
           <div class="adventure-card-actions-v15">
-            ${item.status === "active" ? `<button class="primary-button" type="button" data-adventure-log="${escAttr(item.id)}">${doneToday ? "Log more" : "Log progress"}</button>` : ""}
+            ${item.status === "active" ? adventureTimerMarkup(item, currentStep, { compact: true }) : ""}
+            ${item.status === "active" ? `<button class="secondary-button" type="button" data-adventure-log="${escAttr(item.id)}">${doneToday ? "Log more" : "Log progress"}</button>` : ""}
             <button class="secondary-button" type="button" data-adventure-workspace="${escAttr(item.id)}">Project memory</button>
             ${item.status !== "finished" ? `<button class="secondary-button" type="button" data-adventure-pause="${escAttr(item.id)}">${item.status === "paused" ? "Resume" : "Pause"}</button>` : ""}
           </div>
@@ -765,7 +790,7 @@
                 return `<article class="adventure-roadmap-step-v308 status-${escAttr(step.status)} ${isCurrent ? "current" : ""}">
                   <span class="adventure-roadmap-state-v308">${stateIcon}</span>
                   <div><strong>${esc(step.label)}</strong><small>${esc(meta)}</small>${step.details ? `<p>${esc(step.details)}</p>` : ""}${step.warning ? `<p class="adventure-roadmap-warning-v308">⚠ ${esc(step.warning)}</p>` : ""}</div>
-                  ${isCurrent && step.optional ? `<button class="secondary-button adventure-roadmap-skip-v308" type="button" data-adventure-roadmap-skip="${escAttr(item.id)}" data-adventure-step-id="${escAttr(step.id)}">Skip optional</button>` : ""}
+                  ${isCurrent ? `<div class="adventure-roadmap-actions-v311">${adventureTimerMarkup(item, step, { compact: true })}${step.optional ? `<button class="secondary-button adventure-roadmap-skip-v308" type="button" data-adventure-roadmap-skip="${escAttr(item.id)}" data-adventure-step-id="${escAttr(step.id)}">Skip optional</button>` : ""}</div>` : ""}
                 </article>`;
               }).join("")}
             </section>`).join("")}
@@ -980,8 +1005,8 @@
     byId("adventureLogQuickProgress")?.querySelectorAll("[data-adventure-quick-progress]").forEach(button => button.classList.toggle("active", Number(button.dataset.adventureQuickProgress) === value));
   }
 
-  function adventureRewardSpec(item, at, roadmapStep = null) {
-    const minutes = clamp(Number(roadmapStep?.minutes || item.sessionMinutes || item.minutes || 30), 10, 180);
+  function adventureRewardSpec(item, at, roadmapStep = null, actualMinutes = 0) {
+    const minutes = clamp(Number(actualMinutes || roadmapStep?.minutes || item.sessionMinutes || item.minutes || 30), 10, 180);
     const rewardEnergy = roadmapStep?.energy || item.energy;
     const energyFactor = rewardEnergy === "high" ? 1.12 : rewardEnergy === "low" ? 0.9 : 1;
     const storyEnergyBase = Math.min(2.8, Math.max(0.35, minutes * 0.025 * energyFactor));
@@ -1100,6 +1125,89 @@
     }
   }
 
+  function completeTimedSession(adventureId, roadmapStepId = null, elapsedMinutes = 0) {
+    const item = model().items.find(entry => entry.id === adventureId);
+    if (!item || item.status !== "active") return false;
+    const before = clamp(Number(item.progress || 0), 0, 100);
+    const wasFinished = item.status === "finished";
+    const now = Date.now();
+    const currentStep = Array.isArray(item.roadmap) && item.roadmap.length && item.roadmapManaged !== false ? currentRoadmapStep(item) : null;
+    if (roadmapStepId && currentStep?.id !== roadmapStepId) {
+      app.showToast?.("The project moved to a different step while the timer was running. Your time was kept, but no step was auto-completed.");
+      return false;
+    }
+    const roadmapStep = currentStep;
+
+    item.sessions = Number(item.sessions || 0) + 1;
+    item.lastTouchedAt = now;
+    item.updatedAt = now;
+    let after = before;
+
+    if (roadmapStep) {
+      roadmapStep.status = "done";
+      roadmapStep.completedAt = now;
+      roadmapStep.timerMinutesLogged = Math.max(0, Number(roadmapStep.timerMinutesLogged || 0)) + Math.max(1, Number(elapsedMinutes || roadmapStep.minutes || 1));
+      syncRoadmapItem(item);
+      after = clamp(Number(item.progress || 0), 0, 100);
+    } else if (item.progressMode === "percent") {
+      const increment = Math.max(1, Number(item.progressIncrement || 5));
+      after = clamp(before + increment, 0, 100);
+      item.progress = after;
+      if (after >= 100) item.status = "finished";
+    }
+
+    const reward = app.awardActivity?.(adventureRewardSpec(item, now, roadmapStep, elapsedMinutes)) || {
+      xp: 0, realmXP: 0, statXP: 0, storyEnergy: 0, rawStoryEnergy: 0, coins: 0
+    };
+
+    let finishReward = null;
+    if (!wasFinished && item.status === "finished" && !item.finishRewardEventId) {
+      finishReward = app.awardActivity?.({
+        source: "adventure-finish",
+        sourceId: item.id,
+        label: `Finished: ${item.name}`,
+        realm: item.realm,
+        capability: app.inferCapability?.({ realm: item.realm, label: item.name, kind: item.kind || "adventure" }) || "creativity",
+        xp: 15,
+        realmXP: 15,
+        statXP: 10,
+        coins: 100,
+        storyEnergyBase: 1.5,
+        progressionRelevant: true,
+        at: new Date(now).toISOString(),
+        metadata: { adventureFinished: true, viaTimer: true }
+      }) || null;
+      item.finishRewardEventId = finishReward?.eventId || `local-adventure-finish-${now}`;
+    }
+
+    model().logs.push({
+      id: makeId("advlog"),
+      adventureId: item.id,
+      at: now,
+      date: todayKey(),
+      progressBefore: before,
+      progressAfter: after,
+      roadmapStepId: roadmapStep?.id || null,
+      roadmapStepLabel: roadmapStep?.label || null,
+      timeMinutes: Math.max(1, Number(elapsedMinutes || 0)),
+      source: "timer",
+      xp: Number(reward.xp || 0),
+      realmXP: Number(reward.realmXP || 0),
+      statXP: Number(reward.statXP || 0),
+      storyEnergy: Number(reward.storyEnergy || 0),
+      rawStoryEnergy: Number(reward.rawStoryEnergy || 0),
+      coins: Number(reward.coins || 0),
+      finishCoins: Number(finishReward?.coins || 0),
+      finishRewardEventId: finishReward?.eventId || null,
+      rewardEventId: reward.eventId || null,
+      deduped: Boolean(reward.deduped)
+    });
+    persist("side-adventure-timer-progress");
+    app.renderAll?.();
+    showToast(item, before, after, reward, finishReward, roadmapStep);
+    return true;
+  }
+
   function showToast(item, before, after, reward = null, finishReward = null, roadmapStep = null) {
     if (!els.toast) return;
     if (els.toastTitle) els.toastTitle.textContent = item.name;
@@ -1141,6 +1249,8 @@
       openCreate: () => openAdventureDialog(),
       openEdit: id => openAdventureDialog(id),
       openLog: id => openLogDialog(id),
+      completeTimedSession,
+      getCurrentStep: id => currentRoadmapStep(model().items.find(item => item.id === id) || null),
       render
     };
   }

@@ -739,9 +739,10 @@
       const start = new Date(entry.startAt || entry.endAt || 0).getTime();
       const end = new Date(entry.endAt || entry.startAt || 0).getTime();
       if (!Number.isFinite(end) || end < since) return sum;
-      if (!Number.isFinite(start)) return sum + Math.max(0, Number(entry.minutes || 0));
+      const exactMinutes = Math.max(0, Number(entry.durationSeconds || 0) > 0 ? Number(entry.durationSeconds) / 60 : Number(entry.minutes || 0));
+      if (!Number.isFinite(start)) return sum + exactMinutes;
       const overlapStart = Math.max(start, since);
-      const overlapMinutes = Math.max(0, Math.min(Number(entry.minutes || 0), (end - overlapStart) / 60000));
+      const overlapMinutes = Math.max(0, Math.min(exactMinutes, (end - overlapStart) / 60000));
       return sum + overlapMinutes;
     }, 0);
   }

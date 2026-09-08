@@ -1517,8 +1517,9 @@
           </div>
         </div>
 
-        <div class="quest-actions">
-          <button class="primary-button complete-quest-button" data-quest-id="${quest.id}" ${availability.available ? "" : "disabled"}>${availability.available ? "Log" : "Waiting"}</button>
+        <div class="quest-actions ${isMinuteQuestForTimer(quest) ? "universal-timer-actions-v311" : ""}">
+          ${isMinuteQuestForTimer(quest) && availability.available ? questTimerActionsMarkup(quest, availability, todayUnits, { compact: true }) : `<button class="primary-button complete-quest-button" data-quest-id="${quest.id}" ${availability.available ? "" : "disabled"}>${availability.available ? "Log" : "Waiting"}</button>`}
+          ${isMinuteQuestForTimer(quest) && availability.available ? `<button class="text-button complete-quest-button" data-quest-id="${quest.id}">Log manually</button>` : ""}
           <button class="secondary-button remove-loadout-button" data-quest-id="${quest.id}">Remove</button>
         </div>
       </article>
@@ -1683,6 +1684,38 @@
     });
   }
 
+  function isMinuteQuestForTimer(quest) {
+    const unit = String(quest?.unitLabel || "").toLowerCase();
+    return /(?:^|\b)(?:min|minute|minutes)(?:\b|$)/.test(unit) && questTarget(quest) > 0;
+  }
+
+  function formatActionTimerClock(seconds) {
+    const total = Math.max(0, Math.floor(Number(seconds || 0)));
+    const hours = Math.floor(total / 3600);
+    const minutes = Math.floor((total % 3600) / 60);
+    const secs = total % 60;
+    return hours ? `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(secs).padStart(2, "0")}` : `${String(minutes).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+  }
+
+  function questTimerActionsMarkup(quest, availability, todayUnits = 0, { compact = false } = {}) {
+    if (!isMinuteQuestForTimer(quest) || !availability?.available) return "";
+    const active = window.LifeRPGTime?.getActive?.();
+    const target = Math.max(1, Number(questTarget(quest) || 1));
+    const remaining = Math.max(1, target - Math.max(0, Number(todayUnits || 0)));
+    const same = active?.linkedQuestId === quest.id && ["action", "focus"].includes(active?.mode);
+    if (same) {
+      const activeTarget = Math.max(1, Number(active.targetMinutes || remaining));
+      return `<div class="daily-action-timer-v306a universal-action-timer-v311 ${compact ? "compact" : ""}" data-universal-timer-live="quest:${escapeHtml(quest.id)}">
+        <div><small data-universal-timer-kicker>MINIMUM REMAINING</small><strong data-universal-timer-clock>${formatActionTimerClock(activeTarget * 60)}</strong><span data-universal-timer-status>${trimNumber(activeTarget)} minutes completes this Quest.</span></div>
+        <button class="primary-button" data-universal-timer-finish type="button">Stop & log time</button>
+        <button class="text-button" data-universal-timer-cancel type="button">Cancel</button>
+      </div>`;
+    }
+    if (active) return `<button class="secondary-button" type="button" disabled>◷ Another timer is running</button>`;
+    const label = quest.systemRole === "focus-work" ? `▶ Start Focus ${trimNumber(remaining)}m` : `▶ Start ${trimNumber(remaining)}m`;
+    return `<button class="primary-button universal-timer-start-v311" data-universal-quest-timer-start="${escapeHtml(quest.id)}" data-universal-timer-minutes="${remaining}" type="button">${label}</button>`;
+  }
+
   function renderQuestLibrary() {
     const filtered = getAllQuests()
       .filter(quest => quest.manualStatus !== "Archived")
@@ -1749,13 +1782,14 @@
             <small class="muted">${availability.available
               ? (selected ? "In today's loadout" : "Ready")
               : escapeHtml(availability.reason)}</small>
-            <div class="library-actions">
+            <div class="library-actions ${isMinuteQuestForTimer(quest) ? "universal-timer-actions-v311" : ""}">
               <button
                 class="secondary-button toggle-loadout-button ${selected ? "selected-button" : ""}"
                 data-quest-id="${quest.id}">
                 ${selected ? "✓ Today" : "+ Today"}
               </button>
-              <button class="primary-button complete-quest-button" data-quest-id="${quest.id}" ${availability.available ? "" : "disabled"}>${availability.available ? "Log" : "Waiting"}</button>
+              ${isMinuteQuestForTimer(quest) && availability.available ? questTimerActionsMarkup(quest, availability, todayUnits, { compact: true }) : `<button class="primary-button complete-quest-button" data-quest-id="${quest.id}" ${availability.available ? "" : "disabled"}>${availability.available ? "Log" : "Waiting"}</button>`}
+              ${isMinuteQuestForTimer(quest) && availability.available ? `<button class="text-button complete-quest-button" data-quest-id="${quest.id}">Log manually</button>` : ""}
             </div>
           </footer>
         </article>
