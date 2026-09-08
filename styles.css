@@ -13935,3 +13935,81 @@ a.adventure-source-link-v308:hover{text-decoration:underline}
     grid-template-columns: 26px 28px minmax(0, 1fr) !important;
   }
 }
+
+/* V0.31.3 — Story Participation & Parallel Momentum Requirements */
+.story-momentum-groups-v313 {
+  display: grid;
+  gap: 10px;
+}
+.story-momentum-group-v313 {
+  padding: 10px;
+  border: 1px solid rgba(112,67,100,.10);
+  border-radius: 14px;
+  background: rgba(255,255,255,.44);
+}
+.story-momentum-group-v313.ready {
+  border-color: rgba(98,132,91,.20);
+  background: rgba(236,246,233,.48);
+}
+.story-momentum-group-head-v313 {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 7px;
+}
+.story-momentum-group-head-v313 > strong {
+  font-size: .8rem;
+  color: var(--plum-deep,#402242);
+}
+.story-momentum-group-head-v313 > span {
+  flex: 0 0 auto;
+  padding: 4px 7px;
+  border-radius: 999px;
+  background: rgba(161,83,120,.09);
+  color: #a15378;
+  font-size: .6rem;
+  font-weight: 900;
+  letter-spacing: .08em;
+}
+.story-momentum-group-v313.ready .story-momentum-group-head-v313 > span {
+  background: rgba(98,127,93,.11);
+  color: #627f5d;
+}
+.story-momentum-group-v313 > p {
+  margin: -2px 0 8px;
+  color: var(--muted);
+  font-size: .74rem;
+  line-height: 1.4;
+}
+.story-readiness-gate-v313 {
+  flex: 1 1 100%;
+  margin-top: 10px;
+  padding: 14px 15px;
+  border: 1px solid rgba(112,67,100,.16);
+  border-radius: 18px;
+  background: linear-gradient(135deg,rgba(255,250,247,.94),rgba(246,237,244,.9));
+  color: var(--plum-deep,#402242);
+}
+.story-readiness-gate-v313.ready {
+  border-color: rgba(106,139,98,.28);
+  background: linear-gradient(135deg,rgba(248,253,246,.96),rgba(245,235,241,.9));
+}
+.story-readiness-gate-v313 > strong {
+  display: block;
+  font-family: Georgia,"Times New Roman",serif;
+  font-size: 1.02rem;
+}
+.story-readiness-gate-v313 > p {
+  margin: 4px 0 10px;
+  color: var(--muted);
+  font-size: .82rem;
+  line-height: 1.45;
+}
+.story-readiness-gate-v313 ul {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}

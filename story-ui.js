@@ -663,34 +663,134 @@
   function momentumGateDefinition(scene) {
     const order = Number(scene?.order || 0);
 
-    // Keep gates sparse. These are deliberately described without revealing
-    // what happens in the upcoming chapter. Future story packs can add more
-    // context-specific gates through the same primitives.
-    if (order === 10) {
-      return {
-        key: "home-momentum-v1",
-        title: "Bring one small bit of Home momentum with you.",
-        copy: "Any one option is enough. Pick the one that fits the day you actually have.",
-        options: [
+    // V0.31.3: Story Momentum can now use one or more requirement groups.
+    // Every group is required, while the options inside a group are always OR-based.
+    // This lets later chapters ask for a little more lived momentum without ever
+    // forcing one exact hobby, workout or productivity route.
+    const gate = (key, title, copy, groups) => ({ key, title, copy, groups });
+    const group = (key, title, options, copy = "Choose any one option.") => ({ key, title, copy, options });
+
+    if (order === 6) {
+      return gate(
+        "personal-interest-momentum-v1",
+        "Bring one small piece of your own interests with you.",
+        "One option is enough. This is simply a nudge to spend a little time on something you genuinely like.",
+        [group("interest", "Personal-interest momentum", [
+          { type: "realmActivity", realms: ["Hobbies", "Knowledge"], label: "Complete one Hobbies or Knowledge action" },
+          { type: "time", categories: ["hobby", "gaming", "reading"], minutes: 10, label: "Spend 10 minutes on a hobby, game or reading" },
+          { type: "adventure", realms: ["Hobbies"], label: "Move one active hobby / craft Adventure forward" }
+        ])]
+      );
+    }
+
+    if (order === 7) {
+      return gate(
+        "low-battery-momentum-v1",
+        "Give your battery one small kindness first.",
+        "Pick whichever version fits the day. Rest counts; this is not a productivity gate.",
+        [group("recovery", "Low-battery momentum", [
+          { type: "realmActivity", realms: ["Recovery", "Health"], label: "Complete one Recovery or gentle Health action" },
+          { type: "time", categories: ["recovery", "reading", "gaming", "hobby"], minutes: 15, label: "Log 15 minutes of recovery or quiet off-duty time" }
+        ])]
+      );
+    }
+
+    if (order === 8) {
+      return gate(
+        "something-yours-momentum-v1",
+        "Spend a little time on something that is yours.",
+        "Any one route works. The point is personal interest, not performance.",
+        [group("personal", "Something-for-you momentum", [
+          { type: "realmActivity", realms: ["Hobbies", "Knowledge"], label: "Complete one Hobbies or Knowledge action" },
+          { type: "time", categories: ["hobby", "reading", "gaming"], minutes: 15, label: "Spend 15 minutes on a hobby, reading or gaming" },
+          { type: "adventure", realms: ["Hobbies"], label: "Log progress on a hobby / creative Adventure" }
+        ])]
+      );
+    }
+
+    if (order === 9) {
+      return gate(
+        "home-thinking-momentum-v1",
+        "Bring one small bit of Home momentum with you.",
+        "Choose whatever makes your actual living space or life admin a little easier.",
+        [group("home", "Home momentum", [
           { type: "realmAdvance", realm: "Home", label: "Reach your next Home rank" },
           { type: "realmActivity", realms: ["Home"], label: "Complete one Home action" },
           { type: "time", categories: ["life_admin"], minutes: 10, label: "Spend 10 minutes on a home / life-admin reset" }
+        ])]
+      );
+    }
+
+    if (order === 10) {
+      return gate(
+        "home-momentum-v1",
+        "Bring one small bit of Home momentum with you.",
+        "Any one option is enough. Pick the one that fits the day you actually have.",
+        [group("home", "Home momentum", [
+          { type: "realmAdvance", realm: "Home", label: "Reach your next Home rank" },
+          { type: "realmActivity", realms: ["Home"], label: "Complete one Home action" },
+          { type: "time", categories: ["life_admin"], minutes: 10, label: "Spend 10 minutes on a home / life-admin reset" }
+        ])]
+      );
+    }
+
+    if (order === 11) {
+      return gate(
+        "home-prep-momentum-v1",
+        "Prepare one small piece of Home first.",
+        "This can be tiny. One concrete home action is enough, and timed actions count automatically through the same Life RPG log.",
+        [group("home-prep", "Home preparation", [
+          { type: "realmActivity", realms: ["Home"], label: "Complete one Home action" },
+          { type: "time", categories: ["life_admin"], minutes: 10, label: "Spend 10 minutes cleaning, tidying or on home / life admin" },
+          { type: "realmAdvance", realm: "Home", label: "Reach your next Home rank" }
+        ])]
+      );
+    }
+
+    if (order === 12) {
+      return gate(
+        "daily-rhythm-momentum-v1",
+        "Make one small part of your daily rhythm easier.",
+        "Choose a practical or gentle option. It does not need to be impressive.",
+        [group("rhythm", "Daily-rhythm momentum", [
+          { type: "realmActivity", realms: ["Home", "Health", "Recovery"], label: "Complete one Home, Health or Recovery action" },
+          { type: "time", categories: ["life_admin", "recovery"], minutes: 10, label: "Log 10 minutes of practical setup or recovery" }
+        ])]
+      );
+    }
+
+    if (order === 13) {
+      return gate(
+        "household-and-self-momentum-v1",
+        "Bring two small pieces of real-life momentum with you.",
+        "Later chapters can ask for more than one requirement, but every requirement keeps flexible routes and can be completed while Story Energy is still building.",
+        [
+          group("household", "1 · Household momentum", [
+            { type: "realmActivity", realms: ["Home"], label: "Complete one Home action" },
+            { type: "time", categories: ["life_admin"], minutes: 10, label: "Spend 10 minutes on cleaning, tidying or life admin" },
+            { type: "realmAdvance", realm: "Home", label: "Reach your next Home rank" }
+          ]),
+          group("own-life", "2 · Something for your own life", [
+            { type: "realmActivity", realms: ["Hobbies", "Knowledge", "Recovery", "Health"], label: "Complete one Hobbies, Knowledge, Recovery or Health action" },
+            { type: "time", categories: ["hobby", "gaming", "reading", "recovery"], minutes: 10, label: "Log 10 minutes of off-duty or recovery time" },
+            { type: "adventure", realms: ["Hobbies"], label: "Move one hobby / creative Adventure forward" }
+          ])
         ]
-      };
+      );
     }
 
     if (order === 14) {
-      return {
-        key: "off-duty-momentum-v1",
-        title: "Give yourself one small off-duty signal first.",
-        copy: "This is not a gym gate. Rest, gentle movement, reading, gaming, a hobby or another recovery action can all count.",
-        options: [
+      return gate(
+        "off-duty-momentum-v1",
+        "Give yourself one small off-duty signal first.",
+        "This is not a gym gate. Rest, gentle movement, reading, gaming, a hobby or another recovery action can all count.",
+        [group("off-duty", "Off-duty momentum", [
           { type: "capabilityAdvance", capability: "wellbeing", label: "Reach your next Wellbeing level" },
           { type: "realmActivity", realms: ["Recovery", "Health"], label: "Complete one Recovery or gentle Health action" },
           { type: "time", categories: ["recovery", "hobby", "gaming", "reading"], minutes: 15, label: "Log 15 minutes of recovery or off-duty hobby time" },
           { type: "adventure", realms: ["Hobbies"], label: "Move one active hobby / craft Adventure forward" }
-        ]
-      };
+        ])]
+      );
     }
 
     return null;
@@ -797,26 +897,95 @@
 
   function momentumGateInfo(scene, { create = false } = {}) {
     const definition = momentumGateDefinition(scene);
-    if (!definition) return { required: false, met: true, definition: null, state: null, options: [] };
+    if (!definition) return { required: false, met: true, definition: null, state: null, groups: [], options: [] };
     const gateState = getMomentumGateState(scene, { create });
-    if (!gateState) return { required: true, met: false, definition, state: null, options: [] };
-    const options = definition.options.map(option => ({ ...option, ...momentumOptionStatus(option, gateState) }));
-    return { required: true, met: options.some(option => option.met), definition, state: gateState, options };
+    if (!gateState) return { required: true, met: false, definition, state: null, groups: [], options: [] };
+
+    const rawGroups = Array.isArray(definition.groups) && definition.groups.length
+      ? definition.groups
+      : [{ key: "default", title: "Story momentum", copy: definition.copy || "Choose any one option.", options: array(definition.options) }];
+    const groups = rawGroups.map((entry, index) => {
+      const options = array(entry.options).map(option => ({ ...option, ...momentumOptionStatus(option, gateState) }));
+      return {
+        ...entry,
+        key: entry.key || `group-${index + 1}`,
+        options,
+        met: options.some(option => option.met)
+      };
+    });
+    const options = groups.flatMap(entry => entry.options);
+    return { required: true, met: groups.every(entry => entry.met), definition, state: gateState, groups, options };
   }
 
   function momentumGateMarkup(info) {
     if (!info?.required || !info.definition) return "";
-    const options = info.options.map(option => `
-      <li class="story-momentum-option-v309 ${option.met ? "done" : ""}">
-        <span>${option.met ? "✓" : "○"}</span>
-        <div><strong>${escapeHtml(option.label)}</strong>${option.detail ? `<small>${escapeHtml(option.detail)}</small>` : ""}</div>
-      </li>`).join("");
+    const groups = array(info.groups);
+    const groupMarkup = groups.map((group, index) => {
+      const options = array(group.options).map(option => `
+        <li class="story-momentum-option-v309 ${option.met ? "done" : ""}">
+          <span>${option.met ? "✓" : "○"}</span>
+          <div><strong>${escapeHtml(option.label)}</strong>${option.detail ? `<small>${escapeHtml(option.detail)}</small>` : ""}</div>
+        </li>`).join("");
+      return `
+        <div class="story-momentum-group-v313 ${group.met ? "ready" : ""}">
+          ${groups.length > 1 ? `<div class="story-momentum-group-head-v313"><strong>${escapeHtml(group.title || `Requirement ${index + 1}`)}</strong><span>${group.met ? "✓ READY" : "CHOOSE ONE"}</span></div>` : ""}
+          ${group.copy && groups.length > 1 ? `<p>${escapeHtml(group.copy)}</p>` : ""}
+          <ul>${options}</ul>
+        </div>`;
+    }).join("");
+    const completeCount = groups.filter(group => group.met).length;
+    const status = groups.length > 1 ? `${completeCount} / ${groups.length} READY` : (info.met ? "MOMENTUM READY" : "ONE SMALL REAL-LIFE NUDGE");
     return `
       <section class="story-momentum-gate-v309 ${info.met ? "ready" : ""}">
-        <div class="story-momentum-kicker-v309">${info.met ? "MOMENTUM READY" : "ONE SMALL REAL-LIFE NUDGE"}</div>
+        <div class="story-momentum-kicker-v309">${status}</div>
         <strong>${escapeHtml(info.definition.title)}</strong>
         <p>${escapeHtml(info.definition.copy)}</p>
-        <ul>${options}</ul>
+        <div class="story-momentum-groups-v313">${groupMarkup}</div>
+      </section>`;
+  }
+
+  function progressionRequirementInfo(scene) {
+    const snapshot = null;
+    const requirements = array(scene?.requirements).map((requirement, index) => {
+      const met = progressionRequirementMatches(requirement, snapshot);
+      let detail = "";
+      const type = requirement?.type || (requirement?.capability ? "capability" : requirement?.realmRank ? "realmRank" : "");
+      const key = requirement?.key || requirement?.capability || requirement?.realmRank;
+      if (type === "capability" && key) {
+        const current = Number(app.getCapabilityInfo?.(key)?.level || 1);
+        detail = requirement.min != null ? `Level ${current} · target ${Number(requirement.min)}` : `Level ${current}`;
+      } else if (type === "realmRank" && key) {
+        const current = Number(app.getRealmRankInfo?.(key)?.level || 1);
+        detail = requirement.min != null ? `Rank ${current} · target ${Number(requirement.min)}` : `Rank ${current}`;
+      }
+      return {
+        met,
+        label: requirement?.uiLabel || requirement?.label || `Real-life readiness ${index + 1}`,
+        detail
+      };
+    });
+    if (scene?.readiness) {
+      requirements.push({
+        met: typeof app.evaluateProgressionCondition === "function" ? app.evaluateProgressionCondition(scene.readiness) : true,
+        label: scene.readiness?.uiLabel || scene.readiness?.label || "Story readiness",
+        detail: ""
+      });
+    }
+    return { required: requirements.length > 0, met: requirements.every(item => item.met), requirements };
+  }
+
+  function progressionRequirementMarkup(info) {
+    if (!info?.required) return "";
+    return `
+      <section class="story-readiness-gate-v313 ${info.met ? "ready" : ""}">
+        <div class="story-momentum-kicker-v309">${info.met ? "READINESS READY" : "REAL-LIFE READINESS"}</div>
+        <strong>Additional chapter requirements</strong>
+        <p>These stay visible while you build Story Energy, so progress can happen in parallel.</p>
+        <ul>${array(info.requirements).map(item => `
+          <li class="story-momentum-option-v309 ${item.met ? "done" : ""}">
+            <span>${item.met ? "✓" : "○"}</span>
+            <div><strong>${escapeHtml(item.label)}</strong>${item.detail ? `<small>${escapeHtml(item.detail)}</small>` : ""}</div>
+          </li>`).join("")}</ul>
       </section>`;
   }
 
@@ -876,10 +1045,10 @@
     const active = story.activeSceneId === scene.id;
     const step = Number(story.readerStep || 0);
     const cost = effectiveSceneCost(scene);
-    const enoughEnergy = state.storyEnergy >= cost;
-    const baseReadyForScene = sceneRequirementsMet(scene);
-    const momentum = unlocked ? { required: false, met: true } : momentumGateInfo(scene, { create: true });
-    const readyForScene = baseReadyForScene && momentum.met;
+    const enoughEnergy = Number(state.storyEnergy || 0) >= cost;
+    const progression = unlocked ? { required: false, met: true, requirements: [] } : progressionRequirementInfo(scene);
+    const momentum = unlocked ? { required: false, met: true, groups: [] } : momentumGateInfo(scene, { create: true });
+    const readyForScene = progression.met && momentum.met;
 
     if (unlocked) {
       els.nextTitle.textContent = scene.title;
@@ -903,27 +1072,24 @@
       ? "Start at the beginning of my ordinary life, before anything changes."
       : "The next chapter stays spoiler-free until you unlock it.";
 
-    if (!baseReadyForScene) {
-      els.energyNeed.innerHTML = `<span class="story-energy-pill locked">Real-life readiness not met yet</span>`;
-      els.actionButton.disabled = true;
-      els.actionButton.textContent = "Not quite ready yet";
-      els.actionHint.textContent = "Readiness checks stay spoiler-safe and should always have a reasonable path forward.";
-      return;
-    }
+    const energyMarkup = cost === 0
+      ? `<span class="story-energy-pill ready">No Story Energy required</span>`
+      : enoughEnergy
+        ? `<span class="story-energy-pill ready">${app.formatEnergy?.(state.storyEnergy) ?? state.storyEnergy} 🔥 available</span><span class="story-energy-pill">${cost} 🔥 to unlock chapter</span>`
+        : `<span class="story-energy-pill">${app.formatEnergy?.(state.storyEnergy) ?? state.storyEnergy} 🔥 available</span><span class="story-energy-pill locked">Need ${app.formatEnergy?.(Math.max(0, cost - Number(state.storyEnergy || 0))) ?? Math.max(0, cost - Number(state.storyEnergy || 0))} more</span>`;
+    const requirementMarkup = `${progressionRequirementMarkup(progression)}${momentumGateMarkup(momentum)}`;
+    els.energyNeed.innerHTML = `${energyMarkup}${requirementMarkup}`;
 
-    if (momentum.required && !momentum.met) {
-      const energyPill = cost === 0
-        ? `<span class="story-energy-pill ready">No Story Energy required</span>`
-        : `<span class="story-energy-pill ${enoughEnergy ? "ready" : "locked"}">${app.formatEnergy?.(state.storyEnergy) ?? state.storyEnergy} 🔥 / ${cost} 🔥</span>`;
-      els.energyNeed.innerHTML = `${energyPill}${momentumGateMarkup(momentum)}`;
+    if (!readyForScene) {
       els.actionButton.disabled = true;
-      els.actionButton.textContent = "Choose one small momentum option";
-      els.actionHint.textContent = "Any one option unlocks the readiness gate. It is meant to nudge, not force a particular habit, hobby or workout.";
+      els.actionButton.textContent = momentum.required && !momentum.met
+        ? (array(momentum.groups).length > 1 ? "Complete the chapter requirements" : "Choose one small momentum option")
+        : "Not quite ready yet";
+      els.actionHint.textContent = "Requirements stay visible even before you have enough Story Energy, so you can complete them in parallel. Flexible OR-options are meant to nudge, not force one exact activity.";
       return;
     }
 
     if (cost === 0) {
-      els.energyNeed.innerHTML = `<span class="story-energy-pill ready">No Story Energy required</span>`;
       els.actionButton.disabled = false;
       els.actionButton.textContent = "Begin story";
       els.actionHint.textContent = "The opening chapter is free.";
@@ -931,16 +1097,14 @@
     }
 
     if (enoughEnergy) {
-      els.energyNeed.innerHTML = `<span class="story-energy-pill ready">${app.formatEnergy?.(state.storyEnergy) ?? state.storyEnergy} 🔥 available</span><span class="story-energy-pill">${cost} 🔥 to unlock chapter</span>${momentum.required ? momentumGateMarkup(momentum) : ""}`;
       els.actionButton.disabled = false;
       els.actionButton.textContent = `Unlock next chapter · ${cost} 🔥`;
-      els.actionHint.textContent = "Unlocking pays for the complete chapter. Reading, Previous and choices are free after that.";
+      els.actionHint.textContent = "All requirements are ready. Unlocking pays for the complete chapter; reading, Previous and choices are free after that.";
     } else {
       const missing = Math.max(0, cost - Number(state.storyEnergy || 0));
-      els.energyNeed.innerHTML = `<span class="story-energy-pill">${app.formatEnergy?.(state.storyEnergy) ?? state.storyEnergy} 🔥 available</span><span class="story-energy-pill locked">Need ${app.formatEnergy?.(missing) ?? missing} more</span>${momentum.required ? momentumGateMarkup(momentum) : ""}`;
       els.actionButton.disabled = true;
       els.actionButton.textContent = `Need ${app.formatEnergy?.(missing) ?? missing} more Story Energy`;
-      els.actionHint.textContent = "Daily check-ins, habits, quests, reading, tracked game goals, Side Adventures and useful Life RPG upkeep can all help fund the next chapter.";
+      els.actionHint.textContent = "Your non-energy requirements are already tracked while you build Story Energy. Daily check-ins, habits, quests, reading, tracked game goals, Side Adventures and useful Life RPG upkeep can all help fund the next chapter.";
     }
   }
 
@@ -2802,7 +2966,7 @@
       if (portraitSpec && item.id === portraitSpec.id && mode !== "cg") return Boolean(item.allowSceneDuplicate);
       return true;
     }));
-    const focusId = visual?.focus || inferFocusIdFromNode(node, stageCharacters, characterAssets);
+    const activeCharacterIds = resolveActiveCharacterIds(visual, node, stageCharacters, characterAssets);
 
     const bgSrc = bg?.src ? String(bg.src) : "";
     const previousBg = els.visualBackdrop?.dataset?.assetSrc || "";
@@ -2834,13 +2998,13 @@
       };
     }
 
-    updateSpriteSlot(els.spriteLeft, desired.left, focusId);
-    updateSpriteSlot(els.spriteCenter, desired.center, focusId);
-    updateSpriteSlot(els.spriteRight, desired.right, focusId);
+    updateSpriteSlot(els.spriteLeft, desired.left, activeCharacterIds);
+    updateSpriteSlot(els.spriteCenter, desired.center, activeCharacterIds);
+    updateSpriteSlot(els.spriteRight, desired.right, activeCharacterIds);
 
     const visibleCount = Object.values(desired).filter(Boolean).length;
     els.visualStage.dataset.characterCount = String(visibleCount);
-    if (focusId) els.visualStage.dataset.focusCharacter = focusId;
+    if (activeCharacterIds.length) els.visualStage.dataset.focusCharacter = activeCharacterIds.join(",");
     else delete els.visualStage.dataset.focusCharacter;
 
     const shouldShow = Boolean(bgSrc || visibleCount);
@@ -2859,7 +3023,7 @@
     return list;
   }
 
-  function updateSpriteSlot(target, desired, focusId) {
+  function updateSpriteSlot(target, desired, activeCharacterIds = []) {
     if (!target) return;
     if (!desired) {
       target.classList.add("hidden");
@@ -2890,19 +3054,65 @@
     target.dataset.expression = item.expression || "neutral";
     target.dataset.assetSrc = src;
     target.classList.remove("hidden", "is-entering", "is-expression-changing");
-    target.classList.toggle("is-active", !focusId || focusId === item.id);
-    target.classList.toggle("is-muted", Boolean(focusId && focusId !== item.id));
+
+    // V0.31.3: a beat can have more than one active participant. When the node
+    // contains multiple dialogue speakers they all stay fully lit, while a third
+    // present-but-quiet character can still recede. Pure narration/thought has no
+    // inferred active set, so the whole present ensemble is treated consistently.
+    const activeSet = new Set(array(activeCharacterIds));
+    const hasExplicitActivity = activeSet.size > 0;
+    const isActive = !hasExplicitActivity || activeSet.has(item.id);
+    target.classList.toggle("is-active", isActive);
+    target.classList.toggle("is-muted", hasExplicitActivity && !isActive);
 
     if (!previousSrc || characterChanged) restartAnimationClass(target, "is-entering");
     else if (expressionChanged) restartAnimationClass(target, "is-expression-changing");
   }
 
-  function inferFocusIdFromNode(node, characters, characterAssets) {
-    const dialogue = array(node?.content).filter(block => block?.kind === "dialogue" && block?.speaker).at(-1);
-    if (!dialogue?.speaker) return null;
-    const speaker = normalizeStoryName(dialogue.speaker);
-    if (!speaker) return null;
+  function resolveActiveCharacterIds(visual, node, characters, characterAssets) {
+    const currentFocusDeclared = Boolean(node?.visual && Object.prototype.hasOwnProperty.call(node.visual, "focus"));
+    const currentFocus = currentFocusDeclared
+      ? (Array.isArray(node.visual.focus) ? node.visual.focus : node.visual.focus ? [node.visual.focus] : [])
+      : [];
+    const active = currentFocus.filter(id => characters.some(item => item?.id === id));
 
+    // Current-beat participation always wins over a carried visual focus from an
+    // earlier beat. This is what prevents a second speaker from staying grey just
+    // because the previous line happened to focus somebody else.
+    for (const block of array(node?.content)) {
+      if (block?.kind === "dialogue" && block?.speaker) {
+        const id = characterIdForStorySpeaker(block.speaker, characters, characterAssets);
+        if (id && !active.includes(id)) active.push(id);
+      }
+      for (const activeId of array(block?.activeCharacters)) {
+        if (characters.some(item => item?.id === activeId) && !active.includes(activeId)) active.push(activeId);
+      }
+
+      // Named present characters in narration count as participating in the beat.
+      // This is intentionally conservative: only characters already on stage can
+      // be activated, so references to absent people do not change staging.
+      if (block?.kind !== "dialogue" && block?.text) {
+        for (const item of characters || []) {
+          const id = String(item?.id || "");
+          const fullName = String(characterAssets?.[id]?.name || id);
+          const names = [id, fullName, ...fullName.split(/\s+/)].filter(name => String(name).length >= 3);
+          const haystack = String(block.text).toLowerCase();
+          if (names.some(name => haystack.includes(String(name).toLowerCase())) && !active.includes(id)) active.push(id);
+        }
+      }
+    }
+    for (const activeId of array(node?.activeCharacters)) {
+      if (characters.some(item => item?.id === activeId) && !active.includes(activeId)) active.push(activeId);
+    }
+
+    // If this beat has no explicit or inferable participant, treat the whole
+    // present ensemble consistently rather than arbitrarily carrying a dim state.
+    return active;
+  }
+
+  function characterIdForStorySpeaker(speakerValue, characters, characterAssets) {
+    const speaker = normalizeStoryName(speakerValue);
+    if (!speaker) return null;
     for (const item of characters || []) {
       const id = String(item?.id || "");
       const fullName = String(characterAssets?.[id]?.name || "");
