@@ -2707,15 +2707,17 @@
     const day = planner.days?.[key];
     if (!day?.checkIn) return false;
     const existingReward = day.checkInReward || {};
+    const ledger = app.getState().rewardLedger?.events || [];
+    const coinAlreadyPaid = ledger.some(event => event?.sourceId === key && Number(event?.coins || 0) > 0 && ["daily-checkin", "daily-checkin-v306-upgrade", "daily-checkin-coin-repair"].includes(event?.source));
     const needsStory = Number(existingReward.storyEnergyVersion || 0) < 2 && Number(existingReward.storyEnergy || 0) <= 0;
-    const needsCoins = Number(existingReward.coinVersion || 0) < 1;
+    const needsCoins = Number(existingReward.coinVersion || 0) < 1 || (!coinAlreadyPaid && Number(existingReward.coins || 0) <= 0);
     if (!needsStory && !needsCoins) return false;
 
     const streak = Number(existingReward.streak || checkInStreakOnCompletion(planner, key));
     const requestedStoryEnergy = needsStory ? checkInStoryEnergyForStreak(streak) : 0;
-    const requestedCoins = needsCoins ? checkInCoinsForStreak(streak) : 0;
+    const requestedCoins = needsCoins ? Math.max(0, checkInCoinsForStreak(streak) - Number(existingReward.coins || 0)) : 0;
     const reward = app.awardActivity?.({
-      source: "daily-checkin-v306-upgrade",
+      source: needsCoins && !needsStory ? "daily-checkin-coin-repair" : "daily-checkin-v306-upgrade",
       sourceId: key,
       label: "Daily check-in reward upgrade",
       xp: 0,

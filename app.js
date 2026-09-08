@@ -765,6 +765,7 @@
     state.characterXP += reward.xp;
     state.coins += reward.coins;
     state.storyEnergy = floor2(Number(state.storyEnergy || 0) + reward.storyEnergy);
+    refreshRewardResourceNumbers();
     if (realm) state.realms[realm] = Math.max(0, Number(state.realms[realm] || 0)) + reward.realmXP;
     if (capability) state.stats[capability] = Math.max(0, Number(state.stats[capability] || 0)) + reward.statXP;
 
@@ -818,7 +819,25 @@
       state.stats[event.capability] = Math.max(0, Number(state.stats[event.capability] || 0) - Math.max(0, Number(event.statXP || 0)));
     }
     state.rewardLedger.events.splice(index, 1);
+    refreshRewardResourceNumbers();
     return true;
+  }
+
+  function refreshRewardResourceNumbers() {
+    try {
+      const coins = Math.max(0, Number(state.coins || 0));
+      const storyEnergy = floor2(Math.max(0, Number(state.storyEnergy || 0)));
+      const coinsValue = document.getElementById("coinsValue");
+      const coinsMoneyValue = document.getElementById("coinsMoneyValue");
+      const storyEnergyValue = document.getElementById("storyEnergyValue");
+      const storyEnergyValueLarge = document.getElementById("storyEnergyValueLarge");
+      if (coinsValue) coinsValue.textContent = String(coins);
+      if (coinsMoneyValue) coinsMoneyValue.textContent = formatCoinValue(coins);
+      if (storyEnergyValue) storyEnergyValue.textContent = formatEnergy(storyEnergy);
+      if (storyEnergyValueLarge) storyEnergyValueLarge.textContent = formatEnergy(storyEnergy);
+    } catch {
+      // Reward state remains canonical even if a surface is not mounted yet.
+    }
   }
 
   function previewActivityReward(spec = {}) {
@@ -2015,7 +2034,7 @@
     saveState();
     renderAll();
     if (options.showOverlay === false) {
-      showToast(`${quest.name} · ${formatEnergy(reward.storyEnergy)} 🔥 · ${reward.xp} XP logged.`);
+      showToast(`${quest.name} · +${formatEnergy(reward.storyEnergy)} 🔥 · +${reward.xp} XP · +${reward.coins} 🪙 logged.`);
     } else {
       showQuestClear(quest, reward);
     }
@@ -2037,7 +2056,7 @@
 
   function showExternalTaskChainStatus({ label, reward }) {
     if (!els.externalTaskChainStatus || !reward) return;
-    els.externalTaskChainStatus.textContent = `✓ ${label} saved · +${formatEnergy(reward.storyEnergy)} 🔥 · +${reward.xp} XP. Ready for another.`;
+    els.externalTaskChainStatus.textContent = `✓ ${label} saved · +${formatEnergy(reward.storyEnergy)} 🔥 · +${reward.xp} XP · +${reward.coins} 🪙. Ready for another.`;
     els.externalTaskChainStatus.classList.remove("hidden");
   }
 

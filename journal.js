@@ -170,9 +170,11 @@
 
   function init() {
     const changed = ensureState();
+    const todayEntry = app.getState().journal?.entries?.[todayKey()] || null;
+    const repairedCoins = todayEntry ? maybeAwardReflectionCoins(todayKey(), todayEntry) : 0;
     bindEvents();
     initialized = true;
-    if (changed) app.saveState({ source: "journal-v0302-init" });
+    if (changed || repairedCoins) app.saveState({ source: repairedCoins ? "journal-v0309-coin-repair" : "journal-v0302-init" });
     render();
   }
 

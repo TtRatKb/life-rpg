@@ -76,9 +76,58 @@
   function init() {
     bindEvents();
     const changed = ensureHabitsState();
+    const coinRepaired = repairRecentHabitCoinRewards();
     initialized = true;
-    if (changed) persist("habits-init", { render: false });
+    if (changed || coinRepaired) persist(coinRepaired ? "habits-v0309-coin-repair" : "habits-init", { render: false });
     render();
+  }
+
+
+  function repairRecentHabitCoinRewards() {
+    const root = app.getState();
+    const store = root.habits;
+    if (!store || !Array.isArray(store.items) || !Array.isArray(store.completions)) return false;
+    const recentDates = new Set([todayKey(), dateKeyWithOffset(-1)]);
+    const events = root.rewardLedger?.events || [];
+    let changed = false;
+
+    store.completions.forEach(log => {
+      if (!log || !recentDates.has(log.date) || Number(log.coins || 0) > 0) return;
+      const original = events.find(event => event?.id === log.rewardEventId);
+      if (Number(original?.coins || 0) > 0) {
+        log.coins = Number(original.coins);
+        changed = true;
+        return;
+      }
+      const repairSourceId = `${log.habitId}:${log.date}`;
+      const priorRepair = events.find(event => event?.source === "habit-coin-repair" && event.sourceId === repairSourceId);
+      if (Number(priorRepair?.coins || 0) > 0) {
+        log.coins = Number(priorRepair.coins);
+        log.coinRepairEventId = priorRepair.id || null;
+        changed = true;
+        return;
+      }
+      const habit = store.items.find(item => item?.id === log.habitId);
+      if (!habit) return;
+      const streak = Math.max(1, Number(log.rewardStreakAfter || log.streakAfter || 1));
+      const coins = habitCoinReward(habit, streak);
+      const reward = app.awardActivity?.({
+        source: "habit-coin-repair",
+        sourceId: repairSourceId,
+        label: `${habit.name} · coin repair`,
+        coins,
+        xp: 0, realmXP: 0, statXP: 0, storyEnergyBase: 0,
+        progressionRelevant: false,
+        at: rewardDateForDateKey(log.date).toISOString(),
+        metadata: { habitId: habit.id, completedForDate: log.date, repair: true }
+      });
+      if (Number(reward?.coins || 0) > 0) {
+        log.coins = Number(reward.coins);
+        log.coinRepairEventId = reward.eventId || null;
+        changed = true;
+      }
+    });
+    return changed;
   }
 
   function bindEvents() {

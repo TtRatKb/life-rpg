@@ -679,7 +679,7 @@
     const rows = state().entries.slice().sort((a, b) => new Date(b.startAt || 0) - new Date(a.startAt || 0)).slice(0, 20);
     els.recent.innerHTML = rows.length ? rows.map(entry => {
       const category = CATEGORIES[entry.categoryId] || CATEGORIES.other;
-      const reward = entry.reward ? ` · +${entry.reward.storyEnergy || 0} 🔥 · +${entry.reward.xp || 0} XP` : "";
+      const reward = entry.reward ? ` · +${entry.reward.storyEnergy || 0} 🔥 · +${entry.reward.xp || 0} XP · +${entry.reward.coins || 0} 🪙` : "";
       return `<article class="rhythm-log-row-v304"><div class="rhythm-log-icon-v304">${category.icon}</div><div><strong>${esc(entry.label || category.label)}</strong><p>${formatEntryDate(entry)} · ${esc(category.label)}${entry.subcategory ? ` · ${esc(entry.subcategory)}` : ""}${reward}</p></div><b>${formatDuration(entry.minutes)}</b><div class="rhythm-log-actions-v304"><button class="mini-nav-button" data-time-edit="${escAttr(entry.id)}" type="button">Edit</button><button class="mini-nav-button danger" data-time-delete="${escAttr(entry.id)}" type="button">Delete</button></div></article>`;
     }).join("") : `<p class="empty-state-copy">Nothing logged yet. Your first school block, focus session or off-duty activity will appear here.</p>`;
   }

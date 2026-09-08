@@ -278,6 +278,7 @@
       traits: {},
       social: {},
       progressionSnapshots: {},
+      momentumGates: {},
       activeSceneId: null,
       readerStep: 0,
       ...previous
@@ -290,6 +291,7 @@
     state.story.relationships = object(state.story.relationships);
     state.story.traits = object(state.story.traits);
     state.story.progressionSnapshots = object(state.story.progressionSnapshots);
+    state.story.momentumGates = object(state.story.momentumGates);
     ensureSocialState();
   }
 
@@ -632,6 +634,191 @@
     return true;
   }
 
+  /* V0.30.9 · Story Momentum
+     Main-story costs now follow a gentle non-decreasing ladder, and a small
+     number of chapters can ask for one spoiler-safe real-life nudge. Gates are
+     OR-based and snapshot the player's current level when they become the next
+     chapter, so "next level" always means one step beyond where they are now. */
+  function effectiveSceneCost(scene) {
+    const order = Math.max(1, Number(scene?.order || 1));
+    if (order <= 1) return 0;
+
+    const costFor = candidate => {
+      const candidateOrder = Math.max(1, Number(candidate?.order || 1));
+      if (candidateOrder <= 1) return 0;
+      const authored = Math.max(0, Number(candidate?.cost || 0));
+      const ladder = 5 + Math.floor(candidateOrder * 0.75);
+      return Math.min(20, Math.max(authored, ladder));
+    };
+
+    // Authored scene costs are allowed to set a higher floor, but a later
+    // chapter must never become cheaper again. Looking back across installed
+    // chapters makes the curve genuinely non-decreasing even when an older
+    // story pack contains a temporary authored spike.
+    const ordered = pack ? engine.orderedScenes(pack) : [];
+    const priorAndCurrent = ordered.filter(candidate => Number(candidate?.order || 0) <= order);
+    return Math.min(20, Math.max(costFor(scene), ...priorAndCurrent.map(costFor)));
+  }
+
+  function momentumGateDefinition(scene) {
+    const order = Number(scene?.order || 0);
+
+    // Keep gates sparse. These are deliberately described without revealing
+    // what happens in the upcoming chapter. Future story packs can add more
+    // context-specific gates through the same primitives.
+    if (order === 10) {
+      return {
+        key: "home-momentum-v1",
+        title: "Bring one small bit of Home momentum with you.",
+        copy: "Any one option is enough. Pick the one that fits the day you actually have.",
+        options: [
+          { type: "realmAdvance", realm: "Home", label: "Reach your next Home rank" },
+          { type: "realmActivity", realms: ["Home"], label: "Complete one Home action" },
+          { type: "time", categories: ["life_admin"], minutes: 10, label: "Spend 10 minutes on a home / life-admin reset" }
+        ]
+      };
+    }
+
+    if (order === 14) {
+      return {
+        key: "off-duty-momentum-v1",
+        title: "Give yourself one small off-duty signal first.",
+        copy: "This is not a gym gate. Rest, gentle movement, reading, gaming, a hobby or another recovery action can all count.",
+        options: [
+          { type: "capabilityAdvance", capability: "wellbeing", label: "Reach your next Wellbeing level" },
+          { type: "realmActivity", realms: ["Recovery", "Health"], label: "Complete one Recovery or gentle Health action" },
+          { type: "time", categories: ["recovery", "hobby", "gaming", "reading"], minutes: 15, label: "Log 15 minutes of recovery or off-duty hobby time" },
+          { type: "adventure", realms: ["Hobbies"], label: "Move one active hobby / craft Adventure forward" }
+        ]
+      };
+    }
+
+    return null;
+  }
+
+  function getMomentumGateState(scene, { create = false } = {}) {
+    const definition = momentumGateDefinition(scene);
+    if (!definition) return null;
+    const state = app.getState();
+    ensureStoryState();
+    const current = state.story.momentumGates?.[scene.id];
+    if (current && current.key === definition.key && current.activatedAt) return current;
+    if (!create) return null;
+
+    const snapshot = typeof app.getProgressionSnapshot === "function" ? app.getProgressionSnapshot() : null;
+    const gateState = {
+      key: definition.key,
+      activatedAt: new Date().toISOString(),
+      baselineCapabilities: { ...(snapshot?.capabilities || {}) },
+      baselineRealmRanks: { ...(snapshot?.realmRanks || {}) }
+    };
+    state.story.momentumGates[scene.id] = gateState;
+    app.saveState?.({ source: "story-momentum-gate-arm" });
+    return gateState;
+  }
+
+  function rewardEventsSince(activatedAt) {
+    const state = app.getState();
+    const since = new Date(activatedAt || 0).getTime();
+    return Array.isArray(state.rewardLedger?.events)
+      ? state.rewardLedger.events.filter(event => {
+          if (!event || event.duplicate || event.progressionRelevant === false) return false;
+          const at = new Date(event.at || 0).getTime();
+          return Number.isFinite(at) && at >= since;
+        })
+      : [];
+  }
+
+  function timeMinutesSince(activatedAt, categories = []) {
+    const api = window.LifeRPGTime;
+    if (!api?.getEntries) return 0;
+    const since = new Date(activatedAt || 0).getTime();
+    const allowed = new Set(categories || []);
+    return api.getEntries().reduce((sum, entry) => {
+      if (!entry || (allowed.size && !allowed.has(entry.categoryId))) return sum;
+      const start = new Date(entry.startAt || entry.endAt || 0).getTime();
+      const end = new Date(entry.endAt || entry.startAt || 0).getTime();
+      if (!Number.isFinite(end) || end < since) return sum;
+      if (!Number.isFinite(start)) return sum + Math.max(0, Number(entry.minutes || 0));
+      const overlapStart = Math.max(start, since);
+      const overlapMinutes = Math.max(0, Math.min(Number(entry.minutes || 0), (end - overlapStart) / 60000));
+      return sum + overlapMinutes;
+    }, 0);
+  }
+
+  function adventureProgressSince(activatedAt, realms = []) {
+    const api = window.LifeRPGAdventures;
+    if (!api?.getLogs || !api?.getItem) return false;
+    const since = new Date(activatedAt || 0).getTime();
+    const allowed = new Set(realms || []);
+    return api.getLogs().some(log => {
+      const at = new Date(log?.at || 0).getTime();
+      if (!Number.isFinite(at) || at < since) return false;
+      const item = api.getItem(log.adventureId);
+      return item && (!allowed.size || allowed.has(item.realm));
+    });
+  }
+
+  function momentumOptionStatus(option, gateState) {
+    if (!option || !gateState) return { met: false, detail: "" };
+
+    if (option.type === "realmAdvance") {
+      const baseline = Number(gateState.baselineRealmRanks?.[option.realm] || app.getRealmRankInfo?.(option.realm)?.level || 1);
+      const current = Number(app.getRealmRankInfo?.(option.realm)?.level || 1);
+      return { met: current > baseline, detail: `Rank ${current} · target ${baseline + 1}` };
+    }
+
+    if (option.type === "capabilityAdvance") {
+      const baseline = Number(gateState.baselineCapabilities?.[option.capability] || app.getCapabilityInfo?.(option.capability)?.level || 1);
+      const current = Number(app.getCapabilityInfo?.(option.capability)?.level || 1);
+      return { met: current > baseline, detail: `Level ${current} · target ${baseline + 1}` };
+    }
+
+    if (option.type === "realmActivity") {
+      const allowed = new Set(option.realms || []);
+      const count = rewardEventsSince(gateState.activatedAt).filter(event => allowed.has(event.realm)).length;
+      return { met: count > 0, detail: count ? `${count} logged` : "0 logged since this appeared" };
+    }
+
+    if (option.type === "time") {
+      const minutes = timeMinutesSince(gateState.activatedAt, option.categories || []);
+      const target = Math.max(1, Number(option.minutes || 15));
+      return { met: minutes + 0.01 >= target, detail: `${Math.min(target, Math.floor(minutes))} / ${target} min` };
+    }
+
+    if (option.type === "adventure") {
+      const met = adventureProgressSince(gateState.activatedAt, option.realms || []);
+      return { met, detail: met ? "Progress logged" : "No new project step yet" };
+    }
+
+    return { met: false, detail: "" };
+  }
+
+  function momentumGateInfo(scene, { create = false } = {}) {
+    const definition = momentumGateDefinition(scene);
+    if (!definition) return { required: false, met: true, definition: null, state: null, options: [] };
+    const gateState = getMomentumGateState(scene, { create });
+    if (!gateState) return { required: true, met: false, definition, state: null, options: [] };
+    const options = definition.options.map(option => ({ ...option, ...momentumOptionStatus(option, gateState) }));
+    return { required: true, met: options.some(option => option.met), definition, state: gateState, options };
+  }
+
+  function momentumGateMarkup(info) {
+    if (!info?.required || !info.definition) return "";
+    const options = info.options.map(option => `
+      <li class="story-momentum-option-v309 ${option.met ? "done" : ""}">
+        <span>${option.met ? "✓" : "○"}</span>
+        <div><strong>${escapeHtml(option.label)}</strong>${option.detail ? `<small>${escapeHtml(option.detail)}</small>` : ""}</div>
+      </li>`).join("");
+    return `
+      <section class="story-momentum-gate-v309 ${info.met ? "ready" : ""}">
+        <div class="story-momentum-kicker-v309">${info.met ? "MOMENTUM READY" : "ONE SMALL REAL-LIFE NUDGE"}</div>
+        <strong>${escapeHtml(info.definition.title)}</strong>
+        <p>${escapeHtml(info.definition.copy)}</p>
+        <ul>${options}</ul>
+      </section>`;
+  }
+
   function getSceneProgressionSnapshot(sceneId, { create = false } = {}) {
     const state = app.getState();
     ensureStoryState();
@@ -687,9 +874,11 @@
     const unlocked = story.unlockedSceneIds.includes(scene.id);
     const active = story.activeSceneId === scene.id;
     const step = Number(story.readerStep || 0);
-    const cost = Number(scene.cost || 0);
+    const cost = effectiveSceneCost(scene);
     const enoughEnergy = state.storyEnergy >= cost;
-    const readyForScene = sceneRequirementsMet(scene);
+    const baseReadyForScene = sceneRequirementsMet(scene);
+    const momentum = unlocked ? { required: false, met: true } : momentumGateInfo(scene, { create: true });
+    const readyForScene = baseReadyForScene && momentum.met;
 
     if (unlocked) {
       els.nextTitle.textContent = scene.title;
@@ -713,11 +902,22 @@
       ? "Start at the beginning of my ordinary life, before anything changes."
       : "The next chapter stays spoiler-free until you unlock it.";
 
-    if (!readyForScene) {
+    if (!baseReadyForScene) {
       els.energyNeed.innerHTML = `<span class="story-energy-pill locked">Real-life readiness not met yet</span>`;
       els.actionButton.disabled = true;
       els.actionButton.textContent = "Not quite ready yet";
-      els.actionHint.textContent = "Some future chapters can react to real-life growth. Readiness checks stay spoiler-safe and should always have a reasonable path forward.";
+      els.actionHint.textContent = "Readiness checks stay spoiler-safe and should always have a reasonable path forward.";
+      return;
+    }
+
+    if (momentum.required && !momentum.met) {
+      const energyPill = cost === 0
+        ? `<span class="story-energy-pill ready">No Story Energy required</span>`
+        : `<span class="story-energy-pill ${enoughEnergy ? "ready" : "locked"}">${app.formatEnergy?.(state.storyEnergy) ?? state.storyEnergy} 🔥 / ${cost} 🔥</span>`;
+      els.energyNeed.innerHTML = `${energyPill}${momentumGateMarkup(momentum)}`;
+      els.actionButton.disabled = true;
+      els.actionButton.textContent = "Choose one small momentum option";
+      els.actionHint.textContent = "Any one option unlocks the readiness gate. It is meant to nudge, not force a particular habit, hobby or workout.";
       return;
     }
 
@@ -730,13 +930,13 @@
     }
 
     if (enoughEnergy) {
-      els.energyNeed.innerHTML = `<span class="story-energy-pill ready">${app.formatEnergy?.(state.storyEnergy) ?? state.storyEnergy} 🔥 available</span><span class="story-energy-pill">${cost} 🔥 to unlock chapter</span>`;
+      els.energyNeed.innerHTML = `<span class="story-energy-pill ready">${app.formatEnergy?.(state.storyEnergy) ?? state.storyEnergy} 🔥 available</span><span class="story-energy-pill">${cost} 🔥 to unlock chapter</span>${momentum.required ? momentumGateMarkup(momentum) : ""}`;
       els.actionButton.disabled = false;
       els.actionButton.textContent = `Unlock next chapter · ${cost} 🔥`;
       els.actionHint.textContent = "Unlocking pays for the complete chapter. Reading, Previous and choices are free after that.";
     } else {
       const missing = Math.max(0, cost - Number(state.storyEnergy || 0));
-      els.energyNeed.innerHTML = `<span class="story-energy-pill">${app.formatEnergy?.(state.storyEnergy) ?? state.storyEnergy} 🔥 available</span><span class="story-energy-pill locked">Need ${app.formatEnergy?.(missing) ?? missing} more</span>`;
+      els.energyNeed.innerHTML = `<span class="story-energy-pill">${app.formatEnergy?.(state.storyEnergy) ?? state.storyEnergy} 🔥 available</span><span class="story-energy-pill locked">Need ${app.formatEnergy?.(missing) ?? missing} more</span>${momentum.required ? momentumGateMarkup(momentum) : ""}`;
       els.actionButton.disabled = true;
       els.actionButton.textContent = `Need ${app.formatEnergy?.(missing) ?? missing} more Story Energy`;
       els.actionHint.textContent = "Daily check-ins, habits, quests, reading, tracked game goals, Side Adventures and useful Life RPG upkeep can all help fund the next chapter.";
@@ -1849,8 +2049,9 @@
       }
 
       if (!state.story.unlockedSceneIds.includes(next.id)) {
-        const cost = Number(next.cost || 0);
-        if (!sceneRequirementsMet(next) || state.storyEnergy < cost) return;
+        const cost = effectiveSceneCost(next);
+        const momentum = momentumGateInfo(next, { create: true });
+        if (!sceneRequirementsMet(next) || !momentum.met || state.storyEnergy < cost) return;
 
         state.storyEnergy = Math.max(0, Math.floor((Number(state.storyEnergy || 0) - cost + 1e-9) * 100) / 100);
         state.story.unlockedSceneIds.push(next.id);

@@ -7765,21 +7765,22 @@ dialog:not(.story-phone-dialog)::backdrop { background: rgba(49,29,50,.44); }
   background: linear-gradient(145deg, rgba(246,208,226,.72), rgba(232,216,241,.68));
 }
 
+/* V0.30.9 — companion portraits use one predictable portrait crop instead of
+   per-character absolute offsets. This keeps Mina/Kirishima/Bakugo inside the
+   card while still framing faces closely enough to read at dashboard size. */
 .daily-companion-image-v14 {
-  position: absolute;
-  left: 50%;
-  bottom: -10px;
-  width: 118px;
-  max-width: none;
-  height: auto;
-  transform: translateX(-50%);
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 92px;
+  object-fit: cover;
+  object-position: 50% 16%;
   filter: drop-shadow(0 8px 10px rgba(54,31,52,.13));
 }
-
-.daily-companion-art-v14.mina .daily-companion-image-v14 {
-  bottom: -38px;
-  width: 150px;
-}
+.daily-companion-art-v14.luca .daily-companion-image-v14 { object-position: 50% 14%; }
+.daily-companion-art-v14.mina .daily-companion-image-v14 { object-position: 50% 12%; }
+.daily-companion-art-v14.kirishima .daily-companion-image-v14 { object-position: 50% 13%; }
+.daily-companion-art-v14.bakugo .daily-companion-image-v14 { object-position: 50% 12%; }
 
 .daily-companion-copy-v14 small,
 .daily-dialog-companion-v14 small {
@@ -7988,14 +7989,16 @@ dialog:not(.story-phone-dialog)::backdrop { background: rgba(49,29,50,.44); }
   background: rgba(255,255,255,.55);
 }
 .daily-dialog-image-v14 {
-  position: absolute;
-  left: 50%;
-  bottom: -10px;
-  width: 96px;
-  max-width: none;
-  transform: translateX(-50%);
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 16%;
 }
-.daily-dialog-avatar-v14.mina .daily-dialog-image-v14 { bottom: -28px; width: 126px; }
+.daily-dialog-avatar-v14.luca .daily-dialog-image-v14 { object-position: 50% 14%; }
+.daily-dialog-avatar-v14.mina .daily-dialog-image-v14 { object-position: 50% 12%; }
+.daily-dialog-avatar-v14.kirishima .daily-dialog-image-v14 { object-position: 50% 13%; }
+.daily-dialog-avatar-v14.bakugo .daily-dialog-image-v14 { object-position: 50% 12%; }
 
 .daily-question-v14 {
   margin: 0 0 15px;
@@ -8085,8 +8088,6 @@ dialog:not(.story-phone-dialog)::backdrop { background: rgba(49,29,50,.44); }
 @media (max-width: 620px) {
   .daily-briefing-head-v14 { flex-direction: column; }
   .daily-companion-v14 { grid-template-columns: 78px 1fr; gap: 11px; }
-  .daily-companion-image-v14 { width: 96px; }
-  .daily-companion-art-v14.mina .daily-companion-image-v14 { width: 126px; }
   .daily-summary-v14 { grid-template-columns: 1fr 1fr; }
   .daily-summary-chip-v14 { padding: 8px; }
   .daily-pick-actions-v14 { flex-direction: column; }
@@ -12036,12 +12037,6 @@ body.world-location-open { overflow: hidden; }
   background: rgba(255,255,255,.84);
   box-shadow: 0 5px 14px rgba(91,55,84,.06);
 }
-.daily-dialog-avatar-v14.kirishima .daily-dialog-image-v14,
-.daily-dialog-avatar-v14.bakugo .daily-dialog-image-v14 {
-  bottom: -86px;
-  width: 150px;
-}
-
 .journal-view-v302 {
   --journal-paper: #fffaf5;
   --journal-ink: #4f3048;
@@ -13653,4 +13648,77 @@ a.adventure-source-link-v308:hover{text-decoration:underline}
 .story-visual-stage[data-character-count="2"] .story-sprite-right img,
 .story-visual-stage[data-character-count="3"] .story-sprite-right img {
   transform: scaleX(-1);
+}
+
+/* ==========================================================================
+   V0.30.9 · Story Momentum Gates
+   ========================================================================== */
+.story-momentum-gate-v309 {
+  flex: 1 1 100%;
+  margin-top: 10px;
+  padding: 14px 15px;
+  border: 1px solid rgba(112, 67, 100, .16);
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(255,250,247,.94), rgba(249,232,239,.88));
+  color: var(--plum-deep, #402242);
+}
+.story-momentum-gate-v309.ready {
+  border-color: rgba(106, 139, 98, .28);
+  background: linear-gradient(135deg, rgba(248,253,246,.96), rgba(245,235,241,.9));
+}
+.story-momentum-kicker-v309 {
+  margin-bottom: 4px;
+  color: #a15378;
+  font-size: .66rem;
+  font-weight: 900;
+  letter-spacing: .12em;
+}
+.story-momentum-gate-v309 > strong {
+  display: block;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.02rem;
+}
+.story-momentum-gate-v309 > p {
+  margin: 4px 0 10px;
+  color: var(--muted);
+  font-size: .82rem;
+  line-height: 1.45;
+}
+.story-momentum-gate-v309 ul {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.story-momentum-option-v309 {
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  gap: 7px;
+  align-items: start;
+  padding: 7px 9px;
+  border-radius: 12px;
+  background: rgba(255,255,255,.62);
+}
+.story-momentum-option-v309 > span {
+  color: #a15378;
+  font-weight: 900;
+}
+.story-momentum-option-v309 strong,
+.story-momentum-option-v309 small {
+  display: block;
+}
+.story-momentum-option-v309 strong {
+  font-size: .82rem;
+}
+.story-momentum-option-v309 small {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: .7rem;
+}
+.story-momentum-option-v309.done {
+  background: rgba(228, 241, 224, .72);
+}
+.story-momentum-option-v309.done > span {
+  color: #627f5d;
 }

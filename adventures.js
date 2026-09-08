@@ -329,6 +329,23 @@
       ensureState();
       render();
     });
+
+    // The Adventures view can be entered long after startup. Re-render when it
+    // becomes visible (and after bfcache restores) so the board never depends on
+    // the timing of the initial app render.
+    window.addEventListener("pageshow", () => {
+      if (!initialized) return;
+      ensureState();
+      render();
+    });
+    document.addEventListener("click", event => {
+      const nav = event.target.closest?.('[data-view="adventures"], [data-view-target="adventures"]');
+      if (!nav || !initialized) return;
+      requestAnimationFrame(() => {
+        ensureState();
+        render();
+      });
+    });
   }
 
   function ensureState() {
@@ -342,6 +359,10 @@
     if (Number(model.schemaVersion || 0) < SCHEMA) { model.schemaVersion = SCHEMA; changed = true; }
     if (!Array.isArray(model.items)) { model.items = []; changed = true; }
     if (!Array.isArray(model.logs)) { model.logs = []; changed = true; }
+    const safeItems = model.items.filter(item => item && typeof item === "object" && !Array.isArray(item));
+    if (safeItems.length !== model.items.length) { model.items = safeItems; changed = true; }
+    const safeLogs = model.logs.filter(item => item && typeof item === "object" && !Array.isArray(item));
+    if (safeLogs.length !== model.logs.length) { model.logs = safeLogs; changed = true; }
     if (!model.curatedPacks || typeof model.curatedPacks !== "object" || Array.isArray(model.curatedPacks)) { model.curatedPacks = {}; changed = true; }
     if (!model.curatedPacks[CURATED_PACK_ID]) {
       importCuratedAdventurePack(model);
@@ -361,7 +382,10 @@
       item.progress = clamp(Number(item.progress || 0), 0, 100);
       if (!Number.isFinite(Number(item.progressIncrement))) { item.progressIncrement = 5; changed = true; }
       if (!Array.isArray(item.reasonTags)) { item.reasonTags = []; changed = true; }
+      item.reasonTags = item.reasonTags.filter(tag => typeof tag === "string");
       if (!Array.isArray(item.roadmap)) { item.roadmap = []; changed = true; }
+      const safeRoadmap = item.roadmap.filter(step => step && typeof step === "object" && !Array.isArray(step));
+      if (safeRoadmap.length !== item.roadmap.length) { item.roadmap = safeRoadmap; changed = true; }
       item.roadmap.forEach((step, index) => {
         if (!step.id) { step.id = `${item.curatedId || item.id}-step-${index + 1}`; changed = true; }
         if (!step.label) { step.label = `Project step ${index + 1}`; changed = true; }
@@ -556,7 +580,7 @@
   }
 
   function renderSummary() {
-    const items = model().items;
+    const items = Array.isArray(model().items) ? model().items.filter(item => item && typeof item === "object") : [];
     const active = items.filter(item => item.status === "active");
     const stale = active.filter(item => daysSince(item.lastTouchedAt || item.createdAt) >= 14);
     const almost = active.filter(item => item.progressMode === "percent" && Number(item.progress || 0) >= 75);
@@ -567,18 +591,61 @@
 
   function renderBoard() {
     if (!els.board || !els.empty) return;
-    const query = String(els.search?.value || "").trim().toLowerCase();
-    const status = els.status?.value || "active";
-    let items = [...model().items];
-    items = items.filter(item => status === "all" ? true : item.status === status);
-    if (selectedKind !== "all") items = items.filter(item => item.kind === selectedKind);
-    if (query) {
-      items = items.filter(item => [item.name, item.nextAction, item.note, item.realm, KINDS[item.kind]?.label, ...(item.roadmap || []).flatMap(step => [step.label, step.details, step.milestone])].join(" ").toLowerCase().includes(query));
-    }
-    items.sort(sortAdventures);
 
-    els.empty.classList.toggle("hidden", items.length > 0);
-    els.board.innerHTML = items.map(adventureCardMarkup).join("");
+    try {
+      const query = String(els.search?.value || "").trim().toLowerCase();
+      const status = els.status?.value || "active";
+      let items = Array.isArray(model().items)
+        ? model().items.filter(item => item && typeof item === "object")
+        : [];
+
+      items = items.filter(item => status === "all" ? true : item.status === status);
+      if (selectedKind !== "all") items = items.filter(item => item.kind === selectedKind);
+      if (query) {
+        items = items.filter(item => {
+          const roadmap = Array.isArray(item.roadmap) ? item.roadmap.filter(step => step && typeof step === "object") : [];
+          const haystack = [
+            item.name, item.nextAction, item.note, item.realm, KINDS[item.kind]?.label,
+            ...roadmap.flatMap(step => [step.label, step.details, step.milestone])
+          ].map(value => String(value || "")).join(" ").toLowerCase();
+          return haystack.includes(query);
+        });
+      }
+      items.sort(sortAdventures);
+
+      const cards = [];
+      for (const item of items) {
+        try {
+          cards.push(adventureCardMarkup(item));
+        } catch (error) {
+          console.error("Life RPG could not render one Side Adventure card", item?.id, error);
+          cards.push(`<article class="adventure-card-v15"><div class="empty-state compact"><strong>${esc(item?.name || "Side Adventure")}</strong><br>This project needs a small data repair. Its saved progress is still preserved.</div></article>`);
+        }
+      }
+
+      els.board.innerHTML = cards.join("");
+      const hasCards = cards.length > 0;
+      els.empty.classList.toggle("hidden", hasCards);
+      if (!hasCards) {
+        const anySaved = Array.isArray(model().items) && model().items.length > 0;
+        const heading = els.empty.querySelector("h3");
+        const copy = els.empty.querySelector("p");
+        const button = els.empty.querySelector("button");
+        if (heading) heading.textContent = anySaved ? "No projects match this view." : "No Side Adventures here yet.";
+        if (copy) copy.textContent = anySaved
+          ? "Try All status/kinds or clear the search. Your saved Side Adventures are still there."
+          : "Add something you genuinely want to return to. Side Adventures are for projects, crafts, collections and other open-ended things you want to keep moving.";
+        if (button) button.textContent = anySaved ? "Add another project" : "Create the first one";
+      }
+    } catch (error) {
+      console.error("Life RPG Side Adventure board render failed", error);
+      els.board.innerHTML = "";
+      els.empty.classList.remove("hidden");
+      const heading = els.empty.querySelector("h3");
+      const copy = els.empty.querySelector("p");
+      if (heading) heading.textContent = "Your projects are still saved.";
+      if (copy) copy.textContent = "The board hit a display error. Reloading this view will retry without deleting any project data.";
+    }
   }
 
   function sortAdventures(a, b) {
@@ -587,14 +654,14 @@
     if (statusDiff) return statusDiff;
     const staleDiff = daysSince(b.lastTouchedAt || b.createdAt) - daysSince(a.lastTouchedAt || a.createdAt);
     if (Math.abs(staleDiff) > 6) return staleDiff;
-    return Number(b.progress || 0) - Number(a.progress || 0) || a.name.localeCompare(b.name);
+    return Number(b.progress || 0) - Number(a.progress || 0) || String(a.name || "").localeCompare(String(b.name || ""));
   }
 
   function adventureCardMarkup(item) {
     const kind = KINDS[item.kind] || KINDS.other;
     const energy = ENERGY[item.energy] || ENERGY.medium;
     const last = lastTouchedLabel(item);
-    const reasons = item.reasonTags.map(tag => REASONS[tag]).filter(Boolean);
+    const reasons = (Array.isArray(item.reasonTags) ? item.reasonTags : []).map(tag => REASONS[tag]).filter(Boolean);
     const progress = item.progressMode === "percent" ? clamp(Number(item.progress || 0), 0, 100) : null;
     const doneToday = touchedToday(item.id);
     const action = item.nextAction || "Choose one small next step";
