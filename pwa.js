@@ -4,7 +4,7 @@
 
   if (!("serviceWorker" in navigator)) return;
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./service-worker.js?v=0.31.2", { scope: "./" })
+    navigator.serviceWorker.register("./service-worker.js?v=0.31.2a", { scope: "./" })
       .catch(error => console.warn("Life RPG service worker could not register", error));
   });
 })();

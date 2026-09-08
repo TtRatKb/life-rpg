@@ -13786,3 +13786,152 @@ a.adventure-source-link-v308:hover{text-decoration:underline}
 .game-steam-goals-v312{margin:14px 0;padding:14px;border:1px solid rgba(86,44,72,.14);border-radius:18px;background:linear-gradient(145deg,rgba(255,250,247,.96),rgba(248,236,241,.9))}.game-steam-appid-v312{font-size:.72rem;border-radius:999px;padding:5px 9px;background:rgba(56,35,67,.08)}.game-steam-actions-v312{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:10px 0}.game-steam-hidden-toggle-v312{display:inline-flex!important;align-items:center;gap:6px;font-size:.78rem;margin:0!important}.game-steam-achievement-list-v312{display:grid;gap:8px;max-height:330px;overflow:auto;margin:10px 0}.game-steam-achievement-v312{display:grid!important;grid-template-columns:auto 32px 1fr;gap:9px;align-items:start;padding:10px!important;border:1px solid rgba(86,44,72,.12);border-radius:13px;background:rgba(255,255,255,.62);cursor:pointer}.game-steam-achievement-v312.achieved{opacity:.72}.game-steam-achievement-v312.imported{opacity:.58}.game-steam-achievement-v312 input{margin-top:4px}.game-steam-achievement-mark-v312{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:rgba(93,50,79,.08)}.game-steam-achievement-v312 span:last-child{display:flex;flex-direction:column;gap:2px}.game-steam-achievement-v312 small{color:var(--muted,#765f6d);font-weight:400}.game-steam-achievement-v312 em{font-size:.7rem;color:rgba(70,46,62,.65);font-style:normal}.game-goal-row-v17>span{display:flex;flex-direction:column;gap:2px}.game-goal-source-v312{font-size:.66rem;text-transform:uppercase;letter-spacing:.05em;color:rgba(91,51,76,.66)}.game-goal-detail-v312{font-size:.72rem;color:var(--muted,#765f6d);font-weight:400}.game-log-tracking-hint-v312{margin-top:-4px}
 .settings-steam-panel-v312 label{display:grid;gap:6px;margin-top:10px}.settings-steam-actions-v312{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px}.settings-steam-actions-v312 #steamConnectionStatus{font-size:.78rem}
 @media(max-width:720px){.game-steam-achievement-v312{grid-template-columns:auto 28px 1fr}.game-tracking-grid-v312{grid-template-columns:1fr}.settings-steam-actions-v312{align-items:flex-start;flex-direction:column}}
+
+
+/* V0.31.2a — Compact Game Tiles & Steam Selection UX */
+.game-board-v17.collection-grid-mode-v291 {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+  gap: 14px;
+  align-items: start;
+}
+.game-board-v17.collection-grid-mode-v291 .game-card-v17 {
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.game-board-v17.collection-grid-mode-v291 .game-card-v17.has-cover-v305 {
+  display: flex;
+}
+.game-board-v17.collection-grid-mode-v291 .game-card-cover-v305 {
+  width: 100%;
+  height: 138px;
+  aspect-ratio: auto;
+  flex: 0 0 138px;
+}
+.game-board-v17.collection-grid-mode-v291 .game-card-body-v17 {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  padding: 13px 14px 14px;
+}
+.game-board-v17.collection-grid-mode-v291 .game-card-heading-v17 h3 {
+  margin-top: 6px;
+  font-size: .96rem;
+}
+.game-board-v17.collection-grid-mode-v291 .game-chip-row-v17 {
+  gap: 4px;
+}
+.game-board-v17.collection-grid-mode-v291 .game-status-chip-v17,
+.game-board-v17.collection-grid-mode-v291 .game-role-chip-v17,
+.game-board-v17.collection-grid-mode-v291 .game-platform-chip-v17,
+.game-board-v17.collection-grid-mode-v291 .game-type-chip-v305,
+.game-board-v17.collection-grid-mode-v291 .game-tracking-chip-v312,
+.game-board-v17.collection-grid-mode-v291 .game-steam-chip-v312 {
+  min-height: 21px;
+  padding: 3px 6px;
+  font-size: .56rem;
+}
+.game-board-v17.collection-grid-mode-v291 .game-meta-row-v17 {
+  gap: 5px 10px;
+  margin-top: 9px;
+  font-size: .61rem;
+}
+.game-board-v17.collection-grid-mode-v291 .game-goals-v17 {
+  margin-top: 10px;
+  padding: 10px;
+}
+.game-board-v17.collection-grid-mode-v291 .game-goal-row-v17 {
+  grid-template-columns: 22px minmax(0,1fr) 20px;
+  min-height: 29px;
+  font-size: .65rem;
+}
+.game-board-v17.collection-grid-mode-v291 .game-card-actions-v17 {
+  margin-top: auto;
+  padding-top: 10px;
+}
+.game-board-v17.collection-grid-mode-v291 .game-card-actions-v17 .primary-button,
+.game-board-v17.collection-grid-mode-v291 .game-card-actions-v17 .secondary-button {
+  min-height: 32px;
+  padding: 6px 9px;
+  font-size: .64rem;
+}
+
+.game-steam-achievement-v312 {
+  appearance: none;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  grid-template-columns: 28px 32px minmax(0, 1fr) !important;
+  transition: border-color .14s ease, background .14s ease, box-shadow .14s ease, transform .14s ease;
+}
+.game-steam-achievement-v312:not(:disabled):hover {
+  border-color: rgba(151,79,116,.34);
+  background: rgba(255,251,249,.94);
+  transform: translateY(-1px);
+}
+.game-steam-achievement-v312.selected {
+  border-color: rgba(172,76,124,.58);
+  background: linear-gradient(135deg, rgba(255,240,247,.98), rgba(248,229,239,.96));
+  box-shadow: 0 0 0 2px rgba(184,87,135,.09), 0 8px 18px rgba(96,48,75,.08);
+}
+.game-steam-achievement-v312:focus-visible {
+  outline: 3px solid rgba(178,80,130,.28);
+  outline-offset: 2px;
+}
+.game-steam-achievement-v312:disabled {
+  cursor: default;
+}
+.game-steam-achievement-checkbox-v312 {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  margin-top: 2px;
+  border: 1.5px solid rgba(101,61,88,.28);
+  border-radius: 7px;
+  background: #fff;
+  color: #fff;
+  font-size: .72rem;
+  font-weight: 900;
+}
+.game-steam-achievement-v312.selected .game-steam-achievement-checkbox-v312 {
+  border-color: #a9517d;
+  background: #a9517d;
+}
+.game-steam-achievement-v312.selected .game-steam-achievement-mark-v312 {
+  background: rgba(169,81,125,.14);
+  color: #7e365f;
+}
+.game-steam-achievement-copy-v312 {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.game-steam-actions-v312 .text-button:not(.hidden) {
+  border: 1px solid rgba(86,44,72,.13);
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: rgba(255,255,255,.55);
+}
+
+@media (max-width: 1080px) {
+  .game-board-v17.collection-grid-mode-v291 {
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 285px), 1fr));
+  }
+}
+@media (max-width: 720px) {
+  .game-board-v17.collection-grid-mode-v291 {
+    grid-template-columns: 1fr;
+  }
+  .game-board-v17.collection-grid-mode-v291 .game-card-cover-v305 {
+    height: 122px;
+    flex-basis: 122px;
+  }
+  .game-steam-achievement-v312 {
+    grid-template-columns: 26px 28px minmax(0, 1fr) !important;
+  }
+}

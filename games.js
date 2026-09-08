@@ -113,6 +113,7 @@
     steamAppIdBadge: byId("gameSteamAppIdBadge"),
     steamStatus: byId("gameSteamStatus"),
     steamLoad: byId("gameSteamLoad"),
+    steamSelectAll: byId("gameSteamSelectAll"),
     steamSelectRecommended: byId("gameSteamSelectRecommended"),
     steamClearSelection: byId("gameSteamClearSelection"),
     steamIncludeHidden: byId("gameSteamIncludeHidden"),
@@ -226,8 +227,32 @@
     });
     els.refreshSuggestions?.addEventListener("click", () => refreshGoalSuggestions({ preserveSelection: true, autoSelect: false }));
     els.steamLoad?.addEventListener("click", loadSteamAchievements);
-    els.steamSelectRecommended?.addEventListener("click", () => { pendingSteamAchievements.forEach(item => { if (!item.achieved && !item.hidden && item.group === "recommended") item.selected = true; }); renderSteamAchievements(); });
-    els.steamClearSelection?.addEventListener("click", () => { pendingSteamAchievements.forEach(item => item.selected = false); renderSteamAchievements(); });
+    els.steamSelectAll?.addEventListener("click", () => {
+      const includeHidden = Boolean(els.steamIncludeHidden?.checked);
+      pendingSteamAchievements.forEach(item => {
+        if (item.alreadyImported || (!includeHidden && item.hidden)) return;
+        item.selected = true;
+        item.queued = false;
+      });
+      renderSteamAchievements();
+    });
+    els.steamSelectRecommended?.addEventListener("click", () => {
+      const includeHidden = Boolean(els.steamIncludeHidden?.checked);
+      pendingSteamAchievements.forEach(item => {
+        if (item.alreadyImported || item.achieved || item.group !== "recommended" || (!includeHidden && item.hidden)) return;
+        item.selected = true;
+        item.queued = false;
+      });
+      renderSteamAchievements();
+    });
+    els.steamClearSelection?.addEventListener("click", () => {
+      pendingSteamAchievements.forEach(item => {
+        if (item.alreadyImported) return;
+        item.selected = false;
+        item.queued = false;
+      });
+      renderSteamAchievements();
+    });
     els.steamIncludeHidden?.addEventListener("change", renderSteamAchievements);
     els.steamAddSelected?.addEventListener("click", importSelectedSteamAchievements);
     els.steamWorkerUrl?.addEventListener("change", saveSteamSettings);
@@ -650,7 +675,12 @@
               <div><small>GAME GOALS</small><strong>${openGoals.length ? `${openGoals.length} still open` : game.goals.length ? "All current goals cleared" : "No goals needed"}${steamGoals.length ? ` · ${steamGoals.length} from Steam` : ""}</strong></div>
               <button class="text-button" data-game-add-goal="${escAttr(game.id)}" type="button">＋ Add goal</button>
             </div>
-            ${game.goals.length ? `<div class="game-goal-list-v17">${game.goals.slice(0, 6).map(goal => goalMarkup(game, goal)).join("")}${game.goals.length > 6 ? `<small class="game-more-goals-v17">+ ${game.goals.length - 6} more in Edit</small>` : ""}</div>` : `<p class="game-no-goals-v17">${game.steamAppId ? "Steam is detected. Open Edit → Steam Goals to import the game's real achievements." : game.catalogId ? "Life RPG knows what kind of game this is. Open Edit to add a few useful objectives when you want them." : "Optional. Add metadata or your own goals whenever something actually matters."}</p>`}
+            ${game.goals.length ? (() => {
+              const goalLimit = viewMode === "list" ? 6 : 3;
+              const shownGoals = game.goals.slice(0, goalLimit);
+              const remainingGoals = Math.max(0, game.goals.length - shownGoals.length);
+              return `<div class="game-goal-list-v17">${shownGoals.map(goal => goalMarkup(game, goal)).join("")}${remainingGoals ? `<small class="game-more-goals-v17">+ ${remainingGoals} more in Edit</small>` : ""}</div>`;
+            })() : `<p class="game-no-goals-v17">${game.steamAppId ? "Steam is detected. Open Edit → Steam Goals to import the game's real achievements." : game.catalogId ? "Life RPG knows what kind of game this is. Open Edit to add a few useful objectives when you want them." : "Optional. Add metadata or your own goals whenever something actually matters."}</p>`}
             ${doneGoals.length && openGoals.length ? `<small class="game-goal-cleared-v17">${doneGoals.length} goal${doneGoals.length === 1 ? "" : "s"} already cleared ✓</small>` : ""}
           </div>
 
@@ -1766,26 +1796,31 @@
   function renderSteamAchievements() {
     if (!els.steamAchievementList) return;
     const has = pendingSteamAchievements.length > 0;
+    els.steamSelectAll?.classList.toggle("hidden", !has);
     els.steamSelectRecommended?.classList.toggle("hidden", !has);
     els.steamClearSelection?.classList.toggle("hidden", !has);
     els.steamHiddenLabel?.classList.toggle("hidden", !has || !pendingSteamAchievements.some(item => item.hidden));
     const includeHidden = Boolean(els.steamIncludeHidden?.checked);
     const visible = pendingSteamAchievements.filter(item => includeHidden || !item.hidden);
-    els.steamAchievementList.innerHTML = visible.map((item, index) => {
+    els.steamAchievementList.innerHTML = visible.map(item => {
       const actualIndex = pendingSteamAchievements.indexOf(item);
+      const chosen = Boolean(item.selected || item.queued);
       const badge = item.alreadyImported ? "Imported" : item.achieved ? "Already unlocked" : item.group === "recommended" ? "Recommended" : item.group === "challenge" ? "Challenge / grind" : "Optional";
       const rarity = item.globalPercent == null ? "" : `${formatNumber(item.globalPercent)}% of players`;
       const description = item.hidden ? "Hidden Steam achievement" : (item.description || "No description supplied by Steam.");
-      return `<label class="game-steam-achievement-v312 ${item.achieved ? "achieved" : ""} ${item.alreadyImported ? "imported" : ""}">
-        <input type="checkbox" data-game-steam-achievement="${actualIndex}" ${item.selected || item.queued ? "checked" : ""} ${item.alreadyImported ? "disabled" : ""} />
+      return `<button type="button" class="game-steam-achievement-v312 ${chosen ? "selected" : ""} ${item.achieved ? "achieved" : ""} ${item.alreadyImported ? "imported" : ""}" data-game-steam-achievement="${actualIndex}" aria-pressed="${chosen ? "true" : "false"}" ${item.alreadyImported ? "disabled" : ""}>
+        <span class="game-steam-achievement-checkbox-v312" aria-hidden="true">${chosen ? "✓" : ""}</span>
         <span class="game-steam-achievement-mark-v312">${item.achieved ? "✓" : item.group === "recommended" ? "★" : item.group === "challenge" ? "◆" : "○"}</span>
-        <span><strong>${esc(item.name)}</strong><small>${esc(description)}</small><em>${esc([badge, rarity].filter(Boolean).join(" · "))}</em></span>
-      </label>`;
+        <span class="game-steam-achievement-copy-v312"><strong>${esc(item.name)}</strong><small>${esc(description)}</small><em>${esc([badge, rarity, chosen ? (item.queued ? "Queued" : "Selected") : ""].filter(Boolean).join(" · "))}</em></span>
+      </button>`;
     }).join("") || `<p class="muted">No achievements to show with the current filter.</p>`;
-    els.steamAchievementList.querySelectorAll("[data-game-steam-achievement]").forEach(input => input.addEventListener("change", () => {
-      const item = pendingSteamAchievements[Number(input.dataset.gameSteamAchievement)];
-      if (item) { item.selected = input.checked; item.queued = false; }
-      updateSteamAddButton();
+    els.steamAchievementList.querySelectorAll("[data-game-steam-achievement]").forEach(button => button.addEventListener("click", () => {
+      const item = pendingSteamAchievements[Number(button.dataset.gameSteamAchievement)];
+      if (!item || item.alreadyImported) return;
+      const wasChosen = Boolean(item.selected || item.queued);
+      item.selected = !wasChosen;
+      item.queued = false;
+      renderSteamAchievements();
     }));
     updateSteamAddButton();
   }
