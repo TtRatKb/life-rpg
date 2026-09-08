@@ -489,8 +489,11 @@
       if (gameLog) {
         window.LifeRPGGames?.openLog?.(
           gameLog.dataset.dailyGameLog,
-          Number(gameLog.dataset.dailyGameMinutes || 0),
-          { preserveBacklog: gameLog.dataset.dailyGameTrial === "true" }
+          0,
+          {
+            preserveBacklog: gameLog.dataset.dailyGameTrial === "true",
+            suggestedAmount: Number(gameLog.dataset.dailyGameAmount || 0)
+          }
         );
       }
     });
@@ -955,11 +958,12 @@
       const done = completion.done;
       if (!["playing", "endless", "backlog"].includes(game.status) && !done) return unavailablePickMarkup(pick, slot, "This game is no longer available for today. Reroll this card to replace it.");
       const role = gameRoleMeta(game.role);
-      const goal = pick.gameGoal || gameGoal(game, pick.slot, todayRecord()?.checkIn || {});
+      const goal = (pick.gameGoal?.amount ? pick.gameGoal : gameGoal(game, pick.slot, todayRecord()?.checkIn || {}));
       const openGoals = Array.isArray(game.goals) ? game.goals.filter(item => !item.done) : [];
+      const tracking = gameTrackingMeta(game);
       const progressLine = game.progressMode === "percent"
         ? `${clamp(Number(game.progress || 0), 0, 100)}% complete`
-        : `${formatDuration(game.totalMinutes || 0)} logged${openGoals.length ? ` · ${openGoals.length} goal${openGoals.length === 1 ? "" : "s"} open` : ""}`;
+        : `${Number(game.totalMinutes || 0) > 0 ? `${formatDuration(game.totalMinutes || 0)} real time · ` : ""}${openGoals.length ? `${openGoals.length} goal${openGoals.length === 1 ? "" : "s"} open` : `${tracking.label} tracking`}`;
       return `
         <article class="daily-pick-v14 ${slot.className} daily-game-pick-v17 ${done ? "done" : ""}">
           <div class="daily-pick-top-v14">
@@ -980,7 +984,7 @@
             <p class="daily-pick-reason-v14"><b>Why this today?</b> ${esc(pick.reason || reasonForGame(game, pick.slot, todayRecord()?.checkIn || {}))}</p>
           </div>
           <div class="daily-pick-actions-v14">
-            <button class="primary-button" data-daily-game-log="${escAttr(game.id)}" data-daily-game-minutes="${Number(goal.minutes || game.sessionMinutes || 45)}" data-daily-game-trial="${game.status === "backlog" ? "true" : "false"}" type="button">${done ? "Log more play" : game.status === "backlog" ? "Try for 30 min" : "Log this session"}</button>
+            <button class="primary-button" data-daily-game-log="${escAttr(game.id)}" data-daily-game-amount="${Number(goal.amount || 1)}" data-daily-game-trial="${game.status === "backlog" ? "true" : "false"}" type="button">${done ? "Log more play" : game.status === "backlog" ? gamePlayButtonLabel(game, Number(goal.amount || 1)).replace(/^▶ /, "▶ Try · ") : gamePlayButtonLabel(game, Number(goal.amount || 1))}</button>
             <button class="secondary-button" data-daily-reroll="${escAttr(pick.slot)}" type="button">↻ Not today</button>
           </div>
         </article>`;
@@ -1587,7 +1591,7 @@
       const backlog = item?.status === "backlog";
       const gameRole = item?.role || "fun";
       if (slot === "focus") return !backlog && ["japanese", "challenge"].includes(gameRole);
-      if (slot === "gentle") return backlog || ["fun", "social"].includes(gameRole) || Number(item?.sessionMinutes || 45) <= 30;
+      if (slot === "gentle") return backlog || ["fun", "social"].includes(gameRole) || gameEstimatedMinutes(item || {}, gameSessionAmount(item || {})) <= 30;
       return true;
     }
     return true;
@@ -1935,7 +1939,7 @@
     const role = game.role || "fun";
     const backlog = game.status === "backlog";
     const capacity = effectiveCapacity(checkIn);
-    const duration = backlog ? 30 : Number(game.sessionMinutes || 45);
+    const duration = gameEstimatedMinutes(game, gameSessionAmount(game));
     const timeBudget = TIME_BUDGET[checkIn.time] || 30;
     const days = daysSinceTimestamp(game.lastPlayedAt || game.createdAt);
     const openGoals = Array.isArray(game.goals) ? game.goals.filter(goal => !goal.done) : [];
@@ -1991,28 +1995,61 @@
     return score;
   }
 
+  function gameTrackingMeta(game) {
+    return window.LifeRPGGames?.trackingMeta?.(game) || { mode: "minutes", label: "Real-world minutes", singular: "minute", plural: "minutes" };
+  }
+
+  function gameSessionAmount(game) {
+    return Math.max(0.25, Number(window.LifeRPGGames?.configuredSessionAmount?.(game) || game?.sessionAmount || game?.sessionMinutes || 30));
+  }
+
+  function gameAmountLabel(game, amount) {
+    if (window.LifeRPGGames?.amountLabel) return window.LifeRPGGames.amountLabel(game, amount);
+    const meta = gameTrackingMeta(game);
+    return meta.mode === "minutes" ? formatDuration(amount) : `${formatNumber(amount)} ${Number(amount) === 1 ? meta.singular : meta.plural}`;
+  }
+
+  function gameEstimatedMinutes(game, amount) {
+    return Math.max(5, Number(window.LifeRPGGames?.estimateMinutesForAmount?.(game, amount) || game?.sessionMinutes || 30));
+  }
+
+  function gamePlayButtonLabel(game, amount) {
+    return window.LifeRPGGames?.playButtonLabel?.(game, amount) || `Log ${gameAmountLabel(game, amount)}`;
+  }
+
   function gameGoal(game, slot, checkIn) {
-    if (game.status === "backlog") {
-      return { minutes: 30, goalId: null, label: `Try ${game.title || "this game"} for 30 minutes. Then decide whether to keep it in rotation.` };
-    }
     const budget = TIME_BUDGET[checkIn.time] || 30;
     const capacity = effectiveCapacity(checkIn);
     const gentle = slot === "gentle" || checkIn.gentle || capacity < 1;
-    let minutes = Number(game.sessionMinutes || 45);
-    if (gentle) minutes = Math.min(minutes, 30);
-    else if (budget <= 15) minutes = Math.min(minutes, 15);
-    else if (budget <= 30) minutes = Math.min(minutes, 30);
-    else if (budget <= 45) minutes = Math.min(minutes, 45);
-    else if (budget <= 60) minutes = Math.min(minutes, 60);
-    minutes = Math.max(10, minutes);
+    const meta = gameTrackingMeta(game);
+    let amount = gameSessionAmount(game);
+    let estimate = gameEstimatedMinutes(game, amount);
+
+    if (meta.mode === "minutes") {
+      if (gentle) amount = Math.min(amount, 30);
+      else if (budget <= 15) amount = Math.min(amount, 15);
+      else if (budget <= 30) amount = Math.min(amount, 30);
+      else if (budget <= 45) amount = Math.min(amount, 45);
+      else if (budget <= 60) amount = Math.min(amount, 60);
+      amount = Math.max(10, amount);
+      estimate = amount;
+    } else if (estimate > budget && amount > 1) {
+      amount = Math.max(1, Math.floor(amount * Math.max(0.35, budget / estimate)));
+      estimate = gameEstimatedMinutes(game, amount);
+    }
 
     const goals = Array.isArray(game.goals) ? game.goals.filter(goal => !goal.done) : [];
-    let goal = goals.find(item => item.id === game.lastGoalId) || goals[0] || null;
-    const base = `Play ${game.title} for ${minutes} minutes`;
+    const goal = goals.find(item => item.id === game.lastGoalId) || goals[0] || null;
+    const base = meta.mode === "minutes"
+      ? `Play ${game.title} for ${gameAmountLabel(game, amount)}`
+      : `${game.title}: complete ${gameAmountLabel(game, amount)}`;
+    const trialSuffix = game.status === "backlog" ? " Then decide whether it belongs in your active rotation." : "";
     return {
-      minutes,
+      trackingMode: meta.mode,
+      amount,
+      minutesEstimate: estimate,
       goalId: goal?.id || null,
-      label: goal ? `${base} and work toward “${goal.text}”` : base
+      label: `${goal ? `${base} while working toward “${goal.text}”` : base}.${trialSuffix}`.replace(/\.\./g, ".")
     };
   }
 
@@ -2522,11 +2559,14 @@
     }
 
     if (type === "game") {
-      const goal = pick.gameGoal || gameGoal(findGame(pick.sourceId) || {}, pick.slot, todayRecord()?.checkIn || {});
-      const minutes = gameLogs(pick.sourceId)
+      const game = findGame(pick.sourceId) || {};
+      const goal = (pick.gameGoal?.amount ? pick.gameGoal : gameGoal(game, pick.slot, todayRecord()?.checkIn || {}));
+      const mode = goal.trackingMode || gameTrackingMeta(game).mode;
+      const amount = gameLogs(pick.sourceId)
         .filter(log => timeFromValue(log.at) >= start)
-        .reduce((sum, log) => sum + Math.max(0, Number(log.minutes || 0)), 0);
-      return { done: minutes >= Number(goal.minutes || 0), progress: minutes, progressText: `${formatDuration(minutes)} / ${formatDuration(goal.minutes || 0)}` };
+        .filter(log => (log.trackingMode || "minutes") === mode)
+        .reduce((sum, log) => sum + Math.max(0, Number(log.amount || (mode === "minutes" ? log.minutes : 0) || 0)), 0);
+      return { done: amount >= Number(goal.amount || 0), progress: amount, progressText: `${gameAmountLabel(game, amount)} / ${gameAmountLabel(game, goal.amount || 0)}` };
     }
 
     if (type === "adventure") {
@@ -2863,7 +2903,7 @@
 
   function sourceEstimatedMinutes(type, item) {
     if (type === "quest") return estimatedMinutes(item);
-    if (type === "game") return item?.status === "backlog" ? 30 : Math.max(10, Number(item?.sessionMinutes || 45));
+    if (type === "game") return gameEstimatedMinutes(item || {}, gameSessionAmount(item || {}));
     if (type === "adventure") return Math.max(10, Number(item?.sessionMinutes || 30));
     if (type === "book") return item?.source === "audio" ? 20 : 25;
     return 0;
@@ -2877,7 +2917,10 @@
       if (goal.type === "pages") return Math.max(5, Math.round(Number(goal.amount || 0) * 2));
       if (goal.type === "chapter") return 25;
     }
-    if (type === "game") return Math.max(10, Number((pick.gameGoal || {}).minutes || (item?.status === "backlog" ? 30 : (item?.sessionMinutes || 45))));
+    if (type === "game") {
+      const goal = (pick.gameGoal?.amount ? pick.gameGoal : gameGoal(item || {}, pick.slot, todayRecord()?.checkIn || {}));
+      return Math.max(5, Number(goal.minutesEstimate || gameEstimatedMinutes(item || {}, goal.amount || gameSessionAmount(item || {}))));
+    }
     if (type === "adventure") return Math.max(10, Number((pick.adventureGoal || {}).minutes || item?.sessionMinutes || 30));
     return Math.max(1, Math.round(estimatedMinutes(item || {})));
   }
@@ -2928,7 +2971,7 @@
     const progress = game.progressMode === "percent" ? clamp(Number(game.progress || 0), 0, 100) : null;
 
     if (game.status === "backlog") {
-      return `This is already in your Want to Play backlog, so the planner can surface one actual game instead of telling you to “try a backlog game.” A 30-minute trial is enough to decide whether it belongs in rotation.`;
+      return `This is already in your Want to Play backlog, so the planner can surface one actual game instead of telling you to “try a backlog game.” One small ${gameTrackingMeta(game).singular} is enough to test it without inventing a time requirement.`;
     }
 
     if (progress !== null && progress >= 70 && days >= 10) {
@@ -2943,7 +2986,9 @@
         : `This is already in your active rotation, so the planner can choose a specific game instead of making you browse your whole backlog.`;
     }
     if (slot === "gentle") {
-      return `A short session has a clear stopping point and asks for very little setup. You can stop when the timer is done and still count the pick as complete.`;
+      return gameTrackingMeta(game).mode === "minutes"
+        ? `A short timed session has a clear stopping point and asks for very little setup.`
+        : `This game has a small concrete unit — ${gameTrackingMeta(game).plural} — so you can finish a meaningful chunk without committing to an arbitrary timer.`;
     }
     if (game.role === "japanese") {
       return `You marked this game as Japanese / immersion, so a specific play session can count as a concrete language thread rather than another generic study option.`;

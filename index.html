@@ -14,7 +14,7 @@
   <link rel="manifest" href="manifest.webmanifest?v=0.30.3a" />
   <link rel="apple-touch-icon" href="assets/app-icon-180.png?v=0.30.3a" />
   <link rel="icon" type="image/png" sizes="192x192" href="assets/app-icon-192.png?v=0.30.3a" />
-  <link rel="stylesheet" href="styles.css?v=0.31.1" />
+  <link rel="stylesheet" href="styles.css?v=0.31.2" />
 </head>
 <body>
   <section id="mobileCloudGate" class="mobile-cloud-gate-v251" data-state="checking" aria-live="polite" aria-label="Life RPG cloud sign in">
@@ -1483,6 +1483,24 @@
               <p id="profileAgePreview" class="profile-age-preview-v306a">Set your real birth date once and Life RPG will update Luca's age automatically.</p>
             </section>
 
+            <section class="panel settings-steam-panel-v312">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">FREE INTEGRATION</p>
+                  <h2>Steam achievements</h2>
+                  <p class="panel-subcopy">A tiny free Worker keeps your Steam Web API key out of the public GitHub Pages code. Life RPG only stores the Worker URL and your SteamID.</p>
+                </div>
+                <span class="settings-panel-mark-v6">🎮</span>
+              </div>
+              <label>Steam Worker URL<input id="steamWorkerUrl" type="url" placeholder="https://life-rpg-steam.yourname.workers.dev" /></label>
+              <label>SteamID64<input id="steamId64" inputmode="numeric" maxlength="20" placeholder="7656119…" /></label>
+              <div class="settings-steam-actions-v312">
+                <button id="steamConnectionTest" class="secondary-button" type="button">Test Worker</button>
+                <span id="steamConnectionStatus" class="muted">Not configured yet.</span>
+              </div>
+              <p class="muted">The API key itself is never saved in Life RPG. It lives only as a secret in your Worker.</p>
+            </section>
+
             <section class="panel settings-content-panel-v6">
               <div class="panel-heading">
                 <div>
@@ -1786,17 +1804,41 @@ League of Legends — PC" required></textarea></label>
             <option value="challenge">✦ Goals / challenge</option>
           </select>
         </label>
-        <label>Typical session
-          <select id="gameSessionMinutes">
-            <option value="15">15 minutes</option>
-            <option value="30">30 minutes</option>
-            <option value="45" selected>45 minutes</option>
-            <option value="60">1 hour</option>
-            <option value="90">1.5 hours</option>
-            <option value="120">2 hours</option>
+        <label>How should a play session count?
+          <select id="gameTrackingMode">
+            <option value="auto">✦ Auto from game type</option>
+            <option value="minutes">◷ Real-world minutes</option>
+            <option value="days">☀ In-game days</option>
+            <option value="runs">↻ Runs</option>
+            <option value="matches">◎ Matches / rounds</option>
+            <option value="chapters">▤ Chapters / episodes</option>
+            <option value="objectives">✓ Objectives</option>
+            <option value="custom">◇ Custom unit</option>
           </select>
         </label>
       </div>
+
+      <div class="form-grid game-tracking-grid-v312">
+        <label id="gameSessionAmountWrap">Default Daily Pick
+          <input id="gameSessionAmount" type="number" min="0.25" max="50" step="0.25" value="1" />
+          <small id="gameSessionAmountHint" class="game-field-hint-v17">How much Life RPG normally suggests at once.</small>
+        </label>
+        <label id="gameCustomUnitWrap" class="hidden">Custom unit name
+          <input id="gameCustomUnit" maxlength="30" placeholder="missions, races, puzzles…" />
+        </label>
+        <label id="gameSessionMinutesWrap">Typical real-world time <span class="optional-label-v16">planner estimate only</span>
+          <select id="gameSessionMinutes">
+            <option value="10">~10 minutes</option>
+            <option value="15">~15 minutes</option>
+            <option value="30">~30 minutes</option>
+            <option value="45" selected>~45 minutes</option>
+            <option value="60">~1 hour</option>
+            <option value="90">~1.5 hours</option>
+            <option value="120">~2 hours</option>
+          </select>
+        </label>
+      </div>
+      <p id="gameTrackingHint" class="game-tracking-hint-v312 muted">Farming/life sims can count in in-game days; roguelikes in runs; multiplayer games in matches. The real-world time is only an estimate for the Daily Plan.</p>
 
       <div class="form-grid">
         <label>Progress tracking
@@ -1827,15 +1869,34 @@ League of Legends — PC" required></textarea></label>
             <option value="other">Other / unsure</option>
           </select>
         </label>
-        <div class="game-smart-meta-note-v305"><small>Used only to make suggestions useful. You can override the automatic guess any time.</small><div id="gameGenreChips" class="game-genre-chips-v305"></div></div>
+        <label>Steam App ID <span class="optional-label-v16">optional · auto-filled when found</span>
+          <input id="gameSteamAppId" inputmode="numeric" maxlength="12" placeholder="e.g. 413150" />
+        </label>
+        <div class="game-smart-meta-note-v305"><small>Game type helps with tracking suggestions. Steam App ID enables real achievement import; you can paste it manually if the public catalog misses it.</small><div id="gameGenreChips" class="game-genre-chips-v305"></div></div>
       </div>
+
+      <section id="gameSteamGoals" class="game-steam-goals-v312 hidden" aria-live="polite">
+        <div class="game-suggested-goals-heading-v305">
+          <div><small>STEAM GOALS</small><strong>Use the game's real achievements</strong></div>
+          <span id="gameSteamAppIdBadge" class="game-steam-appid-v312"></span>
+        </div>
+        <p id="gameSteamStatus" class="muted">Steam App ID detected. Connect the free Steam Worker in Settings, then load the game's achievements here.</p>
+        <div class="game-steam-actions-v312">
+          <button id="gameSteamLoad" class="secondary-button" type="button">↻ Load Steam achievements</button>
+          <button id="gameSteamSelectRecommended" class="text-button hidden" type="button">Select recommended</button>
+          <button id="gameSteamClearSelection" class="text-button hidden" type="button">Clear</button>
+          <label id="gameSteamHiddenLabel" class="game-steam-hidden-toggle-v312 hidden"><input id="gameSteamIncludeHidden" type="checkbox" /> Include hidden / secret achievements</label>
+        </div>
+        <div id="gameSteamAchievementList" class="game-steam-achievement-list-v312"></div>
+        <button id="gameSteamAddSelected" class="primary-button hidden" type="button">Add selected as Game Goals</button>
+      </section>
 
       <section id="gameSuggestedGoals" class="game-suggested-goals-v305 hidden" aria-live="polite">
         <div class="game-suggested-goals-heading-v305">
-          <div><small>SMART OBJECTIVES</small><strong>Suggested from the kind of game this is</strong></div>
+          <div><small>FALLBACK OBJECTIVES</small><strong>Generic suggestions when the game itself gives us nothing better</strong></div>
           <button id="gameRefreshSuggestions" class="text-button" type="button">↻ Refresh</button>
         </div>
-        <p class="muted">Pick only the goals you actually want. Life RPG is trying to give the game a few useful threads — not turn it into a 100% checklist.</p>
+        <p class="muted">These are optional fallbacks. For Steam games, importing real achievements above is usually more useful.</p>
         <div id="gameSuggestedGoalList" class="game-suggested-goal-list-v305"></div>
       </section>
 
@@ -1871,14 +1932,16 @@ League of Legends — PC" required></textarea></label>
         <select id="gameLogPicker" aria-label="Choose a game to log"></select>
       </label>
       <div id="gameLogChainStatus" class="chain-log-status-v273 hidden" aria-live="polite"></div>
-      <label>How long did you play?<input id="gameLogMinutes" type="number" min="1" step="1" value="45" required /></label>
-      <div class="game-log-nudges-v17">
+      <label id="gameLogAmountWrap">How much progress?<span id="gameLogUnitSuffix" class="optional-label-v16"></span><input id="gameLogAmount" type="number" min="0.25" step="0.25" value="1" required /></label>
+      <label id="gameLogMinutesWrap">Real-world play time <span id="gameLogMinutesOptional" class="optional-label-v16">optional</span><input id="gameLogMinutes" type="number" min="1" step="1" value="45" /></label>
+      <div id="gameLogNudges" class="game-log-nudges-v17">
         <button type="button" data-game-log-nudge="15">15m</button>
         <button type="button" data-game-log-nudge="30">30m</button>
         <button type="button" data-game-log-nudge="45">45m</button>
         <button type="button" data-game-log-nudge="60">1h</button>
         <button type="button" data-game-log-nudge="90">1.5h</button>
       </div>
+      <p id="gameLogTrackingHint" class="muted game-log-tracking-hint-v312"></p>
 
       <label id="gameLogGoalLabel">What were you working toward? <span class="optional-label-v16">optional</span>
         <select id="gameLogGoal"><option value="">No specific goal</option></select>
@@ -2637,18 +2700,18 @@ League of Legends — PC" required></textarea></label>
   <script src="adventures.js?v=0.31.1"></script>
   <script src="adventure-workspace.js?v=0.31.0"></script>
   <script src="library.js?v=0.30.6"></script>
-  <script src="games.js?v=0.30.6"></script>
+  <script src="games.js?v=0.31.2"></script>
   <script src="time.js?v=0.31.1"></script>
   <script src="universal-timers.js?v=0.31.1"></script>
   <script src="inspirations.js?v=0.31.0"></script>
   <script src="sudoku.js?v=0.31.0"></script>
   <script src="smart-quests.js?v=0.31.0"></script>
-  <script src="daily.js?v=0.31.0"></script>
+  <script src="daily.js?v=0.31.2"></script>
   <script src="journal.js?v=0.31.0"></script>
   <script src="story-ui.js?v=0.31.1"></script>
   <script src="shop.js?v=0.30.6"></script>
   <script src="achievements.js?v=0.31.0"></script>
   <script type="module" src="cloud-save.js?v=0.31.0"></script>
-  <script src="pwa.js?v=0.31.1"></script>
+  <script src="pwa.js?v=0.31.2"></script>
 </body>
 </html>
