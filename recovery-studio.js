@@ -4,7 +4,7 @@
   const app = window.LifeRPGApp;
   if (!app?.getState || !app?.awardActivity) return;
 
-  const VERSION = "0.31.4o";
+  const VERSION = "0.31.4s";
   const SCHEMA = 1;
   const HISTORY_LIMIT = 240;
   const REPEAT_SCALES = [1, 0.7, 0.45, 0.3];
@@ -26,6 +26,22 @@
         { key: "exhale", label: "Exhale", seconds: 6, cue: "Let the exhale be easy and unforced." }
       ],
       reward: { xp: 10, realmXP: 10, statXP: 7, story: 0.35, coins: 7 }
+    },
+    breathing10: {
+      id: "breathing10",
+      icon: "◯",
+      title: "10-Minute Breathing Reset",
+      short: "10 min · slow breathing",
+      minutes: 10,
+      subcategory: "Quiet time",
+      kind: "breathing",
+      intensity: "passive",
+      blurb: "Ten quiet minutes with the same gentle 4-second inhale / 6-second exhale rhythm. Follow the visual pace only while it feels comfortable; normal breathing is always fine.",
+      phases: [
+        { key: "inhale", label: "Inhale", seconds: 4, cue: "Breathe in gently." },
+        { key: "exhale", label: "Exhale", seconds: 6, cue: "Let the exhale be easy and unforced." }
+      ],
+      reward: { xp: 16, realmXP: 16, statXP: 11, story: 0.58, coins: 10 }
     },
     box5: {
       id: "box5",
@@ -226,19 +242,19 @@
 
   function startSession(sessionId) {
     const def = SESSIONS[sessionId];
-    if (!def) return;
+    if (!def) return false;
     const currentTime = window.LifeRPGTime?.getActive?.();
     if (state().active && currentTime?.id === state().active.timeActiveId) {
       enterFocus(state().active);
-      return;
+      return true;
     }
     if (currentTime) {
       app.showToast?.("Another timer is already running. Finish or cancel it before starting Recovery Studio.");
-      return;
+      return false;
     }
     if (!window.LifeRPGTime?.startAction) {
       app.showToast?.("The Life Rhythm timer is not ready yet. Reload Life RPG and try again.");
-      return;
+      return false;
     }
 
     window.LifeRPGTime.startAction({
@@ -248,7 +264,7 @@
       minutes: def.minutes
     });
     const timeActive = window.LifeRPGTime.getActive?.();
-    if (!timeActive) return;
+    if (!timeActive) return false;
 
     state().active = {
       runId: `recovery-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
@@ -263,6 +279,7 @@
     startTicker();
     renderActive();
     enterFocus(state().active);
+    return true;
   }
 
   function finishActiveSession() {

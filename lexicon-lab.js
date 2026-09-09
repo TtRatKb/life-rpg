@@ -576,4 +576,11 @@
   function escapeHtml(value) { return String(value ?? "").replace(/[&<>\"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[ch]); }
   function escapeAttr(value) { return escapeHtml(value); }
   function cssEscape(value) { return window.CSS?.escape ? CSS.escape(value) : String(value).replace(/([,:])/g, "\\$1"); }
+
+  window.LifeRPGLexiconLab = {
+    version: VERSION,
+    open: openDialog,
+    startNext: () => startLevel(nextLevel() || TOTAL, { replay: !nextLevel() }),
+    getProgress: () => ({ completed: completedSet().size, total: TOTAL, next: nextLevel() })
+  };
 })();

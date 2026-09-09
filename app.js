@@ -1486,6 +1486,12 @@
     bindQuestButtons(els.loadout);
   }
 
+  function nativeQuestActionMarkup(quest) {
+    const info = window.LifeRPGNativeActions?.actionInfoForQuest?.(quest);
+    if (!info) return "";
+    return `<button class="primary-button" data-native-quest-launch="${escapeHtml(quest.id)}" data-native-quest-origin="quest-board" type="button">${escapeHtml(info.label)}</button><span class="native-action-badge-v314s">${escapeHtml(info.badge || "IN-APP")}</span>`;
+  }
+
   function loadoutQuestHtml(quest) {
     const todayUnits = getTodayUnitsForQuest(quest.id);
     const target = questTarget(quest);
@@ -1522,8 +1528,8 @@
         </div>
 
         <div class="quest-actions ${isMinuteQuestForTimer(quest) ? "universal-timer-actions-v311" : ""}">
-          ${isMinuteQuestForTimer(quest) && availability.available ? questTimerActionsMarkup(quest, availability, todayUnits, { compact: true }) : `<button class="primary-button complete-quest-button" data-quest-id="${quest.id}" ${availability.available ? "" : "disabled"}>${availability.available ? "Log" : "Waiting"}</button>`}
-          ${isMinuteQuestForTimer(quest) && availability.available ? `<button class="text-button complete-quest-button" data-quest-id="${quest.id}">Log manually</button>` : ""}
+          ${availability.available && nativeQuestActionMarkup(quest) ? nativeQuestActionMarkup(quest) : (isMinuteQuestForTimer(quest) && availability.available ? questTimerActionsMarkup(quest, availability, todayUnits, { compact: true }) : `<button class="primary-button complete-quest-button" data-quest-id="${quest.id}" ${availability.available ? "" : "disabled"}>${availability.available ? "Log" : "Waiting"}</button>`)}
+          ${availability.available && nativeQuestActionMarkup(quest) ? `<button class="text-button complete-quest-button" data-quest-id="${quest.id}">Log manually</button>` : (isMinuteQuestForTimer(quest) && availability.available ? `<button class="text-button complete-quest-button" data-quest-id="${quest.id}">Log manually</button>` : "")}
           <button class="secondary-button remove-loadout-button" data-quest-id="${quest.id}">Remove</button>
         </div>
       </article>
@@ -1792,8 +1798,8 @@
                 data-quest-id="${quest.id}">
                 ${selected ? "✓ Today" : "+ Today"}
               </button>
-              ${isMinuteQuestForTimer(quest) && availability.available ? questTimerActionsMarkup(quest, availability, todayUnits, { compact: true }) : `<button class="primary-button complete-quest-button" data-quest-id="${quest.id}" ${availability.available ? "" : "disabled"}>${availability.available ? "Log" : "Waiting"}</button>`}
-              ${isMinuteQuestForTimer(quest) && availability.available ? `<button class="text-button complete-quest-button" data-quest-id="${quest.id}">Log manually</button>` : ""}
+              ${availability.available && nativeQuestActionMarkup(quest) ? nativeQuestActionMarkup(quest) : (isMinuteQuestForTimer(quest) && availability.available ? questTimerActionsMarkup(quest, availability, todayUnits, { compact: true }) : `<button class="primary-button complete-quest-button" data-quest-id="${quest.id}" ${availability.available ? "" : "disabled"}>${availability.available ? "Log" : "Waiting"}</button>`)}
+              ${availability.available && nativeQuestActionMarkup(quest) ? `<button class="text-button complete-quest-button" data-quest-id="${quest.id}">Log manually</button>` : (isMinuteQuestForTimer(quest) && availability.available ? `<button class="text-button complete-quest-button" data-quest-id="${quest.id}">Log manually</button>` : "")}
             </div>
           </footer>
         </article>
@@ -2025,7 +2031,7 @@
       return { pending: true, quest: { ...quest }, units: normalizedUnits };
     }
     const baseReward = calculateQuestReward(quest, normalizedUnits);
-    const shouldAward = !isBatchQuest(quest) || Number(baseReward.batchProgress?.earnedBatches || 0) > 0;
+    const shouldAward = !options.suppressReward && (!isBatchQuest(quest) || Number(baseReward.batchProgress?.earnedBatches || 0) > 0);
     const reward = shouldAward ? awardActivity({
       source: "quest",
       sourceId: quest.id,
@@ -2039,7 +2045,7 @@
       storyEnergyBase: questStoryEnergyBase(quest, normalizedUnits),
       dedupeFamily: dedupeFamilyForQuest(quest),
       metadata: { units: normalizedUnits, unitLabel: questUnitLabel(quest), batchCount: baseReward.batchProgress?.earnedBatches || 0 }
-    }) : { xp: 0, realmXP: 0, statXP: 0, storyEnergy: 0, rawStoryEnergy: 0, coins: 0, eventId: null, deduped: false };
+    }) : { xp: 0, realmXP: 0, statXP: 0, storyEnergy: 0, rawStoryEnergy: 0, coins: 0, eventId: null, deduped: false, suppressed: Boolean(options.suppressReward) };
     if (baseReward.batchProgress) reward.batchProgress = baseReward.batchProgress;
 
     state.completionLog.push({
@@ -2059,6 +2065,10 @@
       deduped: reward.deduped,
       batchCount: Number(reward.batchProgress?.earnedBatches || 0),
       batchRemainder: Number(reward.batchProgress?.remainder || 0),
+      nativeActionKey: options.nativeActionKey || null,
+      nativeRewardEventId: options.nativeRewardEventId || null,
+      nativeSource: options.nativeSource || null,
+      rewardSuppressed: Boolean(options.suppressReward),
       at: new Date().toISOString()
     });
 
@@ -2071,7 +2081,9 @@
     applyHiddenEngineChecks();
     saveState();
     renderAll();
-    if (options.showOverlay === false) {
+    if (options.silent) {
+      // Native/guided activities can satisfy the Quest without paying or showing a second reward toast.
+    } else if (options.showOverlay === false) {
       showToast(`${quest.name} · +${formatEnergy(reward.storyEnergy)} 🔥 · +${reward.xp} XP · +${reward.coins} 🪙 logged.`);
     } else {
       showQuestClear(quest, reward);

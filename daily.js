@@ -491,6 +491,12 @@
         return;
       }
 
+      const nativeAction = event.target.closest?.("[data-daily-native]");
+      if (nativeAction) {
+        window.LifeRPGNativeActions?.launchQuest?.(nativeAction.dataset.dailyNative, { origin: "daily", slot: nativeAction.dataset.dailyNativeSlot || "" });
+        return;
+      }
+
       const inspiration = event.target.closest?.("[data-daily-inspiration]");
       if (inspiration) {
         window.LifeRPGInspirations?.openForQuest?.(inspiration.dataset.dailyInspiration, inspiration.dataset.dailyInspirationRole || "");
@@ -1098,6 +1104,7 @@
     const done = completion.done;
     const unitLabel = friendlyUnitLabel(quest.unitLabel, goal);
     const smartContext = window.LifeRPGSmartQuests?.contextForQuest?.(quest) || null;
+    const nativeAction = window.LifeRPGNativeActions?.actionInfoForQuest?.(quest) || null;
     const goalText = smartContext?.goal || goalLabel(quest, goal);
     const progressText = progress > 0 ? `${formatNumber(progress)} / ${formatNumber(goal)} ${unitLabel}` : goalText;
 
@@ -1111,6 +1118,7 @@
         <div class="daily-pick-quest-v14">
           <div class="daily-adventure-meta-v15">
             <span class="daily-realm-pill-v14">${realmIcon(quest.realm)} ${esc(quest.realm || "Quest")}</span>
+            ${nativeAction ? `<span class="native-action-badge-v314s">${esc(nativeAction.badge || "IN-APP")}</span>` : ""}
             <span class="daily-adventure-source-v15">${esc(planningEffortLabel(quest))}</span>
             <span class="daily-adventure-progress-v15">~${formatNumber(estimatedMinutes(quest))} min</span>
           </div>
@@ -1121,10 +1129,10 @@
           <p class="daily-pick-reason-v14"><b>Why this today?</b> ${esc(pick.reason || reasonFor(quest, pick.slot, todayRecord()?.checkIn || {}))}</p>
         </div>
         <div class="daily-pick-actions-v14 ${isTimedQuest(quest) && !done ? "has-direct-timer-v306a" : ""}">
-          ${!done && ["new-hairstyle", "makeup-look"].includes(quest.systemRole)
-            ? `<button class="primary-button" data-daily-inspiration="${escAttr(quest.id)}" data-daily-inspiration-role="${escAttr(quest.systemRole)}" type="button">Open today's reference</button><button class="secondary-button" data-daily-reroll="${escAttr(pick.slot)}" type="button">↻ Not today</button>`
-            : !done && quest.systemRole === "sudoku"
-              ? `<button class="primary-button" data-daily-sudoku="${escAttr(quest.id)}" type="button">🧩 Play in Life RPG</button><button class="secondary-button" data-daily-reroll="${escAttr(pick.slot)}" type="button">↻ Not today</button>`
+          ${!done && nativeAction
+            ? `<button class="primary-button" data-daily-native="${escAttr(quest.id)}" data-daily-native-slot="${escAttr(pick.slot)}" type="button">${esc(nativeAction.label)}</button><button class="text-button" data-daily-log="${escAttr(quest.id)}" data-daily-units="${goal}" type="button">Log manually</button><button class="secondary-button" data-daily-reroll="${escAttr(pick.slot)}" type="button">↻ Not today</button>`
+            : !done && ["new-hairstyle", "makeup-look"].includes(quest.systemRole)
+              ? `<button class="primary-button" data-daily-inspiration="${escAttr(quest.id)}" data-daily-inspiration-role="${escAttr(quest.systemRole)}" type="button">Open today's reference</button><button class="secondary-button" data-daily-reroll="${escAttr(pick.slot)}" type="button">↻ Not today</button>`
               : isTimedQuest(quest) && !done
                 ? timedQuestActionsMarkup(quest, goal, pick.slot, progress)
                 : `<button class="primary-button" data-daily-log="${escAttr(quest.id)}" data-daily-units="${goal}" type="button">${done ? "Log more" : "Log progress"}</button><button class="secondary-button" data-daily-reroll="${escAttr(pick.slot)}" type="button">↻ Not today</button>`}

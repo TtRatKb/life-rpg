@@ -272,7 +272,9 @@
         id: `quest-${log.id || log.rewardEventId || Math.random()}`,
         at: log.at || event?.at || `${key}T12:00:00`, category: "quest", icon: "☷", sourceLabel: "Quest",
         title: log.questName || quest?.name || event?.label || "Quest progress",
-        detail: units ? `${trim(units)} ${units === 1 ? singularUnit(unitLabel) : unitLabel} logged${event?.duplicate ? " · linked activity already rewarded" : ""}` : "Quest completion logged",
+        detail: log.nativeActionKey
+          ? `${units ? `${trim(units)} ${units === 1 ? singularUnit(unitLabel) : unitLabel} · ` : ""}completed via guided/in-app activity · rewards credited on the native activity`
+          : (units ? `${trim(units)} ${units === 1 ? singularUnit(unitLabel) : unitLabel} logged${event?.duplicate ? " · linked activity already rewarded" : ""}` : "Quest completion logged"),
         reward: event ? rewardFromEvent(event) : rewardFromLog(log), rewardKnown: Boolean(event || hasRewardFields(log)),
         realm: event?.realm || log.realm || quest?.realm || null, capability: event?.capability || log.stat || quest?.stat || null,
         duplicate: Boolean(event?.duplicate || log.deduped), migrated: Boolean(event?.migrated), why: event?.duplicate ? dedupeWhy(event) : null

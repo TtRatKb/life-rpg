@@ -1,4 +1,16 @@
-# Life RPG — V0.31.4r Social Immersion & Story Cadence
+# Life RPG — V0.31.4s Smart Action Routing
+
+## V0.31.4s · Native activities now fulfill their Dailies/Quests
+- Added one central `smart-action-router.js` registry so Daily Plan / Quest Board actions can open richer in-app activities instead of parallel plain timers.
+- `10-Minute Body Scan` now launches the guided Recovery Studio Body Scan; `15-Minute Lie-Down Reset` launches guided Quiet Rest; `10-Minute Breathing Reset` now has a matching guided 10-minute breathing session.
+- Sudoku Quest/Daily actions continue to open the actual Sudoku Journey rather than a generic log flow.
+- Completing an exact guided/native activity automatically writes the matching Quest/Daily completion without paying a duplicate Quest reward. Native activity rewards remain the single completion reward; Life Rhythm time remains a separate time log where applicable.
+- Linked Quest rows in Activity & Reward History explicitly say they were completed via a guided/in-app activity and that rewards were credited on the native activity.
+- Manual logging remains available for cases where the same real-life action was done outside Life RPG.
+- Story Momentum automatically benefits from the same native Recovery/Knowledge reward events and Recovery time logs, so there is no separate manual checkbox to desync.
+- Added a small `GUIDED IN-APP` / `IN-APP` badge on matching Daily/Quest actions.
+- Added a public semantic-action registry for future Daily actions (Sudoku, Nonogram, Number Sense, Memory Garden, Recovery Studio, Kotoba Quick Study, Lexicon Lab, Training Grounds).
+- PWA cache bumped to V0.31.4s.
 
 ## V0.31.4r · Living phone + real-time story rhythm
 

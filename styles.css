@@ -16000,3 +16000,24 @@ body.training-focus-active-v314o > *:not(#trainingFocusView):not(.toast):not(.ac
 @media (prefers-reduced-motion: reduce) {
   .story-typing-bubble span { animation: none; opacity: .62; }
 }
+
+/* V0.31.4s · Smart Action Routing */
+.native-action-badge-v314s {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 22px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(119, 72, 111, 0.18);
+  background: rgba(248, 232, 241, 0.78);
+  color: #6b3f64;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.055em;
+  white-space: nowrap;
+}
+.quest-actions .native-action-badge-v314s,
+.library-actions .native-action-badge-v314s {
+  align-self: center;
+}
