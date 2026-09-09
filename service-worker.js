@@ -1,11 +1,11 @@
-const CACHE_NAME = "life-rpg-v0314s-smart-action-routing";
+const CACHE_NAME = "life-rpg-v0314t-steam-achievement-sync";
 const CORE = [
   "./",
   "./index.html",
   "./data/quests.js?v=0.31.4h",
-  "./styles.css?v=0.31.4s",
+  "./styles.css?v=0.31.4t",
   "./manifest.webmanifest?v=0.30.3a",
-  "./pwa.js?v=0.31.4s",
+  "./pwa.js?v=0.31.4t",
   "./visual-performance.js?v=0.31.4c",
   "./modal-manager.js?v=0.31.4d",
   "./training-focus.js?v=0.31.4o",
@@ -15,7 +15,7 @@ const CORE = [
   "./adventures.js?v=0.31.1",
   "./adventure-workspace.js?v=0.31.4c",
   "./library.js?v=0.30.6",
-  "./games.js?v=0.31.3a",
+  "./games.js?v=0.31.4t",
   "./time.js?v=0.31.1",
   "./universal-timers.js?v=0.31.1",
   "./inspirations.js?v=0.31.4c",
@@ -38,7 +38,7 @@ const CORE = [
   "./content/SP_003.dat?v=0.31.4r",
   "./shop.js?v=0.30.6",
   "./achievements.js?v=0.31.0",
-  "./activity-log.js?v=0.31.4s",
+  "./activity-log.js?v=0.31.4t",
   "./kotoba-integration.js?v=0.31.4k",
   "./kotoba-quick-training.js?v=0.31.4k",
   "./cloud-save.js?v=0.31.0",

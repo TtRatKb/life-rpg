@@ -16021,3 +16021,36 @@ body.training-focus-active-v314o > *:not(#trainingFocusView):not(.toast):not(.ac
 .library-actions .native-action-badge-v314s {
   align-self: center;
 }
+
+/* V0.31.4t — Steam Achievement Sync V2 */
+.game-steam-sync-v314t {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 10px 0 2px;
+  padding: 10px 12px;
+  border: 1px solid rgba(86, 44, 72, .12);
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(255, 250, 247, .82), rgba(244, 235, 244, .72));
+}
+.game-steam-sync-v314t > span:last-child {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.game-steam-sync-v314t strong { font-size: .82rem; }
+.game-steam-sync-v314t small { color: var(--muted, #765f6d); font-size: .72rem; }
+.game-steam-sync-icon-v314t {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
+  border-radius: 50%;
+  background: rgba(75, 43, 76, .08);
+}
+.game-steam-sync-button-v314t:disabled { opacity: .62; cursor: progress; }
+@media (max-width: 720px) {
+  .game-steam-sync-v314t { align-items: flex-start; }
+}

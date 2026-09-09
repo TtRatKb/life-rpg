@@ -1,3 +1,27 @@
+# Life RPG — V0.31.4t Steam Achievement Sync V2
+
+## V0.31.4t · Historical baseline + automatic Steam unlock rewards
+- Existing Steam games can now create a safe personal-achievement baseline from the already configured Worker + SteamID64. Achievements that were already unlocked at baseline are marked historical/completed without retroactive rewards.
+- Future real Steam `locked → unlocked` transitions are detected by stable `Steam App ID + achievement API name` keys and can never pay twice on reload/resync.
+- Matching imported Steam Game Goals complete automatically. Selected goals use the normal goal-sized reward; spontaneous/unselected achievement unlocks still receive a smaller Life RPG reward.
+- Steam unlock rewards grant Character XP + the game's Realm/Capability XP + Story Energy + Coins, with gentle same-day diminishing for large batches.
+- Hidden achievements remain undisclosed before unlock unless the existing explicit hidden-achievement toggle is used; a genuinely unlocked hidden achievement may then appear normally.
+- Game cards now show `unlocked / total`, last-sync age and a manual `Sync Steam` button. Life RPG also performs a conservative automatic sync on startup/return/Games-open only when the previous sync is at least six hours old.
+- Existing imported Steam goals are reconciled against the baseline without a historical reward avalanche.
+- Activity & Reward History now labels new unlock transactions as **Steam Achievement** with exact credited rewards and Steam metadata.
+- The existing Cloudflare Worker endpoint is reused; no new paid service, secret or Firebase/Worker setup is required.
+- PWA cache bumped to V0.31.4t.
+
+## Validation
+- Baseline test: mixed locked/unlocked achievements → historical unlocks complete matching goals but grant 0 retro rewards.
+- Transition test: selected locked goal → real unlock → goal auto-completes + exactly one normal-sized reward.
+- Spontaneous unlock test: unselected achievement → smaller one-time reward.
+- Hidden unlock test: hidden locked state stores no user-facing name; real unlock rewards normally.
+- Repeated sync test: no duplicate payout.
+- JavaScript syntax and PWA asset/version references checked.
+
+---
+
 # Life RPG — V0.31.4s Smart Action Routing
 
 ## V0.31.4s · Native activities now fulfill their Dailies/Quests

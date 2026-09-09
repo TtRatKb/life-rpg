@@ -520,6 +520,7 @@
       "daily-batch-clear": ["✦", "Daily Plan"],
       stewardship: ["🗂️", "Stewardship"],
       "game-goal": ["🏆", "Game Goal"],
+      "steam-achievement": ["🏆", "Steam Achievement"],
       "game-finish": ["🎮", "Game milestone"],
       "book-finish": ["📚", "Book milestone"],
       "adventure-finish": ["✧", "Adventure milestone"],
@@ -561,7 +562,7 @@
     if (value.startsWith("habit")) return "habit";
     if (["quest", "external", "manual-external", "quick", "daily-batch-clear"].includes(value)) return "quest";
     if (value.startsWith("journal") || value.startsWith("daily-checkin")) return "journal";
-    if (value.startsWith("book") || value === "library" || value.startsWith("game") || value === "stewardship" || value.startsWith("sudoku") || value.startsWith("nonogram") || value.startsWith("number-sense") || value.startsWith("memory-garden")) return "library";
+    if (value.startsWith("book") || value === "library" || value.startsWith("game") || value === "steam-achievement" || value === "stewardship" || value.startsWith("sudoku") || value.startsWith("nonogram") || value.startsWith("number-sense") || value.startsWith("memory-garden")) return "library";
     if (value.startsWith("adventure")) return "adventure";
     if (value === "kotoba-quest") return "japanese";
     if (value === "word-lab-complete" || value === "lexicon-lab-complete") return "language";
