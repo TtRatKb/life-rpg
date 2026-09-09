@@ -53,7 +53,8 @@
     clear: byId("sudokuClearButton"),
     check: byId("sudokuCheckButton"),
     quickStatus: byId("sudokuQuickStatus"),
-    growthStats: byId("sudokuGrowthStats")
+    growthStats: byId("sudokuGrowthStats"),
+    trainingStats: byId("trainingGroundsSudokuStatus")
   };
 
   let activeQuestId = "";
@@ -508,6 +509,7 @@
     if (els.growthStats) {
       els.growthStats.innerHTML = `<span><b>${completed}/${JOURNEY_TOTAL}</b> Journey</span><span><b>${stats.solved}</b> rewarded solves</span><span>${journeyDailyDoneToday() ? "✓ Daily complete" : "○ Daily ready"}</span>`;
     }
+    if (els.trainingStats) els.trainingStats.textContent = next ? `Level ${next} / ${JOURNEY_TOTAL}` : `${JOURNEY_TOTAL}/${JOURNEY_TOTAL} complete`;
   }
 
   function renderDailyCard() {

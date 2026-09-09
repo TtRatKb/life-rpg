@@ -14,7 +14,7 @@
   <link rel="manifest" href="manifest.webmanifest?v=0.30.3a" />
   <link rel="apple-touch-icon" href="assets/app-icon-180.png?v=0.30.3a" />
   <link rel="icon" type="image/png" sizes="192x192" href="assets/app-icon-192.png?v=0.30.3a" />
-  <link rel="stylesheet" href="styles.css?v=0.31.4j" />
+  <link rel="stylesheet" href="styles.css?v=0.31.4k" />
   <link rel="preload" as="image" href="assets/ui/thumbs/characters/luca_neutral.webp" fetchpriority="high" />
 </head>
 <body>
@@ -135,6 +135,7 @@
           <button data-view-target="library"><span class="command-strip-icon">📚</span><span><strong>Library</strong><small>Your books, without database homework.</small></span><b>›</b></button>
           <button data-view-target="games"><span class="command-strip-icon">🎮</span><span><strong>Games</strong><small>Keep active games and personal goals in rotation.</small></span><b>›</b></button>
           <button data-sudoku-open type="button"><span class="command-strip-icon">🧩</span><span><strong>Sudoku</strong><small id="sudokuQuickStatus">Play a logic puzzle inside Life RPG.</small></span><b>›</b></button>
+          <button data-nonogram-open type="button"><span class="command-strip-icon">◩</span><span><strong>Nonogram</strong><small id="nonogramQuickStatus">Reveal a picture through logic clues.</small></span><b>›</b></button>
           <button data-view-target="people"><span class="command-strip-icon">♧</span><span><strong>People</strong><small>Talk, message, connect.</small></span><b>›</b></button>
           <button data-view-target="story"><span class="command-strip-icon">♡</span><span><strong>Main Story</strong><small>Spend energy when you're ready.</small></span><b>›</b></button>
           <button data-view-target="achievements"><span class="command-strip-icon">🏆</span><span><strong>Achievements</strong><small>Collect milestones and hidden moments.</small></span><b>›</b></button>
@@ -1100,6 +1101,21 @@
           </div>
         </section>
 
+        <section class="panel training-grounds-v314k" aria-labelledby="trainingGroundsTitle">
+          <div class="training-grounds-heading-v314k">
+            <div><p class="eyebrow">REALM ACTIVITIES · PLAY INSIDE LIFE RPG</p><h2 id="trainingGroundsTitle">Training Grounds</h2><p>Short activities that train something real while still feeling like a game. Journey progress is permanent; Dailies are invitations, never obligations.</p></div>
+            <span class="training-grounds-badge-v314k">✦ Knowledge training online</span>
+          </div>
+          <div class="training-grounds-grid-v314k">
+            <button class="training-card-v314k is-live" data-sudoku-open type="button"><span class="training-card-icon-v314k">🧩</span><div><small>LOGICAL THINKING</small><strong>Sudoku Journey</strong><p>50 fixed levels · Daily + Practice</p><em id="trainingGroundsSudokuStatus">Continue your Journey</em></div><b>›</b></button>
+            <button class="training-card-v314k is-live" data-nonogram-open type="button"><span class="training-card-icon-v314k">◩</span><div><small>LOGIC · PATTERN REASONING</small><strong>Nonogram Journey</strong><p>50 fixed picture-logic levels · 5×5 → 10×10</p><em id="trainingGroundsNonogramStatus">Level 1 / 50</em></div><b>›</b></button>
+            <a class="training-card-v314k is-live" href="#kotobaIntegrationPanel"><span class="training-card-icon-v314k">🌸</span><div><small>JAPANESE</small><strong>Kotoba Quick Study</strong><p>Real due Vocabulary, Grammar & Particle SRS reviews</p><em>Synced with Kotoba Quest</em></div><b>↓</b></a>
+            <article class="training-card-v314k is-planned"><span class="training-card-icon-v314k">🔢</span><div><small>NUMBER SENSE</small><strong>Mental Math Journey</strong><p>Mental strategies, estimation, percentages and magnitude.</p><em>Next training module</em></div></article>
+            <article class="training-card-v314k is-planned"><span class="training-card-icon-v314k">🧠</span><div><small>MEMORY</small><strong>Memory Garden</strong><p>Spatial, sequence, pattern and working-memory trials.</p><em>Planned</em></div></article>
+            <article class="training-card-v314k is-planned"><span class="training-card-icon-v314k">🌿</span><div><small>RECOVERY</small><strong>Recovery Studio</strong><p>Breathing, body scan and guided rest sessions.</p><em>Planned</em></div></article>
+          </div>
+        </section>
+
         <section class="panel sudoku-growth-panel-v314" aria-labelledby="sudokuGrowthTitle">
           <div class="sudoku-growth-copy-v314">
             <p class="eyebrow">KNOWLEDGE · LOGICAL THINKING</p>
@@ -1108,6 +1124,11 @@
             <div id="sudokuGrowthStats" class="sudoku-growth-stats-v314"><span><b>0/50</b> Journey</span><span><b>0</b> rewarded solves</span><span>○ Daily ready</span></div>
           </div>
           <button class="primary-button sudoku-growth-play-v314" data-sudoku-open type="button">🧩 Open Sudoku Journey</button>
+        </section>
+
+        <section class="panel nonogram-growth-panel-v314k" aria-labelledby="nonogramGrowthTitle">
+          <div class="nonogram-growth-copy-v314k"><p class="eyebrow">KNOWLEDGE · LOGIC · PATTERN REASONING</p><h2 id="nonogramGrowthTitle">Nonogram Journey</h2><p>Use row and column clues to reveal a hidden pixel pattern. The 50-level Journey starts with compact 5×5 grids and grows into 10×10 deduction puzzles.</p><div id="nonogramGrowthStats" class="sudoku-growth-stats-v314"><span><b>0/50</b> Journey</span><span><b>0</b> solved</span><span>▶ Level 1</span></div></div>
+          <button class="primary-button" data-nonogram-open type="button">◩ Open Nonogram Journey</button>
         </section>
 
         <section id="kotobaIntegrationPanel" class="panel kotoba-growth-panel-v314i" aria-labelledby="kotobaIntegrationTitle">
@@ -1131,11 +1152,11 @@
           </div>
           <div class="kotoba-growth-actions-v314i">
             <button id="kotobaConnectButton" class="primary-button" type="button">🌸 Connect Kotoba Quest</button>
-            <button id="kotobaTinyButton" class="primary-button hidden" type="button">🌱 Tiny Japanese · 5 words</button>
-            <button id="kotobaQuickButton" class="secondary-button hidden" type="button">🌸 Quick Japanese · 10 words</button>
+            <button id="kotobaTinyButton" class="primary-button hidden" type="button">🌱 Tiny Japanese · 5 reviews</button>
+            <button id="kotobaQuickButton" class="secondary-button hidden" type="button">🌸 Quick Japanese · 10 reviews</button>
             <button id="kotobaSyncButton" class="secondary-button hidden" type="button">↻ Sync now</button>
             <button id="kotobaDisconnectButton" class="text-button hidden" type="button">Pause Life RPG sync</button>
-            <small id="kotobaLiveBridgeHint">Quick Japanese uses real due Kotoba vocabulary and writes confirmed reviews back to Kotoba's own SRS.</small>
+            <small id="kotobaLiveBridgeHint">Quick Japanese mixes real due Kotoba Vocabulary, Grammar and Particle reviews and writes every confirmed result back to Kotoba's own SRS.</small>
           </div>
         </section>
 
@@ -2471,11 +2492,25 @@ League of Legends — PC" required></textarea></label>
         <button id="kotobaQuickCheck" class="primary-button" type="submit">Check</button>
       </form>
       <div class="kotoba-quick-actions-v314j">
-        <button id="kotobaQuickSpeak" class="secondary-button hidden" type="button">🔊 Hear word</button>
+        <button id="kotobaQuickSpeak" class="secondary-button hidden" type="button">🔊 Hear Japanese</button>
         <button id="kotobaQuickNext" class="primary-button hidden" type="button">Continue</button>
         <button id="kotobaQuickEnd" class="text-button" type="button">End session</button>
       </div>
-      <p id="kotobaQuickSaveNote" class="muted kotoba-quick-save-note-v314j">A word only counts after Kotoba confirms both review directions. Closing midway keeps this Life RPG session ready to resume.</p>
+      <p id="kotobaQuickSaveNote" class="muted kotoba-quick-save-note-v314j">A review only counts after Kotoba confirms and persists it. Closing midway keeps this Life RPG session ready to resume.</p>
+    </div>
+  </dialog>
+
+  <dialog id="nonogramDialog" class="rpg-dialog nonogram-dialog-v314k">
+    <div class="rpg-dialog-form nonogram-shell-v314k">
+      <div class="dialog-heading"><div><p class="eyebrow">KNOWLEDGE · LOGIC · PATTERN REASONING</p><h2 id="nonogramTitle">Nonogram Journey</h2></div><button id="nonogramClose" class="close-button" type="button">×</button></div>
+      <p id="nonogramMeta" class="muted">Knowledge Realm · Logical Thinking · Chapter 1</p>
+      <section id="nonogramDailyCard" class="nonogram-daily-card-v314k" aria-label="Daily Nonogram"></section>
+      <section id="nonogramJourneyProgress" class="sudoku-journey-progress-v314h" aria-label="Nonogram Journey progress"></section>
+      <section class="nonogram-level-map-v314k" aria-labelledby="nonogramLevelMapTitle"><div class="sudoku-section-title-v314h"><div><small>LEVEL MAP</small><strong id="nonogramLevelMapTitle">Chapter 1 · Levels 1–50</strong></div><span>5×5 → 7×7 → 10×10 · completed levels can be replayed.</span></div><div id="nonogramLevelGrid" class="nonogram-level-grid-v314k"></div></section>
+      <div id="nonogramTools" class="nonogram-tools-v314k" aria-label="Nonogram drawing mode"><button class="active" data-nonogram-tool="fill" type="button">■ Fill</button><button data-nonogram-tool="cross" type="button">× Mark empty</button><button data-nonogram-tool="clear" type="button">○ Clear</button><small>Tip: right-click a cell to mark ×.</small></div>
+      <div id="nonogramBoard" class="nonogram-board-v314k"></div>
+      <p id="nonogramStatus" class="sudoku-status-v310" aria-live="polite"></p>
+      <div class="dialog-actions"><button id="nonogramResetButton" class="secondary-button" type="button">Clear this grid</button><button id="nonogramCheckButton" class="primary-button" type="button">Check puzzle</button></div>
     </div>
   </dialog>
 
@@ -2900,6 +2935,8 @@ League of Legends — PC" required></textarea></label>
   <script src="inspirations.js?v=0.31.4c"></script>
   <script src="data/sudoku-levels.js?v=0.31.4h"></script>
   <script src="sudoku.js?v=0.31.4h"></script>
+  <script src="data/nonogram-levels.js?v=0.31.4k"></script>
+  <script src="nonogram.js?v=0.31.4k"></script>
   <script src="smart-quests.js?v=0.31.0"></script>
   <script src="daily.js?v=0.31.4c"></script>
   <script src="journal.js?v=0.31.4c"></script>
@@ -2907,9 +2944,9 @@ League of Legends — PC" required></textarea></label>
   <script src="shop.js?v=0.30.6"></script>
   <script src="achievements.js?v=0.31.0"></script>
   <script src="activity-log.js?v=0.31.4i"></script>
-  <script src="kotoba-integration.js?v=0.31.4j"></script>
-  <script src="kotoba-quick-training.js?v=0.31.4j"></script>
+  <script src="kotoba-integration.js?v=0.31.4k"></script>
+  <script src="kotoba-quick-training.js?v=0.31.4k"></script>
   <script type="module" src="cloud-save.js?v=0.31.0"></script>
-  <script src="pwa.js?v=0.31.4j"></script>
+  <script src="pwa.js?v=0.31.4k"></script>
 </body>
 </html>

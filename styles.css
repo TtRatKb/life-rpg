@@ -15083,3 +15083,54 @@ body.rpg-modal-open {
   .kotoba-quick-summary-grid-v314j { grid-template-columns: 1fr; }
   .kotoba-quick-actions-v314j #kotobaQuickEnd { margin-left: 0; width: 100%; }
 }
+
+/* ========================================================================== 
+   V0.31.4k · Training Grounds + Nonogram Journey + mixed Kotoba Quick Study
+   ========================================================================== */
+.training-grounds-v314k{
+  margin:22px 0;padding:24px;border:1px solid rgba(76,41,75,.12);border-radius:24px;
+  background:linear-gradient(145deg,rgba(255,250,246,.98),rgba(249,237,244,.94));
+}
+.training-grounds-heading-v314k{display:flex;align-items:flex-start;justify-content:space-between;gap:22px;margin-bottom:18px}
+.training-grounds-heading-v314k h2{margin:.15rem 0 .35rem}.training-grounds-heading-v314k p:not(.eyebrow){max-width:760px;margin:0;color:#766572;line-height:1.5}
+.training-grounds-badge-v314k{flex:0 0 auto;padding:7px 11px;border-radius:999px;background:#f3e1e9;color:#75445e;font-size:.75rem;font-weight:800}
+.training-grounds-grid-v314k{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.training-card-v314k{min-width:0;display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:12px;padding:16px;border:1px solid rgba(76,41,75,.12);border-radius:18px;background:rgba(255,255,255,.78);color:#4c294b;text-align:left;text-decoration:none;font:inherit}
+button.training-card-v314k{cursor:pointer}.training-card-v314k.is-live:hover{transform:translateY(-1px);border-color:rgba(157,91,127,.3);box-shadow:0 10px 24px rgba(76,41,75,.07)}
+.training-card-v314k.is-planned{opacity:.67;background:rgba(255,255,255,.48)}
+.training-card-icon-v314k{display:grid;place-items:center;width:42px;height:42px;border-radius:14px;background:#f6e9ef;font-size:1.3rem}
+.training-card-v314k small,.training-card-v314k strong,.training-card-v314k p,.training-card-v314k em{display:block}.training-card-v314k small{font-size:.62rem;letter-spacing:.08em;font-weight:850;color:#a2778e}.training-card-v314k strong{margin-top:2px;font-size:.98rem}.training-card-v314k p{margin:3px 0 0;color:#806d79;font-size:.76rem;line-height:1.35}.training-card-v314k em{margin-top:7px;color:#9c637f;font-size:.72rem;font-style:normal;font-weight:800}.training-card-v314k>b{font-size:1.2rem;color:#aa7b92}
+.nonogram-growth-panel-v314k{display:flex;align-items:center;justify-content:space-between;gap:24px;margin:18px 0;padding:22px 24px;background:linear-gradient(135deg,rgba(252,248,244,.98),rgba(241,238,248,.95));border:1px solid rgba(76,41,75,.12)}
+.nonogram-growth-copy-v314k h2{margin:.15rem 0 .35rem}.nonogram-growth-copy-v314k p:not(.eyebrow){max-width:720px;margin:.25rem 0;color:#766572}
+
+.nonogram-dialog-v314k{width:min(860px,calc(100vw - 32px));max-height:min(94dvh,980px)}
+.nonogram-shell-v314k{display:grid;gap:14px}
+.nonogram-daily-card-v314k{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 16px;border:1px solid rgba(89,58,96,.12);border-radius:17px;background:linear-gradient(135deg,#fff9f4,#f5ebf1)}
+.nonogram-daily-card-v314k>div{display:grid;gap:3px}.nonogram-daily-card-v314k small{font-size:.65rem;letter-spacing:.1em;font-weight:900;color:#a4778d}.nonogram-daily-card-v314k strong{color:#4c294b}.nonogram-daily-card-v314k span{color:#806d79;font-size:.78rem}.nonogram-daily-card-v314k button{border:0;border-radius:12px;padding:10px 13px;background:#5a3151;color:#fff;font-weight:800;cursor:pointer}
+.nonogram-level-map-v314k{display:grid;gap:10px;padding:14px;border:1px solid rgba(76,41,75,.1);border-radius:18px;background:rgba(255,255,255,.58)}
+.nonogram-level-grid-v314k{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:6px}
+.nonogram-level-grid-v314k button{display:grid;justify-items:center;gap:1px;min-height:46px;padding:5px 2px;border:1px solid rgba(76,41,75,.12);border-radius:10px;background:#fffaf7;color:#5a3853;font:inherit;font-weight:800;cursor:pointer}.nonogram-level-grid-v314k button small{font-size:.55rem;color:#99828f;font-weight:700}.nonogram-level-grid-v314k button.done{background:#edf7f1;color:#47715d}.nonogram-level-grid-v314k button.active{box-shadow:0 0 0 2px rgba(188,102,146,.25);border-color:#bf7199}.nonogram-level-grid-v314k button:disabled{opacity:.42;cursor:not-allowed}
+.nonogram-tools-v314k{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 12px;border-radius:15px;background:rgba(76,41,75,.045)}.nonogram-tools-v314k button{padding:8px 11px;border:1px solid rgba(76,41,75,.14);border-radius:10px;background:#fff;color:#62445b;font:inherit;font-size:.78rem;font-weight:800;cursor:pointer}.nonogram-tools-v314k button.active{background:#5a3151;color:#fff;border-color:#5a3151}.nonogram-tools-v314k small{margin-left:auto;color:#8c7784;font-size:.7rem}
+.nonogram-board-v314k{--cell:min(5.7vw,42px);display:grid;grid-template-columns:max-content max-content;grid-template-rows:max-content max-content;justify-content:center;align-items:end;max-width:100%;overflow:auto;padding:8px 4px 12px;overscroll-behavior:contain}
+.nonogram-corner-v314k{grid-column:1;grid-row:1;min-width:34px;min-height:34px}
+.nonogram-col-clues-v314k{grid-column:2;grid-row:1;display:grid;grid-template-columns:repeat(var(--nonogram-size),var(--cell));align-items:end}
+.nonogram-col-clues-v314k>div{min-height:calc(var(--nonogram-col-clues) * 1.02rem + 9px);display:flex;flex-direction:column;justify-content:flex-end;align-items:center;padding:3px 1px;color:#674858;font-size:.72rem;font-weight:850;line-height:1.02}.nonogram-col-clues-v314k>div.complete{color:#9a8d95;text-decoration:line-through}
+.nonogram-row-clues-v314k{grid-column:1;grid-row:2;display:grid;grid-template-rows:repeat(var(--nonogram-size),var(--cell));align-items:center}
+.nonogram-row-clues-v314k>div{min-width:calc(var(--nonogram-row-clues) * 1.15rem + 10px);height:var(--cell);display:flex;justify-content:flex-end;align-items:center;gap:5px;padding:0 7px;color:#674858;font-size:.72rem;font-weight:850}.nonogram-row-clues-v314k>div.complete{color:#9a8d95;text-decoration:line-through}
+.nonogram-grid-v314k{grid-column:2;grid-row:2;display:grid;grid-template-columns:repeat(var(--nonogram-size),var(--cell));grid-template-rows:repeat(var(--nonogram-size),var(--cell));border:2px solid #5c4052;background:#8e7785}
+.nonogram-grid-v314k button{position:relative;width:var(--cell);height:var(--cell);display:grid;place-items:center;border:0;border-right:1px solid rgba(92,64,82,.32);border-bottom:1px solid rgba(92,64,82,.32);background:#fffdf9;color:#896c7d;font:800 clamp(.75rem,2.5vw,1.05rem)/1 system-ui;cursor:pointer;user-select:none;-webkit-user-select:none}
+.nonogram-grid-v314k button:nth-child(5n){ }
+.nonogram-grid-v314k button:hover{background:#fbf2f6}.nonogram-grid-v314k button.filled{background:#5a3151;color:#fff}.nonogram-grid-v314k button.crossed{background:#faf5f6;color:#b38da0;font-size:1.25rem}.nonogram-grid-v314k button:focus-visible{outline:3px solid rgba(226,143,180,.65);outline-offset:-3px;z-index:2}
+.nonogram-empty-v314k{grid-column:1/-1;display:grid;justify-items:center;gap:8px;min-height:220px;padding:32px;text-align:center;border:1px dashed rgba(76,41,75,.18);border-radius:20px;background:rgba(255,255,255,.65)}.nonogram-empty-v314k>span{font-size:2.2rem}.nonogram-empty-v314k p{max-width:480px;margin:0;color:#806d79}
+.nonogram-board-v314k.shake-v314k{animation:nonogramShake .28s ease}@keyframes nonogramShake{25%{transform:translateX(-4px)}50%{transform:translateX(4px)}75%{transform:translateX(-2px)}}
+
+/* Mixed Kotoba review types */
+.kotoba-quick-grammar-title-v314k{display:grid;gap:3px;color:#4c294b}.kotoba-quick-grammar-title-v314k strong{font-size:1.22rem}.kotoba-quick-grammar-title-v314k span{font-size:.78rem;color:#96788a}
+.kotoba-quick-sentence-v314k{max-width:650px;padding:14px 18px;border-radius:16px;background:#fbf4f7;color:#43273d;font-size:clamp(1.15rem,3vw,1.7rem);font-weight:760;line-height:1.45}
+.kotoba-quick-translation-v314k{color:#806d79;font-size:.9rem}.kotoba-quick-listening-v314k{padding:12px 16px;border-radius:14px;background:#f6eef8;color:#745a72;font-weight:700}
+.kotoba-quick-model-v314k{display:grid;gap:4px;margin-top:10px;padding:11px 12px;border-radius:12px;background:rgba(255,255,255,.7)}.kotoba-quick-model-v314k small{color:#927789;font-size:.65rem;text-transform:uppercase;letter-spacing:.08em}.kotoba-quick-model-v314k strong{color:#4c294b}
+.kotoba-quick-grade-grid-v314k{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-top:10px}.kotoba-quick-grade-grid-v314k button,.kotoba-quick-choice-grid-v314k button{border:1px solid rgba(76,41,75,.14);border-radius:12px;background:#fff;color:#5a3853;padding:10px 9px;font:inherit;font-weight:800;cursor:pointer}.kotoba-quick-grade-grid-v314k button:last-child{background:#edf7f1;color:#47715d}.kotoba-quick-grade-grid-v314k button:first-child{background:#fff0f3;color:#8b4d61}.kotoba-quick-grade-note-v314k{display:block;margin-top:8px;color:#806d79;font-weight:500}
+.kotoba-quick-choice-grid-v314k{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;width:min(520px,100%);margin-top:5px}.kotoba-quick-choice-grid-v314k button:hover{border-color:#b87399;background:#fff6fa}.kotoba-quick-mix-summary-v314k{margin:0;color:#806d79;font-weight:750}
+
+@media(max-width:850px){.training-grounds-grid-v314k{grid-template-columns:repeat(2,minmax(0,1fr))}.nonogram-level-grid-v314k{grid-template-columns:repeat(5,minmax(0,1fr))}}
+@media(max-width:620px){.training-grounds-heading-v314k{flex-direction:column}.training-grounds-grid-v314k{grid-template-columns:1fr}.training-grounds-badge-v314k{align-self:flex-start}.nonogram-growth-panel-v314k{flex-direction:column;align-items:stretch}.nonogram-daily-card-v314k{align-items:stretch;flex-direction:column}.nonogram-daily-card-v314k button{width:100%}.nonogram-board-v314k{--cell:min(8.2vw,38px);justify-content:start}.nonogram-tools-v314k small{width:100%;margin-left:0}.kotoba-quick-grade-grid-v314k{grid-template-columns:1fr}.kotoba-quick-choice-grid-v314k{grid-template-columns:1fr}}
