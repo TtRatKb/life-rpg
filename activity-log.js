@@ -25,7 +25,7 @@
     ["library", "Books & Games"],
     ["adventure", "Adventures"],
     ["japanese", "Japanese"],
-    ["language", "Word Lab"],
+    ["language", "Lexicon Lab"],
     ["recovery", "Recovery"],
     ["achievement", "Achievements"],
     ["other", "Other"]
@@ -431,7 +431,8 @@
     if (event.source === "game-goal") return "Tracked Game Goal completed";
     if (event.source === "sudoku-complete" || event.source === "sudoku-solved") return m.level ? `Journey Level ${number(m.level)} completed · ${humanize(m.difficulty || "Sudoku")}` : `${humanize(m.difficulty || "Sudoku")} Practice puzzle completed`;
     if (event.source === "memory-garden-complete") return `Journey Level ${number(m.level)} completed · ${humanize(m.mode || "memory")} recall · ${number(m.rounds) || 3} rounds`;
-    if (event.source === "word-lab-complete") return `${m.language === "de" ? "German Precision" : "English Fluency"} · Journey Level ${number(m.level)} · ${number(m.firstTryAccuracy)}% first-try`;
+    if (event.source === "word-lab-complete") return `${m.language === "de" ? "German Precision" : "English Fluency"} · legacy Word Lab level ${number(m.level)} · ${number(m.firstTryAccuracy)}% first-try`;
+    if (event.source === "lexicon-lab-complete") return `Academic Crossword ${number(m.level)} · ${humanize(m.theme || "German academic lexicon")} · ${number(m.perfectWords)}/${number(m.wordCount)} words recalled cleanly`;
     if (event.source === "recovery-studio") {
       const seconds = number(m.durationSeconds);
       const minutes = seconds ? Math.max(1, Math.floor(seconds / 60)) : number(m.sessionMinutes);
@@ -467,8 +468,13 @@
     }
     if (event.source === "word-lab-complete") {
       const multiplier = number(event.metadata?.repeatScale) || 1;
-      bits.push(`<p>This is the first-completion reward for a <strong>Word Lab</strong> Journey level. Language refinement counts as Knowledge growth; accuracy is tracked for feedback, but speed does not increase rewards.</p>`);
-      if (multiplier < 0.999) bits.push(`<p>Multiple new Word Lab levels on the same day taper gently. This level used a <strong>×${trim(multiplier)}</strong> activity multiplier.</p>`);
+      bits.push(`<p>This is a historical reward from the retired <strong>Word Lab V1</strong>. The old save/history is preserved, but the playable module has been replaced by Lexicon Lab.</p>`);
+      if (multiplier < 0.999) bits.push(`<p>This historical level used a <strong>×${trim(multiplier)}</strong> activity multiplier.</p>`);
+    }
+    if (event.source === "lexicon-lab-complete") {
+      const multiplier = number(event.metadata?.repeatScale) || 1;
+      bits.push(`<p>This is the first-completion reward for a <strong>Lexicon Lab Academic Crossword</strong>. The puzzle trains active recall of advanced German vocabulary; repeated clean recalls also grow the personal lexicon from Discovered toward Active/Mastered.</p>`);
+      if (multiplier < 0.999) bits.push(`<p>Multiple new Lexicon Lab crosswords on the same day taper gently. This puzzle used a <strong>×${trim(multiplier)}</strong> activity multiplier.</p>`);
     }
     if (event.source === "recovery-studio") {
       const multiplier = number(event.metadata?.repeatScale) || 1;
@@ -523,7 +529,8 @@
       "sudoku-solved": ["🧩", "Sudoku"],
       "kotoba-quest": ["🌸", "Kotoba Quest"],
       "memory-garden-complete": ["🧠", "Memory Garden"],
-      "word-lab-complete": ["🔤", "Word Lab"],
+      "word-lab-complete": ["🔤", "Word Lab · Legacy"],
+      "lexicon-lab-complete": ["⌗", "Lexicon Lab"],
       "recovery-studio": ["🌿", "Recovery Studio"],
       "journal-reflection-base": ["🌸", "Journal"],
       "journal-reflection-effort": ["🌸", "Journal"],
@@ -555,7 +562,7 @@
     if (value.startsWith("book") || value === "library" || value.startsWith("game") || value === "stewardship" || value.startsWith("sudoku") || value.startsWith("nonogram") || value.startsWith("number-sense") || value.startsWith("memory-garden")) return "library";
     if (value.startsWith("adventure")) return "adventure";
     if (value === "kotoba-quest") return "japanese";
-    if (value === "word-lab-complete") return "language";
+    if (value === "word-lab-complete" || value === "lexicon-lab-complete") return "language";
     if (value === "recovery-studio") return "recovery";
     if (value.startsWith("achievement")) return "achievement";
     return "other";
