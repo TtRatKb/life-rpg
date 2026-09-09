@@ -48,6 +48,8 @@
     modeBar: byId("sudokuModeBar"),
     practice: byId("sudokuPractice"),
     rewardPreview: byId("sudokuRewardPreview"),
+    play: byId("sudokuPlayPanel"),
+    result: byId("sudokuResult"),
     board: byId("sudokuBoard"),
     status: byId("sudokuStatus"),
     clear: byId("sudokuClearButton"),
@@ -201,6 +203,22 @@
         return;
       }
 
+      const nextButton = event.target.closest?.("[data-sudoku-next-level]");
+      if (nextButton) {
+        event.preventDefault();
+        const next = nextJourneyLevel();
+        if (next) startJourneyLevel(next, { replay: false, origin: "journey", confirmReplace: false });
+        return;
+      }
+
+      const returnButton = event.target.closest?.("[data-sudoku-return]");
+      if (returnButton) {
+        event.preventDefault();
+        window.LifeRPGTrainingFocus?.exit?.({ reopen: false });
+        open();
+        return;
+      }
+
       const modeButton = event.target.closest?.("[data-sudoku-mode]");
       if (modeButton) {
         event.preventDefault();
@@ -267,7 +285,6 @@
     activeMode = "journey";
     startOrContinueNextLevel("daily", { showDialog: false });
     render();
-    els.dialog?.showModal();
     return true;
   }
 
@@ -284,7 +301,7 @@
     if (active && !active.completedAt && !active.replay) {
       activeMode = "journey";
       render();
-      if (showDialog && !els.dialog?.open) els.dialog?.showModal();
+      enterFocus(active);
       return true;
     }
 
@@ -297,7 +314,6 @@
     }
 
     startJourneyLevel(next, { replay: false, origin, confirmReplace: false });
-    if (showDialog && !els.dialog?.open) els.dialog?.showModal();
     return true;
   }
 
@@ -314,17 +330,21 @@
     const s = state();
     const current = s.journey.active;
     if (current && !current.completedAt && current.level === level && Boolean(current.replay) === Boolean(replay)) {
+      clearLocalResult();
       activeMode = "journey";
       render();
+      enterFocus(current);
       return true;
     }
     if (confirmReplace && current && !current.completedAt && current.level !== level) {
       if (!window.confirm(`Switch away from your unfinished Level ${current.level}? Its current entries will be replaced.`)) return false;
     }
 
+    clearLocalResult();
     s.journey.active = createJourneyPuzzle(level, replay, origin);
     activeMode = "journey";
     persist(replay ? "sudoku-replay-start" : "sudoku-journey-start");
+    enterFocus(s.journey.active);
     return true;
   }
 
@@ -357,10 +377,12 @@
       const meta = PRACTICE_DIFFICULTY[current.difficulty] || PRACTICE_DIFFICULTY.medium;
       if (!window.confirm(`Replace your unfinished ${meta.label} Practice Sudoku with a new one?`)) return false;
     }
+    clearLocalResult();
     const seed = `${Date.now()}|${Math.random()}|${difficulty}|${origin}`;
     s.practice.active = createPracticePuzzle(difficulty, seed, origin);
     activeMode = "practice";
     persist("sudoku-practice-new");
+    enterFocus(s.practice.active);
     return true;
   }
 
@@ -496,6 +518,8 @@
     renderPractice();
     renderRewardPreview(current);
     renderBoard(current);
+    renderResult(current);
+    syncFocusHeader(current);
   }
 
   function renderLaunchStatus() {
@@ -665,6 +689,63 @@
     setActionDisabled(Boolean(current.completedAt));
   }
 
+  function enterFocus(current = currentPuzzle()) {
+    if (!current || !els.play || !window.LifeRPGTrainingFocus?.enter) return false;
+    if (els.dialog?.open) els.dialog.close();
+    const isJourney = current.mode === "journey";
+    const meta = isJourney ? tierMeta(current.tier) : PRACTICE_DIFFICULTY[current.difficulty] || PRACTICE_DIFFICULTY.medium;
+    return window.LifeRPGTrainingFocus.enter({
+      id: "sudoku",
+      node: els.play,
+      title: isJourney ? `Sudoku Journey · Level ${current.level}` : `${meta.label} Sudoku Practice`,
+      subtitle: isJourney ? `Chapter 1 · ${meta.label}${current.replay ? " · Replay" : ""}` : "Practice Mode · progress saves automatically",
+      tone: "light",
+      onExit: () => { render(); if (els.dialog && !els.dialog.open) els.dialog.showModal(); }
+    });
+  }
+
+  function syncFocusHeader(current) {
+    if (!current || !window.LifeRPGTrainingFocus?.isActive?.("sudoku")) return;
+    const isJourney = current.mode === "journey";
+    const meta = isJourney ? tierMeta(current.tier) : PRACTICE_DIFFICULTY[current.difficulty] || PRACTICE_DIFFICULTY.medium;
+    window.LifeRPGTrainingFocus.update({
+      title: isJourney ? `Sudoku Journey · Level ${current.level}` : `${meta.label} Sudoku Practice`,
+      subtitle: current.completedAt ? "Solved ✓" : isJourney ? `${meta.label}${current.replay ? " · Replay" : ""}` : "Practice Mode"
+    });
+  }
+
+  function renderResult(current) {
+    if (!els.result) return;
+    if (!current?.completedAt) {
+      if (els.result.dataset.transient !== "true") els.result.classList.add("hidden");
+      return;
+    }
+    delete els.result.dataset.transient;
+    const event = current.rewardEventId ? (app.getState().rewardLedger?.events || []).find(item => item?.id === current.rewardEventId) : null;
+    const replay = current.mode === "journey" && (current.replay || !event);
+    const next = current.mode === "journey" ? nextJourneyLevel() : null;
+    const reward = event ? { xp:Number(event.xp||0), realmXP:Number(event.realmXP||0), statXP:Number(event.statXP||0), storyEnergy:Number(event.storyEnergy||0), coins:Number(event.coins||0) } : null;
+    const rewards = reward ? `<div class="training-result-rewards-v314o"><span>+${reward.xp} XP</span><span>+${reward.realmXP} Knowledge XP</span><span>+${reward.statXP} Logic XP</span><span>+${app.formatEnergy?.(reward.storyEnergy) ?? reward.storyEnergy} Story Energy</span><span>+${reward.coins} Coins</span></div>` : "";
+    const nextAction = current.mode === "journey" && next ? `<button class="primary-button" data-sudoku-next-level type="button">Start Level ${next}</button>` : "";
+    els.result.className = "training-result-v314o is-success";
+    els.result.innerHTML = `<span>✓</span><strong>${current.mode === "journey" ? `Level ${current.level} solved correctly!` : "Practice Sudoku solved correctly!"}</strong><p>${replay ? "Replay complete — your Journey progress stays unchanged and no duplicate reward is paid." : current.mode === "journey" ? (next ? `Your rewards are saved and Level ${next} is unlocked.` : "Your rewards are saved. Chapter 1 is complete!") : "Your Practice reward has been saved to Life RPG."}</p>${rewards}<div class="training-result-actions-v314o">${nextAction}<button class="secondary-button" data-sudoku-return type="button">Back to Sudoku Journey</button></div>`;
+  }
+
+  function clearLocalResult() {
+    if (!els.result) return;
+    delete els.result.dataset.transient;
+    els.result.classList.add("hidden");
+    els.result.innerHTML = "";
+  }
+
+  function showLocalResult({ kind = "error", icon = "◇", title = "Check the puzzle", message = "" } = {}) {
+    if (!els.result) return;
+    els.result.dataset.transient = "true";
+    els.result.className = `training-result-v314o is-${kind}`;
+    els.result.innerHTML = `<span>${escapeHtml(icon)}</span><strong>${escapeHtml(title)}</strong><p>${escapeHtml(message)}</p>`;
+    els.result.scrollIntoView?.({ behavior: "smooth", block: "nearest" });
+  }
+
   function setActionDisabled(disabled) {
     if (els.clear) els.clear.disabled = Boolean(disabled);
     if (els.check) els.check.disabled = Boolean(disabled);
@@ -699,7 +780,12 @@
     const wrong = current.values.some((v, i) => v !== current.solution[i]);
     if (incomplete || wrong) {
       els.board?.querySelectorAll("input[data-sudoku-cell]").forEach(input => validateCell(input, current, Number(input.dataset.sudokuCell), true));
-      app.showToast?.(incomplete ? "A few cells are still empty." : "Almost — at least one cell needs another look.");
+      showLocalResult({
+        kind: "error",
+        icon: "◇",
+        title: incomplete ? "Not finished yet" : "Something still needs another look",
+        message: incomplete ? "A few Sudoku cells are still empty. Keep going — your progress is saved." : "At least one number is incorrect. The highlighted cells can help you find it."
+      });
       updateStatus(current);
       return;
     }
@@ -732,6 +818,7 @@
       render();
       app.renderAll?.();
       app.showToast?.(`↻ Level ${current.level} replay solved · no duplicate rewards`);
+      window.setTimeout(() => els.result?.scrollIntoView?.({ behavior: "smooth", block: "start" }), 40);
       return;
     }
 
@@ -746,6 +833,7 @@
     app.renderAll?.();
     const next = nextJourneyLevel();
     app.showToast?.(`🧩 Level ${current.level} complete · +${reward.xp} XP · +${app.formatEnergy?.(reward.storyEnergy) ?? reward.storyEnergy} 🔥 · +${reward.coins} 🪙${next ? ` · Level ${next} unlocked` : " · Chapter 1 complete!"}`);
+    window.setTimeout(() => els.result?.scrollIntoView?.({ behavior: "smooth", block: "start" }), 40);
   }
 
   function completePracticePuzzle(current) {
@@ -760,6 +848,7 @@
     app.renderAll?.();
     const meta = PRACTICE_DIFFICULTY[current.difficulty] || PRACTICE_DIFFICULTY.medium;
     app.showToast?.(`🧩 ${meta.label} Practice solved · +${reward.xp} XP · +${app.formatEnergy?.(reward.storyEnergy) ?? reward.storyEnergy} 🔥 · +${reward.coins} 🪙`);
+    window.setTimeout(() => els.result?.scrollIntoView?.({ behavior: "smooth", block: "start" }), 40);
   }
 
   function awardPuzzle(current) {

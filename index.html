@@ -14,7 +14,7 @@
   <link rel="manifest" href="manifest.webmanifest?v=0.30.3a" />
   <link rel="apple-touch-icon" href="assets/app-icon-180.png?v=0.30.3a" />
   <link rel="icon" type="image/png" sizes="192x192" href="assets/app-icon-192.png?v=0.30.3a" />
-  <link rel="stylesheet" href="styles.css?v=0.31.4n" />
+  <link rel="stylesheet" href="styles.css?v=0.31.4o" />
   <link rel="preload" as="image" href="assets/ui/thumbs/characters/luca_neutral.webp" fetchpriority="high" />
 </head>
 <body>
@@ -2540,10 +2540,13 @@ League of Legends — PC" required></textarea></label>
       <section id="nonogramDailyCard" class="nonogram-daily-card-v314k" aria-label="Daily Nonogram"></section>
       <section id="nonogramJourneyProgress" class="sudoku-journey-progress-v314h" aria-label="Nonogram Journey progress"></section>
       <section class="nonogram-level-map-v314k" aria-labelledby="nonogramLevelMapTitle"><div class="sudoku-section-title-v314h"><div><small>LEVEL MAP</small><strong id="nonogramLevelMapTitle">Chapter 1 · Levels 1–50</strong></div><span>5×5 → 7×7 → 10×10 · completed levels can be replayed.</span></div><div id="nonogramLevelGrid" class="nonogram-level-grid-v314k"></div></section>
-      <div id="nonogramTools" class="nonogram-tools-v314k" aria-label="Nonogram drawing mode"><button class="active" data-nonogram-tool="fill" type="button">■ Fill</button><button data-nonogram-tool="cross" type="button">× Mark empty</button><button data-nonogram-tool="clear" type="button">○ Clear</button><small>Tip: right-click a cell to mark ×.</small></div>
-      <div id="nonogramBoard" class="nonogram-board-v314k"></div>
-      <p id="nonogramStatus" class="sudoku-status-v310" aria-live="polite"></p>
-      <div class="dialog-actions"><button id="nonogramResetButton" class="secondary-button" type="button">Clear this grid</button><button id="nonogramCheckButton" class="primary-button" type="button">Check puzzle</button></div>
+      <section id="nonogramPlayPanel" class="training-play-panel-v314o nonogram-play-panel-v314o" data-training-play-panel>
+        <div id="nonogramTools" class="nonogram-tools-v314k" aria-label="Nonogram drawing mode"><button class="active" data-nonogram-tool="fill" type="button">■ Fill</button><button data-nonogram-tool="cross" type="button">× Mark empty</button><button data-nonogram-tool="clear" type="button">○ Clear</button><small>Tip: right-click a cell to mark ×.</small></div>
+        <div id="nonogramResult" class="training-result-v314o hidden" aria-live="polite"></div>
+        <div id="nonogramBoard" class="nonogram-board-v314k"></div>
+        <p id="nonogramStatus" class="sudoku-status-v310" aria-live="polite"></p>
+        <div class="dialog-actions"><button id="nonogramResetButton" class="secondary-button" type="button">Clear this grid</button><button id="nonogramCheckButton" class="primary-button" type="button">Check puzzle</button></div>
+      </section>
     </div>
   </dialog>
 
@@ -2561,7 +2564,7 @@ League of Legends — PC" required></textarea></label>
         <div class="sudoku-section-title-v314h"><div><small>LEVEL MAP</small><strong id="memoryGardenLevelMapTitle">Chapter 1 · Levels 1–50</strong></div><span>Spatial → Sequence → Pattern → Working Memory · then repeat with increasing challenge.</span></div>
         <div id="memoryGardenLevelGrid" class="memory-level-grid-v314n"></div>
       </section>
-      <section class="memory-play-v314n">
+      <section id="memoryGardenPlayPanel" class="memory-play-v314n training-play-panel-v314o" data-training-play-panel>
         <div class="memory-play-heading-v314n"><div id="memoryGardenTrialMeta" class="memory-trial-meta-v314n"></div><span id="memoryGardenRoundProgress">Round 1 / 3</span></div>
         <div id="memoryGardenStage" class="memory-stage-v314n"></div>
         <div id="memoryGardenFeedback" class="memory-feedback-v314n hidden" aria-live="polite"></div>
@@ -2581,7 +2584,7 @@ League of Legends — PC" required></textarea></label>
       <section id="recoveryDailyCard" class="recovery-daily-card-v314m" aria-label="Daily Recovery suggestion"></section>
       <div id="recoveryStudioStats" class="recovery-stats-v314m" aria-label="Recovery Studio statistics"></div>
 
-      <section id="recoveryActiveSession" class="recovery-active-v314m hidden" aria-live="polite">
+      <section id="recoveryActiveSession" class="recovery-active-v314m training-play-panel-v314o hidden" data-training-play-panel aria-live="polite">
         <div class="recovery-active-heading-v314m">
           <span id="recoveryActiveIcon" class="recovery-active-icon-v314m">🌿</span>
           <div><small id="recoveryActiveKicker">RECOVERY STUDIO · IN PROGRESS</small><strong id="recoveryActiveTitle">Recovery session</strong></div>
@@ -2619,9 +2622,10 @@ League of Legends — PC" required></textarea></label>
         <div class="sudoku-section-title-v314h"><div><small>LEVEL MAP</small><strong id="numberSenseLevelMapTitle">Chapter 1 · Levels 1–50</strong></div><span>Foundations → flexible arithmetic → applied number sense.</span></div>
         <div id="numberSenseLevelGrid" class="number-sense-level-grid-v314l"></div>
       </section>
-      <section class="number-sense-play-v314l">
+      <section id="numberSensePlayPanel" class="number-sense-play-v314l training-play-panel-v314o" data-training-play-panel>
         <div id="numberSenseLessonMeta" class="number-sense-lesson-meta-v314l"></div>
         <div id="numberSenseQuestionProgress" class="number-sense-question-progress-v314l"></div>
+        <div id="numberSensePace" class="number-sense-pace-v314o" aria-live="polite"></div>
         <article id="numberSenseQuestionCard" class="number-sense-question-card-v314l"></article>
         <div id="numberSenseFeedback" class="number-sense-feedback-v314l hidden" aria-live="polite"></div>
         <form id="numberSenseAnswerForm" class="number-sense-answer-v314l hidden">
@@ -2654,14 +2658,27 @@ League of Legends — PC" required></textarea></label>
       <div id="sudokuModeBar" class="sudoku-mode-bar-v314h" aria-label="Sudoku mode"></div>
       <section id="sudokuPractice" class="sudoku-practice-v314h"></section>
       <div id="sudokuRewardPreview" class="sudoku-reward-preview-v314"></div>
-      <div id="sudokuBoard" class="sudoku-board-v310"></div>
-      <p id="sudokuStatus" class="sudoku-status-v310" aria-live="polite"></p>
-      <div class="dialog-actions sudoku-actions-v314">
-        <button id="sudokuClearButton" class="secondary-button" type="button">Clear my entries</button>
-        <button id="sudokuCheckButton" class="primary-button" type="button">Check puzzle</button>
-      </div>
+      <section id="sudokuPlayPanel" class="training-play-panel-v314o sudoku-play-panel-v314o" data-training-play-panel>
+        <div id="sudokuResult" class="training-result-v314o hidden" aria-live="polite"></div>
+        <div id="sudokuBoard" class="sudoku-board-v310"></div>
+        <p id="sudokuStatus" class="sudoku-status-v310" aria-live="polite"></p>
+        <div class="dialog-actions sudoku-actions-v314">
+          <button id="sudokuClearButton" class="secondary-button" type="button">Clear my entries</button>
+          <button id="sudokuCheckButton" class="primary-button" type="button">Check puzzle</button>
+        </div>
+      </section>
     </div>
   </dialog>
+
+  <!-- TRAINING FOCUS VIEW · full-page distraction-free activity surface -->
+  <section id="trainingFocusView" class="training-focus-view-v314o hidden" aria-hidden="true">
+    <header class="training-focus-header-v314o">
+      <button id="trainingFocusBack" class="training-focus-back-v314o" type="button" aria-label="Back to training selection">← Back</button>
+      <div class="training-focus-heading-v314o"><small>TRAINING GROUNDS</small><strong id="trainingFocusTitle">Training</strong><span id="trainingFocusSubtitle"></span></div>
+      <span class="training-focus-mark-v314o" aria-hidden="true">✦</span>
+    </header>
+    <main id="trainingFocusMount" class="training-focus-mount-v314o"></main>
+  </section>
 
   <!-- PROJECT MEMORY -->
   <dialog id="adventureWorkspaceDialog" class="rpg-dialog adventure-workspace-dialog-v310"><form id="adventureWorkspaceForm" class="rpg-dialog-form"><input id="adventureWorkspaceId" type="hidden"/><div class="dialog-heading"><div><p class="eyebrow">PROJECT MEMORY</p><h2 id="adventureWorkspaceTitle">Adventure</h2></div><button id="adventureWorkspaceClose" class="close-button" type="button">×</button></div><label>Project notes<textarea id="adventureWorkspaceNotes" rows="4" maxlength="5000" placeholder="Anything future-you should remember…"></textarea></label><section><h3>References</h3><div class="workspace-capture-row-v310"><input id="adventureWorkspaceLinkInput" type="url" placeholder="Paste a link…"/><button id="adventureWorkspaceLinkAdd" class="secondary-button" type="button">＋ Add</button></div><div id="adventureWorkspaceReferences" class="workspace-reference-list-v310"></div></section><section><h3>Materials</h3><div class="workspace-capture-row-v310"><input id="adventureWorkspaceMaterialInput" maxlength="160" placeholder="Add material…"/><button id="adventureWorkspaceMaterialAdd" class="secondary-button" type="button">＋ Add</button></div><div id="adventureWorkspaceMaterials"></div></section><section><h3>Decisions</h3><div id="adventureWorkspaceDecisions"></div></section><section><h3>Images</h3><div id="adventureWorkspaceImages" class="workspace-gallery-v310"></div></section><section><h3>Step notes</h3><div id="adventureWorkspaceStepNotes"></div></section><menu><button class="primary-button" type="submit">Save project memory</button></menu></form></dialog>
@@ -3046,6 +3063,7 @@ League of Legends — PC" required></textarea></label>
   <script src="data/quests.js?v=0.31.4h"></script>
   <script src="story-engine.js?v=0.30.3a"></script>
   <script src="modal-manager.js?v=0.31.4d"></script>
+  <script src="training-focus.js?v=0.31.4o"></script>
   <script src="visual-performance.js?v=0.31.4c"></script>
   <script src="app.js?v=0.31.4c"></script>
   <script src="stewardship.js?v=0.31.3a"></script>
@@ -3058,13 +3076,13 @@ League of Legends — PC" required></textarea></label>
   <script src="universal-timers.js?v=0.31.1"></script>
   <script src="inspirations.js?v=0.31.4c"></script>
   <script src="data/sudoku-levels.js?v=0.31.4h"></script>
-  <script src="sudoku.js?v=0.31.4h"></script>
+  <script src="sudoku.js?v=0.31.4o"></script>
   <script src="data/nonogram-levels.js?v=0.31.4k"></script>
-  <script src="nonogram.js?v=0.31.4k"></script>
+  <script src="nonogram.js?v=0.31.4o"></script>
   <script src="data/number-sense-levels.js?v=0.31.4l"></script>
-  <script src="number-sense.js?v=0.31.4l"></script>
-  <script src="recovery-studio.js?v=0.31.4m"></script>
-  <script src="memory-garden.js?v=0.31.4n"></script>
+  <script src="number-sense.js?v=0.31.4o"></script>
+  <script src="recovery-studio.js?v=0.31.4o"></script>
+  <script src="memory-garden.js?v=0.31.4o"></script>
   <script src="smart-quests.js?v=0.31.0"></script>
   <script src="daily.js?v=0.31.4c"></script>
   <script src="journal.js?v=0.31.4c"></script>
@@ -3075,6 +3093,6 @@ League of Legends — PC" required></textarea></label>
   <script src="kotoba-integration.js?v=0.31.4k"></script>
   <script src="kotoba-quick-training.js?v=0.31.4k"></script>
   <script type="module" src="cloud-save.js?v=0.31.0"></script>
-  <script src="pwa.js?v=0.31.4n"></script>
+  <script src="pwa.js?v=0.31.4o"></script>
 </body>
 </html>

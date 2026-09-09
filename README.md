@@ -1,6 +1,6 @@
-# Life RPG — V0.31.4n Memory Garden
+# Life RPG — V0.31.4o Training Grounds Focus & UX Polish
 
-This build adds a directly playable Recovery Studio to Training Grounds. It includes paced 5-minute breathing, box breathing, a 10-minute body scan, a 15-minute quiet lie-down, and a 7-minute gentle neck/shoulder release. Sessions use the existing Life Rhythm timer so exact elapsed time is logged; a completion reward is only granted after the listed minimum is genuinely reached. Health-aware recommendations use the existing Daily Check-in context and never shorten recovery because the day is rough. Recovery Studio rewards Recovery Realm XP, Wellbeing capability XP, Character XP, Story Energy and Coins with same-day diminishing returns and a coin cap.
+This build turns active Training Grounds exercises into focused play surfaces rather than keeping the exercise itself inside a selection modal. Sudoku and Nonogram now show clear in-context validation/completion/reward feedback, Number Sense supports keyboard-first progression plus non-rewarding fluency timing, Memory Garden reliably shows every preview before recall, and Recovery Studio uses a dedicated calm focus surface with rebalanced Body Scan / Neck & Shoulder stage timings. Existing rewards, saves and Journey progress are preserved.
 
 # Life RPG — V0.2
 
@@ -232,3 +232,19 @@ GitHub Pages will then update automatically after the new commit is deployed.
 - Health-aware copy keeps Memory Garden optional on illness/very-low-energy days and points toward Recovery Studio instead of pushing cognitive training.
 - Activity & Reward History now recognizes Memory Garden completion entries explicitly.
 
+
+
+## V0.31.4m · Recovery Studio
+- Added directly playable Recovery Studio sessions to Training Grounds: 5-Minute Breathing, Box Breathing, 10-Minute Body Scan, 15-Minute Lie Down / Quiet Rest, and Gentle Neck & Shoulder Release.
+- Sessions use the existing Life Rhythm timer, log actual elapsed time, and require the full listed minimum before completion rewards are granted.
+- Health-aware recommendations favor gentler/passive recovery when illness, symptoms, low energy or poor sleep are present; recovery duration is never shortened merely because the day is rough.
+- Recovery completion grants Character XP, Recovery Realm XP, Wellbeing capability XP, Story Energy and Coins with same-day diminishing returns / anti-farming protection.
+
+
+## V0.31.4o · Training Grounds Focus & UX Polish
+- Added a reusable full-screen **Training Focus** surface. Selection / Journey controls can stay in their dialogs, but once an activity begins the play area moves into a distraction-free dedicated view with its own Back control and no background interaction.
+- Sudoku and Nonogram now give local Check Puzzle feedback and a clear solved-state card with exact credited rewards plus Next Level / Back to Journey actions.
+- Fixed Number Sense progression after a correct answer, added Enter-to-submit / Enter-to-continue keyboard flow, and added a gentle per-question response-time / personal pace display. Timing is feedback only and never changes XP, Coins or Story Energy.
+- Fixed Memory Garden previews being normalized away before recall. Spatial, Sequence, Pattern and Working Memory now reliably show their stimulus phase before the recall phase, including after reload/re-entry.
+- Recovery Studio now starts inside the calm dark focus surface. Body Scan and Gentle Neck & Shoulder Release spend only about 10 seconds on arrival/setup and redistribute the remaining time toward the actual guided stages. Five-Minute Breathing remains a comfortable 4-second inhale / 6-second exhale pattern with explicit permission to breathe normally if that rhythm does not feel comfortable; Box Breathing remains 4-4-4-4.
+- Preserved save compatibility, reward idempotency, Activity & Reward Ledger entries, PWA behavior and existing Journey progress.

@@ -15503,3 +15503,203 @@ button.training-card-v314k{cursor:pointer}.training-card-v314k.is-live:hover{tra
   .memory-pattern-choices-v314n button .memory-pattern-grid-v314n { width: min(180px, 50vw); }
   .memory-play-heading-v314n { flex-direction: column; gap: 6px; }
 }
+
+/* ========================================================================== 
+   V0.31.4o · Training Grounds Focus Mode
+   Selection stays modal; the actual exercise runs on a distraction-free page.
+   ========================================================================== */
+body.training-focus-active-v314o {
+  overflow: hidden !important;
+  overscroll-behavior: none;
+}
+body.training-focus-active-v314o > *:not(#trainingFocusView):not(.toast):not(.achievement-toast-v21) {
+  /* The focused surface is the only interactive layer while training. */
+}
+
+.training-focus-view-v314o {
+  position: fixed;
+  inset: 0;
+  z-index: 12000;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  background:
+    radial-gradient(circle at 12% 0%, rgba(225, 180, 198, .19), transparent 28rem),
+    linear-gradient(180deg, #fffaf7 0%, #f8eef2 100%);
+  color: #3e2938;
+}
+.training-focus-view-v314o.hidden { display: none !important; }
+.training-focus-header-v314o {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: center;
+  min-height: 76px;
+  padding: max(14px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) 14px max(20px, env(safe-area-inset-left));
+  border-bottom: 1px solid rgba(76,41,75,.11);
+  background: rgba(255,250,247,.9);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 5px 20px rgba(76,41,75,.045);
+}
+.training-focus-back-v314o {
+  appearance: none;
+  border: 1px solid rgba(76,41,75,.14);
+  border-radius: 999px;
+  background: rgba(255,255,255,.82);
+  color: #56324b;
+  padding: 10px 14px;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+.training-focus-back-v314o:hover,
+.training-focus-back-v314o:focus-visible { border-color: rgba(109,58,91,.38); outline: 2px solid rgba(176,98,137,.18); }
+.training-focus-heading-v314o { min-width: 0; text-align: center; }
+.training-focus-heading-v314o small { display:block; color:#9b7086; font-size:.66rem; font-weight:900; letter-spacing:.13em; }
+.training-focus-heading-v314o strong { display:block; margin-top:2px; font-family:Georgia,"Times New Roman",serif; font-size:clamp(1.15rem,2.6vw,1.55rem); color:#46283e; }
+.training-focus-heading-v314o span { display:block; margin-top:2px; color:#7d6875; font-size:.8rem; line-height:1.3; }
+.training-focus-mark-v314o { color:#b77a98; font-size:1.2rem; }
+.training-focus-mount-v314o {
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: clamp(18px, 3vw, 34px) max(18px, env(safe-area-inset-right)) max(28px, calc(22px + env(safe-area-inset-bottom))) max(18px, env(safe-area-inset-left));
+}
+
+/* Activity panels live hidden inside selection dialogs, then are physically
+   moved into the focus page when a session starts. */
+.rpg-dialog [data-training-play-panel] { display: none !important; }
+.training-focus-mount-v314o > [data-training-play-panel] {
+  width: min(1080px, 100%);
+  margin: 0 auto;
+}
+.training-focus-mount-v314o > .sudoku-play-panel-v314o,
+.training-focus-mount-v314o > .nonogram-play-panel-v314o,
+.training-focus-mount-v314o > .number-sense-play-v314l,
+.training-focus-mount-v314o > .memory-play-v314n { display: grid !important; }
+.training-focus-mount-v314o > .recovery-active-v314m:not(.hidden) { display: block !important; }
+
+.sudoku-play-panel-v314o,
+.nonogram-play-panel-v314o {
+  gap: 16px;
+  align-content: start;
+}
+.training-focus-mount-v314o .sudoku-board-v310 {
+  width: min(72vh, 680px, 92vw);
+  margin: 4px auto 0;
+}
+.training-focus-mount-v314o .sudoku-cell-v310 input:focus {
+  position: relative;
+  z-index: 6;
+  background: rgba(245, 232, 239, .72);
+  outline: 2px solid rgba(180, 90, 137, .78);
+  outline-offset: -2px;
+}
+.training-focus-mount-v314o .sudoku-actions-v314,
+.training-focus-mount-v314o .nonogram-play-panel-v314o > .dialog-actions {
+  justify-content: center;
+  padding-bottom: 4px;
+}
+.training-focus-mount-v314o .nonogram-board-v314k {
+  --cell: min(5.8vh, 52px);
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 12px;
+}
+
+.training-result-v314o {
+  width: min(760px, 100%);
+  margin: 0 auto;
+  padding: 18px 20px;
+  border: 1px solid rgba(92,46,78,.15);
+  border-radius: 20px;
+  background: linear-gradient(135deg, #fffdf9, #f4e5ec);
+  box-shadow: 0 10px 28px rgba(76,41,75,.07);
+  text-align: center;
+}
+.training-result-v314o.is-success { border-color: rgba(93,122,91,.25); background: linear-gradient(135deg,#fbfff8,#eef7ed); }
+.training-result-v314o.is-error { border-color: rgba(158,82,82,.25); background: linear-gradient(135deg,#fffafa,#f9e9ea); }
+.training-result-v314o > span { display:block; font-size:2rem; line-height:1; }
+.training-result-v314o > strong { display:block; margin-top:7px; color:#42283a; font-size:1.15rem; }
+.training-result-v314o > p { margin:6px auto 0; max-width:620px; color:#725d69; line-height:1.45; }
+.training-result-rewards-v314o { display:flex; flex-wrap:wrap; justify-content:center; gap:7px; margin-top:12px; }
+.training-result-rewards-v314o span { padding:6px 9px; border-radius:999px; background:rgba(255,255,255,.78); color:#694258; font-size:.78rem; font-weight:800; }
+.training-result-actions-v314o { display:flex; flex-wrap:wrap; justify-content:center; gap:8px; margin-top:14px; }
+
+/* Number Sense fluency is observed, not monetized. */
+.number-sense-pace-v314o {
+  min-height: 34px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:8px 11px;
+  border-radius:12px;
+  background:rgba(246,235,240,.68);
+  color:#745a6a;
+  font-size:.78rem;
+}
+.number-sense-pace-v314o strong { color:#5c3650; }
+.number-sense-pace-v314o .pace-live-v314o { font-variant-numeric:tabular-nums; }
+.training-focus-mount-v314o .number-sense-play-v314l,
+.training-focus-mount-v314o .memory-play-v314n {
+  width:min(880px,100%);
+  padding:clamp(18px,3vw,28px);
+  background:rgba(255,252,248,.96);
+  box-shadow:0 18px 50px rgba(76,41,75,.08);
+}
+.training-focus-mount-v314o .number-sense-question-card-v314l { min-height:190px; }
+.training-focus-mount-v314o .memory-stage-v314n { min-height:min(54vh,520px); }
+
+/* Recovery is intentionally darker and quieter than the other training pages. */
+.training-focus-view-v314o[data-tone="dark"] {
+  background:
+    radial-gradient(circle at 50% 20%, rgba(116,72,102,.24), transparent 34rem),
+    linear-gradient(180deg,#251923,#171116);
+}
+.training-focus-view-v314o[data-tone="dark"] .training-focus-header-v314o {
+  border-color:rgba(255,255,255,.08);
+  background:rgba(31,21,29,.88);
+}
+.training-focus-view-v314o[data-tone="dark"] .training-focus-back-v314o {
+  border-color:rgba(255,255,255,.12);
+  background:rgba(255,255,255,.07);
+  color:#f7eaf0;
+}
+.training-focus-view-v314o[data-tone="dark"] .training-focus-heading-v314o small,
+.training-focus-view-v314o[data-tone="dark"] .training-focus-heading-v314o span { color:#d2adbf; }
+.training-focus-view-v314o[data-tone="dark"] .training-focus-heading-v314o strong { color:#fff7fa; }
+.training-focus-view-v314o[data-tone="dark"] .training-focus-mark-v314o { color:#d2a1b9; }
+.training-focus-mount-v314o > .recovery-active-v314m {
+  width:min(900px,100%);
+  min-height:min(70vh,700px);
+  margin:0 auto;
+  padding:clamp(22px,4vw,42px);
+  display:grid !important;
+  align-content:center;
+  gap:22px;
+  border-radius:28px;
+  background:linear-gradient(145deg,rgba(58,33,56,.96),rgba(76,42,63,.94));
+  box-shadow:0 25px 80px rgba(0,0,0,.24);
+}
+.training-focus-mount-v314o .recovery-guide-v314m { min-height:300px; grid-template-columns:minmax(180px,250px) minmax(0,1fr); }
+.training-focus-mount-v314o .recovery-breath-visual-v314m { width:210px; height:210px; }
+.training-focus-mount-v314o .recovery-guide-copy-v314m strong { font-size:clamp(1.2rem,3vw,1.55rem); }
+
+@media (max-width: 720px) {
+  .training-focus-header-v314o { grid-template-columns:auto minmax(0,1fr); min-height:68px; gap:10px; }
+  .training-focus-mark-v314o { display:none; }
+  .training-focus-back-v314o { padding:9px 11px; font-size:.84rem; }
+  .training-focus-heading-v314o { text-align:left; }
+  .training-focus-heading-v314o span { font-size:.72rem; }
+  .training-focus-mount-v314o { padding:14px 10px max(22px,calc(14px + env(safe-area-inset-bottom))); }
+  .training-focus-mount-v314o .sudoku-board-v310 { width:min(92vw,560px); }
+  .training-focus-mount-v314o .nonogram-board-v314k { --cell:min(8.2vw,40px); justify-content:center; padding-inline:0; }
+  .training-focus-mount-v314o > .number-sense-play-v314l,
+  .training-focus-mount-v314o > .memory-play-v314n { border-radius:18px; padding:15px; }
+  .training-focus-mount-v314o > .recovery-active-v314m { min-height:calc(100dvh - 110px); border-radius:20px; padding:18px; }
+  .training-focus-mount-v314o .recovery-guide-v314m { grid-template-columns:1fr; min-height:0; }
+  .training-focus-mount-v314o .recovery-breath-visual-v314m { width:150px; height:150px; }
+  .training-result-actions-v314o > button { flex:1 1 100%; }
+}

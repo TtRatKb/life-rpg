@@ -4,7 +4,7 @@
   const app = window.LifeRPGApp;
   if (!app?.getState || !app?.awardActivity) return;
 
-  const VERSION = "0.31.4n";
+  const VERSION = "0.31.4o";
   const SCHEMA = 1;
   const TOTAL = 50;
   const ROUNDS_PER_LEVEL = 3;
@@ -41,6 +41,7 @@
     progress: byId("memoryGardenJourneyProgress"),
     bloom: byId("memoryGardenBloomStrip"),
     levels: byId("memoryGardenLevelGrid"),
+    play: byId("memoryGardenPlayPanel"),
     meta: byId("memoryGardenTrialMeta"),
     round: byId("memoryGardenRoundProgress"),
     stage: byId("memoryGardenStage"),
@@ -54,6 +55,7 @@
 
   let previewTimer = null;
   let sequenceTimers = [];
+  let initialHydration = true;
 
   init();
 
@@ -88,14 +90,15 @@
     if (!s.stats || typeof s.stats !== "object") s.stats = defaults().stats;
     s.completed = Array.isArray(s.completed) ? s.completed.slice(-300) : [];
     s.journey.completedLevels = [...new Set((s.journey.completedLevels || []).map(Number).filter(level => level >= 1 && level <= TOTAL))].sort((a, b) => a - b);
-    s.journey.active = normalizeActive(s.journey.active);
+    s.journey.active = normalizeActive(s.journey.active, initialHydration);
+    initialHydration = false;
     ["levelsSolved", "roundsSolved", "attempts", "firstTryCorrect"].forEach(key => s.stats[key] = Math.max(0, Number(s.stats[key] || 0)));
     if (!s.stats.modeCompletions || typeof s.stats.modeCompletions !== "object") s.stats.modeCompletions = defaults().stats.modeCompletions;
     MODES.forEach(mode => s.stats.modeCompletions[mode] = Math.max(0, Number(s.stats.modeCompletions[mode] || 0)));
     return s;
   }
 
-  function normalizeActive(active) {
+  function normalizeActive(active, resetInterruptedPreview = false) {
     if (!active || typeof active !== "object") return null;
     const level = Number(active.level || 0);
     if (level < 1 || level > TOTAL) return null;
@@ -103,7 +106,7 @@
     let phase = ["ready", "preview", "recall", "interference", "feedback"].includes(active.phase) ? active.phase : "ready";
     // Preview timers are intentionally restarted after a reload; the user should never lose a round
     // because the page was closed halfway through the brief exposure.
-    if (phase === "preview") phase = "ready";
+    if (phase === "preview" && resetInterruptedPreview) phase = "ready";
     return {
       ...active,
       id: String(active.id || `memory-garden-l${level}`),
@@ -159,6 +162,9 @@
         return;
       }
 
+      const returnButton = event.target.closest?.("[data-memory-return]");
+      if (returnButton) { event.preventDefault(); window.LifeRPGTrainingFocus?.exit?.({ reopen: false }); openDialog(); return; }
+
       const startRoundButton = event.target.closest?.("[data-memory-start-round]");
       if (startRoundButton) { event.preventDefault(); beginRound(); return; }
 
@@ -200,6 +206,12 @@
     level = Number(level);
     const allowed = level === 1 || completedSet().has(level) || completedSet().has(level - 1);
     if (!allowed || level < 1 || level > TOTAL) return;
+    const existing = current();
+    if (existing && !existing.completedAt && existing.level === level && Boolean(existing.replay) === Boolean(replay)) {
+      render();
+      enterFocus(existing);
+      return;
+    }
     clearPreviewTimers();
     state().journey.active = {
       id: `memory-garden-l${level}${replay ? "-replay" : ""}`,
@@ -220,7 +232,7 @@
       rewardEventId: null
     };
     persist("memory-garden-start");
-    openDialog();
+    enterFocus(current());
   }
 
   function resetCurrentRound() {
@@ -373,16 +385,20 @@
   }
 
   function submitRound(correct, detail = {}) {
-    const active = current();
+    // Keep one normalized root object for the whole mutation. Calling state()
+    // repeatedly used to replace the normalized active object underneath us,
+    // which could make the feedback mutation disappear.
+    const s = state();
+    const active = s.journey.active;
     if (!active || !["recall", "interference"].includes(active.phase)) return;
     const firstTry = active.attemptsThisRound === 0;
     active.attemptsThisRound += 1;
     active.attemptsByRound[active.roundIndex] = active.attemptsThisRound;
     if (active.firstTryByRound[active.roundIndex] === null) active.firstTryByRound[active.roundIndex] = correct && active.attemptsThisRound === 1;
-    state().stats.attempts += 1;
+    s.stats.attempts += 1;
     if (correct) {
-      state().stats.roundsSolved += 1;
-      if (firstTry) state().stats.firstTryCorrect += 1;
+      s.stats.roundsSolved += 1;
+      if (firstTry) s.stats.firstTryCorrect += 1;
       active.lastCorrect = true;
       active.phase = "feedback";
     } else {
@@ -395,32 +411,34 @@
   }
 
   function completeLevel() {
-    const active = current();
+    // Same one-root rule as submitRound(): keep the active object live while
+    // completing the level so the completion cannot vanish after normalize().
+    const s = state();
+    const active = s.journey.active;
     if (!active || active.completedAt || !active.lastCorrect) return;
     const level = active.level;
     const mode = active.mode;
-    const alreadyCompleted = completedSet().has(level);
+    const alreadyCompleted = new Set(s.journey.completedLevels).has(level);
     let reward = { xp: 0, realmXP: 0, statXP: 0, coins: 0, storyEnergy: 0, eventId: null };
 
     if (!alreadyCompleted && !active.replay) {
       reward = awardLevel(active);
-      state().journey.completedLevels.push(level);
-      state().journey.completedLevels = [...new Set(state().journey.completedLevels)].sort((a, b) => a - b);
-      state().stats.levelsSolved += 1;
-      state().stats.modeCompletions[mode] += 1;
+      s.journey.completedLevels = [...new Set([...s.journey.completedLevels, level])].sort((a, b) => a - b);
+      s.stats.levelsSolved += 1;
+      s.stats.modeCompletions[mode] += 1;
     }
 
     active.completedAt = Date.now();
     active.rewardEventId = reward.eventId || active.rewardEventId || null;
-    state().completed.push({
+    s.completed.push({
       level,
       mode,
       replay: alreadyCompleted || active.replay,
       at: new Date().toISOString(),
-      attempts: active.attemptsThisRound,
+      attempts: Math.max(ROUNDS_PER_LEVEL, active.attemptsByRound.reduce((sum, value) => sum + Number(value || 0), 0)),
       rewardEventId: reward.eventId || null
     });
-    state().completed = state().completed.slice(-300);
+    s.completed = s.completed.slice(-300);
     persist("memory-garden-complete");
 
     const next = nextLevel();
@@ -435,7 +453,9 @@
 
     const meta = TIERS[tier(active.level)];
     const scale = REPEAT_SCALES[Math.min(todayCompletionCount(), REPEAT_SCALES.length - 1)];
-    const totalAttempts = roundAttemptEstimate(active.level);
+    const totalAttempts = Math.max(ROUNDS_PER_LEVEL, active.attemptsByRound.reduce((sum, value) => sum + Number(value || 0), 0));
+    const answeredFirstTry = active.firstTryByRound.filter(value => value !== null);
+    const firstTryAccuracy = answeredFirstTry.length ? Math.round(answeredFirstTry.filter(Boolean).length / answeredFirstTry.length * 100) : null;
     return app.awardActivity({
       source: "memory-garden-complete",
       sourceId,
@@ -455,7 +475,7 @@
         tier: tier(active.level),
         rounds: ROUNDS_PER_LEVEL,
         attempts: totalAttempts,
-        firstTryAccuracy: levelFirstTryAccuracy(active.level),
+        firstTryAccuracy,
         repeatScale: scale,
         speedReward: false,
         exposureTimingOnly: true
@@ -470,6 +490,24 @@
     renderBloom();
     renderLevels();
     renderTrial();
+    syncFocusHeader();
+  }
+
+  function enterFocus(active = current()) {
+    if (!active || !els.play || !window.LifeRPGTrainingFocus?.enter) return false;
+    if (els.dialog?.open) els.dialog.close();
+    const meta = MODE_META[active.mode];
+    return window.LifeRPGTrainingFocus.enter({
+      id: "memory-garden", node: els.play, title: `Memory Garden · Level ${active.level}`, subtitle: `${meta.label} · Round ${active.roundIndex + 1}/${ROUNDS_PER_LEVEL}`, tone: "light",
+      onExit: () => { clearPreviewTimers(); if (current()?.phase === "preview") { current().phase = "ready"; app.saveState({ source: "memory-garden-focus-exit" }); } render(); if (els.dialog && !els.dialog.open) els.dialog.showModal(); }
+    });
+  }
+
+  function syncFocusHeader() {
+    const active = current();
+    if (!active || !window.LifeRPGTrainingFocus?.isActive?.("memory-garden")) return;
+    const meta = MODE_META[active.mode];
+    window.LifeRPGTrainingFocus.update({ title: `Memory Garden · Level ${active.level}`, subtitle: active.completedAt ? "Level complete ✓" : `${meta.label} · Round ${active.roundIndex + 1}/${ROUNDS_PER_LEVEL}` });
   }
 
   function renderGrowth() {
@@ -555,8 +593,10 @@
     if (els.round) els.round.textContent = `Round ${active.roundIndex + 1} / ${ROUNDS_PER_LEVEL}`;
 
     if (active.completedAt) {
-      els.stage.innerHTML = `<div class="memory-complete-v314n"><span>🌸</span><strong>Level ${active.level} complete.</strong><p>${active.replay ? "Replay finished — no duplicate first-completion reward." : nextLevel() ? `Level ${nextLevel()} is now unlocked.` : "Chapter 1 is complete."}</p></div>`;
-      els.actions.innerHTML = nextLevel() ? `<button class="primary-button" data-memory-garden-level="${nextLevel()}" type="button">Start Level ${nextLevel()}</button>` : `<button class="secondary-button" data-memory-garden-level="${active.level}" type="button">Replay this level</button>`;
+      const event = active.rewardEventId ? (app.getState().rewardLedger?.events || []).find(item => item?.id === active.rewardEventId) : null;
+      const rewards = event ? `<div class="training-result-rewards-v314o"><span>+${Number(event.xp || 0)} XP</span><span>+${Number(event.realmXP || 0)} Knowledge XP</span><span>+${Number(event.statXP || 0)} Memory XP</span><span>+${app.formatEnergy?.(Number(event.storyEnergy || 0)) ?? Number(event.storyEnergy || 0)} Story Energy</span><span>+${Number(event.coins || 0)} Coins</span></div>` : "";
+      els.stage.innerHTML = `<div class="memory-complete-v314n training-result-v314o is-success"><span>🌸</span><strong>Level ${active.level} complete.</strong><p>${active.replay ? "Replay finished — no duplicate first-completion reward." : nextLevel() ? `Your rewards are saved and Level ${nextLevel()} is now unlocked.` : "Your rewards are saved. Chapter 1 is complete."}</p>${rewards}</div>`;
+      els.actions.innerHTML = `${nextLevel() ? `<button class="primary-button" data-memory-garden-level="${nextLevel()}" type="button">Start Level ${nextLevel()}</button>` : `<button class="secondary-button" data-memory-garden-level="${active.level}" type="button">Replay this level</button>`}<button class="secondary-button" data-memory-return type="button">Back to Memory Garden</button>`;
       if (els.status) els.status.textContent = "Memory training is rewarded for completion and practice, never for rushing.";
       return;
     }

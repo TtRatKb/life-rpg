@@ -5,7 +5,7 @@
   const LEVELS = Array.isArray(window.LIFE_RPG_NUMBER_SENSE_LEVELS) ? window.LIFE_RPG_NUMBER_SENSE_LEVELS : [];
   if (!app?.getState || !app?.awardActivity || !LEVELS.length) return;
 
-  const VERSION = "0.31.4l";
+  const VERSION = "0.31.4o";
   const SCHEMA = 1;
   const TOTAL = 50;
   const REPEAT_SCALES = [1, 0.75, 0.5, 0.35];
@@ -23,8 +23,10 @@
     daily: byId("numberSenseDailyCard"),
     progress: byId("numberSenseJourneyProgress"),
     levels: byId("numberSenseLevelGrid"),
+    play: byId("numberSensePlayPanel"),
     lessonMeta: byId("numberSenseLessonMeta"),
     questionProgress: byId("numberSenseQuestionProgress"),
+    pace: byId("numberSensePace"),
     card: byId("numberSenseQuestionCard"),
     feedback: byId("numberSenseFeedback"),
     form: byId("numberSenseAnswerForm"),
@@ -40,6 +42,12 @@
   };
 
   init();
+  window.setInterval(() => {
+    const active = current();
+    if (!active || active.completedAt || active.answerLocked || !window.LifeRPGTrainingFocus?.isActive?.("number-sense")) return;
+    const question = levelDef(active.level)?.questions?.[active.questionIndex];
+    if (question) renderPace(active, question);
+  }, 250);
 
   function init() {
     ensureState();
@@ -52,7 +60,7 @@
     return {
       schemaVersion: SCHEMA,
       journey: { completedLevels: [], active: null },
-      stats: { levelsSolved: 0, questionsSolved: 0, attempts: 0, firstTryCorrect: 0 },
+      stats: { levelsSolved: 0, questionsSolved: 0, attempts: 0, firstTryCorrect: 0, timedQuestions: 0, totalResponseMs: 0 },
       completed: []
     };
   }
@@ -67,7 +75,7 @@
     s.completed = Array.isArray(s.completed) ? s.completed.slice(-300) : [];
     s.journey.completedLevels = [...new Set((s.journey.completedLevels || []).map(Number).filter(level => level >= 1 && level <= TOTAL))].sort((a, b) => a - b);
     s.journey.active = normalizeActive(s.journey.active);
-    ["levelsSolved", "questionsSolved", "attempts", "firstTryCorrect"].forEach(key => s.stats[key] = Math.max(0, Number(s.stats[key] || 0)));
+    ["levelsSolved", "questionsSolved", "attempts", "firstTryCorrect", "timedQuestions", "totalResponseMs"].forEach(key => s.stats[key] = Math.max(0, Number(s.stats[key] || 0)));
     return s;
   }
 
@@ -92,6 +100,8 @@
       questionIndex: Math.max(0, Math.min(questionCount - 1, Number(active.questionIndex || 0))),
       attemptsByQuestion,
       solvedQuestions,
+      responseTimesMs: Array.from({ length: questionCount }, (_, index) => Math.max(0, Number(active.responseTimesMs?.[index] || 0))),
+      questionStartedAt: Number(active.questionStartedAt || Date.now()),
       replay: Boolean(active.replay),
       answerLocked: Boolean(active.answerLocked),
       lastCorrect: active.lastCorrect === true,
@@ -114,8 +124,15 @@
       event.preventDefault();
       submitCurrentAnswer();
     });
-    els.next?.addEventListener("click", nextQuestion);
+    els.next?.addEventListener("click", event => { event.preventDefault(); event.stopPropagation(); nextQuestion(); });
     els.hint?.addEventListener("click", showHint);
+    document.addEventListener("keydown", event => {
+      if (event.key !== "Enter" || !window.LifeRPGTrainingFocus?.isActive?.("number-sense")) return;
+      const active = current();
+      if (!active || active.completedAt) return;
+      if (active.answerLocked) { event.preventDefault(); nextQuestion(); return; }
+      if (document.activeElement === els.input && !els.form?.classList.contains("hidden")) { event.preventDefault(); submitCurrentAnswer(); }
+    });
 
     document.addEventListener("click", event => {
       const open = event.target.closest?.("[data-number-sense-open]");
@@ -129,6 +146,8 @@
         if (value && !level.disabled) startLevel(value, { replay: completedSet().has(value) });
         return;
       }
+      const returnButton = event.target.closest?.("[data-number-sense-return]");
+      if (returnButton) { event.preventDefault(); window.LifeRPGTrainingFocus?.exit?.({ reopen: false }); openDialog(); return; }
       const choice = event.target.closest?.("[data-number-sense-choice]");
       if (choice) {
         event.preventDefault();
@@ -153,12 +172,20 @@
     if (!def) return;
     const allowed = level <= 1 || completedSet().has(level) || completedSet().has(level - 1);
     if (!allowed) return;
+    const existing = current();
+    if (existing && !existing.completedAt && existing.level === level && Boolean(existing.replay) === Boolean(replay)) {
+      render();
+      enterFocus(existing);
+      return;
+    }
     state().journey.active = {
       id: `number-sense-l${level}${replay ? "-replay" : ""}`,
       level,
       questionIndex: 0,
       attemptsByQuestion: Array(def.questions.length).fill(0),
       solvedQuestions: Array(def.questions.length).fill(false),
+      responseTimesMs: Array(def.questions.length).fill(0),
+      questionStartedAt: Date.now(),
       replay: Boolean(replay),
       answerLocked: false,
       lastCorrect: false,
@@ -168,7 +195,7 @@
       rewardEventId: null
     };
     persist("number-sense-start");
-    openDialog();
+    enterFocus(current());
   }
 
   function render() {
@@ -177,6 +204,7 @@
     renderProgress();
     renderLevels();
     renderQuestion();
+    syncFocusHeader();
   }
 
   function renderGrowth() {
@@ -228,6 +256,7 @@
     if (!active) {
       if (els.lessonMeta) els.lessonMeta.innerHTML = `<strong>Chapter 1 · Levels 1–50</strong><span>Six short questions per level. Learn the strategy, not just the answer.</span>`;
       if (els.questionProgress) els.questionProgress.innerHTML = `<span>Ready when you are</span><span>0 / 6</span>`;
+      if (els.pace) els.pace.innerHTML = `<span>Fluency timing appears while you solve.</span><strong>No speed rewards.</strong>`;
       if (els.card) els.card.innerHTML = `<div class="number-sense-empty-v314l"><span>🔢</span><strong>Your next mental-math level is waiting.</strong><p>No timer, no speed bonus. Work mentally, learn the shortcut, and let fluency build over time.</p><button class="primary-button" type="button" data-number-sense-daily-start>Start Level ${nextLevel() || TOTAL}</button></div>`;
       hideAnswerUi();
       updateStatus("Choose your next Journey level to begin.");
@@ -235,6 +264,19 @@
     }
 
     const def = levelDef(active.level);
+    if (active.completedAt) {
+      const event = active.rewardEventId ? (app.getState().rewardLedger?.events || []).find(item => item?.id === active.rewardEventId) : null;
+      const next = nextLevel();
+      const avg = active.responseTimesMs?.filter(Boolean) || [];
+      const avgSec = avg.length ? avg.reduce((sum, ms) => sum + ms, 0) / avg.length / 1000 : 0;
+      if (els.lessonMeta) els.lessonMeta.innerHTML = `<strong>Level ${active.level} complete ✓</strong><span>${escapeHtml(def.title)}</span>`;
+      if (els.questionProgress) els.questionProgress.innerHTML = `<span>All ${def.questions.length} questions solved</span><span>${active.replay ? "Replay" : "Journey"}</span>`;
+      if (els.pace) els.pace.innerHTML = `<span>Average response pace</span><strong>${avgSec ? `${avgSec.toFixed(1)}s` : "—"} · feedback only</strong>`;
+      if (els.card) els.card.innerHTML = `<div class="number-sense-empty-v314l"><span>✓</span><strong>Level ${active.level} complete.</strong><p>${active.replay || !event ? "Replay complete — no duplicate reward." : next ? `Your rewards are saved and Level ${next} is unlocked.` : "Chapter 1 is complete."}</p>${event ? `<div class="training-result-rewards-v314o"><span>+${Number(event.xp||0)} XP</span><span>+${Number(event.realmXP||0)} Knowledge XP</span><span>+${Number(event.statXP||0)} Number Sense XP</span><span>+${app.formatEnergy?.(Number(event.storyEnergy||0)) ?? Number(event.storyEnergy||0)} Story Energy</span><span>+${Number(event.coins||0)} Coins</span></div>` : ""}<div class="training-result-actions-v314o">${next ? `<button class="primary-button" data-number-sense-level="${next}" type="button">Start Level ${next}</button>` : ""}<button class="secondary-button" data-number-sense-return type="button">Back to Number Sense Journey</button></div></div>`;
+      hideAnswerUi();
+      updateStatus("Level complete. Pace is shown only as personal fluency feedback; it never changes rewards.");
+      return;
+    }
     const question = def.questions[active.questionIndex];
     const attempts = Number(active.attemptsByQuestion[active.questionIndex] || 0);
     const solved = Boolean(active.solvedQuestions[active.questionIndex]);
@@ -243,6 +285,7 @@
       const solvedCount = active.solvedQuestions.filter(Boolean).length;
       els.questionProgress.innerHTML = `<span>Question ${active.questionIndex + 1} of ${def.questions.length}</span><span>${solvedCount}/${def.questions.length} solved</span>`;
     }
+    renderPace(active, question);
     if (els.card) {
       els.card.innerHTML = `<small>${TIERS[tier(active.level)].icon} ${TIERS[tier(active.level)].label.toUpperCase()}</small><strong>${escapeHtml(question.prompt)}</strong><p>Do it mentally if you can. Paper is allowed if a later level genuinely needs it — this is training, not a purity test.</p>`;
     }
@@ -285,6 +328,7 @@
   function submitCurrentAnswer() {
     const active = current();
     if (!active || active.completedAt || active.answerLocked) return;
+    const liveState = app.getState().numberSense;
     const def = levelDef(active.level);
     const question = def.questions[active.questionIndex];
     let given;
@@ -298,7 +342,7 @@
 
     const firstAttempt = Number(active.attemptsByQuestion[active.questionIndex] || 0) === 0;
     active.attemptsByQuestion[active.questionIndex] += 1;
-    state().stats.attempts += 1;
+    liveState.stats.attempts += 1;
     const correct = answerIsCorrect(question, given);
     active.updatedAt = Date.now();
 
@@ -315,11 +359,15 @@
       return;
     }
 
+    const responseMs = Math.max(250, Date.now() - Number(active.questionStartedAt || Date.now()));
+    active.responseTimesMs[active.questionIndex] = responseMs;
+    liveState.stats.timedQuestions += 1;
+    liveState.stats.totalResponseMs += responseMs;
     active.solvedQuestions[active.questionIndex] = true;
     active.answerLocked = true;
     active.lastCorrect = true;
-    state().stats.questionsSolved += 1;
-    if (firstAttempt) state().stats.firstTryCorrect += 1;
+    liveState.stats.questionsSolved += 1;
+    if (firstAttempt) liveState.stats.firstTryCorrect += 1;
     app.saveState({ source: "number-sense-question" });
     showSolvedFeedback(question, active.attemptsByQuestion[active.questionIndex]);
   }
@@ -348,11 +396,58 @@
     els.hint?.classList.add("hidden");
     if (els.next) {
       els.next.classList.remove("hidden");
+      els.next.setAttribute("data-number-sense-next", "true");
       const active = current();
       const def = levelDef(active.level);
       els.next.textContent = active.questionIndex >= def.questions.length - 1 ? "Finish level" : "Next question";
     }
-    updateStatus("The strategy matters more than the timer. Notice the shortcut before moving on.");
+    const activeNow = current();
+    const ms = Number(activeNow?.responseTimesMs?.[activeNow.questionIndex] || 0);
+    const target = softTargetSeconds(question, activeNow?.level || 1);
+    updateStatus(ms ? `Correct in ${(ms/1000).toFixed(1)}s · gentle target around ${target.label}. Notice the strategy before moving on; rewards do not depend on speed.` : "Notice the shortcut before moving on. Rewards do not depend on speed.");
+  }
+
+  function enterFocus(active = current()) {
+    if (!active || !els.play || !window.LifeRPGTrainingFocus?.enter) return false;
+    if (els.dialog?.open) els.dialog.close();
+    if (!active.completedAt && !active.answerLocked) active.questionStartedAt = Date.now();
+    app.saveState({ source: "number-sense-focus" });
+    const def = levelDef(active.level);
+    return window.LifeRPGTrainingFocus.enter({
+      id: "number-sense", node: els.play, title: `Number Sense · Level ${active.level}`, subtitle: def?.focus || "Mental math & estimation", tone: "light",
+      onExit: () => { render(); if (els.dialog && !els.dialog.open) els.dialog.showModal(); }
+    });
+  }
+
+  function syncFocusHeader() {
+    const active = current();
+    if (!active || !window.LifeRPGTrainingFocus?.isActive?.("number-sense")) return;
+    const def = levelDef(active.level);
+    window.LifeRPGTrainingFocus.update({ title: `Number Sense · Level ${active.level}`, subtitle: active.completedAt ? "Level complete ✓" : def?.focus || "Mental math & estimation" });
+  }
+
+  function softTargetSeconds(question, level) {
+    const t = tier(level);
+    let seconds = [18, 20, 24, 28, 32][t - 1] || 24;
+    if (question.type === "choice") seconds = Math.max(10, seconds - 5);
+    const prompt = String(question.prompt || "");
+    if (/estimate|closest|approximately|roughly/i.test(prompt)) seconds = Math.max(10, seconds - 3);
+    if (/%|ratio|proportion|increase|decrease/i.test(prompt) && t >= 3) seconds += 4;
+    return { seconds, label: `~${seconds}s` };
+  }
+
+  function renderPace(active, question) {
+    if (!els.pace) return;
+    const ms = Number(active.responseTimesMs?.[active.questionIndex] || 0);
+    const target = softTargetSeconds(question, active.level);
+    if (active.answerLocked && ms) {
+      const sec = ms / 1000;
+      const tone = sec <= target.seconds ? "comfortable fluency" : sec <= target.seconds * 1.75 ? "building fluency" : "take the strategy with you";
+      els.pace.innerHTML = `<span>Response: <strong>${sec.toFixed(1)}s</strong> · ${escapeHtml(tone)}</span><span>Gentle target ${target.label} · no reward effect</span>`;
+      return;
+    }
+    const elapsed = Math.max(0, (Date.now() - Number(active.questionStartedAt || Date.now())) / 1000);
+    els.pace.innerHTML = `<span class="pace-live-v314o">This question: <strong>${elapsed.toFixed(1)}s</strong></span><span>Gentle target ${target.label} · accuracy first</span>`;
   }
 
   function showHint() {
@@ -374,6 +469,7 @@
     }
     active.questionIndex += 1;
     active.answerLocked = false;
+    active.questionStartedAt = Date.now();
     active.lastCorrect = false;
     active.updatedAt = Date.now();
     persist("number-sense-next");
@@ -381,32 +477,35 @@
   }
 
   function completeLevel(active) {
-    const already = completedSet().has(active.level);
-    active.completedAt = Date.now();
-    active.updatedAt = active.completedAt;
-    if (active.replay || already) {
-      const level = active.level;
-      state().completed.push({ id: active.id, level, replay: true, completedAt: active.completedAt, rewardEventId: null });
-      state().journey.active = null;
+    const s = state();
+    const live = s.journey.active;
+    if (!live || live.completedAt || live.level !== active.level) return;
+    const already = new Set(s.journey.completedLevels).has(live.level);
+    live.completedAt = Date.now();
+    live.updatedAt = live.completedAt;
+    if (live.replay || already) {
+      const level = live.level;
+      s.completed.push({ id: live.id, level, replay: true, completedAt: live.completedAt, rewardEventId: null });
+      live.rewardEventId = null;
       persist("number-sense-replay");
       app.showToast?.(`↻ Number Sense Level ${level} replay complete · no duplicate rewards`);
       return;
     }
-    const reward = award(active);
-    state().journey.completedLevels.push(active.level);
-    state().journey.completedLevels = [...new Set(state().journey.completedLevels)].sort((a, b) => a - b);
-    state().stats.levelsSolved += 1;
-    state().completed.push({
-      id: active.id,
-      level: active.level,
+    const reward = award(live);
+    s.journey.completedLevels.push(live.level);
+    s.journey.completedLevels = [...new Set(s.journey.completedLevels)].sort((a, b) => a - b);
+    s.stats.levelsSolved += 1;
+    s.completed.push({
+      id: live.id,
+      level: live.level,
       replay: false,
-      completedAt: active.completedAt,
+      completedAt: live.completedAt,
       rewardEventId: reward.eventId || null,
       reward: { xp: reward.xp, realmXP: reward.realmXP, statXP: reward.statXP, coins: reward.coins, storyEnergy: reward.storyEnergy }
     });
-    state().completed = state().completed.slice(-300);
-    const completedLevel = active.level;
-    state().journey.active = null;
+    s.completed = s.completed.slice(-300);
+    const completedLevel = live.level;
+    live.rewardEventId = reward.eventId || live.rewardEventId || null;
     persist("number-sense-complete");
     const next = nextLevel();
     app.showToast?.(`🔢 Level ${completedLevel} complete · +${reward.xp} XP · +${app.formatEnergy?.(reward.storyEnergy) ?? reward.storyEnergy} 🔥 · +${reward.coins} 🪙${next ? ` · Level ${next} unlocked` : " · Chapter 1 complete!"}`);

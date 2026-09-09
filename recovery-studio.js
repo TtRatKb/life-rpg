@@ -4,7 +4,7 @@
   const app = window.LifeRPGApp;
   if (!app?.getState || !app?.awardActivity) return;
 
-  const VERSION = "0.31.4m";
+  const VERSION = "0.31.4o";
   const SCHEMA = 1;
   const HISTORY_LIMIT = 240;
   const REPEAT_SCALES = [1, 0.7, 0.45, 0.3];
@@ -20,7 +20,7 @@
       subcategory: "Quiet time",
       kind: "breathing",
       intensity: "passive",
-      blurb: "A quiet five-minute reset with a longer exhale. No performance target — just follow the pace as comfortably as you can.",
+      blurb: "A quiet five-minute reset using a gentle 4-second inhale / 6-second exhale rhythm. Follow it only as comfortably as you can; normal breathing is always fine.",
       phases: [
         { key: "inhale", label: "Inhale", seconds: 4, cue: "Breathe in gently." },
         { key: "exhale", label: "Exhale", seconds: 6, cue: "Let the exhale be easy and unforced." }
@@ -56,16 +56,21 @@
       intensity: "passive",
       blurb: "Move your attention through the body without needing to change anything. Comfortable position first; noticing is enough.",
       stages: [
-        ["Arrive", 45, "Get comfortable. Let the surface under you do some of the work."],
-        ["Face & jaw", 55, "Notice your forehead, eyes and jaw. No need to force them to relax."],
-        ["Neck & shoulders", 65, "Notice weight, tension, warmth or nothing in particular."],
-        ["Arms & hands", 60, "Follow attention down both arms into the hands and fingers."],
-        ["Chest & breath", 65, "Notice the breath where it is easiest to feel. Leave it natural."],
-        ["Belly & back", 70, "Notice movement, pressure and contact with the chair, bed or floor."],
-        ["Hips & pelvis", 55, "Let attention settle around the hips and pelvis without judgement."],
-        ["Legs", 70, "Move slowly through thighs, knees, calves and shins."],
-        ["Feet", 55, "Notice heels, soles and toes — temperature, pressure or stillness."],
-        ["Whole body", 60, "Hold the whole body in awareness for a moment. Nothing to accomplish." ]
+        ["Arrive", 10, "Get comfortable. Let the surface under you support your weight."],
+        ["Face & jaw", 40, "Notice forehead, eyes, cheeks and jaw. Nothing needs to change."],
+        ["Neck & shoulders", 40, "Notice weight, contact, tension, warmth or simply neutral sensation."],
+        ["Right arm & hand", 40, "Move attention from upper arm to elbow, forearm, hand and fingers."],
+        ["Left arm & hand", 40, "Move attention from upper arm to elbow, forearm, hand and fingers."],
+        ["Chest", 40, "Notice the chest and ribs. Let breathing stay natural."],
+        ["Belly", 40, "Notice movement, softness, pressure or nothing in particular."],
+        ["Back", 40, "Notice where your back meets the chair, bed or floor."],
+        ["Hips & pelvis", 40, "Let attention rest around the hips and pelvis without judgement."],
+        ["Right thigh & knee", 40, "Notice the right thigh and knee, including any contact with the surface below."],
+        ["Left thigh & knee", 40, "Notice the left thigh and knee, including any contact with the surface below."],
+        ["Right lower leg & foot", 40, "Move through calf, shin, ankle, heel, sole and toes."],
+        ["Left lower leg & foot", 40, "Move through calf, shin, ankle, heel, sole and toes."],
+        ["Whole body", 60, "Hold the whole body in awareness at once for a little while."],
+        ["Finish quietly", 50, "Stay still if you want. Then notice the room again and return at your own pace." ]
       ],
       reward: { xp: 16, realmXP: 16, statXP: 11, story: 0.6, coins: 11 }
     },
@@ -99,13 +104,16 @@
       intensity: "gentle-movement",
       blurb: "A few easy, non-strenuous movements for a stiff desk-day. Keep the range comfortable and stop any movement that hurts.",
       stages: [
-        ["Settle", 45, "Sit or stand comfortably. Let your arms hang without trying to improve your posture."],
-        ["Shoulder rolls", 75, "Make a few slow shoulder circles in each direction. Smaller is completely fine."],
-        ["Shoulder drop", 60, "Gently lift the shoulders toward the ears, then let them drop. Repeat without force."],
-        ["Side look", 75, "Turn your head a little left and right within an easy range. No pushing at the end."],
-        ["Side tilt", 75, "Let one ear drift toward one shoulder, return to centre, then switch sides. Keep both shoulders soft."],
-        ["Upper-back reach", 60, "Reach both hands forward gently and let the upper back widen. Release whenever you want."],
-        ["Finish", 30, "Return to neutral and notice whether anything feels different. Different is enough; better is not required." ]
+        ["Arrive", 10, "Sit or stand comfortably. Let your arms rest and keep every movement easy."],
+        ["Shoulder rolls", 50, "Make a few slow shoulder circles in each direction. Smaller is completely fine."],
+        ["Shoulder lift & drop", 45, "Gently lift the shoulders toward the ears, then let them drop. Repeat without force."],
+        ["Shoulder-blade glide", 45, "Let the shoulders move slightly forward, then return to neutral. Keep the range small and comfortable."],
+        ["Easy head turns", 50, "Turn your head a little left and right within a comfortable range. Do not push at the end."],
+        ["Side tilts", 50, "Let one ear drift slightly toward one shoulder, return to centre, then switch sides."],
+        ["Small chin nods", 45, "Make a few small yes-like nods. Keep them slow and easy."],
+        ["Upper-back reach", 55, "Reach the hands forward gently and let the upper back widen. Release whenever you want."],
+        ["Rest & breathe", 45, "Let the arms rest again and breathe normally for a few moments."],
+        ["Finish", 25, "Return to neutral. Notice how you feel without needing it to be different." ]
       ],
       reward: { xp: 13, realmXP: 13, statXP: 9, story: 0.45, coins: 9 }
     }
@@ -221,8 +229,7 @@
     if (!def) return;
     const currentTime = window.LifeRPGTime?.getActive?.();
     if (state().active && currentTime?.id === state().active.timeActiveId) {
-      app.showToast?.("A Recovery Studio session is already running.");
-      openDialog();
+      enterFocus(state().active);
       return;
     }
     if (currentTime) {
@@ -255,7 +262,7 @@
     persist("recovery-studio-start");
     startTicker();
     renderActive();
-    if (els.dialog && !els.dialog.open) els.dialog.showModal();
+    enterFocus(state().active);
   }
 
   function finishActiveSession() {
@@ -288,6 +295,7 @@
       stopTicker();
       persist("recovery-studio-early-stop");
       app.showToast?.(`${formatDurationSeconds(elapsedSeconds)} logged as Recovery. The ${def.minutes}-minute minimum was not reached, so no completion reward was paid.`);
+      leaveFocusToLibrary();
       return;
     }
 
@@ -317,6 +325,7 @@
     stopTicker();
     persist("recovery-studio-complete");
     app.showToast?.(`🌿 ${def.title} complete · +${reward.xp} XP · +${app.formatEnergy?.(reward.storyEnergy) ?? reward.storyEnergy} 🔥 · +${reward.coins} 🪙`);
+    leaveFocusToLibrary();
   }
 
   function awardRun(active, elapsedSeconds) {
@@ -377,6 +386,7 @@
     state().active = null;
     stopTicker();
     persist("recovery-studio-stop");
+    leaveFocusToLibrary();
   }
 
   function reconcileExternalTimer() {
@@ -400,7 +410,28 @@
       state().active = null;
       stopTicker();
       persist("recovery-studio-external-stop");
+      leaveFocusToLibrary();
     }
+  }
+
+  function enterFocus(active = state().active) {
+    if (!active || !els.active || !window.LifeRPGTrainingFocus?.enter) return false;
+    const def = SESSIONS[active.sessionId];
+    if (!def) return false;
+    if (els.dialog?.open) els.dialog.close();
+    return window.LifeRPGTrainingFocus.enter({
+      id: "recovery", node: els.active, title: def.title, subtitle: `${def.minutes} min · Recovery Studio`, tone: "dark",
+      onExit: () => { render(); if (els.dialog && !els.dialog.open) els.dialog.showModal(); }
+    });
+  }
+
+  function leaveFocusToLibrary() {
+    if (!window.LifeRPGTrainingFocus?.isActive?.("recovery")) return;
+    window.setTimeout(() => {
+      window.LifeRPGTrainingFocus?.exit?.({ reopen: false });
+      render();
+      if (els.dialog && !els.dialog.open) els.dialog.showModal();
+    }, 40);
   }
 
   function render() {
