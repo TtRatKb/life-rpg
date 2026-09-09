@@ -14549,3 +14549,250 @@ body.rpg-modal-open {
   outline-offset: -2px;
 }
 
+
+/* ========================================================================== 
+   V0.31.4h · Sudoku Journey
+   Fifty fixed levels, optional Daily Sudoku, visible progression + Practice.
+   ========================================================================== */
+.sudoku-daily-card-v314h,
+.sudoku-journey-progress-v314h,
+.sudoku-level-map-v314h,
+.sudoku-practice-v314h {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+}
+
+.sudoku-daily-card-v314h {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  margin: 12px 0;
+  padding: 16px;
+  border: 1px solid rgba(76, 41, 75, .12);
+  border-radius: 18px;
+  background: linear-gradient(135deg, #fffaf7, #f8eaf0);
+  box-shadow: 0 8px 22px rgba(76, 41, 75, .06);
+}
+.sudoku-daily-icon-v314h {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border-radius: 14px;
+  background: rgba(76, 41, 75, .08);
+  color: #4c294b;
+  font-size: 1.25rem;
+  font-weight: 900;
+}
+.sudoku-daily-copy-v314h { min-width: 0; }
+.sudoku-daily-copy-v314h small,
+.sudoku-progress-head-v314h small,
+.sudoku-section-title-v314h small,
+.sudoku-practice-head-v314h small {
+  display: block;
+  color: #a45d7d;
+  font-size: .66rem;
+  font-weight: 800;
+  letter-spacing: .09em;
+}
+.sudoku-daily-copy-v314h strong {
+  display: block;
+  margin-top: 3px;
+  color: #4c294b;
+  font-size: 1rem;
+}
+.sudoku-daily-copy-v314h p {
+  margin: 4px 0 0;
+  color: #806f7c;
+  font-size: .78rem;
+  line-height: 1.4;
+}
+.sudoku-daily-button-v314h { white-space: nowrap; }
+.sudoku-daily-done-v314h {
+  align-self: start;
+  padding: 6px 9px;
+  border-radius: 999px;
+  background: #edf7ef;
+  color: #477252;
+  font-size: .72rem;
+  font-weight: 800;
+}
+
+.sudoku-journey-progress-v314h {
+  margin: 12px 0;
+  padding: 14px 16px;
+  border: 1px solid rgba(76, 41, 75, .09);
+  border-radius: 16px;
+  background: rgba(76, 41, 75, .035);
+}
+.sudoku-progress-head-v314h {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+.sudoku-progress-head-v314h strong {
+  display: block;
+  margin-top: 2px;
+  color: #4c294b;
+}
+.sudoku-progress-head-v314h > span {
+  color: #a14f77;
+  font-size: .82rem;
+  font-weight: 900;
+}
+.sudoku-progress-track-v314h {
+  height: 9px;
+  margin-top: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(76, 41, 75, .10);
+}
+.sudoku-progress-track-v314h i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #b65f89, #7d466d);
+  transition: width .25s ease;
+}
+.sudoku-journey-progress-v314h p {
+  margin: 8px 0 0;
+  color: #806f7c;
+  font-size: .74rem;
+  line-height: 1.4;
+}
+
+.sudoku-level-map-v314h {
+  margin: 14px 0;
+  padding: 14px;
+  border: 1px solid rgba(76, 41, 75, .09);
+  border-radius: 16px;
+  background: #fffaf8;
+}
+.sudoku-section-title-v314h {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.sudoku-section-title-v314h strong { color: #4c294b; }
+.sudoku-section-title-v314h > span {
+  color: #8b7884;
+  font-size: .68rem;
+}
+.sudoku-level-grid-v314h {
+  display: grid;
+  grid-template-columns: repeat(10, minmax(0, 1fr));
+  gap: 6px;
+}
+.sudoku-level-v314h {
+  display: grid;
+  min-width: 0;
+  aspect-ratio: 1;
+  place-items: center;
+  gap: 0;
+  padding: 4px 2px;
+  border: 1px solid rgba(76, 41, 75, .14);
+  border-radius: 10px;
+  background: #fff;
+  color: #6f5b69;
+  cursor: pointer;
+}
+.sudoku-level-v314h span {
+  height: 11px;
+  color: #aa718e;
+  font-size: .58rem;
+  line-height: 1;
+}
+.sudoku-level-v314h b {
+  font-size: .78rem;
+  line-height: 1;
+}
+.sudoku-level-v314h.done {
+  border-color: rgba(116, 153, 119, .28);
+  background: #f1f8f1;
+  color: #4f7054;
+}
+.sudoku-level-v314h.done span { color: #5f8b66; }
+.sudoku-level-v314h.current {
+  border-color: #b85f8c;
+  background: #fff0f5;
+  color: #6d3657;
+  box-shadow: 0 0 0 2px rgba(184, 95, 140, .12);
+}
+.sudoku-level-v314h.active {
+  box-shadow: 0 0 0 3px rgba(125, 70, 109, .17);
+}
+.sudoku-level-v314h.locked {
+  background: rgba(76, 41, 75, .035);
+  color: #b4a8af;
+  cursor: default;
+  opacity: .72;
+}
+
+.sudoku-mode-bar-v314h {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  width: min(360px, 100%);
+  margin: 16px auto 10px;
+  padding: 4px;
+  border-radius: 12px;
+  background: rgba(76, 41, 75, .07);
+}
+.sudoku-mode-bar-v314h button {
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: #7a6674;
+  font: inherit;
+  font-size: .78rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+.sudoku-mode-bar-v314h button.active {
+  background: #fff;
+  color: #4c294b;
+  box-shadow: 0 2px 8px rgba(76, 41, 75, .09);
+}
+
+.sudoku-practice-v314h {
+  margin: 8px 0 14px;
+  padding: 14px;
+  border: 1px dashed rgba(76, 41, 75, .16);
+  border-radius: 16px;
+  background: rgba(255, 250, 247, .72);
+}
+.sudoku-practice-v314h[hidden] { display: none !important; }
+.sudoku-practice-head-v314h strong {
+  display: block;
+  margin-top: 2px;
+  color: #4c294b;
+}
+.sudoku-practice-head-v314h p {
+  margin: 4px 0 2px;
+  color: #806f7c;
+  font-size: .76rem;
+  line-height: 1.4;
+}
+
+.sudoku-reward-preview-v314 { margin-top: 12px; }
+.sudoku-dialog-v314 .sudoku-board-v310 { margin: 14px auto 0; }
+.sudoku-status-v310 { text-align: center; }
+
+@media (max-width: 680px) {
+  .sudoku-daily-card-v314h {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  .sudoku-daily-button-v314h,
+  .sudoku-daily-done-v314h {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+  .sudoku-level-grid-v314h { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .sudoku-section-title-v314h { align-items: flex-start; flex-direction: column; }
+}

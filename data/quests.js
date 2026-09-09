@@ -1642,7 +1642,7 @@
         "plannerGroup": "movement-reset"
     },
     {
-        "name": "🧩 Complete One Sudoku",
+        "name": "🧩 Sudoku Journey — Complete One Level",
         "realm": "Knowledge",
         "xpMode": "Fixed",
         "units": 1,

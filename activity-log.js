@@ -426,7 +426,7 @@
     if (event.source === "daily-checkin") return `${number(m.streak) ? `${number(m.streak)} day streak · ` : ""}Daily plan updated`;
     if (event.source === "stewardship") return `${humanize(m.type || "library upkeep")} · system stewardship`;
     if (event.source === "game-goal") return "Tracked Game Goal completed";
-    if (event.source === "sudoku-complete" || event.source === "sudoku-solved") return `${humanize(m.difficulty || "Sudoku")} puzzle completed`;
+    if (event.source === "sudoku-complete" || event.source === "sudoku-solved") return m.level ? `Journey Level ${number(m.level)} completed · ${humanize(m.difficulty || "Sudoku")}` : `${humanize(m.difficulty || "Sudoku")} Practice puzzle completed`;
     if (event.source === "achievement" || event.source === "achievements-unlock") return "Achievement reward";
     if (event.source === "adventure-output") return `${number(m.characters) ? `${number(m.characters)} characters · ` : ""}Project memory enriched`;
     if (event.source === "habit-daypart-clear") return "Habit daypart bonus";
