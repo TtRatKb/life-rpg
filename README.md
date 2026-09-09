@@ -1,3 +1,7 @@
+# Life RPG — V0.31.4m Recovery Studio
+
+This build adds a directly playable Recovery Studio to Training Grounds. It includes paced 5-minute breathing, box breathing, a 10-minute body scan, a 15-minute quiet lie-down, and a 7-minute gentle neck/shoulder release. Sessions use the existing Life Rhythm timer so exact elapsed time is logged; a completion reward is only granted after the listed minimum is genuinely reached. Health-aware recommendations use the existing Daily Check-in context and never shorten recovery because the day is rough. Recovery Studio rewards Recovery Realm XP, Wellbeing capability XP, Character XP, Story Energy and Coins with same-day diminishing returns and a coin cap.
+
 # Life RPG — V0.2
 
 V0.2 is the first version where the daily loop starts to behave like the intended Life RPG rather than a static productivity dashboard.

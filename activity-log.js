@@ -25,6 +25,7 @@
     ["library", "Books & Games"],
     ["adventure", "Adventures"],
     ["japanese", "Japanese"],
+    ["recovery", "Recovery"],
     ["achievement", "Achievements"],
     ["other", "Other"]
   ];
@@ -428,6 +429,12 @@
     if (event.source === "stewardship") return `${humanize(m.type || "library upkeep")} · system stewardship`;
     if (event.source === "game-goal") return "Tracked Game Goal completed";
     if (event.source === "sudoku-complete" || event.source === "sudoku-solved") return m.level ? `Journey Level ${number(m.level)} completed · ${humanize(m.difficulty || "Sudoku")}` : `${humanize(m.difficulty || "Sudoku")} Practice puzzle completed`;
+    if (event.source === "recovery-studio") {
+      const seconds = number(m.durationSeconds);
+      const minutes = seconds ? Math.max(1, Math.floor(seconds / 60)) : number(m.sessionMinutes);
+      const overtime = seconds && number(m.sessionMinutes) ? Math.max(0, seconds - number(m.sessionMinutes) * 60) : 0;
+      return `${minutes ? `${minutes} min` : "Recovery session"}${overtime >= 30 ? ` · +${Math.floor(overtime / 60)}m ${Math.round(overtime % 60)}s overtime` : ""} · Wellbeing`;
+    }
     if (event.source === "kotoba-quest") {
       const bits = [humanize(m.kotobaType || "Japanese study")];
       if (m.skill) bits.push(humanize(m.skill));
@@ -450,6 +457,12 @@
     if (reward.rawStoryEnergy > reward.storyEnergy + 0.001) bits.push(`<p>This action generated ${app.formatEnergy?.(reward.rawStoryEnergy) ?? trim(reward.rawStoryEnergy)} 🔥 base, but daily Story Energy diminishing returns credited <strong>${app.formatEnergy?.(reward.storyEnergy) ?? trim(reward.storyEnergy)} 🔥</strong>.</p>`);
     if (event.source === "stewardship") bits.push(`<p>Library/system stewardship uses a small daily cap, so adding many Books, Games, Habits or Adventure details in one day cannot become the dominant progression source.</p>`);
     if (event.source === "game-goal") bits.push(`<p>This reward comes from completing a tracked Game Goal. Merely importing a goal and actually completing it are intentionally separate actions.</p>`);
+    if (event.source === "recovery-studio") {
+      const multiplier = number(event.metadata?.repeatScale) || 1;
+      bits.push(`<p>This is the completion reward for a <strong>Recovery Studio</strong> session. The exact elapsed time is logged separately in Life Rhythm; Recovery itself earns Recovery Realm and Wellbeing progress because rest counts as legitimate progress.</p>`);
+      if (multiplier < 0.999) bits.push(`<p>Multiple completed Recovery Studio sessions in one day taper gently. This session used a <strong>×${trim(multiplier)}</strong> activity multiplier.</p>`);
+      if (number(event.metadata?.dailyCoinCap)) bits.push(`<p>Recovery Studio Coins are capped at <strong>${number(event.metadata.dailyCoinCap)} Coins per day</strong> to prevent passive farming.</p>`);
+    }
     if (event.source === "kotoba-quest") {
       const multiplier = number(event.metadata?.rewardMultiplier) || 1;
       const dailyIndex = number(event.metadata?.kotobaDailyIndex);
@@ -496,6 +509,7 @@
       "sudoku-complete": ["🧩", "Sudoku"],
       "sudoku-solved": ["🧩", "Sudoku"],
       "kotoba-quest": ["🌸", "Kotoba Quest"],
+      "recovery-studio": ["🌿", "Recovery Studio"],
       "journal-reflection-base": ["🌸", "Journal"],
       "journal-reflection-effort": ["🌸", "Journal"],
       "habit-coin-repair": ["↺", "Reward repair"]
@@ -526,6 +540,7 @@
     if (value.startsWith("book") || value === "library" || value.startsWith("game") || value === "stewardship" || value.startsWith("sudoku")) return "library";
     if (value.startsWith("adventure")) return "adventure";
     if (value === "kotoba-quest") return "japanese";
+    if (value === "recovery-studio") return "recovery";
     if (value.startsWith("achievement")) return "achievement";
     return "other";
   }

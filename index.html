@@ -14,7 +14,7 @@
   <link rel="manifest" href="manifest.webmanifest?v=0.30.3a" />
   <link rel="apple-touch-icon" href="assets/app-icon-180.png?v=0.30.3a" />
   <link rel="icon" type="image/png" sizes="192x192" href="assets/app-icon-192.png?v=0.30.3a" />
-  <link rel="stylesheet" href="styles.css?v=0.31.4l" />
+  <link rel="stylesheet" href="styles.css?v=0.31.4m" />
   <link rel="preload" as="image" href="assets/ui/thumbs/characters/luca_neutral.webp" fetchpriority="high" />
 </head>
 <body>
@@ -137,6 +137,7 @@
           <button data-sudoku-open type="button"><span class="command-strip-icon">🧩</span><span><strong>Sudoku</strong><small id="sudokuQuickStatus">Play a logic puzzle inside Life RPG.</small></span><b>›</b></button>
           <button data-nonogram-open type="button"><span class="command-strip-icon">◩</span><span><strong>Nonogram</strong><small id="nonogramQuickStatus">Reveal a picture through logic clues.</small></span><b>›</b></button>
           <button data-number-sense-open type="button"><span class="command-strip-icon">🔢</span><span><strong>Number Sense</strong><small id="numberSenseQuickStatus">Train mental math without speed pressure.</small></span><b>›</b></button>
+          <button data-recovery-open type="button"><span class="command-strip-icon">🌿</span><span><strong>Recovery Studio</strong><small id="recoveryQuickStatus">Guided rest, breathing, and gentle recovery.</small></span><b>›</b></button>
           <button data-view-target="people"><span class="command-strip-icon">♧</span><span><strong>People</strong><small>Talk, message, connect.</small></span><b>›</b></button>
           <button data-view-target="story"><span class="command-strip-icon">♡</span><span><strong>Main Story</strong><small>Spend energy when you're ready.</small></span><b>›</b></button>
           <button data-view-target="achievements"><span class="command-strip-icon">🏆</span><span><strong>Achievements</strong><small>Collect milestones and hidden moments.</small></span><b>›</b></button>
@@ -1105,7 +1106,7 @@
         <section class="panel training-grounds-v314k" aria-labelledby="trainingGroundsTitle">
           <div class="training-grounds-heading-v314k">
             <div><p class="eyebrow">REALM ACTIVITIES · PLAY INSIDE LIFE RPG</p><h2 id="trainingGroundsTitle">Training Grounds</h2><p>Short activities that train something real while still feeling like a game. Journey progress is permanent; Dailies are invitations, never obligations.</p></div>
-            <span class="training-grounds-badge-v314k">✦ Knowledge training online</span>
+            <span class="training-grounds-badge-v314k">✦ Realm activities online</span>
           </div>
           <div class="training-grounds-grid-v314k">
             <button class="training-card-v314k is-live" data-sudoku-open type="button"><span class="training-card-icon-v314k">🧩</span><div><small>LOGICAL THINKING</small><strong>Sudoku Journey</strong><p>50 fixed levels · Daily + Practice</p><em id="trainingGroundsSudokuStatus">Continue your Journey</em></div><b>›</b></button>
@@ -1113,7 +1114,7 @@
             <a class="training-card-v314k is-live" href="#kotobaIntegrationPanel"><span class="training-card-icon-v314k">🌸</span><div><small>JAPANESE</small><strong>Kotoba Quick Study</strong><p>Real due Vocabulary, Grammar & Particle SRS reviews</p><em>Synced with Kotoba Quest</em></div><b>↓</b></a>
             <button class="training-card-v314k is-live" data-number-sense-open type="button"><span class="training-card-icon-v314k">🔢</span><div><small>NUMBER SENSE · MENTAL MATH</small><strong>Number Sense Journey</strong><p>50 fixed levels · strategies, estimation, percentages and magnitude</p><em id="trainingGroundsNumberSenseStatus">Level 1 / 50</em></div><b>›</b></button>
             <article class="training-card-v314k is-planned"><span class="training-card-icon-v314k">🧠</span><div><small>MEMORY</small><strong>Memory Garden</strong><p>Spatial, sequence, pattern and working-memory trials.</p><em>Planned</em></div></article>
-            <article class="training-card-v314k is-planned"><span class="training-card-icon-v314k">🌿</span><div><small>RECOVERY</small><strong>Recovery Studio</strong><p>Breathing, body scan and guided rest sessions.</p><em>Planned</em></div></article>
+            <button class="training-card-v314k is-live" data-recovery-open type="button"><span class="training-card-icon-v314k">🌿</span><div><small>RECOVERY · WELLBEING</small><strong>Recovery Studio</strong><p>Breathing, body scan, quiet rest and gentle release sessions.</p><em id="trainingGroundsRecoveryStatus">Optional recovery available</em></div><b>›</b></button>
           </div>
         </section>
 
@@ -1140,6 +1141,16 @@
             <div id="numberSenseGrowthStats" class="sudoku-growth-stats-v314"><span><b>0/50</b> Journey</span><span><b>0</b> questions</span><span>No speed pressure</span></div>
           </div>
           <button class="primary-button" data-number-sense-open type="button">🔢 Open Number Sense Journey</button>
+        </section>
+
+        <section class="panel recovery-growth-panel-v314m" aria-labelledby="recoveryGrowthTitle">
+          <div class="recovery-growth-copy-v314m">
+            <p class="eyebrow">RECOVERY · WELLBEING · DIRECT ACTIVITY</p>
+            <h2 id="recoveryGrowthTitle">Recovery Studio</h2>
+            <p>Run a real recovery session inside Life RPG: paced breathing, a body scan, protected quiet rest, or gentle neck-and-shoulder release. Recovery keeps its full listed duration even on low-energy or sick days.</p>
+            <div id="recoveryGrowthStats" class="sudoku-growth-stats-v314"><span><b>0</b> today</span><span><b>0</b> completed</span><span><b>0</b> recovery min</span></div>
+          </div>
+          <button class="primary-button" data-recovery-open type="button">🌿 Open Recovery Studio</button>
         </section>
 
         <section id="kotobaIntegrationPanel" class="panel kotoba-growth-panel-v314i" aria-labelledby="kotobaIntegrationTitle">
@@ -2525,6 +2536,41 @@ League of Legends — PC" required></textarea></label>
     </div>
   </dialog>
 
+  <dialog id="recoveryStudioDialog" class="rpg-dialog recovery-dialog-v314m">
+    <div class="rpg-dialog-form recovery-shell-v314m">
+      <div class="dialog-heading">
+        <div><p class="eyebrow">RECOVERY · WELLBEING · SUPPORT, NOT TREATMENT</p><h2>Recovery Studio</h2></div>
+        <button id="recoveryStudioClose" class="close-button" type="button">×</button>
+      </div>
+      <p class="muted">Choose a session that fits the day. These are simple relaxation and recovery supports, not medical treatment. Stop anything that feels uncomfortable.</p>
+      <section id="recoveryDailyCard" class="recovery-daily-card-v314m" aria-label="Daily Recovery suggestion"></section>
+      <div id="recoveryStudioStats" class="recovery-stats-v314m" aria-label="Recovery Studio statistics"></div>
+
+      <section id="recoveryActiveSession" class="recovery-active-v314m hidden" aria-live="polite">
+        <div class="recovery-active-heading-v314m">
+          <span id="recoveryActiveIcon" class="recovery-active-icon-v314m">🌿</span>
+          <div><small id="recoveryActiveKicker">RECOVERY STUDIO · IN PROGRESS</small><strong id="recoveryActiveTitle">Recovery session</strong></div>
+          <span id="recoveryClock" class="recovery-clock-v314m">05:00</span>
+        </div>
+        <div class="recovery-progress-v314m"><span id="recoveryProgressBar"></span></div>
+        <div class="recovery-guide-v314m">
+          <div id="recoveryBreathVisual" class="recovery-breath-visual-v314m is-resting"><span>🌿</span></div>
+          <div class="recovery-guide-copy-v314m"><small id="recoveryPhaseLabel">Settle in</small><strong id="recoveryActiveCue">Nothing to accomplish.</strong></div>
+        </div>
+        <p id="recoveryStudioStatus" class="recovery-active-status-v314m">The exact elapsed time will be logged to Life Rhythm.</p>
+        <div class="dialog-actions recovery-active-actions-v314m">
+          <button id="recoveryAbandonButton" class="text-button" type="button">Stop session</button>
+          <button id="recoveryFinishButton" class="primary-button" type="button">Stop & log time</button>
+        </div>
+      </section>
+
+      <section class="recovery-library-v314m" aria-labelledby="recoveryLibraryTitle">
+        <div class="sudoku-section-title-v314h"><div><small>SESSION LIBRARY</small><strong id="recoveryLibraryTitle">Choose the kind of recovery you need</strong></div><span>Completion rewards taper gently if you do several sessions in one day.</span></div>
+        <div id="recoverySessionGrid" class="recovery-session-grid-v314m"></div>
+      </section>
+    </div>
+  </dialog>
+
   <dialog id="numberSenseDialog" class="rpg-dialog number-sense-dialog-v314l">
     <div class="rpg-dialog-form number-sense-shell-v314l">
       <div class="dialog-heading">
@@ -2982,16 +3028,17 @@ League of Legends — PC" required></textarea></label>
   <script src="nonogram.js?v=0.31.4k"></script>
   <script src="data/number-sense-levels.js?v=0.31.4l"></script>
   <script src="number-sense.js?v=0.31.4l"></script>
+  <script src="recovery-studio.js?v=0.31.4m"></script>
   <script src="smart-quests.js?v=0.31.0"></script>
   <script src="daily.js?v=0.31.4c"></script>
   <script src="journal.js?v=0.31.4c"></script>
   <script src="story-ui.js?v=0.31.4c"></script>
   <script src="shop.js?v=0.30.6"></script>
   <script src="achievements.js?v=0.31.0"></script>
-  <script src="activity-log.js?v=0.31.4i"></script>
+  <script src="activity-log.js?v=0.31.4m"></script>
   <script src="kotoba-integration.js?v=0.31.4k"></script>
   <script src="kotoba-quick-training.js?v=0.31.4k"></script>
   <script type="module" src="cloud-save.js?v=0.31.0"></script>
-  <script src="pwa.js?v=0.31.4l"></script>
+  <script src="pwa.js?v=0.31.4m"></script>
 </body>
 </html>
