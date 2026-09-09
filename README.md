@@ -1,3 +1,24 @@
+# Life RPG — V0.31.4p Word Lab
+
+## V0.31.4p · Word Lab — German Precision + English Fluency
+
+- Added **Word Lab** to Training Grounds, Growth and the Dashboard quick strip.
+- Two independent 50-level Journeys:
+  - 🇩🇪 **German Precision** — semantic nuance, precise wording, register, collocations, professional/academic vocabulary and practical Bildungssprache/Fachsprache.
+  - 🇬🇧 **English Fluency** — natural collocations, phrasal verbs, idiomatic phrasing, advanced vocabulary, register and near-synonym nuance for an already fluent learner.
+- Each level contains five fixed questions. Level content is deterministic; a level remains the same on replay/reload.
+- Wrong answers show a concise explanation of why the preferred answer is more precise/natural.
+- Actual level play uses the V0.31.4o distraction-free Training Focus view; the dialog remains the Journey/language selector.
+- Keyboard flow: number keys 1–4 choose an answer; Enter checks it; Enter again advances.
+- Separate German/English save progress, active question, selections, completion history and first-try accuracy persist across reloads.
+- Daily Word Lab is optional and chooses the less recently trained language (alternating when both are equally fresh); no streak or punishment.
+- First-completion rewards: Character XP + Knowledge Realm XP + Knowledge Capability XP + Story Energy + Coins. Same-day new levels taper 100% → 75% → 50% → 35%; replays do not repay first-completion rewards.
+- Activity & Reward Ledger now has a **Word Lab** filter and records language, Journey level, first-try accuracy and exact credited rewards.
+- No speed-based rewards. Word Lab is about increasingly precise language, not rapid clicking.
+
+
+---
+
 # Life RPG — V0.31.4o Training Grounds Focus & UX Polish
 
 This build turns active Training Grounds exercises into focused play surfaces rather than keeping the exercise itself inside a selection modal. Sudoku and Nonogram now show clear in-context validation/completion/reward feedback, Number Sense supports keyboard-first progression plus non-rewarding fluency timing, Memory Garden reliably shows every preview before recall, and Recovery Studio uses a dedicated calm focus surface with rebalanced Body Scan / Neck & Shoulder stage timings. Existing rewards, saves and Journey progress are preserved.

@@ -14,7 +14,7 @@
   <link rel="manifest" href="manifest.webmanifest?v=0.30.3a" />
   <link rel="apple-touch-icon" href="assets/app-icon-180.png?v=0.30.3a" />
   <link rel="icon" type="image/png" sizes="192x192" href="assets/app-icon-192.png?v=0.30.3a" />
-  <link rel="stylesheet" href="styles.css?v=0.31.4o" />
+  <link rel="stylesheet" href="styles.css?v=0.31.4p" />
   <link rel="preload" as="image" href="assets/ui/thumbs/characters/luca_neutral.webp" fetchpriority="high" />
 </head>
 <body>
@@ -138,6 +138,7 @@
           <button data-nonogram-open type="button"><span class="command-strip-icon">◩</span><span><strong>Nonogram</strong><small id="nonogramQuickStatus">Reveal a picture through logic clues.</small></span><b>›</b></button>
           <button data-number-sense-open type="button"><span class="command-strip-icon">🔢</span><span><strong>Number Sense</strong><small id="numberSenseQuickStatus">Train mental math without speed pressure.</small></span><b>›</b></button>
           <button data-memory-garden-open type="button"><span class="command-strip-icon">🧠</span><span><strong>Memory Garden</strong><small id="memoryGardenQuickStatus">Train spatial, sequence, pattern and working memory.</small></span><b>›</b></button>
+          <button data-word-lab-open type="button"><span class="command-strip-icon">🔤</span><span><strong>Word Lab</strong><small id="wordLabQuickStatus">German precision & English fluency.</small></span><b>›</b></button>
           <button data-recovery-open type="button"><span class="command-strip-icon">🌿</span><span><strong>Recovery Studio</strong><small id="recoveryQuickStatus">Guided rest, breathing, and gentle recovery.</small></span><b>›</b></button>
           <button data-view-target="people"><span class="command-strip-icon">♧</span><span><strong>People</strong><small>Talk, message, connect.</small></span><b>›</b></button>
           <button data-view-target="story"><span class="command-strip-icon">♡</span><span><strong>Main Story</strong><small>Spend energy when you're ready.</small></span><b>›</b></button>
@@ -1115,6 +1116,7 @@
             <a class="training-card-v314k is-live" href="#kotobaIntegrationPanel"><span class="training-card-icon-v314k">🌸</span><div><small>JAPANESE</small><strong>Kotoba Quick Study</strong><p>Real due Vocabulary, Grammar & Particle SRS reviews</p><em>Synced with Kotoba Quest</em></div><b>↓</b></a>
             <button class="training-card-v314k is-live" data-number-sense-open type="button"><span class="training-card-icon-v314k">🔢</span><div><small>NUMBER SENSE · MENTAL MATH</small><strong>Number Sense Journey</strong><p>50 fixed levels · strategies, estimation, percentages and magnitude</p><em id="trainingGroundsNumberSenseStatus">Level 1 / 50</em></div><b>›</b></button>
             <button class="training-card-v314k is-live" data-memory-garden-open type="button"><span class="training-card-icon-v314k">🧠</span><div><small>MEMORY · ATTENTION</small><strong>Memory Garden</strong><p>50 Journey levels · spatial, sequence, pattern and working-memory trials</p><em id="trainingGroundsMemoryStatus">Level 1 / 50</em></div><b>›</b></button>
+            <button class="training-card-v314k is-live" data-word-lab-open type="button"><span class="training-card-icon-v314k">🔤</span><div><small>LANGUAGE · EXPRESSION</small><strong>Word Lab</strong><p>German Precision + English Fluency · 50 levels each</p><em id="trainingGroundsWordLabStatus">🇩🇪 0/50 · 🇬🇧 0/50</em></div><b>›</b></button>
             <button class="training-card-v314k is-live" data-recovery-open type="button"><span class="training-card-icon-v314k">🌿</span><div><small>RECOVERY · WELLBEING</small><strong>Recovery Studio</strong><p>Breathing, body scan, quiet rest and gentle release sessions.</p><em id="trainingGroundsRecoveryStatus">Optional recovery available</em></div><b>›</b></button>
           </div>
         </section>
@@ -1152,6 +1154,16 @@
             <div id="memoryGardenGrowthStats" class="sudoku-growth-stats-v314"><span><b>0/50</b> Journey</span><span><b>0</b> rounds</span><span>Four memory modes</span></div>
           </div>
           <button class="primary-button" data-memory-garden-open type="button">🧠 Open Memory Garden</button>
+        </section>
+
+        <section class="panel word-lab-growth-panel-v314p" aria-labelledby="wordLabGrowthTitle">
+          <div class="word-lab-growth-copy-v314p">
+            <p class="eyebrow">KNOWLEDGE · LANGUAGE · EXPRESSION</p>
+            <h2 id="wordLabGrowthTitle">Word Lab</h2>
+            <p>Refine language rather than memorising beginner vocabulary: German Precision trains register, semantic nuance and professional expression; English Fluency trains natural collocations, idiom, advanced vocabulary and subtle distinctions.</p>
+            <div id="wordLabGrowthStats" class="sudoku-growth-stats-v314"><span><b>🇩🇪 0/50</b> German</span><span><b>🇬🇧 0/50</b> English</span><span><b>0/100</b> Word Lab</span></div>
+          </div>
+          <button class="primary-button" data-word-lab-open type="button">🔤 Open Word Lab</button>
         </section>
 
         <section class="panel recovery-growth-panel-v314m" aria-labelledby="recoveryGrowthTitle">
@@ -2670,6 +2682,39 @@ League of Legends — PC" required></textarea></label>
     </div>
   </dialog>
 
+  <dialog id="wordLabDialog" class="rpg-dialog word-lab-dialog-v314p">
+    <div class="rpg-dialog-form word-lab-shell-v314p">
+      <div class="dialog-heading">
+        <div><p class="eyebrow">KNOWLEDGE · LANGUAGE · EXPRESSION</p><h2>Word Lab</h2></div>
+        <button id="wordLabClose" class="close-button" type="button">×</button>
+      </div>
+      <p class="muted">Two separate 50-level Journeys. German Precision is built for a native speaker refining precision and register; English Fluency is built for an already fluent learner aiming for more natural advanced expression.</p>
+      <section id="wordLabDailyCard" class="word-lab-daily-card-v314p" aria-label="Daily Word Lab suggestion"></section>
+      <div class="word-lab-paths-v314p" role="group" aria-label="Choose Word Lab language">
+        <button id="wordLabPathDe" class="word-lab-path-v314p" type="button" data-word-lab-language="de" aria-pressed="true"><span>🇩🇪</span><div><small>GERMAN PRECISION</small><strong>Präziser ausdrücken</strong><p>Nuance · Register · Bildungssprache · Fachsprache</p><em data-word-lab-path-detail>Next: Level 1</em></div><b data-word-lab-path-progress>0/50</b></button>
+        <button id="wordLabPathEn" class="word-lab-path-v314p" type="button" data-word-lab-language="en" aria-pressed="false"><span>🇬🇧</span><div><small>ENGLISH FLUENCY</small><strong>Sound more natural & precise</strong><p>Collocations · Idiom · Advanced vocabulary · Nuance</p><em data-word-lab-path-detail>Next: Level 1</em></div><b data-word-lab-path-progress>0/50</b></button>
+      </div>
+      <section id="wordLabJourneyProgress" class="sudoku-journey-progress-v314h" aria-label="Word Lab Journey progress"></section>
+      <section class="word-lab-level-map-v314p" aria-labelledby="wordLabLevelMapTitle">
+        <div class="sudoku-section-title-v314h"><div><small>LEVEL MAP</small><strong id="wordLabLevelMapTitle">German Precision · Levels 1–50</strong></div><span id="wordLabLevelMapCopy">Precision → register → professional & academic nuance.</span></div>
+        <div id="wordLabLevelGrid" class="word-lab-level-grid-v314p"></div>
+      </section>
+      <section id="wordLabPlayPanel" class="word-lab-play-v314p training-play-panel-v314o" data-training-play-panel>
+        <div id="wordLabResult" class="training-result-v314o hidden" aria-live="polite"></div>
+        <div id="wordLabLessonMeta" class="word-lab-lesson-meta-v314p"></div>
+        <div id="wordLabQuestionProgress" class="word-lab-question-progress-v314p"></div>
+        <article id="wordLabQuestionCard" class="word-lab-question-card-v314p"></article>
+        <form id="wordLabAnswerForm" class="word-lab-answer-form-v314p">
+          <div id="wordLabChoices" class="word-lab-choices-v314p"></div>
+          <button id="wordLabSubmit" class="primary-button" type="submit">Check answer</button>
+        </form>
+        <div id="wordLabFeedback" class="word-lab-feedback-v314p hidden" aria-live="polite"></div>
+        <div class="word-lab-actions-v314p"><button id="wordLabNext" class="primary-button hidden" type="button">Next question</button></div>
+        <p id="wordLabStatus" class="sudoku-status-v310" aria-live="polite"></p>
+      </section>
+    </div>
+  </dialog>
+
   <!-- TRAINING FOCUS VIEW · full-page distraction-free activity surface -->
   <section id="trainingFocusView" class="training-focus-view-v314o hidden" aria-hidden="true">
     <header class="training-focus-header-v314o">
@@ -3083,16 +3128,18 @@ League of Legends — PC" required></textarea></label>
   <script src="number-sense.js?v=0.31.4o"></script>
   <script src="recovery-studio.js?v=0.31.4o"></script>
   <script src="memory-garden.js?v=0.31.4o"></script>
+  <script src="data/word-lab-levels.js?v=0.31.4p"></script>
+  <script src="word-lab.js?v=0.31.4p"></script>
   <script src="smart-quests.js?v=0.31.0"></script>
   <script src="daily.js?v=0.31.4c"></script>
   <script src="journal.js?v=0.31.4c"></script>
   <script src="story-ui.js?v=0.31.4c"></script>
   <script src="shop.js?v=0.30.6"></script>
   <script src="achievements.js?v=0.31.0"></script>
-  <script src="activity-log.js?v=0.31.4n"></script>
+  <script src="activity-log.js?v=0.31.4p"></script>
   <script src="kotoba-integration.js?v=0.31.4k"></script>
   <script src="kotoba-quick-training.js?v=0.31.4k"></script>
   <script type="module" src="cloud-save.js?v=0.31.0"></script>
-  <script src="pwa.js?v=0.31.4o"></script>
+  <script src="pwa.js?v=0.31.4p"></script>
 </body>
 </html>
