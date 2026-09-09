@@ -14,7 +14,7 @@
   <link rel="manifest" href="manifest.webmanifest?v=0.30.3a" />
   <link rel="apple-touch-icon" href="assets/app-icon-180.png?v=0.30.3a" />
   <link rel="icon" type="image/png" sizes="192x192" href="assets/app-icon-192.png?v=0.30.3a" />
-  <link rel="stylesheet" href="styles.css?v=0.31.4i" />
+  <link rel="stylesheet" href="styles.css?v=0.31.4j" />
   <link rel="preload" as="image" href="assets/ui/thumbs/characters/luca_neutral.webp" fetchpriority="high" />
 </head>
 <body>
@@ -1131,9 +1131,11 @@
           </div>
           <div class="kotoba-growth-actions-v314i">
             <button id="kotobaConnectButton" class="primary-button" type="button">🌸 Connect Kotoba Quest</button>
+            <button id="kotobaTinyButton" class="primary-button hidden" type="button">🌱 Tiny Japanese · 5 words</button>
+            <button id="kotobaQuickButton" class="secondary-button hidden" type="button">🌸 Quick Japanese · 10 words</button>
             <button id="kotobaSyncButton" class="secondary-button hidden" type="button">↻ Sync now</button>
             <button id="kotobaDisconnectButton" class="text-button hidden" type="button">Pause Life RPG sync</button>
-            <small>Read-only phase: Life RPG cannot change your Kotoba SRS yet.</small>
+            <small id="kotobaLiveBridgeHint">Quick Japanese uses real due Kotoba vocabulary and writes confirmed reviews back to Kotoba's own SRS.</small>
           </div>
         </section>
 
@@ -2450,6 +2452,33 @@ League of Legends — PC" required></textarea></label>
   <dialog id="inspirationTryDialog" class="rpg-dialog inspiration-try-dialog-v310"><div class="rpg-dialog-form"><div class="dialog-heading"><div><p class="eyebrow">TODAY'S REFERENCE</p><h2 id="inspirationTryTitle">Try this</h2></div><button id="inspirationTryClose" class="close-button" type="button">×</button></div><img id="inspirationTryImage" class="inspiration-try-image-v310 hidden" alt="Saved inspiration" loading="lazy" decoding="async"/><p id="inspirationTrySource" class="muted"></p><p id="inspirationTryNote"></p><div class="dialog-actions"><a id="inspirationTryOpen" class="secondary-button" target="_blank" rel="noopener">Open reference ↗</a><button id="inspirationTryComplete" class="primary-button" type="button">✓ Tried it & complete</button></div></div></dialog>
 
   <!-- SUDOKU -->
+  <dialog id="kotobaQuickDialog" class="rpg-dialog kotoba-quick-dialog-v314j">
+    <div class="rpg-dialog-form kotoba-quick-shell-v314j">
+      <div class="dialog-heading">
+        <div>
+          <p class="eyebrow">JAPANESE · KOTOBA QUEST</p>
+          <h2 id="kotobaQuickTitle">Quick Japanese</h2>
+        </div>
+        <button id="kotobaQuickClose" class="close-button" type="button">×</button>
+      </div>
+      <div id="kotobaQuickProgress" class="kotoba-quick-progress-v314j"></div>
+      <section id="kotobaQuickQuestion" class="kotoba-quick-card-v314j">
+        <div class="kotoba-quick-loading-v314j">Loading your real Kotoba reviews…</div>
+      </section>
+      <div id="kotobaQuickFeedback" class="kotoba-quick-feedback-v314j hidden" aria-live="polite"></div>
+      <form id="kotobaQuickAnswerForm" class="kotoba-quick-answer-v314j hidden">
+        <input id="kotobaQuickAnswer" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Your answer"/>
+        <button id="kotobaQuickCheck" class="primary-button" type="submit">Check</button>
+      </form>
+      <div class="kotoba-quick-actions-v314j">
+        <button id="kotobaQuickSpeak" class="secondary-button hidden" type="button">🔊 Hear word</button>
+        <button id="kotobaQuickNext" class="primary-button hidden" type="button">Continue</button>
+        <button id="kotobaQuickEnd" class="text-button" type="button">End session</button>
+      </div>
+      <p id="kotobaQuickSaveNote" class="muted kotoba-quick-save-note-v314j">A word only counts after Kotoba confirms both review directions. Closing midway keeps this Life RPG session ready to resume.</p>
+    </div>
+  </dialog>
+
   <dialog id="sudokuDialog" class="rpg-dialog sudoku-dialog-v310 sudoku-dialog-v314">
     <div class="rpg-dialog-form sudoku-shell-v314">
       <div class="dialog-heading">
@@ -2878,8 +2907,9 @@ League of Legends — PC" required></textarea></label>
   <script src="shop.js?v=0.30.6"></script>
   <script src="achievements.js?v=0.31.0"></script>
   <script src="activity-log.js?v=0.31.4i"></script>
-  <script src="kotoba-integration.js?v=0.31.4i"></script>
+  <script src="kotoba-integration.js?v=0.31.4j"></script>
+  <script src="kotoba-quick-training.js?v=0.31.4j"></script>
   <script type="module" src="cloud-save.js?v=0.31.0"></script>
-  <script src="pwa.js?v=0.31.4i"></script>
+  <script src="pwa.js?v=0.31.4j"></script>
 </body>
 </html>

@@ -1,11 +1,11 @@
-const CACHE_NAME = "life-rpg-v0314i-kotoba-readonly";
+const CACHE_NAME = "life-rpg-v0314j-kotoba-quick-writeback";
 const CORE = [
   "./",
   "./index.html",
   "./data/quests.js?v=0.31.4h",
-  "./styles.css?v=0.31.4i",
+  "./styles.css?v=0.31.4j",
   "./manifest.webmanifest?v=0.30.3a",
-  "./pwa.js?v=0.31.4i",
+  "./pwa.js?v=0.31.4j",
   "./visual-performance.js?v=0.31.4c",
   "./modal-manager.js?v=0.31.4d",
   "./app.js?v=0.31.4c",
@@ -27,7 +27,8 @@ const CORE = [
   "./shop.js?v=0.30.6",
   "./achievements.js?v=0.31.0",
   "./activity-log.js?v=0.31.4i",
-  "./kotoba-integration.js?v=0.31.4i",
+  "./kotoba-integration.js?v=0.31.4j",
+  "./kotoba-quick-training.js?v=0.31.4j",
   "./cloud-save.js?v=0.31.0",
   "./assets/app-icon-192.png",
   "./assets/app-icon-512.png",

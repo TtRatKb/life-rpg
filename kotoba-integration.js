@@ -4,7 +4,7 @@
   const app = window.LifeRPGApp;
   if (!app?.getState || !app?.awardActivity) return;
 
-  const VERSION = "0.31.4i";
+  const VERSION = "0.31.4j";
   const SCHEMA = 1;
   const SOURCE = "kotoba-quest";
   const LOOKBACK_MS = 30 * 24 * 60 * 60 * 1000;
@@ -439,7 +439,7 @@
         ? "Connect once with the same Google account you use in Kotoba Quest. Existing history will not be paid retroactively; rewards begin from connection onward."
         : s.lastError
           ? s.lastError
-          : "Kotoba remains the learning authority. Life RPG only reads completed study and the current due counts in this phase.";
+          : "Kotoba remains the learning authority. Life RPG can now run small real vocabulary-review sessions through Kotoba's own grading/SRS engine; grammar and particles remain read-only for now.";
     }
     if (els.due) {
       els.due.innerHTML = [
@@ -518,12 +518,47 @@
   function humanize(value) { return String(value || "").replaceAll("_", " ").replaceAll("-", " ").replace(/\b\w/g, c => c.toUpperCase()); }
   function byId(id) { return document.getElementById(id); }
 
+
+  function awardExternalConfirmedReview({ sourceId, type = "vocab-review", label = "", itemId = "", skill = "", at = Date.now(), sessionId = "" } = {}) {
+    const id = String(sourceId || "");
+    if (!id) throw new Error("Kotoba quick review is missing a stable source ID.");
+    const existing = rewardEvents().find(event => event?.source === SOURCE && event?.sourceId === id && !event?.duplicate);
+    if (existing) return existing;
+    const rewardSpec = rewardForEvent({ type }, at);
+    if (!rewardSpec) return null;
+    return app.awardActivity({
+      source: SOURCE,
+      sourceId: id,
+      label: label || `Kotoba · ${rewardSpec.label}`,
+      realm: "Japanese",
+      capability: "japanese",
+      xp: rewardSpec.xp,
+      realmXP: rewardSpec.realmXP,
+      statXP: rewardSpec.statXP,
+      coins: rewardSpec.coins,
+      storyEnergyBase: rewardSpec.story,
+      progressionRelevant: true,
+      at: new Date(at).toISOString(),
+      metadata: {
+        kotobaType: String(type || ""),
+        itemId: String(itemId || ""),
+        skill: String(skill || ""),
+        origin: "life-rpg",
+        sessionId: String(sessionId || ""),
+        rewardMultiplier: rewardSpec.multiplier,
+        kotobaDailyIndex: rewardSpec.dailyIndex,
+        kotobaDailyCoinCap: DAILY_COIN_CAP
+      }
+    });
+  }
+
   window.LifeRPGKotobaIntegration = {
     version: VERSION,
     connect,
     disconnect,
     syncNow: () => syncNow({ manual: true }),
     getStatus: () => ({ ...state(), dueSnapshot: normalizeSnapshot(state().dueSnapshot), syncing: Boolean(syncInFlight) }),
-    rewardTable: () => JSON.parse(JSON.stringify(REWARDS))
+    rewardTable: () => JSON.parse(JSON.stringify(REWARDS)),
+    awardExternalConfirmedReview
   };
 })();
