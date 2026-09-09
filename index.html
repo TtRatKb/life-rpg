@@ -14,7 +14,7 @@
   <link rel="manifest" href="manifest.webmanifest?v=0.30.3a" />
   <link rel="apple-touch-icon" href="assets/app-icon-180.png?v=0.30.3a" />
   <link rel="icon" type="image/png" sizes="192x192" href="assets/app-icon-192.png?v=0.30.3a" />
-  <link rel="stylesheet" href="styles.css?v=0.31.4t" />
+  <link rel="stylesheet" href="styles.css?v=0.31.4u" />
   <link rel="preload" as="image" href="assets/ui/thumbs/characters/luca_neutral.webp" fetchpriority="high" />
 </head>
 <body>
@@ -550,6 +550,22 @@
           <article class="games-summary-card-v17"><span>▶</span><div><small>PLAYING NOW</small><strong id="gameSummaryPlaying">0</strong></div></article>
           <article class="games-summary-card-v17"><span>✦</span><div><small>WANT TO PLAY</small><strong id="gameSummaryBacklog">0</strong></div></article>
           <article class="games-summary-card-v17"><span>☐</span><div><small>OPEN PERSONAL GOALS</small><strong id="gameSummaryGoals">0</strong></div></article>
+        </section>
+
+        <section class="games-steam-connection-v314u" id="gamesSteamConnectionCard" aria-label="Steam connection">
+          <div class="games-steam-connection-copy-v314u">
+            <span class="games-steam-connection-icon-v314u">🏆</span>
+            <div>
+              <p class="eyebrow">STEAM CONNECTION</p>
+              <h2 id="gamesSteamConnectionTitle">Steam is not connected yet</h2>
+              <p id="gamesSteamConnectionDetail">Add your existing Worker URL and SteamID64 once. Your Steam API key stays inside the Cloudflare Worker and is never stored in Life RPG.</p>
+            </div>
+          </div>
+          <div class="games-steam-connection-actions-v314u">
+            <button class="primary-button" id="gamesSteamConfigure" type="button">⚙ Configure Steam</button>
+            <button class="secondary-button" id="gamesSteamTest" type="button">Test connection</button>
+            <button class="secondary-button" id="gamesSteamSyncAll" type="button">↻ Sync all Steam games</button>
+          </div>
         </section>
 
         <section class="games-shell-v17">
@@ -3132,7 +3148,7 @@ League of Legends — PC" required></textarea></label>
   <script src="adventures.js?v=0.31.1"></script>
   <script src="adventure-workspace.js?v=0.31.4c"></script>
   <script src="library.js?v=0.30.6"></script>
-  <script src="games.js?v=0.31.4t"></script>
+  <script src="games.js?v=0.31.4u"></script>
   <script src="time.js?v=0.31.1"></script>
   <script src="universal-timers.js?v=0.31.1"></script>
   <script src="inspirations.js?v=0.31.4c"></script>
@@ -3153,10 +3169,10 @@ League of Legends — PC" required></textarea></label>
   <script src="story-ui.js?v=0.31.4r"></script>
   <script src="shop.js?v=0.30.6"></script>
   <script src="achievements.js?v=0.31.0"></script>
-  <script src="activity-log.js?v=0.31.4t"></script>
+  <script src="activity-log.js?v=0.31.4u"></script>
   <script src="kotoba-integration.js?v=0.31.4k"></script>
   <script src="kotoba-quick-training.js?v=0.31.4k"></script>
   <script type="module" src="cloud-save.js?v=0.31.0"></script>
-  <script src="pwa.js?v=0.31.4t"></script>
+  <script src="pwa.js?v=0.31.4u"></script>
 </body>
 </html>

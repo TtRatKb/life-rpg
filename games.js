@@ -77,6 +77,12 @@
     playingSummary: byId("gameSummaryPlaying"),
     backlogSummary: byId("gameSummaryBacklog"),
     goalsSummary: byId("gameSummaryGoals"),
+    steamGamesCard: byId("gamesSteamConnectionCard"),
+    steamGamesTitle: byId("gamesSteamConnectionTitle"),
+    steamGamesDetail: byId("gamesSteamConnectionDetail"),
+    steamGamesConfigure: byId("gamesSteamConfigure"),
+    steamGamesTest: byId("gamesSteamTest"),
+    steamGamesSyncAll: byId("gamesSteamSyncAll"),
 
     dialog: byId("gameDialog"),
     form: byId("gameForm"),
@@ -197,6 +203,7 @@
     bindEvents();
     const changed = ensureState();
     renderSteamSettings();
+    renderSteamGamesConnection();
     initialized = true;
     if (changed) persist("games-init", { render: false });
     render();
@@ -265,6 +272,13 @@
     els.steamWorkerUrl?.addEventListener("change", saveSteamSettings);
     els.steamId64?.addEventListener("change", saveSteamSettings);
     els.steamConnectionTest?.addEventListener("click", testSteamConnection);
+    els.steamGamesConfigure?.addEventListener("click", openSteamSettingsPanel);
+    els.steamGamesTest?.addEventListener("click", async () => {
+      if (!steamConnectionReady()) return openSteamSettingsPanel({ focusFirstMissing: true });
+      await testSteamConnection();
+      renderSteamGamesConnection();
+    });
+    els.steamGamesSyncAll?.addEventListener("click", syncAllSteamGamesManual);
 
     els.search?.addEventListener("input", renderBoard);
     els.status?.addEventListener("change", renderBoard);
@@ -599,6 +613,7 @@
   }
 
   function render() {
+    renderSteamGamesConnection();
     if (els.sort && els.sort.value !== selectedSort) els.sort.value = selectedSort;
     syncViewControls();
     renderSummary();
@@ -724,7 +739,7 @@
           <div class="game-card-actions-v17">
             ${active ? `<button class="primary-button" data-game-quick-log="${escAttr(game.id)}" data-game-amount="${Number(sessionAmount)}" type="button">${esc(playButtonLabel(game, sessionAmount))}</button>` : ""}
             ${game.status === "backlog" ? `<button class="primary-button" data-game-quick-log="${escAttr(game.id)}" data-game-amount="${Number(sessionAmount)}" data-game-preserve-backlog="true" type="button">${esc(playButtonLabel(game, sessionAmount).replace(/^▶ /, "▶ Try · "))}</button>` : ""}
-            ${game.steamAppId ? `<button class="secondary-button game-steam-sync-button-v314t" data-game-steam-sync="${escAttr(game.id)}" type="button" ${steamSyncInFlight.has(game.id) ? "disabled" : ""}>${steamSyncInFlight.has(game.id) ? "Syncing Steam…" : "↻ Sync Steam"}</button>` : ""}
+            ${game.steamAppId ? `<button class="secondary-button game-steam-sync-button-v314t" data-game-steam-sync="${escAttr(game.id)}" type="button" ${steamSyncInFlight.has(game.id) ? "disabled" : ""}>${steamSyncInFlight.has(game.id) ? "Syncing Steam…" : steamConnectionReady() ? "↻ Sync Steam" : "⚙ Set up Steam"}</button>` : ""}
             <button class="secondary-button" data-game-log="${escAttr(game.id)}" type="button">Log session</button>
             <button class="text-button" data-game-edit="${escAttr(game.id)}" type="button">Edit details</button>
           </div>
@@ -1764,13 +1779,86 @@
     } catch { return ""; }
   }
 
+  function steamConnectionReady() {
+    const settings = steamSettings();
+    return Boolean(normalizeWorkerUrl(settings.workerUrl) && /^\d{17}$/.test(String(settings.steamId || "")));
+  }
+
+  function steamConnectionProblem() {
+    const settings = steamSettings();
+    if (!normalizeWorkerUrl(settings.workerUrl)) return "Worker URL missing";
+    if (!String(settings.steamId || "").trim()) return "SteamID64 missing";
+    if (!/^\d{17}$/.test(String(settings.steamId || ""))) return "SteamID64 should be the 17-digit numeric Steam ID";
+    return "";
+  }
+
+  function renderSteamGamesConnection() {
+    if (!els.steamGamesCard) return;
+    const ready = steamConnectionReady();
+    const problem = steamConnectionProblem();
+    const steamGames = model().items.filter(game => game.steamAppId);
+    const lastSync = steamGames.reduce((latest, game) => Math.max(latest, Number(game?.steamAchievementSync?.lastSyncAt || game?.lastSteamSyncAt || 0)), 0);
+    els.steamGamesCard.classList.toggle("is-connected", ready);
+    if (els.steamGamesTitle) els.steamGamesTitle.textContent = ready ? "Steam connection configured ✓" : "Steam is not connected yet";
+    if (els.steamGamesDetail) {
+      els.steamGamesDetail.textContent = ready
+        ? `${steamGames.length} Steam game${steamGames.length === 1 ? "" : "s"} detected${lastSync ? ` · last sync ${humanAgoWithTime(lastSync)}` : " · ready for the first baseline sync"}.`
+        : `${problem || "Add your Steam Worker URL and SteamID64 once."} Your API key stays only inside the Cloudflare Worker.`;
+    }
+    if (els.steamGamesConfigure) els.steamGamesConfigure.textContent = ready ? "⚙ Steam settings" : "⚙ Configure Steam";
+    if (els.steamGamesTest) els.steamGamesTest.disabled = !ready;
+    if (els.steamGamesSyncAll) {
+      els.steamGamesSyncAll.disabled = !ready || !steamGames.length || steamSyncInFlight.size > 0;
+      els.steamGamesSyncAll.textContent = steamSyncInFlight.size > 0 ? "Syncing Steam…" : "↻ Sync all Steam games";
+    }
+  }
+
+  function openSteamSettingsPanel({ focusFirstMissing = false } = {}) {
+    document.querySelector('[data-view-target="settings"]')?.click();
+    window.setTimeout(() => {
+      const panel = document.querySelector(".settings-steam-panel-v312");
+      panel?.scrollIntoView({ behavior: "smooth", block: "center" });
+      panel?.classList.add("settings-steam-highlight-v314u");
+      window.setTimeout(() => panel?.classList.remove("settings-steam-highlight-v314u"), 2200);
+      if (focusFirstMissing) {
+        const settings = steamSettings();
+        if (!normalizeWorkerUrl(settings.workerUrl)) els.steamWorkerUrl?.focus();
+        else if (!/^\d{17}$/.test(String(settings.steamId || ""))) els.steamId64?.focus();
+      }
+    }, 80);
+  }
+
+  async function syncAllSteamGamesManual() {
+    if (!steamConnectionReady()) {
+      showToast("Steam setup needed", "Add the Worker URL and your 17-digit SteamID64 first.");
+      openSteamSettingsPanel({ focusFirstMissing: true });
+      return;
+    }
+    const targets = model().items.filter(game => game.steamAppId);
+    if (!targets.length) {
+      showToast("No Steam games yet", "Add or edit a game with a Steam App ID first.");
+      return;
+    }
+    renderSteamGamesConnection();
+    let synced = 0;
+    for (const game of targets) {
+      const result = await syncSteamGameById(game.id, { force: true, silent: true, reason: "manual-all" });
+      if (result) synced += 1;
+    }
+    render();
+    renderSteamGamesConnection();
+    showToast("Steam sync finished ✓", `${synced}/${targets.length} Steam game${targets.length === 1 ? "" : "s"} synced.`);
+  }
+
   function renderSteamSettings() {
     const settings = steamSettings();
     if (els.steamWorkerUrl && document.activeElement !== els.steamWorkerUrl) els.steamWorkerUrl.value = settings.workerUrl || "";
     if (els.steamId64 && document.activeElement !== els.steamId64) els.steamId64.value = settings.steamId || "";
     if (els.steamConnectionStatus && !String(els.steamConnectionStatus.dataset.locked || "")) {
-      els.steamConnectionStatus.textContent = settings.workerUrl ? "Worker URL saved. Test it once after deployment." : "Not configured yet.";
+      const problem = steamConnectionProblem();
+      els.steamConnectionStatus.textContent = problem ? problem : "Saved · use Test Worker to verify the connection.";
     }
+    renderSteamGamesConnection();
   }
 
   function saveSteamSettings() {
@@ -1781,10 +1869,12 @@
     if (els.steamId64) els.steamId64.value = settings.steamId;
     if (els.steamConnectionStatus) {
       els.steamConnectionStatus.dataset.locked = "";
-      els.steamConnectionStatus.textContent = settings.workerUrl ? "Saved. Use Test Worker to verify the free proxy." : "Not configured yet.";
+      const problem = steamConnectionProblem();
+      els.steamConnectionStatus.textContent = problem ? problem : "Saved. Use Test Worker to verify the free proxy.";
     }
     app.saveState({ source: "steam-settings" });
     renderSteamSection();
+    renderSteamGamesConnection();
   }
 
   async function testSteamConnection() {
@@ -1792,6 +1882,10 @@
     const settings = steamSettings();
     if (!settings.workerUrl) {
       if (els.steamConnectionStatus) els.steamConnectionStatus.textContent = "Add the Worker URL first.";
+      return;
+    }
+    if (!/^\d{17}$/.test(String(settings.steamId || ""))) {
+      if (els.steamConnectionStatus) els.steamConnectionStatus.textContent = "Add your 17-digit SteamID64 first.";
       return;
     }
     if (els.steamConnectionTest) els.steamConnectionTest.disabled = true;
@@ -1806,6 +1900,7 @@
     } finally {
       if (els.steamConnectionTest) els.steamConnectionTest.disabled = false;
       window.setTimeout(() => { if (els.steamConnectionStatus) els.steamConnectionStatus.dataset.locked = ""; }, 1000);
+      renderSteamGamesConnection();
     }
   }
 
@@ -2089,8 +2184,11 @@
     const game = findGame(gameId);
     if (!game?.steamAppId) return null;
     const settings = steamSettings();
-    if (!settings.workerUrl || !settings.steamId) {
-      if (!silent) showToast("Steam sync needs setup", "Add both the Worker URL and SteamID64 in Settings.");
+    if (!steamConnectionReady()) {
+      if (!silent) {
+        showToast("Steam sync needs setup", "Add the Worker URL and your 17-digit SteamID64 first.");
+        openSteamSettingsPanel({ focusFirstMissing: true });
+      }
       return null;
     }
     const sync = steamSyncState(game);
