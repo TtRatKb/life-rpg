@@ -1,4 +1,4 @@
-# Life RPG — V0.31.4m Recovery Studio
+# Life RPG — V0.31.4n Memory Garden
 
 This build adds a directly playable Recovery Studio to Training Grounds. It includes paced 5-minute breathing, box breathing, a 10-minute body scan, a 15-minute quiet lie-down, and a 7-minute gentle neck/shoulder release. Sessions use the existing Life Rhythm timer so exact elapsed time is logged; a completion reward is only granted after the listed minimum is genuinely reached. Health-aware recommendations use the existing Daily Check-in context and never shorten recovery because the day is rough. Recovery Studio rewards Recovery Realm XP, Wellbeing capability XP, Character XP, Story Energy and Coins with same-day diminishing returns and a coin cap.
 
@@ -222,3 +222,13 @@ GitHub Pages will then update automatically after the new commit is deployed.
 - First completion of a level grants Character XP, Knowledge Realm XP, Knowledge capability XP, Story Energy and Coins. Replays never duplicate first-clear rewards; multiple new levels in one day use the existing gentle diminishing-return pattern.
 - Journey progress, current question, attempts and completed levels persist in the normal Life RPG save.
 - Added fixed `data/number-sense-levels.js` content so Level 23 remains the same Level 23 instead of being randomly regenerated.
+
+## V0.31.4n · Memory Garden
+- Adds a 50-level Memory Garden Journey to Training Grounds.
+- Four rotating modes: Spatial Recall, Sequence Recall, Pattern Recall, and Working Memory.
+- Stable seeded level content, three short rounds per level, persistent in-progress state, Daily Memory, replayable completed levels, and visible garden growth.
+- First-completion rewards grant Character XP, Knowledge Realm XP, Knowledge capability XP, Story Energy, and Coins with same-day diminishing returns; replays do not repay first-completion rewards.
+- No speed-based rewards. Exposure time is part of the exercise, while answer speed has no effect on payout.
+- Health-aware copy keeps Memory Garden optional on illness/very-low-energy days and points toward Recovery Studio instead of pushing cognitive training.
+- Activity & Reward History now recognizes Memory Garden completion entries explicitly.
+

@@ -429,6 +429,7 @@
     if (event.source === "stewardship") return `${humanize(m.type || "library upkeep")} · system stewardship`;
     if (event.source === "game-goal") return "Tracked Game Goal completed";
     if (event.source === "sudoku-complete" || event.source === "sudoku-solved") return m.level ? `Journey Level ${number(m.level)} completed · ${humanize(m.difficulty || "Sudoku")}` : `${humanize(m.difficulty || "Sudoku")} Practice puzzle completed`;
+    if (event.source === "memory-garden-complete") return `Journey Level ${number(m.level)} completed · ${humanize(m.mode || "memory")} recall · ${number(m.rounds) || 3} rounds`;
     if (event.source === "recovery-studio") {
       const seconds = number(m.durationSeconds);
       const minutes = seconds ? Math.max(1, Math.floor(seconds / 60)) : number(m.sessionMinutes);
@@ -457,6 +458,11 @@
     if (reward.rawStoryEnergy > reward.storyEnergy + 0.001) bits.push(`<p>This action generated ${app.formatEnergy?.(reward.rawStoryEnergy) ?? trim(reward.rawStoryEnergy)} 🔥 base, but daily Story Energy diminishing returns credited <strong>${app.formatEnergy?.(reward.storyEnergy) ?? trim(reward.storyEnergy)} 🔥</strong>.</p>`);
     if (event.source === "stewardship") bits.push(`<p>Library/system stewardship uses a small daily cap, so adding many Books, Games, Habits or Adventure details in one day cannot become the dominant progression source.</p>`);
     if (event.source === "game-goal") bits.push(`<p>This reward comes from completing a tracked Game Goal. Merely importing a goal and actually completing it are intentionally separate actions.</p>`);
+    if (event.source === "memory-garden-complete") {
+      const multiplier = number(event.metadata?.repeatScale) || 1;
+      bits.push(`<p>This is the first-completion reward for a <strong>Memory Garden</strong> Journey level. Spatial, sequence, pattern and working-memory practice counts as Knowledge growth; exposure timing is part of the exercise, but answering faster never increases the reward.</p>`);
+      if (multiplier < 0.999) bits.push(`<p>Multiple new Memory Garden levels on the same day taper gently. This level used a <strong>×${trim(multiplier)}</strong> activity multiplier.</p>`);
+    }
     if (event.source === "recovery-studio") {
       const multiplier = number(event.metadata?.repeatScale) || 1;
       bits.push(`<p>This is the completion reward for a <strong>Recovery Studio</strong> session. The exact elapsed time is logged separately in Life Rhythm; Recovery itself earns Recovery Realm and Wellbeing progress because rest counts as legitimate progress.</p>`);
@@ -509,6 +515,7 @@
       "sudoku-complete": ["🧩", "Sudoku"],
       "sudoku-solved": ["🧩", "Sudoku"],
       "kotoba-quest": ["🌸", "Kotoba Quest"],
+      "memory-garden-complete": ["🧠", "Memory Garden"],
       "recovery-studio": ["🌿", "Recovery Studio"],
       "journal-reflection-base": ["🌸", "Journal"],
       "journal-reflection-effort": ["🌸", "Journal"],
@@ -537,7 +544,7 @@
     if (value.startsWith("habit")) return "habit";
     if (["quest", "external", "manual-external", "quick", "daily-batch-clear"].includes(value)) return "quest";
     if (value.startsWith("journal") || value.startsWith("daily-checkin")) return "journal";
-    if (value.startsWith("book") || value === "library" || value.startsWith("game") || value === "stewardship" || value.startsWith("sudoku")) return "library";
+    if (value.startsWith("book") || value === "library" || value.startsWith("game") || value === "stewardship" || value.startsWith("sudoku") || value.startsWith("nonogram") || value.startsWith("number-sense") || value.startsWith("memory-garden")) return "library";
     if (value.startsWith("adventure")) return "adventure";
     if (value === "kotoba-quest") return "japanese";
     if (value === "recovery-studio") return "recovery";
