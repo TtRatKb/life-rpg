@@ -1,11 +1,11 @@
-const CACHE_NAME = "life-rpg-v0314q-lexicon-lab";
+const CACHE_NAME = "life-rpg-v0314r-social-immersion";
 const CORE = [
   "./",
   "./index.html",
   "./data/quests.js?v=0.31.4h",
-  "./styles.css?v=0.31.4q",
+  "./styles.css?v=0.31.4r",
   "./manifest.webmanifest?v=0.30.3a",
-  "./pwa.js?v=0.31.4q",
+  "./pwa.js?v=0.31.4r",
   "./visual-performance.js?v=0.31.4c",
   "./modal-manager.js?v=0.31.4d",
   "./training-focus.js?v=0.31.4o",
@@ -32,7 +32,9 @@ const CORE = [
   "./smart-quests.js?v=0.31.0",
   "./daily.js?v=0.31.4c",
   "./journal.js?v=0.31.4c",
-  "./story-ui.js?v=0.31.4c",
+  "./story-engine.js?v=0.31.4r",
+  "./story-ui.js?v=0.31.4r",
+  "./content/SP_003.dat?v=0.31.4r",
   "./shop.js?v=0.30.6",
   "./achievements.js?v=0.31.0",
   "./activity-log.js?v=0.31.4q",

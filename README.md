@@ -1,3 +1,28 @@
+# Life RPG — V0.31.4r Social Immersion & Story Cadence
+
+## V0.31.4r · Living phone + real-time story rhythm
+
+- Story-linked messages now become **eligible first and arrive later** through a persistent local-time scheduler instead of dumping every newly unlocked thread immediately.
+- Message delivery respects authored chronology, sensible dayparts, per-person open-thread order and a global social cooldown. Nothing expires and there are no read-receipt/streak penalties.
+- Phone threads now support **multi-bubble NPC bursts, typing indicators, delayed responses and optional additional Luca reply turns**. Existing one-reply messages remain compatible; old already-replied threads migrate as already completed.
+- Texting voice is more conversational in the current social content: Mina is expressive/emoji-friendly, Kirishima warm/casual, Bakugo terse, and Luca can use lighter punctuation/slang/emoji where relationship context supports it.
+- Added an optional **weather-aware message context** in Phone settings. It is off by default, uses only a user-entered approximate city, and falls back to neutral message wording whenever context is unavailable. No weather/location access is required.
+- Story chapters whose installed narrative clearly advances to a later real day/daypart now use spoiler-safe **story-time gates**. Story Energy and Story Momentum can still be completed in parallel while waiting. Dayparts are earliest-opening times, not appointments that can be missed.
+- Household story cadence now preserves an explicit longer time jump instead of allowing several in-fiction days to be consumed back-to-back.
+- Solo stage sprites use authored natural-facing metadata to choose left/center/right placement. A solo right-facing Bakugo is placed on the left rather than being mirrored, preserving asymmetric visual details. Existing multi-character inward staging and beat-aware dimming remain intact.
+- Current weather-dependent messages have neutral default text; rain-specific wording is only selected when opted-in recent weather context actually matches.
+- PWA cache bumped to V0.31.4r and now precaches the current story engine/pack for more reliable offline use.
+
+## Validation
+
+- Current 32-message pack audited for stable group IDs, delivery metadata and per-person ordering.
+- Existing Mina move/first-night chronology constraint validated.
+- Multi-turn branch IDs and follow-up paths validated.
+- Story temporal metadata validated against the installed 14-scene chronology without exposing unreleased scene prose in UI.
+- JavaScript syntax, pack encode/decode integrity, PWA core paths and modified HTML IDs checked.
+
+---
+
 # Life RPG — V0.31.4q Lexicon Lab
 
 ## V0.31.4q · Advanced German Lexicon through real word puzzles

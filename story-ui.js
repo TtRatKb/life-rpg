@@ -18,6 +18,9 @@
   const prefetchedStoryAssets = new Set();
   const STORY_PREFETCH_LOOKAHEAD = 1;
   let storyPrefetchTimer = null;
+  let messageSchedulerTimer = null;
+  let messageTypingTimer = null;
+  let weatherRefreshPromise = null;
 
   const els = {
     arcTitle: byId("storyArcTitle"),
@@ -52,6 +55,10 @@
     phonePageUnreadLabel: byId("phonePageUnreadLabel"),
     navPhoneUnread: byId("navPhoneUnread"),
     navStoryPulse: byId("navStoryPulse"),
+    weatherToggle: byId("phoneWeatherToggle"),
+    weatherCity: byId("phoneWeatherCity"),
+    weatherSave: byId("phoneWeatherSave"),
+    weatherStatus: byId("phoneWeatherStatus"),
     worldPulseBadge: byId("storyWorldPulseBadge"),
     worldPulseTitle: byId("storyWorldPulseTitle"),
     worldPulseCopy: byId("storyWorldPulseCopy"),
@@ -108,6 +115,8 @@
       pack = await engine.loadPack();
       migrateLegacyStoryIfNeeded();
       ensurePackState();
+      syncMessageScheduler({ allowDelivery: true });
+      refreshWeatherContextIfNeeded();
       app.renderWorld?.();
     } catch (error) {
       loadError = error;
@@ -196,7 +205,7 @@
     els.phonePageThread?.addEventListener("click", event => {
       const button = event.target.closest("[data-message-reply-group][data-message-reply-id]");
       if (!button) return;
-      chooseMessageReply(button.dataset.messageReplyGroup, button.dataset.messageReplyId);
+      chooseMessageReply(button.dataset.messageReplyGroup, button.dataset.messageReplyId, button.dataset.messageReplyPath || "root");
     });
 
     els.worldPulseAction?.addEventListener("click", () => {
@@ -218,13 +227,33 @@
     els.phoneThread?.addEventListener("click", event => {
       const button = event.target.closest("[data-message-reply-group][data-message-reply-id]");
       if (!button) return;
-      chooseMessageReply(button.dataset.messageReplyGroup, button.dataset.messageReplyId);
+      chooseMessageReply(button.dataset.messageReplyGroup, button.dataset.messageReplyId, button.dataset.messageReplyPath || "root");
+    });
+
+    els.weatherToggle?.addEventListener("change", () => {
+      const state = app.getState();
+      ensureStoryState();
+      state.story.social.weatherContext.enabled = Boolean(els.weatherToggle.checked);
+      app.saveState({ source: "social-weather-toggle" });
+      if (state.story.social.weatherContext.enabled) refreshWeatherContext(true);
+      renderWeatherContext();
+    });
+
+    els.weatherSave?.addEventListener("click", event => {
+      event.preventDefault();
+      const state = app.getState();
+      ensureStoryState();
+      state.story.social.weatherContext.query = String(els.weatherCity?.value || "").trim();
+      app.saveState({ source: "social-weather-city" });
+      refreshWeatherContext(true);
     });
 
     window.addEventListener("life-rpg:render", () => {
       if (pack) {
         migrateLegacyStoryIfNeeded();
         ensurePackState();
+        advanceDueMessageAnimations();
+        syncMessageScheduler({ allowDelivery: true });
       }
       renderStoryHub();
       if (runtime) renderReaderChrome();
@@ -285,6 +314,7 @@
       social: {},
       progressionSnapshots: {},
       momentumGates: {},
+      sceneCompletedAt: {},
       activeSceneId: null,
       readerStep: 0,
       ...previous
@@ -298,6 +328,7 @@
     state.story.traits = object(state.story.traits);
     state.story.progressionSnapshots = object(state.story.progressionSnapshots);
     state.story.momentumGates = object(state.story.momentumGates);
+    state.story.sceneCompletedAt = object(state.story.sceneCompletedAt);
     ensureSocialState();
   }
 
@@ -310,6 +341,11 @@
       choiceSelections: {},
       readMessageIds: [],
       messageReplies: {},
+      messageSchedule: {},
+      messageThreads: {},
+      messageDeliveryHistory: [],
+      lastMessageDeliveryAt: null,
+      weatherContext: { enabled: false, query: "", lat: null, lon: null, place: "", timezone: "", updatedAt: null, rain: false, summary: "" },
       completedHangoutIds: [],
       hangoutCounts: {},
       recentTalkIdsByPerson: {},
@@ -341,6 +377,10 @@
     state.story.social.choiceSelections = object(state.story.social.choiceSelections);
     state.story.social.readMessageIds = array(state.story.social.readMessageIds);
     state.story.social.messageReplies = object(state.story.social.messageReplies);
+    state.story.social.messageSchedule = object(state.story.social.messageSchedule);
+    state.story.social.messageThreads = object(state.story.social.messageThreads);
+    state.story.social.messageDeliveryHistory = array(state.story.social.messageDeliveryHistory).filter(item => item && item.groupId);
+    state.story.social.weatherContext = { enabled: false, query: "", lat: null, lon: null, place: "", timezone: "", updatedAt: null, rain: false, summary: "", ...object(state.story.social.weatherContext) };
     state.story.social.completedHangoutIds = array(state.story.social.completedHangoutIds);
     state.story.social.hangoutCounts = object(state.story.social.hangoutCounts);
     state.story.social.recentTalkIdsByPerson = object(state.story.social.recentTalkIdsByPerson);
@@ -638,6 +678,75 @@
       return app.evaluateProgressionCondition(scene.readiness, { snapshot });
     }
     return true;
+  }
+
+  /* V0.31.4r · Real-time story cadence
+     Only chapters whose installed prose explicitly needs a later real day/daypart
+     use this gate. Story Energy and Momentum can be ready in parallel. */
+  function temporalDaypartBounds(part) {
+    if (part === "morning") return [6, 11.5];
+    if (part === "day") return [11, 16.5];
+    if (part === "evening") return [17, 22];
+    if (part === "night") return [20, 23.75];
+    return [0, 24];
+  }
+
+  function sceneCompletionDate(sceneId) {
+    const state = app.getState();
+    const raw = state.story?.sceneCompletedAt?.[sceneId];
+    const parsed = raw ? new Date(raw) : null;
+    return parsed && Number.isFinite(parsed.getTime()) ? parsed : null;
+  }
+
+  function temporalGateInfo(scene, { createFallback = false } = {}) {
+    const temporal = object(scene?.temporal);
+    if (!Object.keys(temporal).length) return { required: false, met: true, availableAt: null, label: "" };
+    const state = app.getState();
+    ensureStoryState();
+    const afterScene = temporal.afterScene || null;
+    let completedAt = afterScene ? sceneCompletionDate(afterScene) : null;
+
+    // Older saves did not record story timestamps. Anchor missing timing to migration
+    // time rather than pretending the chapter was completed on an invented date.
+    if (!completedAt && afterScene && array(state.story.completedSceneIds).includes(afterScene) && createFallback) {
+      const stamp = new Date().toISOString();
+      state.story.sceneCompletedAt[afterScene] = stamp;
+      completedAt = new Date(stamp);
+      app.saveState({ source: "story-temporal-migration" });
+    }
+    if (afterScene && !completedAt) return { required: true, met: false, availableAt: null, label: temporal.ui || "available later" };
+
+    const base = completedAt ? new Date(completedAt) : new Date();
+    const minDays = Math.max(0, Number(temporal.minCalendarDays || 0));
+    const availableAt = new Date(base);
+    availableAt.setHours(0, 0, 0, 0);
+    availableAt.setDate(availableAt.getDate() + minDays);
+    const [startHour] = temporalDaypartBounds(temporal.daypart);
+    availableAt.setHours(Math.floor(startHour), Math.round((startHour % 1) * 60), 0, 0);
+
+    // Dayparts are an earliest-opening window, not a miss-it-and-wait-another-day
+    // appointment. Once the appropriate part of that story day has begun, the beat
+    // stays available so immersion never turns into schedule anxiety.
+    const now = new Date();
+    const met = now.getTime() >= availableAt.getTime();
+    let label = temporal.ui || "available later";
+    if (!met) {
+      const sameDay = localDateKey(availableAt) === localDateKey(now);
+      const tomorrow = new Date(now); tomorrow.setDate(tomorrow.getDate() + 1);
+      const dayWord = sameDay ? "today" : localDateKey(availableAt) === localDateKey(tomorrow) ? "tomorrow" : availableAt.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+      const partLabel = temporal.daypart === "morning" ? "morning" : temporal.daypart === "evening" ? "evening" : temporal.daypart === "night" ? "night" : "";
+      label = `Ready · available ${dayWord}${partLabel ? ` ${partLabel}` : ""}`;
+    }
+    return { required: true, met, availableAt, label };
+  }
+
+  function temporalGateMarkup(info) {
+    if (!info?.required) return "";
+    return `<section class="story-temporal-gate-v314r ${info.met ? "ready" : "waiting"}">
+      <div class="story-momentum-kicker-v309">${info.met ? "STORY TIME READY" : "STORY TIME"}</div>
+      <strong>${escapeHtml(info.met ? "The next story beat fits the current time." : info.label)}</strong>
+      <p>${escapeHtml(info.met ? "Your Story Energy and other requirements can be used now." : "Energy and real-life requirements can be completed in parallel; the chapter simply waits for its story-time window.")}</p>
+    </section>`;
   }
 
   /* V0.30.9 · Story Momentum
@@ -1054,7 +1163,8 @@
     const enoughEnergy = Number(state.storyEnergy || 0) >= cost;
     const progression = unlocked ? { required: false, met: true, requirements: [] } : progressionRequirementInfo(scene);
     const momentum = unlocked ? { required: false, met: true, groups: [] } : momentumGateInfo(scene, { create: true });
-    const readyForScene = progression.met && momentum.met;
+    const temporal = temporalGateInfo(scene, { createFallback: true });
+    const readyForScene = progression.met && momentum.met && temporal.met;
 
     if (unlocked) {
       els.nextTitle.textContent = scene.title;
@@ -1063,10 +1173,12 @@
       els.nextTeaser.textContent = active && step > 0
         ? "Continue exactly where you stopped reading."
         : "This chapter is unlocked and ready to read.";
-      els.energyNeed.innerHTML = `<span class="story-energy-pill ready">✓ Whole chapter unlocked</span>`;
-      els.actionButton.disabled = false;
-      els.actionButton.textContent = active && step > 0 ? "Continue chapter" : "Read chapter";
-      els.actionHint.textContent = "Choices change hidden story state. There is no paid 'correct' answer.";
+      els.energyNeed.innerHTML = `<span class="story-energy-pill ready">✓ Whole chapter unlocked</span>${temporalGateMarkup(temporal)}`;
+      els.actionButton.disabled = !temporal.met;
+      els.actionButton.textContent = temporal.met ? (active && step > 0 ? "Continue chapter" : "Read chapter") : temporal.label;
+      els.actionHint.textContent = temporal.met
+        ? "Choices change hidden story state. There is no paid 'correct' answer."
+        : "The chapter is already yours; it is only waiting for the story's real-time window.";
       return;
     }
 
@@ -1083,15 +1195,19 @@
       : enoughEnergy
         ? `<span class="story-energy-pill ready">${app.formatEnergy?.(state.storyEnergy) ?? state.storyEnergy} 🔥 available</span><span class="story-energy-pill">${cost} 🔥 to unlock chapter</span>`
         : `<span class="story-energy-pill">${app.formatEnergy?.(state.storyEnergy) ?? state.storyEnergy} 🔥 available</span><span class="story-energy-pill locked">Need ${app.formatEnergy?.(Math.max(0, cost - Number(state.storyEnergy || 0))) ?? Math.max(0, cost - Number(state.storyEnergy || 0))} more</span>`;
-    const requirementMarkup = `${progressionRequirementMarkup(progression)}${momentumGateMarkup(momentum)}`;
+    const requirementMarkup = `${progressionRequirementMarkup(progression)}${momentumGateMarkup(momentum)}${temporalGateMarkup(temporal)}`;
     els.energyNeed.innerHTML = `${energyMarkup}${requirementMarkup}`;
 
     if (!readyForScene) {
       els.actionButton.disabled = true;
-      els.actionButton.textContent = momentum.required && !momentum.met
-        ? (array(momentum.groups).length > 1 ? "Complete the chapter requirements" : "Choose one small momentum option")
-        : "Not quite ready yet";
-      els.actionHint.textContent = "Requirements stay visible even before you have enough Story Energy, so you can complete them in parallel. Flexible OR-options are meant to nudge, not force one exact activity.";
+      els.actionButton.textContent = !temporal.met
+        ? temporal.label
+        : momentum.required && !momentum.met
+          ? (array(momentum.groups).length > 1 ? "Complete the chapter requirements" : "Choose one small momentum option")
+          : "Not quite ready yet";
+      els.actionHint.textContent = !temporal.met
+        ? "Story time is part of the immersion gate. Energy and other requirements can still be completed while you wait."
+        : "Requirements stay visible even before you have enough Story Energy, so you can complete them in parallel. Flexible OR-options are meant to nudge, not force one exact activity.";
       return;
     }
 
@@ -1324,6 +1440,587 @@
 
   function socialMessages() {
     return Array.isArray(pack?.social?.messages) ? pack.social.messages : [];
+  }
+
+  /* V0.31.4r · Social immersion scheduler
+     Story flags make a thread eligible; local time decides when it actually arrives.
+     Nothing expires, no push notification is required, and only one new thread is
+     delivered per cooldown window so the phone feels lived-in instead of dumped. */
+  function messageGroupId(message) {
+    return message?.groupId || message?.id || "";
+  }
+
+  function candidateMessages() {
+    const groups = new Map();
+    socialMessages()
+      .filter(message => conditionMatches(message))
+      .sort((a, b) => Number(a.order || 0) - Number(b.order || 0))
+      .forEach(message => {
+        const key = messageGroupId(message);
+        if (key && !groups.has(key)) groups.set(key, message);
+      });
+    return [...groups.values()];
+  }
+
+  function messageByGroup(groupId) {
+    const state = app.getState();
+    const scheduledId = state.story?.social?.messageSchedule?.[groupId]?.messageId;
+    if (scheduledId) {
+      const scheduled = socialMessages().find(message => message.id === scheduledId);
+      if (scheduled) return scheduled;
+    }
+    return candidateMessages().find(message => messageGroupId(message) === groupId)
+      || socialMessages().find(message => messageGroupId(message) === groupId)
+      || null;
+  }
+
+  function messageDaypartFor(date = new Date()) {
+    const hour = date.getHours() + date.getMinutes() / 60;
+    if (hour >= 6 && hour < 11) return "morning";
+    if (hour >= 11 && hour < 16) return "day";
+    if (hour >= 16 && hour < 21) return "evening";
+    if (hour >= 21 && hour < 24) return "night";
+    return "late";
+  }
+
+  function messageDaypartBounds(part) {
+    if (part === "morning") return [6, 11];
+    if (part === "day") return [11, 16];
+    if (part === "evening") return [16, 21];
+    if (part === "night") return [21, 23.75];
+    return [6, 23.75];
+  }
+
+  function isMessageDaypartAllowed(date, parts) {
+    const allowed = array(parts);
+    if (!allowed.length) return true;
+    const part = messageDaypartFor(date);
+    return allowed.includes(part);
+  }
+
+  function stableMinuteJitter(groupId, max = 17) {
+    let hash = 2166136261;
+    for (const ch of String(groupId || "")) {
+      hash ^= ch.charCodeAt(0);
+      hash = Math.imul(hash, 16777619);
+    }
+    return Math.abs(hash >>> 0) % Math.max(1, max + 1);
+  }
+
+  function nextAllowedMessageTime(baseDate, parts, groupId) {
+    const allowed = array(parts);
+    if (!allowed.length) return new Date(baseDate);
+    const date = new Date(baseDate);
+    if (isMessageDaypartAllowed(date, allowed)) return date;
+
+    for (let dayOffset = 0; dayOffset <= 2; dayOffset += 1) {
+      for (const part of ["morning", "day", "evening", "night"]) {
+        if (!allowed.includes(part)) continue;
+        const [start] = messageDaypartBounds(part);
+        const candidate = new Date(date);
+        candidate.setDate(date.getDate() + dayOffset);
+        candidate.setHours(Math.floor(start), stableMinuteJitter(groupId, 16), 0, 0);
+        if (candidate.getTime() >= date.getTime()) return candidate;
+      }
+    }
+    return date;
+  }
+
+  function cleanChatText(value) {
+    let text = String(value || "").trim();
+    if ((text.startsWith("“") && text.endsWith("”")) || (text.startsWith('"') && text.endsWith('"'))) {
+      text = text.slice(1, -1).trim();
+    }
+    return text;
+  }
+
+  function messageSnapshotFor(message) {
+    const state = app.getState();
+    const weather = state.story?.social?.weatherContext || {};
+    const variant = weather.enabled && weather.rain ? message?.weatherVariants?.rain : null;
+    const bubbles = array(variant).length ? variant : array(message?.messages);
+    return {
+      messageId: message?.id || "",
+      label: message?.label || "",
+      bubbles: bubbles.map(bubble => ({ from: bubble?.from || message?.personId || "npc", text: String(bubble?.text || "") }))
+    };
+  }
+
+  function initializeLegacyMessageSchedule() {
+    const state = app.getState();
+    const social = state.story.social;
+    const read = new Set(array(social.readMessageIds));
+    const replies = object(social.messageReplies);
+    const now = Date.now();
+    let changed = false;
+    const candidates = candidateMessages();
+    const maxOrder = Math.max(1, ...candidates.map(message => Number(message.order || 0)));
+
+    for (const message of candidates) {
+      const groupId = messageGroupId(message);
+      if (!groupId || social.messageSchedule[groupId]) continue;
+      const legacyVisible = read.has(groupId) || Boolean(replies[groupId]);
+      const delivery = object(message.delivery);
+      const eligibleAt = new Date().toISOString();
+      if (legacyVisible) {
+        const order = Number(message.order || 0);
+        const deliveredAt = new Date(now - Math.max(0, maxOrder - order) * 60000).toISOString();
+        const snapshot = messageSnapshotFor(message);
+        social.messageSchedule[groupId] = {
+          groupId,
+          personId: message.personId,
+          messageId: message.id,
+          status: "delivered",
+          eligibleAt,
+          deliverAt: deliveredAt,
+          deliveredAt,
+          priority: Number(delivery.priority || 50),
+          snapshot,
+          initialRevealed: array(snapshot.bubbles).length,
+          initialPendingDueAt: null,
+          initialBurstVersion: 1,
+          legacy: true
+        };
+      } else {
+        const delay = Math.max(0, Number(delivery.earliestDelayMinutes || 30));
+        const base = new Date(now + delay * 60000);
+        const deliverAt = nextAllowedMessageTime(base, delivery.dayparts, groupId).toISOString();
+        social.messageSchedule[groupId] = {
+          groupId,
+          personId: message.personId,
+          messageId: message.id,
+          status: "queued",
+          eligibleAt,
+          deliverAt,
+          priority: Number(delivery.priority || 50)
+        };
+      }
+      changed = true;
+    }
+    return changed;
+  }
+
+  function threadState(groupId) {
+    const state = app.getState();
+    ensureStoryState();
+    const existing = object(state.story.social.messageThreads[groupId]);
+    const next = {
+      selections: {},
+      revealedAfter: {},
+      pending: null,
+      completedAt: null,
+      legacyComplete: false,
+      ...existing
+    };
+    next.selections = object(next.selections);
+    next.revealedAfter = object(next.revealedAfter);
+
+    // Pre-V0.31.4r replies were one-tap conversations whose NPC response appeared
+    // immediately. Preserve that visible history during migration: do not make an old
+    // reply "type again", and do not suddenly append a newly-authored follow-up turn
+    // to a conversation the player already finished in an older build.
+    if (!next.selections.root && state.story.social.messageReplies?.[groupId]) {
+      next.selections.root = state.story.social.messageReplies[groupId];
+      const message = messageByGroup(groupId);
+      const selected = array(message?.replyOptions).find(option => option.id === next.selections.root);
+      next.revealedAfter.root = array(selected?.after).length;
+      next.pending = null;
+      next.legacyComplete = true;
+      next.completedAt = next.completedAt || new Date().toISOString();
+    }
+    state.story.social.messageThreads[groupId] = next;
+    return next;
+  }
+
+  function branchOptionsForPath(message, path = "root", stateOverride = null) {
+    if (path === "root") return array(message?.replyOptions);
+    const thread = stateOverride || threadState(messageGroupId(message));
+    const parts = String(path).split("/").filter(Boolean);
+    let options = array(message?.replyOptions);
+    let currentPath = "root";
+    for (const selectedId of parts.slice(1)) {
+      const selection = thread.selections[currentPath] || selectedId;
+      const selected = options.find(option => option.id === selection);
+      if (!selected?.followUp) return [];
+      currentPath = `${currentPath}/${selection}`;
+      options = array(selected.followUp.options);
+    }
+    return options;
+  }
+
+  function selectedOptionAtPath(message, path, thread) {
+    const id = thread.selections?.[path];
+    if (!id) return null;
+    return branchOptionsForPath(message, path, thread).find(option => option.id === id) || null;
+  }
+
+  function nextFollowUpPath(path, option) {
+    return option?.followUp ? `${path}/${option.id}` : null;
+  }
+
+  function messageThreadStatus(message) {
+    const groupId = messageGroupId(message);
+    const thread = threadState(groupId);
+    const entry = app.getState().story?.social?.messageSchedule?.[groupId];
+    const snapshot = entry?.snapshot || messageSnapshotFor(message);
+    const initialTotal = array(snapshot?.bubbles).length;
+    const initialRevealed = entry?.initialRevealed == null ? initialTotal : Math.max(0, Number(entry.initialRevealed || 0));
+    if (entry?.status === "delivered" && (initialRevealed < initialTotal || entry.initialPendingDueAt)) {
+      return { resolved: false, awaitingReply: false, path: null, initialTyping: true };
+    }
+    if (thread.legacyComplete) return { resolved: true, awaitingReply: false, path: null };
+    let path = "root";
+    let safety = 0;
+    while (safety++ < 8) {
+      const options = branchOptionsForPath(message, path, thread);
+      if (!options.length) return { resolved: true, awaitingReply: false, path: null };
+      const selected = selectedOptionAtPath(message, path, thread);
+      if (!selected) return { resolved: false, awaitingReply: true, path };
+      const after = array(selected.after);
+      const revealed = Math.max(0, Number(thread.revealedAfter?.[path] || 0));
+      if (revealed < after.length || (thread.pending && thread.pending.path === path)) {
+        return { resolved: false, awaitingReply: false, path };
+      }
+      const nextPath = nextFollowUpPath(path, selected);
+      if (!nextPath) return { resolved: true, awaitingReply: false, path: null };
+      path = nextPath;
+    }
+    return { resolved: true, awaitingReply: false, path: null };
+  }
+
+  function deliveredMessagesForPerson(personId) {
+    const state = app.getState();
+    const social = state.story.social;
+    return Object.values(object(social.messageSchedule))
+      .filter(entry => entry?.status === "delivered" && entry.personId === personId)
+      .map(entry => ({ entry, message: socialMessages().find(item => item.id === entry.messageId) || messageByGroup(entry.groupId) }))
+      .filter(item => item.message)
+      .sort((a, b) => {
+        const at = new Date(a.entry.deliveredAt || a.entry.deliverAt || 0).getTime() - new Date(b.entry.deliveredAt || b.entry.deliverAt || 0).getTime();
+        if (at) return at;
+        return Number(a.message.order || 0) - Number(b.message.order || 0);
+      });
+  }
+
+  function firstOpenThreadForPerson(personId) {
+    return deliveredMessagesForPerson(personId).find(({ message }) => !messageThreadStatus(message).resolved) || null;
+  }
+
+  function replyAllowedForMessage(personId, groupId) {
+    const first = firstOpenThreadForPerson(personId);
+    return !first || messageGroupId(first.message) === groupId;
+  }
+
+  function typingDelayForBubble(bubble) {
+    const text = String(bubble?.text || "");
+    return Math.max(800, Math.min(3500, 700 + text.length * 34));
+  }
+
+  function findOptionForPending(message, pending, thread) {
+    if (!pending?.path) return null;
+    return selectedOptionAtPath(message, pending.path, thread);
+  }
+
+  function advanceDueMessageAnimations() {
+    const state = app.getState();
+    if (!pack) return false;
+    let changed = false;
+    const now = Date.now();
+
+    // Newly delivered NPC messages arrive as small bubble bursts while the phone is
+    // open. If the app was closed, overdue bubbles simply catch up immediately on
+    // the next render; there is never a pressure-producing real-time obligation.
+    for (const entry of Object.values(object(state.story.social.messageSchedule))) {
+      if (entry?.status !== "delivered" || !entry.initialPendingDueAt) continue;
+      const snapshot = entry.snapshot || messageSnapshotFor(messageByGroup(entry.groupId));
+      const bubbles = array(snapshot?.bubbles);
+      let due = new Date(entry.initialPendingDueAt).getTime();
+      let revealed = Math.max(0, Number(entry.initialRevealed || 0));
+      let safety = 0;
+      while (Number.isFinite(due) && due <= now && revealed < bubbles.length && safety++ < 12) {
+        revealed += 1;
+        entry.initialRevealed = revealed;
+        changed = true;
+        if (revealed >= bubbles.length) {
+          entry.initialPendingDueAt = null;
+          break;
+        }
+        due += typingDelayForBubble(bubbles[revealed]);
+        entry.initialPendingDueAt = new Date(due).toISOString();
+      }
+    }
+
+    for (const [groupId] of Object.entries(object(state.story.social.messageThreads))) {
+      const thread = threadState(groupId);
+      let pending = thread.pending;
+      let safety = 0;
+      while (pending && Number(new Date(pending.dueAt).getTime()) <= now && safety++ < 12) {
+        const message = messageByGroup(groupId);
+        const option = message ? findOptionForPending(message, pending, thread) : null;
+        const after = array(option?.after);
+        const current = Math.max(0, Number(thread.revealedAfter[pending.path] || 0));
+        if (!option || current >= after.length) {
+          thread.pending = null;
+          pending = null;
+          changed = true;
+          break;
+        }
+        thread.revealedAfter[pending.path] = current + 1;
+        changed = true;
+        if (current + 1 >= after.length) {
+          thread.pending = null;
+          pending = null;
+        } else {
+          const nextBubble = after[current + 1];
+          const nextDue = new Date(Number(new Date(pending.dueAt).getTime()) + typingDelayForBubble(nextBubble));
+          thread.pending = { ...pending, dueAt: nextDue.toISOString() };
+          pending = thread.pending;
+        }
+      }
+      state.story.social.messageThreads[groupId] = thread;
+    }
+    if (changed) app.saveState({ source: "social-message-arrival" });
+    scheduleTypingWakeup();
+    return changed;
+  }
+
+  function scheduleTypingWakeup() {
+    if (messageTypingTimer) clearTimeout(messageTypingTimer);
+    messageTypingTimer = null;
+    const state = app.getState();
+    const threadTimes = Object.values(object(state.story?.social?.messageThreads))
+      .map(thread => thread?.pending?.dueAt ? new Date(thread.pending.dueAt).getTime() : NaN);
+    const initialTimes = Object.values(object(state.story?.social?.messageSchedule))
+      .map(entry => entry?.initialPendingDueAt ? new Date(entry.initialPendingDueAt).getTime() : NaN);
+    const pendingTimes = [...threadTimes, ...initialTimes].filter(Number.isFinite);
+    if (!pendingTimes.length) return;
+    const delay = Math.max(60, Math.min(2147483000, Math.min(...pendingTimes) - Date.now() + 25));
+    messageTypingTimer = setTimeout(() => {
+      advanceDueMessageAnimations();
+      renderPhoneSurfaces(app.getState().story?.social?.selectedPhonePersonId || null);
+      renderPhonePreview();
+      renderPeople();
+      renderPeoplePage();
+    }, delay);
+  }
+
+  function deliveryConstraintMet(entry, message) {
+    const state = app.getState();
+    const social = state.story.social;
+    const delivery = object(message?.delivery);
+    if (delivery.requiresMessage) {
+      const required = social.messageSchedule?.[delivery.requiresMessage];
+      if (!required || required.status !== "delivered") return false;
+      if (delivery.requiresResolved) {
+        const requiredMessage = messageByGroup(delivery.requiresMessage);
+        if (requiredMessage && !messageThreadStatus(requiredMessage).resolved) return false;
+      }
+    }
+
+    // Preserve each person's authored chronology even when several story flags become
+    // true in the same chapter. A later, higher-priority text may wait behind an
+    // earlier queued thread; this prevents timeline inversions like a "first night"
+    // check appearing before a moving-day check.
+    const order = Number(message?.order || 0);
+    const earlierWaiting = Object.values(object(social.messageSchedule)).some(other => {
+      if (!other || other.groupId === entry.groupId || other.personId !== entry.personId) return false;
+      const otherMessage = messageByGroup(other.groupId);
+      if (!otherMessage || Number(otherMessage.order || 0) >= order) return false;
+      return other.status === "queued";
+    });
+    if (earlierWaiting) return false;
+
+    const open = firstOpenThreadForPerson(entry.personId);
+    if (open && messageGroupId(open.message) !== entry.groupId) return false;
+    return true;
+  }
+
+  function syncMessageScheduler({ allowDelivery = true } = {}) {
+    if (!pack) return;
+    const state = app.getState();
+    ensureStoryState();
+    const social = state.story.social;
+    let changed = initializeLegacyMessageSchedule();
+    const now = Date.now();
+
+    // A save created by an intermediate/older build may already contain delivered
+    // scheduler entries without progressive-burst metadata. Keep those bubbles fully
+    // visible rather than hiding history during migration.
+    for (const entry of Object.values(object(social.messageSchedule))) {
+      if (entry?.status !== "delivered" || entry.initialBurstVersion) continue;
+      const message = messageByGroup(entry.groupId);
+      entry.snapshot = entry.snapshot || messageSnapshotFor(message);
+      entry.initialRevealed = array(entry.snapshot?.bubbles).length;
+      entry.initialPendingDueAt = null;
+      entry.initialBurstVersion = 1;
+      changed = true;
+    }
+
+    for (const message of candidateMessages()) {
+      const groupId = messageGroupId(message);
+      if (social.messageSchedule[groupId]) continue;
+      const delivery = object(message.delivery);
+      const delay = Math.max(0, Number(delivery.earliestDelayMinutes || 30));
+      const base = new Date(now + delay * 60000);
+      social.messageSchedule[groupId] = {
+        groupId,
+        personId: message.personId,
+        messageId: message.id,
+        status: "queued",
+        eligibleAt: new Date(now).toISOString(),
+        deliverAt: nextAllowedMessageTime(base, delivery.dayparts, groupId).toISOString(),
+        priority: Number(delivery.priority || 50)
+      };
+      changed = true;
+    }
+
+    if (allowDelivery) {
+      // A dependency or earlier conversation may keep a message queued past its
+      // originally calculated window. Re-check the current daypart before delivery
+      // so an evening/dinner text never spills into the next morning just because it
+      // was waiting behind another thread.
+      for (const entry of Object.values(object(social.messageSchedule))) {
+        if (entry?.status !== "queued" || new Date(entry.deliverAt || 0).getTime() > now) continue;
+        const message = messageByGroup(entry.groupId);
+        const allowed = array(message?.delivery?.dayparts);
+        if (message && allowed.length && !isMessageDaypartAllowed(new Date(now), allowed)) {
+          entry.deliverAt = nextAllowedMessageTime(new Date(now + 60000), allowed, entry.groupId).toISOString();
+          changed = true;
+        }
+      }
+
+      const queued = Object.values(object(social.messageSchedule))
+        .filter(entry => entry?.status === "queued" && new Date(entry.deliverAt || 0).getTime() <= now)
+        .map(entry => ({ entry, message: messageByGroup(entry.groupId) }))
+        .filter(item => item.message && deliveryConstraintMet(item.entry, item.message))
+        .sort((a, b) => Number(b.entry.priority || 0) - Number(a.entry.priority || 0) || new Date(a.entry.deliverAt).getTime() - new Date(b.entry.deliverAt).getTime());
+
+      const lastAt = social.lastMessageDeliveryAt ? new Date(social.lastMessageDeliveryAt).getTime() : 0;
+      const next = queued[0];
+      if (next) {
+        const cooldown = Math.max(15, Number(next.message?.delivery?.globalCooldownMinutes || 35)) * 60000;
+        if (!lastAt || now - lastAt >= cooldown) {
+          next.entry.status = "delivered";
+          next.entry.deliveredAt = new Date(now).toISOString();
+          next.entry.snapshot = messageSnapshotFor(next.message);
+          const initialBubbles = array(next.entry.snapshot?.bubbles);
+          next.entry.initialRevealed = initialBubbles.length ? 1 : 0;
+          next.entry.initialPendingDueAt = initialBubbles.length > 1
+            ? new Date(now + typingDelayForBubble(initialBubbles[1])).toISOString()
+            : null;
+          next.entry.initialBurstVersion = 1;
+          social.lastMessageDeliveryAt = next.entry.deliveredAt;
+          social.messageDeliveryHistory = [...array(social.messageDeliveryHistory), { groupId: next.entry.groupId, personId: next.entry.personId, at: next.entry.deliveredAt }].slice(-160);
+          changed = true;
+        }
+      }
+    }
+
+    if (changed) app.saveState({ source: "social-message-scheduler" });
+    scheduleMessageWakeup();
+    scheduleTypingWakeup();
+    return changed;
+  }
+
+  function scheduleMessageWakeup() {
+    if (messageSchedulerTimer) clearTimeout(messageSchedulerTimer);
+    messageSchedulerTimer = null;
+    const state = app.getState();
+    const social = state.story?.social;
+    if (!social) return;
+    const now = Date.now();
+    const queued = Object.values(object(social.messageSchedule))
+      .filter(entry => entry?.status === "queued")
+      .map(entry => new Date(entry.deliverAt || 0).getTime())
+      .filter(Number.isFinite);
+    if (!queued.length) return;
+    const lastAt = social.lastMessageDeliveryAt ? new Date(social.lastMessageDeliveryAt).getTime() : 0;
+    const nextCooldown = lastAt ? lastAt + 35 * 60000 : now;
+    const target = Math.max(Math.min(...queued), nextCooldown);
+    const delay = Math.max(500, Math.min(2147483000, target - now + 50));
+    messageSchedulerTimer = setTimeout(() => {
+      syncMessageScheduler({ allowDelivery: true });
+      renderPhoneSurfaces(app.getState().story?.social?.selectedPhonePersonId || null);
+      renderPhonePreview();
+      renderPeople();
+      renderPeoplePage();
+    }, delay);
+  }
+
+  function messageTimestamp(entry) {
+    const at = new Date(entry?.deliveredAt || entry?.deliverAt || Date.now());
+    if (!Number.isFinite(at.getTime())) return "";
+    const today = localDateKey();
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const dateLabel = localDateKey(at) === today ? "Today" : localDateKey(at) === localDateKey(yesterday) ? "Yesterday" : at.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+    return `${dateLabel} · ${at.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+  }
+
+  function renderWeatherContext() {
+    const state = app.getState();
+    const weather = state.story?.social?.weatherContext || {};
+    if (els.weatherToggle) els.weatherToggle.checked = Boolean(weather.enabled);
+    if (els.weatherCity && document.activeElement !== els.weatherCity) els.weatherCity.value = weather.query || weather.place || "";
+    if (els.weatherStatus) {
+      els.weatherStatus.textContent = !weather.enabled
+        ? "Off · weather-specific texts use neutral wording"
+        : weather.summary || (weather.place ? `${weather.place} · waiting for weather` : "Add a city to use weather-aware message variants");
+    }
+  }
+
+  async function refreshWeatherContext(force = false) {
+    const state = app.getState();
+    ensureStoryState();
+    const weather = state.story.social.weatherContext;
+    if (!weather.enabled || !String(weather.query || "").trim()) { renderWeatherContext(); return false; }
+    const age = weather.updatedAt ? Date.now() - new Date(weather.updatedAt).getTime() : Infinity;
+    if (!force && age < 45 * 60000) { renderWeatherContext(); return true; }
+    if (weatherRefreshPromise) return weatherRefreshPromise;
+
+    weatherRefreshPromise = (async () => {
+      try {
+        if (els.weatherStatus) els.weatherStatus.textContent = "Checking local weather…";
+        const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(weather.query)}&count=1&language=en&format=json`;
+        const geoResponse = await fetch(geoUrl);
+        if (!geoResponse.ok) throw new Error("City lookup failed");
+        const geo = await geoResponse.json();
+        const place = array(geo?.results)[0];
+        if (!place) throw new Error("City not found");
+        const forecastUrl = `https://api.open-meteo.com/v1/forecast?latitude=${encodeURIComponent(place.latitude)}&longitude=${encodeURIComponent(place.longitude)}&current=precipitation,rain,showers,weather_code&timezone=auto`;
+        const response = await fetch(forecastUrl);
+        if (!response.ok) throw new Error("Weather lookup failed");
+        const data = await response.json();
+        const current = data?.current || {};
+        const precipitation = Number(current.precipitation || 0) + Number(current.rain || 0) + Number(current.showers || 0);
+        const code = Number(current.weather_code || 0);
+        const rainyCode = (code >= 51 && code <= 67) || (code >= 80 && code <= 82) || code >= 95;
+        weather.lat = Number(place.latitude);
+        weather.lon = Number(place.longitude);
+        weather.place = [place.name, place.admin1].filter(Boolean).join(", ");
+        weather.timezone = data?.timezone || place.timezone || "";
+        weather.updatedAt = new Date().toISOString();
+        weather.rain = precipitation > 0.05 || rainyCode;
+        weather.summary = `${weather.place} · ${weather.rain ? "rainy context" : "dry context"} · updated ${new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+        app.saveState({ source: "social-weather-refresh" });
+        renderWeatherContext();
+        return true;
+      } catch (error) {
+        weather.summary = "Weather unavailable · neutral message wording will be used";
+        app.saveState({ source: "social-weather-error" });
+        renderWeatherContext();
+        return false;
+      } finally {
+        weatherRefreshPromise = null;
+      }
+    })();
+    return weatherRefreshPromise;
+  }
+
+  function refreshWeatherContextIfNeeded() {
+    const weather = app.getState().story?.social?.weatherContext || {};
+    renderWeatherContext();
+    if (weather.enabled) refreshWeatherContext(false);
   }
 
   function socialHangouts() {
@@ -1809,14 +2506,13 @@
   }
 
   function pendingReplyCount(personId = null) {
-    const state = app.getState();
-    const replies = state.story.social?.messageReplies || {};
     const people = personId ? [personId] : knownPeople().map(person => person.id);
-    return people.reduce((count, id) => count + eligibleMessagesForPerson(id).filter(message => {
-      const key = messageReadKey(message);
-      return array(message.replyOptions).length > 0 && !replies[key];
-    }).length, 0);
+    return people.reduce((count, id) => {
+      const open = firstOpenThreadForPerson(id);
+      return count + (open && messageThreadStatus(open.message).awaitingReply ? 1 : 0);
+    }, 0);
   }
+
 
   function personRole(person) {
     const state = app.getState();
@@ -1971,15 +2667,10 @@
   }
 
   function eligibleMessagesForPerson(personId) {
-    const messages = socialMessages().filter(message => message.personId === personId && conditionMatches(message));
-    const seenGroups = new Set();
-    return messages.filter(message => {
-      const key = message.groupId || message.id;
-      if (seenGroups.has(key)) return false;
-      seenGroups.add(key);
-      return true;
-    }).sort((a, b) => Number(a.order || 0) - Number(b.order || 0));
+    syncMessageScheduler({ allowDelivery: true });
+    return deliveredMessagesForPerson(personId).map(item => item.message);
   }
+
 
   function messageReadKey(message) {
     return message.groupId || message.id;
@@ -1994,6 +2685,7 @@
 
   function renderPhonePreview() {
     if (!els.phonePreview || !els.phoneOpen || !els.phoneBadge) return;
+    syncMessageScheduler({ allowDelivery: true });
     const people = knownPeople();
     const unread = unreadMessageCount();
     const pending = pendingReplyCount();
@@ -2012,8 +2704,11 @@
       return;
     }
 
-    const latest = people
-      .flatMap(person => eligibleMessagesForPerson(person.id).map(message => ({ person, message })))
+    const latest = Object.values(object(app.getState().story?.social?.messageSchedule))
+      .filter(entry => entry?.status === "delivered")
+      .map(entry => ({ entry, message: messageByGroup(entry.groupId), person: people.find(person => person.id === entry.personId) }))
+      .filter(item => item.message && item.person)
+      .sort((a, b) => new Date(a.entry.deliveredAt || 0).getTime() - new Date(b.entry.deliveredAt || 0).getTime())
       .at(-1);
 
     els.phoneBadge.textContent = unread ? `${unread} new` : pending ? "Reply open" : "Online";
@@ -2026,13 +2721,14 @@
         <span class="phone-preview-icon">💬</span>
         <div class="phone-preview-copy">
           <strong>${escapeHtml(people[0].name)} is in your contacts.</strong>
-          <p>No new story-linked messages right now. You can still start a random Talk anytime.</p>
+          <p>No new story-linked messages right now. New threads can arrive later when the timing makes sense.</p>
         </div>
       `;
       return;
     }
 
-    const lastBubble = array(latest.message.messages).at(-1);
+    const snapshot = latest.entry.snapshot || messageSnapshotFor(latest.message);
+    const lastBubble = array(snapshot.bubbles).at(-1);
     els.phonePreview.innerHTML = `
       <span class="phone-preview-icon">💬</span>
       <div class="phone-preview-copy">
@@ -2041,6 +2737,7 @@
       </div>
     `;
   }
+
 
   function openPhone(personId = null) {
     if (!els.phoneDialog) return;
@@ -2054,14 +2751,17 @@
   }
 
   function renderPhoneSurfaces(selectedPersonId = null) {
+    syncMessageScheduler({ allowDelivery: true });
+    advanceDueMessageAnimations();
+    renderWeatherContext();
     const people = knownPeople();
     const state = app.getState();
     const unread = unreadMessageCount();
     const pending = pendingReplyCount();
     if (els.phonePageUnreadLabel) els.phonePageUnreadLabel.textContent = unread
-      ? `${unread} new message${unread === 1 ? "" : "s"}`
+      ? `${unread} new thread${unread === 1 ? "" : "s"}`
       : pending
-        ? `${pending} ${pending === 1 ? "reply is" : "replies are"} still open`
+        ? `${pending} ${pending === 1 ? "reply is" : "replies are"} waiting whenever you want`
         : "No new messages";
     if (els.navPhoneUnread) {
       els.navPhoneUnread.textContent = unread;
@@ -2098,6 +2798,7 @@
     renderPhoneThread(selected);
   }
 
+
   function renderPhoneDialog(selectedPersonId) {
     renderPhoneSurfaces(selectedPersonId);
   }
@@ -2121,51 +2822,66 @@
     renderPeoplePage();
   }
 
+  function renderMessageBranch(message, path, thread, allowReply) {
+    const options = branchOptionsForPath(message, path, thread);
+    if (!options.length) return "";
+    const selected = selectedOptionAtPath(message, path, thread);
+    if (!selected) {
+      if (!allowReply) return `<div class="story-message-turn-wait"><span>↳</span><small>Finish the earlier open thread first. This reply will wait.</small></div>`;
+      return `<div class="story-message-replies">
+        <small>Reply when you want</small>
+        ${options.map(option => `<button type="button" class="story-message-reply" data-message-reply-group="${escapeHtml(messageGroupId(message))}" data-message-reply-path="${escapeHtml(path)}" data-message-reply-id="${escapeHtml(option.id)}">${escapeHtml(cleanChatText(option.text))}</button>`).join("")}
+      </div>`;
+    }
+
+    const after = array(selected.after);
+    const revealed = Math.min(after.length, Math.max(0, Number(thread.revealedAfter?.[path] || 0)));
+    const afterHtml = after.slice(0, revealed).map(bubble => `<div class="story-message-bubble ${bubble.from === "luca" ? "outgoing" : "incoming"}">${escapeHtml(cleanChatText(bubble.text || ""))}</div>`).join("");
+    const typing = thread.pending?.path === path && revealed < after.length
+      ? `<div class="story-message-bubble incoming story-typing-bubble" aria-label="Typing"><span></span><span></span><span></span></div>`
+      : "";
+    const outgoing = `<div class="story-message-bubble outgoing">${escapeHtml(cleanChatText(selected.text))}</div>`;
+    if (revealed < after.length || typing) return `${outgoing}${afterHtml}${typing}`;
+    const nextPath = thread.legacyComplete ? null : nextFollowUpPath(path, selected);
+    return `${outgoing}${afterHtml}${nextPath ? renderMessageBranch(message, nextPath, thread, allowReply) : ""}`;
+  }
+
   function renderPhoneThread(personId) {
     const state = app.getState();
     const person = knownPeople().find(item => item.id === personId);
     if (!person) return;
-    const messages = eligibleMessagesForPerson(personId);
+    const delivered = deliveredMessagesForPerson(personId);
     const headerHtml = `
       <div class="phone-thread-person">
         <span class="phone-thread-avatar">${person.cardAsset ? `<img src="${escapeHtml(uiThumb(person.cardAsset))}" alt="" loading="lazy" decoding="async" />` : escapeHtml(person.name?.charAt(0) || "✦")}</span>
         <div><small>Messages with</small><strong>${escapeHtml(person.name)}</strong></div>
       </div>
-      <span class="story-phone-thread-status">Story-linked · no expiry</span>`;
+      <span class="story-phone-thread-status">Persistent chat · replies never expire</span>`;
     if (els.phoneThreadHeader) els.phoneThreadHeader.innerHTML = headerHtml;
     if (els.phonePageThreadHeader) els.phonePageThreadHeader.innerHTML = headerHtml;
 
     let threadHtml;
-    if (!messages.length) {
-      threadHtml = `<div class="phone-page-empty-state"><span>✉</span><strong>No messages yet.</strong><p>Story moments can unlock a conversation later. Once it appears, it will wait here for you.</p></div>`;
+    if (!delivered.length) {
+      const queued = Object.values(object(state.story.social.messageSchedule)).filter(entry => entry?.personId === personId && entry.status === "queued").length;
+      threadHtml = `<div class="phone-page-empty-state"><span>✉</span><strong>${queued ? "Nothing new yet." : "No messages yet."}</strong><p>${queued ? "A conversation can arrive later when the timing fits. Nothing needs to be rushed." : "Story moments can unlock a conversation later. Once it appears, it will wait here for you."}</p></div>`;
     } else {
-      const replies = state.story.social.messageReplies || {};
-      threadHtml = messages.map(message => {
-        const selectedId = replies[messageReadKey(message)];
-        const selected = array(message.replyOptions).find(option => option.id === selectedId);
-        const replyUi = !selected && array(message.replyOptions).length
-          ? `<div class="story-message-replies">
-              <small>Reply when you want</small>
-              ${array(message.replyOptions).map(option => `
-                <button type="button" class="story-message-reply" data-message-reply-group="${escapeHtml(messageReadKey(message))}" data-message-reply-id="${escapeHtml(option.id)}">${escapeHtml(option.text)}</button>
-              `).join("")}
-            </div>`
+      threadHtml = delivered.map(({ entry, message }) => {
+        const groupId = messageGroupId(message);
+        const snapshot = entry.snapshot || messageSnapshotFor(message);
+        const initialBubbles = array(snapshot.bubbles);
+        const revealedInitial = entry.initialRevealed == null ? initialBubbles.length : Math.min(initialBubbles.length, Math.max(0, Number(entry.initialRevealed || 0)));
+        const initialReady = revealedInitial >= initialBubbles.length && !entry.initialPendingDueAt;
+        const thread = threadState(groupId);
+        const allowReply = initialReady && replyAllowedForMessage(personId, groupId);
+        const initialTyping = entry.initialPendingDueAt && revealedInitial < initialBubbles.length
+          ? `<div class="story-message-bubble incoming story-typing-bubble" aria-label="Typing"><span></span><span></span><span></span></div>`
           : "";
-        const selectedUi = selected
-          ? `<div class="story-message-bubble outgoing">${escapeHtml(selected.text)}</div>
-             ${array(selected.after).map(bubble => `<div class="story-message-bubble ${bubble.from === "luca" ? "outgoing" : "incoming"}">${escapeHtml(bubble.text || "")}</div>`).join("")}`
-          : "";
-
         return `
-          <section class="story-message-group">
-            <div class="story-message-date">${escapeHtml(message.label || "Earlier")}</div>
-            ${array(message.messages).map(bubble => `
-              <div class="story-message-bubble ${bubble.from === "luca" ? "outgoing" : "incoming"}">
-                ${escapeHtml(bubble.text || "")}
-              </div>
-            `).join("")}
-            ${selectedUi}
-            ${replyUi}
+          <section class="story-message-group" data-message-group="${escapeHtml(groupId)}">
+            <div class="story-message-date"><span>${escapeHtml(snapshot.label || message.label || "")}</span><time>${escapeHtml(messageTimestamp(entry))}</time></div>
+            ${initialBubbles.slice(0, revealedInitial).map(bubble => `<div class="story-message-bubble ${bubble.from === "luca" ? "outgoing" : "incoming"}">${escapeHtml(cleanChatText(bubble.text || ""))}</div>`).join("")}
+            ${initialTyping}
+            ${initialReady ? renderMessageBranch(message, "root", thread, allowReply) : ""}
           </section>`;
       }).join("");
     }
@@ -2176,34 +2892,50 @@
       if (els.phoneThread) els.phoneThread.scrollTop = els.phoneThread.scrollHeight;
       if (els.phonePageThread) els.phonePageThread.scrollTop = els.phonePageThread.scrollHeight;
     });
+    scheduleTypingWakeup();
   }
 
-  function chooseMessageReply(groupId, optionId) {
+
+  function chooseMessageReply(groupId, optionId, path = "root") {
     const state = app.getState();
     ensureStoryState();
-    if (state.story.social.messageReplies[groupId]) return;
+    const message = messageByGroup(groupId);
+    if (!message || !replyAllowedForMessage(message.personId, groupId)) return;
+    const thread = threadState(groupId);
+    if (thread.selections[path]) return;
 
-    const message = knownPeople()
-      .flatMap(person => eligibleMessagesForPerson(person.id))
-      .find(item => messageReadKey(item) === groupId);
-    if (!message) return;
-
-    const option = array(message.replyOptions).find(item => item.id === optionId);
+    const option = branchOptionsForPath(message, path, thread).find(item => item.id === optionId);
     if (!option) return;
 
-    state.story.social.messageReplies[groupId] = option.id;
+    thread.selections[path] = option.id;
+    thread.revealedAfter[path] = 0;
+    if (path === "root") state.story.social.messageReplies[groupId] = option.id;
     applyEffects(option.effects || []);
+
+    const after = array(option.after);
+    if (after.length) {
+      thread.pending = {
+        path,
+        dueAt: new Date(Date.now() + typingDelayForBubble(after[0])).toISOString()
+      };
+    } else {
+      thread.pending = null;
+    }
+    state.story.social.messageThreads[groupId] = thread;
+
     const read = new Set(state.story.social.readMessageIds || []);
     read.add(groupId);
     state.story.social.readMessageIds = [...read];
-    recordSocialInteraction(message.personId, "message", groupId);
+    if (path === "root") recordSocialInteraction(message.personId, "message", groupId);
     app.saveState({ source: "social-message-reply" });
-    app.renderAll();
+    advanceDueMessageAnimations();
     renderPhoneSurfaces(state.story.social.selectedPhonePersonId || message.personId);
     renderPhonePreview();
     renderPeople();
     renderPeoplePage();
+    scheduleTypingWakeup();
   }
+
 
   function handleStoryAction() {
     if (!pack) return;
@@ -2218,6 +2950,9 @@
         if (latestCompleted) openScene(latestCompleted.id, { replay: true });
         return;
       }
+
+      const temporal = temporalGateInfo(next, { createFallback: true });
+      if (!temporal.met) return;
 
       if (!state.story.unlockedSceneIds.includes(next.id)) {
         const cost = effectiveSceneCost(next);
@@ -2260,6 +2995,7 @@
 
     const state = app.getState();
     if (!replay && !state.story.unlockedSceneIds.includes(sceneId)) return false;
+    if (!replay && !temporalGateInfo(scene, { createFallback: true }).met) return false;
     if (replay && !state.story.completedSceneIds.includes(sceneId)) return false;
     if (!els.readerPage) throw new Error("Story reader markup is missing. Please refresh the updated index.html.");
 
@@ -2753,11 +3489,14 @@
     if (!alreadyComplete) {
       applyEffects(scene.onComplete || []);
       state.story.completedSceneIds.push(scene.id);
+      state.story.sceneCompletedAt = object(state.story.sceneCompletedAt);
+      state.story.sceneCompletedAt[scene.id] = new Date().toISOString();
       if (scene.memory?.id && !state.memories.includes(scene.memory.id)) state.memories.push(scene.memory.id);
     }
 
     state.story.activeSceneId = null;
     state.story.readerStep = 0;
+    syncMessageScheduler({ allowDelivery: false });
     app.saveState({ source: "story-complete" });
     app.renderAll();
 
@@ -3023,12 +3762,26 @@
 
   function normalizeStageCharacters(characters) {
     const list = array(characters).filter(Boolean).slice(0, 3).map(item => ({ ...item }));
-    if (list.length <= 1) return list;
+    if (list.length === 1) {
+      const item = list[0];
+      const metadata = pack?.assets?.characters?.[item.id] || {};
+      const naturalFacing = item.naturalFacing || metadata.naturalFacing || "front";
+      // Solo sprites are positioned so their authored pose points into the composition.
+      // This avoids mirroring asymmetric scars/piercings simply to make one character
+      // face inward. An authored sideLocked flag remains available for exceptional beats.
+      if (!item.sideLocked) {
+        if (naturalFacing === "right") item.side = "left";
+        else if (naturalFacing === "left") item.side = "right";
+        else item.side = "center";
+      }
+      return list;
+    }
+    if (!list.length) return list;
 
-    // Ensemble staging is intentionally deterministic. Two people flank Luca/player;
-    // three people use left/center/right with slight visual overlap in CSS.
+    // Ensemble staging remains deterministic. Existing right-side mirroring is used
+    // only for multi-character framing, while solo asymmetric art keeps its true side.
     const slots = list.length === 2 ? ["left", "right"] : ["left", "center", "right"];
-    list.forEach((item, index) => { item.side = slots[index]; });
+    list.forEach((item, index) => { item.side = item.sideLocked ? (item.side || slots[index]) : slots[index]; });
     return list;
   }
 

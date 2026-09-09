@@ -15816,3 +15816,187 @@ body.training-focus-active-v314o > *:not(#trainingFocusView):not(.toast):not(.ac
 .lexicon-status-v314q{margin:0;padding:11px 13px;border-radius:13px;background:#f7f0f3;color:#79616e;font-size:.8rem}.lexicon-status-v314q.is-warning{background:#fff2de;color:#7a5b2f}.lexicon-status-v314q.is-success{background:#eaf4eb;color:#406047}.lexicon-mastery-note-v314q{margin:3px 0 0;color:#6b5261;font-size:.78rem}.lexicon-empty-v314q{display:grid;place-items:center;text-align:center;gap:6px;padding:26px;border-radius:17px;background:#faf2f4;color:#765d6b}.lexicon-empty-v314q>span{font-size:1.8rem}.lexicon-empty-v314q strong{color:#5c3d50}.lexicon-empty-v314q p{max-width:540px;margin:0;font-size:.8rem}
 @media(max-width:900px){.lexicon-lab-growth-panel-v314q{align-items:stretch;flex-direction:column}.lexicon-crossword-layout-v314q{grid-template-columns:1fr}.lexicon-clues-v314q{max-height:none;grid-template-columns:repeat(2,minmax(0,1fr))}.lexicon-level-grid-v314q{grid-template-columns:repeat(6,minmax(0,1fr))}}
 @media(max-width:620px){.lexicon-stats-v314q{grid-template-columns:repeat(2,minmax(0,1fr))}.lexicon-collections-v314q,.lexicon-recent-v314q,.lexicon-clues-v314q{grid-template-columns:1fr}.lexicon-level-grid-v314q{grid-template-columns:repeat(5,minmax(0,1fr))}.lexicon-daily-card-v314q{align-items:stretch;flex-direction:column}.training-focus-mount-v314o>.lexicon-play-v314q{padding:12px;border-radius:16px}.lexicon-crossword-board-v314q{--lex-cell:34px}}
+
+/* =========================================================
+   V0.31.4r · Social immersion / real-time story cadence
+   ========================================================= */
+.story-message-group {
+  gap: 6px;
+  padding-block: 4px;
+}
+
+.story-message-group + .story-message-group {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 0;
+}
+
+.story-message-date {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin: 3px 0 8px;
+  padding: 4px 9px;
+  background: rgba(242, 233, 238, .88);
+}
+
+.story-message-date span,
+.story-message-date time {
+  display: inline;
+}
+
+.story-message-date time {
+  color: #a18b96;
+  font-weight: 650;
+}
+
+.story-typing-bubble {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 48px;
+  min-height: 38px;
+}
+
+.story-typing-bubble span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #987888;
+  opacity: .36;
+  animation: storyTypingDotV314r 1.1s ease-in-out infinite;
+}
+
+.story-typing-bubble span:nth-child(2) { animation-delay: .16s; }
+.story-typing-bubble span:nth-child(3) { animation-delay: .32s; }
+
+@keyframes storyTypingDotV314r {
+  0%, 60%, 100% { transform: translateY(0); opacity: .3; }
+  30% { transform: translateY(-4px); opacity: .9; }
+}
+
+.story-message-turn-wait {
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: min(82%, 500px);
+  margin-top: 4px;
+  padding: 9px 11px;
+  border: 1px dashed rgba(130, 87, 111, .16);
+  border-radius: 13px;
+  color: #927987;
+  background: rgba(250, 245, 247, .7);
+}
+
+.story-message-turn-wait span { color: #c5759b; }
+.story-message-turn-wait small { line-height: 1.35; }
+
+.phone-context-settings-v314r {
+  margin: 8px 12px 13px;
+  padding: 10px 11px;
+  border: 1px solid rgba(114, 72, 103, .1);
+  border-radius: 15px;
+  color: #765e6c;
+  background: rgba(255, 252, 250, .7);
+}
+
+.phone-context-settings-v314r summary {
+  cursor: pointer;
+  color: #69485f;
+  font-size: .72rem;
+  font-weight: 850;
+  list-style-position: inside;
+}
+
+.phone-weather-toggle-v314r {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 10px;
+  font-size: .71rem;
+  line-height: 1.35;
+}
+
+.phone-weather-toggle-v314r input { margin-top: 2px; accent-color: #b95f8d; }
+
+.phone-weather-row-v314r {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 7px;
+  margin-top: 9px;
+}
+
+.phone-weather-row-v314r input {
+  min-width: 0;
+  padding: 9px 10px;
+  border: 1px solid rgba(113, 73, 101, .13);
+  border-radius: 11px;
+  color: #553c4c;
+  background: rgba(255,255,255,.9);
+  font: inherit;
+  font-size: .7rem;
+}
+
+.phone-weather-row-v314r .secondary-button {
+  min-height: 36px;
+  padding: 7px 10px;
+  font-size: .68rem;
+}
+
+.phone-context-settings-v314r > small {
+  display: block;
+  margin-top: 8px;
+  color: #876d7b;
+  font-size: .64rem;
+  line-height: 1.4;
+}
+
+.phone-context-settings-v314r > p {
+  margin: 7px 0 0;
+  color: #a18c96;
+  font-size: .61rem;
+  line-height: 1.4;
+}
+
+.phone-page-sidebar {
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}
+
+.story-temporal-gate-v314r {
+  display: grid;
+  gap: 6px;
+  margin-top: 12px;
+  padding: 13px 15px;
+  border: 1px solid rgba(115, 75, 105, .12);
+  border-radius: 17px;
+  background: linear-gradient(135deg, rgba(252,244,248,.94), rgba(247,239,247,.88));
+}
+
+.story-temporal-gate-v314r strong {
+  color: #593b51;
+  font-family: Georgia, 'Times New Roman', serif;
+}
+
+.story-temporal-gate-v314r p {
+  margin: 0;
+  color: #8b7481;
+  font-size: .73rem;
+  line-height: 1.45;
+}
+
+.story-temporal-gate-v314r.ready {
+  border-color: rgba(100, 143, 112, .17);
+  background: linear-gradient(135deg, rgba(244,250,245,.95), rgba(250,244,248,.9));
+}
+
+@media (max-width: 720px) {
+  .phone-page-sidebar { grid-template-rows: auto auto auto; }
+  .phone-context-settings-v314r { margin-inline: 10px; }
+  .story-message-date { flex-wrap: wrap; justify-content: center; }
+  .story-message-turn-wait { width: 94%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .story-typing-bubble span { animation: none; opacity: .62; }
+}
