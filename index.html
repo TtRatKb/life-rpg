@@ -14,7 +14,7 @@
   <link rel="manifest" href="manifest.webmanifest?v=0.30.3a" />
   <link rel="apple-touch-icon" href="assets/app-icon-180.png?v=0.30.3a" />
   <link rel="icon" type="image/png" sizes="192x192" href="assets/app-icon-192.png?v=0.30.3a" />
-  <link rel="stylesheet" href="styles.css?v=0.31.4k" />
+  <link rel="stylesheet" href="styles.css?v=0.31.4l" />
   <link rel="preload" as="image" href="assets/ui/thumbs/characters/luca_neutral.webp" fetchpriority="high" />
 </head>
 <body>
@@ -136,6 +136,7 @@
           <button data-view-target="games"><span class="command-strip-icon">🎮</span><span><strong>Games</strong><small>Keep active games and personal goals in rotation.</small></span><b>›</b></button>
           <button data-sudoku-open type="button"><span class="command-strip-icon">🧩</span><span><strong>Sudoku</strong><small id="sudokuQuickStatus">Play a logic puzzle inside Life RPG.</small></span><b>›</b></button>
           <button data-nonogram-open type="button"><span class="command-strip-icon">◩</span><span><strong>Nonogram</strong><small id="nonogramQuickStatus">Reveal a picture through logic clues.</small></span><b>›</b></button>
+          <button data-number-sense-open type="button"><span class="command-strip-icon">🔢</span><span><strong>Number Sense</strong><small id="numberSenseQuickStatus">Train mental math without speed pressure.</small></span><b>›</b></button>
           <button data-view-target="people"><span class="command-strip-icon">♧</span><span><strong>People</strong><small>Talk, message, connect.</small></span><b>›</b></button>
           <button data-view-target="story"><span class="command-strip-icon">♡</span><span><strong>Main Story</strong><small>Spend energy when you're ready.</small></span><b>›</b></button>
           <button data-view-target="achievements"><span class="command-strip-icon">🏆</span><span><strong>Achievements</strong><small>Collect milestones and hidden moments.</small></span><b>›</b></button>
@@ -1110,7 +1111,7 @@
             <button class="training-card-v314k is-live" data-sudoku-open type="button"><span class="training-card-icon-v314k">🧩</span><div><small>LOGICAL THINKING</small><strong>Sudoku Journey</strong><p>50 fixed levels · Daily + Practice</p><em id="trainingGroundsSudokuStatus">Continue your Journey</em></div><b>›</b></button>
             <button class="training-card-v314k is-live" data-nonogram-open type="button"><span class="training-card-icon-v314k">◩</span><div><small>LOGIC · PATTERN REASONING</small><strong>Nonogram Journey</strong><p>50 fixed picture-logic levels · 5×5 → 10×10</p><em id="trainingGroundsNonogramStatus">Level 1 / 50</em></div><b>›</b></button>
             <a class="training-card-v314k is-live" href="#kotobaIntegrationPanel"><span class="training-card-icon-v314k">🌸</span><div><small>JAPANESE</small><strong>Kotoba Quick Study</strong><p>Real due Vocabulary, Grammar & Particle SRS reviews</p><em>Synced with Kotoba Quest</em></div><b>↓</b></a>
-            <article class="training-card-v314k is-planned"><span class="training-card-icon-v314k">🔢</span><div><small>NUMBER SENSE</small><strong>Mental Math Journey</strong><p>Mental strategies, estimation, percentages and magnitude.</p><em>Next training module</em></div></article>
+            <button class="training-card-v314k is-live" data-number-sense-open type="button"><span class="training-card-icon-v314k">🔢</span><div><small>NUMBER SENSE · MENTAL MATH</small><strong>Number Sense Journey</strong><p>50 fixed levels · strategies, estimation, percentages and magnitude</p><em id="trainingGroundsNumberSenseStatus">Level 1 / 50</em></div><b>›</b></button>
             <article class="training-card-v314k is-planned"><span class="training-card-icon-v314k">🧠</span><div><small>MEMORY</small><strong>Memory Garden</strong><p>Spatial, sequence, pattern and working-memory trials.</p><em>Planned</em></div></article>
             <article class="training-card-v314k is-planned"><span class="training-card-icon-v314k">🌿</span><div><small>RECOVERY</small><strong>Recovery Studio</strong><p>Breathing, body scan and guided rest sessions.</p><em>Planned</em></div></article>
           </div>
@@ -1129,6 +1130,16 @@
         <section class="panel nonogram-growth-panel-v314k" aria-labelledby="nonogramGrowthTitle">
           <div class="nonogram-growth-copy-v314k"><p class="eyebrow">KNOWLEDGE · LOGIC · PATTERN REASONING</p><h2 id="nonogramGrowthTitle">Nonogram Journey</h2><p>Use row and column clues to reveal a hidden pixel pattern. The 50-level Journey starts with compact 5×5 grids and grows into 10×10 deduction puzzles.</p><div id="nonogramGrowthStats" class="sudoku-growth-stats-v314"><span><b>0/50</b> Journey</span><span><b>0</b> solved</span><span>▶ Level 1</span></div></div>
           <button class="primary-button" data-nonogram-open type="button">◩ Open Nonogram Journey</button>
+        </section>
+
+        <section class="panel number-sense-growth-panel-v314l" aria-labelledby="numberSenseGrowthTitle">
+          <div class="number-sense-growth-copy-v314l">
+            <p class="eyebrow">KNOWLEDGE · NUMBER SENSE · MENTAL MATH</p>
+            <h2 id="numberSenseGrowthTitle">Number Sense Journey</h2>
+            <p>Build faster, calmer mental arithmetic through 50 fixed levels. The Journey focuses on useful strategies: compensation, doubling and halving, estimation, percentages, fractions, ratios and magnitude — never speed-based rewards.</p>
+            <div id="numberSenseGrowthStats" class="sudoku-growth-stats-v314"><span><b>0/50</b> Journey</span><span><b>0</b> questions</span><span>No speed pressure</span></div>
+          </div>
+          <button class="primary-button" data-number-sense-open type="button">🔢 Open Number Sense Journey</button>
         </section>
 
         <section id="kotobaIntegrationPanel" class="panel kotoba-growth-panel-v314i" aria-labelledby="kotobaIntegrationTitle">
@@ -2514,6 +2525,38 @@ League of Legends — PC" required></textarea></label>
     </div>
   </dialog>
 
+  <dialog id="numberSenseDialog" class="rpg-dialog number-sense-dialog-v314l">
+    <div class="rpg-dialog-form number-sense-shell-v314l">
+      <div class="dialog-heading">
+        <div><p class="eyebrow">KNOWLEDGE · NUMBER SENSE · MENTAL MATH</p><h2>Number Sense Journey</h2></div>
+        <button id="numberSenseClose" class="close-button" type="button">×</button>
+      </div>
+      <p class="muted">Chapter 1 · 50 fixed levels · six short questions per level · accuracy matters, speed does not.</p>
+      <section id="numberSenseDailyCard" class="number-sense-daily-card-v314l" aria-label="Daily Number Sense"></section>
+      <section id="numberSenseJourneyProgress" class="sudoku-journey-progress-v314h" aria-label="Number Sense Journey progress"></section>
+      <section class="number-sense-level-map-v314l" aria-labelledby="numberSenseLevelMapTitle">
+        <div class="sudoku-section-title-v314h"><div><small>LEVEL MAP</small><strong id="numberSenseLevelMapTitle">Chapter 1 · Levels 1–50</strong></div><span>Foundations → flexible arithmetic → applied number sense.</span></div>
+        <div id="numberSenseLevelGrid" class="number-sense-level-grid-v314l"></div>
+      </section>
+      <section class="number-sense-play-v314l">
+        <div id="numberSenseLessonMeta" class="number-sense-lesson-meta-v314l"></div>
+        <div id="numberSenseQuestionProgress" class="number-sense-question-progress-v314l"></div>
+        <article id="numberSenseQuestionCard" class="number-sense-question-card-v314l"></article>
+        <div id="numberSenseFeedback" class="number-sense-feedback-v314l hidden" aria-live="polite"></div>
+        <form id="numberSenseAnswerForm" class="number-sense-answer-v314l hidden">
+          <input id="numberSenseAnswer" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="Your answer"/>
+          <button id="numberSenseSubmit" class="primary-button" type="submit">Check answer</button>
+        </form>
+        <div id="numberSenseChoices" class="number-sense-choices-v314l hidden"></div>
+        <div class="number-sense-actions-v314l">
+          <button id="numberSenseHintButton" class="secondary-button hidden" type="button">Show hint</button>
+          <button id="numberSenseNext" class="primary-button hidden" type="button">Next question</button>
+        </div>
+        <p id="numberSenseStatus" class="sudoku-status-v310" aria-live="polite"></p>
+      </section>
+    </div>
+  </dialog>
+
   <dialog id="sudokuDialog" class="rpg-dialog sudoku-dialog-v310 sudoku-dialog-v314">
     <div class="rpg-dialog-form sudoku-shell-v314">
       <div class="dialog-heading">
@@ -2937,6 +2980,8 @@ League of Legends — PC" required></textarea></label>
   <script src="sudoku.js?v=0.31.4h"></script>
   <script src="data/nonogram-levels.js?v=0.31.4k"></script>
   <script src="nonogram.js?v=0.31.4k"></script>
+  <script src="data/number-sense-levels.js?v=0.31.4l"></script>
+  <script src="number-sense.js?v=0.31.4l"></script>
   <script src="smart-quests.js?v=0.31.0"></script>
   <script src="daily.js?v=0.31.4c"></script>
   <script src="journal.js?v=0.31.4c"></script>
@@ -2947,6 +2992,6 @@ League of Legends — PC" required></textarea></label>
   <script src="kotoba-integration.js?v=0.31.4k"></script>
   <script src="kotoba-quick-training.js?v=0.31.4k"></script>
   <script type="module" src="cloud-save.js?v=0.31.0"></script>
-  <script src="pwa.js?v=0.31.4k"></script>
+  <script src="pwa.js?v=0.31.4l"></script>
 </body>
 </html>

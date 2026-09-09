@@ -1,11 +1,11 @@
-const CACHE_NAME = "life-rpg-v0314k-training-grounds-nonogram";
+const CACHE_NAME = "life-rpg-v0314l-number-sense-journey";
 const CORE = [
   "./",
   "./index.html",
   "./data/quests.js?v=0.31.4h",
-  "./styles.css?v=0.31.4k",
+  "./styles.css?v=0.31.4l",
   "./manifest.webmanifest?v=0.30.3a",
-  "./pwa.js?v=0.31.4k",
+  "./pwa.js?v=0.31.4l",
   "./visual-performance.js?v=0.31.4c",
   "./modal-manager.js?v=0.31.4d",
   "./app.js?v=0.31.4c",
@@ -22,6 +22,8 @@ const CORE = [
   "./sudoku.js?v=0.31.4h",
   "./data/nonogram-levels.js?v=0.31.4k",
   "./nonogram.js?v=0.31.4k",
+  "./data/number-sense-levels.js?v=0.31.4l",
+  "./number-sense.js?v=0.31.4l",
   "./smart-quests.js?v=0.31.0",
   "./daily.js?v=0.31.4c",
   "./journal.js?v=0.31.4c",

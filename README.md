@@ -208,3 +208,13 @@ GitHub Pages will then update automatically after the new commit is deployed.
 - Converted the vague Room Reset into a bounded **15-Minute Room Reset** and added explicit definitions for the remaining recovery/home actions.
 - Built-in Lesson Planning, Correction and generic Focus Work no longer compete as random Daily Quests; they are reserved for the planned Work/Focus/Time system.
 - Existing Daily Check-in rewards, Journal data, Library/Games/Adventures saves, Story/Social content and all previous progress are preserved.
+
+## V0.31.4l — Number Sense Journey
+
+- Added **Number Sense Journey · Levels 1–50** to Training Grounds and Dashboard quick navigation.
+- Each fixed level contains six short mental-math/number-sense prompts. Progression moves from friendly arithmetic through compensation, doubling/halving, percentage anchors and estimation into decimals, ratios, reverse percentages, unit rates and magnitude.
+- No reward depends on solving speed. Wrong attempts do not reduce XP/Coins/Story Energy; after a correct response the UI shows a mental strategy so the Journey trains reusable shortcuts rather than answer memorization.
+- Added an optional **Daily Number Sense** invitation to continue the next Journey level, with no streak punishment.
+- First completion of a level grants Character XP, Knowledge Realm XP, Knowledge capability XP, Story Energy and Coins. Replays never duplicate first-clear rewards; multiple new levels in one day use the existing gentle diminishing-return pattern.
+- Journey progress, current question, attempts and completed levels persist in the normal Life RPG save.
+- Added fixed `data/number-sense-levels.js` content so Level 23 remains the same Level 23 instead of being randomly regenerated.
