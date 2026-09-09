@@ -1,20 +1,18 @@
-# Life RPG — V0.31.4u Steam Connection Settings
+# Life RPG — V0.31.4v Steam Baseline Reconciliation
 
-## What changed
-- The Games screen now shows a prominent Steam Connection card instead of hiding setup only in Settings.
-- `Configure Steam` jumps directly to the existing safe Steam settings panel and highlights it.
-- Life RPG stores only the Worker URL + SteamID64; the Steam Web API key remains a Cloudflare Worker secret.
-- `Test connection` validates both pieces of setup and then calls the existing `/health` Worker endpoint.
-- `Sync all Steam games` performs a manual sync across games with Steam App IDs.
-- Per-game `Sync Steam` no longer appears to do nothing when setup is missing; it becomes `Set up Steam` and opens the correct settings panel.
-- SteamID64 is validated as a 17-digit numeric ID before sync/test.
-- No Worker/API changes are required.
+## Fix
+- Repairs the V0.31.4t/u baseline bug where Steam unlock state was stored, but already-earned achievements that were not already selected as Game Goals were not materialized visibly inside Life RPG.
+- Every achievement Steam currently reports as unlocked is now represented as a completed Steam goal. Old unlocks are labelled `Historical` and receive **0 retroactive rewards**.
+- Existing selected Steam goals are matched first by `steamApiName`; legacy Steam goals without an API name can be reconciled by exact normalized achievement title when the match is unambiguous.
+- Users affected by the old baseline do not need to reset anything: the next manual Steam sync reconciles the existing baseline and adds the missing historical completed achievements idempotently.
+- Newly unlocked, previously unselected Steam achievements are also added visibly as completed synced achievements after their one-time reward.
+- Active/open goals are displayed ahead of historical completed achievements so large Steam histories do not bury current goals.
 
-## First setup
-1. Open Games → Steam Connection → Configure Steam.
-2. Paste the deployed Cloudflare Worker URL that contains the `STEAM_API_KEY` secret.
-3. Enter the account's 17-digit SteamID64.
-4. Press Test Worker. A healthy configured Worker reports `Worker ready · Steam key configured`.
-5. Return to Games and press Sync all Steam games or Sync Steam on one game.
+## Steam response compatibility
+The client now normalizes both the existing Life RPG Worker response and common Steam Web API shapes, including combined `achievements`, raw `playerstats.achievements`, and schema achievement arrays. It also treats personal unlock state as unavailable unless that state is actually present, rather than silently assuming every achievement is locked.
 
-The first successful achievement sync establishes a historical baseline. Already-unlocked achievements do not generate retroactive rewards; future locked → unlocked transitions do.
+## Sync diagnostics
+Manual sync now reports how many historical achievements were added. Per-game Steam status also shows how many completed Steam achievements are represented in Life RPG. A successful connection returning zero achievements or no personal unlock state now produces a clear diagnostic instead of a misleading successful baseline.
+
+## What to do
+After installing this delta, fully reload the PWA and press `↻ Sync Steam` on the affected game (or `↻ Sync all Steam games`). Existing V0.31.4t/u baseline data is reused; do not delete or reset the game.

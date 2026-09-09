@@ -8,7 +8,7 @@
   }
 
   const SCHEMA = 6;
-  const STEAM_SYNC_SCHEMA = 2;
+  const STEAM_SYNC_SCHEMA = 3;
   const STEAM_AUTO_SYNC_STALE_MS = 6 * 60 * 60 * 1000;
   const STEAM_VISIBILITY_SYNC_DELAY_MS = 900;
   const SHADOW_KEY = "life-rpg-games-shadow-v1";
@@ -462,6 +462,10 @@
         if (!Number.isFinite(Number(sync.total))) { sync.total = 0; changed = true; }
         if (!Number.isFinite(Number(sync.unlocked))) { sync.unlocked = 0; changed = true; }
         if (typeof sync.playerAvailable !== "boolean" && sync.playerAvailable !== null) { sync.playerAvailable = null; changed = true; }
+        if (!Number.isFinite(Number(sync.reconciliationVersion))) { sync.reconciliationVersion = 0; changed = true; }
+        if (!Number.isFinite(Number(sync.lastReturned))) { sync.lastReturned = 0; changed = true; }
+        if (!Number.isFinite(Number(sync.lastMatchedGoals))) { sync.lastMatchedGoals = 0; changed = true; }
+        if (!Number.isFinite(Number(sync.lastHistoricalImported))) { sync.lastHistoricalImported = 0; changed = true; }
       }
       if (!TRACKING_MODES[game.trackingMode]) { game.trackingMode = "auto"; changed = true; }
       if (typeof game.customUnit !== "string") { game.customUnit = ""; changed = true; }
@@ -729,8 +733,9 @@
             </div>
             ${game.goals.length ? (() => {
               const goalLimit = viewMode === "list" ? 6 : 3;
-              const shownGoals = game.goals.slice(0, goalLimit);
-              const remainingGoals = Math.max(0, game.goals.length - shownGoals.length);
+              const orderedGoals = [...game.goals].sort((a, b) => Number(Boolean(a.done)) - Number(Boolean(b.done)) || Number(b.createdAt || 0) - Number(a.createdAt || 0));
+              const shownGoals = orderedGoals.slice(0, goalLimit);
+              const remainingGoals = Math.max(0, orderedGoals.length - shownGoals.length);
               return `<div class="game-goal-list-v17">${shownGoals.map(goal => goalMarkup(game, goal)).join("")}${remainingGoals ? `<small class="game-more-goals-v17">+ ${remainingGoals} more in Edit</small>` : ""}</div>`;
             })() : `<p class="game-no-goals-v17">${game.steamAppId ? "Steam is detected. Open Edit → Steam Goals to import the game's real achievements." : game.catalogId ? "Life RPG knows what kind of game this is. Open Edit to add a few useful objectives when you want them." : "Optional. Add metadata or your own goals whenever something actually matters."}</p>`}
             ${doneGoals.length && openGoals.length ? `<small class="game-goal-cleared-v17">${doneGoals.length} goal${doneGoals.length === 1 ? "" : "s"} already cleared ✓</small>` : ""}
@@ -748,7 +753,8 @@
   }
 
   function goalMarkup(game, goal) {
-    const source = goal.source === "steam" ? `<small class="game-goal-source-v312">Steam${goal.globalPercent != null ? ` · ${formatNumber(goal.globalPercent)}%` : ""}</small>` : "";
+    const steamState = goal.source === "steam" ? (goal.importedAlreadyUnlocked ? " · Historical" : goal.steamAutoImported && goal.done ? " · Synced" : "") : "";
+    const source = goal.source === "steam" ? `<small class="game-goal-source-v312">Steam${steamState}${goal.globalPercent != null ? ` · ${formatNumber(goal.globalPercent)}%` : ""}</small>` : "";
     const detail = goal.source === "steam" && goal.description ? `<small class="game-goal-detail-v312">${esc(goal.description)}</small>` : "";
     return `
       <div class="game-goal-row-v17 ${goal.done ? "done" : ""}">
@@ -1841,13 +1847,24 @@
     }
     renderSteamGamesConnection();
     let synced = 0;
+    let historicalImported = 0;
+    let newUnlocks = 0;
     for (const game of targets) {
       const result = await syncSteamGameById(game.id, { force: true, silent: true, reason: "manual-all" });
-      if (result) synced += 1;
+      if (result) {
+        synced += 1;
+        historicalImported += Number(result.historicalImported || 0);
+        newUnlocks += Number(result.unlocked?.length || 0);
+      }
     }
     render();
     renderSteamGamesConnection();
-    showToast("Steam sync finished ✓", `${synced}/${targets.length} Steam game${targets.length === 1 ? "" : "s"} synced.`);
+    const detail = [
+      `${synced}/${targets.length} Steam game${targets.length === 1 ? "" : "s"} synced`,
+      historicalImported ? `${historicalImported} historical achievement${historicalImported === 1 ? "" : "s"} added` : "",
+      newUnlocks ? `${newUnlocks} new unlock${newUnlocks === 1 ? "" : "s"} rewarded` : ""
+    ].filter(Boolean).join(" · ");
+    showToast("Steam sync finished ✓", detail);
   }
 
   function renderSteamSettings() {
@@ -1936,6 +1953,10 @@
       total: 0,
       unlocked: 0,
       playerAvailable: null,
+      reconciliationVersion: 1,
+      lastReturned: 0,
+      lastMatchedGoals: 0,
+      lastHistoricalImported: 0,
       achievements: {}
     };
   }
@@ -1946,11 +1967,105 @@
     }
     game.steamAchievementSync.schemaVersion = STEAM_SYNC_SCHEMA;
     game.steamAchievementSync.achievements ||= {};
+    if (!Number.isFinite(Number(game.steamAchievementSync.reconciliationVersion))) game.steamAchievementSync.reconciliationVersion = 0;
+    if (!Number.isFinite(Number(game.steamAchievementSync.lastReturned))) game.steamAchievementSync.lastReturned = 0;
+    if (!Number.isFinite(Number(game.steamAchievementSync.lastMatchedGoals))) game.steamAchievementSync.lastMatchedGoals = 0;
+    if (!Number.isFinite(Number(game.steamAchievementSync.lastHistoricalImported))) game.steamAchievementSync.lastHistoricalImported = 0;
     return game.steamAchievementSync;
   }
 
   function steamAchievementKey(game, apiName) {
     return `${String(game?.steamAppId || "").trim()}:${String(apiName || "").trim()}`;
+  }
+
+  function steamBoolean(value) {
+    if (value === true || value === 1 || value === "1") return true;
+    if (value === false || value === 0 || value === "0" || value == null || value === "") return false;
+    return String(value).trim().toLowerCase() === "true";
+  }
+
+  function normalizeSteamAchievementPayload(data = {}) {
+    const byApiName = new Map();
+    let personalSignal = false;
+
+    const merge = (raw = {}, kind = "rich") => {
+      if (!raw || typeof raw !== "object") return;
+      const apiName = String(
+        raw.apiName || raw.apiname || raw.api_name ||
+        ((kind === "schema" || raw.displayName || raw.display_name) ? raw.name : "") || ""
+      ).trim();
+      if (!apiName) return;
+      const current = byApiName.get(apiName) || { apiName };
+      const hasAchieved = Object.prototype.hasOwnProperty.call(raw, "achieved")
+        || Object.prototype.hasOwnProperty.call(raw, "unlocked")
+        || Object.prototype.hasOwnProperty.call(raw, "completed");
+      const hasUnlockTime = Object.prototype.hasOwnProperty.call(raw, "unlockTime")
+        || Object.prototype.hasOwnProperty.call(raw, "unlocktime")
+        || Object.prototype.hasOwnProperty.call(raw, "unlockedAt");
+      if (kind === "player" || hasAchieved || hasUnlockTime) personalSignal = true;
+
+      const displayName = String(raw.displayName || raw.display_name || (kind !== "schema" ? raw.name : "") || current.name || apiName);
+      const description = String(raw.description ?? raw.desc ?? current.description ?? "");
+      const hiddenValue = Object.prototype.hasOwnProperty.call(raw, "hidden") ? steamBoolean(raw.hidden) : Boolean(current.hidden);
+      const achievedValue = hasAchieved
+        ? steamBoolean(raw.achieved ?? raw.unlocked ?? raw.completed)
+        : Boolean(current.achieved);
+      const rawUnlockTime = raw.unlockTime ?? raw.unlocktime ?? raw.unlockedAt ?? current.unlockTime ?? 0;
+      const unlockTime = Math.max(0, Number(rawUnlockTime || 0));
+      const rawPercent = raw.globalPercent ?? raw.global_percent ?? raw.percent ?? current.globalPercent;
+      const globalPercent = Number.isFinite(Number(rawPercent)) ? Number(rawPercent) : (current.globalPercent ?? null);
+      const rawGroup = String(raw.group || current.group || "");
+
+      byApiName.set(apiName, {
+        ...current,
+        apiName,
+        name: displayName || apiName,
+        description,
+        hidden: hiddenValue,
+        achieved: achievedValue,
+        unlockTime,
+        globalPercent,
+        group: ["recommended", "optional", "challenge"].includes(rawGroup) ? rawGroup : current.group
+      });
+    };
+
+    const schemaCandidates = [
+      data?.game?.availableGameStats?.achievements,
+      data?.game?.availablegamestats?.achievements,
+      data?.schema?.game?.availableGameStats?.achievements,
+      data?.schema?.game?.availablegamestats?.achievements,
+      data?.schema?.achievements
+    ].find(Array.isArray) || [];
+    schemaCandidates.forEach(item => merge(item, "schema"));
+
+    const richAchievements = Array.isArray(data.achievements) ? data.achievements : [];
+    richAchievements.forEach(item => merge(item, "rich"));
+
+    const playerCandidates = [
+      data?.playerAchievements,
+      data?.player?.achievements,
+      data?.playerstats?.achievements,
+      data?.playerStats?.achievements
+    ].find(Array.isArray) || [];
+    playerCandidates.forEach(item => merge(item, "player"));
+
+    const globalCandidates = [data?.globalAchievements, data?.global?.achievements].find(Array.isArray) || [];
+    globalCandidates.forEach(item => merge(item, "global"));
+
+    const items = Array.from(byApiName.values()).map(item => ({
+      ...item,
+      name: String(item.name || item.apiName || "Steam achievement"),
+      description: String(item.description || ""),
+      hidden: Boolean(item.hidden),
+      achieved: Boolean(item.achieved),
+      unlockTime: Math.max(0, Number(item.unlockTime || 0)),
+      globalPercent: Number.isFinite(Number(item.globalPercent)) ? Number(item.globalPercent) : null,
+      group: ["recommended", "optional", "challenge"].includes(item.group) ? item.group : steamAchievementGroup(item)
+    })).filter(item => item.apiName);
+
+    const explicitPlayerAvailable = typeof data.playerAvailable === "boolean" ? data.playerAvailable : null;
+    const playerAvailable = explicitPlayerAvailable ?? personalSignal;
+    return { items, playerAvailable };
   }
 
   async function fetchSteamAchievements(appId) {
@@ -1961,17 +2076,8 @@
     const response = await fetch(`${settings.workerUrl}/api/steam/achievements?${params.toString()}`, { headers: { Accept: "application/json" } });
     const data = await response.json().catch(() => ({}));
     if (!response.ok || !data.ok) throw new Error(data.error || `HTTP ${response.status}`);
-    const items = (Array.isArray(data.achievements) ? data.achievements : []).map(item => ({
-      apiName: String(item.apiName || ""),
-      name: String(item.name || item.apiName || "Steam achievement"),
-      description: String(item.description || ""),
-      hidden: Boolean(item.hidden),
-      achieved: Boolean(item.achieved),
-      unlockTime: Math.max(0, Number(item.unlockTime || 0)),
-      globalPercent: Number.isFinite(Number(item.globalPercent)) ? Number(item.globalPercent) : null,
-      group: ["recommended", "optional", "challenge"].includes(item.group) ? item.group : steamAchievementGroup(item)
-    })).filter(item => item.apiName);
-    return { data, items };
+    const normalized = normalizeSteamAchievementPayload(data);
+    return { data: { ...data, playerAvailable: normalized.playerAvailable }, items: normalized.items };
   }
 
   async function loadSteamAchievements() {
@@ -2027,8 +2133,49 @@
     return [1, 0.9, 0.75, 0.6, 0.45][Math.min(4, Math.max(0, Number(index || 0)))] || 0.45;
   }
 
-  function steamGoalForAchievement(game, apiName) {
-    return (game?.goals || []).find(goal => goal?.source === "steam" && goal?.steamApiName === apiName) || null;
+  function steamGoalForAchievement(game, apiName, remote = null) {
+    const goals = Array.isArray(game?.goals) ? game.goals : [];
+    const exact = goals.find(goal => goal?.source === "steam" && goal?.steamApiName === apiName) || null;
+    if (exact) return exact;
+    if (!remote?.name) return null;
+    const target = normalizeText(remote.name);
+    if (!target) return null;
+    const legacyMatches = goals.filter(goal => goal?.source === "steam" && !goal?.steamApiName && normalizeText(goal.text) === target);
+    if (legacyMatches.length !== 1) return null;
+    legacyMatches[0].steamApiName = apiName;
+    return legacyMatches[0];
+  }
+
+  function ensureSteamAchievementGoal(game, remote, syncedAt, { historical = false, rewardEventId = "" } = {}) {
+    if (!game || !remote?.apiName || !remote?.achieved) return { goal: null, created: false };
+    game.goals ||= [];
+    let goal = steamGoalForAchievement(game, remote.apiName, remote);
+    if (!goal) {
+      goal = {
+        id: makeId("goal"),
+        text: remote.name || remote.apiName,
+        description: remote.description || "",
+        done: true,
+        createdAt: syncedAt,
+        completedAt: remote.unlockTime ? remote.unlockTime * 1000 : syncedAt,
+        source: "steam",
+        steamApiName: remote.apiName,
+        globalPercent: remote.globalPercent,
+        steamGroup: remote.group,
+        steamAutoImported: true,
+        importedAlreadyUnlocked: Boolean(historical),
+        rewardEventId: historical ? `steam-imported-legacy:${game.steamAppId}:${remote.apiName}` : (rewardEventId || null)
+      };
+      game.goals.push(goal);
+      return { goal, created: true };
+    }
+    goal.text = remote.name || goal.text || remote.apiName;
+    if (remote.description) goal.description = remote.description;
+    goal.globalPercent = remote.globalPercent;
+    goal.steamGroup = remote.group;
+    goal.steamApiName = remote.apiName;
+    markSteamGoalComplete(game, goal, remote, syncedAt, { historical, rewardEventId });
+    return { goal, created: false };
   }
 
   function markSteamGoalComplete(game, goal, remote, syncedAt, { historical = false, rewardEventId = "" } = {}) {
@@ -2052,7 +2199,7 @@
         : game.role === "challenge"
           ? "confidence"
           : "wellbeing";
-    const selectedGoal = Boolean(goal);
+    const selectedGoal = Boolean(goal && !goal.steamAutoImported);
     const multiplier = steamBatchMultiplier(batchIndex);
     const base = selectedGoal
       ? { xp: 6, realmXP: 6, statXP: 4, coins: 30, storyEnergyBase: 0.8 }
@@ -2084,38 +2231,55 @@
   }
 
   function processSteamAchievementSync(game, steamItems, data, syncedAt = Date.now(), { silent = true, source = "sync" } = {}) {
-    if (!game?.steamAppId || !Array.isArray(steamItems)) return { changed: false, baseline: false, unlocked: [] };
+    if (!game?.steamAppId || !Array.isArray(steamItems)) return { changed: false, baseline: false, unlocked: [], historicalImported: 0, matchedGoals: 0, returned: 0 };
     const sync = steamSyncState(game);
-    const playerAvailable = data?.playerAvailable !== false;
+    const playerAvailable = data?.playerAvailable === true;
     sync.playerAvailable = playerAvailable;
     sync.lastSyncAt = syncedAt;
     sync.total = steamItems.length;
+    sync.lastReturned = steamItems.length;
     if (!playerAvailable) {
       game.lastSteamSyncAt = syncedAt;
+      sync.lastMatchedGoals = 0;
+      sync.lastHistoricalImported = 0;
       persist(`steam-sync-${source}`, { render: false });
-      return { changed: true, baseline: false, unlocked: [], unavailable: true };
+      if (!silent) showToast("Steam unlock state unavailable", `${game.title} · the Worker returned achievement metadata, but no personal unlock state. Check Steam game-details privacy and SteamID64.`);
+      return { changed: true, baseline: false, unlocked: [], unavailable: true, historicalImported: 0, matchedGoals: 0, returned: steamItems.length };
     }
 
     const isBaseline = !Number(sync.baselineAt || 0);
     let changed = false;
     const newUnlocks = [];
     let batchIndex = steamUnlockRewardCountToday();
+    let historicalImported = 0;
+    let matchedGoals = 0;
 
     for (const remote of steamItems) {
       const prior = sync.achievements[remote.apiName] || null;
-      const goal = steamGoalForAchievement(game, remote.apiName);
+      let goal = steamGoalForAchievement(game, remote.apiName, remote);
+      if (goal) matchedGoals += 1;
       const key = steamAchievementKey(game, remote.apiName);
       const unlockedAtMs = remote.unlockTime ? remote.unlockTime * 1000 : 0;
 
       if (isBaseline) {
         const historical = Boolean(remote.achieved);
+        let rewardEventId = goal?.rewardEventId && !String(goal.rewardEventId).startsWith("steam-imported-legacy:") ? goal.rewardEventId : "";
+        if (historical) {
+          const ensured = ensureSteamAchievementGoal(game, remote, syncedAt, { historical: true });
+          goal = ensured.goal;
+          if (ensured.created) historicalImported += 1;
+          if (goal) markSteamGoalComplete(game, goal, remote, syncedAt, { historical: true });
+        }
         sync.achievements[remote.apiName] = {
           achieved: Boolean(remote.achieved),
           unlockTime: remote.unlockTime || 0,
           historical,
-          rewardEventId: goal?.rewardEventId && !String(goal.rewardEventId).startsWith("steam-imported-legacy:") ? goal.rewardEventId : ""
+          rewardEventId,
+          name: remote.name,
+          description: remote.description,
+          hidden: remote.hidden,
+          globalPercent: remote.globalPercent
         };
-        if (historical && goal) markSteamGoalComplete(game, goal, remote, syncedAt, { historical: true });
         changed = true;
         continue;
       }
@@ -2129,27 +2293,40 @@
         const unseenButOld = !prior && (!unlockedAtMs || unlockedAtMs <= Number(sync.baselineAt || 0));
         if (unseenButOld) {
           historical = true;
-          if (goal) markSteamGoalComplete(game, goal, remote, syncedAt, { historical: true });
+          const ensured = ensureSteamAchievementGoal(game, remote, syncedAt, { historical: true });
+          goal = ensured.goal;
+          if (ensured.created) historicalImported += 1;
         } else {
           const reward = rewardEventId || rewardLedgerHasSteamKey(key) ? null : awardSteamUnlock(game, remote, goal, batchIndex);
           if (reward) {
             rewardEventId = reward.eventId || "";
             batchIndex += 1;
           }
+          const ensured = ensureSteamAchievementGoal(game, remote, syncedAt, { historical: false, rewardEventId });
+          goal = ensured.goal;
           if (goal) markSteamGoalComplete(game, goal, remote, syncedAt, { historical: false, rewardEventId });
-          newUnlocks.push({ remote, reward, selectedGoal: Boolean(goal) });
+          newUnlocks.push({ remote, reward, selectedGoal: Boolean(goal && !goal.steamAutoImported) });
         }
         changed = true;
-      } else if (remote.achieved && goal && !goal.done) {
-        markSteamGoalComplete(game, goal, remote, syncedAt, { historical: historical || Boolean(prior?.historical), rewardEventId });
-        changed = true;
+      } else if (remote.achieved) {
+        const shouldBeHistorical = historical || Boolean(prior?.historical) || (!rewardEventId && !rewardLedgerHasSteamKey(key));
+        const ensured = ensureSteamAchievementGoal(game, remote, syncedAt, { historical: shouldBeHistorical, rewardEventId });
+        goal = ensured.goal;
+        if (ensured.created && shouldBeHistorical) historicalImported += 1;
+        if (goal && !goal.done) markSteamGoalComplete(game, goal, remote, syncedAt, { historical: shouldBeHistorical, rewardEventId });
+        historical = shouldBeHistorical;
+        if (ensured.created || (goal && !goal.done)) changed = true;
       }
 
       sync.achievements[remote.apiName] = {
         achieved: Boolean(previouslyAchieved || remote.achieved),
         unlockTime: remote.achieved ? (remote.unlockTime || prior?.unlockTime || 0) : (prior?.unlockTime || 0),
         historical,
-        rewardEventId
+        rewardEventId,
+        name: remote.name,
+        description: remote.description,
+        hidden: remote.hidden,
+        globalPercent: remote.globalPercent
       };
     }
 
@@ -2157,14 +2334,19 @@
       sync.baselineAt = syncedAt;
       changed = true;
     }
+    sync.reconciliationVersion = 1;
     sync.unlocked = steamItems.filter(item => item.achieved).length;
+    sync.lastMatchedGoals = matchedGoals;
+    sync.lastHistoricalImported = historicalImported;
     game.lastSteamSyncAt = syncedAt;
     game.updatedAt = Math.max(Number(game.updatedAt || 0), syncedAt);
     persist(`steam-achievement-sync-${source}`, { render: false });
 
     if (!silent) {
-      if (isBaseline) {
-        showToast("Steam baseline saved ✓", `${game.title} · ${sync.unlocked}/${sync.total} already unlocked · historical unlocks imported without retro rewards.`);
+      if (!steamItems.length) {
+        showToast("Steam returned no achievements", `${game.title} · connection works, but this game returned 0 achievements. Check the App ID and Steam privacy/API availability.`);
+      } else if (isBaseline) {
+        showToast("Steam baseline saved ✓", `${game.title} · ${sync.unlocked}/${sync.total} already unlocked · ${historicalImported} added to Life RPG as Historical · no retro rewards.`);
       } else if (newUnlocks.length) {
         const totals = newUnlocks.reduce((sum, item) => {
           sum.xp += Number(item.reward?.xp || 0);
@@ -2172,12 +2354,15 @@
           sum.storyEnergy += Number(item.reward?.storyEnergy || 0);
           return sum;
         }, { xp: 0, coins: 0, storyEnergy: 0 });
-        showToast(`${newUnlocks.length} new Steam achievement${newUnlocks.length === 1 ? "" : "s"} 🏆`, `${game.title} · +${totals.xp} XP · +${app.formatEnergy?.(totals.storyEnergy) ?? totals.storyEnergy} 🔥 · +${totals.coins} 🪙`);
+        const repaired = historicalImported ? ` · ${historicalImported} older unlock${historicalImported === 1 ? "" : "s"} reconciled` : "";
+        showToast(`${newUnlocks.length} new Steam achievement${newUnlocks.length === 1 ? "" : "s"} 🏆`, `${game.title} · +${totals.xp} XP · +${app.formatEnergy?.(totals.storyEnergy) ?? totals.storyEnergy} 🔥 · +${totals.coins} 🪙${repaired}`);
+      } else if (historicalImported) {
+        showToast("Steam history reconciled ✓", `${game.title} · ${sync.unlocked}/${sync.total} unlocked on Steam · ${historicalImported} historical achievement${historicalImported === 1 ? "" : "s"} added · 0 retro rewards.`);
       } else {
-        showToast("Steam is up to date ✓", `${game.title} · ${sync.unlocked}/${sync.total} achievements unlocked.`);
+        showToast("Steam is up to date ✓", `${game.title} · ${sync.unlocked}/${sync.total} achievements unlocked · ${matchedGoals} already represented in Life RPG.`);
       }
     }
-    return { changed, baseline: isBaseline, unlocked: newUnlocks };
+    return { changed, baseline: isBaseline, unlocked: newUnlocks, historicalImported, matchedGoals, returned: steamItems.length };
   }
 
   async function syncSteamGameById(gameId, { force = false, silent = false, reason = "manual" } = {}) {
@@ -2239,8 +2424,9 @@
     const sync = steamSyncState(game);
     const configured = Boolean(steamSettings().workerUrl && steamSettings().steamId);
     const progress = sync.total > 0 ? `${Math.max(0, Number(sync.unlocked || 0))}/${Math.max(0, Number(sync.total || 0))} achievements` : "No Steam baseline yet";
+    const represented = (game.goals || []).filter(goal => goal?.source === "steam" && goal?.done).length;
     const freshness = sync.lastSyncAt ? `Last synced ${humanAgoWithTime(sync.lastSyncAt)}` : configured ? "Ready to create your baseline" : "Add Worker URL + SteamID64 in Settings";
-    const unavailable = sync.playerAvailable === false ? " · personal unlock status unavailable" : "";
+    const unavailable = sync.playerAvailable === false ? " · personal unlock status unavailable" : represented ? ` · ${represented} completed in Life RPG` : "";
     return `<div class="game-steam-sync-v314t"><span class="game-steam-sync-icon-v314t">🏆</span><span><strong>${esc(progress)}</strong><small>${esc(freshness + unavailable)}</small></span></div>`;
   }
 
