@@ -1,11 +1,11 @@
-const CACHE_NAME = "life-rpg-v0314h-sudoku-journey";
+const CACHE_NAME = "life-rpg-v0314i-kotoba-readonly";
 const CORE = [
   "./",
   "./index.html",
   "./data/quests.js?v=0.31.4h",
-  "./styles.css?v=0.31.4h",
+  "./styles.css?v=0.31.4i",
   "./manifest.webmanifest?v=0.30.3a",
-  "./pwa.js?v=0.31.4h",
+  "./pwa.js?v=0.31.4i",
   "./visual-performance.js?v=0.31.4c",
   "./modal-manager.js?v=0.31.4d",
   "./app.js?v=0.31.4c",
@@ -26,7 +26,8 @@ const CORE = [
   "./story-ui.js?v=0.31.4c",
   "./shop.js?v=0.30.6",
   "./achievements.js?v=0.31.0",
-  "./activity-log.js?v=0.31.4h",
+  "./activity-log.js?v=0.31.4i",
+  "./kotoba-integration.js?v=0.31.4i",
   "./cloud-save.js?v=0.31.0",
   "./assets/app-icon-192.png",
   "./assets/app-icon-512.png",

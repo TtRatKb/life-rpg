@@ -14,7 +14,7 @@
   <link rel="manifest" href="manifest.webmanifest?v=0.30.3a" />
   <link rel="apple-touch-icon" href="assets/app-icon-180.png?v=0.30.3a" />
   <link rel="icon" type="image/png" sizes="192x192" href="assets/app-icon-192.png?v=0.30.3a" />
-  <link rel="stylesheet" href="styles.css?v=0.31.4h" />
+  <link rel="stylesheet" href="styles.css?v=0.31.4i" />
   <link rel="preload" as="image" href="assets/ui/thumbs/characters/luca_neutral.webp" fetchpriority="high" />
 </head>
 <body>
@@ -1108,6 +1108,33 @@
             <div id="sudokuGrowthStats" class="sudoku-growth-stats-v314"><span><b>0/50</b> Journey</span><span><b>0</b> rewarded solves</span><span>○ Daily ready</span></div>
           </div>
           <button class="primary-button sudoku-growth-play-v314" data-sudoku-open type="button">🧩 Open Sudoku Journey</button>
+        </section>
+
+        <section id="kotobaIntegrationPanel" class="panel kotoba-growth-panel-v314i" aria-labelledby="kotobaIntegrationTitle">
+          <div class="kotoba-growth-copy-v314i">
+            <div class="kotoba-growth-heading-v314i">
+              <div>
+                <p class="eyebrow">JAPANESE · KOTOBA QUEST</p>
+                <h2 id="kotobaIntegrationTitle">Connected Japanese study</h2>
+              </div>
+              <span id="kotobaConnectionStatus" class="kotoba-status-chip-v314i" data-state="off">Not connected</span>
+            </div>
+            <p id="kotobaConnectionCopy">Connect once with the same Google account you use in Kotoba Quest. Existing history will not be paid retroactively; rewards begin from connection onward.</p>
+            <div id="kotobaDueStats" class="kotoba-due-stats-v314i is-empty" aria-label="Kotoba due reviews">
+              <span><i>語</i><strong>0</strong><small>Core vocab</small></span>
+              <span><i>✦</i><strong>0</strong><small>Mining</small></span>
+              <span><i>文</i><strong>0</strong><small>Grammar</small></span>
+              <span><i>は</i><strong>0</strong><small>Particles</small></span>
+            </div>
+            <div class="kotoba-sync-meta-v314i"><span id="kotobaLastSync">No sync yet</span><span id="kotobaImportedCount">0 Kotoba learning events rewarded in Life RPG</span></div>
+            <p class="kotoba-reward-note-v314i"><strong>Life RPG rewards:</strong> completed Kotoba study can grant Character XP, Japanese Realm XP, Japanese Skill XP, Story Energy and Coins. Kotoba's own XP and Japanese story progression stay separate. Large same-day batches taper gently and Kotoba Coins are capped per day.</p>
+          </div>
+          <div class="kotoba-growth-actions-v314i">
+            <button id="kotobaConnectButton" class="primary-button" type="button">🌸 Connect Kotoba Quest</button>
+            <button id="kotobaSyncButton" class="secondary-button hidden" type="button">↻ Sync now</button>
+            <button id="kotobaDisconnectButton" class="text-button hidden" type="button">Pause Life RPG sync</button>
+            <small>Read-only phase: Life RPG cannot change your Kotoba SRS yet.</small>
+          </div>
         </section>
 
         <section class="panel growth-achievement-panel-v21" aria-labelledby="growthAchievementTitle">
@@ -2850,8 +2877,9 @@ League of Legends — PC" required></textarea></label>
   <script src="story-ui.js?v=0.31.4c"></script>
   <script src="shop.js?v=0.30.6"></script>
   <script src="achievements.js?v=0.31.0"></script>
-  <script src="activity-log.js?v=0.31.4h"></script>
+  <script src="activity-log.js?v=0.31.4i"></script>
+  <script src="kotoba-integration.js?v=0.31.4i"></script>
   <script type="module" src="cloud-save.js?v=0.31.0"></script>
-  <script src="pwa.js?v=0.31.4h"></script>
+  <script src="pwa.js?v=0.31.4i"></script>
 </body>
 </html>

@@ -24,6 +24,7 @@
     ["journal", "Journal"],
     ["library", "Books & Games"],
     ["adventure", "Adventures"],
+    ["japanese", "Japanese"],
     ["achievement", "Achievements"],
     ["other", "Other"]
   ];
@@ -427,6 +428,12 @@
     if (event.source === "stewardship") return `${humanize(m.type || "library upkeep")} · system stewardship`;
     if (event.source === "game-goal") return "Tracked Game Goal completed";
     if (event.source === "sudoku-complete" || event.source === "sudoku-solved") return m.level ? `Journey Level ${number(m.level)} completed · ${humanize(m.difficulty || "Sudoku")}` : `${humanize(m.difficulty || "Sudoku")} Practice puzzle completed`;
+    if (event.source === "kotoba-quest") {
+      const bits = [humanize(m.kotobaType || "Japanese study")];
+      if (m.skill) bits.push(humanize(m.skill));
+      if (m.result) bits.push(humanize(m.result));
+      return bits.join(" · ");
+    }
     if (event.source === "achievement" || event.source === "achievements-unlock") return "Achievement reward";
     if (event.source === "adventure-output") return `${number(m.characters) ? `${number(m.characters)} characters · ` : ""}Project memory enriched`;
     if (event.source === "habit-daypart-clear") return "Habit daypart bonus";
@@ -443,6 +450,13 @@
     if (reward.rawStoryEnergy > reward.storyEnergy + 0.001) bits.push(`<p>This action generated ${app.formatEnergy?.(reward.rawStoryEnergy) ?? trim(reward.rawStoryEnergy)} 🔥 base, but daily Story Energy diminishing returns credited <strong>${app.formatEnergy?.(reward.storyEnergy) ?? trim(reward.storyEnergy)} 🔥</strong>.</p>`);
     if (event.source === "stewardship") bits.push(`<p>Library/system stewardship uses a small daily cap, so adding many Books, Games, Habits or Adventure details in one day cannot become the dominant progression source.</p>`);
     if (event.source === "game-goal") bits.push(`<p>This reward comes from completing a tracked Game Goal. Merely importing a goal and actually completing it are intentionally separate actions.</p>`);
+    if (event.source === "kotoba-quest") {
+      const multiplier = number(event.metadata?.rewardMultiplier) || 1;
+      const dailyIndex = number(event.metadata?.kotobaDailyIndex);
+      bits.push(`<p>This transaction came from a completed <strong>Kotoba Quest</strong> learning event. Kotoba keeps its own XP/story system; Life RPG rewards the same real study separately as Japanese growth.</p>`);
+      if (multiplier < 0.999) bits.push(`<p>Same-day Kotoba rewards taper gently after larger study batches. This event used a <strong>×${trim(multiplier)}</strong> activity multiplier${dailyIndex ? ` as Kotoba event ${dailyIndex} that day` : ""}.</p>`);
+      if (number(event.metadata?.kotobaDailyCoinCap)) bits.push(`<p>Kotoba-origin Coins are capped at <strong>${number(event.metadata.kotobaDailyCoinCap)} Coins per day</strong> so high-volume review sessions cannot become an unlimited Coin farm.</p>`);
+    }
     if (event.migrated) bits.push(`<p>This transaction was reconstructed from an older saved activity log and keeps the amount stored with that original action.</p>`);
     return bits.join("") || null;
   }
@@ -481,6 +495,7 @@
       "habit-daypart-clear": ["❀", "Habit bonus"],
       "sudoku-complete": ["🧩", "Sudoku"],
       "sudoku-solved": ["🧩", "Sudoku"],
+      "kotoba-quest": ["🌸", "Kotoba Quest"],
       "journal-reflection-base": ["🌸", "Journal"],
       "journal-reflection-effort": ["🌸", "Journal"],
       "habit-coin-repair": ["↺", "Reward repair"]
@@ -510,6 +525,7 @@
     if (value.startsWith("journal") || value.startsWith("daily-checkin")) return "journal";
     if (value.startsWith("book") || value === "library" || value.startsWith("game") || value === "stewardship" || value.startsWith("sudoku")) return "library";
     if (value.startsWith("adventure")) return "adventure";
+    if (value === "kotoba-quest") return "japanese";
     if (value.startsWith("achievement")) return "achievement";
     return "other";
   }
