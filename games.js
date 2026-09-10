@@ -7,8 +7,9 @@
     return;
   }
 
-  const SCHEMA = 8;
+  const SCHEMA = 9;
   const STEAM_SYNC_SCHEMA = 4;
+  const STEAM_PLAYTIME_SYNC_SCHEMA = 1;
   const STEAM_AUTO_SYNC_STALE_MS = 6 * 60 * 60 * 1000;
   const STEAM_VISIBILITY_SYNC_DELAY_MS = 900;
   const SHADOW_KEY = "life-rpg-games-shadow-v1";
@@ -464,6 +465,22 @@
       if (!Number.isFinite(Number(game.steamPlaytime2WeeksMinutes))) { game.steamPlaytime2WeeksMinutes = 0; changed = true; }
       if (!Number.isFinite(Number(game.steamLastPlayedAt))) { game.steamLastPlayedAt = 0; changed = true; }
       if (!Number.isFinite(Number(game.steamLibrarySyncedAt))) { game.steamLibrarySyncedAt = 0; changed = true; }
+      if (!game.steamPlaytimeSync || typeof game.steamPlaytimeSync !== "object" || Array.isArray(game.steamPlaytimeSync)) {
+        game.steamPlaytimeSync = defaultSteamPlaytimeSyncState(game);
+        changed = true;
+      } else {
+        const playtimeSync = game.steamPlaytimeSync;
+        if (Number(playtimeSync.schemaVersion || 0) < STEAM_PLAYTIME_SYNC_SCHEMA) { playtimeSync.schemaVersion = STEAM_PLAYTIME_SYNC_SCHEMA; changed = true; }
+        if (!Number.isFinite(Number(playtimeSync.baselineMinutes))) { playtimeSync.baselineMinutes = Math.max(0, Number(game.steamPlaytimeMinutes || 0)); changed = true; }
+        if (!Number.isFinite(Number(playtimeSync.baselineAt))) { playtimeSync.baselineAt = Math.max(0, Number(game.steamLibrarySyncedAt || 0)); changed = true; }
+        if (!Number.isFinite(Number(playtimeSync.verifiedAt))) { playtimeSync.verifiedAt = Number(game.steamLibrarySyncedAt || 0) > 0 ? Number(game.steamLibrarySyncedAt) : 0; changed = true; }
+        if (!Number.isFinite(Number(playtimeSync.lastSyncAt))) { playtimeSync.lastSyncAt = Math.max(0, Number(game.steamLibrarySyncedAt || 0)); changed = true; }
+        if (!Number.isFinite(Number(playtimeSync.lastRemoteDeltaMinutes))) { playtimeSync.lastRemoteDeltaMinutes = 0; changed = true; }
+        if (!Number.isFinite(Number(playtimeSync.lastImportedMinutes))) { playtimeSync.lastImportedMinutes = 0; changed = true; }
+        if (!Number.isFinite(Number(playtimeSync.lastCoveredMinutes))) { playtimeSync.lastCoveredMinutes = 0; changed = true; }
+        if (!Number.isFinite(Number(playtimeSync.totalImportedMinutes))) { playtimeSync.totalImportedMinutes = 0; changed = true; }
+        if (!Number.isFinite(Number(playtimeSync.totalCoveredMinutes))) { playtimeSync.totalCoveredMinutes = 0; changed = true; }
+      }
       if (!game.steamAchievementSync || typeof game.steamAchievementSync !== "object" || Array.isArray(game.steamAchievementSync)) {
         game.steamAchievementSync = defaultSteamSyncState();
         changed = true;
@@ -1989,6 +2006,11 @@
       historicalImported ? `${historicalImported} historical achievement${historicalImported === 1 ? "" : "s"} added` : "",
       newUnlocks ? `${newUnlocks} new unlock${newUnlocks === 1 ? "" : "s"} rewarded` : "",
       libraryResult ? `${libraryResult.matched} Steam playtime record${libraryResult.matched === 1 ? "" : "s"} matched` : "",
+      libraryResult?.baselined ? `${libraryResult.baselined} playtime baseline${libraryResult.baselined === 1 ? "" : "s"} created · no retro rewards` : "",
+      libraryResult?.importedMinutes ? `${formatDuration(libraryResult.importedMinutes)} new Steam playtime auto-logged` : "",
+      libraryResult?.coveredMinutes ? `${formatDuration(libraryResult.coveredMinutes)} already covered by local game logs` : "",
+      libraryResult?.skillXp ? `+${formatNumber(libraryResult.skillXp)} Skill XP from new playtime` : "",
+      libraryResult?.realmXp ? `+${formatNumber(libraryResult.realmXp)} Realm XP from new playtime` : "",
       unavailable && unavailableReasons.length ? unavailableReasons[0] : ""
     ].filter(Boolean).join(" · ");
     showToast(unavailable || failed ? "Steam sync incomplete" : "Steam sync finished ✓", detail);
@@ -2084,6 +2106,267 @@
     }
     if (els.steamLoad) els.steamLoad.disabled = !configured;
     renderSteamAchievements();
+  }
+
+  function defaultSteamPlaytimeSyncState(game = {}) {
+    const existingMinutes = Math.max(0, Number(game?.steamPlaytimeMinutes || 0));
+    const existingSyncAt = Math.max(0, Number(game?.steamLibrarySyncedAt || 0));
+    return {
+      schemaVersion: STEAM_PLAYTIME_SYNC_SCHEMA,
+      baselineMinutes: existingMinutes,
+      baselineAt: existingSyncAt,
+      verifiedAt: existingSyncAt,
+      lastSyncAt: existingSyncAt,
+      lastRemoteDeltaMinutes: 0,
+      lastImportedMinutes: 0,
+      lastCoveredMinutes: 0,
+      totalImportedMinutes: 0,
+      totalCoveredMinutes: 0
+    };
+  }
+
+  function steamPlaytimeSyncState(game = {}) {
+    if (!game.steamPlaytimeSync || typeof game.steamPlaytimeSync !== "object" || Array.isArray(game.steamPlaytimeSync)) {
+      game.steamPlaytimeSync = defaultSteamPlaytimeSyncState(game);
+    }
+    const sync = game.steamPlaytimeSync;
+    sync.schemaVersion = STEAM_PLAYTIME_SYNC_SCHEMA;
+    if (!Number.isFinite(Number(sync.baselineMinutes))) sync.baselineMinutes = Math.max(0, Number(game.steamPlaytimeMinutes || 0));
+    if (!Number.isFinite(Number(sync.baselineAt))) sync.baselineAt = Math.max(0, Number(game.steamLibrarySyncedAt || 0));
+    if (!Number.isFinite(Number(sync.verifiedAt))) sync.verifiedAt = Number(game.steamLibrarySyncedAt || 0) > 0 ? Number(game.steamLibrarySyncedAt) : 0;
+    if (!Number.isFinite(Number(sync.lastSyncAt))) sync.lastSyncAt = Math.max(0, Number(game.steamLibrarySyncedAt || 0));
+    if (!Number.isFinite(Number(sync.lastRemoteDeltaMinutes))) sync.lastRemoteDeltaMinutes = 0;
+    if (!Number.isFinite(Number(sync.lastImportedMinutes))) sync.lastImportedMinutes = 0;
+    if (!Number.isFinite(Number(sync.lastCoveredMinutes))) sync.lastCoveredMinutes = 0;
+    if (!Number.isFinite(Number(sync.totalImportedMinutes))) sync.totalImportedMinutes = 0;
+    if (!Number.isFinite(Number(sync.totalCoveredMinutes))) sync.totalCoveredMinutes = 0;
+    return sync;
+  }
+
+  function steamPlaytimeSkillId(game = {}) {
+    return game.role === "japanese" ? "language-learning" : "recreation-play";
+  }
+
+  function steamPlaytimeRealm(game = {}) {
+    return (ROLES[game.role] || ROLES.fun).realm;
+  }
+
+  function steamTimeSkillXp(minutes) {
+    const safe = Math.max(0, Number(minutes || 0));
+    return safe > 0 ? Math.round((2 * Math.sqrt(safe) + Number.EPSILON) * 100) / 100 : 0;
+  }
+
+  function manualGameLogsCoveringSteamInterval(game, fromAt, toAt) {
+    return model().logs.filter(log => {
+      if (!log || log.gameId !== game.id || log.steamImported || log.source === "steam-playtime") return false;
+      const at = Number(log.at || log.createdAt || 0);
+      if (!Number.isFinite(at) || at <= fromAt || at > toAt) return false;
+      return Math.max(0, Number(log.minutes || 0)) > 0;
+    });
+  }
+
+  function matchingGamingTimeEntries(game, fromAt, toAt) {
+    const title = normalizeText(game?.title || "");
+    if (!title) return [];
+    return (app.getState().timeTracking?.entries || []).filter(entry => {
+      if (!entry || entry.categoryId !== "gaming") return false;
+      const at = new Date(entry.endAt || entry.startAt || entry.createdAt || 0).getTime();
+      if (!Number.isFinite(at) || at <= fromAt || at > toAt) return false;
+      const label = normalizeText(entry.label || "");
+      return Boolean(label && (label.includes(title) || title.includes(label)));
+    });
+  }
+
+  function representedSteamInterval(game, fromAt, toAt) {
+    const gameLogs = manualGameLogsCoveringSteamInterval(game, fromAt, toAt);
+    const timeEntries = matchingGamingTimeEntries(game, fromAt, toAt);
+
+    const gameMinutes = gameLogs.reduce((sum, log) => sum + Math.max(0, Number(log.minutes || 0)), 0);
+    const timeMinutes = timeEntries.reduce((sum, entry) => {
+      const seconds = Math.max(0, Number(entry.durationSeconds || 0));
+      return sum + (seconds > 0 ? seconds / 60 : Math.max(0, Number(entry.minutes || 0)));
+    }, 0);
+
+    const gameSkillXp = gameLogs.reduce((sum, log) => {
+      const override = Number(log.skillXpOverride);
+      if (Number.isFinite(override) && override >= 0) return sum + override;
+      return sum + steamTimeSkillXp(log.minutes);
+    }, 0);
+
+    const timeSkillXp = timeEntries.reduce((sum, entry) => {
+      const seconds = Math.max(0, Number(entry.durationSeconds || 0));
+      const minutes = seconds > 0 ? seconds / 60 : Math.max(0, Number(entry.minutes || 0));
+      return sum + steamTimeSkillXp(minutes);
+    }, 0);
+
+    const gameRealmXp = gameLogs.reduce((sum, log) => sum + Math.max(0, Number(log.realmXP || 0)), 0);
+
+    return {
+      gameLogs,
+      timeEntries,
+      minutes: gameMinutes + timeMinutes,
+      skillXp: gameSkillXp + timeSkillXp,
+      realmXp: gameRealmXp
+    };
+  }
+
+  function steamPlaytimeRewardKey(game, previousMinutes, remoteMinutes) {
+    return `${String(game?.steamAppId || "").trim()}:playtime:${Math.max(0, Math.round(previousMinutes))}-${Math.max(0, Math.round(remoteMinutes))}`;
+  }
+
+  function processSteamPlaytimeSync(game, remoteMinutes, syncedAt = Date.now(), remoteLastPlayedAt = 0) {
+    if (!game?.steamAppId) return { gameId: game?.id || "", matched: false, baselined: false, importedMinutes: 0, coveredMinutes: 0, remoteDeltaMinutes: 0, skillXp: 0, realmXp: 0 };
+
+    const sync = steamPlaytimeSyncState(game);
+    const remote = Math.max(0, Math.round(Number(remoteMinutes || 0)));
+    const priorBaseline = Math.max(0, Math.round(Number(sync.baselineMinutes || 0)));
+    const priorAt = Math.max(0, Number(sync.baselineAt || sync.lastSyncAt || sync.verifiedAt || 0));
+
+    sync.lastSyncAt = syncedAt;
+    sync.lastRemoteDeltaMinutes = 0;
+    sync.lastImportedMinutes = 0;
+    sync.lastCoveredMinutes = 0;
+
+    // First known Steam total is a reward-free baseline, exactly like old achievements.
+    if (!Number(sync.verifiedAt || 0)) {
+      sync.baselineMinutes = Math.max(priorBaseline, remote);
+      sync.baselineAt = syncedAt;
+      sync.verifiedAt = syncedAt;
+      return {
+        gameId: game.id,
+        matched: true,
+        baselined: true,
+        importedMinutes: 0,
+        coveredMinutes: 0,
+        remoteDeltaMinutes: 0,
+        skillXp: 0,
+        realmXp: 0
+      };
+    }
+
+    // Never lower a baseline. A temporary API correction must not become fake future playtime.
+    if (remote <= priorBaseline) {
+      sync.baselineMinutes = priorBaseline;
+      sync.baselineAt = syncedAt;
+      return {
+        gameId: game.id,
+        matched: true,
+        baselined: false,
+        importedMinutes: 0,
+        coveredMinutes: 0,
+        remoteDeltaMinutes: 0,
+        skillXp: 0,
+        realmXp: 0
+      };
+    }
+
+    const remoteDelta = remote - priorBaseline;
+    const represented = representedSteamInterval(game, priorAt, syncedAt);
+    const coveredMinutes = Math.min(remoteDelta, Math.max(0, Math.round(represented.minutes)));
+    const importedMinutes = Math.max(0, remoteDelta - coveredMinutes);
+
+    const targetSkillXp = steamTimeSkillXp(remoteDelta);
+    const importedSkillXp = importedMinutes > 0
+      ? Math.max(0, Math.round((targetSkillXp - Math.min(targetSkillXp, represented.skillXp) + Number.EPSILON) * 100) / 100)
+      : 0;
+
+    // Steam auto-playtime intentionally supplies Realm XP + Skill XP, but not Coins,
+    // Story Energy or an achievement-style Character reward. Achievements remain the
+    // milestone economy; playtime remains practice.
+    const targetRealmXp = remoteDelta > 0 ? Math.max(1, Math.round(targetSkillXp)) : 0;
+    const importedRealmXp = importedMinutes > 0
+      ? Math.max(0, targetRealmXp - Math.min(targetRealmXp, Math.round(represented.realmXp)))
+      : 0;
+
+    let reward = null;
+    const rewardKey = steamPlaytimeRewardKey(game, priorBaseline, remote);
+    const alreadyRewarded = (app.getState().rewardLedger?.events || []).some(event =>
+      event?.source === "steam-playtime" && event?.sourceId === rewardKey
+    );
+
+    if (importedRealmXp > 0 && !alreadyRewarded) {
+      reward = app.awardActivity?.({
+        source: "steam-playtime",
+        sourceId: rewardKey,
+        label: `${game.title} · Steam playtime`,
+        realm: steamPlaytimeRealm(game),
+        capability: null,
+        xp: 0,
+        realmXP: importedRealmXp,
+        statXP: 0,
+        coins: 0,
+        storyEnergyBase: 0,
+        progressionRelevant: true,
+        at: new Date(syncedAt).toISOString(),
+        metadata: {
+          steamPlaytime: true,
+          steamAppId: String(game.steamAppId || ""),
+          remoteDeltaMinutes: remoteDelta,
+          importedMinutes,
+          manualCoveredMinutes: coveredMinutes,
+          skillXP: importedSkillXp,
+          skillId: steamPlaytimeSkillId(game),
+          intervalStartAt: priorAt || null,
+          intervalEndAt: syncedAt,
+          steamLastPlayedAt: remoteLastPlayedAt || 0,
+          dateUncertain: true
+        }
+      }) || null;
+    }
+
+    if (importedMinutes > 0) {
+      model().logs.push({
+        id: makeId("glog-steam"),
+        gameId: game.id,
+        at: syncedAt,
+        date: todayKey(),
+        minutes: importedMinutes,
+        amount: importedMinutes,
+        trackingMode: "minutes",
+        unitLabel: "minutes",
+        goalId: null,
+        progressAfter: null,
+        source: "steam-playtime",
+        steamImported: true,
+        steamIntervalStartAt: priorAt || null,
+        steamIntervalEndAt: syncedAt,
+        steamRemoteDeltaMinutes: remoteDelta,
+        steamManualCoveredMinutes: coveredMinutes,
+        steamLastPlayedAt: remoteLastPlayedAt || 0,
+        skillXpOverride: importedSkillXp,
+        skillId: steamPlaytimeSkillId(game),
+        dateUncertain: true,
+        xp: 0,
+        realmXP: Number(reward?.realmXP || importedRealmXp || 0),
+        statXP: 0,
+        storyEnergy: 0,
+        rawStoryEnergy: 0,
+        rewardEventId: reward?.eventId || null,
+        deduped: false
+      });
+      if (model().logs.length > MAX_LOGS) model().logs = model().logs.slice(-MAX_LOGS);
+      game.totalMinutes = Number(game.totalMinutes || 0) + importedMinutes;
+    }
+
+    sync.baselineMinutes = remote;
+    sync.baselineAt = syncedAt;
+    sync.lastRemoteDeltaMinutes = remoteDelta;
+    sync.lastImportedMinutes = importedMinutes;
+    sync.lastCoveredMinutes = coveredMinutes;
+    sync.totalImportedMinutes = Number(sync.totalImportedMinutes || 0) + importedMinutes;
+    sync.totalCoveredMinutes = Number(sync.totalCoveredMinutes || 0) + coveredMinutes;
+
+    return {
+      gameId: game.id,
+      matched: true,
+      baselined: false,
+      importedMinutes,
+      coveredMinutes,
+      remoteDeltaMinutes: remoteDelta,
+      skillXp: importedSkillXp,
+      realmXp: Number(reward?.realmXP || importedRealmXp || 0),
+      rewardEventId: reward?.eventId || null
+    };
   }
 
   function defaultSteamSyncState() {
@@ -2256,29 +2539,61 @@
   function applySteamLibrary(data = {}, syncedAt = Date.now()) {
     const remoteGames = Array.isArray(data.games) ? data.games : [];
     const byAppId = new Map(remoteGames.map(item => [String(item.appid || item.appId || ""), item]));
-    let matched = 0;
+    const result = {
+      matched: 0,
+      baselined: 0,
+      importedMinutes: 0,
+      coveredMinutes: 0,
+      remoteDeltaMinutes: 0,
+      skillXp: 0,
+      realmXp: 0,
+      games: []
+    };
+
     for (const game of model().items) {
       const remote = byAppId.get(String(game.steamAppId || ""));
       if (!remote) continue;
-      const remoteForever = Math.max(0, Number(remote.playtimeForever || remote.playtime_forever || 0));
-      game.steamPlaytimeMinutes = Math.max(Number(game.steamPlaytimeMinutes || 0), remoteForever);
-      game.steamPlaytime2WeeksMinutes = Math.max(0, Number(remote.playtime2Weeks || remote.playtime_2weeks || 0));
+
+      const remoteForever = Math.max(0, Math.round(Number(remote.playtimeForever || remote.playtime_forever || 0)));
       const lastPlayedSeconds = Math.max(0, Number(remote.lastPlayedAt || remote.rtime_last_played || 0));
       const remoteLastPlayedAt = lastPlayedSeconds > 10_000_000_000 ? lastPlayedSeconds : lastPlayedSeconds * 1000;
+
+      const playtime = processSteamPlaytimeSync(game, remoteForever, syncedAt, remoteLastPlayedAt);
+      result.matched += 1;
+      result.baselined += playtime.baselined ? 1 : 0;
+      result.importedMinutes += Number(playtime.importedMinutes || 0);
+      result.coveredMinutes += Number(playtime.coveredMinutes || 0);
+      result.remoteDeltaMinutes += Number(playtime.remoteDeltaMinutes || 0);
+      result.skillXp += Number(playtime.skillXp || 0);
+      result.realmXp += Number(playtime.realmXp || 0);
+      result.games.push(playtime);
+
+      game.steamPlaytimeMinutes = Math.max(Number(game.steamPlaytimeMinutes || 0), remoteForever);
+      game.steamPlaytime2WeeksMinutes = Math.max(0, Number(remote.playtime2Weeks || remote.playtime_2weeks || 0));
       if (remoteLastPlayedAt > 0) game.steamLastPlayedAt = Math.max(Number(game.steamLastPlayedAt || 0), remoteLastPlayedAt);
       game.steamLibrarySyncedAt = syncedAt;
-      matched += 1;
     }
-    return matched;
+
+    return result;
   }
 
   async function syncSteamLibrary({ appId = "", silent = true } = {}) {
     try {
       const data = await fetchSteamLibrary(appId);
-      const matched = applySteamLibrary(data, Date.now());
+      const result = applySteamLibrary(data, Date.now());
       persist("steam-library-sync", { render: false });
-      if (!silent) showToast("Steam playtime synced ✓", `${matched} Life RPG game${matched === 1 ? "" : "s"} matched to your Steam library.`);
-      return { data, matched };
+
+      if (!silent) {
+        const bits = [`${result.matched} Life RPG game${result.matched === 1 ? "" : "s"} matched`];
+        if (result.baselined) bits.push(`${result.baselined} reward-free playtime baseline${result.baselined === 1 ? "" : "s"} created`);
+        if (result.importedMinutes) bits.push(`${formatDuration(result.importedMinutes)} new Steam playtime logged`);
+        if (result.coveredMinutes) bits.push(`${formatDuration(result.coveredMinutes)} already covered by local logs`);
+        if (result.skillXp) bits.push(`+${formatNumber(result.skillXp)} Skill XP`);
+        if (result.realmXp) bits.push(`+${formatNumber(result.realmXp)} Realm XP`);
+        showToast("Steam playtime synced ✓", bits.join(" · "));
+      }
+
+      return { data, ...result };
     } catch (error) {
       console.warn("Steam library sync failed", error);
       if (!silent) showToast("Steam playtime sync failed", String(error?.message || error));
@@ -2455,7 +2770,21 @@
     return reward;
   }
 
-  function processSteamAchievementSync(game, steamItems, data, syncedAt = Date.now(), { silent = true, source = "sync" } = {}) {
+  function steamPlaytimeNoteForGame(playtimeResult, game) {
+    const row = playtimeResult?.games?.find(item => item?.gameId === game?.id) || null;
+    if (!row) return "";
+    if (row.baselined) return " · Steam playtime baseline saved · existing hours are historical";
+    if (row.importedMinutes) {
+      const covered = row.coveredMinutes ? ` · ${formatDuration(row.coveredMinutes)} already covered locally` : "";
+      const skill = row.skillXp ? ` · +${formatNumber(row.skillXp)} Skill XP` : "";
+      const realm = row.realmXp ? ` · +${formatNumber(row.realmXp)} ${steamPlaytimeRealm(game)} XP` : "";
+      return ` · ${formatDuration(row.importedMinutes)} new Steam playtime logged${skill}${realm}${covered}`;
+    }
+    if (row.coveredMinutes) return ` · ${formatDuration(row.coveredMinutes)} Steam delta already covered by local logs`;
+    return "";
+  }
+
+  function processSteamAchievementSync(game, steamItems, data, syncedAt = Date.now(), { silent = true, source = "sync", playtimeResult = null } = {}) {
     if (!game?.steamAppId || !Array.isArray(steamItems)) return { changed: false, baseline: false, unlocked: [], historicalImported: 0, matchedGoals: 0, returned: 0 };
     const sync = steamSyncState(game);
     const playerAvailable = data?.playerAvailable === true;
@@ -2580,10 +2909,11 @@
     persist(`steam-achievement-sync-${source}`, { render: false });
 
     if (!silent) {
+      const playtimeNote = steamPlaytimeNoteForGame(playtimeResult, game);
       if (!steamItems.length) {
-        showToast("Steam returned no achievements", `${game.title} · connection works, but this game returned 0 achievements. Check the App ID and Steam privacy/API availability.`);
+        showToast("Steam returned no achievements", `${game.title} · connection works, but this game returned 0 achievements. Check the App ID and Steam privacy/API availability.${playtimeNote}`);
       } else if (isBaseline) {
-        showToast("Steam baseline saved ✓", `${game.title} · ${sync.unlocked}/${sync.total} already unlocked · ${historicalImported} added to Life RPG as Historical · no retro rewards.`);
+        showToast("Steam baseline saved ✓", `${game.title} · ${sync.unlocked}/${sync.total} already unlocked · ${historicalImported} added to Life RPG as Historical · no retro rewards${playtimeNote}.`);
       } else if (newUnlocks.length) {
         const totals = newUnlocks.reduce((sum, item) => {
           sum.xp += Number(item.reward?.xp || 0);
@@ -2592,11 +2922,11 @@
           return sum;
         }, { xp: 0, coins: 0, storyEnergy: 0 });
         const repaired = historicalImported ? ` · ${historicalImported} older unlock${historicalImported === 1 ? "" : "s"} reconciled` : "";
-        showToast(`${newUnlocks.length} new Steam achievement${newUnlocks.length === 1 ? "" : "s"} 🏆`, `${game.title} · +${totals.xp} XP · +${app.formatEnergy?.(totals.storyEnergy) ?? totals.storyEnergy} 🔥 · +${totals.coins} 🪙${repaired}`);
+        showToast(`${newUnlocks.length} new Steam achievement${newUnlocks.length === 1 ? "" : "s"} 🏆`, `${game.title} · +${totals.xp} XP · +${app.formatEnergy?.(totals.storyEnergy) ?? totals.storyEnergy} 🔥 · +${totals.coins} 🪙${repaired}${playtimeNote}`);
       } else if (historicalImported) {
-        showToast("Steam history reconciled ✓", `${game.title} · ${sync.unlocked}/${sync.total} unlocked on Steam · ${historicalImported} historical achievement${historicalImported === 1 ? "" : "s"} added · 0 retro rewards.`);
+        showToast("Steam history reconciled ✓", `${game.title} · ${sync.unlocked}/${sync.total} unlocked on Steam · ${historicalImported} historical achievement${historicalImported === 1 ? "" : "s"} added · 0 retro rewards${playtimeNote}.`);
       } else {
-        showToast("Steam is up to date ✓", `${game.title} · ${sync.unlocked}/${sync.total} achievements unlocked · ${matchedGoals} already represented in Life RPG.`);
+        showToast("Steam is up to date ✓", `${game.title} · ${sync.unlocked}/${sync.total} achievements unlocked · ${matchedGoals} already represented in Life RPG${playtimeNote}.`);
       }
     }
     return { changed, baseline: isBaseline, unlocked: newUnlocks, historicalImported, matchedGoals, returned: steamItems.length };
@@ -2620,9 +2950,9 @@
     const task = (async () => {
       renderBoard();
       try {
-        if (includeLibrary) await syncSteamLibrary({ appId: game.steamAppId, silent: true });
+        const playtimeResult = includeLibrary ? await syncSteamLibrary({ appId: game.steamAppId, silent: true }) : null;
         const { data, items } = await fetchSteamAchievements(game.steamAppId);
-        const result = processSteamAchievementSync(game, items, data, Date.now(), { silent, source: reason });
+        const result = processSteamAchievementSync(game, items, data, Date.now(), { silent, source: reason, playtimeResult });
         render();
         return result;
       } catch (error) {
@@ -2664,7 +2994,15 @@
     const configured = Boolean(steamSettings().workerUrl && steamSettings().steamId);
     const progress = sync.total > 0 ? `${Math.max(0, Number(sync.unlocked || 0))}/${Math.max(0, Number(sync.total || 0))} achievements` : "No Steam baseline yet";
     const represented = (game.goals || []).filter(goal => goal?.source === "steam" && goal?.done).length;
-    const steamContext = Number(game.steamPlaytimeMinutes || 0) > 0 ? `Steam ${formatDuration(game.steamPlaytimeMinutes)} total${Number(game.steamPlaytime2WeeksMinutes || 0) > 0 ? ` · ${formatDuration(game.steamPlaytime2WeeksMinutes)} in last 2 weeks` : ""}${game.steamLastPlayedAt ? ` · played ${humanAgo(game.steamLastPlayedAt)}` : ""}` : "";
+    const playtimeSync = steamPlaytimeSyncState(game);
+    const playtimeAuto = playtimeSync.verifiedAt
+      ? Number(playtimeSync.totalImportedMinutes || 0) > 0
+        ? `Auto-log · ${formatDuration(playtimeSync.totalImportedMinutes)} imported since baseline`
+        : "Auto-log baseline ready · future Steam playtime will be logged"
+      : configured
+        ? "First Steam playtime sync creates a reward-free baseline"
+        : "";
+    const steamContext = Number(game.steamPlaytimeMinutes || 0) > 0 ? `Steam ${formatDuration(game.steamPlaytimeMinutes)} total${Number(game.steamPlaytime2WeeksMinutes || 0) > 0 ? ` · ${formatDuration(game.steamPlaytime2WeeksMinutes)} in last 2 weeks` : ""}${game.steamLastPlayedAt ? ` · played ${humanAgo(game.steamLastPlayedAt)}` : ""}${playtimeAuto ? ` · ${playtimeAuto}` : ""}` : playtimeAuto;
     const freshness = sync.lastSyncAt ? `Last synced ${humanAgoWithTime(sync.lastSyncAt)}` : configured ? "Ready to create your baseline" : "Add Worker URL + SteamID64 in Settings";
     const unavailable = sync.playerAvailable === false
       ? ` · personal unlock status unavailable${sync.workerProtocolVersion < 2 ? " · Worker update required" : ""}`

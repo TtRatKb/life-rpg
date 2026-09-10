@@ -331,15 +331,20 @@
     const games = root.gameLibrary?.items || [];
     (root.gameLibrary?.logs || []).filter(log => String(log.date || dateKey(new Date(log.at || 0))) === key).forEach(log => {
       const game = games.find(item => item.id === log.gameId);
-      const event = takeEvent(log.rewardEventId, "game", log.gameId || null);
+      const steamImported = Boolean(log.steamImported || log.source === "steam-playtime");
+      const event = takeEvent(log.rewardEventId, steamImported ? "steam-playtime" : "game", steamImported ? null : (log.gameId || null));
       const amount = number(log.amount || (log.trackingMode === "minutes" ? log.minutes : 0));
       const unit = log.unitLabel || trackingUnitFallback(log.trackingMode);
-      const detail = `${amount ? `${trim(amount)} ${amount === 1 ? singularUnit(unit) : unit}` : "Session"}${number(log.minutes) && log.trackingMode !== "minutes" ? ` · ${formatDuration(log.minutes)} real time` : ""}`;
+      const skillXp = number(log.skillXpOverride);
+      const covered = number(log.steamManualCoveredMinutes);
+      const detail = steamImported
+        ? `${formatDuration(number(log.minutes))} newly detected since the previous Steam baseline${covered ? ` · ${formatDuration(covered)} of the Steam delta was already covered by local logs` : ""}${skillXp ? ` · +${trim(skillXp)} Skill XP` : ""} · sync interval, not an exact session timestamp`
+        : `${amount ? `${trim(amount)} ${amount === 1 ? singularUnit(unit) : unit}` : "Session"}${number(log.minutes) && log.trackingMode !== "minutes" ? ` · ${formatDuration(log.minutes)} real time` : ""}`;
       rows.push({
-        id: `game-${log.id || Math.random()}`, at: toIso(log.at) || event?.at || `${key}T12:00:00`, category: "library", icon: "🎮", sourceLabel: "Game session",
+        id: `game-${log.id || Math.random()}`, at: toIso(log.at) || event?.at || `${key}T12:00:00`, category: "library", icon: "🎮", sourceLabel: steamImported ? "Steam playtime" : "Game session",
         title: game?.title || event?.label || "Game session", detail,
-        reward: event ? rewardFromEvent(event) : rewardFromLog(log), rewardKnown: Boolean(event || hasRewardFields(log)), realm: event?.realm || null, capability: event?.capability || null,
-        duplicate: Boolean(event?.duplicate || log.deduped), migrated: Boolean(event?.migrated), why: event?.duplicate ? dedupeWhy(event) : gameSessionWhy(event, log)
+        reward: event ? rewardFromEvent(event) : rewardFromLog(log), rewardKnown: Boolean(event || hasRewardFields(log)), realm: event?.realm || (steamImported ? ((game?.role === "japanese") ? "Japanese" : "Hobbies") : null), capability: event?.capability || null,
+        duplicate: Boolean(event?.duplicate || log.deduped), migrated: Boolean(event?.migrated), why: event?.duplicate ? dedupeWhy(event) : steamImported ? steamPlaytimeWhy(event, log, game) : gameSessionWhy(event, log)
       });
     });
 
@@ -431,6 +436,11 @@
     if (event.source === "daily-checkin") return `${number(m.streak) ? `${number(m.streak)} day streak · ` : ""}Daily plan updated`;
     if (event.source === "stewardship") return `${humanize(m.type || "library upkeep")} · system stewardship`;
     if (event.source === "game-goal") return "Tracked Game Goal completed";
+    if (event.source === "steam-playtime") {
+      const imported = number(m.importedMinutes);
+      const covered = number(m.manualCoveredMinutes);
+      return `Steam playtime · ${formatDuration(imported)} imported${covered ? ` · ${formatDuration(covered)} already covered locally` : ""}`;
+    }
     if (event.source === "steam-achievement") {
       const hasPercent = m.steamGlobalPercent !== null && m.steamGlobalPercent !== undefined && m.steamGlobalPercent !== "" && Number.isFinite(Number(m.steamGlobalPercent));
       const rarity = String(m.steamRarityLabel || "Unknown rarity");
@@ -523,6 +533,22 @@
     return `<p>${chars} characters were saved across Gratitude, Small Win and Hard Thing. Each reflection field now has its own visible depth rewards up to 1000 characters; the daily base and every earned field tier are summed here.</p><ul>${lines}</ul>`;
   }
 
+  function steamPlaytimeWhy(event, log, game) {
+    const imported = number(log?.minutes);
+    const remote = number(log?.steamRemoteDeltaMinutes);
+    const covered = number(log?.steamManualCoveredMinutes);
+    const skillXp = number(log?.skillXpOverride);
+    const realm = game?.role === "japanese" ? "Japanese" : "Hobbies";
+    const skill = game?.role === "japanese" ? "Language Learning" : "Recreation & Play";
+    const bits = [
+      `<p>Steam reported <strong>${formatDuration(remote || imported)}</strong> more cumulative playtime than the previous verified baseline. Life RPG imported only the portion not already represented by local Game logs.</p>`,
+      `<p>This is a <strong>sync interval</strong>, not a claim that you played at the exact sync timestamp. Historical playtime from the first baseline remains reward-free.</p>`
+    ];
+    if (covered) bits.push(`<p><strong>${formatDuration(covered)}</strong> was already covered by local logging and was not imported again.</p>`);
+    if (skillXp) bits.push(`<p>The uncovered practice contributes <strong>+${trim(skillXp)} ${esc(skill)} Skill XP</strong>. New Steam playtime can also add ${esc(realm)} Realm XP, but normal playtime does not award Coins or Story Energy; Steam achievements remain the milestone reward source.</p>`);
+    return bits.join("");
+  }
+
   function gameSessionWhy(event, log) {
     if (!event) return null;
     const reward = rewardFromEvent(event);
@@ -541,6 +567,7 @@
       stewardship: ["🗂️", "Stewardship"],
       "game-goal": ["🏆", "Game Goal"],
       "steam-achievement": ["🏆", "Steam Achievement"],
+      "steam-playtime": ["🎮", "Steam Playtime"],
       "game-finish": ["🎮", "Game milestone"],
       "book-finish": ["📚", "Book milestone"],
       "adventure-finish": ["✧", "Adventure milestone"],

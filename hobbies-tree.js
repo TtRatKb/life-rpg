@@ -8,7 +8,7 @@
     return;
   }
 
-  const VERSION = "0.31.4ag4";
+  const VERSION = "0.31.4ai";
   const SCHEMA = 1;
   const REALM = "Hobbies";
   const HOBBY_SKILLS = [
@@ -890,7 +890,7 @@
       const dates = new Set();
 
       skillEvents().forEach(event => {
-        if (!HOBBY_SKILLS.includes(event?.skillId)) return;
+        if (!HOBBY_SKILLS.includes(event?.skillId) || event?.metadata?.dateUncertain) return;
         const at = timestamp(event.at);
         if (!at || at < unlockedAt) return;
         dates.add(localDateKey(new Date(at)));

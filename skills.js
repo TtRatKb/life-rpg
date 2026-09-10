@@ -7,7 +7,7 @@
     return;
   }
 
-  const VERSION = "0.31.4ah";
+  const VERSION = "0.31.4ai";
   const SCHEMA = 1;
   const MAX_EVENTS = 6000;
   const HABIT_XP = { tiny: 3, low: 5, normal: 8, high: 12, boss: 18 };
@@ -348,8 +348,9 @@
       if (log.rewardEventId) claimedRewardIds.add(log.rewardEventId);
     });
 
-    // Game logs represent local Life RPG sessions only. Steam's imported total playtime is
-    // deliberately stored elsewhere and therefore never becomes retroactive Skill XP.
+    // Historical Steam totals remain baseline-only. New post-baseline Steam playtime can
+    // create explicit steamImported game logs. Those logs carry an incremental Skill-XP
+    // override so any manual game time already covering the same sync interval is not paid twice.
     const games = Array.isArray(root.gameLibrary?.items) ? root.gameLibrary.items : [];
     const gameById = Object.fromEntries(games.map(item => [item.id, item]));
     const gamingTimeEntries = timeEntries.filter(entry => entry.categoryId === "gaming");
@@ -357,18 +358,32 @@
       const game = gameById[log?.gameId];
       const skillId = skillForGame(game);
       if (!game || !skillId) return;
-      if (isLikelyDuplicateMediaTime(log, gamingTimeEntries)) return;
+      if (!log.steamImported && isLikelyDuplicateMediaTime(log, gamingTimeEntries)) return;
       const minutes = Math.max(0, Number(log.minutes || 0));
-      const xp = minutes > 0 ? timeXp(minutes) : 8;
+      const override = Number(log.skillXpOverride);
+      const xp = log.steamImported && Number.isFinite(override)
+        ? Math.max(0, override)
+        : minutes > 0 ? timeXp(minutes) : 8;
+      if (xp <= 0) return;
       addDerived(events, {
-        id: `game:${log.id || `${game.id}:${log.at || log.createdAt}`}`,
+        id: `${log.steamImported ? "steam-playtime" : "game"}:${log.id || `${game.id}:${log.at || log.createdAt}`}`,
         skillId,
         xp,
-        label: game.title || "Game session",
-        source: "game",
+        label: log.steamImported ? `${game.title || "Game"} · Steam playtime` : (game.title || "Game session"),
+        source: log.steamImported ? "steam-playtime" : "game",
         sourceId: log.id || game.id,
         at: log.at || log.createdAt || log.timestamp || game.lastPlayedAt,
-        metadata: { gameId: game.id, role: game.role || "fun", minutes }
+        metadata: {
+          gameId: game.id,
+          role: game.role || "fun",
+          minutes,
+          steamImported: Boolean(log.steamImported),
+          steamRemoteDeltaMinutes: Number(log.steamRemoteDeltaMinutes || 0),
+          steamManualCoveredMinutes: Number(log.steamManualCoveredMinutes || 0),
+          intervalStartAt: log.steamIntervalStartAt || null,
+          intervalEndAt: log.steamIntervalEndAt || null,
+          dateUncertain: Boolean(log.dateUncertain)
+        }
       });
       if (log.rewardEventId) claimedRewardIds.add(log.rewardEventId);
     });
@@ -1191,7 +1206,7 @@
   }
 
   function sourceLabel(source) {
-    return ({ time: "Focus & Time", habit: "Habit", "daily-checkin": "Daily Check-in", "journal-reflection": "Journal", book: "Library", game: "Games", quest: "Quest", sudoku: "Sudoku", "sudoku-replay": "Sudoku", nonogram: "Nonogram", "nonogram-replay": "Nonogram", "number-sense": "Number Sense", "number-sense-replay": "Number Sense", "memory-garden": "Memory Garden", "memory-garden-replay": "Memory Garden", "lexicon-calibration": "Lexicon Calibration", "lexicon-daily-word": "Daily Word", "lexicon-crossword": "Lexicon Lab", "kotoba-quick-review": "Kotoba Quick", "weekly-review": "Weekly Review", "weekly-review-depth": "Weekly Review" })[source] || source || "Practice";
+    return ({ time: "Focus & Time", habit: "Habit", "daily-checkin": "Daily Check-in", "journal-reflection": "Journal", book: "Library", game: "Games", quest: "Quest", sudoku: "Sudoku", "sudoku-replay": "Sudoku", nonogram: "Nonogram", "nonogram-replay": "Nonogram", "number-sense": "Number Sense", "number-sense-replay": "Number Sense", "memory-garden": "Memory Garden", "memory-garden-replay": "Memory Garden", "lexicon-calibration": "Lexicon Calibration", "lexicon-daily-word": "Daily Word", "lexicon-crossword": "Lexicon Lab", "kotoba-quick-review": "Kotoba Quick", "weekly-review": "Weekly Review", "weekly-review-depth": "Weekly Review", "steam-playtime": "Steam Playtime" })[source] || source || "Practice";
   }
 
   function validSkillId(value) { return value && SKILL_BY_ID[value] ? value : null; }

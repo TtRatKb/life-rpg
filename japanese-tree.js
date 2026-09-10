@@ -8,7 +8,7 @@
     return;
   }
 
-  const VERSION = "0.31.4ag2";
+  const VERSION = "0.31.4ai";
   const SCHEMA = 1;
   const REALM = "Japanese";
   const SKILL_ID = "language-learning";
@@ -901,7 +901,7 @@
       const dates = new Set();
 
       skillEvents().forEach(event => {
-        if (event?.skillId !== SKILL_ID) return;
+        if (event?.skillId !== SKILL_ID || event?.metadata?.dateUncertain) return;
         const at = timestamp(event.at);
         if (!at || at < unlockedAt) return;
         dates.add(localDateKey(new Date(at)));
