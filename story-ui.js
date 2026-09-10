@@ -17,6 +17,10 @@
   let loadError = null;
   const prefetchedStoryAssets = new Set();
   const STORY_PREFETCH_LOOKAHEAD = 1;
+  // Real-time story cadence is allowed to create atmosphere, not multi-day lockouts.
+  // Authored gaps can still distinguish later-today from next-day beats, but the
+  // reader never has to wait more than one calendar day for story-time alone.
+  const MAX_STORY_CALENDAR_GAP_DAYS = 1;
   let storyPrefetchTimer = null;
   let messageSchedulerTimer = null;
   let messageTypingTimer = null;
@@ -717,7 +721,8 @@
     if (afterScene && !completedAt) return { required: true, met: false, availableAt: null, label: temporal.ui || "available later" };
 
     const base = completedAt ? new Date(completedAt) : new Date();
-    const minDays = Math.max(0, Number(temporal.minCalendarDays || 0));
+    const authoredMinDays = Math.max(0, Number(temporal.minCalendarDays || 0));
+    const minDays = Math.min(MAX_STORY_CALENDAR_GAP_DAYS, authoredMinDays);
     const availableAt = new Date(base);
     availableAt.setHours(0, 0, 0, 0);
     availableAt.setDate(availableAt.getDate() + minDays);
@@ -745,7 +750,7 @@
     return `<section class="story-temporal-gate-v314r ${info.met ? "ready" : "waiting"}">
       <div class="story-momentum-kicker-v309">${info.met ? "STORY TIME READY" : "STORY TIME"}</div>
       <strong>${escapeHtml(info.met ? "The next story beat fits the current time." : info.label)}</strong>
-      <p>${escapeHtml(info.met ? "Your Story Energy and other requirements can be used now." : "Energy and real-life requirements can be completed in parallel; the chapter simply waits for its story-time window.")}</p>
+      <p>${escapeHtml(info.met ? "Your Story Energy and other requirements can be used now." : "Some story beats open later today or tomorrow when a small time shift helps the pacing. Story-time alone never creates a multi-day wait.")}</p>
     </section>`;
   }
 
@@ -1178,7 +1183,7 @@
       els.actionButton.textContent = temporal.met ? (active && step > 0 ? "Continue chapter" : "Read chapter") : temporal.label;
       els.actionHint.textContent = temporal.met
         ? "Choices change hidden story state. There is no paid 'correct' answer."
-        : "The chapter is already yours; it is only waiting for the story's real-time window.";
+        : "The chapter is already yours; it is only waiting for a later-today or next-day story beat.";
       return;
     }
 
@@ -1206,7 +1211,7 @@
           ? (array(momentum.groups).length > 1 ? "Complete the chapter requirements" : "Choose one small momentum option")
           : "Not quite ready yet";
       els.actionHint.textContent = !temporal.met
-        ? "Story time is part of the immersion gate. Energy and other requirements can still be completed while you wait."
+        ? "Story time is a light immersion gate only: later today or, at most, tomorrow. Energy and other requirements can still be completed in parallel."
         : "Requirements stay visible even before you have enough Story Energy, so you can complete them in parallel. Flexible OR-options are meant to nudge, not force one exact activity.";
       return;
     }

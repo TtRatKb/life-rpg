@@ -1,4 +1,4 @@
-const CACHE_NAME = "life-rpg-v0314ai-steam-auto-playtime";
+const CACHE_NAME = "life-rpg-v0314aj-story-cadence-repair";
 const CORE = [
   "./",
   "./index.html",
@@ -24,7 +24,7 @@ const CORE = [
   "./home-tree.js?v=0.31.4ag3",
   "./hobbies-tree.js?v=0.31.4ai",
   "./manifest.webmanifest?v=0.30.3a",
-  "./pwa.js?v=0.31.4ai",
+  "./pwa.js?v=0.31.4aj",
   "./visual-performance.js?v=0.31.4c",
   "./modal-manager.js?v=0.31.4d",
   "./training-focus.js?v=0.31.4o",
@@ -56,7 +56,7 @@ const CORE = [
   "./daily.js?v=0.31.4ag",
   "./journal.js?v=0.31.4ag",
   "./story-engine.js?v=0.31.4r",
-  "./story-ui.js?v=0.31.4r",
+  "./story-ui.js?v=0.31.4aj",
   "./content/SP_003.dat?v=0.31.4r",
   "./shop.js?v=0.30.6",
   "./achievements.js?v=0.31.0",
