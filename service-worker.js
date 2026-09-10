@@ -1,11 +1,11 @@
-const CACHE_NAME = "life-rpg-v0314w-steam-player-achievements-worker";
+const CACHE_NAME = "life-rpg-v0314x-steam-context-rarity-spoilers";
 const CORE = [
   "./",
   "./index.html",
   "./data/quests.js?v=0.31.4h",
-  "./styles.css?v=0.31.4u",
+  "./styles.css?v=0.31.4x",
   "./manifest.webmanifest?v=0.30.3a",
-  "./pwa.js?v=0.31.4w",
+  "./pwa.js?v=0.31.4x",
   "./visual-performance.js?v=0.31.4c",
   "./modal-manager.js?v=0.31.4d",
   "./training-focus.js?v=0.31.4o",
@@ -15,7 +15,7 @@ const CORE = [
   "./adventures.js?v=0.31.1",
   "./adventure-workspace.js?v=0.31.4c",
   "./library.js?v=0.30.6",
-  "./games.js?v=0.31.4w",
+  "./games.js?v=0.31.4x",
   "./time.js?v=0.31.1",
   "./universal-timers.js?v=0.31.1",
   "./inspirations.js?v=0.31.4c",
@@ -31,7 +31,7 @@ const CORE = [
   "./lexicon-lab.js?v=0.31.4s",
   "./smart-action-router.js?v=0.31.4s",
   "./smart-quests.js?v=0.31.0",
-  "./daily.js?v=0.31.4s",
+  "./daily.js?v=0.31.4x",
   "./journal.js?v=0.31.4c",
   "./story-engine.js?v=0.31.4r",
   "./story-ui.js?v=0.31.4r",

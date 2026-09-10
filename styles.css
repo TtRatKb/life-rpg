@@ -16091,3 +16091,7 @@ body.training-focus-active-v314o > *:not(#trainingFocusView):not(.toast):not(.ac
   .games-steam-connection-actions-v314u { justify-content: flex-start; }
   .games-steam-connection-actions-v314u button { flex: 1 1 auto; }
 }
+
+/* V0.31.4x · Steam context, rarity + Spoiler Shield */
+.settings-steam-spoiler-note-v314x{margin:8px 0 0;max-width:760px}.game-steam-achievement-v312.spoiler-protected{background:linear-gradient(145deg,rgba(255,252,250,.92),rgba(246,238,244,.86))}.game-steam-achievement-v312.spoiler-protected .game-steam-achievement-mark-v312{background:rgba(93,50,79,.06);color:rgba(93,50,79,.58)}.game-steam-sync-v314t small+small{margin-top:2px}
+.game-goal-steam-state-v314x{display:grid;place-items:center;cursor:default;user-select:none;opacity:.8}

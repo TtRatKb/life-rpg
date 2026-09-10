@@ -1026,6 +1026,7 @@
       if (!["playing", "endless", "backlog"].includes(game.status) && !done) return unavailablePickMarkup(pick, slot, "This game is no longer available for today. Reroll this card to replace it.");
       const role = gameRoleMeta(game.role);
       const goal = (pick.gameGoal?.amount ? pick.gameGoal : gameGoal(game, pick.slot, todayRecord()?.checkIn || {}));
+      const displayGoalLabel = safeGameGoalLabelForDisplay(game, goal);
       const openGoals = Array.isArray(game.goals) ? game.goals.filter(item => !item.done) : [];
       const tracking = gameTrackingMeta(game);
       const progressLine = game.progressMode === "percent"
@@ -1047,7 +1048,7 @@
             </div>
             <h3>${esc(game.title || "Untitled game")}</h3>
             ${game.platform ? `<p class="daily-game-platform-v17">${esc(game.platform)}</p>` : ""}
-            <div class="daily-goal-v14"><span>✦</span><div><small>WHAT COUNTS AS DONE</small><strong>${esc(goal.label)}</strong></div></div>
+            <div class="daily-goal-v14"><span>✦</span><div><small>WHAT COUNTS AS DONE</small><strong>${esc(displayGoalLabel)}</strong></div></div>
             <p class="daily-pick-reason-v14"><b>Why this today?</b> ${esc(pick.reason || reasonForGame(game, pick.slot, todayRecord()?.checkIn || {}))}</p>
           </div>
           <div class="daily-pick-actions-v14">
@@ -2135,13 +2136,17 @@
     return score;
   }
 
+  function gameLastPlayedAt(game = {}) {
+    return Math.max(0, Number(game.lastPlayedAt || 0), Number(game.steamLastPlayedAt || 0));
+  }
+
   function scoreGame(game, slot, checkIn) {
     const role = game.role || "fun";
     const backlog = game.status === "backlog";
     const capacity = effectiveCapacity(checkIn);
     const duration = gameEstimatedMinutes(game, gameSessionAmount(game));
     const timeBudget = TIME_BUDGET[checkIn.time] || 30;
-    const days = daysSinceTimestamp(game.lastPlayedAt || game.createdAt);
+    const days = daysSinceTimestamp(gameLastPlayedAt(game) || game.createdAt);
     const openGoals = Array.isArray(game.goals) ? game.goals.filter(goal => !goal.done) : [];
     const progress = game.progressMode === "percent" ? Number(game.progress || 0) : null;
     let demand = 0.75;
@@ -2217,6 +2222,15 @@
     return window.LifeRPGGames?.playButtonLabel?.(game, amount) || `Log ${gameAmountLabel(game, amount)}`;
   }
 
+  function safeGameGoalLabelForDisplay(game, goal = {}) {
+    const raw = String(goal.label || "");
+    const linked = Array.isArray(game?.goals) ? game.goals.find(item => item.id === goal.goalId) : null;
+    if (!linked || linked.source !== "steam") return raw;
+    const safe = window.LifeRPGGames?.safeGoalLabel?.(linked) || linked.text || "Steam achievement";
+    if (!linked.text || safe === linked.text) return raw;
+    return raw.split(linked.text).join(safe);
+  }
+
   function gameGoal(game, slot, checkIn) {
     const budget = TIME_BUDGET[checkIn.time] || 30;
     const capacity = effectiveCapacity(checkIn);
@@ -2240,6 +2254,7 @@
 
     const goals = Array.isArray(game.goals) ? game.goals.filter(goal => !goal.done) : [];
     const goal = goals.find(item => item.id === game.lastGoalId) || goals[0] || null;
+    const safeGoalText = goal ? (window.LifeRPGGames?.safeGoalLabel?.(goal) || goal.text) : "";
     const base = meta.mode === "minutes"
       ? `Play ${game.title} for ${gameAmountLabel(game, amount)}`
       : `${game.title}: complete ${gameAmountLabel(game, amount)}`;
@@ -2249,7 +2264,7 @@
       amount,
       minutesEstimate: estimate,
       goalId: goal?.id || null,
-      label: `${goal ? `${base} while working toward “${goal.text}”` : base}.${trialSuffix}`.replace(/\.\./g, ".")
+      label: `${goal ? `${base} while working toward “${safeGoalText}”` : base}.${trialSuffix}`.replace(/\.\./g, ".")
     };
   }
 
@@ -3173,7 +3188,7 @@
   }
 
   function reasonForGame(game, slot, checkIn) {
-    const days = daysSinceTimestamp(game.lastPlayedAt || game.createdAt);
+    const days = daysSinceTimestamp(gameLastPlayedAt(game) || game.createdAt);
     const openGoals = Array.isArray(game.goals) ? game.goals.filter(goal => !goal.done) : [];
     const progress = game.progressMode === "percent" ? clamp(Number(game.progress || 0), 0, 100) : null;
 

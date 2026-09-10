@@ -7,7 +7,7 @@
     return;
   }
 
-  const SCHEMA = 6;
+  const SCHEMA = 7;
   const STEAM_SYNC_SCHEMA = 4;
   const STEAM_AUTO_SYNC_STALE_MS = 6 * 60 * 60 * 1000;
   const STEAM_VISIBILITY_SYNC_DELAY_MS = 900;
@@ -175,6 +175,7 @@
 
     steamWorkerUrl: byId("steamWorkerUrl"),
     steamId64: byId("steamId64"),
+    steamSpoilerMode: byId("steamSpoilerMode"),
     steamConnectionTest: byId("steamConnectionTest"),
     steamConnectionStatus: byId("steamConnectionStatus"),
 
@@ -271,6 +272,7 @@
     els.steamAddSelected?.addEventListener("click", importSelectedSteamAchievements);
     els.steamWorkerUrl?.addEventListener("change", saveSteamSettings);
     els.steamId64?.addEventListener("change", saveSteamSettings);
+    els.steamSpoilerMode?.addEventListener("change", saveSteamSettings);
     els.steamConnectionTest?.addEventListener("click", testSteamConnection);
     els.steamGamesConfigure?.addEventListener("click", openSteamSettingsPanel);
     els.steamGamesTest?.addEventListener("click", async () => {
@@ -450,6 +452,10 @@
       if (typeof game.catalogProvider !== "string") { game.catalogProvider = ""; changed = true; }
       if (typeof game.catalogId !== "string") { game.catalogId = ""; changed = true; }
       if (typeof game.steamAppId !== "string") { game.steamAppId = ""; changed = true; }
+      if (!Number.isFinite(Number(game.steamPlaytimeMinutes))) { game.steamPlaytimeMinutes = 0; changed = true; }
+      if (!Number.isFinite(Number(game.steamPlaytime2WeeksMinutes))) { game.steamPlaytime2WeeksMinutes = 0; changed = true; }
+      if (!Number.isFinite(Number(game.steamLastPlayedAt))) { game.steamLastPlayedAt = 0; changed = true; }
+      if (!Number.isFinite(Number(game.steamLibrarySyncedAt))) { game.steamLibrarySyncedAt = 0; changed = true; }
       if (!game.steamAchievementSync || typeof game.steamAchievementSync !== "object" || Array.isArray(game.steamAchievementSync)) {
         game.steamAchievementSync = defaultSteamSyncState();
         changed = true;
@@ -505,9 +511,10 @@
 
     const stateRoot = app.getState();
     stateRoot.integrations ||= {};
-    stateRoot.integrations.steam ||= { workerUrl: "", steamId: "" };
+    stateRoot.integrations.steam ||= { workerUrl: "", steamId: "", spoilerMode: "strict" };
     if (typeof stateRoot.integrations.steam.workerUrl !== "string") { stateRoot.integrations.steam.workerUrl = ""; changed = true; }
     if (typeof stateRoot.integrations.steam.steamId !== "string") { stateRoot.integrations.steam.steamId = ""; changed = true; }
+    if (!["strict", "steam-hidden", "off"].includes(stateRoot.integrations.steam.spoilerMode)) { stateRoot.integrations.steam.spoilerMode = "strict"; changed = true; }
 
     if (model.logs.length > MAX_LOGS) model.logs = model.logs.slice(-MAX_LOGS);
     writeShadow(model);
@@ -589,8 +596,46 @@
   function steamSettings() {
     const state = app.getState();
     state.integrations ||= {};
-    state.integrations.steam ||= { workerUrl: "", steamId: "" };
+    state.integrations.steam ||= { workerUrl: "", steamId: "", spoilerMode: "strict" };
+    if (!["strict", "steam-hidden", "off"].includes(state.integrations.steam.spoilerMode)) state.integrations.steam.spoilerMode = "strict";
     return state.integrations.steam;
+  }
+
+  function effectiveGameLastPlayedAt(game = {}) {
+    return Math.max(0, Number(game.lastPlayedAt || 0), Number(game.steamLastPlayedAt || 0));
+  }
+
+  function steamRarity(globalPercent) {
+    const percent = Number(globalPercent);
+    if (!Number.isFinite(percent)) return { label: "Unknown rarity", multiplier: 1 };
+    if (percent < 1) return { label: "Legendary", multiplier: 2 };
+    if (percent < 5) return { label: "Ultra rare", multiplier: 1.7 };
+    if (percent < 10) return { label: "Very rare", multiplier: 1.45 };
+    if (percent < 25) return { label: "Rare", multiplier: 1.25 };
+    if (percent < 50) return { label: "Uncommon", multiplier: 1.1 };
+    return { label: "Common", multiplier: 1 };
+  }
+
+  function steamSpoilerProtected(item = {}) {
+    const confirmedUnlocked = Boolean(
+      item.achieved ||
+      item.importedAlreadyUnlocked ||
+      (item.source === "steam" && item.done && (item.steamAutoImported || item.rewardEventId))
+    );
+    if (confirmedUnlocked) return false;
+    const mode = steamSettings().spoilerMode || "strict";
+    if (mode === "strict") return true;
+    if (mode === "steam-hidden") return Boolean(item.hidden || item.steamHidden);
+    return false;
+  }
+
+  function steamSafeName(item = {}) {
+    return steamSpoilerProtected(item) ? "Locked Steam achievement" : String(item.name || item.text || item.apiName || "Steam achievement");
+  }
+
+  function steamSafeDescription(item = {}) {
+    if (steamSpoilerProtected(item)) return "Spoiler Shield is hiding the title and description until you unlock it.";
+    return String(item.description || "");
   }
 
   function persist(source, { render: shouldRender = true } = {}) {
@@ -662,14 +707,14 @@
   function sortGames(a, b) {
     if (selectedSort === "title") return String(a.title || "").localeCompare(String(b.title || ""));
     if (selectedSort === "updated") return Number(b.updatedAt || 0) - Number(a.updatedAt || 0);
-    if (selectedSort === "played") return Number(b.lastPlayedAt || 0) - Number(a.lastPlayedAt || 0) || String(a.title || "").localeCompare(String(b.title || ""));
+    if (selectedSort === "played") return effectiveGameLastPlayedAt(b) - effectiveGameLastPlayedAt(a) || String(a.title || "").localeCompare(String(b.title || ""));
     if (selectedSort === "progress") return Number(b.progress || 0) - Number(a.progress || 0) || String(a.title || "").localeCompare(String(b.title || ""));
     const statusOrder = { playing: 0, endless: 1, paused: 2, backlog: 3, finished: 4, dropped: 5 };
     const aOrder = statusOrder[a.status] ?? 9;
     const bOrder = statusOrder[b.status] ?? 9;
     if (aOrder !== bOrder) return aOrder - bOrder;
-    const aLast = Number(a.lastPlayedAt || 0);
-    const bLast = Number(b.lastPlayedAt || 0);
+    const aLast = effectiveGameLastPlayedAt(a);
+    const bLast = effectiveGameLastPlayedAt(b);
     if (aLast !== bLast) return aLast - bLast;
     return String(a.title).localeCompare(String(b.title));
   }
@@ -679,8 +724,10 @@
     const role = ROLES[game.role] || ROLES.fun;
     const openGoals = game.goals.filter(goal => !goal.done);
     const doneGoals = game.goals.filter(goal => goal.done);
-    const lastPlayed = game.lastPlayedAt ? `Last played ${humanAgo(game.lastPlayedAt)}` : "Not played yet";
-    const playtime = game.totalMinutes > 0 ? formatDuration(game.totalMinutes) : "No real-time playtime logged";
+    const effectiveLastPlayed = effectiveGameLastPlayedAt(game);
+    const lastPlayed = effectiveLastPlayed ? `Last played ${humanAgo(effectiveLastPlayed)}` : "Not played yet";
+    const lifePlaytime = game.totalMinutes > 0 ? `Life RPG · ${formatDuration(game.totalMinutes)} logged` : "Life RPG · no session logged yet";
+    const steamPlaytime = Number(game.steamPlaytimeMinutes || 0) > 0 ? `Steam · ${formatDuration(game.steamPlaytimeMinutes)} total` : "";
     const progress = game.progressMode === "percent" ? clamp(Number(game.progress || 0), 0, 100) : null;
     const active = ["playing", "endless"].includes(game.status);
     const effectiveType = resolvedGameType(game);
@@ -716,8 +763,9 @@
 
           <div class="game-meta-row-v17">
             <span>◷ ${esc(lastPlayed)}</span>
-            <span>⌁ ${esc(playtime)}</span>
-            <span>✦ ${formatNumber(game.sessions || 0)} session${Number(game.sessions || 0) === 1 ? "" : "s"}</span>
+            <span>⌁ ${esc(lifePlaytime)}</span>
+            ${steamPlaytime ? `<span>☁ ${esc(steamPlaytime)}</span>` : ""}
+            <span>✦ ${formatNumber(game.sessions || 0)} Life RPG session${Number(game.sessions || 0) === 1 ? "" : "s"}</span>
             <span>${tracking.icon} ${esc(trackingSummary)}</span>
           </div>
 
@@ -757,12 +805,17 @@
 
   function goalMarkup(game, goal) {
     const steamState = goal.source === "steam" ? (goal.importedAlreadyUnlocked ? " · Historical" : goal.steamAutoImported && goal.done ? " · Synced" : "") : "";
-    const source = goal.source === "steam" ? `<small class="game-goal-source-v312">Steam${steamState}${goal.globalPercent != null ? ` · ${formatNumber(goal.globalPercent)}%` : ""}</small>` : "";
-    const detail = goal.source === "steam" && goal.description ? `<small class="game-goal-detail-v312">${esc(goal.description)}</small>` : "";
+    const rarity = goal.source === "steam" ? steamRarity(goal.globalPercent) : null;
+    const source = goal.source === "steam" ? `<small class="game-goal-source-v312">Steam${steamState}${goal.globalPercent != null ? ` · ${esc(rarity.label)} · ${formatNumber(goal.globalPercent)}%` : ""}</small>` : "";
+    const displayText = goal.source === "steam" ? steamSafeName({ ...goal, name: goal.text }) : goal.text;
+    const safeDescription = goal.source === "steam" ? steamSafeDescription(goal) : "";
+    const detail = goal.source === "steam" && safeDescription ? `<small class="game-goal-detail-v312">${esc(safeDescription)}</small>` : "";
     return `
       <div class="game-goal-row-v17 ${goal.done ? "done" : ""}">
-        <button class="game-goal-check-v17" data-game-id="${escAttr(game.id)}" data-game-goal-toggle="${escAttr(goal.id)}" type="button" aria-label="${goal.done ? "Reopen" : "Complete"} ${escAttr(goal.text)}">${goal.done ? "✓" : ""}</button>
-        <span><b>${esc(goal.text)}</b>${source}${detail}</span>
+        ${goal.source === "steam"
+          ? `<span class="game-goal-check-v17 game-goal-steam-state-v314x" aria-label="Steam achievement sync state">${goal.done ? "✓" : "↻"}</span>`
+          : `<button class="game-goal-check-v17" data-game-id="${escAttr(game.id)}" data-game-goal-toggle="${escAttr(goal.id)}" type="button" aria-label="${goal.done ? "Reopen" : "Complete"} goal">${goal.done ? "✓" : ""}</button>`}
+        <span><b>${esc(displayText)}</b>${source}${detail}</span>
         <button class="game-goal-delete-v17" data-game-id="${escAttr(game.id)}" data-game-goal-delete="${escAttr(goal.id)}" type="button" aria-label="Remove goal">×</button>
       </div>`;
   }
@@ -986,6 +1039,7 @@
         steamApiName: item.apiName,
         globalPercent: item.globalPercent,
         steamGroup: item.group,
+        steamHidden: Boolean(item.hidden),
         importedAlreadyUnlocked: Boolean(item.achieved),
         rewardEventId: item.achieved ? `steam-imported-legacy:${item.apiName}` : null
       }));
@@ -1253,7 +1307,10 @@
   function renderGoalOptions(game) {
     if (!els.logGoal) return;
     const open = game.goals.filter(goal => !goal.done);
-    els.logGoal.innerHTML = `<option value="">No specific goal</option>${open.map(goal => `<option value="${escAttr(goal.id)}">${goal.source === "steam" ? "Steam · " : ""}${esc(goal.text)}</option>`).join("")}`;
+    els.logGoal.innerHTML = `<option value="">No specific goal</option>${open.map(goal => {
+      const label = goal.source === "steam" ? steamSafeName({ ...goal, name: goal.text }) : goal.text;
+      return `<option value="${escAttr(goal.id)}">${goal.source === "steam" ? "Steam · " : ""}${esc(label)}</option>`;
+    }).join("")}`;
     els.logGoal.closest("label")?.classList.toggle("hidden", open.length === 0);
   }
 
@@ -1268,7 +1325,8 @@
     const progress = game.progressMode === "percent" ? clamp(Number(els.logProgress?.value || game.progress || 0), 0, 100) : null;
     const goal = game.goals.find(item => item.id === els.logGoal?.value);
     const timeText = minutes > 0 ? ` · ${formatDuration(minutes)} real time` : "";
-    els.logPreview.innerHTML = `<span>${meta.icon}</span><div><small>SESSION</small><strong>${esc(amountLabel(game, amount))} with ${esc(game.title)}</strong><p>${goal ? `Working toward: ${esc(goal.text)}` : "Just playing counts as hobby progress; clearing tracked goals or finishing games gives the bigger progression rewards."}${timeText}${progress === null ? "" : ` · Progress after: ${progress}%`}</p></div>`;
+    const goalLabel = goal ? (goal.source === "steam" ? steamSafeName({ ...goal, name: goal.text }) : goal.text) : "";
+    els.logPreview.innerHTML = `<span>${meta.icon}</span><div><small>SESSION</small><strong>${esc(amountLabel(game, amount))} with ${esc(game.title)}</strong><p>${goal ? `Working toward: ${esc(goalLabel)}` : "Just playing counts as hobby progress; clearing tracked goals or finishing games gives the bigger progression rewards."}${timeText}${progress === null ? "" : ` · Progress after: ${progress}%`}</p></div>`;
   }
 
   function gameRewardSpec(game, amount, mode, at) {
@@ -1412,6 +1470,10 @@
     const game = findGame(gameId);
     const goal = game?.goals.find(item => item.id === goalId);
     if (!game || !goal) return;
+    if (goal.source === "steam") {
+      showToast("Steam goal syncs automatically", "Play on Steam and use Sync Steam; Life RPG will complete and reward this achievement from Steam's real unlock state.");
+      return;
+    }
     goal.done = !goal.done;
     goal.completedAt = goal.done ? Date.now() : null;
 
@@ -1808,15 +1870,22 @@
     const steamGames = model().items.filter(game => game.steamAppId);
     const lastSync = steamGames.reduce((latest, game) => Math.max(latest, Number(game?.steamAchievementSync?.lastSyncAt || game?.lastSteamSyncAt || 0)), 0);
     const needsWorkerUpdate = steamGames.some(game => game?.steamAchievementSync?.playerAvailable === false && Number(game?.steamAchievementSync?.workerProtocolVersion || 0) < 2);
+    const needsPlaytimeWorkerUpdate = !needsWorkerUpdate && steamGames.some(game => {
+      const version = Number(game?.steamAchievementSync?.workerProtocolVersion || 0);
+      return version > 0 && version < 3;
+    });
     els.steamGamesCard.classList.toggle("is-connected", ready);
     if (els.steamGamesTitle) els.steamGamesTitle.textContent = !ready
       ? "Steam is not connected yet"
-      : needsWorkerUpdate ? "Steam connected · Worker update needed" : "Steam connection configured ✓";
+      : needsWorkerUpdate ? "Steam connected · Worker update needed"
+        : needsPlaytimeWorkerUpdate ? "Steam connected · playtime update available" : "Steam connection configured ✓";
     if (els.steamGamesDetail) {
       els.steamGamesDetail.textContent = ready
         ? needsWorkerUpdate
-          ? "Achievement metadata works, but the current Cloudflare Worker is metadata-only. Deploy Steam Worker v2 to sync your personal unlocks."
-          : `${steamGames.length} Steam game${steamGames.length === 1 ? "" : "s"} detected${lastSync ? ` · last sync ${humanAgoWithTime(lastSync)}` : " · ready for the first baseline sync"}.`
+          ? "Achievement metadata works, but the current Cloudflare Worker is metadata-only. Deploy Steam Worker v3 to sync personal unlocks and playtime."
+          : needsPlaytimeWorkerUpdate
+            ? "Personal achievements work. Deploy Steam Worker v3 to also sync Steam total playtime and last-played context."
+            : `${steamGames.length} Steam game${steamGames.length === 1 ? "" : "s"} detected${lastSync ? ` · last sync ${humanAgoWithTime(lastSync)}` : " · ready for the first baseline sync"}.`
         : `${problem || "Add your Steam Worker URL and SteamID64 once."} Your API key stays only inside the Cloudflare Worker.`;
     }
     if (els.steamGamesConfigure) els.steamGamesConfigure.textContent = ready ? "⚙ Steam settings" : "⚙ Configure Steam";
@@ -1854,6 +1923,7 @@
       return;
     }
     renderSteamGamesConnection();
+    const libraryResult = await syncSteamLibrary({ silent: true });
     let synced = 0;
     let unavailable = 0;
     let failed = 0;
@@ -1861,7 +1931,7 @@
     let newUnlocks = 0;
     const unavailableReasons = [];
     for (const game of targets) {
-      const result = await syncSteamGameById(game.id, { force: true, silent: true, reason: "manual-all" });
+      const result = await syncSteamGameById(game.id, { force: true, silent: true, reason: "manual-all", includeLibrary: false });
       if (!result) {
         failed += 1;
         continue;
@@ -1883,6 +1953,7 @@
       failed ? `${failed} failed` : "",
       historicalImported ? `${historicalImported} historical achievement${historicalImported === 1 ? "" : "s"} added` : "",
       newUnlocks ? `${newUnlocks} new unlock${newUnlocks === 1 ? "" : "s"} rewarded` : "",
+      libraryResult ? `${libraryResult.matched} Steam playtime record${libraryResult.matched === 1 ? "" : "s"} matched` : "",
       unavailable && unavailableReasons.length ? unavailableReasons[0] : ""
     ].filter(Boolean).join(" · ");
     showToast(unavailable || failed ? "Steam sync incomplete" : "Steam sync finished ✓", detail);
@@ -1892,6 +1963,7 @@
     const settings = steamSettings();
     if (els.steamWorkerUrl && document.activeElement !== els.steamWorkerUrl) els.steamWorkerUrl.value = settings.workerUrl || "";
     if (els.steamId64 && document.activeElement !== els.steamId64) els.steamId64.value = settings.steamId || "";
+    if (els.steamSpoilerMode && document.activeElement !== els.steamSpoilerMode) els.steamSpoilerMode.value = settings.spoilerMode || "strict";
     if (els.steamConnectionStatus && !String(els.steamConnectionStatus.dataset.locked || "")) {
       const problem = steamConnectionProblem();
       els.steamConnectionStatus.textContent = problem ? problem : "Saved · use Test Worker to verify the connection.";
@@ -1903,6 +1975,7 @@
     const settings = steamSettings();
     settings.workerUrl = normalizeWorkerUrl(els.steamWorkerUrl?.value || "");
     settings.steamId = String(els.steamId64?.value || "").trim().replace(/\D/g, "").slice(0, 20);
+    settings.spoilerMode = ["strict", "steam-hidden", "off"].includes(els.steamSpoilerMode?.value) ? els.steamSpoilerMode.value : (settings.spoilerMode || "strict");
     if (els.steamWorkerUrl) els.steamWorkerUrl.value = settings.workerUrl;
     if (els.steamId64) els.steamId64.value = settings.steamId;
     if (els.steamConnectionStatus) {
@@ -1933,12 +2006,13 @@
       const data = await response.json().catch(() => ({}));
       if (!response.ok || !data.ok) throw new Error(data.error || `HTTP ${response.status}`);
       const supportsPlayerSync = data?.capabilities?.playerAchievements === true || Number(data?.protocolVersion || 0) >= 2;
+      const supportsLibrarySync = data?.capabilities?.ownedGames === true || Number(data?.protocolVersion || 0) >= 3;
       if (els.steamConnectionStatus) {
         els.steamConnectionStatus.textContent = !data.steamKeyConfigured
           ? "Worker is online, but STEAM_API_KEY is not configured yet."
           : supportsPlayerSync
-            ? "✓ Worker ready · personal achievement sync supported"
-            : "Worker + Steam key are online, but this is the old Worker build. Update the Worker to v2 for personal achievement unlocks.";
+            ? `✓ Worker ready · personal achievements${supportsLibrarySync ? " + Steam playtime" : ""} supported`
+            : "Worker + Steam key are online, but this is the old Worker build. Update the Worker to v3 for personal achievement unlocks and Steam playtime.";
       }
     } catch (error) {
       if (els.steamConnectionStatus) els.steamConnectionStatus.textContent = `Could not reach Worker · ${String(error?.message || error)}`;
@@ -2114,7 +2188,7 @@
     const workerProtocolVersion = Math.max(0, Number(data?.protocolVersion || 0));
     const workerSupportsPlayerSync = data?.capabilities?.playerAchievements === true || workerProtocolVersion >= 2;
     const playerError = normalized.playerAvailable === false
-      ? String(data?.playerError || data?.diagnostics?.playerError || (!workerSupportsPlayerSync ? "The Steam Worker is the old metadata-only build. Deploy Worker v2 to enable personal unlock sync." : "Steam did not return personal unlock state for this profile/game.")).trim()
+      ? String(data?.playerError || data?.diagnostics?.playerError || (!workerSupportsPlayerSync ? "The Steam Worker is the old metadata-only build. Deploy Worker v3 to enable personal unlock sync and Steam playtime." : "Steam did not return personal unlock state for this profile/game.")).trim()
       : "";
     return {
       data: {
@@ -2126,6 +2200,49 @@
       },
       items: normalized.items
     };
+  }
+
+  async function fetchSteamLibrary(appId = "") {
+    const settings = steamSettings();
+    if (!settings.workerUrl) throw new Error("Configure the Steam Worker in Settings first.");
+    if (!settings.steamId) throw new Error("Add your SteamID64 in Settings first.");
+    const params = new URLSearchParams({ steamid: settings.steamId });
+    if (appId) params.set("appid", String(appId));
+    const response = await fetch(`${settings.workerUrl}/api/steam/library?${params.toString()}`, { headers: { Accept: "application/json" } });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data.ok) throw new Error(data.error || `HTTP ${response.status}`);
+    return data;
+  }
+
+  function applySteamLibrary(data = {}, syncedAt = Date.now()) {
+    const remoteGames = Array.isArray(data.games) ? data.games : [];
+    const byAppId = new Map(remoteGames.map(item => [String(item.appid || item.appId || ""), item]));
+    let matched = 0;
+    for (const game of model().items) {
+      const remote = byAppId.get(String(game.steamAppId || ""));
+      if (!remote) continue;
+      game.steamPlaytimeMinutes = Math.max(0, Number(remote.playtimeForever || remote.playtime_forever || 0));
+      game.steamPlaytime2WeeksMinutes = Math.max(0, Number(remote.playtime2Weeks || remote.playtime_2weeks || 0));
+      const lastPlayedSeconds = Math.max(0, Number(remote.lastPlayedAt || remote.rtime_last_played || 0));
+      game.steamLastPlayedAt = lastPlayedSeconds > 10_000_000_000 ? lastPlayedSeconds : lastPlayedSeconds * 1000;
+      game.steamLibrarySyncedAt = syncedAt;
+      matched += 1;
+    }
+    return matched;
+  }
+
+  async function syncSteamLibrary({ appId = "", silent = true } = {}) {
+    try {
+      const data = await fetchSteamLibrary(appId);
+      const matched = applySteamLibrary(data, Date.now());
+      persist("steam-library-sync", { render: false });
+      if (!silent) showToast("Steam playtime synced ✓", `${matched} Life RPG game${matched === 1 ? "" : "s"} matched to your Steam library.`);
+      return { data, matched };
+    } catch (error) {
+      console.warn("Steam library sync failed", error);
+      if (!silent) showToast("Steam playtime sync failed", String(error?.message || error));
+      return null;
+    }
   }
 
   async function loadSteamAchievements() {
@@ -2210,6 +2327,7 @@
         steamApiName: remote.apiName,
         globalPercent: remote.globalPercent,
         steamGroup: remote.group,
+        steamHidden: Boolean(remote.hidden),
         steamAutoImported: true,
         importedAlreadyUnlocked: Boolean(historical),
         rewardEventId: historical ? `steam-imported-legacy:${game.steamAppId}:${remote.apiName}` : (rewardEventId || null)
@@ -2221,6 +2339,7 @@
     if (remote.description) goal.description = remote.description;
     goal.globalPercent = remote.globalPercent;
     goal.steamGroup = remote.group;
+    goal.steamHidden = Boolean(remote.hidden);
     goal.steamApiName = remote.apiName;
     markSteamGoalComplete(game, goal, remote, syncedAt, { historical, rewardEventId });
     return { goal, created: false };
@@ -2248,7 +2367,9 @@
           ? "confidence"
           : "wellbeing";
     const selectedGoal = Boolean(goal && !goal.steamAutoImported);
-    const multiplier = steamBatchMultiplier(batchIndex);
+    const batchMultiplier = steamBatchMultiplier(batchIndex);
+    const rarity = steamRarity(remote.globalPercent);
+    const multiplier = batchMultiplier * rarity.multiplier;
     const base = selectedGoal
       ? { xp: 6, realmXP: 6, statXP: 4, coins: 30, storyEnergyBase: 0.8 }
       : { xp: 4, realmXP: 4, statXP: 3, coins: 15, storyEnergyBase: 0.4 };
@@ -2272,7 +2393,9 @@
         steamSelectedGoal: selectedGoal,
         steamGlobalPercent: remote.globalPercent,
         steamUnlockTime: remote.unlockTime || 0,
-        steamBatchMultiplier: multiplier
+        steamBatchMultiplier: batchMultiplier,
+        steamRarityLabel: rarity.label,
+        steamRarityMultiplier: rarity.multiplier
       }
     }) || null;
     return reward;
@@ -2423,7 +2546,7 @@
     return { changed, baseline: isBaseline, unlocked: newUnlocks, historicalImported, matchedGoals, returned: steamItems.length };
   }
 
-  async function syncSteamGameById(gameId, { force = false, silent = false, reason = "manual" } = {}) {
+  async function syncSteamGameById(gameId, { force = false, silent = false, reason = "manual", includeLibrary = true } = {}) {
     const game = findGame(gameId);
     if (!game?.steamAppId) return null;
     const settings = steamSettings();
@@ -2441,6 +2564,7 @@
     const task = (async () => {
       renderBoard();
       try {
+        if (includeLibrary) await syncSteamLibrary({ appId: game.steamAppId, silent: true });
         const { data, items } = await fetchSteamAchievements(game.steamAppId);
         const result = processSteamAchievementSync(game, items, data, Date.now(), { silent, source: reason });
         render();
@@ -2472,9 +2596,10 @@
     const now = Date.now();
     const games = model().items
       .filter(game => game.steamAppId && (!game.steamAchievementSync?.lastSyncAt || now - Number(game.steamAchievementSync.lastSyncAt) >= STEAM_AUTO_SYNC_STALE_MS))
-      .sort((a, b) => Number(b.lastPlayedAt || b.updatedAt || 0) - Number(a.lastPlayedAt || a.updatedAt || 0));
+      .sort((a, b) => Math.max(effectiveGameLastPlayedAt(b), Number(b.updatedAt || 0)) - Math.max(effectiveGameLastPlayedAt(a), Number(a.updatedAt || 0)));
+    if (games.length) await syncSteamLibrary({ silent: true });
     for (const game of games) {
-      await syncSteamGameById(game.id, { force: false, silent: true, reason });
+      await syncSteamGameById(game.id, { force: false, silent: true, reason, includeLibrary: false });
     }
   }
 
@@ -2483,11 +2608,12 @@
     const configured = Boolean(steamSettings().workerUrl && steamSettings().steamId);
     const progress = sync.total > 0 ? `${Math.max(0, Number(sync.unlocked || 0))}/${Math.max(0, Number(sync.total || 0))} achievements` : "No Steam baseline yet";
     const represented = (game.goals || []).filter(goal => goal?.source === "steam" && goal?.done).length;
+    const steamContext = Number(game.steamPlaytimeMinutes || 0) > 0 ? `Steam ${formatDuration(game.steamPlaytimeMinutes)} total${game.steamLastPlayedAt ? ` · played ${humanAgo(game.steamLastPlayedAt)}` : ""}` : "";
     const freshness = sync.lastSyncAt ? `Last synced ${humanAgoWithTime(sync.lastSyncAt)}` : configured ? "Ready to create your baseline" : "Add Worker URL + SteamID64 in Settings";
     const unavailable = sync.playerAvailable === false
       ? ` · personal unlock status unavailable${sync.workerProtocolVersion < 2 ? " · Worker update required" : ""}`
       : represented ? ` · ${represented} completed in Life RPG` : "";
-    return `<div class="game-steam-sync-v314t"><span class="game-steam-sync-icon-v314t">🏆</span><span><strong>${esc(progress)}</strong><small>${esc(freshness + unavailable)}</small></span></div>`;
+    return `<div class="game-steam-sync-v314t"><span class="game-steam-sync-icon-v314t">🏆</span><span><strong>${esc(progress)}</strong><small>${esc(freshness + unavailable)}</small>${steamContext ? `<small>${esc(steamContext)}</small>` : ""}</span></div>`;
   }
 
   function humanAgoWithTime(value) {
@@ -2521,12 +2647,14 @@
       const actualIndex = pendingSteamAchievements.indexOf(item);
       const chosen = Boolean(item.selected || item.queued);
       const badge = item.alreadyImported ? "Imported" : item.historical ? "Historical · already unlocked" : item.rewarded ? "Synced & rewarded" : item.achieved ? "Already unlocked" : item.group === "recommended" ? "Recommended" : item.group === "challenge" ? "Challenge / grind" : "Optional";
-      const rarity = item.globalPercent == null ? "" : `${formatNumber(item.globalPercent)}% of players`;
-      const description = item.hidden ? "Hidden Steam achievement" : (item.description || "No description supplied by Steam.");
-      return `<button type="button" class="game-steam-achievement-v312 ${chosen ? "selected" : ""} ${item.achieved ? "achieved" : ""} ${item.alreadyImported ? "imported" : ""}" data-game-steam-achievement="${actualIndex}" aria-pressed="${chosen ? "true" : "false"}" ${item.alreadyImported ? "disabled" : ""}>
+      const rarityMeta = steamRarity(item.globalPercent);
+      const rarity = item.globalPercent == null ? rarityMeta.label : `${rarityMeta.label} · ${formatNumber(item.globalPercent)}% of players`;
+      const displayName = steamSafeName(item);
+      const description = steamSafeDescription(item) || (item.hidden ? "Hidden Steam achievement" : "No description supplied by Steam.");
+      return `<button type="button" class="game-steam-achievement-v312 ${chosen ? "selected" : ""} ${item.achieved ? "achieved" : ""} ${item.alreadyImported ? "imported" : ""} ${steamSpoilerProtected(item) ? "spoiler-protected" : ""}" data-game-steam-achievement="${actualIndex}" aria-pressed="${chosen ? "true" : "false"}" ${item.alreadyImported ? "disabled" : ""}>
         <span class="game-steam-achievement-checkbox-v312" aria-hidden="true">${chosen ? "✓" : ""}</span>
         <span class="game-steam-achievement-mark-v312">${item.achieved ? "✓" : item.group === "recommended" ? "★" : item.group === "challenge" ? "◆" : "○"}</span>
-        <span class="game-steam-achievement-copy-v312"><strong>${esc(item.name)}</strong><small>${esc(description)}</small><em>${esc([badge, rarity, chosen ? (item.queued ? "Queued" : "Selected") : ""].filter(Boolean).join(" · "))}</em></span>
+        <span class="game-steam-achievement-copy-v312"><strong>${esc(displayName)}</strong><small>${esc(description)}</small><em>${esc([badge, rarity, chosen ? (item.queued ? "Queued" : "Selected") : ""].filter(Boolean).join(" · "))}</em></span>
       </button>`;
     }).join("") || `<p class="muted">No achievements to show with the current filter.</p>`;
     els.steamAchievementList.querySelectorAll("[data-game-steam-achievement]").forEach(button => button.addEventListener("click", () => {
@@ -2617,6 +2745,8 @@
       estimateMinutesForAmount,
       amountLabel,
       playButtonLabel,
+      safeGoalLabel: goal => goal?.source === "steam" ? steamSafeName({ ...goal, name: goal.text }) : String(goal?.text || ""),
+      effectiveLastPlayedAt: effectiveGameLastPlayedAt,
       resolvedGameType,
       syncSteamGame: (gameId, options = {}) => syncSteamGameById(gameId, options),
       syncAllSteamGames: (reason = "manual-api") => autoSyncSteamGames(reason),

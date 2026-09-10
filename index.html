@@ -14,7 +14,7 @@
   <link rel="manifest" href="manifest.webmanifest?v=0.30.3a" />
   <link rel="apple-touch-icon" href="assets/app-icon-180.png?v=0.30.3a" />
   <link rel="icon" type="image/png" sizes="192x192" href="assets/app-icon-192.png?v=0.30.3a" />
-  <link rel="stylesheet" href="styles.css?v=0.31.4u" />
+  <link rel="stylesheet" href="styles.css?v=0.31.4x" />
   <link rel="preload" as="image" href="assets/ui/thumbs/characters/luca_neutral.webp" fetchpriority="high" />
 </head>
 <body>
@@ -1667,6 +1667,14 @@
               </div>
               <label>Steam Worker URL<input id="steamWorkerUrl" type="url" placeholder="https://life-rpg-steam.yourname.workers.dev" /></label>
               <label>SteamID64<input id="steamId64" inputmode="numeric" maxlength="20" placeholder="7656119…" /></label>
+              <label>Locked achievement spoilers
+                <select id="steamSpoilerMode">
+                  <option value="strict">Hide all locked titles + descriptions (recommended)</option>
+                  <option value="steam-hidden">Hide only achievements Steam marks as hidden</option>
+                  <option value="off">Show all locked achievement details</option>
+                </select>
+              </label>
+              <p class="muted settings-steam-spoiler-note-v314x">Strict Spoiler Shield still shows rarity and unlock percentage, but keeps the title and description hidden until you actually earn the achievement.</p>
               <div class="settings-steam-actions-v312">
                 <button id="steamConnectionTest" class="secondary-button" type="button">Test Worker</button>
                 <span id="steamConnectionStatus" class="muted">Not configured yet.</span>
@@ -3148,7 +3156,7 @@ League of Legends — PC" required></textarea></label>
   <script src="adventures.js?v=0.31.1"></script>
   <script src="adventure-workspace.js?v=0.31.4c"></script>
   <script src="library.js?v=0.30.6"></script>
-  <script src="games.js?v=0.31.4w"></script>
+  <script src="games.js?v=0.31.4x"></script>
   <script src="time.js?v=0.31.1"></script>
   <script src="universal-timers.js?v=0.31.1"></script>
   <script src="inspirations.js?v=0.31.4c"></script>
@@ -3164,7 +3172,7 @@ League of Legends — PC" required></textarea></label>
   <script src="lexicon-lab.js?v=0.31.4s"></script>
   <script src="smart-action-router.js?v=0.31.4s"></script>
   <script src="smart-quests.js?v=0.31.0"></script>
-  <script src="daily.js?v=0.31.4s"></script>
+  <script src="daily.js?v=0.31.4x"></script>
   <script src="journal.js?v=0.31.4c"></script>
   <script src="story-ui.js?v=0.31.4r"></script>
   <script src="shop.js?v=0.30.6"></script>
@@ -3173,6 +3181,6 @@ League of Legends — PC" required></textarea></label>
   <script src="kotoba-integration.js?v=0.31.4k"></script>
   <script src="kotoba-quick-training.js?v=0.31.4k"></script>
   <script type="module" src="cloud-save.js?v=0.31.0"></script>
-  <script src="pwa.js?v=0.31.4w"></script>
+  <script src="pwa.js?v=0.31.4x"></script>
 </body>
 </html>
