@@ -2209,6 +2209,85 @@
     return weightedPick(pool, talk => 1 + reactivityScore(talk) * 5);
   }
 
+  function talkLocationWeight(personId, talk) {
+    const state = app.getState();
+    const social = state.story?.social || {};
+    const locationKey = inferWorldLocation(talk);
+    const part = currentWorldDaypart();
+    const lastLocation = social.lastInteractionByPerson?.[personId]?.locationKey || null;
+    const knownLocation = !locationKey || ["school", "currentHome"].includes(locationKey) || state.locations?.[locationKey] !== false;
+
+    let weight = knownLocation ? 1 : .35;
+
+    if (personId === "mina") {
+      const table = {
+        school: { morning: 1.35, day: 1.20, evening: .18, night: .06, late: .03 },
+        cafe: { morning: .48, day: 1.05, evening: 1.40, night: .55, late: .04 },
+        district: { morning: .34, day: .78, evening: 1.12, night: .72, late: .04 },
+        sharedApartment: { morning: .18, day: .24, evening: .62, night: .48, late: .05 },
+        currentHome: { morning: .18, day: .22, evening: .38, night: .28, late: .04 }
+      };
+      weight *= table[locationKey]?.[part] ?? .62;
+    } else if (["kirishima", "bakugo"].includes(personId)) {
+      const table = {
+        sharedApartment: { morning: 1.05, day: .62, evening: 1.35, night: 1.22, late: .32 },
+        agency: { morning: .72, day: 1.12, evening: .78, night: .22, late: .05 },
+        gym: { morning: .62, day: .92, evening: 1.02, night: .34, late: .05 },
+        district: { morning: .30, day: .48, evening: .78, night: .55, late: .05 }
+      };
+      weight *= table[locationKey]?.[part] ?? .70;
+    }
+
+    if (locationKey && lastLocation === locationKey) weight *= .36;
+    return Math.max(.03, weight);
+  }
+
+  function selectTalkWithLocationContext(personId, eligible) {
+    const state = app.getState();
+    const social = state.story.social;
+    if (!eligible.length) return null;
+
+    if (social.activeTalkId) {
+      const active = eligible.find(talk => talk.id === social.activeTalkId);
+      if (active) return active;
+    }
+
+    const unseenOnce = eligible.filter(talk => talk.once && !social.seenTalkIds.includes(talk.id));
+    let pool = unseenOnce.length ? unseenOnce : eligible.filter(talk => !talk.once);
+    if (!pool.length) return selectTalkFromEligible(personId, eligible);
+
+    if (!unseenOnce.length) {
+      const recent = new Set(array(social.recentTalkIdsByPerson?.[personId]));
+      const fresh = pool.filter(talk => !recent.has(talk.id));
+      const notLast = pool.filter(talk => talk.id !== social.lastTalkId);
+      pool = fresh.length ? fresh : notLast.length ? notLast : pool;
+    }
+
+    // Keep authored priority meaningful, but allow place and time to matter.
+    const maxPriority = Math.max(...pool.map(talk => Number(talk.priority || 0)));
+    const nearPriority = pool.filter(talk => Number(talk.priority || 0) >= maxPriority - 2);
+    if (nearPriority.length) pool = nearPriority;
+
+    const locations = new Set(pool.map(inferWorldLocation).filter(Boolean));
+    const part = currentWorldDaypart();
+
+    // Mina should not keep teleporting back to a bright school at night when
+    // an authored café/district/home-context Talk is already eligible.
+    if (personId === "mina" && ["evening", "night", "late"].includes(part) && locations.size > 1) {
+      const awayFromSchool = pool.filter(talk => inferWorldLocation(talk) !== "school");
+      if (awayFromSchool.length) pool = awayFromSchool;
+    }
+
+    if (new Set(pool.map(inferWorldLocation).filter(Boolean)).size <= 1) {
+      return selectTalkFromEligible(personId, pool);
+    }
+
+    return weightedPick(pool, talk => {
+      const priority = Math.max(0, Number(talk.priority || 0));
+      return talkLocationWeight(personId, talk) * (1 + priority * .12) * (1 + reactivityScore(talk) * 3.5);
+    }) || selectTalkFromEligible(personId, pool);
+  }
+
   function nextWorldTalkForPerson(personId, locationKey) {
     const eligible = socialTalks().filter(talk =>
       talk.personId === personId &&
@@ -2467,9 +2546,19 @@
     social.lastInteractionByPerson = object(social.lastInteractionByPerson);
     social.recentTalkIdsByPerson = object(social.recentTalkIdsByPerson);
 
+    const interaction = kind === "talk"
+      ? talkById(interactionId)
+      : kind === "hangout"
+        ? hangoutById(interactionId)
+        : kind === "event"
+          ? randomEventById(interactionId)
+          : null;
+    const locationKey = inferWorldLocation(interaction);
+
     social.lastInteractionByPerson[personId] = {
       kind: kind || "social",
       id: interactionId || null,
+      locationKey: locationKey || null,
       at: new Date().toISOString()
     };
 
@@ -2626,7 +2715,7 @@
 
   function nextTalkForPerson(personId) {
     const eligible = socialTalks().filter(talk => talk.personId === personId && conditionMatches(talk));
-    return selectTalkFromEligible(personId, eligible);
+    return selectTalkWithLocationContext(personId, eligible);
   }
 
   function openNextTalk(personId) {
@@ -3692,12 +3781,100 @@
     return slot;
   }
 
+  const STORY_BACKGROUND_TIME_FAMILIES = {
+    homeMorning: {
+      dawn: ["homeDawn", "homeMorning"],
+      day: ["homeDay", "homeMorning"],
+      sunset: ["homeSunset", "homeEvening", "homeMorning"],
+      night: ["homeNight", "homeEvening", "homeMorning"]
+    },
+    sharedApartment: {
+      dawn: ["sharedApartmentDawn", "sharedApartmentDay", "sharedApartment"],
+      day: ["sharedApartmentDay", "sharedApartment"],
+      sunset: ["sharedApartmentSunset", "sharedApartmentEvening", "sharedApartment"],
+      night: ["sharedApartmentNight", "sharedApartmentEvening", "sharedApartment"]
+    },
+    cityCafe: {
+      dawn: ["cityCafeDawn", "cityCafeDay", "cityCafe"],
+      day: ["cityCafeDay", "cityCafe"],
+      sunset: ["cityCafeSunset", "cityCafeEvening", "cityCafe"],
+      night: ["cityCafeNight", "cityCafeEvening", "cityCafe"]
+    },
+    stationEvening: {
+      dawn: ["stationDawn", "stationDay", "stationEvening"],
+      day: ["stationDay", "stationEvening"],
+      sunset: ["stationSunset", "stationEvening"],
+      night: ["stationNight", "stationEvening"]
+    },
+    cityDusk: {
+      dawn: ["cityDawn", "cityDay", "cityDusk"],
+      day: ["cityDay", "cityDusk"],
+      sunset: ["citySunset", "cityDusk"],
+      night: ["cityNight", "cityDusk"]
+    },
+    gym: {
+      dawn: ["gymDawn", "gymDay", "gym"],
+      day: ["gymDay", "gym"],
+      sunset: ["gymSunset", "gymEvening", "gym"],
+      night: ["gymNight", "gymEvening", "gym"]
+    },
+    schoolHallway: {
+      dawn: ["schoolHallway"],
+      day: ["schoolHallway"],
+      sunset: ["schoolHallway"],
+      night: ["schoolHallway"]
+    }
+  };
+
+  function locationKeyFromBackground(backgroundKey) {
+    const key = String(backgroundKey || "");
+    if (/school/i.test(key)) return "school";
+    if (/cafe/i.test(key)) return "cafe";
+    if (/station/i.test(key)) return "station";
+    if (/sharedApartment/i.test(key)) return "sharedApartment";
+    if (/home/i.test(key)) return "currentHome";
+    if (/gym/i.test(key)) return "gym";
+    if (/city|district/i.test(key)) return "district";
+    return null;
+  }
+
+  function storyLightingContext(visual = null, activeRuntime = runtime) {
+    const requested = visual?.background || contextualBackgroundForRuntime(activeRuntime);
+    const locationKey = inferWorldLocation(activeRuntime?.scene) || locationKeyFromBackground(requested);
+    if (locationKey === "school") return { part: "day", locationKey, fixed: true };
+
+    const hour = new Date().getHours() + new Date().getMinutes() / 60;
+    let part = "night";
+    if (hour >= 5 && hour < 8) part = "dawn";
+    else if (hour >= 8 && hour < 17) part = "day";
+    else if (hour >= 17 && hour < 20) part = "sunset";
+
+    return { part, locationKey: locationKey || "other", fixed: false };
+  }
+
+  function timeAwareBackgroundKey(backgroundKey, backgroundAssets, visual = null) {
+    if (!backgroundKey) return null;
+    const lighting = storyLightingContext(visual, runtime);
+    const family = STORY_BACKGROUND_TIME_FAMILIES[backgroundKey];
+    if (!family) return backgroundKey;
+    const candidates = family[lighting.part] || [backgroundKey];
+    return candidates.find(key => backgroundAssets?.[key]?.src) || backgroundKey;
+  }
+
   function backgroundAssetForVisual(visual, backgroundAssets) {
     const cg = cgAssetForVisual(visual);
     if (cg?.src) return cg;
+
     const requested = visual?.background;
-    if (requested && backgroundAssets?.[requested]?.src) return backgroundAssets[requested];
+    if (requested) {
+      const timed = timeAwareBackgroundKey(requested, backgroundAssets, visual);
+      if (timed && backgroundAssets?.[timed]?.src) return backgroundAssets[timed];
+      if (backgroundAssets?.[requested]?.src) return backgroundAssets[requested];
+    }
+
     const fallback = contextualBackgroundForRuntime(runtime);
+    const timedFallback = timeAwareBackgroundKey(fallback, backgroundAssets, visual);
+    if (timedFallback && backgroundAssets?.[timedFallback]?.src) return backgroundAssets[timedFallback];
     return fallback && backgroundAssets?.[fallback]?.src ? backgroundAssets[fallback] : null;
   }
 
@@ -3708,8 +3885,18 @@
     const requestedMode = visual?.mode || "dialogue";
     const mode = cgAsset?.src ? "cg" : (requestedMode === "cg" ? "dialogue" : requestedMode);
     const bg = backgroundAssetForVisual(visual, backgroundAssets);
+    const lighting = cgAsset?.src ? { part: "neutral", locationKey: "cg", fixed: true } : storyLightingContext(visual, runtime);
     const characters = Array.isArray(visual?.characters) ? visual.characters : [];
     const portraitSpec = resolvePortraitSpec(visual, characters, characterAssets);
+
+    if (els.visualStage) {
+      els.visualStage.dataset.storyLighting = lighting.part;
+      els.visualStage.dataset.storyLocation = lighting.locationKey || "other";
+    }
+    if (els.visualBackdrop) {
+      els.visualBackdrop.dataset.storyLighting = lighting.part;
+      els.visualBackdrop.dataset.storyLocation = lighting.locationKey || "other";
+    }
 
     renderTextboxPortrait(portraitSpec, characterAssets);
 

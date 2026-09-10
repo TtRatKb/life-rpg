@@ -16301,3 +16301,64 @@ body.training-focus-active-v314o > *:not(#trainingFocusView):not(.toast):not(.ac
 .settings-view-v6:not(.active) {
   display: none;
 }
+
+
+/* =========================================================
+   V0.31.4ak · Story time-of-day lighting
+   Same canonical composition, dynamically relit by local time.
+   ========================================================= */
+
+.story-visual-stage[data-story-lighting="day"] .story-visual-backdrop {
+  filter: saturate(1.00) contrast(.99) brightness(1.08);
+}
+.story-visual-stage[data-story-lighting="day"]::before {
+  background:
+    linear-gradient(180deg, rgba(255,250,238,.07) 0%, rgba(255,247,239,.01) 45%, rgba(26,16,29,.66) 100%),
+    linear-gradient(90deg, rgba(54,29,49,.10), transparent 19%, transparent 81%, rgba(54,29,49,.10));
+}
+
+.story-visual-stage[data-story-lighting="dawn"] .story-visual-backdrop {
+  filter: saturate(.94) contrast(1.00) brightness(.94) sepia(.06);
+}
+.story-visual-stage[data-story-lighting="dawn"]::before {
+  background:
+    linear-gradient(180deg, rgba(255,194,185,.16) 0%, rgba(255,221,189,.07) 38%, rgba(42,25,43,.67) 100%),
+    linear-gradient(90deg, rgba(94,51,79,.13), transparent 21%, transparent 79%, rgba(94,51,79,.13));
+}
+
+.story-visual-stage[data-story-lighting="sunset"] .story-visual-backdrop {
+  filter: saturate(1.04) contrast(1.02) brightness(.88) sepia(.08);
+}
+.story-visual-stage[data-story-lighting="sunset"]::before {
+  background:
+    linear-gradient(180deg, rgba(241,143,119,.18) 0%, rgba(207,112,141,.07) 43%, rgba(38,20,39,.73) 100%),
+    linear-gradient(90deg, rgba(73,35,65,.16), transparent 20%, transparent 80%, rgba(73,35,65,.16));
+}
+
+.story-visual-stage[data-story-lighting="night"] .story-visual-backdrop {
+  filter: saturate(.76) contrast(1.07) brightness(.59);
+}
+.story-visual-stage[data-story-lighting="night"]::before {
+  background:
+    linear-gradient(180deg, rgba(44,48,84,.28) 0%, rgba(34,30,61,.16) 47%, rgba(17,12,26,.82) 100%),
+    linear-gradient(90deg, rgba(18,14,31,.24), transparent 20%, transparent 80%, rgba(18,14,31,.24));
+}
+.story-visual-stage[data-story-lighting="night"] .story-sprite img {
+  filter: saturate(.88) brightness(.88);
+}
+.story-visual-stage[data-story-lighting="sunset"] .story-sprite img {
+  filter: saturate(.98) brightness(.96) sepia(.035);
+}
+.story-visual-stage[data-story-lighting="dawn"] .story-sprite img {
+  filter: saturate(.94) brightness(.98) sepia(.025);
+}
+
+/* CG art is authored as a finished illustration and must not be recolored. */
+.story-visual-stage[data-story-lighting="neutral"] .story-visual-backdrop,
+.story-visual-stage[data-mode="cg"] .story-visual-backdrop {
+  filter: none;
+}
+.story-visual-stage[data-story-lighting="neutral"] .story-sprite img,
+.story-visual-stage[data-mode="cg"] .story-sprite img {
+  filter: none;
+}

@@ -1,9 +1,9 @@
-const CACHE_NAME = "life-rpg-v0314aj-story-cadence-repair";
+const CACHE_NAME = "life-rpg-v0314ak-story-time-lighting";
 const CORE = [
   "./",
   "./index.html",
   "./data/quests.js?v=0.31.4h",
-  "./styles.css?v=0.31.4ag1",
+  "./styles.css?v=0.31.4ak",
   "./skills.css?v=0.31.4ah",
   "./skills.js?v=0.31.4ai",
   "./journal-rewards.js?v=0.31.4ag",
@@ -24,7 +24,7 @@ const CORE = [
   "./home-tree.js?v=0.31.4ag3",
   "./hobbies-tree.js?v=0.31.4ai",
   "./manifest.webmanifest?v=0.30.3a",
-  "./pwa.js?v=0.31.4aj",
+  "./pwa.js?v=0.31.4ak",
   "./visual-performance.js?v=0.31.4c",
   "./modal-manager.js?v=0.31.4d",
   "./training-focus.js?v=0.31.4o",
@@ -56,7 +56,7 @@ const CORE = [
   "./daily.js?v=0.31.4ag",
   "./journal.js?v=0.31.4ag",
   "./story-engine.js?v=0.31.4r",
-  "./story-ui.js?v=0.31.4aj",
+  "./story-ui.js?v=0.31.4ak",
   "./content/SP_003.dat?v=0.31.4r",
   "./shop.js?v=0.30.6",
   "./achievements.js?v=0.31.0",
