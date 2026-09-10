@@ -1,11 +1,13 @@
-const CACHE_NAME = "life-rpg-v0314z1-lexicon-calibration-focus";
+const CACHE_NAME = "life-rpg-v0314aa-skills-foundation";
 const CORE = [
   "./",
   "./index.html",
   "./data/quests.js?v=0.31.4h",
   "./styles.css?v=0.31.4z1",
+  "./skills.css?v=0.31.4aa",
+  "./skills.js?v=0.31.4aa",
   "./manifest.webmanifest?v=0.30.3a",
-  "./pwa.js?v=0.31.4z",
+  "./pwa.js?v=0.31.4aa",
   "./visual-performance.js?v=0.31.4c",
   "./modal-manager.js?v=0.31.4d",
   "./training-focus.js?v=0.31.4o",
@@ -108,9 +110,6 @@ self.addEventListener("fetch", event => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
 
-  // Artwork and app icons are immutable within a release cache. Cache-first
-  // makes revisiting Story/World/People feel instant instead of waiting for the
-  // network before the browser can paint an image it already downloaded.
   if (request.destination === "image" || url.pathname.includes("/assets/")) {
     event.respondWith(cacheFirstAsset(request));
     return;
