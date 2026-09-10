@@ -296,15 +296,16 @@
 
     // Journal reflection: combine base + depth milestones into one readable row per day.
     const journalEntry = root.journal?.entries?.[key] || null;
-    const journalEvents = events.filter(event => ["journal-reflection-base", "journal-reflection-effort"].includes(event.source));
+    const journalEvents = events.filter(event => ["journal-reflection-base", "journal-reflection-effort", "journal-reflection-field-effort"].includes(event.source));
     journalEvents.forEach(event => consumed.add(event.id));
     if (hasReflection(journalEntry) || journalEvents.length) {
       const rewards = sumRewards(journalEvents);
-      const chars = journalCharacterCount(journalEntry) || Math.max(0, ...journalEvents.map(event => number(event.metadata?.journalCharacters)));
+      const chars = journalCharacterCount(journalEntry) || Math.max(0, ...journalEvents.map(event => number(event.metadata?.journalCharacters || event.metadata?.characters)));
+      const depthEvents = journalEvents.filter(event => ["journal-reflection-effort", "journal-reflection-field-effort"].includes(event.source));
       rows.push({
         id: `journal-${key}`, at: latestAt(journalEvents) || journalEntry?.updatedAt || `${key}T20:00:00`, category: "journal", icon: "🌸", sourceLabel: "Journal",
-        title: "Daily reflection", detail: `${chars} characters${journalEvents.length > 1 ? ` · ${journalEvents.length - 1} depth reward${journalEvents.length === 2 ? "" : "s"} reached` : ""}`,
-        reward: rewards, rewardKnown: journalEvents.length > 0, realm: "Recovery", capability: "wellbeing",
+        title: "Daily reflection", detail: `${chars} characters${depthEvents.length ? ` · ${depthEvents.length} depth reward${depthEvents.length === 1 ? "" : "s"} reached` : ""}`,
+        reward: rewards, rewardKnown: journalEvents.length > 0, realm: journalEvents.find(event => event.realm)?.realm || "Health", capability: "wellbeing",
         duplicate: false, migrated: journalEvents.some(event => event.migrated),
         why: journalEvents.length ? journalWhy(journalEvents, chars) : `<p>This reflection exists in the save, but it predates the exact Journal reward events Life RPG can verify.</p>`
       });

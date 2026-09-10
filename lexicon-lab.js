@@ -10,7 +10,7 @@
   const PUZZLES = Array.isArray(DATA.puzzles) ? DATA.puzzles : [];
   if (!app?.getState || !app?.awardActivity || !ENTRIES.length || !PUZZLES.length) return;
 
-  const VERSION = "0.31.4z1";
+  const VERSION = "0.31.4ag";
   const SCHEMA = 3;
   const TOTAL = PUZZLES.length;
   const REPEAT_SCALES = [1, .75, .5, .35];
@@ -581,6 +581,29 @@
       if (["ArrowLeft","ArrowRight","ArrowUp","ArrowDown"].includes(event.key)) {
         event.preventDefault();
         moveGrid(key, event.key);
+      }
+    });
+
+    els.calibrationFocus?.addEventListener("click", event => {
+      const rating = event.target.closest?.("[data-lexicon-calibration-rating]");
+      if (rating) {
+        event.preventDefault();
+        event.stopPropagation();
+        rateCalibrationWord(rating.dataset.lexiconWordId, rating.dataset.lexiconCalibrationRating);
+        return;
+      }
+      const next = event.target.closest?.("[data-lexicon-calibration-next]");
+      if (next) {
+        event.preventDefault();
+        event.stopPropagation();
+        chooseCalibrationChunk(next.dataset.lexiconCalibrationNext || calibrationFocusMode || "starter", { enterFocus: true });
+        return;
+      }
+      const done = event.target.closest?.("[data-lexicon-calibration-done]");
+      if (done) {
+        event.preventDefault();
+        event.stopPropagation();
+        window.LifeRPGTrainingFocus?.exit?.({ reopen: true });
       }
     });
   }

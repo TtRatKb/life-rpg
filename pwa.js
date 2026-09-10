@@ -1,10 +1,10 @@
 (() => {
   "use strict";
 
-  const VERSION = "0.31.4af1";
+  const VERSION = "0.31.4ag";
   const ASSETS = {
     skills: { js: "skills.js", css: "skills.css", version: "0.31.4ac", global: "LifeRPGSkills" },
-    journalRewards: { js: "journal-rewards.js", version: "0.31.4ab", global: "LifeRPGJournalRewards" },
+    journalRewards: { js: "journal-rewards.js", version: "0.31.4ag", global: "LifeRPGJournalRewards" },
     weeklyReview: { js: "weekly-review.js", css: "weekly-review.css", version: "0.31.4ac", global: "LifeRPGWeeklyReview" },
     knowledgeTree: { js: "knowledge-tree.js", css: "knowledge-tree.css", version: "0.31.4ad", global: "LifeRPGKnowledgeTree" },
     healthTree: { js: "health-tree.js", css: "health-tree.css", version: "0.31.4ae", global: "LifeRPGHealthTree" },

@@ -177,6 +177,7 @@
     steamWorkerUrl: byId("steamWorkerUrl"),
     steamId64: byId("steamId64"),
     steamSpoilerMode: byId("steamSpoilerMode"),
+    steamSettingsSave: byId("steamSettingsSave"),
     steamConnectionTest: byId("steamConnectionTest"),
     steamConnectionStatus: byId("steamConnectionStatus"),
 
@@ -198,6 +199,7 @@
   let catalogSearchToken = 0;
   const steamSyncInFlight = new Map();
   let steamAutoSyncTimer = null;
+  let steamSettingsSaveTimer = null;
 
   init();
 
@@ -272,9 +274,12 @@
     });
     els.steamIncludeHidden?.addEventListener("change", renderSteamAchievements);
     els.steamAddSelected?.addEventListener("click", importSelectedSteamAchievements);
+    els.steamWorkerUrl?.addEventListener("input", queueSteamSettingsSave);
     els.steamWorkerUrl?.addEventListener("change", saveSteamSettings);
+    els.steamId64?.addEventListener("input", queueSteamSettingsSave);
     els.steamId64?.addEventListener("change", saveSteamSettings);
     els.steamSpoilerMode?.addEventListener("change", saveSteamSettings);
+    els.steamSettingsSave?.addEventListener("click", () => saveSteamSettings({ toast: true }));
     els.steamConnectionTest?.addEventListener("click", testSteamConnection);
     els.steamGamesConfigure?.addEventListener("click", openSteamSettingsPanel);
     els.steamGamesTest?.addEventListener("click", async () => {
@@ -1997,7 +2002,13 @@
     renderSteamGamesConnection();
   }
 
-  function saveSteamSettings() {
+  function queueSteamSettingsSave() {
+    window.clearTimeout(steamSettingsSaveTimer);
+    steamSettingsSaveTimer = window.setTimeout(() => saveSteamSettings({ quiet: true }), 650);
+  }
+
+  function saveSteamSettings(options = {}) {
+    window.clearTimeout(steamSettingsSaveTimer);
     const settings = steamSettings();
     settings.workerUrl = normalizeWorkerUrl(els.steamWorkerUrl?.value || "");
     settings.steamId = String(els.steamId64?.value || "").trim().replace(/\D/g, "").slice(0, 20);
@@ -2012,6 +2023,7 @@
     app.saveState({ source: "steam-settings" });
     renderSteamSection();
     renderSteamGamesConnection();
+    if (options?.toast) showToast("Steam settings saved", steamConnectionProblem() || "Spoiler Shield and connection settings are saved.");
   }
 
   async function testSteamConnection() {

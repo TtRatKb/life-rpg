@@ -484,7 +484,24 @@ function normalizeRemote(data) {
 }
 
 function cleanState(state) {
-  return JSON.parse(JSON.stringify(state || {}));
+  const clone = JSON.parse(JSON.stringify(state || {}));
+  compactDerivedCloudState(clone);
+  return clone;
+}
+
+function compactDerivedCloudState(state) {
+  if (!state || typeof state !== "object") return state;
+  if (state.skills && typeof state.skills === "object" && !Array.isArray(state.skills)) {
+    // Skill practice events are a deterministic projection of the reward ledger,
+    // time logs, games, books, habits and training grounds. Keeping thousands of
+    // derived rows in Firestore can push the document over quota while adding no
+    // unique progress. The Skills module rebuilds them after cloud restore.
+    if (Array.isArray(state.skills.events)) state.skills.events = [];
+    delete state.skills.lastRebuiltAt;
+    delete state.skills.lastRebuildReason;
+    state.skills.cloudCompactedAt = new Date().toISOString();
+  }
+  return state;
 }
 
 function isMeaningfullyEmpty(state) {

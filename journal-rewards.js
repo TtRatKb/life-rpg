@@ -311,6 +311,7 @@
   window.LifeRPGJournalRewards = {
     version: VERSION,
     tiers: TIERS.map(tier => ({ ...tier })),
-    awardPendingForToday: () => awardPendingForDate(todayKey(), { showToast: true })
+    awardPendingForToday: () => awardPendingForDate(todayKey(), { showToast: true }),
+    awardPendingForDate
   };
 })();

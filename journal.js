@@ -276,7 +276,10 @@
     });
 
     els.reflectionClose?.addEventListener("click", closeReflection);
-    els.reflectionDone?.addEventListener("click", closeReflection);
+    els.reflectionDone?.addEventListener("click", () => {
+      if (reflectionField && !els.reflectionWriteStep?.classList.contains("hidden")) saveReflectionField({ closeAfterSave: true });
+      else closeReflection();
+    });
     els.reflectionBack?.addEventListener("click", showReflectionChoices);
     els.reflectionSave?.addEventListener("click", saveReflectionField);
     els.reflectionTextarea?.addEventListener("input", renderReflectionRewardMeter);
@@ -496,7 +499,7 @@
     renderReflectionCompanion(reflectionCompanion, reflectionCompanion.prompts[field]);
   }
 
-  function saveReflectionField() {
+  function saveReflectionField(options = {}) {
     if (!reflectionField || !els.reflectionTextarea) return;
     const entry = entryFor(reflectionDate, true);
     entry[reflectionField] = cleanText(els.reflectionTextarea.value);
@@ -504,9 +507,15 @@
     entry.lastReflectionCompanionId = reflectionCompanion.id;
     const rewards = maybeAwardReflectionRewards(reflectionDate, entry);
     app.saveState({ source: `journal-${reflectionField}` });
+    const fieldRewards = window.LifeRPGJournalRewards?.awardPendingForDate?.(reflectionDate, { showToast: false });
+    addRewardTotal(rewards, fieldRewards);
     renderReflectionCompanion(reflectionCompanion, reflectionCompanion.saved[reflectionField]);
     app.showToast?.(`${REFLECTION_META[reflectionField].icon} Journal saved${rewardSummary(rewards)}`);
     render();
+    if (options?.closeAfterSave) {
+      closeReflection();
+      return;
+    }
     setTimeout(showReflectionChoices, 420);
   }
 
@@ -567,6 +576,8 @@
     entry.updatedAt = Date.now();
     const rewards = maybeAwardReflectionRewards(editingDate, entry);
     app.saveState({ source: "journal-day-edit" });
+    const fieldRewards = window.LifeRPGJournalRewards?.awardPendingForDate?.(editingDate, { showToast: false });
+    addRewardTotal(rewards, fieldRewards);
     els.dayDialog.close();
     app.showToast?.(`Journal day saved${rewardSummary(rewards)}`);
     render();
