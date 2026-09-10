@@ -8,7 +8,7 @@
   }
 
   const SCHEMA = 6;
-  const STEAM_SYNC_SCHEMA = 3;
+  const STEAM_SYNC_SCHEMA = 4;
   const STEAM_AUTO_SYNC_STALE_MS = 6 * 60 * 60 * 1000;
   const STEAM_VISIBILITY_SYNC_DELAY_MS = 900;
   const SHADOW_KEY = "life-rpg-games-shadow-v1";
@@ -458,6 +458,7 @@
         if (Number(sync.schemaVersion || 0) < STEAM_SYNC_SCHEMA) { sync.schemaVersion = STEAM_SYNC_SCHEMA; changed = true; }
         if (!sync.achievements || typeof sync.achievements !== "object" || Array.isArray(sync.achievements)) { sync.achievements = {}; changed = true; }
         if (!Number.isFinite(Number(sync.baselineAt))) { sync.baselineAt = 0; changed = true; }
+        if (!Number.isFinite(Number(sync.personalBaselineVerifiedAt))) { sync.personalBaselineVerifiedAt = 0; changed = true; }
         if (!Number.isFinite(Number(sync.lastSyncAt))) { sync.lastSyncAt = 0; changed = true; }
         if (!Number.isFinite(Number(sync.total))) { sync.total = 0; changed = true; }
         if (!Number.isFinite(Number(sync.unlocked))) { sync.unlocked = 0; changed = true; }
@@ -466,6 +467,8 @@
         if (!Number.isFinite(Number(sync.lastReturned))) { sync.lastReturned = 0; changed = true; }
         if (!Number.isFinite(Number(sync.lastMatchedGoals))) { sync.lastMatchedGoals = 0; changed = true; }
         if (!Number.isFinite(Number(sync.lastHistoricalImported))) { sync.lastHistoricalImported = 0; changed = true; }
+        if (typeof sync.playerError !== "string") { sync.playerError = ""; changed = true; }
+        if (!Number.isFinite(Number(sync.workerProtocolVersion))) { sync.workerProtocolVersion = 0; changed = true; }
       }
       if (!TRACKING_MODES[game.trackingMode]) { game.trackingMode = "auto"; changed = true; }
       if (typeof game.customUnit !== "string") { game.customUnit = ""; changed = true; }
@@ -1804,11 +1807,16 @@
     const problem = steamConnectionProblem();
     const steamGames = model().items.filter(game => game.steamAppId);
     const lastSync = steamGames.reduce((latest, game) => Math.max(latest, Number(game?.steamAchievementSync?.lastSyncAt || game?.lastSteamSyncAt || 0)), 0);
+    const needsWorkerUpdate = steamGames.some(game => game?.steamAchievementSync?.playerAvailable === false && Number(game?.steamAchievementSync?.workerProtocolVersion || 0) < 2);
     els.steamGamesCard.classList.toggle("is-connected", ready);
-    if (els.steamGamesTitle) els.steamGamesTitle.textContent = ready ? "Steam connection configured ✓" : "Steam is not connected yet";
+    if (els.steamGamesTitle) els.steamGamesTitle.textContent = !ready
+      ? "Steam is not connected yet"
+      : needsWorkerUpdate ? "Steam connected · Worker update needed" : "Steam connection configured ✓";
     if (els.steamGamesDetail) {
       els.steamGamesDetail.textContent = ready
-        ? `${steamGames.length} Steam game${steamGames.length === 1 ? "" : "s"} detected${lastSync ? ` · last sync ${humanAgoWithTime(lastSync)}` : " · ready for the first baseline sync"}.`
+        ? needsWorkerUpdate
+          ? "Achievement metadata works, but the current Cloudflare Worker is metadata-only. Deploy Steam Worker v2 to sync your personal unlocks."
+          : `${steamGames.length} Steam game${steamGames.length === 1 ? "" : "s"} detected${lastSync ? ` · last sync ${humanAgoWithTime(lastSync)}` : " · ready for the first baseline sync"}.`
         : `${problem || "Add your Steam Worker URL and SteamID64 once."} Your API key stays only inside the Cloudflare Worker.`;
     }
     if (els.steamGamesConfigure) els.steamGamesConfigure.textContent = ready ? "⚙ Steam settings" : "⚙ Configure Steam";
@@ -1847,24 +1855,37 @@
     }
     renderSteamGamesConnection();
     let synced = 0;
+    let unavailable = 0;
+    let failed = 0;
     let historicalImported = 0;
     let newUnlocks = 0;
+    const unavailableReasons = [];
     for (const game of targets) {
       const result = await syncSteamGameById(game.id, { force: true, silent: true, reason: "manual-all" });
-      if (result) {
-        synced += 1;
-        historicalImported += Number(result.historicalImported || 0);
-        newUnlocks += Number(result.unlocked?.length || 0);
+      if (!result) {
+        failed += 1;
+        continue;
       }
+      if (result.unavailable) {
+        unavailable += 1;
+        if (result.playerError) unavailableReasons.push(result.playerError);
+        continue;
+      }
+      synced += 1;
+      historicalImported += Number(result.historicalImported || 0);
+      newUnlocks += Number(result.unlocked?.length || 0);
     }
     render();
     renderSteamGamesConnection();
     const detail = [
-      `${synced}/${targets.length} Steam game${targets.length === 1 ? "" : "s"} synced`,
+      `${synced}/${targets.length} with personal unlock state`,
+      unavailable ? `${unavailable} metadata-only / unavailable` : "",
+      failed ? `${failed} failed` : "",
       historicalImported ? `${historicalImported} historical achievement${historicalImported === 1 ? "" : "s"} added` : "",
-      newUnlocks ? `${newUnlocks} new unlock${newUnlocks === 1 ? "" : "s"} rewarded` : ""
+      newUnlocks ? `${newUnlocks} new unlock${newUnlocks === 1 ? "" : "s"} rewarded` : "",
+      unavailable && unavailableReasons.length ? unavailableReasons[0] : ""
     ].filter(Boolean).join(" · ");
-    showToast("Steam sync finished ✓", detail);
+    showToast(unavailable || failed ? "Steam sync incomplete" : "Steam sync finished ✓", detail);
   }
 
   function renderSteamSettings() {
@@ -1911,7 +1932,14 @@
       const response = await fetch(`${settings.workerUrl}/health`, { headers: { Accept: "application/json" } });
       const data = await response.json().catch(() => ({}));
       if (!response.ok || !data.ok) throw new Error(data.error || `HTTP ${response.status}`);
-      if (els.steamConnectionStatus) els.steamConnectionStatus.textContent = data.steamKeyConfigured ? "✓ Worker ready · Steam key configured" : "Worker is online, but STEAM_API_KEY is not configured yet.";
+      const supportsPlayerSync = data?.capabilities?.playerAchievements === true || Number(data?.protocolVersion || 0) >= 2;
+      if (els.steamConnectionStatus) {
+        els.steamConnectionStatus.textContent = !data.steamKeyConfigured
+          ? "Worker is online, but STEAM_API_KEY is not configured yet."
+          : supportsPlayerSync
+            ? "✓ Worker ready · personal achievement sync supported"
+            : "Worker + Steam key are online, but this is the old Worker build. Update the Worker to v2 for personal achievement unlocks.";
+      }
     } catch (error) {
       if (els.steamConnectionStatus) els.steamConnectionStatus.textContent = `Could not reach Worker · ${String(error?.message || error)}`;
     } finally {
@@ -1949,14 +1977,17 @@
     return {
       schemaVersion: STEAM_SYNC_SCHEMA,
       baselineAt: 0,
+      personalBaselineVerifiedAt: 0,
       lastSyncAt: 0,
       total: 0,
       unlocked: 0,
       playerAvailable: null,
-      reconciliationVersion: 1,
+      reconciliationVersion: 2,
       lastReturned: 0,
       lastMatchedGoals: 0,
       lastHistoricalImported: 0,
+      playerError: "",
+      workerProtocolVersion: 0,
       achievements: {}
     };
   }
@@ -1967,10 +1998,13 @@
     }
     game.steamAchievementSync.schemaVersion = STEAM_SYNC_SCHEMA;
     game.steamAchievementSync.achievements ||= {};
+    if (!Number.isFinite(Number(game.steamAchievementSync.personalBaselineVerifiedAt))) game.steamAchievementSync.personalBaselineVerifiedAt = 0;
     if (!Number.isFinite(Number(game.steamAchievementSync.reconciliationVersion))) game.steamAchievementSync.reconciliationVersion = 0;
     if (!Number.isFinite(Number(game.steamAchievementSync.lastReturned))) game.steamAchievementSync.lastReturned = 0;
     if (!Number.isFinite(Number(game.steamAchievementSync.lastMatchedGoals))) game.steamAchievementSync.lastMatchedGoals = 0;
     if (!Number.isFinite(Number(game.steamAchievementSync.lastHistoricalImported))) game.steamAchievementSync.lastHistoricalImported = 0;
+    if (typeof game.steamAchievementSync.playerError !== "string") game.steamAchievementSync.playerError = "";
+    if (!Number.isFinite(Number(game.steamAchievementSync.workerProtocolVersion))) game.steamAchievementSync.workerProtocolVersion = 0;
     return game.steamAchievementSync;
   }
 
@@ -2077,7 +2111,21 @@
     const data = await response.json().catch(() => ({}));
     if (!response.ok || !data.ok) throw new Error(data.error || `HTTP ${response.status}`);
     const normalized = normalizeSteamAchievementPayload(data);
-    return { data: { ...data, playerAvailable: normalized.playerAvailable }, items: normalized.items };
+    const workerProtocolVersion = Math.max(0, Number(data?.protocolVersion || 0));
+    const workerSupportsPlayerSync = data?.capabilities?.playerAchievements === true || workerProtocolVersion >= 2;
+    const playerError = normalized.playerAvailable === false
+      ? String(data?.playerError || data?.diagnostics?.playerError || (!workerSupportsPlayerSync ? "The Steam Worker is the old metadata-only build. Deploy Worker v2 to enable personal unlock sync." : "Steam did not return personal unlock state for this profile/game.")).trim()
+      : "";
+    return {
+      data: {
+        ...data,
+        playerAvailable: normalized.playerAvailable,
+        playerError,
+        workerProtocolVersion,
+        workerSupportsPlayerSync
+      },
+      items: normalized.items
+    };
   }
 
   async function loadSteamAchievements() {
@@ -2104,7 +2152,7 @@
         };
       });
       const playerNote = data.playerAvailable === false
-        ? " · personal unlock status unavailable (privacy / game data)"
+        ? ` · personal unlock status unavailable${data.playerError ? ` (${data.playerError})` : ""}`
         : " · personal unlock status loaded";
       if (els.steamStatus) els.steamStatus.textContent = `${pendingSteamAchievements.length} Steam achievement${pendingSteamAchievements.length === 1 ? "" : "s"} loaded${playerNote}. Already-unlocked achievements are historical; future unlocks sync automatically.`;
       renderSteamAchievements();
@@ -2235,6 +2283,8 @@
     const sync = steamSyncState(game);
     const playerAvailable = data?.playerAvailable === true;
     sync.playerAvailable = playerAvailable;
+    sync.playerError = playerAvailable ? "" : String(data?.playerError || "").trim();
+    sync.workerProtocolVersion = Math.max(0, Number(data?.workerProtocolVersion || data?.protocolVersion || 0));
     sync.lastSyncAt = syncedAt;
     sync.total = steamItems.length;
     sync.lastReturned = steamItems.length;
@@ -2243,11 +2293,18 @@
       sync.lastMatchedGoals = 0;
       sync.lastHistoricalImported = 0;
       persist(`steam-sync-${source}`, { render: false });
-      if (!silent) showToast("Steam unlock state unavailable", `${game.title} · the Worker returned achievement metadata, but no personal unlock state. Check Steam game-details privacy and SteamID64.`);
-      return { changed: true, baseline: false, unlocked: [], unavailable: true, historicalImported: 0, matchedGoals: 0, returned: steamItems.length };
+      if (!silent) {
+        const detail = sync.playerError || "The Worker returned achievement metadata, but no personal unlock state. Check Steam game-details privacy and SteamID64.";
+        showToast("Steam unlock state unavailable", `${game.title} · ${detail}`);
+      }
+      return { changed: true, baseline: false, unlocked: [], unavailable: true, playerError: sync.playerError, historicalImported: 0, matchedGoals: 0, returned: steamItems.length };
     }
 
-    const isBaseline = !Number(sync.baselineAt || 0);
+    // V0.31.4t could create a metadata-only baseline because the original Worker did not
+    // explicitly advertise personal unlock support. The first confirmed Worker-v2 player
+    // response must therefore become a fresh, reward-free personal baseline. This avoids
+    // misclassifying years of old achievements as brand-new unlocks.
+    const isBaseline = !Number(sync.baselineAt || 0) || !Number(sync.personalBaselineVerifiedAt || 0);
     let changed = false;
     const newUnlocks = [];
     let batchIndex = steamUnlockRewardCountToday();
@@ -2332,9 +2389,10 @@
 
     if (isBaseline) {
       sync.baselineAt = syncedAt;
+      sync.personalBaselineVerifiedAt = syncedAt;
       changed = true;
     }
-    sync.reconciliationVersion = 1;
+    sync.reconciliationVersion = 2;
     sync.unlocked = steamItems.filter(item => item.achieved).length;
     sync.lastMatchedGoals = matchedGoals;
     sync.lastHistoricalImported = historicalImported;
@@ -2426,7 +2484,9 @@
     const progress = sync.total > 0 ? `${Math.max(0, Number(sync.unlocked || 0))}/${Math.max(0, Number(sync.total || 0))} achievements` : "No Steam baseline yet";
     const represented = (game.goals || []).filter(goal => goal?.source === "steam" && goal?.done).length;
     const freshness = sync.lastSyncAt ? `Last synced ${humanAgoWithTime(sync.lastSyncAt)}` : configured ? "Ready to create your baseline" : "Add Worker URL + SteamID64 in Settings";
-    const unavailable = sync.playerAvailable === false ? " · personal unlock status unavailable" : represented ? ` · ${represented} completed in Life RPG` : "";
+    const unavailable = sync.playerAvailable === false
+      ? ` · personal unlock status unavailable${sync.workerProtocolVersion < 2 ? " · Worker update required" : ""}`
+      : represented ? ` · ${represented} completed in Life RPG` : "";
     return `<div class="game-steam-sync-v314t"><span class="game-steam-sync-icon-v314t">🏆</span><span><strong>${esc(progress)}</strong><small>${esc(freshness + unavailable)}</small></span></div>`;
   }
 

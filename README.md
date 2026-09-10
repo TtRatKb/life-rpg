@@ -1,18 +1,31 @@
-# Life RPG — V0.31.4v Steam Baseline Reconciliation
+# Life RPG — V0.31.4w Steam Player Achievements Worker
 
-## Fix
-- Repairs the V0.31.4t/u baseline bug where Steam unlock state was stored, but already-earned achievements that were not already selected as Game Goals were not materialized visibly inside Life RPG.
-- Every achievement Steam currently reports as unlocked is now represented as a completed Steam goal. Old unlocks are labelled `Historical` and receive **0 retroactive rewards**.
-- Existing selected Steam goals are matched first by `steamApiName`; legacy Steam goals without an API name can be reconciled by exact normalized achievement title when the match is unambiguous.
-- Users affected by the old baseline do not need to reset anything: the next manual Steam sync reconciles the existing baseline and adds the missing historical completed achievements idempotently.
-- Newly unlocked, previously unselected Steam achievements are also added visibly as completed synced achievements after their one-time reward.
-- Active/open goals are displayed ahead of historical completed achievements so large Steam histories do not bury current goals.
+## Root cause fixed
+V0.31.4t–v could reconcile personal Steam unlocks only if the Cloudflare Worker actually returned them. The deployed Worker used for the original Steam goal import was sufficient for achievement metadata/schema, but the current screenshot proves it is not returning a usable personal unlock state: Life RPG can see 156/69 achievement definitions while showing `personal unlock status unavailable`.
 
-## Steam response compatibility
-The client now normalizes both the existing Life RPG Worker response and common Steam Web API shapes, including combined `achievements`, raw `playerstats.achievements`, and schema achievement arrays. It also treats personal unlock state as unavailable unless that state is actually present, rather than silently assuming every achievement is locked.
+Valve exposes these as separate Steam Web API calls. The Worker therefore needs to request the configured user's achievement state with `ISteamUserStats/GetPlayerAchievements`, in addition to the schema used to list achievement names/descriptions.
 
-## Sync diagnostics
-Manual sync now reports how many historical achievements were added. Per-game Steam status also shows how many completed Steam achievements are represented in Life RPG. A successful connection returning zero achievements or no personal unlock state now produces a clear diagnostic instead of a misleading successful baseline.
+## What changes
+- Adds a complete **Steam Worker v2** in `steam-worker/worker.js`.
+- The Worker keeps `STEAM_API_KEY` server-side and combines:
+  - game achievement schema;
+  - the configured SteamID64's real achieved/locked state + unlock timestamps;
+  - global achievement percentages.
+- `/health` now advertises protocol/capability support for personal achievements.
+- Life RPG detects an old metadata-only Worker and explicitly says **Worker update required** instead of blaming the SteamID/privacy by default.
+- `Sync all Steam games` no longer reports a misleading green success when every game only returned metadata.
+- Detailed player errors from Steam are retained so genuine privacy/API failures remain distinguishable from an outdated Worker.
+- Existing V0.31.4v baseline/reconciliation behavior is preserved: first real personal sync imports old unlocks as Historical with **0 retro rewards**; later locked→unlocked transitions reward once.
 
-## What to do
-After installing this delta, fully reload the PWA and press `↻ Sync Steam` on the affected game (or `↻ Sync all Steam games`). Existing V0.31.4t/u baseline data is reused; do not delete or reset the game.
+## One required external step
+Updating the GitHub Pages files alone cannot change a Cloudflare Worker that is already deployed separately.
+
+Open **Cloudflare → Workers & Pages → your existing Life RPG Steam Worker → Edit code**, replace its source with the complete `steam-worker/worker.js` included in this delta, and deploy it. Keep the existing `STEAM_API_KEY` Secret; never put that key in GitHub or the Life RPG client.
+
+Then in Life RPG:
+1. fully reload the PWA;
+2. open **Games → Steam Connection**;
+3. press **Test connection** — expected: `Worker ready · personal achievement sync supported`;
+4. press **Sync all Steam games** once.
+
+Existing achievements should then materialize as Historical/completed with no retroactive reward avalanche.

@@ -1,11 +1,11 @@
-const CACHE_NAME = "life-rpg-v0314v-steam-baseline-reconciliation";
+const CACHE_NAME = "life-rpg-v0314w-steam-player-achievements-worker";
 const CORE = [
   "./",
   "./index.html",
   "./data/quests.js?v=0.31.4h",
   "./styles.css?v=0.31.4u",
   "./manifest.webmanifest?v=0.30.3a",
-  "./pwa.js?v=0.31.4v",
+  "./pwa.js?v=0.31.4w",
   "./visual-performance.js?v=0.31.4c",
   "./modal-manager.js?v=0.31.4d",
   "./training-focus.js?v=0.31.4o",
@@ -15,7 +15,7 @@ const CORE = [
   "./adventures.js?v=0.31.1",
   "./adventure-workspace.js?v=0.31.4c",
   "./library.js?v=0.30.6",
-  "./games.js?v=0.31.4v",
+  "./games.js?v=0.31.4w",
   "./time.js?v=0.31.1",
   "./universal-timers.js?v=0.31.1",
   "./inspirations.js?v=0.31.4c",
