@@ -1,14 +1,16 @@
-const CACHE_NAME = "life-rpg-v0314ab-independent-journal-rewards";
+const CACHE_NAME = "life-rpg-v0314ac-weekly-review";
 const CORE = [
   "./",
   "./index.html",
   "./data/quests.js?v=0.31.4h",
   "./styles.css?v=0.31.4z1",
   "./skills.css?v=0.31.4aa",
-  "./skills.js?v=0.31.4aa",
+  "./skills.js?v=0.31.4ac",
   "./journal-rewards.js?v=0.31.4ab",
+  "./weekly-review.css?v=0.31.4ac",
+  "./weekly-review.js?v=0.31.4ac",
   "./manifest.webmanifest?v=0.30.3a",
-  "./pwa.js?v=0.31.4ab",
+  "./pwa.js?v=0.31.4ac",
   "./visual-performance.js?v=0.31.4c",
   "./modal-manager.js?v=0.31.4d",
   "./training-focus.js?v=0.31.4o",
@@ -38,7 +40,7 @@ const CORE = [
   "./smart-action-router.js?v=0.31.4s",
   "./smart-quests.js?v=0.31.0",
   "./daily.js?v=0.31.4y",
-  "./journal.js?v=0.31.4c",
+  "./journal.js?v=0.31.4ac",
   "./story-engine.js?v=0.31.4r",
   "./story-ui.js?v=0.31.4r",
   "./content/SP_003.dat?v=0.31.4r",

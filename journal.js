@@ -212,6 +212,10 @@
       state.journal.migrations = {};
       changed = true;
     }
+    if (!state.journal.weeklyReviews || typeof state.journal.weeklyReviews !== "object" || Array.isArray(state.journal.weeklyReviews)) {
+      state.journal.weeklyReviews = {};
+      changed = true;
+    }
     if (syncPlannerCheckIns(state)) changed = true;
     return changed;
   }
@@ -747,6 +751,29 @@
       });
     });
     if (!entries.length) lines.push("No journal entries yet.", "");
+
+    const weeklyReviews = Object.values(state.journal?.weeklyReviews || {})
+      .filter(review => review?.completedAt && review?.weekKey)
+      .sort((a, b) => String(a.weekKey).localeCompare(String(b.weekKey)));
+    if (weeklyReviews.length) {
+      const weeklyLabels = {
+        good: "What felt good or helped",
+        hard: "What was hard or draining",
+        credit: "What I want to give myself credit for",
+        more: "What I want more of next week",
+        lighter: "What can be smaller or easier next week"
+      };
+      lines.push("## Weekly Reviews", "");
+      weeklyReviews.forEach(review => {
+        lines.push(`### ${review.weekKey} · ${review.startDate || ""} – ${review.endDate || ""}`);
+        Object.entries(weeklyLabels).forEach(([key, label]) => {
+          const value = cleanText(review.answers?.[key]);
+          if (value) lines.push("", `**${label}**  `, value);
+        });
+        lines.push("");
+      });
+    }
+
     const timeLogs = Array.isArray(state.timeTracking?.entries) ? state.timeTracking.entries.slice().sort((a, b) => new Date(a.startAt || 0) - new Date(b.startAt || 0)) : [];
     if (timeLogs.length) {
       lines.push("## Time Log", "", "> Tracked time is included so the journal export remains useful outside Life RPG.", "");

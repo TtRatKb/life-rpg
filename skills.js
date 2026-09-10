@@ -7,7 +7,7 @@
     return;
   }
 
-  const VERSION = "0.31.4aa";
+  const VERSION = "0.31.4ac";
   const SCHEMA = 1;
   const MAX_EVENTS = 6000;
   const HABIT_XP = { tiny: 3, low: 5, normal: 8, high: 12, boss: 18 };
@@ -473,6 +473,8 @@
     if (source === "lexicon-calibration") return nativeSkill("language-expression", 5, "lexicon-calibration");
     if (source === "lexicon-daily-word") return nativeSkill("language-expression", 4, "lexicon-daily-word");
     if (source === "lexicon-lab-complete") return nativeSkill("language-expression", 10, "lexicon-crossword");
+    if (source === "weekly-review-base") return nativeSkill("reflection-self-awareness", Math.max(0, Number(reward.metadata?.skillXP || 6)), "weekly-review");
+    if (source === "weekly-review-field-depth") return nativeSkill("reflection-self-awareness", Math.max(0, Number(reward.metadata?.skillXP || 0)), "weekly-review-depth");
     if (/^Kotoba Quick\b/i.test(label) || /kotoba quick/i.test(label)) return nativeSkill("language-learning", 1.5, "kotoba-quick-review");
     return null;
   }
@@ -898,7 +900,7 @@
   }
 
   function sourceLabel(source) {
-    return ({ time: "Focus & Time", habit: "Habit", "daily-checkin": "Daily Check-in", "journal-reflection": "Journal", book: "Library", game: "Games", quest: "Quest", sudoku: "Sudoku", "sudoku-replay": "Sudoku", nonogram: "Nonogram", "nonogram-replay": "Nonogram", "number-sense": "Number Sense", "number-sense-replay": "Number Sense", "memory-garden": "Memory Garden", "memory-garden-replay": "Memory Garden", "lexicon-calibration": "Lexicon Calibration", "lexicon-daily-word": "Daily Word", "lexicon-crossword": "Lexicon Lab", "kotoba-quick-review": "Kotoba Quick" })[source] || source || "Practice";
+    return ({ time: "Focus & Time", habit: "Habit", "daily-checkin": "Daily Check-in", "journal-reflection": "Journal", book: "Library", game: "Games", quest: "Quest", sudoku: "Sudoku", "sudoku-replay": "Sudoku", nonogram: "Nonogram", "nonogram-replay": "Nonogram", "number-sense": "Number Sense", "number-sense-replay": "Number Sense", "memory-garden": "Memory Garden", "memory-garden-replay": "Memory Garden", "lexicon-calibration": "Lexicon Calibration", "lexicon-daily-word": "Daily Word", "lexicon-crossword": "Lexicon Lab", "kotoba-quick-review": "Kotoba Quick", "weekly-review": "Weekly Review", "weekly-review-depth": "Weekly Review" })[source] || source || "Practice";
   }
 
   function validSkillId(value) { return value && SKILL_BY_ID[value] ? value : null; }

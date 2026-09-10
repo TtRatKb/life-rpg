@@ -1,10 +1,10 @@
 (() => {
-  const VERSION = "0.31.4ab";
-  const SKILLS_VERSION = "0.31.4aa";
+  const VERSION = "0.31.4ac";
+  const SKILLS_VERSION = "0.31.4ac";
+  const JOURNAL_REWARDS_VERSION = "0.31.4ab";
   const standalone = window.matchMedia?.("(display-mode: standalone)")?.matches || window.navigator.standalone === true;
   if (standalone) document.body.classList.add("is-standalone-v251");
 
-  // Skills remains an additive module so the release stays a small delta.
   if (!document.querySelector('link[data-life-rpg-skills]')) {
     const style = document.createElement("link");
     style.rel = "stylesheet";
@@ -20,13 +20,26 @@
     document.head.appendChild(script);
   }
 
-  // V0.31.4ab upgrades the existing Journal without replacing the large journal.js file:
-  // each optional reflection earns its own depth rewards and its own visible meter.
   if (!document.querySelector('script[data-life-rpg-journal-rewards]')) {
     const script = document.createElement("script");
-    script.src = `./journal-rewards.js?v=${VERSION}`;
+    script.src = `./journal-rewards.js?v=${JOURNAL_REWARDS_VERSION}`;
     script.async = false;
-    script.dataset.lifeRpgJournalRewards = VERSION;
+    script.dataset.lifeRpgJournalRewards = JOURNAL_REWARDS_VERSION;
+    document.head.appendChild(script);
+  }
+
+  if (!document.querySelector('link[data-life-rpg-weekly-review]')) {
+    const style = document.createElement("link");
+    style.rel = "stylesheet";
+    style.href = `./weekly-review.css?v=${VERSION}`;
+    style.dataset.lifeRpgWeeklyReview = VERSION;
+    document.head.appendChild(style);
+  }
+  if (!document.querySelector('script[data-life-rpg-weekly-review]')) {
+    const script = document.createElement("script");
+    script.src = `./weekly-review.js?v=${VERSION}`;
+    script.async = false;
+    script.dataset.lifeRpgWeeklyReview = VERSION;
     document.head.appendChild(script);
   }
 
