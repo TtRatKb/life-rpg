@@ -6366,8 +6366,10 @@ dialog:not(.story-phone-dialog)::backdrop { background: rgba(49,29,50,.44); }
 
 /* Settings becomes a first-class destination instead of being buried in Growth. */
 .settings-view-v6 {
-  display: grid;
   gap: 22px;
+}
+.settings-view-v6.active {
+  display: grid;
 }
 
 .settings-hero-v6 {
@@ -16289,4 +16291,13 @@ body.training-focus-active-v314o > *:not(#trainingFocusView):not(.toast):not(.ac
   font-size: .69rem;
   font-weight: 850;
   letter-spacing: .05em;
+}
+
+
+/* =========================================================
+   0.31.4ag1 · View isolation repair
+   ========================================================= */
+/* A view-specific layout must never override the global .view hidden state. */
+.settings-view-v6:not(.active) {
+  display: none;
 }

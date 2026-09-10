@@ -7,7 +7,7 @@
     return;
   }
 
-  const VERSION = "0.31.4ag";
+  const VERSION = "0.31.4ag1";
   const SCHEMA = 1;
   const MAX_EVENTS = 6000;
   const HABIT_XP = { tiny: 3, low: 5, normal: 8, high: 12, boss: 18 };
@@ -916,7 +916,7 @@
     if (!tabs || !panels || !empty) return;
 
     tabs.innerHTML = Object.keys(REALMS).map(realm => {
-      const built = ["Knowledge", "Health", "Work"].includes(realm);
+      const built = Boolean(panels.querySelector(`[data-skill-tree-realm="${cssEscape(realm)}"]`));
       const points = realmPointInfo(realm);
       return `<button type="button" role="tab" data-skill-tree-tab="${escAttr(realm)}" aria-selected="${activeTalentRealm === realm ? "true" : "false"}" class="${activeTalentRealm === realm ? "active" : ""}"><span>${REALMS[realm].icon}</span><strong>${esc(realm)}</strong><small>${points.available} pt${points.available === 1 ? "" : "s"}${built ? "" : " · soon"}</small></button>`;
     }).join("");
@@ -1025,6 +1025,6 @@
     refreshTalentHub: renderTalentHub,
     selectTalentRealm,
     rebuild: () => reconcile({ persist: true, reason: "skills-api-rebuild", force: true }),
-    open: () => { app.showView?.("skills"); render(); window.scrollTo({ top: 0, behavior: "smooth" }); }
+    open: () => { openSkillsView(); render(); }
   };
 })();

@@ -1,11 +1,11 @@
-const CACHE_NAME = "life-rpg-v0314ag-stability-repair";
+const CACHE_NAME = "life-rpg-v0314ag1-skills-view-recovery-tree";
 const CORE = [
   "./",
   "./index.html",
   "./data/quests.js?v=0.31.4h",
-  "./styles.css?v=0.31.4ag",
+  "./styles.css?v=0.31.4ag1",
   "./skills.css?v=0.31.4ag",
-  "./skills.js?v=0.31.4ag",
+  "./skills.js?v=0.31.4ag1",
   "./journal-rewards.js?v=0.31.4ag",
   "./weekly-review.css?v=0.31.4ag",
   "./weekly-review.js?v=0.31.4ag",
@@ -14,9 +14,11 @@ const CORE = [
   "./health-tree.css?v=0.31.4ag",
   "./health-tree.js?v=0.31.4ag",
   "./work-tree.css?v=0.31.4ag",
+  "./recovery-tree.css?v=0.31.4ag1",
   "./work-tree.js?v=0.31.4ag",
+  "./recovery-tree.js?v=0.31.4ag1",
   "./manifest.webmanifest?v=0.30.3a",
-  "./pwa.js?v=0.31.4ag",
+  "./pwa.js?v=0.31.4ag1",
   "./visual-performance.js?v=0.31.4c",
   "./modal-manager.js?v=0.31.4d",
   "./training-focus.js?v=0.31.4o",
