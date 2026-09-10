@@ -7,7 +7,7 @@
     return;
   }
 
-  const VERSION = "0.31.4ag1";
+  const VERSION = "0.31.4ah";
   const SCHEMA = 1;
   const MAX_EVENTS = 6000;
   const HABIT_XP = { tiny: 3, low: 5, normal: 8, high: 12, boss: 18 };
@@ -60,6 +60,9 @@
   let syncTimer = null;
   let lastDerivedSignature = "";
   let activeTalentRealm = "Knowledge";
+  let treeDecoratorTimer = null;
+  let treeDecoratorBusy = false;
+  let treeObserver = null;
 
   init();
 
@@ -72,6 +75,7 @@
     injectNavigation();
     injectSkillsView();
     injectHabitSkillField();
+    observeTalentTrees();
     bind();
     reconcile({ persist: true, reason: "skills-init" });
     render();
@@ -150,6 +154,22 @@
         render();
         app.showToast?.("Skills rebuilt from your current local Life RPG logs.");
       }
+    });
+
+    document.addEventListener("keydown", event => {
+      const tab = event.target.closest?.("#skillsTalentTabs [data-skill-tree-tab]");
+      if (!tab || !["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+      const tabs = [...document.querySelectorAll("#skillsTalentTabs [data-skill-tree-tab]")];
+      if (!tabs.length) return;
+      event.preventDefault();
+      const current = Math.max(0, tabs.indexOf(tab));
+      const nextIndex = event.key === "Home" ? 0
+        : event.key === "End" ? tabs.length - 1
+        : event.key === "ArrowLeft" ? (current - 1 + tabs.length) % tabs.length
+        : (current + 1) % tabs.length;
+      const next = tabs[nextIndex];
+      selectTalentRealm(next.dataset.skillTreeTab, { scroll: false });
+      next.focus();
     });
 
     document.addEventListener("click", event => {
@@ -663,12 +683,47 @@
     return totals;
   }
 
+  function realmRankPointInfo(realm) {
+    const rank = Math.max(1, Math.floor(Number(app.getRealmRankInfo?.(realm)?.level || 1)));
+    // Current trees cost 14–18 points. One point per Realm rank-up keeps Realm
+    // progression meaningful without instantly completing a tree.
+    return { rank, points: Math.max(0, rank - 1) };
+  }
+
+  function breadthPointInfo(realm, totals = totalsBySkill()) {
+    const realmSkills = SKILLS_BY_REALM[realm] || [];
+    if (realmSkills.length < 3) return { points: 0, foundation: false, versatility: false, mastery: false };
+
+    const levels = realmSkills.map(item => levelInfo(totals[item.id] || 0).level);
+    const atLeast = level => levels.filter(value => value >= level).length;
+    const foundation = atLeast(3) >= 3;
+    const versatility = atLeast(6) >= 3 && atLeast(3) >= 4;
+    const masteryTarget = Math.ceil(realmSkills.length * 0.7);
+    const mastery = atLeast(10) >= masteryTarget;
+    return {
+      points: (foundation ? 2 : 0) + (versatility ? 3 : 0) + (mastery ? 5 : 0),
+      foundation, versatility, mastery
+    };
+  }
+
   function realmPointInfo(realm, totals = totalsBySkill()) {
     const earnedFromSkills = (SKILLS_BY_REALM[realm] || []).reduce((sum, item) => sum + pointsFromSkillLevel(levelInfo(totals[item.id] || 0).level), 0);
+    const rankInfo = realmRankPointInfo(realm);
+    const breadthInfo = breadthPointInfo(realm, totals);
     const bonus = Math.max(0, Number(state().realmBonusPoints?.[realm] || 0));
     const spent = Math.max(0, Number(state().spentPointsByRealm?.[realm] || 0));
-    const earned = earnedFromSkills + bonus;
-    return { earned, spent, available: Math.max(0, earned - spent), earnedFromSkills, bonus };
+    const earned = earnedFromSkills + rankInfo.points + breadthInfo.points + bonus;
+    return {
+      earned,
+      spent,
+      available: Math.max(0, earned - spent),
+      earnedFromSkills,
+      earnedFromRealmRank: rankInfo.points,
+      realmRank: rankInfo.rank,
+      breadth: breadthInfo.points,
+      breadthMilestones: breadthInfo,
+      bonus
+    };
   }
 
   function injectNavigation() {
@@ -718,6 +773,7 @@
       <section id="skillsTalentHub" class="panel skills-talent-hub-v314ag">
         <div class="skills-talent-hub-head-v314ag"><div><p class="eyebrow">REALM TALENT TREES</p><h2>Spend points where you want the next unlock.</h2><p class="panel-subcopy">One Realm at a time. Existing Life RPG features never become locked behind talents.</p></div></div>
         <div id="skillsTalentTabs" class="skills-talent-tabs-v314ag" role="tablist" aria-label="Talent tree Realm"></div>
+        <div id="skillsTalentMeta" class="skills-talent-meta-v314ah" aria-live="polite"></div>
         <div id="skillsTalentTreePanels" class="skills-talent-panels-v314ag"></div>
         <div id="skillsTalentEmpty" class="skills-talent-empty-v314ag hidden"></div>
       </section>
@@ -870,12 +926,16 @@
     if (!container) return;
     const discovered = SKILLS.filter(item => Number(totals[item.id] || 0) > 0).length;
     const totalXP = round2(Object.values(totals).reduce((sum, value) => sum + Number(value || 0), 0));
-    const availablePoints = Object.keys(REALMS).reduce((sum, realm) => sum + realmPointInfo(realm, totals).available, 0);
+    const pointRows = Object.keys(REALMS).map(realm => realmPointInfo(realm, totals));
+    const availablePoints = pointRows.reduce((sum, row) => sum + row.available, 0);
+    const spentPoints = pointRows.reduce((sum, row) => sum + row.spent, 0);
+    const treeNodes = [...document.querySelectorAll("#skillsTalentTreePanels article.is-bought, #skillsTalentTreePanels article.is-available, #skillsTalentTreePanels article.is-short, #skillsTalentTreePanels article.is-locked")];
+    const unlockedNodes = treeNodes.filter(node => node.classList.contains("is-bought")).length;
     container.innerHTML = `
       <article><small>DISCOVERED</small><strong>${discovered} / ${SKILLS.length}</strong><span>Skills with observed practice</span></article>
-      <article><small>PRACTICE XP</small><strong>${formatXp(totalXP)}</strong><span>Derived from local Life RPG logs</span></article>
-      <article><small>REALM POINTS</small><strong>${availablePoints}</strong><span>Available for future Talent Trees</span></article>
-      <article><small>RULE</small><strong>1 → 1</strong><span>One real action trains one skill</span></article>`;
+      <article><small>PRACTICE XP</small><strong>${formatXp(totalXP)}</strong><span>Skill XP from observable actions</span></article>
+      <article><small>REALM POINTS</small><strong>${availablePoints}</strong><span>available · ${spentPoints} already spent</span></article>
+      <article><small>TALENT TREES</small><strong>${unlockedNodes} / ${treeNodes.length || "—"}</strong><span>unlocks across all seven Realms</span></article>`;
   }
 
   function renderHabitMapping() {
@@ -913,29 +973,161 @@
     const tabs = document.getElementById("skillsTalentTabs");
     const panels = document.getElementById("skillsTalentTreePanels");
     const empty = document.getElementById("skillsTalentEmpty");
+    const meta = document.getElementById("skillsTalentMeta");
     if (!tabs || !panels || !empty) return;
 
+    const treeSections = [...panels.querySelectorAll("[data-skill-tree-realm]")];
+    const builtRealms = new Set(treeSections.map(section => section.dataset.skillTreeRealm));
+
+    if (!REALMS[activeTalentRealm] || (!builtRealms.has(activeTalentRealm) && builtRealms.size)) {
+      activeTalentRealm = builtRealms.has("Knowledge") ? "Knowledge" : [...builtRealms][0];
+    }
+
     tabs.innerHTML = Object.keys(REALMS).map(realm => {
-      const built = Boolean(panels.querySelector(`[data-skill-tree-realm="${cssEscape(realm)}"]`));
+      const section = treeSections.find(item => item.dataset.skillTreeRealm === realm);
+      const progress = treeProgress(section);
       const points = realmPointInfo(realm);
-      return `<button type="button" role="tab" data-skill-tree-tab="${escAttr(realm)}" aria-selected="${activeTalentRealm === realm ? "true" : "false"}" class="${activeTalentRealm === realm ? "active" : ""}"><span>${REALMS[realm].icon}</span><strong>${esc(realm)}</strong><small>${points.available} pt${points.available === 1 ? "" : "s"}${built ? "" : " · soon"}</small></button>`;
+      const active = activeTalentRealm === realm;
+      return `<button type="button" role="tab" data-skill-tree-tab="${escAttr(realm)}" aria-selected="${active ? "true" : "false"}" aria-controls="${section?.id || "skillsTalentEmpty"}" tabindex="${active ? "0" : "-1"}" class="${active ? "active" : ""}"><span>${REALMS[realm].icon}</span><strong>${esc(realm)}</strong><small>${points.available} avail · ${progress.total ? `${progress.unlocked}/${progress.total}` : "—"}</small></button>`;
     }).join("");
 
-    const treeSections = [...panels.querySelectorAll("[data-skill-tree-realm]")];
-    treeSections.forEach(section => section.classList.toggle("hidden", section.dataset.skillTreeRealm !== activeTalentRealm));
+    treeSections.forEach(section => {
+      const active = section.dataset.skillTreeRealm === activeTalentRealm;
+      section.classList.toggle("hidden", !active);
+      section.setAttribute("role", "tabpanel");
+      section.setAttribute("aria-hidden", active ? "false" : "true");
+      decorateTreeStates(section, section.dataset.skillTreeRealm);
+    });
+
     const activeTree = treeSections.find(section => section.dataset.skillTreeRealm === activeTalentRealm);
     empty.classList.toggle("hidden", Boolean(activeTree));
     if (!activeTree) {
-      const meta = REALMS[activeTalentRealm] || { icon: "✦" };
-      empty.innerHTML = `<span>${meta.icon}</span><div><strong>${esc(activeTalentRealm)} Talent Tree</strong><p>The Skill progression is already active. This Realm's spendable tree has not been built yet, so nothing is being withheld or locked.</p></div>`;
+      const realmMeta = REALMS[activeTalentRealm] || { icon: "✦" };
+      empty.innerHTML = `<span>${realmMeta.icon}</span><div><strong>${esc(activeTalentRealm)} Talent Tree</strong><p>The Skill progression is active. This Realm tree is not registered in this build.</p></div>`;
+    }
+
+    if (meta) meta.innerHTML = talentMetaMarkup(activeTalentRealm, activeTree);
+    renderSummary(totalsBySkill());
+  }
+
+  function treeProgress(section) {
+    if (!section) return { unlocked: 0, total: 0, totalCost: 0 };
+    const nodes = [...section.querySelectorAll("article.is-bought, article.is-available, article.is-short, article.is-locked")];
+    return {
+      unlocked: nodes.filter(node => node.classList.contains("is-bought")).length,
+      total: nodes.length,
+      totalCost: nodes.reduce((sum, node) => sum + nodeCost(node), 0)
+    };
+  }
+
+  function nodeCost(node) {
+    const text = node?.querySelector("small")?.textContent || "";
+    const match = text.match(/(\d+)\s*POINT/i);
+    return Math.max(0, Number(match?.[1] || 0));
+  }
+
+  function talentMetaMarkup(realm, section) {
+    const points = realmPointInfo(realm);
+    const progress = treeProgress(section);
+    const ready = section?.querySelector("article.is-available");
+    const short = section?.querySelector("article.is-short");
+    const next = ready || short;
+    const nextTitle = next?.querySelector("h3")?.textContent?.trim() || "";
+    const nextCost = nodeCost(next);
+    const nextCopy = progress.total && progress.unlocked >= progress.total
+      ? "Tree complete · extra points stay banked for future expansions"
+      : ready
+        ? `Ready now: ${nextTitle} · ${nextCost} pt${nextCost === 1 ? "" : "s"}`
+        : short
+          ? `Next: ${nextTitle} · ${Math.max(0, nextCost - points.available)} more pt${Math.max(0, nextCost - points.available) === 1 ? "" : "s"} needed`
+          : "Choose a connected branch to reveal the next unlock";
+
+    const sourceBits = [
+      `${points.earnedFromSkills} from Skill levels`,
+      `${points.earnedFromRealmRank} from Realm ranks`,
+      points.breadth ? `${points.breadth} from breadth` : null,
+      points.bonus ? `${points.bonus} bonus` : null
+    ].filter(Boolean);
+
+    return `<div class="skills-talent-meta-main-v314ah"><span>${REALMS[realm]?.icon || "✦"}</span><div><small>${esc(realm.toUpperCase())} TREE</small><strong>${points.available} available · ${points.spent} spent${progress.totalCost ? ` · ${progress.totalCost} pts full tree` : ""}</strong><em>${esc(nextCopy)}</em></div></div><div class="skills-point-source-v314ah"><span>${sourceBits.map(esc).join(" · ")}</span><small>Realm Rank ${points.realmRank} · free respec</small></div>`;
+  }
+
+  function decorateTreeStates(section, realm) {
+    if (!section || treeDecoratorBusy) return;
+    treeDecoratorBusy = true;
+    try {
+      const availablePoints = realmPointInfo(realm).available;
+      section.querySelectorAll("article.is-bought, article.is-available, article.is-short, article.is-locked").forEach(node => {
+        const cost = nodeCost(node);
+        const status = node.classList.contains("is-bought") ? "owned"
+          : node.classList.contains("is-available") ? "ready"
+          : node.classList.contains("is-short") ? "short"
+          : "locked";
+        const missing = Math.max(0, cost - availablePoints);
+        const label = status === "owned" ? "✓ Unlocked"
+          : status === "ready" ? "✦ Ready"
+          : status === "short" ? `Need ${missing} more pt${missing === 1 ? "" : "s"}`
+          : "Path locked";
+        const copy = node.querySelector('[class*="-node-copy-"]') || node.querySelector("div:nth-child(2)");
+        let badge = node.querySelector(".skills-node-state-v314ah");
+        if (!badge && copy) {
+          badge = document.createElement("span");
+          badge.className = `skills-node-state-v314ah is-${status}`;
+          copy.insertAdjacentElement("afterbegin", badge);
+        }
+        if (badge) {
+          const nextClass = `skills-node-state-v314ah is-${status}`;
+          if (badge.className !== nextClass) badge.className = nextClass;
+          if (badge.textContent !== label) badge.textContent = label;
+        }
+        const button = node.querySelector(":scope > button");
+        const buttonLabel = status === "short" ? label : status === "locked" ? "Unlock connected path first" : null;
+        if (button && buttonLabel && button.textContent !== buttonLabel) button.textContent = buttonLabel;
+      });
+    } finally {
+      treeDecoratorBusy = false;
     }
   }
 
-  function selectTalentRealm(realm) {
+  function scheduleTreeDecorate() {
+    if (treeDecoratorBusy) return;
+    window.clearTimeout(treeDecoratorTimer);
+    treeDecoratorTimer = window.setTimeout(() => {
+      const panels = document.getElementById("skillsTalentTreePanels");
+      panels?.querySelectorAll("[data-skill-tree-realm]").forEach(section => decorateTreeStates(section, section.dataset.skillTreeRealm));
+      const active = panels?.querySelector(`[data-skill-tree-realm="${cssEscape(activeTalentRealm)}"]`);
+      const meta = document.getElementById("skillsTalentMeta");
+      if (meta) meta.innerHTML = talentMetaMarkup(activeTalentRealm, active);
+      const tabs = document.getElementById("skillsTalentTabs");
+      if (tabs && !treeDecoratorBusy) {
+        Object.keys(REALMS).forEach(realm => {
+          const button = tabs.querySelector(`[data-skill-tree-tab="${cssEscape(realm)}"]`);
+          const section = panels?.querySelector(`[data-skill-tree-realm="${cssEscape(realm)}"]`);
+          const progress = treeProgress(section);
+          const points = realmPointInfo(realm);
+          const small = button?.querySelector("small");
+          if (small) small.textContent = `${points.available} avail · ${progress.total ? `${progress.unlocked}/${progress.total}` : "—"}`;
+        });
+      }
+    }, 40);
+  }
+
+  function observeTalentTrees() {
+    const panels = document.getElementById("skillsTalentTreePanels");
+    if (!panels || treeObserver) return;
+    treeObserver = new MutationObserver(() => scheduleTreeDecorate());
+    treeObserver.observe(panels, { childList: true, subtree: true, attributes: true, attributeFilter: ["class"] });
+  }
+
+  function selectTalentRealm(realm, { scroll = true } = {}) {
     if (!REALMS[realm]) return;
     activeTalentRealm = realm;
     renderTalentHub();
-    document.getElementById("skillsTalentHub")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (scroll) {
+      const hub = document.getElementById("skillsTalentHub");
+      const rect = hub?.getBoundingClientRect?.();
+      if (hub && rect && (rect.top < -8 || rect.top > window.innerHeight * .55)) hub.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
   }
 
   function registerTalentTree(realm, section) {
@@ -945,6 +1137,7 @@
     section.classList.add("skills-talent-tree-panel-v314ag");
     panels.appendChild(section);
     renderTalentHub();
+    scheduleTreeDecorate();
     return true;
   }
 
@@ -954,15 +1147,25 @@
     container.innerHTML = Object.keys(REALMS).map(realm => {
       const meta = REALMS[realm];
       const points = realmPointInfo(realm, totals);
+      const rank = app.getRealmRankInfo?.(realm);
       const cards = (SKILLS_BY_REALM[realm] || []).map(item => skillCard(item, totals[item.id] || 0)).join("");
-      return `<section class="skills-realm-v314aa"><header><div><span>${meta.icon}</span><div><small>REALM</small><h2>${esc(meta.label)}</h2></div></div><div class="skills-points-v314aa"><strong>${points.available}</strong><span>point${points.available === 1 ? "" : "s"} available</span><small>${points.earnedFromSkills} earned from skills${points.bonus ? ` · +${points.bonus} bonus` : ""}</small></div></header><div class="skills-card-grid-v314aa">${cards}</div></section>`;
+      const sourceLine = [
+        `${points.earnedFromSkills} skill`,
+        `${points.earnedFromRealmRank} rank`,
+        points.breadth ? `${points.breadth} breadth` : null,
+        points.bonus ? `${points.bonus} bonus` : null
+      ].filter(Boolean).join(" · ");
+      return `<section class="skills-realm-v314aa"><header><div><span>${meta.icon}</span><div><small>REALM · RANK ${rank?.level || 1}</small><h2>${esc(meta.label)}</h2></div></div><div class="skills-points-v314aa"><strong>${points.available}</strong><span>point${points.available === 1 ? "" : "s"} available · ${points.spent} spent</span><small>${esc(sourceLine)}</small><button class="skills-realm-tree-link-v314ah" type="button" data-skill-tree-tab="${escAttr(realm)}">Open ${esc(realm)} tree ↑</button></div></header><div class="skills-card-grid-v314aa">${cards}</div></section>`;
     }).join("");
   }
 
   function skillCard(item, totalXP) {
     const info = levelInfo(totalXP);
     const levelLabel = info.discovered ? `Lv. ${info.level}` : "Not yet trained";
-    const pointText = info.discovered && pointsFromSkillLevel(info.level) ? `${pointsFromSkillLevel(info.level)} realm point${pointsFromSkillLevel(info.level) === 1 ? "" : "s"} earned` : "No realm points yet";
+    const earnedPoints = pointsFromSkillLevel(info.level);
+    const pointText = info.discovered
+      ? `${earnedPoints} pt${earnedPoints === 1 ? "" : "s"} earned · next +1 at Lv. ${info.level + 1}`
+      : "First qualifying practice discovers this skill";
     return `<article class="skill-card-v314aa ${info.discovered ? "is-discovered" : "is-undiscovered"}"><div class="skill-card-head-v314aa"><span>${item.icon}</span><div><strong>${esc(item.label)}</strong><small>${esc(item.description)}</small></div><b>${levelLabel}</b></div><div class="skill-progress-v314aa"><i><b style="width:${info.percent.toFixed(2)}%"></b></i><div><span>${formatXp(info.intoLevel)} / ${formatXp(info.required)} Skill XP</span><em>${esc(pointText)}</em></div></div></article>`;
   }
 
@@ -1019,6 +1222,8 @@
     getTotals: () => ({ ...totalsBySkill() }),
     getLevelInfo: id => levelInfo(totalsBySkill()[id] || 0),
     getRealmPoints: realm => ({ ...realmPointInfo(realm) }),
+    getBreadthPoints: realm => ({ ...breadthPointInfo(realm) }),
+    getRealmRankPoints: realm => ({ ...realmRankPointInfo(realm) }),
     timeXp,
     reflectionXp,
     registerTalentTree,

@@ -1,11 +1,11 @@
-const CACHE_NAME = "life-rpg-v0314ag4-hobbies-talent-tree";
+const CACHE_NAME = "life-rpg-v0314ah-skills-trees-polish";
 const CORE = [
   "./",
   "./index.html",
   "./data/quests.js?v=0.31.4h",
   "./styles.css?v=0.31.4ag1",
-  "./skills.css?v=0.31.4ag",
-  "./skills.js?v=0.31.4ag1",
+  "./skills.css?v=0.31.4ah",
+  "./skills.js?v=0.31.4ah",
   "./journal-rewards.js?v=0.31.4ag",
   "./weekly-review.css?v=0.31.4ag",
   "./weekly-review.js?v=0.31.4ag",
@@ -24,7 +24,7 @@ const CORE = [
   "./home-tree.js?v=0.31.4ag3",
   "./hobbies-tree.js?v=0.31.4ag4",
   "./manifest.webmanifest?v=0.30.3a",
-  "./pwa.js?v=0.31.4ag4",
+  "./pwa.js?v=0.31.4ah",
   "./visual-performance.js?v=0.31.4c",
   "./modal-manager.js?v=0.31.4d",
   "./training-focus.js?v=0.31.4o",

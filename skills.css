@@ -381,3 +381,161 @@
   .skills-talent-tabs-v314ag button { min-width: 112px; }
   .skills-history-collapsible-v314ag > summary { align-items: flex-start; flex-direction: column; }
 }
+
+
+/* =========================================================
+   V0.31.4ah · Skills + Talent Tree cohesion polish
+   ========================================================= */
+.skills-talent-meta-v314ah {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  margin: -6px 0 16px;
+  padding: 12px 14px;
+  border: 1px solid rgba(91,49,78,.09);
+  border-radius: 16px;
+  background: rgba(255,255,255,.62);
+}
+.skills-talent-meta-main-v314ah {
+  display: grid;
+  grid-template-columns: 40px minmax(0,1fr);
+  gap: 10px;
+  align-items: center;
+  min-width: 0;
+}
+.skills-talent-meta-main-v314ah > span {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border-radius: 13px;
+  background: #f8e7ee;
+  font-size: 1.15rem;
+}
+.skills-talent-meta-main-v314ah small,
+.skills-talent-meta-main-v314ah strong,
+.skills-talent-meta-main-v314ah em { display: block; }
+.skills-talent-meta-main-v314ah small {
+  color: #a55274;
+  font-size: .58rem;
+  font-weight: 850;
+  letter-spacing: .11em;
+}
+.skills-talent-meta-main-v314ah strong {
+  margin-top: 2px;
+  color: #54384e;
+  font-size: .76rem;
+}
+.skills-talent-meta-main-v314ah em {
+  margin-top: 2px;
+  overflow: hidden;
+  color: #897481;
+  font-size: .64rem;
+  font-style: normal;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.skills-point-source-v314ah {
+  text-align: right;
+  color: #8f7886;
+}
+.skills-point-source-v314ah span,
+.skills-point-source-v314ah small { display: block; }
+.skills-point-source-v314ah span { font-size: .62rem; }
+.skills-point-source-v314ah small { margin-top: 2px; font-size: .57rem; }
+
+.skills-realm-tree-link-v314ah {
+  margin-top: 5px;
+  padding: 0;
+  border: 0;
+  color: #a65375;
+  background: transparent;
+  font-size: .62rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+.skills-realm-tree-link-v314ah:hover { text-decoration: underline; }
+
+/* Unified state language across every Realm tree. */
+.skills-node-state-v314ah {
+  display: inline-flex !important;
+  align-items: center;
+  width: max-content;
+  margin: 0 0 4px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  font-size: .52rem !important;
+  font-weight: 850;
+  letter-spacing: .05em;
+  line-height: 1.35;
+  text-transform: uppercase;
+}
+.skills-node-state-v314ah.is-owned { color: #4f765e; background: rgba(105,145,106,.12); }
+.skills-node-state-v314ah.is-ready { color: #9c456b; background: rgba(220,115,157,.14); }
+.skills-node-state-v314ah.is-short { color: #856d47; background: rgba(213,174,102,.16); }
+.skills-node-state-v314ah.is-locked { color: #887984; background: rgba(91,64,84,.08); }
+
+/* Make the Realm selector useful even while a long tree is open. */
+.skills-talent-tabs-v314ag {
+  position: sticky;
+  top: 8px;
+  z-index: 12;
+  padding: 6px;
+  border: 1px solid rgba(91,49,78,.07);
+  border-radius: 17px;
+  background: rgba(255,248,247,.92);
+  box-shadow: 0 8px 22px rgba(74,41,67,.05);
+  backdrop-filter: blur(12px);
+}
+.skills-talent-tabs-v314ag button:focus-visible,
+.skills-realm-tree-link-v314ah:focus-visible {
+  outline: 2px solid rgba(184,82,129,.48);
+  outline-offset: 2px;
+}
+
+/* Utilities from unlocked talents use the same adaptive rhythm across Realms. */
+.skills-talent-tree-panel-v314ag [id$="TalentTools"] {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+  gap: 12px;
+}
+
+/* Consistent medium-size tree maps regardless of which Realm authored the node CSS. */
+@media (max-width: 1180px) and (min-width: 761px) {
+  .skills-talent-tree-panel-v314ag [class*="-tree-tier-"]:not(.tier-0):not(.tier-3) {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 760px) {
+  .skills-talent-hub-v314ag { padding: 14px; }
+  .skills-talent-tabs-v314ag {
+    top: 4px;
+    margin-inline: -4px;
+    scroll-snap-type: x proximity;
+  }
+  .skills-talent-tabs-v314ag button {
+    min-width: 118px;
+    scroll-snap-align: start;
+  }
+  .skills-talent-meta-v314ah { grid-template-columns: 1fr; }
+  .skills-point-source-v314ah { text-align: left; }
+  .skills-talent-meta-main-v314ah em { white-space: normal; }
+  .skills-talent-tree-panel-v314ag [class*="-tree-tier-"] {
+    grid-template-columns: 1fr !important;
+    max-width: none !important;
+  }
+  .skills-talent-tree-panel-v314ag [id$="TalentTools"] {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 520px) {
+  .skills-summary-v314aa { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .skills-summary-v314aa article { padding: 13px 14px; border-radius: 16px; }
+  .skills-summary-v314aa strong { font-size: 1.25rem; }
+  .skills-summary-v314aa span { font-size: .68rem; }
+  .skills-realm-v314aa > header { gap: 10px; }
+  .skills-talent-meta-main-v314ah { grid-template-columns: 34px minmax(0,1fr); }
+  .skills-talent-meta-main-v314ah > span { width: 34px; height: 34px; border-radius: 11px; }
+}
