@@ -1,7 +1,9 @@
 (() => {
-  const VERSION = "0.31.4ac";
+  const VERSION = "0.31.4ad";
   const SKILLS_VERSION = "0.31.4ac";
   const JOURNAL_REWARDS_VERSION = "0.31.4ab";
+  const WEEKLY_REVIEW_VERSION = "0.31.4ac";
+  const KNOWLEDGE_TREE_VERSION = "0.31.4ad";
   const standalone = window.matchMedia?.("(display-mode: standalone)")?.matches || window.navigator.standalone === true;
   if (standalone) document.body.classList.add("is-standalone-v251");
 
@@ -31,15 +33,30 @@
   if (!document.querySelector('link[data-life-rpg-weekly-review]')) {
     const style = document.createElement("link");
     style.rel = "stylesheet";
-    style.href = `./weekly-review.css?v=${VERSION}`;
-    style.dataset.lifeRpgWeeklyReview = VERSION;
+    style.href = `./weekly-review.css?v=${WEEKLY_REVIEW_VERSION}`;
+    style.dataset.lifeRpgWeeklyReview = WEEKLY_REVIEW_VERSION;
     document.head.appendChild(style);
   }
   if (!document.querySelector('script[data-life-rpg-weekly-review]')) {
     const script = document.createElement("script");
-    script.src = `./weekly-review.js?v=${VERSION}`;
+    script.src = `./weekly-review.js?v=${WEEKLY_REVIEW_VERSION}`;
     script.async = false;
-    script.dataset.lifeRpgWeeklyReview = VERSION;
+    script.dataset.lifeRpgWeeklyReview = WEEKLY_REVIEW_VERSION;
+    document.head.appendChild(script);
+  }
+
+  if (!document.querySelector('link[data-life-rpg-knowledge-tree]')) {
+    const style = document.createElement("link");
+    style.rel = "stylesheet";
+    style.href = `./knowledge-tree.css?v=${KNOWLEDGE_TREE_VERSION}`;
+    style.dataset.lifeRpgKnowledgeTree = KNOWLEDGE_TREE_VERSION;
+    document.head.appendChild(style);
+  }
+  if (!document.querySelector('script[data-life-rpg-knowledge-tree]')) {
+    const script = document.createElement("script");
+    script.src = `./knowledge-tree.js?v=${KNOWLEDGE_TREE_VERSION}`;
+    script.async = false;
+    script.dataset.lifeRpgKnowledgeTree = KNOWLEDGE_TREE_VERSION;
     document.head.appendChild(script);
   }
 
