@@ -1,9 +1,10 @@
 (() => {
-  const VERSION = "0.31.4ad";
+  const VERSION = "0.31.4ae";
   const SKILLS_VERSION = "0.31.4ac";
   const JOURNAL_REWARDS_VERSION = "0.31.4ab";
   const WEEKLY_REVIEW_VERSION = "0.31.4ac";
   const KNOWLEDGE_TREE_VERSION = "0.31.4ad";
+  const HEALTH_TREE_VERSION = "0.31.4ae";
   const standalone = window.matchMedia?.("(display-mode: standalone)")?.matches || window.navigator.standalone === true;
   if (standalone) document.body.classList.add("is-standalone-v251");
 
@@ -57,6 +58,21 @@
     script.src = `./knowledge-tree.js?v=${KNOWLEDGE_TREE_VERSION}`;
     script.async = false;
     script.dataset.lifeRpgKnowledgeTree = KNOWLEDGE_TREE_VERSION;
+    document.head.appendChild(script);
+  }
+
+  if (!document.querySelector('link[data-life-rpg-health-tree]')) {
+    const style = document.createElement("link");
+    style.rel = "stylesheet";
+    style.href = `./health-tree.css?v=${HEALTH_TREE_VERSION}`;
+    style.dataset.lifeRpgHealthTree = HEALTH_TREE_VERSION;
+    document.head.appendChild(style);
+  }
+  if (!document.querySelector('script[data-life-rpg-health-tree]')) {
+    const script = document.createElement("script");
+    script.src = `./health-tree.js?v=${HEALTH_TREE_VERSION}`;
+    script.async = false;
+    script.dataset.lifeRpgHealthTree = HEALTH_TREE_VERSION;
     document.head.appendChild(script);
   }
 
