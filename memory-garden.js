@@ -4,7 +4,7 @@
   const app = window.LifeRPGApp;
   if (!app?.getState || !app?.awardActivity) return;
 
-  const VERSION = "0.31.4y";
+  const VERSION = "0.31.4z";
   const RNG_VERSION = "0.31.4o";
   const SCHEMA = 2;
   const TOTAL = 50;
@@ -507,7 +507,7 @@
     persist("memory-garden-complete");
 
     const next = nextLevel();
-    if (alreadyCompleted || active.replay) app.showToast?.(`🧠 Memory Garden Level ${level} replay complete.`);
+    if (alreadyCompleted || active.replay) { const daily = window.LifeRPGDailyStreaks?.awardStandalone?.("memoryGarden", { source:"memory-garden-daily-replay", label:`Memory Garden Daily · Replay Level ${level}`, realm:"Knowledge", capability:"knowledge", xp:5, realmXP:5, statXP:4, coins:5, storyEnergyBase:.2, metadata:{memoryGarden:true,mode:"journey-replay",level} }); app.showToast?.(daily?.reward ? `🧠 Memory Garden Level ${level} replay complete · Daily ${daily.info?.streak || 1}-day streak · +${daily.reward.xp} XP · +${app.formatEnergy?.(daily.reward.storyEnergy) ?? daily.reward.storyEnergy} 🔥 · +${daily.reward.coins} 🪙` : `🧠 Memory Garden Level ${level} replay complete.`); }
     else app.showToast?.(`🧠 Level ${level} complete · +${reward.xp} XP · +${app.formatEnergy?.(reward.storyEnergy) ?? reward.storyEnergy} 🔥 · +${reward.coins} 🪙${next ? ` · Level ${next} unlocked` : " · Chapter 1 complete!"}`);
   }
 
@@ -521,31 +521,9 @@
     const totalAttempts = Math.max(ROUNDS_PER_LEVEL, active.attemptsByRound.reduce((sum, value) => sum + Number(value || 0), 0));
     const answeredFirstTry = active.firstTryByRound.filter(value => value !== null);
     const firstTryAccuracy = answeredFirstTry.length ? Math.round(answeredFirstTry.filter(Boolean).length / answeredFirstTry.length * 100) : null;
-    return app.awardActivity({
-      source: "memory-garden-complete",
-      sourceId,
-      label: `Memory Garden · Level ${active.level} · ${MODE_META[active.mode].label}`,
-      realm: "Knowledge",
-      capability: "knowledge",
-      xp: Math.max(1, Math.round(meta.xp * scale)),
-      realmXP: Math.max(1, Math.round(meta.xp * scale)),
-      statXP: Math.max(1, Math.round(meta.statXP * scale)),
-      coins: Math.max(1, Math.round(meta.coins * scale)),
-      storyEnergyBase: floor2(meta.story * scale),
-      progressionRelevant: true,
-      metadata: {
-        memoryGarden: true,
-        mode: active.mode,
-        level: active.level,
-        tier: tier(active.level),
-        rounds: ROUNDS_PER_LEVEL,
-        attempts: totalAttempts,
-        firstTryAccuracy,
-        repeatScale: scale,
-        speedReward: false,
-        exposureTimingOnly: true
-      }
-    });
+    const baseSpec = { source:"memory-garden-complete", sourceId, label:`Memory Garden · Level ${active.level} · ${MODE_META[active.mode].label}`, realm:"Knowledge", capability:"knowledge", xp:Math.max(1,Math.round(meta.xp*scale)), realmXP:Math.max(1,Math.round(meta.xp*scale)), statXP:Math.max(1,Math.round(meta.statXP*scale)), coins:Math.max(1,Math.round(meta.coins*scale)), storyEnergyBase:floor2(meta.story*scale), progressionRelevant:true, metadata:{memoryGarden:true,mode:active.mode,level:active.level,tier:tier(active.level),rounds:ROUNDS_PER_LEVEL,attempts:totalAttempts,firstTryAccuracy,repeatScale:scale,speedReward:false,exposureTimingOnly:true} };
+    const streaked = window.LifeRPGDailyStreaks?.apply?.("memoryGarden", baseSpec) || {spec:baseSpec,info:null};
+    const reward = app.awardActivity(streaked.spec); reward.dailyStreakInfo = streaked.info; return reward;
   }
 
   function render() {
@@ -597,14 +575,14 @@
     const next = nextLevel();
     const recoveryFirst = healthRecoveryFirst();
     if (!next) {
-      els.daily.innerHTML = `<div><small>DAILY MEMORY</small><strong>Chapter 1 complete 🌸</strong><span>Replay any level whenever you want. Replays do not duplicate rewards.</span></div><button type="button" data-memory-garden-level="50">Replay Level 50</button>`;
+      els.daily.innerHTML = `<div><small>DAILY MEMORY</small><strong>Chapter 1 complete 🌸</strong><span>Replay any level whenever you want. A first replay on a new day can still keep the positive Daily streak going.</span><em class="training-streak-line-v314z">${escapeHtml(window.LifeRPGDailyStreaks?.shortLabel?.("memoryGarden") || "Daily consistency bonus ready")}</em></div><button type="button" data-memory-garden-level="50">Replay Level 50</button>`;
       return;
     }
     const mode = modeForLevel(next);
     const done = todayCompletionCount() > 0;
     const active = current()?.level === next && !current()?.completedAt;
     const healthNote = recoveryFirst ? " Your check-in suggests Recovery Studio is the kinder priority today; Memory Garden stays completely optional." : "";
-    els.daily.innerHTML = `<div><small>DAILY MEMORY</small><strong>${done ? "Today's memory training is already done ✓" : `Continue your Garden · Level ${next}`}</strong><span>${MODE_META[mode].label} · ${TIERS[tier(next)].label}.${healthNote}</span></div><button type="button" data-memory-garden-daily-start>${active ? "Continue" : "Start"} Level ${next}</button>`;
+    els.daily.innerHTML = `<div><small>DAILY MEMORY</small><strong>${done ? "Today's memory training is already done ✓" : `Continue your Garden · Level ${next}`}</strong><span>${MODE_META[mode].label} · ${TIERS[tier(next)].label}.${healthNote}</span><em class="training-streak-line-v314z">${escapeHtml(window.LifeRPGDailyStreaks?.shortLabel?.("memoryGarden") || "Daily consistency bonus ready")}</em></div><button type="button" data-memory-garden-daily-start>${active ? "Continue" : "Start"} Level ${next}</button>`;
   }
 
   function renderProgress() {

@@ -16165,3 +16165,29 @@ body.training-focus-active-v314o > *:not(#trainingFocusView):not(.toast):not(.ac
   .lexicon-hint-panel-v314y { align-items:flex-start; flex-direction:column; }
   .lexicon-daily-detail-v314y { grid-template-columns:1fr; gap:3px; }
 }
+
+/* V0.31.4z · positive Daily streaks + Lexicon calibration */
+.training-streak-line-v314z{display:block;margin-top:.45rem;font-size:.78rem;font-style:normal;font-weight:800;color:var(--plum,#5c294b);opacity:.86}
+.lexicon-dashboard-daily-v314z{margin-top:1rem}
+.lexicon-dashboard-daily-v314z:empty{display:none}
+.lexicon-daily-word-v314y.is-dashboard-v314z{max-width:none;margin:0;padding:1rem 1.15rem;border:1px solid rgba(92,41,75,.14);box-shadow:none;background:linear-gradient(135deg,rgba(255,249,242,.96),rgba(251,235,241,.82))}
+.lexicon-daily-word-v314y.is-dashboard-v314z .lexicon-daily-definition-v314y{max-width:72ch}
+.lexicon-daily-streak-v314z{margin:.55rem 0 .2rem;padding:.42rem .62rem;border-radius:999px;display:inline-flex;background:rgba(92,41,75,.07);font-size:.76rem;font-weight:800;color:var(--plum,#5c294b)}
+.lexicon-calibration-panel-v314z{margin:1rem 0;padding:1rem;border:1px solid rgba(92,41,75,.14);border-radius:20px;background:rgba(255,250,246,.78)}
+.lexicon-calibration-panel-v314z>p{margin:.45rem 0 .85rem;color:var(--muted-text,#705f69);line-height:1.5}
+.lexicon-calibration-actions-v314z{display:flex;gap:.55rem;flex-wrap:wrap;margin-bottom:.8rem}
+.lexicon-calibration-words-v314z{display:grid;gap:.65rem}
+.lexicon-calibration-empty-v314z{display:flex;gap:.8rem;align-items:center;padding:.9rem;border-radius:16px;background:rgba(92,41,75,.05)}
+.lexicon-calibration-empty-v314z>span{display:grid;place-items:center;width:2.4rem;height:2.4rem;border-radius:50%;background:rgba(92,41,75,.1);font-weight:900;color:var(--plum,#5c294b)}
+.lexicon-calibration-empty-v314z p{margin:.2rem 0 0;color:var(--muted-text,#705f69)}
+.lexicon-calibration-word-v314z{display:grid;grid-template-columns:minmax(160px,.75fr) minmax(260px,1.6fr);gap:.8rem;align-items:center;padding:.8rem .9rem;border-radius:16px;border:1px solid rgba(92,41,75,.1);background:rgba(255,255,255,.66)}
+.lexicon-calibration-word-v314z.is-rated{background:rgba(238,247,239,.62)}
+.lexicon-calibration-word-v314z small{display:block;font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted-text,#705f69)}
+.lexicon-calibration-word-v314z strong{display:block;margin-top:.14rem;font-size:1.08rem}
+.lexicon-calibration-ratings-v314z{display:grid;grid-template-columns:repeat(3,1fr);gap:.4rem}
+.lexicon-calibration-ratings-v314z button{min-height:2.55rem;border:1px solid rgba(92,41,75,.18);border-radius:12px;background:rgba(255,255,255,.78);color:inherit;font:inherit;font-size:.78rem;font-weight:800;cursor:pointer}
+.lexicon-calibration-ratings-v314z button:hover,.lexicon-calibration-ratings-v314z button.selected{border-color:rgba(92,41,75,.52);background:rgba(92,41,75,.09);color:var(--plum,#5c294b)}
+.lexicon-crossword-paused-v314z{display:flex;gap:.9rem;align-items:flex-start;padding:1rem;border-radius:18px;background:rgba(92,41,75,.055);border:1px dashed rgba(92,41,75,.2)}
+.lexicon-crossword-paused-v314z>span{font-size:1.8rem;color:var(--plum,#5c294b)}
+.lexicon-crossword-paused-v314z p{margin:.25rem 0 0;line-height:1.5;color:var(--muted-text,#705f69)}
+@media(max-width:720px){.lexicon-calibration-word-v314z{grid-template-columns:1fr}.lexicon-calibration-ratings-v314z{grid-template-columns:1fr}.lexicon-calibration-actions-v314z>*{flex:1 1 100%}}

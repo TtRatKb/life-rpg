@@ -440,6 +440,8 @@
     if (event.source === "memory-garden-complete") return `Journey Level ${number(m.level)} completed · ${humanize(m.mode || "memory")} recall · ${number(m.rounds) || 3} rounds`;
     if (event.source === "word-lab-complete") return `${m.language === "de" ? "German Precision" : "English Fluency"} · legacy Word Lab level ${number(m.level)} · ${number(m.firstTryAccuracy)}% first-try`;
     if (event.source === "lexicon-lab-complete") return `Academic Crossword ${number(m.level)} · ${humanize(m.theme || "German academic lexicon")} · ${number(m.perfectWords)}/${number(m.wordCount)} words recalled cleanly`;
+    if (event.source === "lexicon-calibration") return `${humanize(m.pool || "lexicon")} pool · ${number(m.chunkSize) || 5} words self-rated`;
+    if (event.source === "lexicon-daily-word") return `Daily Word · ${humanize(m.selfRating || "rated")} · personal vocabulary pool`;
     if (event.source === "recovery-studio") {
       const seconds = number(m.durationSeconds);
       const minutes = seconds ? Math.max(1, Math.floor(seconds / 60)) : number(m.sessionMinutes);
@@ -465,6 +467,9 @@
     const reward = rewardFromEvent(event);
     const bits = [];
     if (event.duplicate) bits.push(dedupeWhy(event));
+    const streak = number(event.metadata?.dailyStreak);
+    const streakMultiplier = number(event.metadata?.dailyStreakMultiplier);
+    if (streak && streakMultiplier >= 1) bits.push(`<p>This was the first qualifying Daily completion for <strong>${esc(event.metadata?.dailyStreakLabel || "this activity")}</strong> today. A <strong>${streak}-day consistency streak</strong> applied a positive <strong>×${trim(streakMultiplier)}</strong> multiplier to the listed base reward. Missing a day never removes XP, Coins or Story Energy; the next completion simply starts again from the normal base.</p>`);
     if (reward.rawStoryEnergy > reward.storyEnergy + 0.001) bits.push(`<p>This action generated ${app.formatEnergy?.(reward.rawStoryEnergy) ?? trim(reward.rawStoryEnergy)} 🔥 base, but daily Story Energy diminishing returns credited <strong>${app.formatEnergy?.(reward.storyEnergy) ?? trim(reward.storyEnergy)} 🔥</strong>.</p>`);
     if (event.source === "stewardship") bits.push(`<p>Library/system stewardship uses a small daily cap, so adding many Books, Games, Habits or Adventure details in one day cannot become the dominant progression source.</p>`);
     if (event.source === "game-goal") bits.push(`<p>This reward comes from completing a tracked Game Goal. Merely importing a goal and actually completing it are intentionally separate actions.</p>`);

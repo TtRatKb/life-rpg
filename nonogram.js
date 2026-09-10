@@ -5,7 +5,7 @@
   const LEVELS = Array.isArray(window.LIFE_RPG_NONOGRAM_LEVELS) ? window.LIFE_RPG_NONOGRAM_LEVELS : [];
   if (!app?.getState || !app?.awardActivity || !LEVELS.length) return;
 
-  const VERSION = "0.31.4k";
+  const VERSION = "0.31.4z";
   const SCHEMA = 1;
   const TOTAL = 50;
   const REPEAT_SCALES = [1, .75, .5, .35];
@@ -59,7 +59,13 @@
 
   function render(){renderGrowth();renderDaily();renderProgress();renderLevels();renderTools();renderBoard();renderResult();syncFocusHeader();}
   function renderGrowth(){const s=state(),next=nextLevel(),active=s.journey.active&&!s.journey.active.completedAt?s.journey.active:null;if(els.growthStats)els.growthStats.innerHTML=`<span><b>${s.journey.completedLevels.length}/${TOTAL}</b> Journey</span><span><b>${s.stats.solved||0}</b> solved</span><span>${next?`▶ Level ${next}`:"🏆 Chapter complete"}</span>`;if(els.trainingStats)els.trainingStats.textContent=next?`Level ${next} / ${TOTAL}`:`${TOTAL}/${TOTAL} complete`;if(els.quickStatus)els.quickStatus.textContent=active?`Continue Journey Level ${active.level}`:next?`Journey ${s.journey.completedLevels.length}/${TOTAL} · next Level ${next}`:`Journey ${TOTAL}/${TOTAL} complete`;}
-  function renderDaily(){if(!els.daily)return;const next=nextLevel(),done=todayNonogramCount()>0;if(!next){els.daily.innerHTML=`<div><small>DAILY NONOGRAM</small><strong>Chapter 1 complete 🏆</strong><span>Replay any unlocked level whenever you want.</span></div><button type="button" data-nonogram-level="50">Replay Level 50</button>`;return;}els.daily.innerHTML=`<div><small>DAILY NONOGRAM</small><strong>${done?"Today's logic training is already done ✓":`Continue your Journey · Level ${next}`}</strong><span>${levelDef(next).size}×${levelDef(next).size} · ${TIERS[tier(next)].label}. No streak punishment if today is too full.</span></div><button type="button" data-nonogram-daily-start>${state().journey.active?.level===next&&!state().journey.active?.completedAt?"Continue":"Start"} Level ${next}</button>`;}
+  function renderDaily(){
+    if(!els.daily)return;
+    const next=nextLevel(),done=todayNonogramCount()>0;
+    const streak=escapeHtml(window.LifeRPGDailyStreaks?.shortLabel?.("nonogram")||"Daily consistency bonus ready");
+    if(!next){els.daily.innerHTML=`<div><small>DAILY NONOGRAM</small><strong>Chapter 1 complete 🏆</strong><span>Replay any unlocked level whenever you want. A first replay on a new day can still keep the positive Daily streak going.</span><em class="training-streak-line-v314z">${streak}</em></div><button type="button" data-nonogram-level="50">Replay Level 50</button>`;return;}
+    els.daily.innerHTML=`<div><small>DAILY NONOGRAM</small><strong>${done?"Today's logic training is already done ✓":`Continue your Journey · Level ${next}`}</strong><span>${levelDef(next).size}×${levelDef(next).size} · ${TIERS[tier(next)].label}. Missing a day never removes rewards; consistency only adds a bonus.</span><em class="training-streak-line-v314z">${streak}</em></div><button type="button" data-nonogram-daily-start>${state().journey.active?.level===next&&!state().journey.active?.completedAt?"Continue":"Start"} Level ${next}</button>`;
+  }
   function renderProgress(){if(!els.progress)return;const n=state().journey.completedLevels.length,p=Math.round(n/TOTAL*100);els.progress.innerHTML=`<div><span><strong>${n}/${TOTAL}</strong> completed</span><span>${p}%</span></div><div class="bar"><span style="width:${p}%"></span></div>`;}
   function renderLevels(){if(!els.levels)return;const set=completedSet(),next=nextLevel();els.levels.innerHTML=Array.from({length:TOTAL},(_,i)=>i+1).map(level=>{const done=set.has(level),unlocked=done||level===1||set.has(level-1);const active=current()?.level===level&&!current()?.completedAt;return`<button type="button" data-nonogram-level="${level}" ${unlocked?"":"disabled"} class="${done?"done":""} ${active?"active":""}"><span>${done?"✓":active?"▶":unlocked?level:"🔒"}</span><small>${levelDef(level).size}×${levelDef(level).size}</small></button>`;}).join("");}
   function renderTools(){if(!els.tools)return;els.tools.querySelectorAll?.("[data-nonogram-tool]").forEach(btn=>btn.classList.toggle("active",btn.dataset.nonogramTool===mode));}
@@ -90,7 +96,8 @@
     if(live.replay||already){
       s.completed.push({id:live.id,level:live.level,replay:true,completedAt:live.completedAt,rewardEventId:null});
       persist("nonogram-replay");
-      app.showToast?.(`↻ Nonogram Level ${live.level} replay solved · no duplicate rewards`);
+      const daily=window.LifeRPGDailyStreaks?.awardStandalone?.("nonogram",{source:"nonogram-daily-replay",label:`Nonogram Daily · Replay Level ${live.level}`,realm:"Knowledge",capability:"knowledge",xp:5,realmXP:5,statXP:4,coins:5,storyEnergyBase:.2,metadata:{nonogram:true,mode:"journey-replay",level:live.level}});
+      app.showToast?.(daily?.reward?`↻ Nonogram Level ${live.level} replay solved · Daily ${daily.info?.streak||1}-day streak · +${daily.reward.xp} XP · +${app.formatEnergy?.(daily.reward.storyEnergy)??daily.reward.storyEnergy} 🔥 · +${daily.reward.coins} 🪙`:`↻ Nonogram Level ${live.level} replay solved · no duplicate level reward`);
       window.setTimeout(()=>els.result?.scrollIntoView?.({behavior:"smooth",block:"start"}),40);
       return;
     }
@@ -106,7 +113,14 @@
     window.setTimeout(()=>els.result?.scrollIntoView?.({behavior:"smooth",block:"start"}),40);
   }
 
-  function award(a){const sourceId=`journey-l${a.level}`,root=app.getState(),existing=(root.rewardLedger?.events||[]).find(e=>e?.source==="nonogram-complete"&&e?.sourceId===sourceId);if(existing){a.rewardEventId=existing.id;return{eventId:existing.id,xp:Number(existing.xp||0),realmXP:Number(existing.realmXP||0),statXP:Number(existing.statXP||0),coins:Number(existing.coins||0),storyEnergy:Number(existing.storyEnergy||0)};}const meta=TIERS[tier(a.level)],scale=REPEAT_SCALES[Math.min(todayNonogramCount(),REPEAT_SCALES.length-1)],requested={xp:Math.max(1,Math.round(meta.xp*scale)),realmXP:Math.max(1,Math.round(meta.xp*scale)),statXP:Math.max(1,Math.round(meta.statXP*scale)),coins:Math.max(1,Math.round(meta.coins*scale)),storyEnergyBase:floor2(meta.story*scale)};const reward=app.awardActivity({source:"nonogram-complete",sourceId,label:`Nonogram Journey · Level ${a.level}`,realm:"Knowledge",capability:"knowledge",...requested,progressionRelevant:true,metadata:{nonogram:true,mode:"journey",level:a.level,size:a.size,tier:tier(a.level),repeatScale:scale}});a.rewardEventId=reward.eventId||null;return reward;}
+  function award(a){
+    const sourceId=`journey-l${a.level}`,root=app.getState(),existing=(root.rewardLedger?.events||[]).find(e=>e?.source==="nonogram-complete"&&e?.sourceId===sourceId);
+    if(existing){a.rewardEventId=existing.id;return{eventId:existing.id,xp:Number(existing.xp||0),realmXP:Number(existing.realmXP||0),statXP:Number(existing.statXP||0),coins:Number(existing.coins||0),storyEnergy:Number(existing.storyEnergy||0)};}
+    const meta=TIERS[tier(a.level)],scale=REPEAT_SCALES[Math.min(todayNonogramCount(),REPEAT_SCALES.length-1)];
+    const baseSpec={source:"nonogram-complete",sourceId,label:`Nonogram Journey · Level ${a.level}`,realm:"Knowledge",capability:"knowledge",xp:Math.max(1,Math.round(meta.xp*scale)),realmXP:Math.max(1,Math.round(meta.xp*scale)),statXP:Math.max(1,Math.round(meta.statXP*scale)),coins:Math.max(1,Math.round(meta.coins*scale)),storyEnergyBase:floor2(meta.story*scale),progressionRelevant:true,metadata:{nonogram:true,mode:"journey",level:a.level,size:a.size,tier:tier(a.level),repeatScale:scale}};
+    const streaked=window.LifeRPGDailyStreaks?.apply?.("nonogram",baseSpec)||{spec:baseSpec,info:null};
+    const reward=app.awardActivity(streaked.spec);reward.dailyStreakInfo=streaked.info;a.rewardEventId=reward.eventId||null;return reward;
+  }
   function todayNonogramCount(){const key=localDateKey(new Date());return(app.getState().rewardLedger?.events||[]).filter(e=>e?.source==="nonogram-complete"&&!e.duplicate&&localDateKey(new Date(e.at||0))===key).length;}
   function localDateKey(d){if(!d||Number.isNaN(d.getTime()))return"";return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;}
   function floor2(n){return Math.floor(Number(n||0)*100)/100;}

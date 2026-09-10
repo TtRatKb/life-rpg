@@ -5,7 +5,7 @@
   const LEVELS = Array.isArray(window.LIFE_RPG_NUMBER_SENSE_LEVELS) ? window.LIFE_RPG_NUMBER_SENSE_LEVELS : [];
   if (!app?.getState || !app?.awardActivity || !LEVELS.length) return;
 
-  const VERSION = "0.31.4o";
+  const VERSION = "0.31.4z";
   const SCHEMA = 1;
   const TOTAL = 50;
   const REPEAT_SCALES = [1, 0.75, 0.5, 0.35];
@@ -223,13 +223,13 @@
     if (!els.daily) return;
     const next = nextLevel();
     if (!next) {
-      els.daily.innerHTML = `<div><small>DAILY NUMBER SENSE</small><strong>Chapter 1 complete 🏆</strong><span>Replay any level whenever you want. Replays do not duplicate rewards.</span></div><button type="button" data-number-sense-level="50">Replay Level 50</button>`;
+      els.daily.innerHTML = `<div><small>DAILY NUMBER SENSE</small><strong>Chapter 1 complete 🏆</strong><span>Replay any level whenever you want. A first replay on a new day can still keep the positive Daily streak going.</span><em class="training-streak-line-v314z">${escapeHtml(window.LifeRPGDailyStreaks?.shortLabel?.("numberSense") || "Daily consistency bonus ready")}</em></div><button type="button" data-number-sense-level="50">Replay Level 50</button>`;
       return;
     }
     const def = levelDef(next);
     const done = todayCompletionCount() > 0;
     const active = current()?.level === next && !current()?.completedAt;
-    els.daily.innerHTML = `<div><small>DAILY NUMBER SENSE</small><strong>${done ? "Today's number training is already done ✓" : `Continue your Journey · Level ${next}`}</strong><span>${TIERS[tier(next)].label} · ${escapeHtml(def.focus)}. Accuracy matters; speed does not.</span></div><button type="button" data-number-sense-daily-start>${active ? "Continue" : "Start"} Level ${next}</button>`;
+    els.daily.innerHTML = `<div><small>DAILY NUMBER SENSE</small><strong>${done ? "Today's number training is already done ✓" : `Continue your Journey · Level ${next}`}</strong><span>${TIERS[tier(next)].label} · ${escapeHtml(def.focus)}. Accuracy matters; speed does not. Missing a day never removes rewards.</span><em class="training-streak-line-v314z">${escapeHtml(window.LifeRPGDailyStreaks?.shortLabel?.("numberSense") || "Daily consistency bonus ready")}</em></div><button type="button" data-number-sense-daily-start>${active ? "Continue" : "Start"} Level ${next}</button>`;
   }
 
   function renderProgress() {
@@ -488,7 +488,8 @@
       s.completed.push({ id: live.id, level, replay: true, completedAt: live.completedAt, rewardEventId: null });
       live.rewardEventId = null;
       persist("number-sense-replay");
-      app.showToast?.(`↻ Number Sense Level ${level} replay complete · no duplicate rewards`);
+      const daily = window.LifeRPGDailyStreaks?.awardStandalone?.("numberSense", { source:"number-sense-daily-replay", label:`Number Sense Daily · Replay Level ${level}`, realm:"Knowledge", capability:"knowledge", xp:5, realmXP:5, statXP:4, coins:5, storyEnergyBase:.2, metadata:{numberSense:true,mode:"journey-replay",level} });
+      app.showToast?.(daily?.reward ? `↻ Number Sense Level ${level} replay complete · Daily ${daily.info?.streak || 1}-day streak · +${daily.reward.xp} XP · +${app.formatEnergy?.(daily.reward.storyEnergy) ?? daily.reward.storyEnergy} 🔥 · +${daily.reward.coins} 🪙` : `↻ Number Sense Level ${level} replay complete · no duplicate level reward`);
       return;
     }
     const reward = award(live);
@@ -521,29 +522,9 @@
     }
     const meta = TIERS[tier(active.level)];
     const scale = REPEAT_SCALES[Math.min(todayCompletionCount(), REPEAT_SCALES.length - 1)];
-    const reward = app.awardActivity({
-      source: "number-sense-complete",
-      sourceId,
-      label: `Number Sense Journey · Level ${active.level}`,
-      realm: "Knowledge",
-      capability: "knowledge",
-      xp: Math.max(1, Math.round(meta.xp * scale)),
-      realmXP: Math.max(1, Math.round(meta.xp * scale)),
-      statXP: Math.max(1, Math.round(meta.statXP * scale)),
-      coins: Math.max(1, Math.round(meta.coins * scale)),
-      storyEnergyBase: floor2(meta.story * scale),
-      progressionRelevant: true,
-      metadata: {
-        numberSense: true,
-        mode: "journey",
-        level: active.level,
-        tier: tier(active.level),
-        questions: levelDef(active.level)?.questions?.length || 6,
-        attempts: active.attemptsByQuestion.reduce((sum, value) => sum + Number(value || 0), 0),
-        repeatScale: scale,
-        speedReward: false
-      }
-    });
+    const baseSpec = { source:"number-sense-complete", sourceId, label:`Number Sense Journey · Level ${active.level}`, realm:"Knowledge", capability:"knowledge", xp:Math.max(1,Math.round(meta.xp*scale)), realmXP:Math.max(1,Math.round(meta.xp*scale)), statXP:Math.max(1,Math.round(meta.statXP*scale)), coins:Math.max(1,Math.round(meta.coins*scale)), storyEnergyBase:floor2(meta.story*scale), progressionRelevant:true, metadata:{ numberSense:true, mode:"journey", level:active.level, tier:tier(active.level), questions:levelDef(active.level)?.questions?.length||6, attempts:active.attemptsByQuestion.reduce((sum,value)=>sum+Number(value||0),0), repeatScale:scale, speedReward:false } };
+    const streaked = window.LifeRPGDailyStreaks?.apply?.("numberSense", baseSpec) || {spec:baseSpec,info:null};
+    const reward = app.awardActivity(streaked.spec); reward.dailyStreakInfo = streaked.info;
     active.rewardEventId = reward.eventId || null;
     return reward;
   }

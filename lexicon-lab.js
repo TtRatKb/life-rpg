@@ -4,12 +4,14 @@
   const app = window.LifeRPGApp;
   const DATA = window.LIFE_RPG_LEXICON_LAB_DATA || {};
   const ENRICHMENT = window.LIFE_RPG_LEXICON_LAB_ENRICHMENT || {};
+  const POOL_DATA = window.LIFE_RPG_LEXICON_POOL || {};
   const ENTRIES = Array.isArray(DATA.entries) ? DATA.entries : [];
+  const POOL = Array.isArray(POOL_DATA.entries) ? POOL_DATA.entries : ENTRIES.map(entry => ({ id: entry.id, term: entry.term, definition: entry.clue, theme: entry.theme, starter: true }));
   const PUZZLES = Array.isArray(DATA.puzzles) ? DATA.puzzles : [];
   if (!app?.getState || !app?.awardActivity || !ENTRIES.length || !PUZZLES.length) return;
 
-  const VERSION = "0.31.4y";
-  const SCHEMA = 2;
+  const VERSION = "0.31.4z";
+  const SCHEMA = 3;
   const TOTAL = PUZZLES.length;
   const REPEAT_SCALES = [1, .75, .5, .35];
   const TIERS = {
@@ -20,6 +22,10 @@
     5: { xp: 32, statXP: 22, coins: 21, story: 1.3 }
   };
   const ENTRY_BY_ID = Object.fromEntries(ENTRIES.map(entry => [entry.id, entry]));
+  const POOL_BY_ID = Object.fromEntries(POOL.map(entry => [entry.id, entry]));
+  const STARTER_POOL = POOL.filter(entry => entry.starter).slice(0, Number(POOL_DATA.starterTarget || 100));
+  const EXTENDED_POOL = POOL.filter(entry => !STARTER_POOL.some(starter => starter.id === entry.id));
+  const CALIBRATION_CHUNK = 5;
 
   const els = {
     dialog: byId("lexiconLabDialog"), close: byId("lexiconLabClose"), daily: byId("lexiconLabDailyCard"),
@@ -28,7 +34,9 @@
     play: byId("lexiconLabPlayPanel"), puzzleMeta: byId("lexiconLabPuzzleMeta"), board: byId("lexiconCrosswordBoard"),
     across: byId("lexiconAcrossClues"), down: byId("lexiconDownClues"), check: byId("lexiconCheckPuzzle"), clear: byId("lexiconClearPuzzle"),
     result: byId("lexiconLabResult"), hintPanel: byId("lexiconHintPanel"), growthStats: byId("lexiconLabGrowthStats"), trainingStats: byId("trainingGroundsLexiconStatus"),
-    quickStatus: byId("lexiconLabQuickStatus")
+    quickStatus: byId("lexiconLabQuickStatus"), dashboardDaily: byId("lexiconDashboardDailyWord"),
+    calibration: byId("lexiconCalibrationPanel"), calibrationWords: byId("lexiconCalibrationWords"), calibrationStatus: byId("lexiconCalibrationStatus"),
+    calibrationStarter: byId("lexiconCalibrationStarter"), calibrationExtended: byId("lexiconCalibrationExtended"), exportProfile: byId("lexiconExportProfile")
   };
 
   let focusedCellKey = null;
@@ -49,7 +57,8 @@
       journey: { completedLevels: [], active: null },
       words: {},
       dailyWords: {},
-      stats: { puzzlesSolved: 0, perfectWords: 0, checks: 0, contextTries: 0, contextCorrect: 0 },
+      calibration: { active: null, batchesCompleted: 0 },
+      stats: { puzzlesSolved: 0, perfectWords: 0, checks: 0, contextTries: 0, contextCorrect: 0, calibrationBatches: 0 },
       completed: []
     };
   }
@@ -62,13 +71,16 @@
     s.journey ||= defaults().journey;
     s.words ||= {};
     s.dailyWords = s.dailyWords && typeof s.dailyWords === "object" && !Array.isArray(s.dailyWords) ? s.dailyWords : {};
+    s.calibration = s.calibration && typeof s.calibration === "object" && !Array.isArray(s.calibration) ? s.calibration : defaults().calibration;
+    s.calibration.active = normalizeCalibrationActive(s.calibration.active);
+    s.calibration.batchesCompleted = Math.max(0, Number(s.calibration.batchesCompleted || 0));
     s.stats ||= defaults().stats;
     s.completed = Array.isArray(s.completed) ? s.completed.slice(-300) : [];
     const dailyKeys = Object.keys(s.dailyWords).sort();
     while (dailyKeys.length > 180) delete s.dailyWords[dailyKeys.shift()];
     s.journey.completedLevels = [...new Set((s.journey.completedLevels || []).map(Number).filter(level => level >= 1 && level <= TOTAL))].sort((a,b) => a-b);
     s.journey.active = normalizeActive(s.journey.active);
-    ["puzzlesSolved", "perfectWords", "checks", "contextTries", "contextCorrect"].forEach(key => s.stats[key] = Math.max(0, Number(s.stats[key] || 0)));
+    ["puzzlesSolved", "perfectWords", "checks", "contextTries", "contextCorrect", "calibrationBatches"].forEach(key => s.stats[key] = Math.max(0, Number(s.stats[key] || 0)));
     for (const [id, record] of Object.entries(s.words)) s.words[id] = normalizeWordRecord(record);
     return s;
   }
@@ -79,8 +91,116 @@
     out.successfulRecalls = Math.max(0, Number(out.successfulRecalls || 0));
     out.misses = Math.max(0, Number(out.misses || 0));
     out.lastSeen = out.lastSeen || null;
+    out.selfRating = ["known", "heard", "new"].includes(out.selfRating) ? out.selfRating : null;
+    out.selfRatedAt = out.selfRatedAt || null;
+    out.selfRatingSource = out.selfRatingSource || null;
     out.status = masteryStatus(out);
     return out;
+  }
+
+
+  function normalizeCalibrationActive(active) {
+    if (!active || typeof active !== "object") return null;
+    const mode = active.mode === "extended" ? "extended" : "starter";
+    const sourcePool = mode === "starter" ? STARTER_POOL : EXTENDED_POOL;
+    const allowed = new Set(sourcePool.map(entry => entry.id));
+    const ids = [...new Set((active.ids || []).map(String).filter(id => allowed.has(id)))].slice(0, CALIBRATION_CHUNK);
+    if (!ids.length) return null;
+    return { mode, ids, batchKey: String(active.batchKey || ids.join("+")), startedAt: Number(active.startedAt || Date.now()) };
+  }
+
+  function poolRecord(entry) {
+    const s = state();
+    return s.words[entry.id] = normalizeWordRecord(s.words[entry.id]);
+  }
+
+  function ratingCounts(sourcePool = POOL) {
+    const counts = { known: 0, heard: 0, new: 0, unrated: 0 };
+    sourcePool.forEach(entry => {
+      const rating = state().words[entry.id]?.selfRating;
+      if (counts[rating] !== undefined) counts[rating] += 1;
+      else counts.unrated += 1;
+    });
+    return counts;
+  }
+
+  function starterComplete() { return ratingCounts(STARTER_POOL).unrated === 0; }
+
+  function chooseCalibrationChunk(mode = "starter") {
+    const s = state();
+    const sourcePool = mode === "extended" ? EXTENDED_POOL : STARTER_POOL;
+    const unrated = sourcePool.filter(entry => !s.words[entry.id]?.selfRating);
+    if (!unrated.length) { s.calibration.active = null; persist("lexicon-calibration-finished"); return; }
+    const ids = unrated.slice(0, CALIBRATION_CHUNK).map(entry => entry.id);
+    s.calibration.active = { mode, ids, batchKey: `${mode}:${ids.join("+")}`, startedAt: Date.now() };
+    persist("lexicon-calibration-start");
+  }
+
+  function rateCalibrationWord(id, rating) {
+    if (!["known", "heard", "new"].includes(rating)) return;
+    const s = state();
+    const active = s.calibration.active;
+    if (!active?.ids?.includes(id)) return;
+    const entry = POOL_BY_ID[id];
+    if (!entry) return;
+    const rec = s.words[id] = normalizeWordRecord(s.words[id]);
+    const firstRating = !rec.selfRating;
+    rec.selfRating = rating;
+    rec.selfRatedAt = new Date().toISOString();
+    rec.selfRatingSource = active.mode === "starter" ? "starter-calibration" : "extended-calibration";
+    if (firstRating) registerWordEncounter(s, entry, rec.selfRatingSource);
+    const finished = active.ids.every(wordId => Boolean(s.words[wordId]?.selfRating));
+    if (finished) {
+      awardCalibrationBatch(active);
+      s.calibration.active = null;
+      s.calibration.batchesCompleted += 1;
+      s.stats.calibrationBatches += 1;
+    }
+    persist(finished ? "lexicon-calibration-batch-complete" : "lexicon-calibration-rating");
+  }
+
+  function awardCalibrationBatch(active) {
+    const sourceId = active.batchKey;
+    const existing = (app.getState().rewardLedger?.events || []).some(event => event?.source === "lexicon-calibration" && event?.sourceId === sourceId);
+    if (existing) return;
+    app.awardActivity({
+      source: "lexicon-calibration", sourceId,
+      label: `Lexicon Calibration · ${active.mode === "starter" ? "Starter" : "Extended"} 5-word batch`,
+      realm: "Knowledge", capability: "knowledge", xp: 5, realmXP: 5, statXP: 4, coins: 4, storyEnergyBase: 0.15,
+      progressionRelevant: true,
+      metadata: { lexiconLab: true, mode: "calibration", pool: active.mode, wordIds: [...active.ids], chunkSize: active.ids.length }
+    });
+  }
+
+  function setSelfRating(entry, rating, source) {
+    if (!entry || !["known", "heard", "new"].includes(rating)) return;
+    const s = state();
+    const rec = s.words[entry.id] = normalizeWordRecord(s.words[entry.id]);
+    const first = !rec.selfRating;
+    rec.selfRating = rating;
+    rec.selfRatedAt = new Date().toISOString();
+    rec.selfRatingSource = source;
+    if (first) registerWordEncounter(s, entry, source);
+  }
+
+  function exportProfile() {
+    const starter = ratingCounts(STARTER_POOL), extended = ratingCounts(EXTENDED_POOL);
+    const payload = {
+      type: "life-rpg-lexicon-profile", version: VERSION, exportedAt: new Date().toISOString(),
+      poolVersion: String(POOL_DATA.version || VERSION), totalPoolWords: POOL.length, starterTarget: STARTER_POOL.length,
+      counts: { starter, extended, total: ratingCounts(POOL) },
+      words: POOL.map(entry => {
+        const rec = state().words[entry.id] || {};
+        return { id: entry.id, term: entry.term, theme: entry.theme, pool: STARTER_POOL.some(item => item.id === entry.id) ? "starter" : "extended",
+          selfRating: rec.selfRating || null, selfRatedAt: rec.selfRatedAt || null, encounters: Number(rec.encounters || 0),
+          successfulRecalls: Number(rec.successfulRecalls || 0), misses: Number(rec.misses || 0), masteryStatus: rec.status || "unseen", lastSeen: rec.lastSeen || null };
+      })
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob); const link = document.createElement("a");
+    link.href = url; link.download = `life-rpg-lexicon-profile-${localDateKey(new Date())}.json`; document.body.appendChild(link); link.click(); link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    app.showToast?.("⌗ Lexicon profile exported · ready for calibrated crossword design");
   }
 
   function normalizeActive(active) {
@@ -118,32 +238,43 @@
   function tier(level) { return Math.min(5, Math.max(1, Math.ceil(Number(level || 1) / 6))); }
 
   function enrichedPool() {
-    return ENTRIES.filter(entry => ENRICHMENT[entry.id]?.example && ENRICHMENT[entry.id]?.nuance);
+    return POOL.filter(entry => entry.dailyEligible !== false && (entry.example || ENRICHMENT[entry.id]?.example));
   }
 
   function stableHash(text) {
     let hash = 2166136261 >>> 0;
-    for (const char of String(text || "")) {
-      hash ^= char.charCodeAt(0);
-      hash = Math.imul(hash, 16777619);
-    }
+    for (const char of String(text || "")) { hash ^= char.charCodeAt(0); hash = Math.imul(hash, 16777619); }
     return hash >>> 0;
   }
 
   function dailyWordEntry(dateKey = localDateKey(new Date())) {
-    const pool = enrichedPool();
-    if (!pool.length) return ENTRIES[0] || null;
-    return pool[stableHash(`lexicon-daily:${dateKey}`) % pool.length];
+    const s = state();
+    const existing = s.dailyWords?.[dateKey] && typeof s.dailyWords[dateKey] === "object" ? s.dailyWords[dateKey] : {};
+    const saved = existing.entryId;
+    if (saved && POOL_BY_ID[saved]) return POOL_BY_ID[saved];
+    const rich = enrichedPool();
+    if (!rich.length) return POOL[0] || null;
+    // Discovery-first: while unrated words remain, the Daily Word expands the personal pool
+    // instead of repeatedly drawing from words the user already calibrated.
+    const unrated = rich.filter(entry => !s.words[entry.id]?.selfRating);
+    const candidates = unrated.length ? unrated : rich;
+    const selected = candidates[stableHash(`lexicon-daily:${dateKey}`) % candidates.length] || candidates[0] || null;
+    if (selected) s.dailyWords[dateKey] = { ...existing, entryId: selected.id, selectedAt: existing.selectedAt || Date.now() };
+    return selected;
   }
 
   function dailyContextEntry(dateKey = localDateKey(new Date())) {
     const pool = enrichedPool();
-    if (!pool.length) return ENTRIES[0] || null;
+    if (!pool.length) return POOL[0] || null;
     const daily = dailyWordEntry(dateKey);
     let index = stableHash(`lexicon-context:${dateKey}`) % pool.length;
     if (pool[index]?.id === daily?.id) index = (index + 7) % pool.length;
     return pool[index];
   }
+
+  function entryDefinition(entry) { return String(entry?.definition || ENTRY_BY_ID[entry?.id]?.clue || ""); }
+  function entryExample(entry) { return String(entry?.example || ENRICHMENT[entry?.id]?.example || ""); }
+  function entryNuance(entry) { return String(entry?.nuance || ENRICHMENT[entry?.id]?.nuance || ""); }
 
   function registerWordEncounter(s, entry, source = "encounter") {
     if (!s || !entry) return;
@@ -161,16 +292,18 @@
     const entry = dailyWordEntry(key);
     if (!entry) return;
     const existing = s.dailyWords[key] && typeof s.dailyWords[key] === "object" ? s.dailyWords[key] : {};
-    if (!existing.encounterRegistered) registerWordEncounter(s, entry, "daily-word");
-    s.dailyWords[key] = {
-      ...existing,
-      entryId: entry.id,
-      response,
-      encounterRegistered: true,
-      seenAt: existing.seenAt || Date.now(),
-      updatedAt: Date.now()
-    };
+    if (existing.response) return;
+    setSelfRating(entry, response, "daily-word");
+    const streakExtraDates = Object.entries(s.dailyWords).filter(([, value]) => value?.response).map(([date]) => date);
+    const dailyReward = window.LifeRPGDailyStreaks?.awardStandalone?.("lexiconDailyWord", {
+      source: "lexicon-daily-word", label: `Daily Word · ${entry.term}`, realm: "Knowledge", capability: "knowledge",
+      xp: 5, realmXP: 5, statXP: 4, coins: 5, storyEnergyBase: 0.2,
+      extraDates: streakExtraDates,
+      metadata: { lexiconLab: true, mode: "daily-word", wordId: entry.id, selfRating: response }
+    });
+    s.dailyWords[key] = { ...existing, entryId: entry.id, response, encounterRegistered: true, seenAt: existing.seenAt || Date.now(), updatedAt: Date.now(), rewardEventId: dailyReward?.reward?.eventId || null };
     persist("lexicon-daily-word");
+    if (dailyReward?.reward) app.showToast?.(`⌗ Daily Word saved · ${dailyReward.info?.streak || 1}-day streak · +${dailyReward.reward.xp} XP · +${app.formatEnergy?.(dailyReward.reward.storyEnergy) ?? dailyReward.reward.storyEnergy} 🔥 · +${dailyReward.reward.coins} 🪙`);
   }
 
   function openDailyContext() {
@@ -208,7 +341,7 @@
     const key = localDateKey(new Date());
     const record = s.dailyWords[key];
     if (!record?.contextOpen || record.contextAnswered) return;
-    const entry = ENTRY_BY_ID[record.contextWordId] || dailyContextEntry(key);
+    const entry = POOL_BY_ID[record.contextWordId] || dailyContextEntry(key);
     if (!entry) return;
     record.contextAnswered = true;
     record.contextChoiceId = String(choiceId || "");
@@ -220,11 +353,11 @@
   }
 
   function responseLabel(value) {
-    return ({ known: "Kannte ich", heard: "Schon mal gehört", new: "Neu für mich" })[value] || "Gespeichert";
+    return ({ known: "Kenne ich", heard: "Schon mal gehört", new: "Kenne ich nicht" })[value] || "Gespeichert";
   }
 
   function contextSentenceMarkup(entry) {
-    const example = String(ENRICHMENT[entry?.id]?.example || "");
+    const example = entryExample(entry);
     const term = String(entry?.term || "");
     if (!example || !term) return escapeHtml(example || term);
     const lower = example.toLocaleLowerCase("de-DE");
@@ -236,12 +369,12 @@
 
   function renderDailyContextMarkup(record, dateKey) {
     if (!record?.contextOpen) return `<button class="secondary-button lexicon-context-launch-v314y" type="button" data-lexicon-context-start>◇ Meaning from context</button>`;
-    const entry = ENTRY_BY_ID[record.contextWordId] || dailyContextEntry(dateKey);
+    const entry = POOL_BY_ID[record.contextWordId] || dailyContextEntry(dateKey);
     if (!entry) return "";
     const options = contextOptions(entry, dateKey);
     const result = record.contextAnswered
-      ? `<div class="lexicon-context-result-v314y ${record.contextCorrect ? "is-correct" : "is-learning"}"><strong>${record.contextCorrect ? "✓ Nice inference." : "Not quite — this one was about context, not memorizing."}</strong><p><b>${escapeHtml(entry.term)}</b>: ${escapeHtml(entry.clue)}</p></div>`
-      : `<div class="lexicon-context-options-v314y">${options.map(option => `<button type="button" data-lexicon-context-choice="${escapeAttr(option.id)}"><span>${escapeHtml(option.clue)}</span></button>`).join("")}</div>`;
+      ? `<div class="lexicon-context-result-v314y ${record.contextCorrect ? "is-correct" : "is-learning"}"><strong>${record.contextCorrect ? "✓ Nice inference." : "Not quite — this one was about context, not memorizing."}</strong><p><b>${escapeHtml(entry.term)}</b>: ${escapeHtml(entryDefinition(entry))}</p></div>`
+      : `<div class="lexicon-context-options-v314y">${options.map(option => `<button type="button" data-lexicon-context-choice="${escapeAttr(option.id)}"><span>${escapeHtml(entryDefinition(option))}</span></button>`).join("")}</div>`;
     return `<section class="lexicon-context-card-v314y"><div><small>CONTEXT CLUE · DIFFERENT WORD</small><strong>What does <em>${escapeHtml(entry.term)}</em> probably mean here?</strong></div><p class="lexicon-context-sentence-v314y">${contextSentenceMarkup(entry)}</p>${result}</section>`;
   }
 
@@ -264,7 +397,7 @@
   }
 
   function redactedNuance(entry) {
-    const details = ENRICHMENT[entry.id] || {};
+    const details = { example: entryExample(entry), nuance: entryNuance(entry) };
     const source = String(details.nuance || `This word belongs to ${entry.theme}.`);
     const escapedTerm = String(entry.term || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     if (!escapedTerm) return escapeHtml(source);
@@ -332,6 +465,12 @@
       if (daily) { event.preventDefault(); startLevel(nextLevel() || TOTAL, { replay: !nextLevel() }); return; }
       const dailyResponse = event.target.closest?.("[data-lexicon-daily-response]");
       if (dailyResponse) { event.preventDefault(); recordDailyWord(dailyResponse.dataset.lexiconDailyResponse); return; }
+      const calibrationStart = event.target.closest?.("[data-lexicon-calibration-start]");
+      if (calibrationStart) { event.preventDefault(); chooseCalibrationChunk(calibrationStart.dataset.lexiconCalibrationStart); return; }
+      const calibrationRating = event.target.closest?.("[data-lexicon-calibration-rating]");
+      if (calibrationRating) { event.preventDefault(); rateCalibrationWord(calibrationRating.dataset.lexiconWordId, calibrationRating.dataset.lexiconCalibrationRating); return; }
+      const exportButton = event.target.closest?.("[data-lexicon-export-profile]");
+      if (exportButton) { event.preventDefault(); exportProfile(); return; }
       const contextStart = event.target.closest?.("[data-lexicon-context-start]");
       if (contextStart) { event.preventDefault(); openDailyContext(); return; }
       const contextChoice = event.target.closest?.("[data-lexicon-context-choice]");
@@ -408,6 +547,9 @@
   }
 
   function startLevel(level, { replay = false } = {}) {
+    if (!starterComplete()) { app.showToast?.("⌗ Finish the 100-word Starter Calibration first — the old fixed crosswords are paused while we build your profile."); return; }
+    app.showToast?.("⌗ The legacy crossword set is paused. Export your calibrated profile so the next crossword levels can be built around your actual vocabulary.");
+    return;
     const puzzle = puzzleDef(level);
     if (!puzzle) return;
     const allowed = level <= 1 || completedSet().has(level) || completedSet().has(level - 1);
@@ -454,92 +596,86 @@
 
   function renderOverview() {
     const s = state();
-    const next = nextLevel();
     const counts = masteryCounts();
-    if (els.stats) els.stats.innerHTML = statPills(counts);
-    if (els.growthStats) els.growthStats.innerHTML = `<span><b>${s.journey.completedLevels.length}/${TOTAL}</b> Crosswords</span><span><b>${counts.discovered}</b> discovered</span><span><b>${counts.active + counts.mastered}</b> active/mastered</span>`;
-    if (els.trainingStats) els.trainingStats.textContent = next ? `Crossword ${next}/${TOTAL} · ${counts.discovered} words discovered` : `30/30 complete · ${counts.discovered} words discovered`;
-    if (els.quickStatus) els.quickStatus.textContent = next ? `Academic Crossword ${s.journey.completedLevels.length}/${TOTAL} · next Puzzle ${next}` : `Academic Crosswords ${TOTAL}/${TOTAL} complete`;
-    renderDaily(next);
-    renderProgress();
-    renderLevels();
-    renderCollections();
-    renderRecent();
+    const starter = ratingCounts(STARTER_POOL), extended = ratingCounts(EXTENDED_POOL), all = ratingCounts(POOL);
+    if (els.stats) els.stats.innerHTML = `<span><b>${all.known}</b><small>kenne ich</small></span><span><b>${all.heard}</b><small>schon gehört</small></span><span><b>${all.new}</b><small>neu</small></span><span><b>${all.unrated}</b><small>noch offen</small></span>`;
+    if (els.growthStats) els.growthStats.innerHTML = `<span><b>${STARTER_POOL.length - starter.unrated}/${STARTER_POOL.length}</b> Starter calibrated</span><span><b>${POOL.length - all.unrated}/${POOL.length}</b> pool rated</span><span><b>${counts.active + counts.mastered}</b> active/mastered</span>`;
+    if (els.trainingStats) els.trainingStats.textContent = starter.unrated ? `Calibration ${STARTER_POOL.length - starter.unrated}/${STARTER_POOL.length} · ${POOL.length} word pool` : `Starter calibrated ✓ · export profile for new Crosswords`;
+    if (els.quickStatus) els.quickStatus.textContent = `Lexicon pool ${POOL.length - all.unrated}/${POOL.length} rated · Daily Word available`;
+    renderDaily(); renderCalibration(); renderProgress(); renderLevels(); renderCollections(); renderRecent(); renderDashboardDaily();
   }
 
-  function renderDaily(next) {
-    if (!els.daily) return;
-    const s = state();
-    const dateKey = localDateKey(new Date());
-    const entry = dailyWordEntry(dateKey);
-    const details = entry ? (ENRICHMENT[entry.id] || {}) : {};
+  function dailyWordMarkup({ compact = false } = {}) {
+    const s = state(), dateKey = localDateKey(new Date()), entry = dailyWordEntry(dateKey);
+    if (!entry) return "";
     const record = s.dailyWords[dateKey] && typeof s.dailyWords[dateKey] === "object" ? s.dailyWords[dateKey] : {};
-    const active = current();
-    const wordMarkup = entry ? `
-      <article class="lexicon-daily-word-v314y">
-        <div class="lexicon-daily-word-heading-v314y"><div><small>WORTFUND DES TAGES · ${escapeHtml(entry.theme)}</small><strong>${escapeHtml(entry.term)}</strong></div><span>✦</span></div>
-        <p class="lexicon-daily-definition-v314y">${escapeHtml(entry.clue)}</p>
-        <div class="lexicon-daily-detail-v314y"><small>IM SATZ</small><span>${escapeHtml(details.example || "")}</span></div>
-        <div class="lexicon-daily-detail-v314y"><small>NUANCE</small><span>${escapeHtml(details.nuance || "")}</span></div>
-        ${record.response
-          ? `<div class="lexicon-daily-response-status-v314y"><span>✓ ${escapeHtml(responseLabel(record.response))}</span><small>Nur entdeckt, nicht abgefragt. Das Wort darf dir später wieder begegnen.</small></div>${renderDailyContextMarkup(record, dateKey)}`
-          : `<div class="lexicon-daily-response-v314y" role="group" aria-label="How familiar is today's word?"><button type="button" data-lexicon-daily-response="known">Kannte ich</button><button type="button" data-lexicon-daily-response="heard">Schon mal gehört</button><button type="button" data-lexicon-daily-response="new">Neu für mich</button></div><small class="lexicon-daily-noquiz-v314y">Kein Quiz, kein Streak. Nur ein interessantes Wort zum Mitnehmen.</small>`}
-      </article>` : "";
+    const streakDates = Object.entries(s.dailyWords).filter(([, value]) => value?.response).map(([date]) => date);
+    const streak = window.LifeRPGDailyStreaks?.summary?.("lexiconDailyWord", { extraDates: streakDates });
+    const detail = entryExample(entry);
+    const nuance = entryNuance(entry);
+    return `<article class="lexicon-daily-word-v314y ${compact ? "is-dashboard-v314z" : ""}">
+      <div class="lexicon-daily-word-heading-v314y"><div><small>WORTFUND DES TAGES · ${escapeHtml(entry.theme)}</small><strong>${escapeHtml(entry.term)}</strong></div><span>✦</span></div>
+      <p class="lexicon-daily-definition-v314y">${escapeHtml(entryDefinition(entry))}</p>
+      ${detail && !compact ? `<div class="lexicon-daily-detail-v314y"><small>IM SATZ</small><span>${escapeHtml(detail)}</span></div>` : ""}
+      ${nuance && !compact ? `<div class="lexicon-daily-detail-v314y"><small>NUANCE</small><span>${escapeHtml(nuance)}</span></div>` : ""}
+      <div class="lexicon-daily-streak-v314z">${escapeHtml(window.LifeRPGDailyStreaks?.shortLabel?.("lexiconDailyWord", { extraDates: streakDates }) || "Daily consistency bonus ready")}</div>
+      ${record.response ? `<div class="lexicon-daily-response-status-v314y"><span>✓ ${escapeHtml(responseLabel(record.response))}</span><small>${streak?.currentStreak ? `${streak.currentStreak}-day Daily Word streak. ` : ""}Your self-rating is saved in the personal pool.</small></div>${compact ? "" : renderDailyContextMarkup(record, dateKey)}` : `<div class="lexicon-daily-response-v314y" role="group" aria-label="How familiar is today's word?"><button type="button" data-lexicon-daily-response="known">Kenne ich</button><button type="button" data-lexicon-daily-response="heard">Schon mal gehört</button><button type="button" data-lexicon-daily-response="new">Kenne ich nicht</button></div><small class="lexicon-daily-noquiz-v314y">Kein Quiz. Deine ehrliche Einschätzung erweitert den Pool und der tägliche Abschluss baut nur einen positiven Reward-Streak auf.</small>`}
+    </article>`;
+  }
 
-    let crosswordMarkup = "";
-    if (!next) {
-      crosswordMarkup = `<aside class="lexicon-crossword-next-v314y"><small>CROSSWORD JOURNEY</small><strong>30/30 complete ✦</strong><p>Crosswords bleiben als freiwilliger Recall-Modus. Hinweise kosten keine normale Puzzle-Belohnung.</p><button class="secondary-button" type="button" data-lexicon-level="30">Replay Puzzle 30</button></aside>`;
-    } else {
-      const puzzle = puzzleDef(next);
-      const continuing = Boolean(active && !active.completedAt && active.level === next);
-      crosswordMarkup = `<aside class="lexicon-crossword-next-v314y"><small>CROSSWORD JOURNEY · OPTIONAL</small><strong>${continuing ? `Continue Puzzle ${next}` : `Puzzle ${next} · ${escapeHtml(puzzle.title)}`}</strong><p>${escapeHtml(puzzle.theme)} · ${puzzle.words.length} terms. Use the hint ladder whenever a word will not come to mind.</p><button class="secondary-button" type="button" data-lexicon-daily-start>${continuing ? "Continue" : "Start"} Puzzle ${next}</button></aside>`;
-    }
-    els.daily.innerHTML = `${wordMarkup}${crosswordMarkup}`;
+  function renderDaily() {
+    if (!els.daily) return;
+    els.daily.innerHTML = `${dailyWordMarkup()}<aside class="lexicon-crossword-next-v314y"><small>CROSSWORD JOURNEY · CALIBRATION FIRST</small><strong>${starterComplete() ? "Profile ready for a calibrated puzzle set ✓" : "The old fixed puzzles are paused"}</strong><p>${starterComplete() ? "Export your profile and give it to me; the next Crossword Journey can then mix words you know, have heard, and genuinely new challenge words." : `Rate the ${STARTER_POOL.length}-word Starter Pool first. This prevents a Puzzle 1 made entirely of words you may never have encountered.`}</p>${starterComplete() ? `<button class="secondary-button" type="button" data-lexicon-export-profile>Export profile for Crosswords</button>` : `<button class="secondary-button" type="button" data-lexicon-calibration-start="starter">Continue Starter Calibration</button>`}</aside>`;
+  }
+
+  function renderDashboardDaily() { if (els.dashboardDaily) els.dashboardDaily.innerHTML = dailyWordMarkup({ compact: true }); }
+
+  function renderCalibration() {
+    if (!els.calibration) return;
+    const s = state(), starter = ratingCounts(STARTER_POOL), extended = ratingCounts(EXTENDED_POOL), active = s.calibration.active;
+    if (els.calibrationStatus) els.calibrationStatus.textContent = `${STARTER_POOL.length - starter.unrated}/${STARTER_POOL.length} Starter · ${EXTENDED_POOL.length - extended.unrated}/${EXTENDED_POOL.length} Extended`;
+    if (els.calibrationStarter) { els.calibrationStarter.disabled = starter.unrated === 0 || Boolean(active); els.calibrationStarter.textContent = starter.unrated ? `${active?.mode === "starter" ? "Starter batch active" : "Next 5 Starter words"} · ${starter.unrated} left` : "Starter calibrated ✓"; }
+    if (els.calibrationExtended) { els.calibrationExtended.disabled = extended.unrated === 0 || Boolean(active); els.calibrationExtended.textContent = extended.unrated ? `${active?.mode === "extended" ? "Extended batch active" : "Explore next 5"} · ${extended.unrated} left` : "Extended pool rated ✓"; }
+    if (els.exportProfile) els.exportProfile.disabled = (STARTER_POOL.length - starter.unrated) < 1;
+    if (!els.calibrationWords) return;
+    if (!active) { els.calibrationWords.innerHTML = `<div class="lexicon-calibration-empty-v314z"><span>5</span><div><strong>Five words at a time.</strong><p>Just tell Life RPG whether you know each word, have heard it, or do not know it. This is self-calibration, not a test.</p></div></div>`; return; }
+    els.calibrationWords.innerHTML = active.ids.map((id, index) => { const entry = POOL_BY_ID[id], rec = state().words[id] || {}; return `<article class="lexicon-calibration-word-v314z ${rec.selfRating ? "is-rated" : ""}"><div><small>${index + 1}/${active.ids.length} · ${escapeHtml(entry.theme)}</small><strong>${escapeHtml(entry.term)}</strong></div><div class="lexicon-calibration-ratings-v314z"><button type="button" data-lexicon-word-id="${escapeAttr(id)}" data-lexicon-calibration-rating="known" class="${rec.selfRating === "known" ? "selected" : ""}">Kenne ich</button><button type="button" data-lexicon-word-id="${escapeAttr(id)}" data-lexicon-calibration-rating="heard" class="${rec.selfRating === "heard" ? "selected" : ""}">Schon mal gehört</button><button type="button" data-lexicon-word-id="${escapeAttr(id)}" data-lexicon-calibration-rating="new" class="${rec.selfRating === "new" ? "selected" : ""}">Kenne ich nicht</button></div></article>`; }).join("");
   }
 
   function renderProgress() {
     if (!els.progress) return;
-    const done = state().journey.completedLevels.length;
-    const pct = Math.round(done / TOTAL * 100);
-    els.progress.innerHTML = `<div><span><strong>${done}/${TOTAL}</strong> Academic Crosswords</span><span>${pct}%</span></div><div class="bar"><span style="width:${pct}%"></span></div>`;
+    const starter = ratingCounts(STARTER_POOL), rated = STARTER_POOL.length - starter.unrated, pct = Math.round(rated / Math.max(1, STARTER_POOL.length) * 100);
+    els.progress.innerHTML = `<div><span><strong>${rated}/${STARTER_POOL.length}</strong> Starter words calibrated</span><span>${pct}%</span></div><div class="bar"><span style="width:${pct}%"></span></div>`;
   }
 
   function renderLevels() {
     if (!els.levels) return;
-    const done = completedSet();
-    const next = nextLevel();
-    const active = current();
-    els.levels.innerHTML = PUZZLES.map(puzzle => {
-      const complete = done.has(puzzle.level);
-      const unlocked = complete || puzzle.level === 1 || done.has(puzzle.level - 1);
-      const isActive = active && !active.completedAt && active.level === puzzle.level;
-      return `<button type="button" data-lexicon-level="${puzzle.level}" ${unlocked ? "" : "disabled"} class="lexicon-level-v314q ${complete ? "complete" : ""} ${isActive ? "active" : ""} ${puzzle.level === next ? "next" : ""}"><span>${complete ? "✓" : isActive ? "▶" : unlocked ? puzzle.level : "🔒"}</span><small>${escapeHtml(puzzle.theme.split(" / ")[0])}</small></button>`;
-    }).join("");
+    els.levels.innerHTML = `<div class="lexicon-crossword-paused-v314z"><span>⌗</span><div><strong>Calibrated Crosswords come next.</strong><p>The original 30 fixed puzzles are preserved in your save/code, but are paused because they were not built around your vocabulary profile. After the Starter Pool is rated, export the profile and the next puzzle set can be authored from your actual Known / Heard / New mix.</p></div></div>`;
   }
 
   function renderCollections() {
     if (!els.collections) return;
-    const themeNames = [...new Set(ENTRIES.map(entry => entry.theme))];
+    const themeNames = [...new Set(POOL.map(entry => entry.theme))];
     els.collections.innerHTML = themeNames.map(theme => {
-      const words = ENTRIES.filter(entry => entry.theme === theme);
-      const discovered = words.filter(entry => state().words[entry.id]?.encounters > 0).length;
-      const active = words.filter(entry => ["active","mastered"].includes(state().words[entry.id]?.status)).length;
-      return `<div class="lexicon-collection-v314q"><span>${collectionIcon(theme)}</span><div><strong>${escapeHtml(theme)}</strong><small>${discovered}/${words.length} discovered · ${active} active</small></div></div>`;
+      const words = POOL.filter(entry => entry.theme === theme);
+      const rated = words.filter(entry => state().words[entry.id]?.selfRating).length;
+      const known = words.filter(entry => state().words[entry.id]?.selfRating === "known").length;
+      return `<div class="lexicon-collection-v314q"><span>${collectionIcon(theme)}</span><div><strong>${escapeHtml(theme)}</strong><small>${rated}/${words.length} rated · ${known} known</small></div></div>`;
     }).join("");
   }
 
   function renderRecent() {
     if (!els.recent) return;
-    const recent = ENTRIES
+    const recent = POOL
       .map(entry => ({ entry, record: state().words[entry.id] }))
-      .filter(item => item.record?.encounters)
+      .filter(item => item.record?.encounters || item.record?.selfRating)
       .sort((a,b) => new Date(b.record.lastSeen || 0) - new Date(a.record.lastSeen || 0))
       .slice(0, 10);
     if (!recent.length) {
-      els.recent.innerHTML = `<div class="lexicon-empty-v314q"><span>✦</span><strong>Your personal lexicon starts with Puzzle 1.</strong><p>Words become Familiar and Active through repeated successful recall, not by clicking a definition once.</p></div>`;
+      els.recent.innerHTML = `<div class="lexicon-empty-v314q"><span>✦</span><strong>Your personal lexicon starts with calibration.</strong><p>Rate five words at a time. Crosswords will later add separate recall evidence without pretending one solved clue means the word is permanently known.</p></div>`;
       return;
     }
-    els.recent.innerHTML = recent.map(({entry,record}) => `<div class="lexicon-word-chip-v314q"><div><strong>${escapeHtml(entry.term)}</strong><small>${escapeHtml(entry.theme)}</small></div><span class="${record.status}">${statusLabel(record.status)}</span></div>`).join("");
+    els.recent.innerHTML = recent.map(({entry,record}) => `<div class="lexicon-word-chip-v314q"><div><strong>${escapeHtml(entry.term)}</strong><small>${escapeHtml(entry.theme)}</small></div><span class="${record.selfRating || record.status}">${record.selfRating ? responseLabel(record.selfRating) : statusLabel(record.status)}</span></div>`).join("");
   }
 
   function renderBoard() {
@@ -793,7 +929,7 @@
 
   function masteryCounts() {
     const counts = { discovered:0, familiar:0, active:0, mastered:0, unseen:0 };
-    for (const entry of ENTRIES) {
+    for (const entry of POOL) {
       const status = state().words[entry.id]?.status || "unseen";
       counts[status] += 1;
     }
@@ -821,7 +957,11 @@
   window.LifeRPGLexiconLab = {
     version: VERSION,
     open: openDialog,
-    startNext: () => startLevel(nextLevel() || TOTAL, { replay: !nextLevel() }),
-    getProgress: () => ({ completed: completedSet().size, total: TOTAL, next: nextLevel() })
+    startNext: () => {
+      openDialog();
+      if (!starterComplete() && !state().calibration.active) chooseCalibrationChunk("starter");
+      else render();
+    },
+    getProgress: () => ({ completed: completedSet().size, total: TOTAL, next: nextLevel(), poolTotal: POOL.length, starterRated: STARTER_POOL.length - ratingCounts(STARTER_POOL).unrated, starterTotal: STARTER_POOL.length })
   };
 })();

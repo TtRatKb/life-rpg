@@ -14,7 +14,7 @@
   <link rel="manifest" href="manifest.webmanifest?v=0.30.3a" />
   <link rel="apple-touch-icon" href="assets/app-icon-180.png?v=0.30.3a" />
   <link rel="icon" type="image/png" sizes="192x192" href="assets/app-icon-192.png?v=0.30.3a" />
-  <link rel="stylesheet" href="styles.css?v=0.31.4y" />
+  <link rel="stylesheet" href="styles.css?v=0.31.4z" />
   <link rel="preload" as="image" href="assets/ui/thumbs/characters/luca_neutral.webp" fetchpriority="high" />
 </head>
 <body>
@@ -1142,9 +1142,10 @@
             <a class="training-card-v314k is-live" href="#kotobaIntegrationPanel"><span class="training-card-icon-v314k">🌸</span><div><small>JAPANESE</small><strong>Kotoba Quick Study</strong><p>Real due Vocabulary, Grammar & Particle SRS reviews</p><em>Synced with Kotoba Quest</em></div><b>↓</b></a>
             <button class="training-card-v314k is-live" data-number-sense-open type="button"><span class="training-card-icon-v314k">🔢</span><div><small>NUMBER SENSE · MENTAL MATH</small><strong>Number Sense Journey</strong><p>50 fixed levels · strategies, estimation, percentages and magnitude</p><em id="trainingGroundsNumberSenseStatus">Level 1 / 50</em></div><b>›</b></button>
             <button class="training-card-v314k is-live" data-memory-garden-open type="button"><span class="training-card-icon-v314k">🧠</span><div><small>MEMORY · ATTENTION</small><strong>Memory Garden</strong><p>50 Journey levels · spatial, sequence, pattern and working-memory trials</p><em id="trainingGroundsMemoryStatus">Level 1 / 50</em></div><b>›</b></button>
-            <button class="training-card-v314k is-live" data-lexicon-lab-open type="button"><span class="training-card-icon-v314k">⌗</span><div><small>LANGUAGE · ACADEMIC LEXICON</small><strong>Lexicon Lab</strong><p>German Academic Crosswords · active vocabulary mastery</p><em id="trainingGroundsLexiconStatus">Crossword 1/30 · 0 words discovered</em></div><b>›</b></button>
+            <button class="training-card-v314k is-live" data-lexicon-lab-open type="button"><span class="training-card-icon-v314k">⌗</span><div><small>LANGUAGE · ACADEMIC LEXICON</small><strong>Lexicon Lab</strong><p>300-word pool · calibration · Daily Word · calibrated Crosswords</p><em id="trainingGroundsLexiconStatus">Calibration ready</em></div><b>›</b></button>
             <button class="training-card-v314k is-live" data-recovery-open type="button"><span class="training-card-icon-v314k">🌿</span><div><small>RECOVERY · WELLBEING</small><strong>Recovery Studio</strong><p>Breathing, body scan, quiet rest and gentle release sessions.</p><em id="trainingGroundsRecoveryStatus">Optional recovery available</em></div><b>›</b></button>
           </div>
+          <section id="lexiconDashboardDailyWord" class="lexicon-dashboard-daily-v314z" aria-label="Daily Word"></section>
         </section>
 
         <section class="panel sudoku-growth-panel-v314" aria-labelledby="sudokuGrowthTitle">
@@ -1186,8 +1187,8 @@
           <div class="lexicon-lab-growth-copy-v314q">
             <p class="eyebrow">KNOWLEDGE · LANGUAGE · ACADEMIC LEXICON</p>
             <h2 id="lexiconLabGrowthTitle">Lexicon Lab</h2>
-            <p>Build a larger active German vocabulary through real word puzzles. The first Journey uses academic crosswords with Bildungssprache, scientific vocabulary, pedagogy, humanities, mathematics and precise writing — not beginner language exercises.</p>
-            <div id="lexiconLabGrowthStats" class="sudoku-growth-stats-v314"><span><b>0/30</b> Crosswords</span><span><b>0</b> discovered</span><span><b>0</b> active/mastered</span></div>
+            <p>Build a larger German academic vocabulary without turning it into flashcards. Calibrate a 100-word Starter Pool in five-word chunks, keep exploring the 300-word collection, and use the Daily Word to expand it naturally. Crosswords are authored from your actual profile rather than forcing unknown vocabulary into Puzzle 1.</p>
+            <div id="lexiconLabGrowthStats" class="sudoku-growth-stats-v314"><span><b>0/100</b> Starter calibrated</span><span><b>0/300</b> pool rated</span><span><b>0</b> active/mastered</span></div>
           </div>
           <button class="primary-button" data-lexicon-lab-open type="button">⌗ Open Lexicon Lab</button>
         </section>
@@ -2722,12 +2723,18 @@ League of Legends — PC" required></textarea></label>
         <div><p class="eyebrow">KNOWLEDGE · LANGUAGE · ACTIVE VOCABULARY</p><h2>Lexicon Lab</h2></div>
         <button id="lexiconLabClose" class="close-button" type="button">×</button>
       </div>
-      <p class="muted">Discover richer German vocabulary without turning it into another flashcard deck. A daily word is simply something interesting to notice; context clues train meaning-in-use, while Crosswords remain an optional recall challenge with help whenever you need it.</p>
+      <p class="muted">Build a personal map of the German words you already know, have encountered, or genuinely do not know yet. Calibration happens in five-word chunks; the Daily Word expands the pool gently, and Crosswords come from the profile instead of guessing your vocabulary.</p>
       <section id="lexiconLabDailyCard" class="lexicon-daily-card-v314q" aria-label="Daily Lexicon suggestion"></section>
       <div id="lexiconLabStats" class="lexicon-stats-v314q"></div>
+      <section id="lexiconCalibrationPanel" class="lexicon-calibration-panel-v314z" aria-labelledby="lexiconCalibrationTitle">
+        <div class="sudoku-section-title-v314h"><div><small>PERSONAL CALIBRATION</small><strong id="lexiconCalibrationTitle">Five words at a time</strong></div><span id="lexiconCalibrationStatus">0/100 Starter · 0/200 Extended</span></div>
+        <p>Starter words are the basis for the next Crossword Journey. The Extended Pool is future vocabulary context and can be explored whenever you feel like it.</p>
+        <div class="lexicon-calibration-actions-v314z"><button id="lexiconCalibrationStarter" class="primary-button" data-lexicon-calibration-start="starter" type="button">Next 5 Starter words</button><button id="lexiconCalibrationExtended" class="secondary-button" data-lexicon-calibration-start="extended" type="button">Explore next 5</button><button id="lexiconExportProfile" class="text-button" data-lexicon-export-profile type="button">Export profile</button></div>
+        <div id="lexiconCalibrationWords" class="lexicon-calibration-words-v314z"></div>
+      </section>
       <section id="lexiconLabJourneyProgress" class="sudoku-journey-progress-v314h" aria-label="Academic Crossword progress"></section>
       <section class="lexicon-section-v314q" aria-labelledby="lexiconCrosswordTitle">
-        <div class="sudoku-section-title-v314h"><div><small>CROSSWORD JOURNEY</small><strong id="lexiconCrosswordTitle">German Academic Crosswords · 1–30</strong></div><span>Optional active recall · stable puzzles · progressive hints</span></div>
+        <div class="sudoku-section-title-v314h"><div><small>CROSSWORD JOURNEY</small><strong id="lexiconCrosswordTitle">Calibrated Crosswords · profile first</strong></div><span>Legacy fixed puzzles paused</span></div>
         <div id="lexiconLabLevelGrid" class="lexicon-level-grid-v314q"></div>
       </section>
       <section class="lexicon-section-v314q" aria-labelledby="lexiconCollectionsTitle">
@@ -3152,6 +3159,7 @@ League of Legends — PC" required></textarea></label>
   <script src="training-focus.js?v=0.31.4o"></script>
   <script src="visual-performance.js?v=0.31.4c"></script>
   <script src="app.js?v=0.31.4s"></script>
+  <script src="daily-streaks.js?v=0.31.4z"></script>
   <script src="stewardship.js?v=0.31.3a"></script>
   <script src="habits.js?v=0.30.9"></script>
   <script src="adventures.js?v=0.31.1"></script>
@@ -3162,16 +3170,17 @@ League of Legends — PC" required></textarea></label>
   <script src="universal-timers.js?v=0.31.1"></script>
   <script src="inspirations.js?v=0.31.4c"></script>
   <script src="data/sudoku-levels.js?v=0.31.4h"></script>
-  <script src="sudoku.js?v=0.31.4o"></script>
+  <script src="sudoku.js?v=0.31.4z"></script>
   <script src="data/nonogram-levels.js?v=0.31.4k"></script>
-  <script src="nonogram.js?v=0.31.4o"></script>
+  <script src="nonogram.js?v=0.31.4z"></script>
   <script src="data/number-sense-levels.js?v=0.31.4l"></script>
-  <script src="number-sense.js?v=0.31.4o"></script>
+  <script src="number-sense.js?v=0.31.4z"></script>
   <script src="recovery-studio.js?v=0.31.4s"></script>
-  <script src="memory-garden.js?v=0.31.4y"></script>
+  <script src="memory-garden.js?v=0.31.4z"></script>
   <script src="data/lexicon-lab-data.js?v=0.31.4q"></script>
   <script src="data/lexicon-lab-enrichment.js?v=0.31.4y"></script>
-  <script src="lexicon-lab.js?v=0.31.4y"></script>
+  <script src="data/lexicon-pool.js?v=0.31.4z"></script>
+  <script src="lexicon-lab.js?v=0.31.4z"></script>
   <script src="smart-action-router.js?v=0.31.4s"></script>
   <script src="smart-quests.js?v=0.31.0"></script>
   <script src="daily.js?v=0.31.4y"></script>
@@ -3179,10 +3188,10 @@ League of Legends — PC" required></textarea></label>
   <script src="story-ui.js?v=0.31.4r"></script>
   <script src="shop.js?v=0.30.6"></script>
   <script src="achievements.js?v=0.31.0"></script>
-  <script src="activity-log.js?v=0.31.4u"></script>
+  <script src="activity-log.js?v=0.31.4z"></script>
   <script src="kotoba-integration.js?v=0.31.4k"></script>
   <script src="kotoba-quick-training.js?v=0.31.4k"></script>
   <script type="module" src="cloud-save.js?v=0.31.0"></script>
-  <script src="pwa.js?v=0.31.4y"></script>
+  <script src="pwa.js?v=0.31.4z"></script>
 </body>
 </html>

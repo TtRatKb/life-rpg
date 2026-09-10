@@ -4,7 +4,7 @@
   const app = window.LifeRPGApp;
   if (!app?.getState || !app?.saveState) return;
 
-  const SCHEMA = 3;
+  const SCHEMA = 4;
   const JOURNEY_CHAPTER = 1;
   const JOURNEY_LEVELS = Array.isArray(window.LifeRPGSudokuLevels) ? window.LifeRPGSudokuLevels : [];
   const JOURNEY_TOTAL = JOURNEY_LEVELS.length || 50;
@@ -547,7 +547,7 @@
     const targetMeta = targetDef ? tierMeta(targetDef.tier) : null;
 
     if (!next && !(active && !active.completedAt && !active.replay)) {
-      els.dailyCard.innerHTML = `<div class="sudoku-daily-icon-v314h">🏆</div><div class="sudoku-daily-copy-v314h"><small>SUDOKU JOURNEY · CHAPTER 1</small><strong>50 / 50 complete</strong><p>You cleared every Chapter 1 level. Practice Mode stays open for extra logic sessions.</p></div><span class="sudoku-daily-done-v314h">Complete</span>`;
+      els.dailyCard.innerHTML = `<div class="sudoku-daily-icon-v314h">🏆</div><div class="sudoku-daily-copy-v314h"><small>SUDOKU JOURNEY · CHAPTER 1</small><strong>50 / 50 complete</strong><p>You cleared every Chapter 1 level. Practice Mode stays open for extra logic sessions.</p><em class="training-streak-line-v314z">${escapeHtml(window.LifeRPGDailyStreaks?.shortLabel?.("sudoku") || "Daily consistency bonus ready")}</em></div><span class="sudoku-daily-done-v314h">Complete</span>`;
       return;
     }
 
@@ -557,7 +557,8 @@
       <div class="sudoku-daily-copy-v314h">
         <small>DAILY SUDOKU · TODAY'S LOGIC TRAINING</small>
         <strong>${done ? `Daily complete · Level ${todayLevel}` : `Level ${targetLevel} · ${escapeHtml(targetMeta?.label || "Journey")}`}</strong>
-        <p>${done ? `You already completed today's Journey Sudoku. Level ${next || JOURNEY_TOTAL} is still available if you feel like continuing.` : "One Journey level completes today's Sudoku Daily. No streak loss or penalty if today is not a Sudoku day."}</p>
+        <p>${done ? `You already completed today's Journey Sudoku. Level ${next || JOURNEY_TOTAL} is still available if you feel like continuing.` : "One Journey level completes today's Sudoku Daily. Missing a day never removes rewards; consistency only adds a bonus."}</p>
+        <em class="training-streak-line-v314z">${escapeHtml(window.LifeRPGDailyStreaks?.shortLabel?.("sudoku") || "Daily consistency bonus ready")}</em>
       </div>
       <button class="${done ? "secondary-button" : "primary-button"} sudoku-daily-button-v314h" data-sudoku-daily-start type="button">${done ? (active && !active.completedAt && !active.replay ? actionLabel : next ? `Continue with Level ${next}` : "Practice instead") : actionLabel}</button>`;
   }
@@ -817,7 +818,8 @@
       app.saveState({ source: "sudoku-replay-solved" });
       render();
       app.renderAll?.();
-      app.showToast?.(`↻ Level ${current.level} replay solved · no duplicate rewards`);
+      const daily = window.LifeRPGDailyStreaks?.awardStandalone?.("sudoku", { source: "sudoku-daily-replay", label: `Sudoku Daily · Replay Level ${current.level}`, realm: "Knowledge", capability: "knowledge", xp: 5, realmXP: 5, statXP: 4, coins: 5, storyEnergyBase: 0.2, metadata: { sudoku: true, mode: "journey-replay", level: current.level } });
+      app.showToast?.(daily?.reward ? `↻ Level ${current.level} replay solved · Daily ${daily.info?.streak || 1}-day streak · +${daily.reward.xp} XP · +${app.formatEnergy?.(daily.reward.storyEnergy) ?? daily.reward.storyEnergy} 🔥 · +${daily.reward.coins} 🪙` : `↻ Level ${current.level} replay solved · no duplicate level reward`);
       window.setTimeout(() => els.result?.scrollIntoView?.({ behavior: "smooth", block: "start" }), 40);
       return;
     }
@@ -870,30 +872,14 @@
 
     const preview = rewardForPuzzle(current);
     const label = current.mode === "journey" ? `Sudoku Journey · Level ${current.level}` : `${PRACTICE_DIFFICULTY[current.difficulty]?.label || "Sudoku"} Practice Sudoku`;
-    const reward = app.awardActivity?.({
-      source: "sudoku-complete",
-      sourceId,
-      label,
-      realm: "Knowledge",
-      capability: "knowledge",
-      xp: preview.xp,
-      realmXP: preview.realmXP,
-      statXP: preview.statXP,
-      coins: preview.coins,
-      storyEnergyBase: preview.storyEnergyBase,
-      progressionRelevant: true,
-      metadata: {
-        difficulty: current.difficulty,
-        sudoku: true,
-        mode: current.mode,
-        journey: current.mode === "journey",
-        level: current.mode === "journey" ? current.level : null,
-        tier: current.mode === "journey" ? current.tier : null,
-        origin: current.origin || current.mode,
-        repeatScale: preview.repeatScale,
-        puzzleId: current.id
-      }
-    }) || { xp: 0, realmXP: 0, statXP: 0, coins: 0, storyEnergy: 0, rawStoryEnergy: 0, eventId: null };
+    const baseSpec = {
+      source: "sudoku-complete", sourceId, label, realm: "Knowledge", capability: "knowledge",
+      xp: preview.xp, realmXP: preview.realmXP, statXP: preview.statXP, coins: preview.coins, storyEnergyBase: preview.storyEnergyBase, progressionRelevant: true,
+      metadata: { difficulty: current.difficulty, sudoku: true, mode: current.mode, journey: current.mode === "journey", level: current.mode === "journey" ? current.level : null, tier: current.mode === "journey" ? current.tier : null, origin: current.origin || current.mode, repeatScale: preview.repeatScale, puzzleId: current.id }
+    };
+    const streaked = window.LifeRPGDailyStreaks?.apply?.("sudoku", baseSpec) || { spec: baseSpec, info: null };
+    const reward = app.awardActivity?.(streaked.spec) || { xp: 0, realmXP: 0, statXP: 0, coins: 0, storyEnergy: 0, rawStoryEnergy: 0, eventId: null };
+    reward.dailyStreakInfo = streaked.info;
     current.rewardEventId = reward.eventId || null;
     return reward;
   }
