@@ -1,22 +1,22 @@
-const CACHE_NAME = "life-rpg-v0314ae-health-talent-tree";
+const CACHE_NAME = "life-rpg-v0314af1-progression-loader-repair";
 const CORE = [
   "./",
   "./index.html",
   "./data/quests.js?v=0.31.4h",
   "./styles.css?v=0.31.4z1",
-  "./skills.css?v=0.31.4aa",
-  "./skills.js?v=0.31.4ac",
-  "./journal-rewards.js?v=0.31.4ab",
-  "./weekly-review.css?v=0.31.4ac",
-  "./weekly-review.js?v=0.31.4ac",
-  "./knowledge-tree.css?v=0.31.4ad",
-  "./knowledge-tree.js?v=0.31.4ad",
-  "./health-tree.css?v=0.31.4ae",
-  "./health-tree.js?v=0.31.4ae",
-  "./work-tree.css?v=0.31.4af",
-  "./work-tree.js?v=0.31.4af",
+  "./skills.css?v=0.31.4af1-0.31.4ac",
+  "./skills.js?v=0.31.4af1-0.31.4ac",
+  "./journal-rewards.js?v=0.31.4af1-0.31.4ab",
+  "./weekly-review.css?v=0.31.4af1-0.31.4ac",
+  "./weekly-review.js?v=0.31.4af1-0.31.4ac",
+  "./knowledge-tree.css?v=0.31.4af1-0.31.4ad",
+  "./knowledge-tree.js?v=0.31.4af1-0.31.4ad",
+  "./health-tree.css?v=0.31.4af1-0.31.4ae",
+  "./health-tree.js?v=0.31.4af1-0.31.4ae",
+  "./work-tree.css?v=0.31.4af1-0.31.4af",
+  "./work-tree.js?v=0.31.4af1-0.31.4af",
   "./manifest.webmanifest?v=0.30.3a",
-  "./pwa.js?v=0.31.4af",
+  "./pwa.js?v=0.31.4af1",
   "./visual-performance.js?v=0.31.4c",
   "./modal-manager.js?v=0.31.4d",
   "./training-focus.js?v=0.31.4o",
@@ -86,6 +86,7 @@ self.addEventListener("activate", event => {
 async function cacheFirstAsset(request) {
   const cached = await caches.match(request, { ignoreSearch: false });
   if (cached) return cached;
+
   const response = await fetch(request);
   if (response && response.ok) {
     const cache = await caches.open(CACHE_NAME);
@@ -96,7 +97,7 @@ async function cacheFirstAsset(request) {
 
 async function networkFirst(request) {
   try {
-    const response = await fetch(request);
+    const response = await fetch(request, { cache: "no-store" });
     if (response && response.ok) {
       const cache = await caches.open(CACHE_NAME);
       cache.put(request, response.clone()).catch(() => {});
@@ -105,7 +106,9 @@ async function networkFirst(request) {
   } catch {
     const cached = await caches.match(request, { ignoreSearch: false });
     if (cached) return cached;
-    if (request.mode === "navigate") return (await caches.match("./index.html")) || (await caches.match("./"));
+    if (request.mode === "navigate") {
+      return (await caches.match("./index.html")) || (await caches.match("./"));
+    }
     throw new Error("Offline and not cached");
   }
 }
@@ -115,9 +118,11 @@ self.addEventListener("fetch", event => {
   if (request.method !== "GET") return;
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
+
   if (request.destination === "image" || url.pathname.includes("/assets/")) {
     event.respondWith(cacheFirstAsset(request));
     return;
   }
+
   event.respondWith(networkFirst(request));
 });

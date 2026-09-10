@@ -1,100 +1,149 @@
 (() => {
-  const VERSION = "0.31.4af";
-  const SKILLS_VERSION = "0.31.4ac";
-  const JOURNAL_REWARDS_VERSION = "0.31.4ab";
-  const WEEKLY_REVIEW_VERSION = "0.31.4ac";
-  const KNOWLEDGE_TREE_VERSION = "0.31.4ad";
-  const HEALTH_TREE_VERSION = "0.31.4ae";
-  const WORK_TREE_VERSION = "0.31.4af";
+  "use strict";
+
+  const VERSION = "0.31.4af1";
+  const ASSETS = {
+    skills: { js: "skills.js", css: "skills.css", version: "0.31.4ac", global: "LifeRPGSkills" },
+    journalRewards: { js: "journal-rewards.js", version: "0.31.4ab", global: "LifeRPGJournalRewards" },
+    weeklyReview: { js: "weekly-review.js", css: "weekly-review.css", version: "0.31.4ac", global: "LifeRPGWeeklyReview" },
+    knowledgeTree: { js: "knowledge-tree.js", css: "knowledge-tree.css", version: "0.31.4ad", global: "LifeRPGKnowledgeTree" },
+    healthTree: { js: "health-tree.js", css: "health-tree.css", version: "0.31.4ae", global: "LifeRPGHealthTree" },
+    workTree: { js: "work-tree.js", css: "work-tree.css", version: "0.31.4af", global: "LifeRPGWorkTree" }
+  };
+
   const standalone = window.matchMedia?.("(display-mode: standalone)")?.matches || window.navigator.standalone === true;
   if (standalone) document.body.classList.add("is-standalone-v251");
 
-  if (!document.querySelector('link[data-life-rpg-skills]')) {
-    const style = document.createElement("link");
-    style.rel = "stylesheet";
-    style.href = `./skills.css?v=${SKILLS_VERSION}`;
-    style.dataset.lifeRpgSkills = SKILLS_VERSION;
-    document.head.appendChild(style);
-  }
-  if (!document.querySelector('script[data-life-rpg-skills]')) {
-    const script = document.createElement("script");
-    script.src = `./skills.js?v=${SKILLS_VERSION}`;
-    script.async = false;
-    script.dataset.lifeRpgSkills = SKILLS_VERSION;
-    document.head.appendChild(script);
+  function assetUrl(path, version) {
+    return new URL(`./${path}?v=${encodeURIComponent(`${VERSION}-${version}`)}`, document.baseURI).href;
   }
 
-  if (!document.querySelector('script[data-life-rpg-journal-rewards]')) {
-    const script = document.createElement("script");
-    script.src = `./journal-rewards.js?v=${JOURNAL_REWARDS_VERSION}`;
-    script.async = false;
-    script.dataset.lifeRpgJournalRewards = JOURNAL_REWARDS_VERSION;
-    document.head.appendChild(script);
+  function ensureStyle(key, spec) {
+    if (!spec.css) return;
+    const marker = `lifeRpg${key[0].toUpperCase()}${key.slice(1)}`;
+    let link = document.querySelector(`link[data-${marker.replace(/[A-Z]/g, m => "-" + m.toLowerCase())}]`);
+    if (!link) {
+      link = document.createElement("link");
+      link.rel = "stylesheet";
+      link.dataset[marker] = VERSION;
+      document.head.appendChild(link);
+    }
+    link.href = assetUrl(spec.css, spec.version);
   }
 
-  if (!document.querySelector('link[data-life-rpg-weekly-review]')) {
-    const style = document.createElement("link");
-    style.rel = "stylesheet";
-    style.href = `./weekly-review.css?v=${WEEKLY_REVIEW_VERSION}`;
-    style.dataset.lifeRpgWeeklyReview = WEEKLY_REVIEW_VERSION;
-    document.head.appendChild(style);
-  }
-  if (!document.querySelector('script[data-life-rpg-weekly-review]')) {
-    const script = document.createElement("script");
-    script.src = `./weekly-review.js?v=${WEEKLY_REVIEW_VERSION}`;
-    script.async = false;
-    script.dataset.lifeRpgWeeklyReview = WEEKLY_REVIEW_VERSION;
-    document.head.appendChild(script);
+  function removeStaleScript(key) {
+    const selector = `script[data-life-rpg-${key.replace(/[A-Z]/g, m => "-" + m.toLowerCase())}]`;
+    const script = document.querySelector(selector);
+    if (script && !window[ASSETS[key].global]) script.remove();
   }
 
-  if (!document.querySelector('link[data-life-rpg-knowledge-tree]')) {
-    const style = document.createElement("link");
-    style.rel = "stylesheet";
-    style.href = `./knowledge-tree.css?v=${KNOWLEDGE_TREE_VERSION}`;
-    style.dataset.lifeRpgKnowledgeTree = KNOWLEDGE_TREE_VERSION;
-    document.head.appendChild(style);
-  }
-  if (!document.querySelector('script[data-life-rpg-knowledge-tree]')) {
-    const script = document.createElement("script");
-    script.src = `./knowledge-tree.js?v=${KNOWLEDGE_TREE_VERSION}`;
-    script.async = false;
-    script.dataset.lifeRpgKnowledgeTree = KNOWLEDGE_TREE_VERSION;
-    document.head.appendChild(script);
+  function loadScript(key, spec) {
+    if (window[spec.global]) return Promise.resolve(true);
+
+    removeStaleScript(key);
+
+    return new Promise((resolve, reject) => {
+      const selector = `script[data-life-rpg-${key.replace(/[A-Z]/g, m => "-" + m.toLowerCase())}]`;
+      const existing = document.querySelector(selector);
+      if (existing) {
+        existing.addEventListener("load", () => resolve(Boolean(window[spec.global])), { once: true });
+        existing.addEventListener("error", () => reject(new Error(`${spec.js} failed to load`)), { once: true });
+        return;
+      }
+
+      const script = document.createElement("script");
+      script.src = assetUrl(spec.js, spec.version);
+      script.async = false;
+      script.dataset[`lifeRpg${key[0].toUpperCase()}${key.slice(1)}`] = VERSION;
+      script.onload = () => {
+        if (!window[spec.global]) {
+          reject(new Error(`${spec.js} loaded but did not initialize ${spec.global}`));
+          return;
+        }
+        resolve(true);
+      };
+      script.onerror = () => reject(new Error(`${spec.js} failed to load`));
+      document.head.appendChild(script);
+    });
   }
 
-  if (!document.querySelector('link[data-life-rpg-health-tree]')) {
-    const style = document.createElement("link");
-    style.rel = "stylesheet";
-    style.href = `./health-tree.css?v=${HEALTH_TREE_VERSION}`;
-    style.dataset.lifeRpgHealthTree = HEALTH_TREE_VERSION;
-    document.head.appendChild(style);
-  }
-  if (!document.querySelector('script[data-life-rpg-health-tree]')) {
-    const script = document.createElement("script");
-    script.src = `./health-tree.js?v=${HEALTH_TREE_VERSION}`;
-    script.async = false;
-    script.dataset.lifeRpgHealthTree = HEALTH_TREE_VERSION;
-    document.head.appendChild(script);
+  function ensurePrimarySkillsNav() {
+    if (!window.LifeRPGSkills?.open) return;
+
+    const nav = document.querySelector(".bottom-nav");
+    if (nav && !nav.querySelector('.nav-button[data-view="skills"]')) {
+      const button = document.createElement("button");
+      button.className = "nav-button";
+      button.type = "button";
+      button.dataset.view = "skills";
+      button.dataset.skillsOpen = "true";
+      button.innerHTML = "<span>✦</span><small>Skills</small>";
+
+      const growth = nav.querySelector('.nav-button[data-view="growth"]');
+      if (growth) nav.insertBefore(button, growth);
+      else nav.appendChild(button);
+    }
+
+    const strip = document.querySelector(".dashboard-command-strip");
+    if (strip && !strip.querySelector("[data-skills-open]")) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.dataset.skillsOpen = "true";
+      button.innerHTML = '<span class="command-strip-icon">✦</span><span><strong>Skills</strong><small>Levels, Realm Points and Talent Trees.</small></span><b>›</b>';
+      const activity = strip.querySelector('[data-view-target="activity"]');
+      if (activity?.nextSibling) strip.insertBefore(button, activity.nextSibling);
+      else strip.appendChild(button);
+    }
   }
 
-  if (!document.querySelector('link[data-life-rpg-work-tree]')) {
-    const style = document.createElement("link");
-    style.rel = "stylesheet";
-    style.href = `./work-tree.css?v=${WORK_TREE_VERSION}`;
-    style.dataset.lifeRpgWorkTree = WORK_TREE_VERSION;
-    document.head.appendChild(style);
+  function showLoaderProblem(error) {
+    console.error("Life RPG progression loader:", error);
+    const strip = document.querySelector(".dashboard-command-strip");
+    if (!strip || strip.querySelector("[data-progression-loader-retry]")) return;
+
+    const button = document.createElement("button");
+    button.type = "button";
+    button.dataset.progressionLoaderRetry = "true";
+    button.innerHTML = '<span class="command-strip-icon">⚠</span><span><strong>Skills need a reload</strong><small>Tap to retry loading the progression modules.</small></span><b>↻</b>';
+    button.addEventListener("click", () => {
+      button.remove();
+      startProgressionLoader();
+    }, { once: true });
+    strip.appendChild(button);
   }
-  if (!document.querySelector('script[data-life-rpg-work-tree]')) {
-    const script = document.createElement("script");
-    script.src = `./work-tree.js?v=${WORK_TREE_VERSION}`;
-    script.async = false;
-    script.dataset.lifeRpgWorkTree = WORK_TREE_VERSION;
-    document.head.appendChild(script);
+
+  async function startProgressionLoader() {
+    try {
+      Object.entries(ASSETS).forEach(([key, spec]) => ensureStyle(key, spec));
+
+      // Load strictly in dependency order. The previous loader inserted all scripts
+      // dynamically at once; this version waits for each dependency to initialize.
+      await loadScript("skills", ASSETS.skills);
+      ensurePrimarySkillsNav();
+
+      await loadScript("journalRewards", ASSETS.journalRewards);
+      await loadScript("weeklyReview", ASSETS.weeklyReview);
+      await loadScript("knowledgeTree", ASSETS.knowledgeTree);
+      await loadScript("healthTree", ASSETS.healthTree);
+      await loadScript("workTree", ASSETS.workTree);
+
+      ensurePrimarySkillsNav();
+      window.LifeRPGSkills?.rebuild?.();
+    } catch (error) {
+      showLoaderProblem(error);
+    }
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", startProgressionLoader, { once: true });
+  } else {
+    startProgressionLoader();
   }
 
   if (!("serviceWorker" in navigator)) return;
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register(`./service-worker.js?v=${VERSION}`, { scope: "./" })
+    navigator.serviceWorker.register(`./service-worker.js?v=${VERSION}`, { scope: "./", updateViaCache: "none" })
+      .then(registration => registration.update?.())
       .catch(error => console.warn("Life RPG service worker could not register", error));
   });
 })();
