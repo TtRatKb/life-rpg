@@ -16362,3 +16362,37 @@ body.training-focus-active-v314o > *:not(#trainingFocusView):not(.toast):not(.ac
 .story-visual-stage[data-mode="cg"] .story-sprite img {
   filter: none;
 }
+
+
+/* =========================================================
+   V0.31.4al · True background variants
+   V0.31.4ak's synthetic recoloring is intentionally disabled.
+   Time-of-day now lives inside the actual artwork.
+   ========================================================= */
+.story-visual-stage[data-story-lighting] .story-visual-backdrop,
+.story-visual-stage[data-story-lighting="day"] .story-visual-backdrop,
+.story-visual-stage[data-story-lighting="dawn"] .story-visual-backdrop,
+.story-visual-stage[data-story-lighting="sunset"] .story-visual-backdrop,
+.story-visual-stage[data-story-lighting="night"] .story-visual-backdrop {
+  filter: none !important;
+}
+
+.story-visual-stage[data-story-lighting] .story-sprite img,
+.story-visual-stage[data-story-lighting="day"] .story-sprite img,
+.story-visual-stage[data-story-lighting="dawn"] .story-sprite img,
+.story-visual-stage[data-story-lighting="sunset"] .story-sprite img,
+.story-visual-stage[data-story-lighting="night"] .story-sprite img {
+  filter: none !important;
+}
+
+/* Same subtle VN readability treatment for every real background.
+   It does not try to simulate a time of day. */
+.story-visual-stage[data-story-lighting]::before,
+.story-visual-stage[data-story-lighting="day"]::before,
+.story-visual-stage[data-story-lighting="dawn"]::before,
+.story-visual-stage[data-story-lighting="sunset"]::before,
+.story-visual-stage[data-story-lighting="night"]::before {
+  background:
+    linear-gradient(180deg, rgba(34,21,33,.01) 0%, rgba(34,21,33,.01) 52%, rgba(27,16,29,.58) 100%),
+    linear-gradient(90deg, rgba(46,28,43,.07), transparent 18%, transparent 82%, rgba(46,28,43,.07)) !important;
+}

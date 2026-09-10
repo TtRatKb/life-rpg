@@ -3781,6 +3781,39 @@
     return slot;
   }
 
+  const STORY_BACKGROUND_TIME_ASSETS = {
+    homeMorning: {
+      dawn: { src: "assets/story/backgrounds/time/home_dawn.webp", alt: "Luca's home at dawn" },
+      day: { src: "assets/story/backgrounds/time/home_day.webp", alt: "Luca's home in daylight" },
+      sunset: { src: "assets/story/backgrounds/time/home_sunset.webp", alt: "Luca's home at sunset" },
+      night: { src: "assets/story/backgrounds/time/home_night.webp", alt: "Luca's home at night" }
+    },
+    sharedApartment: {
+      dawn: { src: "assets/story/backgrounds/time/shared_apartment_dawn.webp", alt: "Shared apartment at dawn" },
+      day: { src: "assets/story/backgrounds/time/shared_apartment_day.webp", alt: "Shared apartment in daylight" },
+      sunset: { src: "assets/story/backgrounds/time/shared_apartment_sunset.webp", alt: "Shared apartment at sunset" },
+      night: { src: "assets/story/backgrounds/time/shared_apartment_night.webp", alt: "Shared apartment at night" }
+    },
+    cityCafe: {
+      dawn: { src: "assets/story/backgrounds/time/koharu_cafe_dawn.webp", alt: "Koharu Café at dawn" },
+      day: { src: "assets/story/backgrounds/time/koharu_cafe_day.webp", alt: "Koharu Café in daylight" },
+      sunset: { src: "assets/story/backgrounds/time/koharu_cafe_sunset.webp", alt: "Koharu Café at sunset" },
+      night: { src: "assets/story/backgrounds/time/koharu_cafe_night.webp", alt: "Koharu Café at night" }
+    },
+    stationEvening: {
+      dawn: { src: "assets/story/backgrounds/time/station_dawn.webp", alt: "Train station at dawn" },
+      day: { src: "assets/story/backgrounds/time/station_day.webp", alt: "Train station in daylight" },
+      sunset: { src: "assets/story/backgrounds/time/station_sunset.webp", alt: "Train station at sunset" },
+      night: { src: "assets/story/backgrounds/time/station_night.webp", alt: "Train station at night" }
+    },
+    cityDusk: {
+      dawn: { src: "assets/story/backgrounds/time/city_dawn.webp", alt: "City district at dawn" },
+      day: { src: "assets/story/backgrounds/time/city_day.webp", alt: "City district in daylight" },
+      sunset: { src: "assets/story/backgrounds/time/city_sunset.webp", alt: "City district at sunset" },
+      night: { src: "assets/story/backgrounds/time/city_night.webp", alt: "City district at night" }
+    }
+  };
+
   const STORY_BACKGROUND_TIME_FAMILIES = {
     homeMorning: {
       dawn: ["homeDawn", "homeMorning"],
@@ -3861,18 +3894,31 @@
     return candidates.find(key => backgroundAssets?.[key]?.src) || backgroundKey;
   }
 
+  function realTimeBackgroundAsset(backgroundKey, visual = null) {
+    if (!backgroundKey) return null;
+    const lighting = storyLightingContext(visual, runtime);
+    return STORY_BACKGROUND_TIME_ASSETS[backgroundKey]?.[lighting.part] || null;
+  }
+
   function backgroundAssetForVisual(visual, backgroundAssets) {
     const cg = cgAssetForVisual(visual);
     if (cg?.src) return cg;
 
     const requested = visual?.background;
     if (requested) {
+      const trueVariant = realTimeBackgroundAsset(requested, visual);
+      if (trueVariant?.src) return trueVariant;
+
+      // Compatibility for any future pack-provided variants.
       const timed = timeAwareBackgroundKey(requested, backgroundAssets, visual);
       if (timed && backgroundAssets?.[timed]?.src) return backgroundAssets[timed];
       if (backgroundAssets?.[requested]?.src) return backgroundAssets[requested];
     }
 
     const fallback = contextualBackgroundForRuntime(runtime);
+    const trueFallback = realTimeBackgroundAsset(fallback, visual);
+    if (trueFallback?.src) return trueFallback;
+
     const timedFallback = timeAwareBackgroundKey(fallback, backgroundAssets, visual);
     if (timedFallback && backgroundAssets?.[timedFallback]?.src) return backgroundAssets[timedFallback];
     return fallback && backgroundAssets?.[fallback]?.src ? backgroundAssets[fallback] : null;
