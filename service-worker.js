@@ -1,4 +1,4 @@
-const CACHE_NAME = "life-rpg-v0314aa-skills-foundation";
+const CACHE_NAME = "life-rpg-v0314ab-independent-journal-rewards";
 const CORE = [
   "./",
   "./index.html",
@@ -6,8 +6,9 @@ const CORE = [
   "./styles.css?v=0.31.4z1",
   "./skills.css?v=0.31.4aa",
   "./skills.js?v=0.31.4aa",
+  "./journal-rewards.js?v=0.31.4ab",
   "./manifest.webmanifest?v=0.30.3a",
-  "./pwa.js?v=0.31.4aa",
+  "./pwa.js?v=0.31.4ab",
   "./visual-performance.js?v=0.31.4c",
   "./modal-manager.js?v=0.31.4d",
   "./training-focus.js?v=0.31.4o",
