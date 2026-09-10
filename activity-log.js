@@ -300,12 +300,11 @@
     journalEvents.forEach(event => consumed.add(event.id));
     if (hasReflection(journalEntry) || journalEvents.length) {
       const rewards = sumRewards(journalEvents);
-      const chars = journalCharacterCount(journalEntry) || Math.max(0, ...journalEvents.map(event => number(event.metadata?.journalCharacters || event.metadata?.characters)));
-      const depthEvents = journalEvents.filter(event => ["journal-reflection-effort", "journal-reflection-field-effort"].includes(event.source));
+      const chars = journalCharacterCount(journalEntry) || Math.max(0, ...journalEvents.map(event => number(event.metadata?.journalCharacters)));
       rows.push({
         id: `journal-${key}`, at: latestAt(journalEvents) || journalEntry?.updatedAt || `${key}T20:00:00`, category: "journal", icon: "🌸", sourceLabel: "Journal",
-        title: "Daily reflection", detail: `${chars} characters${depthEvents.length ? ` · ${depthEvents.length} depth reward${depthEvents.length === 1 ? "" : "s"} reached` : ""}`,
-        reward: rewards, rewardKnown: journalEvents.length > 0, realm: journalEvents.find(event => event.realm)?.realm || "Health", capability: "wellbeing",
+        title: "Daily reflection", detail: `${chars} characters${journalEvents.length > 1 ? ` · ${journalEvents.length - 1} depth reward${journalEvents.length === 2 ? "" : "s"} reached` : ""}`,
+        reward: rewards, rewardKnown: journalEvents.length > 0, realm: journalRealmLabel(journalEvents), capability: "wellbeing",
         duplicate: false, migrated: journalEvents.some(event => event.migrated),
         why: journalEvents.length ? journalWhy(journalEvents, chars) : `<p>This reflection exists in the save, but it predates the exact Journal reward events Life RPG can verify.</p>`
       });
@@ -521,7 +520,7 @@
       const reward = rewardFromEvent(event);
       return `<li><strong>${esc(event.label || humanize(event.source))}</strong> — ${rewardInline(reward)}</li>`;
     }).join("");
-    return `<p>${chars} characters were saved across Gratitude, Small Win and Hard Thing. Journal effort rewards unlock at visible character thresholds and are capped rather than paying indefinitely per character.</p><ul>${lines}</ul>`;
+    return `<p>${chars} characters were saved across Gratitude, Small Win and Hard Thing. Each reflection field now has its own visible depth rewards up to 1000 characters; the daily base and every earned field tier are summed here.</p><ul>${lines}</ul>`;
   }
 
   function gameSessionWhy(event, log) {
@@ -558,6 +557,7 @@
       "recovery-studio": ["🌿", "Recovery Studio"],
       "journal-reflection-base": ["🌸", "Journal"],
       "journal-reflection-effort": ["🌸", "Journal"],
+      "journal-reflection-field-effort": ["🌸", "Journal"],
       "habit-coin-repair": ["↺", "Reward repair"]
     };
     const found = map[source];
@@ -646,6 +646,13 @@
   function latestAt(events) {
     if (!events.length) return null;
     return events.reduce((latest, event) => new Date(event.at || 0) > new Date(latest || 0) ? event.at : latest, events[0].at);
+  }
+
+  function journalRealmLabel(events) {
+    const realms = [...new Set((events || []).map(event => String(event?.realm || "").trim()).filter(Boolean))];
+    if (!realms.length) return "Health";
+    if (realms.length === 1) return realms[0];
+    return realms.join(" / ");
   }
 
   function hasReflection(entry) { return Boolean(entry && [entry.gratitude, entry.smallWin, entry.hardThing].some(value => String(value || "").trim())); }

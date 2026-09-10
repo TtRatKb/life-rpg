@@ -14,7 +14,12 @@
   <link rel="manifest" href="manifest.webmanifest?v=0.30.3a" />
   <link rel="apple-touch-icon" href="assets/app-icon-180.png?v=0.30.3a" />
   <link rel="icon" type="image/png" sizes="192x192" href="assets/app-icon-192.png?v=0.30.3a" />
-  <link rel="stylesheet" href="styles.css?v=0.31.4z1" />
+  <link rel="stylesheet" href="styles.css?v=0.31.4ag" />
+  <link rel="stylesheet" href="skills.css?v=0.31.4ag" />
+  <link rel="stylesheet" href="weekly-review.css?v=0.31.4ag" />
+  <link rel="stylesheet" href="knowledge-tree.css?v=0.31.4ag" />
+  <link rel="stylesheet" href="health-tree.css?v=0.31.4ag" />
+  <link rel="stylesheet" href="work-tree.css?v=0.31.4ag" />
   <link rel="preload" as="image" href="assets/ui/thumbs/characters/luca_neutral.webp" fetchpriority="high" />
 </head>
 <body>
@@ -130,6 +135,7 @@
           <button data-view-target="journal"><span class="command-strip-icon">🌸</span><span><strong>Journal</strong><small>Check in, reflect, and see the month take shape.</small></span><b>›</b></button>
           <button data-view-target="rhythm"><span class="command-strip-icon">◷</span><span><strong>Focus & Time</strong><small>Pomodoro, clock-in, and the real shape of your week.</small></span><b>›</b></button>
           <button data-view-target="activity"><span class="command-strip-icon">≡</span><span><strong>Activity Log</strong><small>See exactly what counted and what it paid.</small></span><b>›</b></button>
+          <button data-view-target="skills"><span class="command-strip-icon">✦</span><span><strong>Skills</strong><small>Levels, Realm Points and Talent Trees.</small></span><b>›</b></button>
           <button data-view-target="quests"><span class="command-strip-icon">☷</span><span><strong>Quest Board</strong><small>Choose what fits today.</small></span><b>›</b></button>
           <button data-view-target="adventures"><span class="command-strip-icon">✧</span><span><strong>Side Adventures</strong><small>Come back to things you actually want.</small></span><b>›</b></button>
           <button data-view-target="library"><span class="command-strip-icon">📚</span><span><strong>Library</strong><small>Your books, without database homework.</small></span><b>›</b></button>
@@ -1131,7 +1137,7 @@
           </div>
         </section>
 
-        <section class="panel training-grounds-v314k" aria-labelledby="trainingGroundsTitle">
+        <section id="trainingGroundsPanel" class="panel training-grounds-v314k" aria-labelledby="trainingGroundsTitle">
           <div class="training-grounds-heading-v314k">
             <div><p class="eyebrow">REALM ACTIVITIES · PLAY INSIDE LIFE RPG</p><h2 id="trainingGroundsTitle">Training Grounds</h2><p>Short activities that train something real while still feeling like a game. Journey progress is permanent; Dailies are invitations, never obligations.</p></div>
             <span class="training-grounds-badge-v314k">✦ Realm activities online</span>
@@ -1679,7 +1685,7 @@
               <div class="settings-steam-actions-v312">
                 <button id="steamSettingsSave" class="primary-button" type="button">Save Steam settings</button>
                 <button id="steamConnectionTest" class="secondary-button" type="button">Test Worker</button>
-                <span id="steamConnectionStatus" class="muted">Not configured yet.</span>
+                <span id="steamConnectionStatus" class="muted">Changes also autosave when you leave a field.</span>
               </div>
               <p class="muted">The API key itself is never saved in Life RPG. It lives only as a secret in your Worker.</p>
             </section>
@@ -1736,6 +1742,7 @@
       <button class="nav-button" data-view="adventures"><span>✧</span><small>Adventures</small></button>
       <button class="nav-button" data-view="library"><span>📚</span><small>Library</small></button>
       <button class="nav-button" data-view="games"><span>🎮</span><small>Games</small></button>
+      <button class="nav-button" data-view="skills"><span>✦</span><small>Skills</small></button>
       <button class="nav-button" data-view="growth"><span>✦</span><small>Growth</small></button>
       <button class="nav-button" data-view="achievements"><span>🏆</span><small>Achievements</small></button>
       <button class="nav-button" data-view="shop"><span>🛍️</span><small>Shop</small></button>
@@ -2065,6 +2072,14 @@ League of Legends — PC" required></textarea></label>
           <span id="gameSteamAppIdBadge" class="game-steam-appid-v312"></span>
         </div>
         <p id="gameSteamStatus" class="muted">Steam App ID detected. Connect the free Steam Worker in Settings, then load the game's achievements here.</p>
+        <label class="game-steam-spoiler-override-v314ag">Spoiler Shield for this game
+          <select id="gameSteamSpoilerMode">
+            <option value="inherit">Use global setting</option>
+            <option value="strict">Hide all locked achievements</option>
+            <option value="steam-hidden">Hide only Steam-hidden achievements</option>
+            <option value="off">Show all locked achievement details</option>
+          </select>
+        </label>
         <div class="game-steam-actions-v312">
           <button id="gameSteamLoad" class="secondary-button" type="button">↻ Load Steam achievements</button>
           <button id="gameSteamSelectAll" class="text-button hidden" type="button">Select all</button>
@@ -3167,13 +3182,13 @@ League of Legends — PC" required></textarea></label>
   <script src="modal-manager.js?v=0.31.4d"></script>
   <script src="training-focus.js?v=0.31.4o"></script>
   <script src="visual-performance.js?v=0.31.4c"></script>
-  <script src="app.js?v=0.31.4s"></script>
+  <script src="app.js?v=0.31.4ag"></script>
   <script src="daily-streaks.js?v=0.31.4z"></script>
   <script src="stewardship.js?v=0.31.3a"></script>
-  <script src="habits.js?v=0.30.9"></script>
-  <script src="adventures.js?v=0.31.1"></script>
+  <script src="habits.js?v=0.31.4ag"></script>
+  <script src="adventures.js?v=0.31.4ag"></script>
   <script src="adventure-workspace.js?v=0.31.4c"></script>
-  <script src="library.js?v=0.30.6"></script>
+  <script src="library.js?v=0.31.4ag"></script>
   <script src="games.js?v=0.31.4ag"></script>
   <script src="time.js?v=0.31.1"></script>
   <script src="universal-timers.js?v=0.31.1"></script>
@@ -3189,10 +3204,10 @@ League of Legends — PC" required></textarea></label>
   <script src="data/lexicon-lab-data.js?v=0.31.4q"></script>
   <script src="data/lexicon-lab-enrichment.js?v=0.31.4y"></script>
   <script src="data/lexicon-pool.js?v=0.31.4z"></script>
-  <script src="lexicon-lab.js?v=0.31.4ag"></script>
+  <script src="lexicon-lab.js?v=0.31.4z1"></script>
   <script src="smart-action-router.js?v=0.31.4s"></script>
   <script src="smart-quests.js?v=0.31.0"></script>
-  <script src="daily.js?v=0.31.4y"></script>
+  <script src="daily.js?v=0.31.4ag"></script>
   <script src="journal.js?v=0.31.4ag"></script>
   <script src="story-ui.js?v=0.31.4r"></script>
   <script src="shop.js?v=0.30.6"></script>
@@ -3200,6 +3215,16 @@ League of Legends — PC" required></textarea></label>
   <script src="activity-log.js?v=0.31.4ag"></script>
   <script src="kotoba-integration.js?v=0.31.4k"></script>
   <script src="kotoba-quick-training.js?v=0.31.4k"></script>
+
+  <!-- Progression modules are loaded statically and in dependency order.
+       This avoids the dynamic-loader races that caused intermittent dead UI. -->
+  <script src="skills.js?v=0.31.4ag"></script>
+  <script src="journal-rewards.js?v=0.31.4ag"></script>
+  <script src="weekly-review.js?v=0.31.4ag"></script>
+  <script src="knowledge-tree.js?v=0.31.4ag"></script>
+  <script src="health-tree.js?v=0.31.4ag"></script>
+  <script src="work-tree.js?v=0.31.4ag"></script>
+
   <script type="module" src="cloud-save.js?v=0.31.4ag"></script>
   <script src="pwa.js?v=0.31.4ag"></script>
 </body>

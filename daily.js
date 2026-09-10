@@ -805,12 +805,12 @@
     }
   }
 
-  function writeShadow(value) {
-    try {
-      localStorage.setItem(SHADOW_KEY, JSON.stringify(value));
-    } catch {
-      // Main save remains canonical; this is only a small local recovery shadow.
-    }
+  function writeShadow(_value) {
+    // V0.31.4ag: the canonical Life RPG save is now quota-safe. Older releases
+    // duplicated this entire subsystem into localStorage, which could exhaust
+    // Safari's small per-origin quota. Keep readShadow() for one-way recovery
+    // from an old install, but retire the duplicate after the canonical save exists.
+    try { localStorage.removeItem(SHADOW_KEY); } catch { /* best-effort cleanup */ }
   }
 
   function persist(source, { render: shouldRender = true } = {}) {

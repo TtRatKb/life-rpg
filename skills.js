@@ -7,7 +7,7 @@
     return;
   }
 
-  const VERSION = "0.31.4ac";
+  const VERSION = "0.31.4ag";
   const SCHEMA = 1;
   const MAX_EVENTS = 6000;
   const HABIT_XP = { tiny: 3, low: 5, normal: 8, high: 12, boss: 18 };
@@ -59,6 +59,7 @@
   let syncing = false;
   let syncTimer = null;
   let lastDerivedSignature = "";
+  let activeTalentRealm = "Knowledge";
 
   init();
 
@@ -116,7 +117,7 @@
       if (open) {
         event.preventDefault();
         reconcile({ persist: true, reason: "skills-open" });
-        app.showView?.("skills");
+        openSkillsView();
         render();
         return;
       }
@@ -132,6 +133,13 @@
       if (suggestAll) {
         event.preventDefault();
         applyHabitSuggestionsToForm();
+        return;
+      }
+
+      const talentTab = event.target.closest?.("[data-skill-tree-tab]");
+      if (talentTab) {
+        event.preventDefault();
+        selectTalentRealm(talentTab.dataset.skillTreeTab);
         return;
       }
 
@@ -664,16 +672,29 @@
   }
 
   function injectNavigation() {
-    if (document.querySelector("[data-skills-open]")) return;
     const strip = document.querySelector(".dashboard-command-strip");
-    if (!strip) return;
-    const button = document.createElement("button");
-    button.type = "button";
-    button.dataset.skillsOpen = "true";
-    button.innerHTML = `<span class="command-strip-icon">✦</span><span><strong>Skills</strong><small>See what your real practice is building.</small></span><b>›</b>`;
-    const activity = strip.querySelector('[data-view-target="activity"]');
-    if (activity?.nextSibling) strip.insertBefore(button, activity.nextSibling);
-    else strip.appendChild(button);
+    if (strip && !strip.querySelector('[data-view-target="skills"], [data-skills-open]')) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.dataset.skillsOpen = "true";
+      button.innerHTML = `<span class="command-strip-icon">✦</span><span><strong>Skills</strong><small>See what your real practice is building.</small></span><b>›</b>`;
+      const activity = strip.querySelector('[data-view-target="activity"]');
+      if (activity?.nextSibling) strip.insertBefore(button, activity.nextSibling);
+      else strip.appendChild(button);
+    }
+
+    const nav = document.querySelector(".bottom-nav");
+    if (nav && !nav.querySelector('.nav-button[data-view="skills"]')) {
+      const button = document.createElement("button");
+      button.className = "nav-button";
+      button.type = "button";
+      button.dataset.view = "skills";
+      button.dataset.skillsOpen = "true";
+      button.innerHTML = `<span>✦</span><small>Skills</small>`;
+      const growth = nav.querySelector('.nav-button[data-view="growth"]');
+      if (growth) nav.insertBefore(button, growth);
+      else nav.appendChild(button);
+    }
   }
 
   function injectSkillsView() {
@@ -694,12 +715,31 @@
       </section>
       <section id="skillsSummary" class="skills-summary-v314aa"></section>
       <section id="skillsHabitMapping" class="skills-habit-map-v314aa"></section>
+      <section id="skillsTalentHub" class="panel skills-talent-hub-v314ag">
+        <div class="skills-talent-hub-head-v314ag"><div><p class="eyebrow">REALM TALENT TREES</p><h2>Spend points where you want the next unlock.</h2><p class="panel-subcopy">One Realm at a time. Existing Life RPG features never become locked behind talents.</p></div></div>
+        <div id="skillsTalentTabs" class="skills-talent-tabs-v314ag" role="tablist" aria-label="Talent tree Realm"></div>
+        <div id="skillsTalentTreePanels" class="skills-talent-panels-v314ag"></div>
+        <div id="skillsTalentEmpty" class="skills-talent-empty-v314ag hidden"></div>
+      </section>
       <section id="skillsRealmGrid" class="skills-realm-grid-v314aa"></section>
-      <section class="panel skills-history-panel-v314aa">
-        <div class="panel-heading"><div><p class="eyebrow">PRACTICE HISTORY</p><h2>Recent Skill XP</h2><p class="panel-subcopy">Debuggable, local and separate from Coins / Story Energy.</p></div></div>
+      <details class="panel skills-history-panel-v314aa skills-history-collapsible-v314ag">
+        <summary><div><p class="eyebrow">PRACTICE HISTORY</p><h2>Recent Skill XP</h2><p class="panel-subcopy">Open the audit trail only when you want the details.</p></div><span id="skillsRecentSummary">Latest practice</span></summary>
         <div id="skillsRecentPractice" class="skills-recent-v314aa"></div>
-      </section>`;
+      </details>`;
     main.appendChild(section);
+  }
+
+
+  function openSkillsView() {
+    app.showView?.("skills");
+    // Defensive routing guard for dynamically-added views: only Skills may stay active.
+    document.querySelectorAll(".view").forEach(view => {
+      view.classList.toggle("active", view.id === "view-skills");
+    });
+    document.querySelectorAll(".nav-button").forEach(button => {
+      button.classList.toggle("active", button.dataset.view === "skills");
+    });
+    window.scrollTo?.({ top: 0, behavior: "smooth" });
   }
 
   function injectHabitSkillField() {
@@ -820,6 +860,7 @@
     const totals = totalsBySkill();
     renderSummary(totals);
     renderHabitMapping();
+    renderTalentHub();
     renderRealms(totals);
     renderRecent();
   }
@@ -849,7 +890,8 @@
     container.classList.remove("hidden");
     const unmapped = habits.filter(item => item.skillMappingConfirmed !== true);
     if (!unmapped.length) {
-      container.innerHTML = `<div class="skills-map-complete-v314aa"><span>✓</span><div><strong>Habit mapping complete</strong><small>All ${habits.length} active habits have a confirmed Skill decision. “No specific skill” stays a valid choice.</small></div></div>`;
+      container.innerHTML = "";
+      container.classList.add("hidden");
       return;
     }
     container.innerHTML = `
@@ -865,6 +907,45 @@
 
   function skillOptions(selected = "") {
     return `<option value="">No specific skill</option>` + Object.keys(REALMS).map(realm => `<optgroup label="${esc(REALMS[realm].icon)} ${esc(realm)}">${(SKILLS_BY_REALM[realm] || []).map(item => `<option value="${escAttr(item.id)}" ${item.id === selected ? "selected" : ""}>${esc(item.label)}</option>`).join("")}</optgroup>`).join("");
+  }
+
+  function renderTalentHub() {
+    const tabs = document.getElementById("skillsTalentTabs");
+    const panels = document.getElementById("skillsTalentTreePanels");
+    const empty = document.getElementById("skillsTalentEmpty");
+    if (!tabs || !panels || !empty) return;
+
+    tabs.innerHTML = Object.keys(REALMS).map(realm => {
+      const built = ["Knowledge", "Health", "Work"].includes(realm);
+      const points = realmPointInfo(realm);
+      return `<button type="button" role="tab" data-skill-tree-tab="${escAttr(realm)}" aria-selected="${activeTalentRealm === realm ? "true" : "false"}" class="${activeTalentRealm === realm ? "active" : ""}"><span>${REALMS[realm].icon}</span><strong>${esc(realm)}</strong><small>${points.available} pt${points.available === 1 ? "" : "s"}${built ? "" : " · soon"}</small></button>`;
+    }).join("");
+
+    const treeSections = [...panels.querySelectorAll("[data-skill-tree-realm]")];
+    treeSections.forEach(section => section.classList.toggle("hidden", section.dataset.skillTreeRealm !== activeTalentRealm));
+    const activeTree = treeSections.find(section => section.dataset.skillTreeRealm === activeTalentRealm);
+    empty.classList.toggle("hidden", Boolean(activeTree));
+    if (!activeTree) {
+      const meta = REALMS[activeTalentRealm] || { icon: "✦" };
+      empty.innerHTML = `<span>${meta.icon}</span><div><strong>${esc(activeTalentRealm)} Talent Tree</strong><p>The Skill progression is already active. This Realm's spendable tree has not been built yet, so nothing is being withheld or locked.</p></div>`;
+    }
+  }
+
+  function selectTalentRealm(realm) {
+    if (!REALMS[realm]) return;
+    activeTalentRealm = realm;
+    renderTalentHub();
+    document.getElementById("skillsTalentHub")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function registerTalentTree(realm, section) {
+    const panels = document.getElementById("skillsTalentTreePanels");
+    if (!panels || !(section instanceof HTMLElement) || !REALMS[realm]) return false;
+    section.dataset.skillTreeRealm = realm;
+    section.classList.add("skills-talent-tree-panel-v314ag");
+    panels.appendChild(section);
+    renderTalentHub();
+    return true;
   }
 
   function renderRealms(totals) {
@@ -888,10 +969,17 @@
   function renderRecent() {
     const container = document.getElementById("skillsRecentPractice");
     if (!container) return;
-    const rows = [...state().events].sort((a, b) => eventTime(b) - eventTime(a)).slice(0, 30);
+    const rows = [...state().events].sort((a, b) => eventTime(b) - eventTime(a)).slice(0, 10);
+    const summary = document.getElementById("skillsRecentSummary");
     if (!rows.length) {
+      if (summary) summary.textContent = "No practice yet";
       container.innerHTML = `<div class="skills-empty-v314aa"><span>✦</span><div><strong>No Skill practice derived yet.</strong><small>Existing ambiguous logs stay untouched instead of being guessed.</small></div></div>`;
       return;
+    }
+    if (summary) {
+      const latest = rows[0];
+      const meta = SKILL_BY_ID[latest.skillId];
+      summary.textContent = `${meta?.label || "Skill"} · +${formatXp(latest.xp)} XP`;
     }
     container.innerHTML = rows.map(event => {
       const meta = SKILL_BY_ID[event.skillId];
@@ -933,7 +1021,10 @@
     getRealmPoints: realm => ({ ...realmPointInfo(realm) }),
     timeXp,
     reflectionXp,
+    registerTalentTree,
+    refreshTalentHub: renderTalentHub,
+    selectTalentRealm,
     rebuild: () => reconcile({ persist: true, reason: "skills-api-rebuild", force: true }),
-    open: () => { app.showView?.("skills"); render(); }
+    open: () => { app.showView?.("skills"); render(); window.scrollTo({ top: 0, behavior: "smooth" }); }
   };
 })();

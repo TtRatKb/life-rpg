@@ -41,12 +41,12 @@
     hardThing: { icon: "🌧", label: "Something that was hard" }
   };
 
-  const JOURNAL_EFFORT_THRESHOLDS = [50, 150, 300, 600];
-  const JOURNAL_EFFORT_REWARDS = [
-    { xp: 5, coins: 5, storyEnergyBase: 0 },
-    { xp: 5, coins: 5, storyEnergyBase: 0.10 },
-    { xp: 10, coins: 10, storyEnergyBase: 0.15 },
-    { xp: 15, coins: 15, storyEnergyBase: 0.25 }
+  const JOURNAL_FIELD_REWARD_TIERS = [
+    { threshold: 50, xp: 5, coins: 5, storyEnergyBase: 0 },
+    { threshold: 150, xp: 5, coins: 5, storyEnergyBase: 0.10 },
+    { threshold: 300, xp: 10, coins: 10, storyEnergyBase: 0.15 },
+    { threshold: 600, xp: 15, coins: 15, storyEnergyBase: 0.25 },
+    { threshold: 1000, xp: 10, coins: 10, storyEnergyBase: 0.15 }
   ];
 
   const COMPANIONS = {
@@ -182,10 +182,10 @@
   function init() {
     const changed = ensureState();
     const todayEntry = app.getState().journal?.entries?.[todayKey()] || null;
-    const repairedRewards = todayEntry ? maybeAwardReflectionRewards(todayKey(), todayEntry) : emptyRewardTotal();
+    const repairedRewards = todayEntry ? repairMissedIndependentRewards(todayKey(), todayEntry) : emptyRewardTotal();
     bindEvents();
     initialized = true;
-    if (changed || rewardTotalHasValue(repairedRewards)) app.saveState({ source: rewardTotalHasValue(repairedRewards) ? "journal-v0310-reward-repair" : "journal-v0302-init" });
+    if (changed || rewardTotalHasValue(repairedRewards)) app.saveState({ source: rewardTotalHasValue(repairedRewards) ? "journal-v0314ag-reward-repair" : "journal-v0302-init" });
     render();
   }
 
@@ -276,10 +276,7 @@
     });
 
     els.reflectionClose?.addEventListener("click", closeReflection);
-    els.reflectionDone?.addEventListener("click", () => {
-      if (reflectionField && !els.reflectionWriteStep?.classList.contains("hidden")) saveReflectionField({ closeAfterSave: true });
-      else closeReflection();
-    });
+    els.reflectionDone?.addEventListener("click", closeReflection);
     els.reflectionBack?.addEventListener("click", showReflectionChoices);
     els.reflectionSave?.addEventListener("click", saveReflectionField);
     els.reflectionTextarea?.addEventListener("input", renderReflectionRewardMeter);
@@ -499,7 +496,7 @@
     renderReflectionCompanion(reflectionCompanion, reflectionCompanion.prompts[field]);
   }
 
-  function saveReflectionField(options = {}) {
+  function saveReflectionField() {
     if (!reflectionField || !els.reflectionTextarea) return;
     const entry = entryFor(reflectionDate, true);
     entry[reflectionField] = cleanText(els.reflectionTextarea.value);
@@ -507,15 +504,9 @@
     entry.lastReflectionCompanionId = reflectionCompanion.id;
     const rewards = maybeAwardReflectionRewards(reflectionDate, entry);
     app.saveState({ source: `journal-${reflectionField}` });
-    const fieldRewards = window.LifeRPGJournalRewards?.awardPendingForDate?.(reflectionDate, { showToast: false });
-    addRewardTotal(rewards, fieldRewards);
     renderReflectionCompanion(reflectionCompanion, reflectionCompanion.saved[reflectionField]);
     app.showToast?.(`${REFLECTION_META[reflectionField].icon} Journal saved${rewardSummary(rewards)}`);
     render();
-    if (options?.closeAfterSave) {
-      closeReflection();
-      return;
-    }
     setTimeout(showReflectionChoices, 420);
   }
 
@@ -576,8 +567,6 @@
     entry.updatedAt = Date.now();
     const rewards = maybeAwardReflectionRewards(editingDate, entry);
     app.saveState({ source: "journal-day-edit" });
-    const fieldRewards = window.LifeRPGJournalRewards?.awardPendingForDate?.(editingDate, { showToast: false });
-    addRewardTotal(rewards, fieldRewards);
     els.dayDialog.close();
     app.showToast?.(`Journal day saved${rewardSummary(rewards)}`);
     render();
@@ -849,13 +838,14 @@
     const oldCoinEvent = events.some(event => event?.source === "journal-reflection" && event.sourceId === dateKeyValue);
     const baseId = `${dateKeyValue}:base-v0310`;
     const hasBase = events.some(event => event?.source === "journal-reflection-base" && event.sourceId === baseId);
+
     if (!hasBase) {
       const streak = reflectionStreakEndingOn(dateKeyValue);
       const base = app.awardActivity?.({
         source: "journal-reflection-base",
         sourceId: baseId,
         label: "Daily reflection",
-        realm: "Recovery",
+        realm: "Health",
         capability: "wellbeing",
         xp: 5,
         realmXP: 3,
@@ -863,74 +853,117 @@
         coins: oldCoinEvent ? 0 : reflectionCoinRewardForStreak(streak),
         storyEnergyBase: 0.10,
         progressionRelevant: true,
-        metadata: { reflection: true, streak, journalCharacters: reflectionCharacterCount(entry) }
+        metadata: { reflection: true, streak, journalCharacters: reflectionCharacterCount(entry), independentFields: true }
       });
       addRewardTotal(total, base);
     }
 
-    const chars = reflectionCharacterCount(entry);
-    JOURNAL_EFFORT_THRESHOLDS.forEach((threshold, index) => {
-      if (chars < threshold) return;
-      const sourceId = `${dateKeyValue}:tier-${index + 1}`;
-      const already = events.some(event => event?.source === "journal-reflection-effort" && event.sourceId === sourceId)
-        || (app.getState().rewardLedger?.events || []).some(event => event?.source === "journal-reflection-effort" && event.sourceId === sourceId);
-      if (already) return;
-      const spec = JOURNAL_EFFORT_REWARDS[index];
-      const reward = app.awardActivity?.({
-        source: "journal-reflection-effort",
-        sourceId,
-        label: `Journal depth · ${threshold}+ characters`,
-        realm: "Recovery",
-        capability: "wellbeing",
-        xp: spec.xp,
-        realmXP: Math.max(0, Math.round(spec.xp * 0.5)),
-        statXP: Math.max(0, Math.round(spec.xp * 0.5)),
-        coins: spec.coins,
-        storyEnergyBase: spec.storyEnergyBase,
-        progressionRelevant: true,
-        metadata: { reflection: true, journalCharacters: chars, threshold, effortTier: index + 1 }
+    Object.keys(REFLECTION_META).forEach(field => {
+      const chars = reflectionFieldCharacterCount(entry, field);
+      JOURNAL_FIELD_REWARD_TIERS.forEach((tier, index) => {
+        if (chars < tier.threshold || independentTierAlreadyAwarded(dateKeyValue, field, index, tier.threshold)) return;
+        const reward = app.awardActivity?.({
+          source: "journal-reflection-field-effort",
+          sourceId: `${dateKeyValue}:${field}:tier-${index + 1}:v0314ab`,
+          label: `${REFLECTION_META[field].label} · ${tier.threshold}+ characters`,
+          realm: "Health",
+          capability: "wellbeing",
+          xp: tier.xp,
+          realmXP: Math.max(0, Math.round(tier.xp * 0.5)),
+          statXP: Math.max(0, Math.round(tier.xp * 0.5)),
+          coins: tier.coins,
+          storyEnergyBase: tier.storyEnergyBase,
+          progressionRelevant: true,
+          metadata: {
+            reflection: true,
+            independentReflectionField: true,
+            journalIndependentRewardsVersion: "0.31.4ag",
+            field,
+            characters: chars,
+            threshold: tier.threshold,
+            effortTier: index + 1
+          }
+        });
+        addRewardTotal(total, reward);
       });
-      addRewardTotal(total, reward);
     });
+
     return total;
   }
 
+  function independentTierAlreadyAwarded(dateKeyValue, field, index, threshold) {
+    return (app.getState().rewardLedger?.events || []).some(event => {
+      if (event?.source !== "journal-reflection-field-effort") return false;
+      if (event?.metadata?.field === field && Number(event?.metadata?.threshold || 0) === Number(threshold)) {
+        return String(event.sourceId || "").startsWith(`${dateKeyValue}:`);
+      }
+      return event?.sourceId === `${dateKeyValue}:${field}:tier-${index + 1}:v0314ab`;
+    });
+  }
+
+  function repairMissedIndependentRewards(dateKeyValue, entry) {
+    if (dateKeyValue !== todayKey() || !hasReflection(entry)) return emptyRewardTotal();
+    const root = app.getState();
+    const migration = root.journal?.migrations?.independentReflectionRewardsV0314ab;
+    if (!migration) return emptyRewardTotal();
+    const events = root.rewardLedger?.events || [];
+    const hasBase = events.some(event => event?.source === "journal-reflection-base" && String(event.sourceId || "").startsWith(`${dateKeyValue}:`));
+    const hasAnyIndependent = events.some(event => event?.source === "journal-reflection-field-effort" && String(event.sourceId || "").startsWith(`${dateKeyValue}:`));
+    const installedAt = Math.max(0, Number(migration.installedAt || 0));
+    const entryUpdatedAt = Math.max(0, Number(entry.updatedAt || entry.createdAt || 0));
+    // Only repair writing that happened after the independent-reward release was
+    // installed. Older text was deliberately grandfathered and must stay that way.
+    if (!hasBase || hasAnyIndependent || (installedAt && entryUpdatedAt && entryUpdatedAt < installedAt)) return emptyRewardTotal();
+    migration.repairedByV0314ag = Date.now();
+    migration.baselineTiers = { gratitude: 0, smallWin: 0, hardThing: 0 };
+    return maybeAwardReflectionRewards(dateKeyValue, entry);
+  }
+
   function reflectionCharacterCount(entry) {
-    return ["gratitude", "smallWin", "hardThing"].reduce((sum, field) => sum + cleanText(entry?.[field]).length, 0);
+    return Object.keys(REFLECTION_META).reduce((sum, field) => sum + reflectionFieldCharacterCount(entry, field), 0);
+  }
+
+  function reflectionFieldCharacterCount(entry, field) {
+    return cleanText(entry?.[field]).length;
   }
 
   function reflectionDraftCharacterCount() {
+    if (!reflectionField) return 0;
     const entry = entryFor(reflectionDate, false) || {};
-    const draft = { ...entry };
-    if (reflectionField && els.reflectionTextarea) draft[reflectionField] = String(els.reflectionTextarea.value || "").trim();
-    return reflectionCharacterCount(draft);
+    if (els.reflectionTextarea) return cleanText(els.reflectionTextarea.value).length;
+    return reflectionFieldCharacterCount(entry, reflectionField);
   }
 
-  function dayDraftCharacterCount() {
-    return [els.dayGratitude, els.daySmallWin, els.dayHardThing].reduce((sum, input) => sum + String(input?.value || "").trim().length, 0);
+  function dayDraftFieldCount(field) {
+    const map = { gratitude: els.dayGratitude, smallWin: els.daySmallWin, hardThing: els.dayHardThing };
+    return cleanText(map[field]?.value).length;
   }
 
-  function rewardMeterMarkup(chars, dateKeyValue = todayKey()) {
-    const reached = JOURNAL_EFFORT_THRESHOLDS.filter(value => chars >= value).length;
-    const next = JOURNAL_EFFORT_THRESHOLDS.find(value => chars < value);
-    const nextIndex = next ? JOURNAL_EFFORT_THRESHOLDS.indexOf(next) : -1;
-    const nextReward = nextIndex >= 0 ? JOURNAL_EFFORT_REWARDS[nextIndex] : null;
-    const nextText = next
-      ? `<strong>${next - chars} character${next - chars === 1 ? "" : "s"} to the next depth reward</strong><span>Next: +${nextReward.xp} XP · +${nextReward.coins} 🪙${nextReward.storyEnergyBase ? ` · +${nextReward.storyEnergyBase} 🔥 base` : ""}</span>`
-      : `<strong>Maximum writing bonus reached for this day ✨</strong><span>Keep writing only if you want to — there is no extra length farming past ${JOURNAL_EFFORT_THRESHOLDS.at(-1)} characters.</span>`;
-    const width = next ? Math.min(100, Math.round((chars / next) * 100)) : 100;
+  function rewardMeterMarkup(chars, dateKeyValue = todayKey(), field = null) {
+    const reached = JOURNAL_FIELD_REWARD_TIERS.filter(tier => chars >= tier.threshold).length;
+    const next = JOURNAL_FIELD_REWARD_TIERS.find(tier => chars < tier.threshold);
+    const nextIndex = next ? JOURNAL_FIELD_REWARD_TIERS.indexOf(next) : -1;
     const historical = dateKeyValue !== todayKey();
-    return `<div class="journal-effort-meter-v310 ${historical ? "historical" : ""}"><div class="journal-effort-meter-top-v310"><span><b>${chars}</b> characters today</span><em>${reached}/${JOURNAL_EFFORT_THRESHOLDS.length} depth bonuses</em></div><i><b style="width:${width}%"></b></i><div>${historical ? `<strong>Saved reflection depth</strong><span>Length bonuses are awarded on the day you write; older entries stay editable without becoming backdated reward farming.</span>` : nextText}</div></div>`;
+    const label = field && REFLECTION_META[field] ? REFLECTION_META[field].label : "Reflection";
+    const nextText = next
+      ? `<strong>${next.threshold - chars} character${next.threshold - chars === 1 ? "" : "s"} to the next reward</strong><span>Next: +${next.xp} XP · +${next.coins} 🪙${next.storyEnergyBase ? ` · +${next.storyEnergyBase} 🔥 base` : ""}</span>`
+      : `<strong>Maximum writing bonus reached ✨</strong><span>Keep writing only if you want to — rewards stop scaling after ${JOURNAL_FIELD_REWARD_TIERS.at(-1).threshold} characters in this reflection.</span>`;
+    const width = next ? Math.min(100, Math.round((chars / next.threshold) * 100)) : 100;
+    return `<div class="journal-effort-meter-v310 ${historical ? "historical" : ""}"><div class="journal-effort-meter-top-v310"><span><b>${chars}</b> characters in this reflection</span><em>${reached}/${JOURNAL_FIELD_REWARD_TIERS.length} depth bonuses</em></div><i><b style="width:${width}%"></b></i><div>${historical ? `<strong>Saved ${esc(label).toLowerCase()} depth</strong><span>Older entries stay editable without creating backdated reward farming.</span>` : nextText}</div></div>`;
   }
 
   function renderReflectionRewardMeter() {
-    if (!els.reflectionRewardMeter) return;
-    els.reflectionRewardMeter.innerHTML = rewardMeterMarkup(reflectionDraftCharacterCount(), reflectionDate);
+    if (!els.reflectionRewardMeter || !reflectionField) return;
+    els.reflectionRewardMeter.innerHTML = rewardMeterMarkup(reflectionDraftCharacterCount(), reflectionDate, reflectionField);
   }
 
   function renderDayRewardMeter() {
     if (!els.dayRewardMeter || !editingDate) return;
-    els.dayRewardMeter.innerHTML = rewardMeterMarkup(dayDraftCharacterCount(), editingDate);
+    els.dayRewardMeter.innerHTML = Object.keys(REFLECTION_META).map(field => `
+      <section class="journal-independent-meter-v314ag">
+        <small>${REFLECTION_META[field].icon} ${esc(REFLECTION_META[field].label)}</small>
+        ${rewardMeterMarkup(dayDraftFieldCount(field), editingDate, field)}
+      </section>`).join("");
   }
 
   function emptyRewardTotal() { return { xp: 0, coins: 0, storyEnergy: 0 }; }
@@ -1033,6 +1066,10 @@
     promptAfterCheckIn: (companionId = null, date = todayKey()) => openReflection(date, companionId),
     getEntry: date => ({ ...(entryFor(date, false) || {}) }),
     exportJson: exportJournalJson,
-    exportMarkdown: exportJournalMarkdown
+    exportMarkdown: exportJournalMarkdown,
+    awardPendingReflectionRewards: (date = todayKey()) => {
+      const entry = entryFor(date, false);
+      return entry ? maybeAwardReflectionRewards(date, entry) : emptyRewardTotal();
+    }
   };
 })();

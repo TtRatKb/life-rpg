@@ -484,24 +484,34 @@ function normalizeRemote(data) {
 }
 
 function cleanState(state) {
-  const clone = JSON.parse(JSON.stringify(state || {}));
-  compactDerivedCloudState(clone);
-  return clone;
+  const copy = JSON.parse(JSON.stringify(state || {}));
+
+  // Skill events are fully derived from canonical Life RPG logs. Keeping the
+  // reconstructed event cache in Firestore duplicates a large part of the save
+  // and can push browser/cloud storage toward quota limits.
+  if (copy.skills && typeof copy.skills === "object") copy.skills.events = [];
+
+  // The Steam sync baseline only needs transition state. Rich title/description
+  // metadata is fetched again from Steam and unlocked goals retain their own text.
+  (copy.gameLibrary?.items || []).forEach(game => {
+    const sync = game?.steamAchievementSync;
+    if (!sync?.achievements || typeof sync.achievements !== "object") return;
+    sync.achievements = Object.fromEntries(Object.entries(sync.achievements).map(([key, record]) => [key, compactSteamRecord(record)]));
+  });
+
+  return copy;
 }
 
-function compactDerivedCloudState(state) {
-  if (!state || typeof state !== "object") return state;
-  if (state.skills && typeof state.skills === "object" && !Array.isArray(state.skills)) {
-    // Skill practice events are a deterministic projection of the reward ledger,
-    // time logs, games, books, habits and training grounds. Keeping thousands of
-    // derived rows in Firestore can push the document over quota while adding no
-    // unique progress. The Skills module rebuilds them after cloud restore.
-    if (Array.isArray(state.skills.events)) state.skills.events = [];
-    delete state.skills.lastRebuiltAt;
-    delete state.skills.lastRebuildReason;
-    state.skills.cloudCompactedAt = new Date().toISOString();
-  }
-  return state;
+function compactSteamRecord(record) {
+  const value = record && typeof record === "object" ? record : {};
+  return {
+    achieved: Boolean(value.achieved),
+    unlockTime: Math.max(0, Number(value.unlockTime || 0)),
+    historical: Boolean(value.historical),
+    rewardEventId: value.rewardEventId || "",
+    hidden: Boolean(value.hidden),
+    globalPercent: Number.isFinite(Number(value.globalPercent)) ? Number(value.globalPercent) : null
+  };
 }
 
 function isMeaningfullyEmpty(state) {
@@ -604,7 +614,24 @@ function summarizeState(state, savedAt = null) {
 }
 
 function fingerprint(value) {
-  return stableStringify(value);
+  return hashFingerprintText(stableStringify(value));
+}
+
+function hashFingerprintText(value) {
+  let hash = 2166136261 >>> 0;
+  const text = String(value || "");
+  for (let i = 0; i < text.length; i += 1) {
+    hash ^= text.charCodeAt(i);
+    hash = Math.imul(hash, 16777619) >>> 0;
+  }
+  return `fnv1a32:${hash.toString(16).padStart(8, "0")}`;
+}
+
+function compactLegacyFingerprint(value) {
+  const text = String(value || "");
+  if (!text || /^fnv1a32:[0-9a-f]{8}$/i.test(text)) return text;
+  if (text.length >= 160 || text.startsWith("{") || text.startsWith("[")) return hashFingerprintText(text);
+  return text;
 }
 
 function stableStringify(value) {
@@ -615,34 +642,65 @@ function stableStringify(value) {
 
 function getCloudMeta() {
   try {
-    return JSON.parse(localStorage.getItem(CLOUD_META_KEY) || "{}") || {};
+    const meta = JSON.parse(localStorage.getItem(CLOUD_META_KEY) || "{}") || {};
+    const compact = compactLegacyFingerprint(meta.lastSyncedFingerprint);
+    if (compact !== String(meta.lastSyncedFingerprint || "")) {
+      meta.lastSyncedFingerprint = compact;
+      meta.fingerprintSchema = 2;
+      try { localStorage.setItem(CLOUD_META_KEY, JSON.stringify(meta)); } catch { /* app save cleanup will retry later */ }
+    }
+    return meta;
   } catch {
     return {};
   }
 }
 
 function setCloudMeta(patch) {
-  const meta = { ...getCloudMeta(), ...patch, deviceId: getDeviceId() };
-  localStorage.setItem(CLOUD_META_KEY, JSON.stringify(meta));
+  const current = getCloudMeta();
+  const deviceId = current.deviceId || (crypto.randomUUID ? crypto.randomUUID() : `device-${Date.now()}-${Math.random().toString(16).slice(2)}`);
+  const meta = { ...current, ...patch, deviceId, fingerprintSchema: 2 };
+  if (meta.lastSyncedFingerprint) meta.lastSyncedFingerprint = compactLegacyFingerprint(meta.lastSyncedFingerprint);
+  try {
+    localStorage.setItem(CLOUD_META_KEY, JSON.stringify(meta));
+  } catch (error) {
+    // Auxiliary copies must never be allowed to break the canonical local save.
+    try { localStorage.removeItem(LOCAL_ROLLBACK_KEY); } catch { /* no-op */ }
+    [
+      "life-rpg-games-shadow-v1",
+      "life-rpg-habits-shadow-v1",
+      "life-rpg-side-adventures-shadow-v1",
+      "life-rpg-book-library-shadow-v1",
+      "life-rpg-daily-planner-shadow-v1"
+    ].forEach(key => { try { localStorage.removeItem(key); } catch { /* no-op */ } });
+    try {
+      localStorage.setItem(CLOUD_META_KEY, JSON.stringify(meta));
+    } catch (retryError) {
+      console.warn("Cloud metadata could not be cached locally", retryError);
+    }
+  }
 }
 
 function getDeviceId() {
   const meta = getCloudMeta();
   if (meta.deviceId) return meta.deviceId;
   const id = crypto.randomUUID ? crypto.randomUUID() : `device-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-  localStorage.setItem(CLOUD_META_KEY, JSON.stringify({ ...meta, deviceId: id }));
+  setCloudMeta({ deviceId: id });
   return id;
 }
 
 function backupLocal(reason) {
+  const payload = JSON.stringify({
+    reason,
+    createdAt: new Date().toISOString(),
+    state: cleanState(app.getState())
+  });
   try {
-    localStorage.setItem(LOCAL_ROLLBACK_KEY, JSON.stringify({
-      reason,
-      createdAt: new Date().toISOString(),
-      state: cleanState(app.getState())
-    }));
+    localStorage.setItem(LOCAL_ROLLBACK_KEY, payload);
   } catch (error) {
-    console.warn("Could not create local rollback copy", error);
+    // A rollback is helpful, but not if it fills localStorage and prevents the
+    // actual save from working. Keep a session-only fallback when possible.
+    console.warn("Could not create persistent local rollback copy", error);
+    try { sessionStorage.setItem(LOCAL_ROLLBACK_KEY, payload); } catch { /* no-op */ }
   }
 }
 
@@ -718,9 +776,13 @@ function friendlyError(error) {
     "auth/popup-blocked": "The browser blocked the Google sign-in popup.",
     "auth/network-request-failed": "Network connection failed.",
     "permission-denied": "Firestore denied access. Check the published security rules.",
-    "unavailable": "Firebase is temporarily unavailable or this device is offline."
+    "unavailable": "Firebase is temporarily unavailable or this device is offline.",
+    "resource-exhausted": "The cloud save is larger than the current storage limit. Life RPG will keep the local save and avoid overwriting anything."
   };
-  return map[error.code] || error.message || String(error);
+  const name = String(error?.name || "").toLowerCase();
+  const message = String(error?.message || "");
+  if (name.includes("quota") || message.toLowerCase().includes("quota")) return "Browser storage was full. This repair compacts duplicate save metadata; reload once and try sync again.";
+  return map[error.code] || message || String(error);
 }
 
 function escapeAttribute(value) {

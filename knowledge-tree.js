@@ -125,6 +125,8 @@
       <div id="knowledgeTreeNodes" class="knowledge-tree-map-v314ad"></div>
       <div id="knowledgeTalentTools" class="knowledge-tools-v314ad"></div>
       <div class="knowledge-tree-footer-v314ad"><span>↻ Free respec. Past rewards remain earned, and respec never re-pays the same bonus.</span><button class="text-button" data-knowledge-tree-reset type="button">Reset Knowledge tree</button></div>`;
+    if (window.LifeRPGSkills?.registerTalentTree?.(REALM, section)) return;
+    section.dataset.skillTreeRealm = REALM;
     if (realmGrid) realmGrid.insertAdjacentElement("beforebegin", section);
     else skillsView.appendChild(section);
   }

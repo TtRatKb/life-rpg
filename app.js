@@ -2,6 +2,19 @@
   "use strict";
 
   const STORAGE_KEY = "lifeRpgPrototypeV01";
+  const CLOUD_META_KEY = "lifeRpgCloudMetaV01";
+  const LOCAL_ROLLBACK_KEY = "lifeRpgLocalRollbackV01";
+  const LEGACY_SHADOW_KEYS = [
+    "life-rpg-games-shadow-v1",
+    "life-rpg-habits-shadow-v1",
+    "life-rpg-side-adventures-shadow-v1",
+    "life-rpg-book-library-shadow-v1",
+    "life-rpg-daily-planner-shadow-v1"
+  ];
+  const OPTIONAL_CACHE_KEYS = [
+    "life-rpg-book-lookup-cache-v2"
+  ];
+  const LOCAL_SAVE_COMPACTION_SCHEMA = 1;
 
   const STAT_META = {
     strength: { label: "Strength", icon: "💪" },
@@ -921,6 +934,9 @@
   let state = loadState();
   let activeRealmFilter = "All";
   let activeQuestSearch = "";
+  // Declared before init() can reach quota-recovery paths. Older placement near
+  // showToast() left this binding in the temporal dead zone during startup.
+  let toastTimer = null;
 
   const els = {
     levelValue: byId("levelValue"),
@@ -1022,12 +1038,110 @@
   }
 
   function loadState() {
+    prepareStorageBeforeLoad();
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return defaultState();
       return mergeState(defaultState(), JSON.parse(raw));
     } catch {
       return defaultState();
+    }
+  }
+
+  function prepareStorageBeforeLoad() {
+    // Older cloud metadata accidentally stored the *entire stable save JSON* as
+    // "lastSyncedFingerprint". Together with the main save, the game shadow and
+    // rollback copy this could exhaust Safari/localStorage and make unrelated
+    // buttons look broken because every save threw QuotaExceededError. Compact
+    // that legacy fingerprint before the app starts writing again.
+    compactLegacyCloudMeta();
+    try {
+      if (localStorage.getItem(STORAGE_KEY)) {
+        LEGACY_SHADOW_KEYS.forEach(key => localStorage.removeItem(key));
+      }
+    } catch { /* storage cleanup is best-effort */ }
+  }
+
+  function compactLegacyCloudMeta() {
+    try {
+      const raw = localStorage.getItem(CLOUD_META_KEY);
+      if (!raw) return false;
+      const meta = JSON.parse(raw);
+      if (!meta || typeof meta !== "object") return false;
+      const fingerprint = String(meta.lastSyncedFingerprint || "");
+      if (!fingerprint || /^fnv1a32:[0-9a-f]{8}$/i.test(fingerprint)) return false;
+      if (fingerprint.length < 160 && !fingerprint.startsWith("{") && !fingerprint.startsWith("[")) return false;
+      meta.lastSyncedFingerprint = hashTextFNV1a32(fingerprint);
+      meta.fingerprintSchema = 2;
+      localStorage.setItem(CLOUD_META_KEY, JSON.stringify(meta));
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  function hashTextFNV1a32(value) {
+    let hash = 2166136261 >>> 0;
+    const text = String(value || "");
+    for (let i = 0; i < text.length; i += 1) {
+      hash ^= text.charCodeAt(i);
+      hash = Math.imul(hash, 16777619) >>> 0;
+    }
+    return `fnv1a32:${hash.toString(16).padStart(8, "0")}`;
+  }
+
+  function compactSteamSyncRecord(record) {
+    if (!record || typeof record !== "object") return record;
+    const out = {
+      achieved: Boolean(record.achieved),
+      unlockTime: Math.max(0, Number(record.unlockTime || 0)),
+      historical: Boolean(record.historical),
+      rewardEventId: record.rewardEventId || "",
+      hidden: Boolean(record.hidden),
+      globalPercent: Number.isFinite(Number(record.globalPercent)) ? Number(record.globalPercent) : null
+    };
+    return out;
+  }
+
+  function persistenceStateSnapshot() {
+    const snapshot = JSON.parse(JSON.stringify(state));
+    snapshot.persistenceCompactionSchema = LOCAL_SAVE_COMPACTION_SCHEMA;
+
+    // Skill events are a derived cache. They are reconstructed from canonical
+    // Focus/Journal/Habit/Game/etc. logs on every load, so persisting thousands
+    // of duplicate event objects only wastes browser and cloud quota.
+    if (snapshot.skills && typeof snapshot.skills === "object") snapshot.skills.events = [];
+
+    // Steam names/descriptions are already retained on the actual Game Goal when
+    // an unlocked achievement becomes part of Life RPG. The sync baseline only
+    // needs transition state to detect future locked -> unlocked changes.
+    (snapshot.gameLibrary?.items || []).forEach(game => {
+      const sync = game?.steamAchievementSync;
+      if (!sync?.achievements || typeof sync.achievements !== "object") return;
+      sync.achievements = Object.fromEntries(Object.entries(sync.achievements).map(([key, value]) => [key, compactSteamSyncRecord(value)]));
+    });
+
+    return snapshot;
+  }
+
+  function isQuotaError(error) {
+    const name = String(error?.name || "").toLowerCase();
+    const message = String(error?.message || "").toLowerCase();
+    return name.includes("quota") || message.includes("quota") || error?.code === 22 || error?.code === 1014;
+  }
+
+  function reclaimStorage({ aggressive = false } = {}) {
+    compactLegacyCloudMeta();
+    LEGACY_SHADOW_KEYS.forEach(key => {
+      try { localStorage.removeItem(key); } catch { /* no-op */ }
+    });
+    if (aggressive) {
+      // These are optional caches / rollback copies. The canonical current save
+      // remains intact, so dropping them is preferable to making all new saves fail.
+      try { localStorage.removeItem(LOCAL_ROLLBACK_KEY); } catch { /* no-op */ }
+      OPTIONAL_CACHE_KEYS.forEach(key => {
+        try { localStorage.removeItem(key); } catch { /* no-op */ }
+      });
     }
   }
 
@@ -1201,14 +1315,41 @@
   }
 
   function saveState(options = {}) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    const source = options.source || "app";
+    let persisted = false;
+    let lastError = null;
+
+    const attempt = aggressive => {
+      try {
+        reclaimStorage({ aggressive });
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(persistenceStateSnapshot()));
+        persisted = true;
+        return true;
+      } catch (error) {
+        lastError = error;
+        return false;
+      }
+    };
+
+    if (!attempt(false) && isQuotaError(lastError)) attempt(true);
+
+    if (!persisted) {
+      console.error("Life RPG local save failed", lastError);
+      try {
+        window.dispatchEvent(new CustomEvent("life-rpg:local-save-error", { detail: { source, error: String(lastError?.message || lastError || "Save failed") } }));
+      } catch { /* no-op */ }
+      if (typeof showToast === "function") showToast("Local save needs space. Life RPG kept this change in memory; export the save before reloading.");
+      return false;
+    }
+
     renderDevOutput();
 
     if (!options.suppressCloud) {
       window.dispatchEvent(new CustomEvent("life-rpg:state-saved", {
-        detail: { source: options.source || "app" }
+        detail: { source }
       }));
     }
+    return true;
   }
 
   function replaceState(nextState, options = {}) {
@@ -2669,8 +2810,6 @@
       .replaceAll('"', "&quot;")
       .replaceAll("'", "&#039;");
   }
-
-  let toastTimer;
 
   function showToast(message) {
     clearTimeout(toastTimer);

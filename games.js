@@ -199,7 +199,6 @@
   let catalogSearchToken = 0;
   const steamSyncInFlight = new Map();
   let steamAutoSyncTimer = null;
-  let steamSettingsSaveTimer = null;
 
   init();
 
@@ -274,12 +273,13 @@
     });
     els.steamIncludeHidden?.addEventListener("change", renderSteamAchievements);
     els.steamAddSelected?.addEventListener("click", importSelectedSteamAchievements);
-    els.steamWorkerUrl?.addEventListener("input", queueSteamSettingsSave);
     els.steamWorkerUrl?.addEventListener("change", saveSteamSettings);
-    els.steamId64?.addEventListener("input", queueSteamSettingsSave);
     els.steamId64?.addEventListener("change", saveSteamSettings);
     els.steamSpoilerMode?.addEventListener("change", saveSteamSettings);
-    els.steamSettingsSave?.addEventListener("click", () => saveSteamSettings({ toast: true }));
+    els.steamSettingsSave?.addEventListener("click", () => {
+      saveSteamSettings();
+      showToast("Steam settings saved", "Spoiler Shield and connection settings are stored locally immediately.");
+    });
     els.steamConnectionTest?.addEventListener("click", testSteamConnection);
     els.steamGamesConfigure?.addEventListener("click", openSteamSettingsPanel);
     els.steamGamesTest?.addEventListener("click", async () => {
@@ -680,7 +680,11 @@
   }
 
   function writeShadow(value) {
-    try { localStorage.setItem(SHADOW_KEY, JSON.stringify(value)); } catch { /* main save remains canonical */ }
+    // The old shadow duplicated the entire game library (including Steam
+    // achievement metadata) beside the canonical save. That duplication was a
+    // major contributor to localStorage quota failures. The main Life RPG save
+    // is now resilient, so retire the shadow after one-way recovery.
+    try { localStorage.removeItem(SHADOW_KEY); } catch { /* no-op */ }
   }
 
   function render() {
@@ -2002,13 +2006,7 @@
     renderSteamGamesConnection();
   }
 
-  function queueSteamSettingsSave() {
-    window.clearTimeout(steamSettingsSaveTimer);
-    steamSettingsSaveTimer = window.setTimeout(() => saveSteamSettings({ quiet: true }), 650);
-  }
-
-  function saveSteamSettings(options = {}) {
-    window.clearTimeout(steamSettingsSaveTimer);
+  function saveSteamSettings() {
     const settings = steamSettings();
     settings.workerUrl = normalizeWorkerUrl(els.steamWorkerUrl?.value || "");
     settings.steamId = String(els.steamId64?.value || "").trim().replace(/\D/g, "").slice(0, 20);
@@ -2023,7 +2021,6 @@
     app.saveState({ source: "steam-settings" });
     renderSteamSection();
     renderSteamGamesConnection();
-    if (options?.toast) showToast("Steam settings saved", steamConnectionProblem() || "Spoiler Shield and connection settings are saved.");
   }
 
   async function testSteamConnection() {

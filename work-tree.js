@@ -135,6 +135,8 @@
       <div id="workTreeNodes" class="work-tree-map-v314af"></div>
       <div id="workTalentTools" class="work-tools-v314af"></div>
       <div class="work-tree-footer-v314af"><span>↻ Free respec. Saved next-step notes stay yours even if you reset the tree.</span><button class="text-button" data-work-tree-reset type="button">Reset Work tree</button></div>`;
+    if (window.LifeRPGSkills?.registerTalentTree?.(REALM, section)) return;
+    section.dataset.skillTreeRealm = REALM;
     if (realmGrid) realmGrid.insertAdjacentElement("beforebegin", section);
     else skillsView.appendChild(section);
   }

@@ -106,6 +106,8 @@
       <div id="healthTreeNodes" class="health-tree-map-v314ae"></div>
       <div id="healthTalentTools" class="health-tools-v314ae"></div>
       <div class="health-tree-footer-v314ae"><span>↻ Free respec. Already-earned rewards stay earned, and resetting never creates a second payout.</span><button class="text-button" data-health-tree-reset type="button">Reset Health tree</button></div>`;
+    if (window.LifeRPGSkills?.registerTalentTree?.(REALM, section)) return;
+    section.dataset.skillTreeRealm = REALM;
     if (realmGrid) realmGrid.insertAdjacentElement("beforebegin", section);
     else skillsView.appendChild(section);
   }

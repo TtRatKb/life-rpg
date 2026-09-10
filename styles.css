@@ -16271,3 +16271,22 @@ body.training-focus-active-v314o > *:not(#trainingFocusView):not(.toast):not(.ac
   .lexicon-calibration-focus-actions-v314z1{align-items:stretch;flex-direction:column}
   .lexicon-calibration-focus-actions-v314z1 button{width:100%}
 }
+
+/* V0.31.4ag — independent Journal reflection reward meters */
+#journalDayRewardMeter {
+  display: grid;
+  gap: 12px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.journal-independent-meter-v314ag {
+  display: grid;
+  gap: 6px;
+}
+.journal-independent-meter-v314ag > small {
+  color: #7d5e70;
+  font-size: .69rem;
+  font-weight: 850;
+  letter-spacing: .05em;
+}
