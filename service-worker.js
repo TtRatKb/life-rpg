@@ -1,4 +1,4 @@
-const CACHE_NAME = "life-rpg-v0314x-steam-context-rarity-spoilers";
+const CACHE_NAME = "life-rpg-v0314x-steam-library-intelligence-v3-final";
 const CORE = [
   "./",
   "./index.html",
@@ -38,7 +38,7 @@ const CORE = [
   "./content/SP_003.dat?v=0.31.4r",
   "./shop.js?v=0.30.6",
   "./achievements.js?v=0.31.0",
-  "./activity-log.js?v=0.31.4u",
+  "./activity-log.js?v=0.31.4x",
   "./kotoba-integration.js?v=0.31.4k",
   "./kotoba-quick-training.js?v=0.31.4k",
   "./cloud-save.js?v=0.31.0",

@@ -2226,7 +2226,7 @@
     const raw = String(goal.label || "");
     const linked = Array.isArray(game?.goals) ? game.goals.find(item => item.id === goal.goalId) : null;
     if (!linked || linked.source !== "steam") return raw;
-    const safe = window.LifeRPGGames?.safeGoalLabel?.(linked) || linked.text || "Steam achievement";
+    const safe = window.LifeRPGGames?.safeGoalLabel?.(linked, game) || linked.text || "Steam achievement";
     if (!linked.text || safe === linked.text) return raw;
     return raw.split(linked.text).join(safe);
   }
@@ -2254,7 +2254,7 @@
 
     const goals = Array.isArray(game.goals) ? game.goals.filter(goal => !goal.done) : [];
     const goal = goals.find(item => item.id === game.lastGoalId) || goals[0] || null;
-    const safeGoalText = goal ? (window.LifeRPGGames?.safeGoalLabel?.(goal) || goal.text) : "";
+    const safeGoalText = goal ? (window.LifeRPGGames?.safeGoalLabel?.(goal, game) || goal.text) : "";
     const base = meta.mode === "minutes"
       ? `Play ${game.title} for ${gameAmountLabel(game, amount)}`
       : `${game.title}: complete ${gameAmountLabel(game, amount)}`;

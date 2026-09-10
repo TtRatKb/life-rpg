@@ -1674,7 +1674,7 @@
                   <option value="off">Show all locked achievement details</option>
                 </select>
               </label>
-              <p class="muted settings-steam-spoiler-note-v314x">Strict Spoiler Shield still shows rarity and unlock percentage, but keeps the title and description hidden until you actually earn the achievement.</p>
+              <p class="muted settings-steam-spoiler-note-v314x">Strict Spoiler Shield hides every locked achievement as a protected group — including titles, descriptions, icons, rarity and ordering — until you actually earn it. Individual games can override this default in Edit.</p>
               <div class="settings-steam-actions-v312">
                 <button id="steamConnectionTest" class="secondary-button" type="button">Test Worker</button>
                 <span id="steamConnectionStatus" class="muted">Not configured yet.</span>
@@ -2063,6 +2063,15 @@ League of Legends — PC" required></textarea></label>
           <span id="gameSteamAppIdBadge" class="game-steam-appid-v312"></span>
         </div>
         <p id="gameSteamStatus" class="muted">Steam App ID detected. Connect the free Steam Worker in Settings, then load the game's achievements here.</p>
+        <label class="game-steam-spoiler-setting-v314x">Spoiler Shield for this game
+          <select id="gameSteamSpoilerMode">
+            <option value="inherit">Use global Steam setting</option>
+            <option value="strict">Hide all locked achievements</option>
+            <option value="steam-hidden">Hide only Steam-hidden achievements</option>
+            <option value="off">Show all achievement details</option>
+          </select>
+          <small>Strict mode keeps locked achievement titles, descriptions, icons, rarity and ordering out of view. They still sync and reward automatically after unlock.</small>
+        </label>
         <div class="game-steam-actions-v312">
           <button id="gameSteamLoad" class="secondary-button" type="button">↻ Load Steam achievements</button>
           <button id="gameSteamSelectAll" class="text-button hidden" type="button">Select all</button>
@@ -3177,7 +3186,7 @@ League of Legends — PC" required></textarea></label>
   <script src="story-ui.js?v=0.31.4r"></script>
   <script src="shop.js?v=0.30.6"></script>
   <script src="achievements.js?v=0.31.0"></script>
-  <script src="activity-log.js?v=0.31.4u"></script>
+  <script src="activity-log.js?v=0.31.4x"></script>
   <script src="kotoba-integration.js?v=0.31.4k"></script>
   <script src="kotoba-quick-training.js?v=0.31.4k"></script>
   <script type="module" src="cloud-save.js?v=0.31.0"></script>

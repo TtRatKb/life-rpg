@@ -431,6 +431,11 @@
     if (event.source === "daily-checkin") return `${number(m.streak) ? `${number(m.streak)} day streak · ` : ""}Daily plan updated`;
     if (event.source === "stewardship") return `${humanize(m.type || "library upkeep")} · system stewardship`;
     if (event.source === "game-goal") return "Tracked Game Goal completed";
+    if (event.source === "steam-achievement") {
+      const hasPercent = m.steamGlobalPercent !== null && m.steamGlobalPercent !== undefined && m.steamGlobalPercent !== "" && Number.isFinite(Number(m.steamGlobalPercent));
+      const rarity = String(m.steamRarityLabel || "Unknown rarity");
+      return `Steam unlock · ${rarity}${hasPercent ? ` · ${trim(Number(m.steamGlobalPercent))}% global unlock rate` : ""}`;
+    }
     if (event.source === "sudoku-complete" || event.source === "sudoku-solved") return m.level ? `Journey Level ${number(m.level)} completed · ${humanize(m.difficulty || "Sudoku")}` : `${humanize(m.difficulty || "Sudoku")} Practice puzzle completed`;
     if (event.source === "memory-garden-complete") return `Journey Level ${number(m.level)} completed · ${humanize(m.mode || "memory")} recall · ${number(m.rounds) || 3} rounds`;
     if (event.source === "word-lab-complete") return `${m.language === "de" ? "German Precision" : "English Fluency"} · legacy Word Lab level ${number(m.level)} · ${number(m.firstTryAccuracy)}% first-try`;
@@ -463,6 +468,16 @@
     if (reward.rawStoryEnergy > reward.storyEnergy + 0.001) bits.push(`<p>This action generated ${app.formatEnergy?.(reward.rawStoryEnergy) ?? trim(reward.rawStoryEnergy)} 🔥 base, but daily Story Energy diminishing returns credited <strong>${app.formatEnergy?.(reward.storyEnergy) ?? trim(reward.storyEnergy)} 🔥</strong>.</p>`);
     if (event.source === "stewardship") bits.push(`<p>Library/system stewardship uses a small daily cap, so adding many Books, Games, Habits or Adventure details in one day cannot become the dominant progression source.</p>`);
     if (event.source === "game-goal") bits.push(`<p>This reward comes from completing a tracked Game Goal. Merely importing a goal and actually completing it are intentionally separate actions.</p>`);
+    if (event.source === "steam-achievement") {
+      const m = event.metadata || {};
+      const hasPercent = m.steamGlobalPercent !== null && m.steamGlobalPercent !== undefined && m.steamGlobalPercent !== "" && Number.isFinite(Number(m.steamGlobalPercent));
+      const rarity = String(m.steamRarityLabel || "Unknown rarity");
+      const rarityMultiplier = number(m.steamRarityMultiplier) || 1;
+      const batchMultiplier = number(m.steamBatchMultiplier) || 1;
+      bits.push(`<p>This was a newly detected Steam unlock. Historical achievements from the personal baseline never create a retroactive reward transaction.</p>`);
+      bits.push(`<p>Achievement rarity used the Steam global unlock rate captured for this reward: <strong>${esc(rarity)}${hasPercent ? ` · ${trim(Number(m.steamGlobalPercent))}%` : ""}</strong>, applying a <strong>×${trim(rarityMultiplier)}</strong> rarity multiplier.</p>`);
+      if (batchMultiplier < 0.999) bits.push(`<p>Multiple achievements earned on the same Steam unlock day taper gently for economy safety. This unlock used a <strong>×${trim(batchMultiplier)}</strong> batch multiplier. A delayed sync does not make achievements from different unlock days count as one giant batch.</p>`);
+    }
     if (event.source === "memory-garden-complete") {
       const multiplier = number(event.metadata?.repeatScale) || 1;
       bits.push(`<p>This is the first-completion reward for a <strong>Memory Garden</strong> Journey level. Spatial, sequence, pattern and working-memory practice counts as Knowledge growth; exposure timing is part of the exercise, but answering faster never increases the reward.</p>`);
