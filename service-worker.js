@@ -1,4 +1,4 @@
-const CACHE_NAME = "life-rpg-v0314ag3-home-talent-tree";
+const CACHE_NAME = "life-rpg-v0314ag4-hobbies-talent-tree";
 const CORE = [
   "./",
   "./index.html",
@@ -17,12 +17,14 @@ const CORE = [
   "./recovery-tree.css?v=0.31.4ag1",
   "./japanese-tree.css?v=0.31.4ag2",
   "./home-tree.css?v=0.31.4ag3",
+  "./hobbies-tree.css?v=0.31.4ag4",
   "./work-tree.js?v=0.31.4ag",
   "./recovery-tree.js?v=0.31.4ag1",
   "./japanese-tree.js?v=0.31.4ag2",
   "./home-tree.js?v=0.31.4ag3",
+  "./hobbies-tree.js?v=0.31.4ag4",
   "./manifest.webmanifest?v=0.30.3a",
-  "./pwa.js?v=0.31.4ag3",
+  "./pwa.js?v=0.31.4ag4",
   "./visual-performance.js?v=0.31.4c",
   "./modal-manager.js?v=0.31.4d",
   "./training-focus.js?v=0.31.4o",
