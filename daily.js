@@ -94,22 +94,100 @@
   };
 
   const HEALTH_COPY = {
-    physicalImpact: { question: "Anything physical getting in your way today?", reactions: {
-      none: "Good. No extra body-tax to account for.", mild: "Mild, but real. I'll keep it in the plan instead of pretending it costs nothing.",
-      moderate: "Noticeable. Then recovery needs actual space today, not just a smaller productivity target.", strong: "Strong. That changes the day. Recovery comes first and effort gets cut back."
+    physicalImpact: { question: "Anything physical getting in the way today?", reactions: {
+      none: "Nothing notable physically. Good to know.", mild: "Mild, but still real.",
+      moderate: "Noticeable. That deserves some room today.", strong: "Strong. Okay — your body gets a real vote today."
     }},
     symptoms: { question: "What is your body dealing with? Pick everything that applies.", reactions: {} },
-    illness: { question: "Do you feel actually sick today — as in illness, not just discomfort or soreness?", reactions: {
-      yes: "Okay. Then this is an illness day, and the planner should act like one.", no: "Got it. Physical symptoms, but not an illness day. Still worth accounting for."
+    illness: { question: "Does this feel like actually being sick, rather than just discomfort or soreness?", reactions: {
+      yes: "Okay. Sick is sick. That changes what today can reasonably hold.", no: "Got it. Symptoms are there, but this does not feel like an illness day."
     }},
     sickLeave: { question: "Did you call in sick from work today?", reactions: {
-      yes: "Good. Work is not secretly going back onto today's recovery budget.", no: "Okay. I'll keep both the illness and the work load visible instead of treating either one as imaginary.",
-      "not-needed": "Right. No sick call was needed today, so there is nothing to justify."
+      yes: "Okay. Then work and the fixed day are off the table.", no: "Okay. Then being sick and still working both count as real load today.",
+      "not-needed": "Right. No sick call was needed today."
     }},
     sickLeaveWhy: { question: "What made you decide not to call in sick?", reactions: {
-      manageable: "Makes sense. Logging the reason is enough; it is not a judgement.", pressure: "Noted. That kind of pressure is part of the day too.",
-      duties: "Noted. The sense that things couldn't be dropped is useful context.", remote: "Okay. Flexibility changes the decision, even if being sick still costs energy.", other: "Okay. Keeping the context without turning it into a verdict."
+      manageable: "Makes sense. The context is enough; no verdict needed.", pressure: "That pressure matters too.",
+      duties: "Got it. It felt like too much depended on you being there.", remote: "Okay. Flexibility changed the decision, even if being sick still costs energy.", other: "Okay. Keeping the context without judging it."
     }}
+  };
+
+  const CHECKIN_HEALTH_COPY = {
+    luca: {
+      physicalImpact: { question: "Anything physical going on that I need to be honest about?", reactions: {
+        none: "Nothing notable. Great.", mild: "Mild. Still real, still allowed to count.",
+        moderate: "Yeah, that's noticeable. I should stop mentally pricing it at zero.", strong: "Okay. Strong is strong. Today is not a normal-capacity day."
+      }},
+      symptoms: { question: "What exactly is my body dealing with?", reactions: {} },
+      illness: { question: "Does this feel like I'm actually sick, not just sore or uncomfortable?", reactions: {
+        yes: "Yep. Sick day. I do not need a courtroom argument about whether it qualifies.", no: "Okay. Symptoms, but not sick-sick. Still useful to name it."
+      }},
+      sickLeave: { question: "Did I call in sick today?", reactions: {
+        yes: "Yes. Good. Then work and appointments are cancelled, and I can stop mentally reserving space for them.",
+        no: "No. Then I need to remember that being ill and working at the same time is already a lot.",
+        "not-needed": "No call needed. Fine. Nothing to justify."
+      }},
+      sickLeaveWhy: { question: "Why did I decide to work anyway?", reactions: {
+        manageable: "Because it felt manageable. Noted.", pressure: "Because I felt like I couldn't miss it. That's important context.",
+        duties: "Because the duties felt hard to drop. Also context, not a moral achievement.", remote: "Because I could do it flexibly. Okay.", other: "Other reason. Fine. I know what I mean."
+      }}
+    },
+    mina: {
+      physicalImpact: { question: "Okay, body check too — anything making today harder physically?", reactions: {
+        none: "Okayyy, body is not adding bonus drama today. Love that.", mild: "Mild, but annoying still counts, babe.",
+        moderate: "Yeah, that's not background noise anymore. Be nice to yourself about it.", strong: "Oh, absolutely not. If your body is yelling, we listen."
+      }},
+      symptoms: { question: "What kind of rude little body nonsense are we dealing with? Pick whatever fits.", reactions: {} },
+      illness: { question: "Does this feel like actually sick-sick, or more like your body is just being rude?", reactions: {
+        yes: "Sick-sick. Got it. No pretending you're secretly fine because that's more convenient.", no: "Okay, not sick-sick. Still not imaginary, though."
+      }},
+      sickLeave: { question: "And did you call in sick?", reactions: {
+        yes: "Good. Then work is cancelled. You're sick. You get to have an actual sick day, babe.",
+        no: "Okay. Then please remember you're doing the hard-mode version of today already.",
+        "not-needed": "No call needed today? Easy. Nothing to defend."
+      }},
+      sickLeaveWhy: { question: "Okay, what made you decide to work anyway?", reactions: {
+        manageable: "Fair. It felt manageable to you.", pressure: "Ugh. The 'I can't possibly miss work' feeling. Yeah, that matters.",
+        duties: "Got it. Too many things felt like they were depending on you.", remote: "Okay, flexibility made it feel possible.", other: "Gotcha. You know the context better than a checkbox does."
+      }}
+    },
+    kirishima: {
+      physicalImpact: { question: "Anything physical going on too? Headache, aches, sick — whatever's making the day harder?", reactions: {
+        none: "Nice. At least your body's not piling on today.", mild: "Okay. Mild doesn't mean fake. Still worth taking seriously.",
+        moderate: "Yeah, that's enough to wear you down. Don't shrug it off just because you can still function.", strong: "That's rough. If your body's hitting you that hard, you don't need to prove anything on top of it."
+      }},
+      symptoms: { question: "What are you dealing with physically? Pick whatever fits — no need to make it sound better than it is.", reactions: {} },
+      illness: { question: "Does it feel like you're actually sick today?", reactions: {
+        yes: "Okay. Then you're sick. That's reason enough to take the day seriously.", no: "Got it. Not actually sick, but your body's still asking for some consideration."
+      }},
+      sickLeave: { question: "Did you call in sick from work?", reactions: {
+        yes: "Good. Then work's off. You don't have to keep half the day reserved for stuff you already cancelled.",
+        no: "Okay. Then just remember: being sick and still showing up is already a lot. You don't have to pretend it's a normal day too.",
+        "not-needed": "No call needed today? Alright. Then that's one less thing hanging over you."
+      }},
+      sickLeaveWhy: { question: "What made you decide to work anyway?", reactions: {
+        manageable: "Makes sense. You felt like you could handle it.", pressure: "Yeah... that 'I can't miss this' pressure can be heavy on its own.",
+        duties: "Got it. You felt responsible for stuff that was hard to drop.", remote: "Okay. Being able to do it flexibly changes things a bit.", other: "Alright. You know what was behind the choice."
+      }}
+    },
+    bakugo: {
+      physicalImpact: { question: "Anything physically wrong today?", reactions: {
+        none: "Good.", mild: "Mild isn't nothing. Account for it.", moderate: "That's enough to slow you down. Stop pretending it isn't.", strong: "Then you're not operating normally. End of discussion."
+      }},
+      symptoms: { question: "What is it? Pick what's actually going on.", reactions: {} },
+      illness: { question: "You actually sick?", reactions: {
+        yes: "Then you're sick. Quit trying to negotiate the definition.", no: "Fine. Not sick. Still doesn't mean the symptoms vanish."
+      }},
+      sickLeave: { question: "You call out?", reactions: {
+        yes: "Good. Then work's cancelled. Stop leaving mental space for shit you're not doing.",
+        no: "Tch. Fine. Then don't act like working sick costs the same as a normal day.",
+        "not-needed": "Didn't need to. Fine."
+      }},
+      sickLeaveWhy: { question: "Why'd you go in anyway?", reactions: {
+        manageable: "Thought you could handle it. Fine.", pressure: "Felt like you couldn't miss it. That's pressure, not free energy.",
+        duties: "Stuff felt too important to drop. Got it.", remote: "Could do it flexibly. Fine.", other: "Whatever the reason was, remember it instead of rewriting the day later."
+      }}
+    }
   };
 
   const CHECKIN_COPY = {
@@ -127,10 +205,10 @@
       sleep: {
         question: "And how did I actually sleep?",
         reactions: {
-          bad: "Right. That explains some things. I am not budgeting today like I slept eight perfect hours.",
+          bad: "Right. That explains some things. I am not pretending I slept eight perfect hours.",
           meh: "Not catastrophic. Also not exactly a glowing endorsement of the night.",
           fine: "Fine is useful. I can work with fine.",
-          great: "Oh. Actual sleep. Nice. Let's not immediately waste that by planning seventeen things."
+          great: "Oh. Actual sleep. Nice. Let's not immediately spend all of it."
         }
       },
       energy: {
@@ -139,7 +217,7 @@
           fumes: "Red battery icon. Understood. Friction needs to be very low today.",
           low: "Low. Not zero, but definitely not imaginary-high-energy-me either.",
           okay: "Okay is enough. I do not need to turn it into 'excellent' before I can start anything.",
-          lots: "Huh. Actual energy. Useful information. Still not permission to overbook the day."
+          lots: "Huh. Actual energy. Useful information. Still not permission to spend all of it at once."
         }
       },
       stress: {
@@ -149,14 +227,14 @@
           light: "Some background noise. Fine. I can account for that.",
           medium: "Noticeable. So transitions and decisions probably cost more than they look like.",
           high: "High. Then pretending everything is normal-sized would be stupid.",
-          overload: "Okay. Too much. Today needs fewer moving parts, not better self-discipline."
+          overload: "Okay. Too much. Fewer moving parts."
         }
       },
       time: {
         question: "How much of today is actually mine?",
         reactions: {
-          none: "Basically none. Then the plan needs to fit into cracks, not pretend a free evening exists.",
-          little: "A little. Good. Small containers, then.",
+          none: "Basically none. Good to know before I hallucinate a free evening.",
+          little: "A little. Small containers, then.",
           decent: "A decent amount. Enough room to choose instead of just react.",
           plenty: "Plenty, apparently. I should probably still leave some of it unclaimed."
         }
@@ -164,16 +242,16 @@
       obligations: {
         question: "How heavy is the fixed load today?",
         reactions: {
-          help: "Yep. That's a lot. The planner does not get to add a second invisible workload on top of it.",
-          busy: "Busy. So anything optional needs to actually earn its place today.",
+          help: "Yep. That's a lot. Existing obligations already count as doing a lot.",
+          busy: "Busy. So I should remember the day is already occupied.",
           normal: "Normal amount of life-admin. Manageable.",
-          open: "Pretty open. Nice. That means I can choose something because I want it, too."
+          open: "Pretty open. Nice. Some actual breathing room."
         }
       },
       gentle: {
         question: "Last check: do I need to deliberately keep today gentle?",
         reactions: {
-          yes: "Yes. Then gentle is the rule, not something I have to justify after the fact.",
+          yes: "Yes. Then gentle is the decision, not something I need to justify later.",
           no: "No special handling needed. Regular-sized day it is."
         }
       }
@@ -201,10 +279,10 @@
       energy: {
         question: "How much battery are we actually working with?",
         reactions: {
-          fumes: "Yep. Battery icon is red. We plan accordingly.",
-          low: "Low battery, heard. No heroic nonsense.",
-          okay: "Okay is useful! We do not need to manufacture extra energy first.",
-          lots: "Oh? Actual battery? Dangerous. Still not giving you twelve tasks."
+          fumes: "Yep. Battery icon is RED red. No heroic nonsense, please.",
+          low: "Low battery, heard. We are respecting the tiny battery.",
+          okay: "Okay is useful! You do not need to magically become extra energetic first.",
+          lots: "Oh? Actual battery? Dangerous. Please do not spend all of it before lunch."
         }
       },
       stress: {
@@ -214,14 +292,14 @@
           light: "A little buzzing. Manageable.",
           medium: "Okay, it's definitely taking up RAM.",
           high: "Yeah, no. That's a lot of background tabs.",
-          overload: "Absolutely not. We are reducing input, not adding a self-improvement side quest."
+          overload: "Absolutely not. Your brain is already doing enough."
         }
       },
       time: {
         question: "How much of today is actually yours?",
         reactions: {
-          none: "Oof. Then we are working with tiny pockets, not a fake free afternoon.",
-          little: "A little is still yours. We can protect a little.",
+          none: "Oof. Then we are talking tiny pockets, not a secret free afternoon.",
+          little: "A little is still yours. Protect a little.",
           decent: "Okay, that's real breathing room.",
           plenty: "Plenty? Cute. Please do not immediately donate all of it to obligations."
         }
@@ -229,82 +307,82 @@
       obligations: {
         question: "How packed is the stuff you already have to do today?",
         reactions: {
-          help: "Okay, wow. The pile is being rude. We are not adding guilt as a bonus task.",
-          busy: "Busy. Got it. Optional stuff has to stay actually optional.",
+          help: "Okay, wow. The pile is being RUDE. You do not need guilt as an extra accessory.",
+          busy: "Busy. Got it. That's already a real day.",
           normal: "Normal amount of nonsense. Manageable.",
-          open: "Pretty open? Okayyy. Maybe we can leave room for something fun on purpose."
+          open: "Pretty open? Okayyy. Love a little breathing room for you."
         }
       },
       gentle: {
         question: "Last one. Do you need me to officially declare this a gentle day?",
         reactions: {
           yes: "Done. Officially declared. No appeals, no guilt, tiny wins absolutely count.",
-          no: "Cool. Normal mode. Still banning the twelve-step self-improvement spiral, though."
+          no: "Cool. Regular day. Still banning the self-improvement spiral, though."
         }
       }
     },
     kirishima: {
       mood: {
-        question: "Hey. Quick check — how are you actually feeling today?",
+        question: "Hey. How're you doing this morning — like, actually doing?",
         reactions: {
-          rough: "Rough, huh? Okay. You don't have to be upbeat just because the day started.",
-          meh: "Meh is fair. We work with the day that's here.",
-          okay: "Okay. That's enough of a baseline.",
-          good: "Good! Nice. Let that be real for a minute.",
-          great: "Hell yeah. That's good to hear."
+          rough: "Ah, man. Rough? Okay. You don't have to put on a good face for me.",
+          meh: "Meh, huh? That's fair. Not every day starts strong.",
+          okay: "Okay's okay. Seriously. You don't have to upgrade it into something impressive.",
+          good: "Good! That's awesome. Let yourself enjoy having a decent day.",
+          great: "Hell yeah, that's really good to hear."
         }
       },
       sleep: {
-        question: "How'd you sleep?",
+        question: "Did you get any decent sleep?",
         reactions: {
-          bad: "Oof. Then today shouldn't be built like you're fully charged.",
-          meh: "Not great, not disastrous. Got it.",
-          fine: "Fine works. Solid enough starting point.",
-          great: "Nice. Actual recovery makes a difference."
+          bad: "Oof. That sucks. Be a little easier on yourself today, alright?",
+          meh: "Could've been better. Okay — at least we know you're not starting at a hundred percent.",
+          fine: "Nice. Not perfect, but solid enough.",
+          great: "Oh, good! Actual proper sleep makes such a difference."
         }
       },
       energy: {
-        question: "How's your battery?",
+        question: "How're you feeling energy-wise? Still got some fuel in the tank?",
         reactions: {
-          fumes: "Okay, that's basically empty. Keep the next step small.",
-          low: "Low. No reason to pretend otherwise.",
-          okay: "Okay is plenty to work with.",
-          lots: "Nice. Use it, but don't burn all of it just because it's there."
+          fumes: "Basically empty? Yeah, okay. Then small is good today. No shame in that.",
+          low: "Low. Got it. You don't have to squeeze more out of yourself just because you wish it was higher.",
+          okay: "Okay's good! That's enough to have a normal human day.",
+          lots: "Nice! Just don't burn through all of it at once because it feels good to have some."
         }
       },
       stress: {
-        question: "How much is your brain carrying in the background?",
+        question: "How much stuff is your brain carrying around right now?",
         reactions: {
-          calm: "Good. Some room to breathe.",
-          light: "A little load. Noted.",
-          medium: "Yeah, that's enough to make small stuff feel heavier.",
-          high: "That's a lot. The plan should respect that.",
-          overload: "Okay. Then getting through the day is already work. Keep the rest simple."
+          calm: "Nice. That's good. Enjoy the breathing room while it's there.",
+          light: "A little in the background. Okay.",
+          medium: "Yeah, that's enough to make everything feel heavier than it looks.",
+          high: "That's a lot. You don't have to act like it isn't getting to you.",
+          overload: "Okay, that's too much at once. Just getting through the day is enough right now."
         }
       },
       time: {
-        question: "How much time is actually yours today?",
+        question: "How much of the day do you actually get to keep for yourself?",
         reactions: {
-          none: "Almost none? Then don't plan like you have a secret extra evening.",
-          little: "A little can still be useful if we keep the finish line clear.",
-          decent: "That's some real room. Good.",
-          plenty: "Nice. Leave some of it for being a person, too."
+          none: "Almost none? That's rough. Don't beat yourself up for not fitting another life into the gaps.",
+          little: "A little. Hey, a little still counts.",
+          decent: "That's some real room. Nice.",
+          plenty: "Oh, nice. Leave some of it unscheduled too, okay? Just... have a day."
         }
       },
       obligations: {
-        question: "How heavy is the fixed part of the day?",
+        question: "How much stuff is already locked in today?",
         reactions: {
-          help: "Okay, that's heavy. We don't stack optional pressure on top.",
-          busy: "Busy. Then the rest needs to earn its space.",
-          normal: "Normal load. Got it.",
-          open: "Pretty open. That's nice — room for something you actually want."
+          help: "Whoa, okay. That's heavy. Getting through all that is already a lot.",
+          busy: "Busy day. Got it. Be fair to yourself about how much that takes out of you.",
+          normal: "Normal load. Alright, sounds manageable.",
+          open: "Pretty open? Nice. It's good to have some space sometimes."
         }
       },
       gentle: {
-        question: "Want today set to gentle on purpose?",
+        question: "Think you need a gentler day today?",
         reactions: {
-          yes: "Yeah. Do that. Recovery is part of the plan, not what happens if you fail it.",
-          no: "Got it. Normal planning, still no need to prove anything."
+          yes: "Yeah. Then give yourself one. Recovery isn't quitting — sometimes it's just what you need.",
+          no: "Alright. Sounds like you're okay for a regular day. Still don't run yourself into the ground."
         }
       }
     },
@@ -312,18 +390,18 @@
       mood: {
         question: "Status. How bad is it?",
         reactions: {
-          rough: "Rough. Fine. Call it what it is and plan around it.",
-          meh: "Meh. Whatever. That's still information.",
+          rough: "Rough. Fine. Call it what it is instead of wasting energy pretending otherwise.",
+          meh: "Meh. Whatever. That's still an answer.",
           okay: "Okay. Usable.",
           good: "Good. Then stop waiting for a reason you're not allowed to feel good.",
-          great: "Great? Hah. Don't waste it picking twelve fights with your own schedule."
+          great: "Great? Hah. Don't waste it fighting yourself for no reason."
         }
       },
       sleep: {
         question: "Sleep?",
         reactions: {
-          bad: "Shit. Then don't act like your reaction time is normal today.",
-          meh: "Could've been better. Account for it.",
+          bad: "Shit. Then don't act like you're running normally today.",
+          meh: "Could've been better. Remember that before you get pissed at yourself for being slower.",
           fine: "Fine. Good enough.",
           great: "Good. One problem you don't have today."
         }
@@ -331,8 +409,8 @@
       energy: {
         question: "Battery?",
         reactions: {
-          fumes: "Empty. So quit budgeting energy you don't have.",
-          low: "Low. Means the plan gets smaller, not that you suddenly suck.",
+          fumes: "Empty. So quit trying to spend energy you don't have.",
+          low: "Low. Means you do less. Basic math.",
           okay: "Okay. Enough.",
           lots: "Plenty. Don't blow all of it before noon."
         }
@@ -342,34 +420,34 @@
         reactions: {
           calm: "Good. Keep it that way.",
           light: "Some noise. Fine.",
-          medium: "Noticeable. Means stupid little decisions cost more. Account for it.",
-          high: "High. Then cut the unnecessary crap.",
-          overload: "Too much. Reduce inputs. You're not fixing overload by trying harder."
+          medium: "Noticeable. Means stupid little decisions cost more. Remember that.",
+          high: "High. Cut the unnecessary crap.",
+          overload: "Too much. You're not fixing overload by pushing harder."
         }
       },
       time: {
-        question: "How much time do you actually have?",
+        question: "How much time's actually yours?",
         reactions: {
-          none: "None. Then stop pretending you can fit a full day into leftovers.",
-          little: "A little. Pick something with an actual end point.",
-          decent: "Decent. Enough to do one real thing without making it your whole night.",
+          none: "None. Then quit pretending there are extra hours hiding somewhere.",
+          little: "A little. Don't spend half of it deciding what to do with the other half.",
+          decent: "Decent. Enough.",
           plenty: "Plenty. Doesn't mean every minute needs a job."
         }
       },
       obligations: {
         question: "What are you already stuck doing today?",
         reactions: {
-          help: "Too much. Don't add fake obligations because you're feeling guilty.",
-          busy: "Busy. Fine. Optional means optional.",
-          normal: "Normal. Manage it.",
-          open: "Open. Then maybe do something because you actually want to."
+          help: "Too much. That's already enough shit on your plate.",
+          busy: "Busy. Fine. Don't pretend it's not.",
+          normal: "Normal. Manageable.",
+          open: "Open. Good. Maybe don't invent problems to fill it."
         }
       },
       gentle: {
-        question: "Need the day kept deliberately light?",
+        question: "Need the day kept light?",
         reactions: {
-          yes: "Then keep it light. That's the decision. Stop retrying the argument.",
-          no: "Fine. Normal plan. Still don't be an idiot about it."
+          yes: "Then keep it light. Decision made. Stop retrying the argument.",
+          no: "Fine. Regular day. Still don't be an idiot about it."
         }
       }
     }
@@ -822,7 +900,7 @@
       const storyEnergy = Number(reward.storyEnergy || 0);
       const coins = Number(reward.coins || 0);
       if (els.mobileTitle) els.mobileTitle.textContent = streak > 1 ? `${streak}-day check-in streak.` : "Today's check-in is done.";
-      if (els.mobileMeta) els.mobileMeta.textContent = `${storyEnergy ? `+${formatEnergy(storyEnergy)} 🔥 · ` : ""}${xp ? `+${xp} XP · ` : ""}${coins ? `+${coins} 🪙 · ` : ""}Your planner already knows what kind of day this is.`;
+      if (els.mobileMeta) els.mobileMeta.textContent = `${storyEnergy ? `+${formatEnergy(storyEnergy)} 🔥 · ` : ""}${xp ? `+${xp} XP · ` : ""}${coins ? `+${coins} 🪙 · ` : ""}Your check-in is saved for today.`;
       els.mobileButton.textContent = "Review day";
       els.mobileCard.classList.add("is-done-v271");
       return;
@@ -855,7 +933,7 @@
           <span class="daily-not-started-icon-v14">✦</span>
           <div>
             <strong>A short conversation. Then the choices get smaller.</strong>
-            <p>Answer one thing at a time. Showing up earns a little Story Energy and XP, and helps the planner fit the day you actually have.</p>
+            <p>Answer one thing at a time. Showing up earns a little Story Energy and XP; the rest of Life RPG can use the answers quietly in the background.</p>
           </div>
         </div>`;
       els.start?.classList.remove("hidden");
@@ -875,14 +953,18 @@
 
   function briefingSummaryMarkup(checkIn) {
     const capacity = capacityLabel(checkIn);
+    const health = normalizedHealth(checkIn);
+    const scheduleChips = health.dayCleared
+      ? `<div class="daily-summary-chip-v14"><span>🩹</span><div><small>SICK DAY</small><strong>Work + fixed commitments cleared</strong></div></div>`
+      : `<div class="daily-summary-chip-v14"><span>◷</span><div><small>FREE TIME</small><strong>${esc(LABELS.time[checkIn.time] || checkIn.time)}</strong></div></div>
+         <div class="daily-summary-chip-v14"><span>☷</span><div><small>FIXED LOAD</small><strong>${esc(LABELS.obligations[checkIn.obligations] || checkIn.obligations)}</strong></div></div>`;
     return `
       <div class="daily-summary-v14">
         <div class="daily-summary-chip-v14"><span>🌸</span><div><small>MOOD</small><strong>${esc(LABELS.mood[checkIn.mood] || "—")}</strong></div></div>
         <div class="daily-summary-chip-v14"><span>☾</span><div><small>SLEEP</small><strong>${esc(LABELS.sleep[checkIn.sleep] || checkIn.sleep || "—")}</strong></div></div>
         <div class="daily-summary-chip-v14"><span>⚡</span><div><small>ENERGY</small><strong>${esc(LABELS.energy[checkIn.energy] || checkIn.energy || "—")}</strong></div></div>
         <div class="daily-summary-chip-v14"><span>◇</span><div><small>STRESS</small><strong>${esc(LABELS.stress[checkIn.stress] || "—")}</strong></div></div>
-        <div class="daily-summary-chip-v14"><span>◷</span><div><small>FREE TIME</small><strong>${esc(LABELS.time[checkIn.time] || checkIn.time)}</strong></div></div>
-        <div class="daily-summary-chip-v14"><span>☷</span><div><small>FIXED LOAD</small><strong>${esc(LABELS.obligations[checkIn.obligations] || checkIn.obligations)}</strong></div></div>
+        ${scheduleChips}
       </div>
       ${healthSummaryMarkup(checkIn)}
       ${checkIn.loadNote ? `<div class="daily-plan-context-v303"><span>🗓</span><div><small>KNOWN TODAY</small><strong>${esc(checkIn.loadNote)}</strong></div></div>` : ""}
@@ -903,7 +985,7 @@
     const illness = HEALTH_LABELS.illness[health.illness] || "";
     const leave = health.sickLeave ? HEALTH_LABELS.sickLeave[health.sickLeave] : "";
     const why = health.sickLeaveWhy ? HEALTH_LABELS.sickLeaveWhy[health.sickLeaveWhy] : "";
-    return `<div class="daily-plan-context-v303 daily-health-context-v314a"><span>🩹</span><div><small>BODY / RECOVERY CONTEXT</small><strong>${esc(HEALTH_LABELS.impact[health.impact] || health.impact)}${illness ? ` · ${esc(illness)}` : ""}</strong><p>${esc(symptomLabels.join(" · ") || "Physical symptoms logged")}${leave ? `<br>${esc(leave)}${why ? ` · ${esc(why)}` : ""}${health.sickLeaveNote ? ` · ${esc(health.sickLeaveNote)}` : ""}` : ""}</p></div></div>`;
+    return `<div class="daily-plan-context-v303 daily-health-context-v314a"><span>🩹</span><div><small>BODY / RECOVERY CONTEXT</small><strong>${esc(HEALTH_LABELS.impact[health.impact] || health.impact)}${illness ? ` · ${esc(illness)}` : ""}</strong><p>${esc(symptomLabels.join(" · ") || "Physical symptoms logged")}${leave ? `<br>${esc(leave)}${why ? ` · ${esc(why)}` : ""}${health.sickLeaveNote ? ` · ${esc(health.sickLeaveNote)}` : ""}` : ""}${health.dayCleared ? `<br>Work + fixed commitments cleared for the sick day.` : ""}</p></div></div>`;
   }
 
   function actualTimeLoadMarkup() {
@@ -1235,6 +1317,10 @@
     conversationStep = 0;
 
     els.form.reset();
+    delete els.form.dataset.sickDayAutoCleared;
+    delete els.form.dataset.sickDayPreviousTime;
+    delete els.form.dataset.sickDayPreviousObligations;
+    delete els.form.dataset.sickDayPreviousLoadNote;
     if (conversationEditing) fillCheckIn(existing.checkIn);
     else {
       if (els.loadNote) els.loadNote.value = "";
@@ -1266,6 +1352,7 @@
     setRadio("dailyObligations", checkIn.obligations);
     setRadio("dailyGentleChoice", checkIn.gentle ? "yes" : "no");
     if (els.loadNote) els.loadNote.value = String(checkIn.loadNote || "");
+    if (health.illness === "yes" && health.sickLeave === "yes") applySickDayAutoDefaults();
   }
 
   function setRadio(name, value) {
@@ -1291,11 +1378,16 @@
     const illness = impact === "none" ? "no" : (radioValue("dailyIllness") || "");
     const sickLeave = radioValue("dailySickLeave") || "";
     const weekday = isWeekdayToday();
+    const clearedSickDay = impact !== "none" && illness === "yes" && weekday && sickLeave === "yes";
     return all.filter(step => {
       const key = step.dataset.dailyQuestion;
       if (key === "symptoms" || key === "illness") return impact !== "none";
       if (key === "sickLeave") return impact !== "none" && illness === "yes" && weekday;
       if (key === "sickLeaveWhy") return impact !== "none" && illness === "yes" && weekday && sickLeave === "no";
+      // Calling in sick means the scheduled work/appointment load is cancelled for the day.
+      // Capacity is still governed by sleep, energy, stress and illness; we simply stop asking
+      // Luca to estimate obligations that no longer exist.
+      if (key === "time" || key === "obligations") return !clearedSickDay;
       return true;
     });
   }
@@ -1320,15 +1412,48 @@
       setRadio("dailyIllness", "no");
       els.form?.querySelectorAll('input[name="dailySickLeave"], input[name="dailySickLeaveWhy"]').forEach(input => { input.checked = false; });
       const note = byId("dailySickLeaveNote"); if (note) note.value = "";
+      clearSickDayAutoDefaults();
       return;
     }
     if (radioValue("dailyIllness") === "no") {
       els.form?.querySelectorAll('input[name="dailySickLeave"], input[name="dailySickLeaveWhy"]').forEach(input => { input.checked = false; });
       const note = byId("dailySickLeaveNote"); if (note) note.value = "";
+      clearSickDayAutoDefaults();
     } else if (radioValue("dailySickLeave") !== "no") {
       els.form?.querySelectorAll('input[name="dailySickLeaveWhy"]').forEach(input => { input.checked = false; });
       const note = byId("dailySickLeaveNote"); if (note) note.value = "";
+      if (radioValue("dailySickLeave") === "yes") applySickDayAutoDefaults();
+      else clearSickDayAutoDefaults();
+    } else {
+      clearSickDayAutoDefaults();
     }
+  }
+
+  function applySickDayAutoDefaults() {
+    if (!els.form) return;
+    if (els.form.dataset.sickDayAutoCleared !== "true") {
+      els.form.dataset.sickDayPreviousTime = radioValue("dailyTime") || "";
+      els.form.dataset.sickDayPreviousObligations = radioValue("dailyObligations") || "";
+      els.form.dataset.sickDayPreviousLoadNote = String(els.loadNote?.value || "");
+    }
+    els.form.dataset.sickDayAutoCleared = "true";
+    setRadio("dailyTime", "plenty");
+    setRadio("dailyObligations", "open");
+    if (els.loadNote) els.loadNote.value = "";
+  }
+
+  function clearSickDayAutoDefaults() {
+    if (!els.form || els.form.dataset.sickDayAutoCleared !== "true") return;
+    const previousTime = els.form.dataset.sickDayPreviousTime || "";
+    const previousObligations = els.form.dataset.sickDayPreviousObligations || "";
+    els.form.querySelectorAll('input[name="dailyTime"], input[name="dailyObligations"]').forEach(input => { input.checked = false; });
+    if (previousTime) setRadio("dailyTime", previousTime);
+    if (previousObligations) setRadio("dailyObligations", previousObligations);
+    if (els.loadNote) els.loadNote.value = els.form.dataset.sickDayPreviousLoadNote || "";
+    delete els.form.dataset.sickDayAutoCleared;
+    delete els.form.dataset.sickDayPreviousTime;
+    delete els.form.dataset.sickDayPreviousObligations;
+    delete els.form.dataset.sickDayPreviousLoadNote;
   }
 
   function showConversationStep(index) {
@@ -1381,7 +1506,7 @@
       setDialogPortraitMood(reactionMood(key, input.value));
     } else if (key === "symptoms") {
       const count = step.querySelectorAll('input[name="dailySymptoms"]:checked').length;
-      setDialogLine(count ? `${count} symptom${count === 1 ? "" : "s"} noted. Anything else can stay unselected.` : conversationQuestion(provisionalCompanion, key));
+      setDialogLine(conversationSymptomReaction(provisionalCompanion, count));
       setDialogPortraitMood("low");
     }
     const steps = activeConversationSteps();
@@ -1421,12 +1546,21 @@
 
   function conversationQuestion(companion, key) {
     const id = CHECKIN_COPY[companion?.id] ? companion.id : "luca";
-    return CHECKIN_COPY[id]?.[key]?.question || HEALTH_COPY[key]?.question || "How are we doing?";
+    return CHECKIN_COPY[id]?.[key]?.question || CHECKIN_HEALTH_COPY[id]?.[key]?.question || HEALTH_COPY[key]?.question || "How are we doing?";
   }
 
   function conversationReaction(companion, key, value) {
     const id = CHECKIN_COPY[companion?.id] ? companion.id : "luca";
-    return CHECKIN_COPY[id]?.[key]?.reactions?.[value] || HEALTH_COPY[key]?.reactions?.[value] || "Okay. Noted.";
+    return CHECKIN_COPY[id]?.[key]?.reactions?.[value] || CHECKIN_HEALTH_COPY[id]?.[key]?.reactions?.[value] || HEALTH_COPY[key]?.reactions?.[value] || "Okay. Noted.";
+  }
+
+  function conversationSymptomReaction(companion, count) {
+    const id = CHECKIN_COPY[companion?.id] ? companion.id : "luca";
+    if (!count) return conversationQuestion(companion, "symptoms");
+    if (id === "mina") return count === 1 ? "Okay, one thing. Got it. Anything else going on too?" : `${count} things? Ugh. Okay, your body is doing the MOST today. Anything else?`;
+    if (id === "kirishima") return count === 1 ? "Got it. One thing to keep in mind. Anything else?" : `${count} things at once? Yeah, no wonder you're feeling it. Anything else?`;
+    if (id === "bakugo") return count === 1 ? "One. Got it. Anything else?" : `${count}. Yeah, that's not nothing. Anything else?`;
+    return count === 1 ? "One thing. Noted. Anything else?" : `${count} things at once. Right. Anything else?`;
   }
 
   function setDialogLine(text) {
@@ -1490,7 +1624,8 @@
       impact, symptoms, other: String(raw.other || ""), illness,
       sickLeave: ["yes", "no", "not-needed"].includes(raw.sickLeave) ? raw.sickLeave : "",
       sickLeaveWhy: Object.hasOwn(HEALTH_LABELS.sickLeaveWhy, raw.sickLeaveWhy) ? raw.sickLeaveWhy : "",
-      sickLeaveNote: String(raw.sickLeaveNote || "")
+      sickLeaveNote: String(raw.sickLeaveNote || ""),
+      dayCleared: Boolean(raw.dayCleared || (illness === "yes" && raw.sickLeave === "yes"))
     };
   }
 
@@ -1503,7 +1638,8 @@
     return {
       impact, symptoms, other: String(byId("dailySymptomOther")?.value || "").trim(), illness, sickLeave,
       sickLeaveWhy: sickLeave === "no" ? radioValue("dailySickLeaveWhy") : "",
-      sickLeaveNote: sickLeave === "no" ? String(byId("dailySickLeaveNote")?.value || "").trim() : ""
+      sickLeaveNote: sickLeave === "no" ? String(byId("dailySickLeaveNote")?.value || "").trim() : "",
+      dayCleared: illness === "yes" && sickLeave === "yes"
     };
   }
 
@@ -1511,6 +1647,9 @@
     const health = normalizedHealth(checkIn);
     let need = ({ none: 0, mild: 1, moderate: 2, strong: 3 })[health.impact] || 0;
     if (health.illness === "yes") need += 1.25;
+    // A called-out sick day is intentionally recovery-first. Clearing work/appointments
+    // removes obligations; it does not magically turn illness into spare productivity capacity.
+    if (health.dayCleared) need = Math.max(need, 2.5);
     return clamp(need, 0, 4);
   }
 
@@ -1526,15 +1665,17 @@
     event.preventDefault();
     if (!els.form?.reportValidity()) return;
 
+    const health = readHealthForm();
+    const clearedSickDay = health.dayCleared === true;
     const checkIn = {
       mood: radioValue("dailyMood"),
       sleep: radioValue("dailySleep"),
       energy: radioValue("dailyEnergy"),
-      health: readHealthForm(),
+      health,
       stress: radioValue("dailyStress"),
-      time: radioValue("dailyTime"),
-      obligations: radioValue("dailyObligations"),
-      loadNote: String(els.loadNote?.value || "").trim(),
+      time: clearedSickDay ? "plenty" : radioValue("dailyTime"),
+      obligations: clearedSickDay ? "open" : radioValue("dailyObligations"),
+      loadNote: clearedSickDay ? "" : String(els.loadNote?.value || "").trim(),
       gentle: radioValue("dailyGentleChoice") === "yes"
     };
 
@@ -1926,6 +2067,7 @@
     const daysSince = daysSinceLast(logs);
     const doneToday = todayQuestUnits(quest.id) > 0;
 
+    if (normalizedHealth(checkIn).dayCleared && realm === "Work") return -1000;
     let score = 0;
     score += matchDemand(capacity, demand) * 2.2;
     score += adaptiveQuestFitAdjustment(quest, slot, checkIn, duration);
@@ -2048,6 +2190,7 @@
     const days = daysSinceTimestamp(item.lastTouchedAt || item.createdAt);
     const progress = item.progressMode === "percent" ? Number(item.progress || 0) : 0;
     const tags = new Set(item.reasonTags || []);
+    if (normalizedHealth(checkIn).dayCleared && String(item.realm || "") === "Work") return -1000;
     let score = matchDemand(capacity, demand) * 2.2;
 
     score += duration <= timeBudget ? 1.8 : -Math.min(4.2, (duration - timeBudget) / 18);
@@ -2098,6 +2241,7 @@
     const timeBudget = TIME_BUDGET[checkIn.time] || 30;
     const days = daysSinceTimestamp(book.lastReadAt || book.startedAt || book.createdAt);
     const progress = bookProgress(book) || 0;
+    if (normalizedHealth(checkIn).dayCleared && role === "work") return -1000;
     let score = matchDemand(capacity, demand) * 2.1;
 
     score += duration <= timeBudget ? 1.7 : -Math.min(4, (duration - timeBudget) / 15);
@@ -2226,7 +2370,7 @@
     const raw = String(goal.label || "");
     const linked = Array.isArray(game?.goals) ? game.goals.find(item => item.id === goal.goalId) : null;
     if (!linked || linked.source !== "steam") return raw;
-    const safe = window.LifeRPGGames?.safeGoalLabel?.(linked, game) || linked.text || "Steam achievement";
+    const safe = window.LifeRPGGames?.safeGoalLabel?.(linked) || linked.text || "Steam achievement";
     if (!linked.text || safe === linked.text) return raw;
     return raw.split(linked.text).join(safe);
   }
@@ -2254,7 +2398,7 @@
 
     const goals = Array.isArray(game.goals) ? game.goals.filter(goal => !goal.done) : [];
     const goal = goals.find(item => item.id === game.lastGoalId) || goals[0] || null;
-    const safeGoalText = goal ? (window.LifeRPGGames?.safeGoalLabel?.(goal, game) || goal.text) : "";
+    const safeGoalText = goal ? (window.LifeRPGGames?.safeGoalLabel?.(goal) || goal.text) : "";
     const base = meta.mode === "minutes"
       ? `Play ${game.title} for ${gameAmountLabel(game, amount)}`
       : `${game.title}: complete ${gameAmountLabel(game, amount)}`;
@@ -2677,7 +2821,7 @@
         portrait: "assets/story/sprites/mina_neutral.png",
         previewLine: "Some mornings, someone from Luca's actual social world may wander into the briefing. Not every day.",
         dialogLine: "Okay babe, emotional weather report. Where are we?",
-        doneLine: "Good. Tiny plan. Anchor if it fits, Care on purpose, Optional if there is room. No self-improvement spiral."
+        doneLine: "Okay. That’s enough status-reporting. Be nice to yourself today, babe."
       };
     }
     if (id === "kirishima") {
@@ -2688,8 +2832,8 @@
         weight: 1,
         portrait: "assets/story/characters/kirishima-neutral.png",
         previewLine: "Once everyday life overlaps enough, Kirishima can occasionally check in without turning it into a big conversation.",
-        dialogLine: "Hey. Quick check — how are you actually doing today?",
-        doneLine: "Got it. One useful Anchor if it fits, something that protects your life outside work, and an Optional only if there is room. That's enough."
+        dialogLine: "Hey. How’re you doing this morning — like, actually doing?",
+        doneLine: "Got it. Thanks for telling me straight. Take care of yourself today, alright?"
       };
     }
     if (id === "bakugo") {
@@ -2701,7 +2845,7 @@
         portrait: "assets/story/characters/bakugo-neutral.png",
         previewLine: "On some days, Bakugo's version of checking in is mostly just demanding accurate information.",
         dialogLine: "Status. How bad is it?",
-        doneLine: "There. Now the plan matches reality. Stop adding fake work to it."
+        doneLine: "There. Accurate status. Don’t make the day harder than it already is."
       };
     }
     return {
@@ -2712,7 +2856,7 @@
       portrait: "assets/story/portraits/luca_thinking.png",
       previewLine: "Most days can simply begin with Luca checking in with herself.",
       dialogLine: "Let's make this smaller. What kind of day are we actually working with?",
-      doneLine: "Okay. That's enough information. Pick the next thing, not the whole life."
+      doneLine: "Okay. That’s enough information. I know what kind of day this is now."
     };
   }
 
@@ -2734,7 +2878,10 @@
   }
 
   function dialogTitleFor(companion) {
-    return companion?.id === "luca" ? "Let's make the day smaller." : "Quick status report.";
+    if (companion?.id === "mina") return "Mina wants the real answer.";
+    if (companion?.id === "kirishima") return "Kirishima's checking in.";
+    if (companion?.id === "bakugo") return "Bakugo wants an accurate status.";
+    return "Let's make the day smaller.";
   }
 
 
@@ -3076,51 +3223,55 @@
   function companionPreviewLine(companion) {
     const moment = currentMoment();
     if (companion?.id === "mina") {
-      if (moment.id === "morning") return "Occasionally, Mina checks in before the day gets away from both of you. Not every morning.";
-      if (moment.id === "evening") return "Sometimes Mina catches Luca at the edge of the day, when the useful question is mostly how much is left in the tank.";
-      return "Some days, Mina wanders into the check-in naturally. She still does not get access to the app's private planner brain.";
+      if (moment.id === "morning") return "Sometimes Mina checks in before the day properly gets going. Not every morning — just when it feels natural.";
+      if (moment.id === "evening") return "Sometimes Mina catches Luca near the end of the day and wants the real version of how she is doing.";
+      return "Some days, Mina wanders in with questions and absolutely no interest in accepting a fake ‘fine’.";
     }
     if (companion?.id === "kirishima") {
-      if (moment.id === "evening") return "Sometimes Kirishima's check-in is just a warm, ordinary message at the end of a long day.";
-      return "Once everyday life overlaps enough, Kirishima may occasionally ask how the battery is doing before plans get made.";
+      if (moment.id === "evening") return "Sometimes Kirishima checks in at the end of a long day — warm, ordinary, no big dramatic reason required.";
+      return "Once everyday life overlaps enough, Kirishima sometimes just asks how Luca is doing because he actually wants to know.";
     }
     if (companion?.id === "bakugo") {
-      if (moment.id === "evening") return "Bakugo's evening check-in is less 'share your feelings' and more 'stop lying about how tired you are.'";
-      return "Some days Bakugo contributes by demanding accurate status information and rejecting imaginary capacity.";
+      if (moment.id === "evening") return "Bakugo’s evening version of checking in is mostly noticing Luca is exhausted and refusing to let her bullshit about it.";
+      return "Some days, Bakugo’s version of concern is demanding an accurate status report and acting like that is completely normal.";
     }
-    if (moment.id === "evening") return "Most days can end with Luca deciding what is still worth doing — and what can stay tomorrow's problem.";
+    if (moment.id === "evening") return "Most days can end with Luca checking in with herself about what the day actually felt like.";
     return "Most days can simply begin with Luca checking in with herself.";
   }
 
   function companionDoneLine(companion, day) {
     const checkIn = day?.checkIn || {};
+    const health = normalizedHealth(checkIn);
     const moment = currentMoment();
-    const low = checkIn.gentle || ["fumes", "low"].includes(checkIn.energy);
-    const workMinutes = Math.max(0, Number(window.LifeRPGTime?.getTodaySummary?.()?.workMinutes || 0));
-    if (workMinutes >= 420) {
-      if (companion?.id === "mina") return `Okay, you have already logged ${formatDuration(workMinutes)} of work today. I am officially vetoing the imaginary second workday.`;
-      if (companion?.id === "kirishima") return `That's ${formatDuration(workMinutes)} of work already. You did a lot today; recovery belongs in the plan now too.`;
-      if (companion?.id === "bakugo") return `${formatDuration(workMinutes)}. That's the workload. Quit acting like the evening is empty space.`;
-      return `We've already logged ${formatDuration(workMinutes)} of work. That explains a lot about what is actually left in the tank.`;
+    const low = checkIn.gentle || ["fumes", "low"].includes(checkIn.energy) || health.illness === "yes";
+    const cleared = health.dayCleared;
+
+    if (cleared) {
+      if (companion?.id === "mina") return "Okay. Sick day means sick day. Work is cancelled, the calendar is cleared, and you are officially allowed to just exist today, babe.";
+      if (companion?.id === "kirishima") return "Alright. You called in, so the day is cleared. Good. Rest, get better, and don’t keep carrying work around in your head anyway, okay?";
+      if (companion?.id === "bakugo") return "You called out. Good. Then work’s done for today. Quit mentally clocking in anyway.";
+      return "I called in sick. The fixed day is cancelled. I can stop holding space for work that is not happening.";
     }
+
+
     if (companion?.id === "mina") {
-      if (low) return "Okay. Small plan. We are not turning low battery into a character flaw.";
-      if (moment.id === "evening") return "Anchor if it fits, Care on purpose, Optional only if you actually have room. I am vetoing any plan that becomes a second workday.";
-      return "Good. Tiny plan. Anchor if it fits, Care on purpose, Optional if there is room. No self-improvement spiral.";
+      if (low) return "Okay. Tiny-battery rules. Be sweet to yourself today or I will be annoying about it.";
+      if (moment.id === "evening") return "Okay, status received. The day already happened — you do not have to squeeze a second one out of the evening.";
+      return "Good. I know where you’re at now. Please do not turn a perfectly normal day into a self-improvement competition.";
     }
     if (companion?.id === "kirishima") {
-      if (low) return "Keep it small today. Recovery counts as part of the plan, not what happens after you fail it.";
-      if (moment.id === "evening") return "The day's already been a day. Pick what still fits and leave yourself an actual stopping point.";
-      return "Got it. One useful Anchor if it fits, something that protects your life outside work, and an Optional only if there is room. That's enough.";
+      if (low) return "Okay. Keep things easy on yourself today, yeah? You don’t have to earn the right to recover.";
+      if (moment.id === "evening") return "Sounds like the day’s already taken plenty out of you. Be done when you’re done, alright?";
+      return "Got it. Thanks for telling me straight. Take care of yourself today, alright?";
     }
     if (companion?.id === "bakugo") {
-      if (low) return "Low battery. So the plan gets smaller. Quit trying to spend energy you don't have.";
-      if (moment.id === "evening") return "Day's mostly over. Do what still fits and stop trying to resurrect the whole backlog.";
-      return "There. Now the plan matches reality. Stop adding fake work to it.";
+      if (low) return "Low battery. So act like it. Don’t make me point out the obvious twice.";
+      if (moment.id === "evening") return "Day’s mostly over. Don’t start some stupid second shift in your head.";
+      return "There. Accurate status. Don’t make the day harder than it already is.";
     }
-    if (low) return "Keep the floor low. One finished thing counts more than an ambitious list you cannot enter.";
-    if (moment.id === "evening") return "The day already happened. Pick what still fits; do not negotiate with the whole backlog.";
-    return "Okay. That's enough information. Pick the next thing, not the whole life.";
+    if (low) return "Okay. Low-capacity day. I know that now; I do not need to turn it into a moral problem.";
+    if (moment.id === "evening") return "The day already happened. I can be accurate about what is left instead of arguing with it.";
+    return "Okay. That’s enough information. I know what kind of day this is now.";
   }
 
   function sourceEstimatedMinutes(type, item) {

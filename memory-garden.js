@@ -4,8 +4,9 @@
   const app = window.LifeRPGApp;
   if (!app?.getState || !app?.awardActivity) return;
 
-  const VERSION = "0.31.4o";
-  const SCHEMA = 1;
+  const VERSION = "0.31.4y";
+  const RNG_VERSION = "0.31.4o";
+  const SCHEMA = 2;
   const TOTAL = 50;
   const ROUNDS_PER_LEVEL = 3;
   const REPEAT_SCALES = [1, 0.75, 0.5, 0.35];
@@ -55,6 +56,7 @@
 
   let previewTimer = null;
   let sequenceTimers = [];
+  let previewFrames = [];
   let initialHydration = true;
 
   init();
@@ -104,8 +106,10 @@
     if (level < 1 || level > TOTAL) return null;
     const mode = modeForLevel(level);
     let phase = ["ready", "preview", "recall", "interference", "feedback"].includes(active.phase) ? active.phase : "ready";
-    // Preview timers are intentionally restarted after a reload; the user should never lose a round
-    // because the page was closed halfway through the brief exposure.
+    const previewPaintedAt = Math.max(0, Number(active.previewPaintedAt || 0));
+    // Old interrupted rounds could land directly in recall even though no preview had ever painted.
+    // On first hydration, any unfinished round without a confirmed paint restarts safely from Ready.
+    if (resetInterruptedPreview && ["preview", "recall", "interference"].includes(phase) && !previewPaintedAt) phase = "ready";
     if (phase === "preview" && resetInterruptedPreview) phase = "ready";
     return {
       ...active,
@@ -121,6 +125,8 @@
       attemptsThisRound: Math.max(0, Number(active.attemptsThisRound || 0)),
       replay: Boolean(active.replay),
       lastCorrect: active.lastCorrect === true,
+      previewPaintedAt,
+      previewReplays: Math.max(0, Number(active.previewReplays || 0)),
       createdAt: Number(active.createdAt || Date.now()),
       updatedAt: Number(active.updatedAt || active.createdAt || Date.now()),
       completedAt: active.completedAt ? Number(active.completedAt) : null,
@@ -147,6 +153,16 @@
       if (els.dialog?.open) els.dialog.close();
     });
 
+    document.addEventListener("visibilitychange", () => {
+      const active = current();
+      if (document.visibilityState !== "hidden" || active?.phase !== "preview") return;
+      clearPreviewTimers();
+      active.phase = "ready";
+      active.previewPaintedAt = 0;
+      active.updatedAt = Date.now();
+      app.saveState({ source: "memory-garden-preview-interrupted" });
+    });
+
     document.addEventListener("click", event => {
       const open = event.target.closest?.("[data-memory-garden-open]");
       if (open) { event.preventDefault(); openDialog(); return; }
@@ -167,6 +183,9 @@
 
       const startRoundButton = event.target.closest?.("[data-memory-start-round]");
       if (startRoundButton) { event.preventDefault(); beginRound(); return; }
+
+      const previewAgain = event.target.closest?.("[data-memory-preview-again]");
+      if (previewAgain) { event.preventDefault(); replayPreview(); return; }
 
       const retry = event.target.closest?.("[data-memory-retry]");
       if (retry) { event.preventDefault(); resetCurrentRound(); beginRound(); return; }
@@ -226,6 +245,8 @@
       attemptsThisRound: 0,
       replay: Boolean(replay),
       lastCorrect: false,
+      previewPaintedAt: 0,
+      previewReplays: 0,
       createdAt: Date.now(),
       updatedAt: Date.now(),
       completedAt: null,
@@ -243,6 +264,7 @@
     active.selectedCells = [];
     active.sequenceInput = [];
     active.lastCorrect = false;
+    active.previewPaintedAt = 0;
     active.updatedAt = Date.now();
     persist("memory-garden-round-reset");
   }
@@ -255,21 +277,63 @@
     active.selectedCells = [];
     active.sequenceInput = [];
     active.lastCorrect = false;
+    active.previewPaintedAt = 0;
     active.updatedAt = Date.now();
     app.saveState({ source: "memory-garden-preview" });
     renderTrial();
 
     const round = roundData(active.level, active.roundIndex);
-    if (active.mode === "sequence") runSequencePreview(round);
-    else {
-      previewTimer = window.setTimeout(() => {
+    startPreviewAfterPaint(active, round);
+  }
+
+  function startPreviewAfterPaint(active, round) {
+    // Two animation frames guarantee that the preview DOM has actually reached a browser paint
+    // before the exposure countdown begins. This prevents a fast phase transition from skipping
+    // the only visual frame the player was supposed to memorize.
+    const raf = window.requestAnimationFrame || (callback => window.setTimeout(callback, 16));
+    const first = raf(() => {
+      const second = raf(() => {
         const now = current();
-        if (!now || now.level !== active.level || now.roundIndex !== active.roundIndex) return;
-        now.phase = now.mode === "working" ? "interference" : "recall";
-        now.updatedAt = Date.now();
-        persist("memory-garden-recall");
-      }, round.exposureMs);
+        if (!now || now.phase !== "preview" || now.level !== active.level || now.roundIndex !== active.roundIndex) return;
+        now.previewPaintedAt = Date.now();
+        now.updatedAt = now.previewPaintedAt;
+        app.saveState({ source: "memory-garden-preview-painted" });
+        if (now.mode === "sequence") runSequencePreview(round);
+        else {
+          previewTimer = window.setTimeout(() => finishPreview(active), round.exposureMs);
+        }
+      });
+      previewFrames.push(second);
+    });
+    previewFrames.push(first);
+  }
+
+  function finishPreview(active) {
+    const now = current();
+    if (!now || now.phase !== "preview" || now.level !== active.level || now.roundIndex !== active.roundIndex) return;
+    if (!now.previewPaintedAt) {
+      now.phase = "ready";
+      now.updatedAt = Date.now();
+      persist("memory-garden-preview-missed-paint");
+      return;
     }
+    now.phase = now.mode === "working" ? "interference" : "recall";
+    now.updatedAt = Date.now();
+    persist("memory-garden-recall");
+  }
+
+  function replayPreview() {
+    const active = current();
+    if (!active || active.completedAt || !["recall", "interference"].includes(active.phase)) return;
+    active.previewReplays = Math.max(0, Number(active.previewReplays || 0)) + 1;
+    active.phase = "ready";
+    active.selectedCells = [];
+    active.sequenceInput = [];
+    active.lastCorrect = false;
+    active.previewPaintedAt = 0;
+    active.updatedAt = Date.now();
+    app.saveState({ source: "memory-garden-preview-replay" });
+    beginRound();
   }
 
   function runSequencePreview(round) {
@@ -310,6 +374,7 @@
     active.sequenceInput = [];
     active.attemptsThisRound = 0;
     active.lastCorrect = false;
+    active.previewPaintedAt = 0;
     active.updatedAt = Date.now();
     persist("memory-garden-next-round");
   }
@@ -646,19 +711,19 @@
   function renderRecall(active, round) {
     if (active.mode === "spatial") {
       els.stage.innerHTML = `<div class="memory-preview-header-v314n"><small>RECALL</small><strong>Tap the ${round.targets.length} cells you remember.</strong></div>${gridMarkup(round.gridSize, active.selectedCells, { interactive: true })}`;
-      els.actions.innerHTML = `<button class="secondary-button" data-memory-spatial-check type="button" ${active.selectedCells.length === round.targets.length ? "" : "disabled"}>Check memory</button>`;
+      els.actions.innerHTML = `<button class="text-button" data-memory-preview-again type="button">I didn't see it · show again</button><button class="secondary-button" data-memory-spatial-check type="button" ${active.selectedCells.length === round.targets.length ? "" : "disabled"}>Check memory</button>`;
     } else if (active.mode === "sequence") {
       const chosen = active.sequenceInput.map(id => tokenById(id));
       els.stage.innerHTML = `<div class="memory-preview-header-v314n"><small>REBUILD THE ORDER</small><strong>${chosen.length}/${round.sequence.length} chosen</strong></div><div class="memory-sequence-built-v314n">${chosen.length ? chosen.map(token => `<span><b>${escapeHtml(token.symbol)}</b><small>${escapeHtml(token.label)}</small></span>`).join("") : `<em>Start with the first item you saw.</em>`}</div><div class="memory-token-palette-v314n">${round.palette.map(token => `<button type="button" data-memory-sequence-token="${escapeHtml(token.id)}"><span>${escapeHtml(token.symbol)}</span><small>${escapeHtml(token.label)}</small></button>`).join("")}</div>`;
-      els.actions.innerHTML = `<button class="text-button" data-memory-sequence-undo type="button" ${active.sequenceInput.length ? "" : "disabled"}>Undo last</button>`;
+      els.actions.innerHTML = `<button class="text-button" data-memory-preview-again type="button">I didn't see it · show again</button><button class="text-button" data-memory-sequence-undo type="button" ${active.sequenceInput.length ? "" : "disabled"}>Undo last</button>`;
     } else if (active.mode === "pattern") {
       els.stage.innerHTML = `<div class="memory-preview-header-v314n"><small>RECALL</small><strong>Which pattern did you just see?</strong></div><div class="memory-pattern-choices-v314n">${round.choices.map((pattern, index) => `<button type="button" data-memory-pattern-choice="${index}" aria-label="Pattern option ${index + 1}">${patternMarkup(pattern, round.gridSize)}</button>`).join("")}</div>`;
-      els.actions.innerHTML = "";
+      els.actions.innerHTML = `<button class="text-button" data-memory-preview-again type="button">I didn't see it · show again</button>`;
     } else if (active.mode === "working") {
       els.stage.innerHTML = `<div class="memory-preview-header-v314n"><small>WORKING MEMORY</small><strong>What number was paired with ${escapeHtml(round.queryToken.label)} ${escapeHtml(round.queryToken.symbol)}?</strong></div><div class="memory-working-choices-v314n">${round.answerChoices.map(value => `<button type="button" data-memory-working-choice="${value}">${value}</button>`).join("")}</div>`;
-      els.actions.innerHTML = "";
+      els.actions.innerHTML = `<button class="text-button" data-memory-preview-again type="button">I didn't see it · show again</button>`;
     }
-    if (els.status) els.status.textContent = "Accuracy matters. Take your time — speed never changes the reward.";
+    if (els.status) els.status.textContent = "Accuracy matters. Take your time — speed never changes the reward. If the preview did not appear, use ‘show again’; it never counts as a failure.";
   }
 
   function renderInterference(round) {
@@ -707,7 +772,7 @@
     const mode = modeForLevel(level);
     const t = tier(level);
     const within = (level - 1) % 10;
-    const rng = mulberry32(hashSeed(`memory-garden:${VERSION}:${level}:${roundIndex}`));
+    const rng = mulberry32(hashSeed(`memory-garden:${RNG_VERSION}:${level}:${roundIndex}`));
     const exposureMs = Math.max(1800, 3800 - (t - 1) * 400 - Math.floor(within / 4) * 120);
 
     if (mode === "spatial") {
@@ -810,6 +875,9 @@
     previewTimer = null;
     sequenceTimers.forEach(id => window.clearTimeout(id));
     sequenceTimers = [];
+    const cancel = window.cancelAnimationFrame || window.clearTimeout;
+    previewFrames.forEach(id => cancel(id));
+    previewFrames = [];
   }
 
   function healthRecoveryFirst() {

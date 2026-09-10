@@ -3,12 +3,13 @@
 
   const app = window.LifeRPGApp;
   const DATA = window.LIFE_RPG_LEXICON_LAB_DATA || {};
+  const ENRICHMENT = window.LIFE_RPG_LEXICON_LAB_ENRICHMENT || {};
   const ENTRIES = Array.isArray(DATA.entries) ? DATA.entries : [];
   const PUZZLES = Array.isArray(DATA.puzzles) ? DATA.puzzles : [];
   if (!app?.getState || !app?.awardActivity || !ENTRIES.length || !PUZZLES.length) return;
 
-  const VERSION = "0.31.4q";
-  const SCHEMA = 1;
+  const VERSION = "0.31.4y";
+  const SCHEMA = 2;
   const TOTAL = PUZZLES.length;
   const REPEAT_SCALES = [1, .75, .5, .35];
   const TIERS = {
@@ -26,7 +27,7 @@
     collections: byId("lexiconLabCollections"), recent: byId("lexiconLabRecentWords"), status: byId("lexiconLabStatus"),
     play: byId("lexiconLabPlayPanel"), puzzleMeta: byId("lexiconLabPuzzleMeta"), board: byId("lexiconCrosswordBoard"),
     across: byId("lexiconAcrossClues"), down: byId("lexiconDownClues"), check: byId("lexiconCheckPuzzle"), clear: byId("lexiconClearPuzzle"),
-    result: byId("lexiconLabResult"), growthStats: byId("lexiconLabGrowthStats"), trainingStats: byId("trainingGroundsLexiconStatus"),
+    result: byId("lexiconLabResult"), hintPanel: byId("lexiconHintPanel"), growthStats: byId("lexiconLabGrowthStats"), trainingStats: byId("trainingGroundsLexiconStatus"),
     quickStatus: byId("lexiconLabQuickStatus")
   };
 
@@ -47,7 +48,8 @@
       schemaVersion: SCHEMA,
       journey: { completedLevels: [], active: null },
       words: {},
-      stats: { puzzlesSolved: 0, perfectWords: 0, checks: 0 },
+      dailyWords: {},
+      stats: { puzzlesSolved: 0, perfectWords: 0, checks: 0, contextTries: 0, contextCorrect: 0 },
       completed: []
     };
   }
@@ -59,11 +61,14 @@
     s.schemaVersion = SCHEMA;
     s.journey ||= defaults().journey;
     s.words ||= {};
+    s.dailyWords = s.dailyWords && typeof s.dailyWords === "object" && !Array.isArray(s.dailyWords) ? s.dailyWords : {};
     s.stats ||= defaults().stats;
     s.completed = Array.isArray(s.completed) ? s.completed.slice(-300) : [];
+    const dailyKeys = Object.keys(s.dailyWords).sort();
+    while (dailyKeys.length > 180) delete s.dailyWords[dailyKeys.shift()];
     s.journey.completedLevels = [...new Set((s.journey.completedLevels || []).map(Number).filter(level => level >= 1 && level <= TOTAL))].sort((a,b) => a-b);
     s.journey.active = normalizeActive(s.journey.active);
-    ["puzzlesSolved", "perfectWords", "checks"].forEach(key => s.stats[key] = Math.max(0, Number(s.stats[key] || 0)));
+    ["puzzlesSolved", "perfectWords", "checks", "contextTries", "contextCorrect"].forEach(key => s.stats[key] = Math.max(0, Number(s.stats[key] || 0)));
     for (const [id, record] of Object.entries(s.words)) s.words[id] = normalizeWordRecord(record);
     return s;
   }
@@ -95,6 +100,7 @@
       values,
       activeWordId: puzzle.words.some(w => w.id === active.activeWordId) ? active.activeWordId : puzzle.words[0]?.id || null,
       missedWordIds: [...new Set((active.missedWordIds || []).filter(id => puzzle.words.some(w => w.id === id)))],
+      hintLevels: Object.fromEntries(Object.entries(active.hintLevels || {}).filter(([id]) => puzzle.words.some(w => w.id === id)).map(([id, value]) => [id, Math.max(0, Math.min(5, Number(value || 0)))])),
       encountersRegistered: Boolean(active.encountersRegistered),
       replay: Boolean(active.replay),
       createdAt: Number(active.createdAt || Date.now()),
@@ -111,6 +117,209 @@
   function nextLevel() { for (let level = 1; level <= TOTAL; level += 1) if (!completedSet().has(level)) return level; return null; }
   function tier(level) { return Math.min(5, Math.max(1, Math.ceil(Number(level || 1) / 6))); }
 
+  function enrichedPool() {
+    return ENTRIES.filter(entry => ENRICHMENT[entry.id]?.example && ENRICHMENT[entry.id]?.nuance);
+  }
+
+  function stableHash(text) {
+    let hash = 2166136261 >>> 0;
+    for (const char of String(text || "")) {
+      hash ^= char.charCodeAt(0);
+      hash = Math.imul(hash, 16777619);
+    }
+    return hash >>> 0;
+  }
+
+  function dailyWordEntry(dateKey = localDateKey(new Date())) {
+    const pool = enrichedPool();
+    if (!pool.length) return ENTRIES[0] || null;
+    return pool[stableHash(`lexicon-daily:${dateKey}`) % pool.length];
+  }
+
+  function dailyContextEntry(dateKey = localDateKey(new Date())) {
+    const pool = enrichedPool();
+    if (!pool.length) return ENTRIES[0] || null;
+    const daily = dailyWordEntry(dateKey);
+    let index = stableHash(`lexicon-context:${dateKey}`) % pool.length;
+    if (pool[index]?.id === daily?.id) index = (index + 7) % pool.length;
+    return pool[index];
+  }
+
+  function registerWordEncounter(s, entry, source = "encounter") {
+    if (!s || !entry) return;
+    const rec = s.words[entry.id] = normalizeWordRecord(s.words[entry.id]);
+    rec.encounters += 1;
+    rec.lastSeen = new Date().toISOString();
+    rec.lastEncounterSource = source;
+    rec.status = masteryStatus(rec);
+  }
+
+  function recordDailyWord(response) {
+    if (!["known", "heard", "new"].includes(response)) return;
+    const s = state();
+    const key = localDateKey(new Date());
+    const entry = dailyWordEntry(key);
+    if (!entry) return;
+    const existing = s.dailyWords[key] && typeof s.dailyWords[key] === "object" ? s.dailyWords[key] : {};
+    if (!existing.encounterRegistered) registerWordEncounter(s, entry, "daily-word");
+    s.dailyWords[key] = {
+      ...existing,
+      entryId: entry.id,
+      response,
+      encounterRegistered: true,
+      seenAt: existing.seenAt || Date.now(),
+      updatedAt: Date.now()
+    };
+    persist("lexicon-daily-word");
+  }
+
+  function openDailyContext() {
+    const s = state();
+    const key = localDateKey(new Date());
+    const entry = dailyContextEntry(key);
+    if (!entry) return;
+    const existing = s.dailyWords[key] && typeof s.dailyWords[key] === "object" ? s.dailyWords[key] : {};
+    if (!existing.contextEncounterRegistered) registerWordEncounter(s, entry, "context-clue");
+    s.dailyWords[key] = {
+      ...existing,
+      entryId: existing.entryId || dailyWordEntry(key)?.id || null,
+      contextOpen: true,
+      contextWordId: entry.id,
+      contextEncounterRegistered: true,
+      contextAnswered: existing.contextWordId === entry.id ? Boolean(existing.contextAnswered) : false,
+      contextChoiceId: existing.contextWordId === entry.id ? existing.contextChoiceId || null : null,
+      contextCorrect: existing.contextWordId === entry.id ? Boolean(existing.contextCorrect) : false,
+      updatedAt: Date.now()
+    };
+    persist("lexicon-context-open");
+  }
+
+  function contextOptions(entry, dateKey = localDateKey(new Date())) {
+    const pool = enrichedPool().filter(item => item.id !== entry.id);
+    const first = pool[stableHash(`lexicon-context-a:${dateKey}:${entry.id}`) % Math.max(1, pool.length)];
+    let second = pool[stableHash(`lexicon-context-b:${dateKey}:${entry.id}`) % Math.max(1, pool.length)];
+    if (second?.id === first?.id) second = pool[(pool.indexOf(first) + 11) % Math.max(1, pool.length)];
+    const options = [entry, first, second].filter(Boolean);
+    return options.sort((a, b) => (stableHash(`${dateKey}:${a.id}`) % 100000) - (stableHash(`${dateKey}:${b.id}`) % 100000));
+  }
+
+  function answerDailyContext(choiceId) {
+    const s = state();
+    const key = localDateKey(new Date());
+    const record = s.dailyWords[key];
+    if (!record?.contextOpen || record.contextAnswered) return;
+    const entry = ENTRY_BY_ID[record.contextWordId] || dailyContextEntry(key);
+    if (!entry) return;
+    record.contextAnswered = true;
+    record.contextChoiceId = String(choiceId || "");
+    record.contextCorrect = record.contextChoiceId === entry.id;
+    record.updatedAt = Date.now();
+    s.stats.contextTries += 1;
+    if (record.contextCorrect) s.stats.contextCorrect += 1;
+    persist("lexicon-context-answer");
+  }
+
+  function responseLabel(value) {
+    return ({ known: "Kannte ich", heard: "Schon mal gehört", new: "Neu für mich" })[value] || "Gespeichert";
+  }
+
+  function contextSentenceMarkup(entry) {
+    const example = String(ENRICHMENT[entry?.id]?.example || "");
+    const term = String(entry?.term || "");
+    if (!example || !term) return escapeHtml(example || term);
+    const lower = example.toLocaleLowerCase("de-DE");
+    const needle = term.toLocaleLowerCase("de-DE");
+    const index = lower.indexOf(needle);
+    if (index < 0) return escapeHtml(example);
+    return `${escapeHtml(example.slice(0, index))}<mark>${escapeHtml(example.slice(index, index + term.length))}</mark>${escapeHtml(example.slice(index + term.length))}`;
+  }
+
+  function renderDailyContextMarkup(record, dateKey) {
+    if (!record?.contextOpen) return `<button class="secondary-button lexicon-context-launch-v314y" type="button" data-lexicon-context-start>◇ Meaning from context</button>`;
+    const entry = ENTRY_BY_ID[record.contextWordId] || dailyContextEntry(dateKey);
+    if (!entry) return "";
+    const options = contextOptions(entry, dateKey);
+    const result = record.contextAnswered
+      ? `<div class="lexicon-context-result-v314y ${record.contextCorrect ? "is-correct" : "is-learning"}"><strong>${record.contextCorrect ? "✓ Nice inference." : "Not quite — this one was about context, not memorizing."}</strong><p><b>${escapeHtml(entry.term)}</b>: ${escapeHtml(entry.clue)}</p></div>`
+      : `<div class="lexicon-context-options-v314y">${options.map(option => `<button type="button" data-lexicon-context-choice="${escapeAttr(option.id)}"><span>${escapeHtml(option.clue)}</span></button>`).join("")}</div>`;
+    return `<section class="lexicon-context-card-v314y"><div><small>CONTEXT CLUE · DIFFERENT WORD</small><strong>What does <em>${escapeHtml(entry.term)}</em> probably mean here?</strong></div><p class="lexicon-context-sentence-v314y">${contextSentenceMarkup(entry)}</p>${result}</section>`;
+  }
+
+  function renderHintPanel() {
+    if (!els.hintPanel) return;
+    const active = current();
+    const puzzle = active ? puzzleDef(active.level) : null;
+    const placement = puzzle?.words.find(word => word.id === active?.activeWordId);
+    const entry = placement ? ENTRY_BY_ID[placement.id] : null;
+    if (!active || !placement || !entry || active.completedAt) {
+      els.hintPanel.classList.add("hidden");
+      els.hintPanel.innerHTML = "";
+      return;
+    }
+    const level = Math.max(0, Math.min(5, Number(active.hintLevels?.[entry.id] || 0)));
+    const copy = level ? hintCopy(entry, placement, level) : "Stuck? Hints get gradually more explicit. Using one never removes the normal crossword completion reward.";
+    const direction = placement.dir === "down" ? "DOWN" : "ACROSS";
+    els.hintPanel.classList.remove("hidden");
+    els.hintPanel.innerHTML = `<div><small>HELP FOR ${placement.number} ${direction}</small><p>${copy}</p></div>${level < 5 ? `<button class="secondary-button" type="button" data-lexicon-hint-next>${level ? "Another hint" : "Give me a hint"}</button>` : ""}`;
+  }
+
+  function redactedNuance(entry) {
+    const details = ENRICHMENT[entry.id] || {};
+    const source = String(details.nuance || `This word belongs to ${entry.theme}.`);
+    const escapedTerm = String(entry.term || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    if (!escapedTerm) return escapeHtml(source);
+    return escapeHtml(source.replace(new RegExp(escapedTerm, "giu"), "Dieses Wort"));
+  }
+
+  function blankedExampleMarkup(entry) {
+    const example = String(ENRICHMENT[entry.id]?.example || "");
+    const term = String(entry.term || "");
+    if (!example || !term) return "No context hint available for this word.";
+    const lower = example.toLocaleLowerCase("de-DE");
+    const needle = term.toLocaleLowerCase("de-DE");
+    const index = lower.indexOf(needle);
+    if (index < 0) return "This example uses a related word form, so revealing it would make the answer too obvious. The next hint gives you the word shape instead.";
+    return `${escapeHtml(example.slice(0, index))}<mark>_____</mark>${escapeHtml(example.slice(index + term.length))}`;
+  }
+
+  function hintCopy(entry, placement, level) {
+    const letters = Array.from(String(entry.answer || entry.term || "").toUpperCase());
+    if (level === 1) return `<b>Another angle:</b> ${redactedNuance(entry)}`;
+    if (level === 2) return `<b>In context:</b> ${blankedExampleMarkup(entry)}`;
+    if (level === 3) return `<b>Word shape:</b> ${escapeHtml(letters[0] || "?")}…${escapeHtml(letters.at(-1) || "?")} · ${letters.length} letters.`;
+    if (level === 4) return `<b>Grid help:</b> I filled a couple of internal letters into this word. Keep solving from there.`;
+    return `<b>Answer:</b> ${escapeHtml(entry.term)}. No penalty — use it, finish the puzzle, and let the word become familiar over time.`;
+  }
+
+  function advanceHint() {
+    const s = state();
+    const active = s.journey.active;
+    const puzzle = active ? puzzleDef(active.level) : null;
+    const placement = puzzle?.words.find(word => word.id === active?.activeWordId);
+    if (!active || !placement || active.completedAt) return;
+    const next = Math.min(5, Math.max(0, Number(active.hintLevels?.[placement.id] || 0)) + 1);
+    active.hintLevels ||= {};
+    active.hintLevels[placement.id] = next;
+    if (!active.missedWordIds.includes(placement.id)) active.missedWordIds.push(placement.id);
+    if (next === 4) revealHintLetters(active, placement);
+    active.updatedAt = Date.now();
+    app.saveState({ source: `lexicon-hint-${next}` });
+    renderBoard();
+  }
+
+  function revealHintLetters(active, placement) {
+    const entry = ENTRY_BY_ID[placement.id];
+    const answer = Array.from(String(entry?.answer || "").toUpperCase());
+    if (answer.length < 3) return;
+    const candidates = [...new Set([Math.floor(answer.length / 3), Math.floor(answer.length * 2 / 3)])].filter(index => index > 0 && index < answer.length - 1);
+    for (const index of candidates) {
+      const row = placement.row + (placement.dir === "down" ? index : 0);
+      const col = placement.col + (placement.dir === "across" ? index : 0);
+      const key = `${row},${col}`;
+      if (!active.values[key]) active.values[key] = answer[index];
+    }
+  }
+
   function bind() {
     els.close?.addEventListener("click", () => els.dialog?.open && els.dialog.close());
     els.check?.addEventListener("click", checkPuzzle);
@@ -121,6 +330,14 @@
       if (open) { event.preventDefault(); openDialog(); return; }
       const daily = event.target.closest?.("[data-lexicon-daily-start]");
       if (daily) { event.preventDefault(); startLevel(nextLevel() || TOTAL, { replay: !nextLevel() }); return; }
+      const dailyResponse = event.target.closest?.("[data-lexicon-daily-response]");
+      if (dailyResponse) { event.preventDefault(); recordDailyWord(dailyResponse.dataset.lexiconDailyResponse); return; }
+      const contextStart = event.target.closest?.("[data-lexicon-context-start]");
+      if (contextStart) { event.preventDefault(); openDailyContext(); return; }
+      const contextChoice = event.target.closest?.("[data-lexicon-context-choice]");
+      if (contextChoice) { event.preventDefault(); answerDailyContext(contextChoice.dataset.lexiconContextChoice); return; }
+      const hintNext = event.target.closest?.("[data-lexicon-hint-next]");
+      if (hintNext) { event.preventDefault(); advanceHint(); return; }
       const levelButton = event.target.closest?.("[data-lexicon-level]");
       if (levelButton) {
         event.preventDefault();
@@ -154,6 +371,7 @@
       focusedCellKey = key;
       queueSave("lexicon-focus");
       updateHighlights();
+      renderHintPanel();
     });
 
     els.board?.addEventListener("input", event => {
@@ -205,6 +423,7 @@
       values: Object.fromEntries(Object.keys(cells).map(key => [key, ""])),
       activeWordId: puzzle.words[0]?.id || null,
       missedWordIds: [],
+      hintLevels: {},
       encountersRegistered: false,
       replay: Boolean(replay),
       createdAt: Date.now(), updatedAt: Date.now(), completedAt: null, rewardEventId: null
@@ -250,13 +469,32 @@
 
   function renderDaily(next) {
     if (!els.daily) return;
+    const s = state();
+    const dateKey = localDateKey(new Date());
+    const entry = dailyWordEntry(dateKey);
+    const details = entry ? (ENRICHMENT[entry.id] || {}) : {};
+    const record = s.dailyWords[dateKey] && typeof s.dailyWords[dateKey] === "object" ? s.dailyWords[dateKey] : {};
     const active = current();
+    const wordMarkup = entry ? `
+      <article class="lexicon-daily-word-v314y">
+        <div class="lexicon-daily-word-heading-v314y"><div><small>WORTFUND DES TAGES · ${escapeHtml(entry.theme)}</small><strong>${escapeHtml(entry.term)}</strong></div><span>✦</span></div>
+        <p class="lexicon-daily-definition-v314y">${escapeHtml(entry.clue)}</p>
+        <div class="lexicon-daily-detail-v314y"><small>IM SATZ</small><span>${escapeHtml(details.example || "")}</span></div>
+        <div class="lexicon-daily-detail-v314y"><small>NUANCE</small><span>${escapeHtml(details.nuance || "")}</span></div>
+        ${record.response
+          ? `<div class="lexicon-daily-response-status-v314y"><span>✓ ${escapeHtml(responseLabel(record.response))}</span><small>Nur entdeckt, nicht abgefragt. Das Wort darf dir später wieder begegnen.</small></div>${renderDailyContextMarkup(record, dateKey)}`
+          : `<div class="lexicon-daily-response-v314y" role="group" aria-label="How familiar is today's word?"><button type="button" data-lexicon-daily-response="known">Kannte ich</button><button type="button" data-lexicon-daily-response="heard">Schon mal gehört</button><button type="button" data-lexicon-daily-response="new">Neu für mich</button></div><small class="lexicon-daily-noquiz-v314y">Kein Quiz, kein Streak. Nur ein interessantes Wort zum Mitnehmen.</small>`}
+      </article>` : "";
+
+    let crosswordMarkup = "";
     if (!next) {
-      els.daily.innerHTML = `<div><small>DAILY LEXICON</small><strong>Academic Crossword Journey complete ✦</strong><span>Replay any puzzle to keep words active. No streak, no punishment.</span></div><button type="button" data-lexicon-level="30">Replay Puzzle 30</button>`;
-      return;
+      crosswordMarkup = `<aside class="lexicon-crossword-next-v314y"><small>CROSSWORD JOURNEY</small><strong>30/30 complete ✦</strong><p>Crosswords bleiben als freiwilliger Recall-Modus. Hinweise kosten keine normale Puzzle-Belohnung.</p><button class="secondary-button" type="button" data-lexicon-level="30">Replay Puzzle 30</button></aside>`;
+    } else {
+      const puzzle = puzzleDef(next);
+      const continuing = Boolean(active && !active.completedAt && active.level === next);
+      crosswordMarkup = `<aside class="lexicon-crossword-next-v314y"><small>CROSSWORD JOURNEY · OPTIONAL</small><strong>${continuing ? `Continue Puzzle ${next}` : `Puzzle ${next} · ${escapeHtml(puzzle.title)}`}</strong><p>${escapeHtml(puzzle.theme)} · ${puzzle.words.length} terms. Use the hint ladder whenever a word will not come to mind.</p><button class="secondary-button" type="button" data-lexicon-daily-start>${continuing ? "Continue" : "Start"} Puzzle ${next}</button></aside>`;
     }
-    const puzzle = puzzleDef(next);
-    els.daily.innerHTML = `<div><small>DAILY LEXICON</small><strong>${active && !active.completedAt && active.level === next ? `Continue Puzzle ${next}` : `Academic Crossword · Puzzle ${next}`}</strong><span>${escapeHtml(puzzle.title)} · ${escapeHtml(puzzle.theme)} · ${puzzle.words.length} terms. Optional today.</span></div><button type="button" data-lexicon-daily-start>${active && !active.completedAt && active.level === next ? "Continue" : "Start"} Puzzle ${next}</button>`;
+    els.daily.innerHTML = `${wordMarkup}${crosswordMarkup}`;
   }
 
   function renderProgress() {
@@ -312,6 +550,7 @@
       if (els.puzzleMeta) els.puzzleMeta.innerHTML = "";
       if (els.across) els.across.innerHTML = "";
       if (els.down) els.down.innerHTML = "";
+      if (els.hintPanel) { els.hintPanel.classList.add("hidden"); els.hintPanel.innerHTML = ""; }
       return;
     }
     const puzzle = puzzleDef(active.level);
@@ -335,6 +574,7 @@
     els.board.innerHTML = markup.join("");
     renderClues(puzzle);
     updateHighlights();
+    renderHintPanel();
     if (els.check) els.check.disabled = Boolean(active.completedAt);
     if (els.clear) els.clear.disabled = Boolean(active.completedAt);
   }
@@ -367,6 +607,7 @@
     active.activeWordId = wordId;
     queueSave("lexicon-clue");
     updateHighlights();
+    renderHintPanel();
     const first = els.board?.querySelector(`[data-lexicon-cell="${placement.row},${placement.col}"]`);
     first?.focus(); first?.select?.();
   }

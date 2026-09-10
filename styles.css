@@ -16095,4 +16095,73 @@ body.training-focus-active-v314o > *:not(#trainingFocusView):not(.toast):not(.ac
 /* V0.31.4x · Steam context, rarity + Spoiler Shield */
 .settings-steam-spoiler-note-v314x{margin:8px 0 0;max-width:760px}.game-steam-achievement-v312.spoiler-protected{background:linear-gradient(145deg,rgba(255,252,250,.92),rgba(246,238,244,.86))}.game-steam-achievement-v312.spoiler-protected .game-steam-achievement-mark-v312{background:rgba(93,50,79,.06);color:rgba(93,50,79,.58)}.game-steam-sync-v314t small+small{margin-top:2px}
 .game-goal-steam-state-v314x{display:grid;place-items:center;cursor:default;user-select:none;opacity:.8}
-.game-steam-spoiler-setting-v314x{display:grid;gap:6px;margin:10px 0 12px}.game-steam-spoiler-setting-v314x>small{color:var(--muted,#765f6d);font-weight:400;line-height:1.45}.game-steam-spoiler-summary-v314x{display:flex;gap:12px;align-items:flex-start;padding:14px 15px;border:1px solid rgba(93,50,79,.12);border-radius:16px;background:linear-gradient(145deg,rgba(255,252,250,.96),rgba(246,238,244,.9));margin:8px 0}.game-steam-spoiler-summary-v314x>span{font-size:1.1rem;line-height:1.3}.game-steam-spoiler-summary-v314x div{display:grid;gap:3px}.game-steam-spoiler-summary-v314x strong{color:var(--plum,#573453)}.game-steam-spoiler-summary-v314x small{color:var(--muted,#765f6d);line-height:1.45}
+
+/* V0.31.4y — conversational check-in + Memory Garden repair + gentler Lexicon Lab */
+.lexicon-daily-card-v314q {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(220px, .55fr);
+  gap: 14px;
+  align-items: stretch;
+}
+.lexicon-daily-word-v314y,
+.lexicon-crossword-next-v314y {
+  min-width: 0;
+  border: 1px solid rgba(94, 47, 78, .13);
+  border-radius: 20px;
+  background: rgba(255, 252, 248, .76);
+  padding: 16px;
+}
+.lexicon-daily-word-v314y { display: grid; gap: 12px; }
+.lexicon-daily-word-heading-v314y { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; }
+.lexicon-daily-word-heading-v314y div { display:grid; gap:3px; }
+.lexicon-daily-word-heading-v314y small,
+.lexicon-crossword-next-v314y small,
+.lexicon-daily-detail-v314y small,
+.lexicon-context-card-v314y small,
+.lexicon-hint-panel-v314y small { font-size:.68rem; letter-spacing:.09em; font-weight:800; opacity:.68; }
+.lexicon-daily-word-heading-v314y strong { font-family:var(--font-display, inherit); font-size:clamp(1.55rem, 4vw, 2.15rem); line-height:1; }
+.lexicon-daily-word-heading-v314y > span { font-size:1.4rem; opacity:.58; }
+.lexicon-daily-definition-v314y { margin:0; font-size:1.02rem; line-height:1.55; }
+.lexicon-daily-detail-v314y { display:grid; grid-template-columns:70px 1fr; gap:10px; align-items:start; padding:10px 12px; border-radius:14px; background:rgba(102,55,82,.055); }
+.lexicon-daily-detail-v314y span { line-height:1.48; }
+.lexicon-daily-response-v314y { display:flex; gap:8px; flex-wrap:wrap; }
+.lexicon-daily-response-v314y button,
+.lexicon-context-options-v314y button { border:1px solid rgba(94,47,78,.16); border-radius:999px; background:rgba(255,255,255,.76); padding:8px 11px; font:inherit; cursor:pointer; }
+.lexicon-daily-response-v314y button:hover,
+.lexicon-context-options-v314y button:hover { transform:translateY(-1px); border-color:rgba(94,47,78,.34); }
+.lexicon-daily-noquiz-v314y { opacity:.64; }
+.lexicon-daily-response-status-v314y { display:grid; gap:3px; padding:9px 11px; border-radius:13px; background:rgba(102,55,82,.065); }
+.lexicon-daily-response-status-v314y span { font-weight:800; }
+.lexicon-daily-response-status-v314y small { opacity:.68; }
+.lexicon-context-launch-v314y { justify-self:start; }
+.lexicon-context-card-v314y { display:grid; gap:10px; border-top:1px solid rgba(94,47,78,.11); padding-top:12px; }
+.lexicon-context-card-v314y > div:first-child { display:grid; gap:3px; }
+.lexicon-context-card-v314y strong { font-size:.96rem; }
+.lexicon-context-sentence-v314y { margin:0; padding:11px 13px; border-radius:13px; background:rgba(255,255,255,.68); line-height:1.55; }
+.lexicon-context-sentence-v314y mark { background:rgba(151,105,139,.17); border-radius:5px; padding:0 3px; color:inherit; }
+.lexicon-context-options-v314y { display:grid; gap:7px; }
+.lexicon-context-options-v314y button { border-radius:13px; text-align:left; line-height:1.4; }
+.lexicon-context-result-v314y { padding:10px 12px; border-radius:13px; background:rgba(102,55,82,.055); }
+.lexicon-context-result-v314y p { margin:4px 0 0; line-height:1.45; }
+.lexicon-crossword-next-v314y { display:flex; flex-direction:column; justify-content:center; align-items:flex-start; gap:8px; }
+.lexicon-crossword-next-v314y strong { font-size:1.03rem; }
+.lexicon-crossword-next-v314y p { margin:0 0 4px; line-height:1.48; opacity:.75; }
+.lexicon-hint-panel-v314y { display:flex; justify-content:space-between; align-items:center; gap:14px; margin:12px 0 4px; padding:12px 14px; border:1px solid rgba(94,47,78,.13); border-radius:16px; background:rgba(255,250,246,.78); }
+.lexicon-hint-panel-v314y > div { display:grid; gap:4px; min-width:0; }
+.lexicon-hint-panel-v314y p { margin:0; line-height:1.45; }
+.lexicon-hint-panel-v314y mark { background:rgba(151,105,139,.17); color:inherit; border-radius:4px; padding:0 3px; }
+.lexicon-hint-panel-v314y.hidden { display:none; }
+
+/* Memory previews must be unmistakably visible before recall starts. */
+.memory-pattern-grid-v314n.is-preview,
+.memory-sequence-grid-v314n.is-preview { isolation:isolate; }
+.memory-pattern-grid-v314n.is-preview i,
+.memory-sequence-grid-v314n.is-preview button { transition:none !important; }
+.memory-pattern-grid-v314n.is-preview i.on { box-shadow:0 0 0 3px rgba(84,43,72,.16), 0 8px 22px rgba(84,43,72,.16); transform:scale(.96); }
+[data-memory-preview-again] { margin-top:10px; }
+
+@media (max-width: 760px) {
+  .lexicon-daily-card-v314q { grid-template-columns:1fr; }
+  .lexicon-hint-panel-v314y { align-items:flex-start; flex-direction:column; }
+  .lexicon-daily-detail-v314y { grid-template-columns:1fr; gap:3px; }
+}
