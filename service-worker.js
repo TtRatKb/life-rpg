@@ -1,9 +1,9 @@
-const CACHE_NAME = "life-rpg-v0314z-lexicon-calibration-streaks";
+const CACHE_NAME = "life-rpg-v0314z1-lexicon-calibration-focus";
 const CORE = [
   "./",
   "./index.html",
   "./data/quests.js?v=0.31.4h",
-  "./styles.css?v=0.31.4z",
+  "./styles.css?v=0.31.4z1",
   "./manifest.webmanifest?v=0.30.3a",
   "./pwa.js?v=0.31.4z",
   "./visual-performance.js?v=0.31.4c",
@@ -31,7 +31,7 @@ const CORE = [
   "./data/lexicon-lab-data.js?v=0.31.4q",
   "./data/lexicon-lab-enrichment.js?v=0.31.4y",
   "./data/lexicon-pool.js?v=0.31.4z",
-  "./lexicon-lab.js?v=0.31.4z",
+  "./lexicon-lab.js?v=0.31.4z1",
   "./smart-action-router.js?v=0.31.4s",
   "./smart-quests.js?v=0.31.0",
   "./daily.js?v=0.31.4y",

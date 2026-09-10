@@ -16191,3 +16191,83 @@ body.training-focus-active-v314o > *:not(#trainingFocusView):not(.toast):not(.ac
 .lexicon-crossword-paused-v314z>span{font-size:1.8rem;color:var(--plum,#5c294b)}
 .lexicon-crossword-paused-v314z p{margin:.25rem 0 0;line-height:1.5;color:var(--muted-text,#705f69)}
 @media(max-width:720px){.lexicon-calibration-word-v314z{grid-template-columns:1fr}.lexicon-calibration-ratings-v314z{grid-template-columns:1fr}.lexicon-calibration-actions-v314z>*{flex:1 1 100%}}
+
+
+/* V0.31.4z1 — Lexicon Calibration Focus View */
+.training-focus-mount-v314o > .lexicon-calibration-focus-v314z1{
+  display:grid !important;
+  width:min(980px,100%);
+  margin:0 auto;
+  gap:18px;
+  align-content:start;
+  padding:clamp(18px,2.8vw,30px);
+  border:1px solid rgba(92,41,75,.12);
+  border-radius:24px;
+  background:rgba(255,250,246,.9);
+  box-shadow:0 18px 54px rgba(61,31,49,.08);
+}
+.lexicon-calibration-focus-head-v314z1{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:18px;
+  padding-bottom:14px;
+  border-bottom:1px solid rgba(92,41,75,.11);
+}
+.lexicon-calibration-focus-head-v314z1>div{display:grid;gap:4px;min-width:0}
+.lexicon-calibration-focus-head-v314z1 small{font-size:.68rem;font-weight:900;letter-spacing:.12em;color:#8d6279}
+.lexicon-calibration-focus-head-v314z1 strong{font-family:Georgia,"Times New Roman",serif;font-size:clamp(1.35rem,3vw,1.8rem);color:#4b2d42}
+.lexicon-calibration-focus-head-v314z1 p{margin:2px 0 0;color:#786470;line-height:1.5}
+.lexicon-calibration-focus-head-v314z1>span{
+  flex:0 0 auto;
+  padding:8px 11px;
+  border-radius:999px;
+  background:rgba(92,41,75,.075);
+  color:#5c294b;
+  font-size:.78rem;
+  font-weight:900;
+  white-space:nowrap;
+}
+.lexicon-calibration-focus-words-v314z1{display:grid;gap:12px}
+.lexicon-calibration-focus-word-v314z1{
+  grid-template-columns:minmax(180px,.8fr) minmax(360px,1.35fr);
+  padding:15px 16px;
+  border-radius:18px;
+  background:rgba(255,255,255,.78);
+}
+.lexicon-calibration-focus-word-v314z1 strong{font-size:clamp(1.15rem,2.5vw,1.35rem)}
+.lexicon-calibration-focus-word-v314z1 .lexicon-calibration-ratings-v314z button{min-height:48px;font-size:.86rem}
+.lexicon-calibration-focus-actions-v314z1{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  flex-wrap:wrap;
+}
+.lexicon-calibration-focus-actions-v314z1>small{color:#786470;line-height:1.45;max-width:620px}
+.lexicon-calibration-focus-complete-v314z1{
+  display:flex;
+  align-items:center;
+  gap:14px;
+  min-height:180px;
+  padding:22px;
+  border-radius:20px;
+  background:rgba(238,247,239,.7);
+  border:1px solid rgba(78,116,82,.16);
+}
+.lexicon-calibration-focus-complete-v314z1>span{
+  display:grid;place-items:center;width:52px;height:52px;flex:0 0 52px;border-radius:50%;
+  background:rgba(78,116,82,.12);font-size:1.45rem;font-weight:900;color:#4e7452;
+}
+.lexicon-calibration-focus-complete-v314z1 strong{font-size:1.15rem}
+.lexicon-calibration-focus-complete-v314z1 p{margin:5px 0 0;color:#6d625f;line-height:1.5}
+.lexicon-calibration-empty-v314z.is-active-v314z1>div{display:grid;gap:7px}
+.lexicon-calibration-empty-v314z.is-active-v314z1 button{justify-self:start}
+@media(max-width:720px){
+  .training-focus-mount-v314o > .lexicon-calibration-focus-v314z1{padding:14px;border-radius:18px;gap:14px}
+  .lexicon-calibration-focus-head-v314z1{flex-direction:column;gap:10px}
+  .lexicon-calibration-focus-word-v314z1{grid-template-columns:1fr;padding:13px}
+  .lexicon-calibration-focus-word-v314z1 .lexicon-calibration-ratings-v314z{grid-template-columns:1fr}
+  .lexicon-calibration-focus-actions-v314z1{align-items:stretch;flex-direction:column}
+  .lexicon-calibration-focus-actions-v314z1 button{width:100%}
+}

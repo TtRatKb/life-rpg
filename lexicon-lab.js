@@ -10,7 +10,7 @@
   const PUZZLES = Array.isArray(DATA.puzzles) ? DATA.puzzles : [];
   if (!app?.getState || !app?.awardActivity || !ENTRIES.length || !PUZZLES.length) return;
 
-  const VERSION = "0.31.4z";
+  const VERSION = "0.31.4z1";
   const SCHEMA = 3;
   const TOTAL = PUZZLES.length;
   const REPEAT_SCALES = [1, .75, .5, .35];
@@ -36,11 +36,14 @@
     result: byId("lexiconLabResult"), hintPanel: byId("lexiconHintPanel"), growthStats: byId("lexiconLabGrowthStats"), trainingStats: byId("trainingGroundsLexiconStatus"),
     quickStatus: byId("lexiconLabQuickStatus"), dashboardDaily: byId("lexiconDashboardDailyWord"),
     calibration: byId("lexiconCalibrationPanel"), calibrationWords: byId("lexiconCalibrationWords"), calibrationStatus: byId("lexiconCalibrationStatus"),
-    calibrationStarter: byId("lexiconCalibrationStarter"), calibrationExtended: byId("lexiconCalibrationExtended"), exportProfile: byId("lexiconExportProfile")
+    calibrationStarter: byId("lexiconCalibrationStarter"), calibrationExtended: byId("lexiconCalibrationExtended"), exportProfile: byId("lexiconExportProfile"),
+    calibrationFocus: byId("lexiconCalibrationFocusPanel"), calibrationFocusWords: byId("lexiconCalibrationFocusWords"),
+    calibrationFocusStatus: byId("lexiconCalibrationFocusStatus"), calibrationFocusActions: byId("lexiconCalibrationFocusActions")
   };
 
   let focusedCellKey = null;
   let saveTimer = null;
+  let calibrationFocusMode = null;
 
   init();
 
@@ -126,14 +129,49 @@
 
   function starterComplete() { return ratingCounts(STARTER_POOL).unrated === 0; }
 
-  function chooseCalibrationChunk(mode = "starter") {
+  function chooseCalibrationChunk(mode = "starter", { enterFocus = true } = {}) {
     const s = state();
     const sourcePool = mode === "extended" ? EXTENDED_POOL : STARTER_POOL;
     const unrated = sourcePool.filter(entry => !s.words[entry.id]?.selfRating);
-    if (!unrated.length) { s.calibration.active = null; persist("lexicon-calibration-finished"); return; }
+    if (!unrated.length) { s.calibration.active = null; persist("lexicon-calibration-finished"); return false; }
     const ids = unrated.slice(0, CALIBRATION_CHUNK).map(entry => entry.id);
     s.calibration.active = { mode, ids, batchKey: `${mode}:${ids.join("+")}`, startedAt: Date.now() };
+    calibrationFocusMode = mode;
     persist("lexicon-calibration-start");
+    if (enterFocus) enterCalibrationFocus();
+    return true;
+  }
+
+  function enterCalibrationFocus() {
+    const active = state().calibration.active;
+    if (!active || !els.calibrationFocus || !window.LifeRPGTrainingFocus?.enter) return false;
+    calibrationFocusMode = active.mode;
+    if (els.dialog?.open) els.dialog.close();
+    renderCalibrationFocus();
+    const sourcePool = active.mode === "extended" ? EXTENDED_POOL : STARTER_POOL;
+    const counts = ratingCounts(sourcePool);
+    const label = active.mode === "starter" ? "Starter Calibration" : "Extended Calibration";
+    return window.LifeRPGTrainingFocus.enter({
+      id: "lexicon-calibration",
+      node: els.calibrationFocus,
+      title: `Lexicon Lab · ${label}`,
+      subtitle: `Five words at a time · ${counts.unrated} still unrated`,
+      tone: "light",
+      onExit: () => { render(); if (els.dialog && !els.dialog.open) els.dialog.showModal(); }
+    });
+  }
+
+  function syncCalibrationFocusHeader() {
+    if (!window.LifeRPGTrainingFocus?.isActive?.("lexicon-calibration")) return;
+    const active = state().calibration.active;
+    const mode = active?.mode || calibrationFocusMode || "starter";
+    const sourcePool = mode === "extended" ? EXTENDED_POOL : STARTER_POOL;
+    const counts = ratingCounts(sourcePool);
+    const label = mode === "starter" ? "Starter Calibration" : "Extended Calibration";
+    window.LifeRPGTrainingFocus.update({
+      title: `Lexicon Lab · ${label}`,
+      subtitle: active ? `Five words at a time · ${counts.unrated} still unrated` : "Batch complete ✓"
+    });
   }
 
   function rateCalibrationWord(id, rating) {
@@ -466,7 +504,13 @@
       const dailyResponse = event.target.closest?.("[data-lexicon-daily-response]");
       if (dailyResponse) { event.preventDefault(); recordDailyWord(dailyResponse.dataset.lexiconDailyResponse); return; }
       const calibrationStart = event.target.closest?.("[data-lexicon-calibration-start]");
-      if (calibrationStart) { event.preventDefault(); chooseCalibrationChunk(calibrationStart.dataset.lexiconCalibrationStart); return; }
+      if (calibrationStart) { event.preventDefault(); chooseCalibrationChunk(calibrationStart.dataset.lexiconCalibrationStart, { enterFocus: true }); return; }
+      const calibrationContinue = event.target.closest?.("[data-lexicon-calibration-continue]");
+      if (calibrationContinue) { event.preventDefault(); enterCalibrationFocus(); return; }
+      const calibrationNext = event.target.closest?.("[data-lexicon-calibration-next]");
+      if (calibrationNext) { event.preventDefault(); chooseCalibrationChunk(calibrationNext.dataset.lexiconCalibrationNext || calibrationFocusMode || "starter", { enterFocus: true }); return; }
+      const calibrationDone = event.target.closest?.("[data-lexicon-calibration-done]");
+      if (calibrationDone) { event.preventDefault(); window.LifeRPGTrainingFocus?.exit?.({ reopen: true }); return; }
       const calibrationRating = event.target.closest?.("[data-lexicon-calibration-rating]");
       if (calibrationRating) { event.preventDefault(); rateCalibrationWord(calibrationRating.dataset.lexiconWordId, calibrationRating.dataset.lexiconCalibrationRating); return; }
       const exportButton = event.target.closest?.("[data-lexicon-export-profile]");
@@ -589,9 +633,11 @@
 
   function render() {
     renderOverview();
+    renderCalibrationFocus();
     renderBoard();
     renderResult();
     syncFocusHeader();
+    syncCalibrationFocusHeader();
   }
 
   function renderOverview() {
@@ -634,12 +680,43 @@
     if (!els.calibration) return;
     const s = state(), starter = ratingCounts(STARTER_POOL), extended = ratingCounts(EXTENDED_POOL), active = s.calibration.active;
     if (els.calibrationStatus) els.calibrationStatus.textContent = `${STARTER_POOL.length - starter.unrated}/${STARTER_POOL.length} Starter · ${EXTENDED_POOL.length - extended.unrated}/${EXTENDED_POOL.length} Extended`;
-    if (els.calibrationStarter) { els.calibrationStarter.disabled = starter.unrated === 0 || Boolean(active); els.calibrationStarter.textContent = starter.unrated ? `${active?.mode === "starter" ? "Starter batch active" : "Next 5 Starter words"} · ${starter.unrated} left` : "Starter calibrated ✓"; }
-    if (els.calibrationExtended) { els.calibrationExtended.disabled = extended.unrated === 0 || Boolean(active); els.calibrationExtended.textContent = extended.unrated ? `${active?.mode === "extended" ? "Extended batch active" : "Explore next 5"} · ${extended.unrated} left` : "Extended pool rated ✓"; }
+    if (els.calibrationStarter) { els.calibrationStarter.disabled = starter.unrated === 0 || Boolean(active); els.calibrationStarter.textContent = starter.unrated ? `Next 5 Starter words · ${starter.unrated} left` : "Starter calibrated ✓"; }
+    if (els.calibrationExtended) { els.calibrationExtended.disabled = extended.unrated === 0 || Boolean(active); els.calibrationExtended.textContent = extended.unrated ? `Explore next 5 · ${extended.unrated} left` : "Extended pool rated ✓"; }
     if (els.exportProfile) els.exportProfile.disabled = (STARTER_POOL.length - starter.unrated) < 1;
     if (!els.calibrationWords) return;
-    if (!active) { els.calibrationWords.innerHTML = `<div class="lexicon-calibration-empty-v314z"><span>5</span><div><strong>Five words at a time.</strong><p>Just tell Life RPG whether you know each word, have heard it, or do not know it. This is self-calibration, not a test.</p></div></div>`; return; }
-    els.calibrationWords.innerHTML = active.ids.map((id, index) => { const entry = POOL_BY_ID[id], rec = state().words[id] || {}; return `<article class="lexicon-calibration-word-v314z ${rec.selfRating ? "is-rated" : ""}"><div><small>${index + 1}/${active.ids.length} · ${escapeHtml(entry.theme)}</small><strong>${escapeHtml(entry.term)}</strong></div><div class="lexicon-calibration-ratings-v314z"><button type="button" data-lexicon-word-id="${escapeAttr(id)}" data-lexicon-calibration-rating="known" class="${rec.selfRating === "known" ? "selected" : ""}">Kenne ich</button><button type="button" data-lexicon-word-id="${escapeAttr(id)}" data-lexicon-calibration-rating="heard" class="${rec.selfRating === "heard" ? "selected" : ""}">Schon mal gehört</button><button type="button" data-lexicon-word-id="${escapeAttr(id)}" data-lexicon-calibration-rating="new" class="${rec.selfRating === "new" ? "selected" : ""}">Kenne ich nicht</button></div></article>`; }).join("");
+    if (active) {
+      const label = active.mode === "starter" ? "Starter" : "Extended";
+      els.calibrationWords.innerHTML = `<div class="lexicon-calibration-empty-v314z is-active-v314z1"><span>↗</span><div><strong>${label} batch in progress.</strong><p>The five words open on the full-screen Training Grounds surface, not inside this small dialog.</p><button class="primary-button" type="button" data-lexicon-calibration-continue>Continue full screen</button></div></div>`;
+      return;
+    }
+    els.calibrationWords.innerHTML = `<div class="lexicon-calibration-empty-v314z"><span>5</span><div><strong>Five words at a time · full screen.</strong><p>Choose a batch here; the actual calibration opens on its own distraction-free page.</p></div></div>`;
+  }
+
+  function calibrationWordMarkup(active) {
+    return active.ids.map((id, index) => {
+      const entry = POOL_BY_ID[id], rec = state().words[id] || {};
+      return `<article class="lexicon-calibration-word-v314z lexicon-calibration-focus-word-v314z1 ${rec.selfRating ? "is-rated" : ""}"><div><small>${index + 1}/${active.ids.length} · ${escapeHtml(entry.theme)}</small><strong>${escapeHtml(entry.term)}</strong></div><div class="lexicon-calibration-ratings-v314z"><button type="button" data-lexicon-word-id="${escapeAttr(id)}" data-lexicon-calibration-rating="known" class="${rec.selfRating === "known" ? "selected" : ""}">Kenne ich</button><button type="button" data-lexicon-word-id="${escapeAttr(id)}" data-lexicon-calibration-rating="heard" class="${rec.selfRating === "heard" ? "selected" : ""}">Schon mal gehört</button><button type="button" data-lexicon-word-id="${escapeAttr(id)}" data-lexicon-calibration-rating="new" class="${rec.selfRating === "new" ? "selected" : ""}">Kenne ich nicht</button></div></article>`;
+    }).join("");
+  }
+
+  function renderCalibrationFocus() {
+    if (!els.calibrationFocus || !els.calibrationFocusWords) return;
+    const active = state().calibration.active;
+    const mode = active?.mode || calibrationFocusMode || "starter";
+    const sourcePool = mode === "extended" ? EXTENDED_POOL : STARTER_POOL;
+    const counts = ratingCounts(sourcePool);
+    const rated = sourcePool.length - counts.unrated;
+    const label = mode === "starter" ? "Starter Calibration" : "Extended Calibration";
+    if (els.calibrationFocusStatus) els.calibrationFocusStatus.textContent = `${rated}/${sourcePool.length} rated · ${counts.unrated} left`;
+    if (active) {
+      calibrationFocusMode = active.mode;
+      els.calibrationFocusWords.innerHTML = calibrationWordMarkup(active);
+      if (els.calibrationFocusActions) els.calibrationFocusActions.innerHTML = `<small>Choose the answer that feels true right now. This is calibration, not a vocabulary test.</small>`;
+      return;
+    }
+    const complete = counts.unrated === 0;
+    els.calibrationFocusWords.innerHTML = `<div class="lexicon-calibration-focus-complete-v314z1"><span>✓</span><div><strong>${complete ? `${label} complete!` : "Five-word batch complete!"}</strong><p>${complete ? "This part of your personal vocabulary profile is fully rated." : `${counts.unrated} words remain. Continue whenever you feel like it.`}</p></div></div>`;
+    if (els.calibrationFocusActions) els.calibrationFocusActions.innerHTML = `<button class="primary-button" type="button" data-lexicon-calibration-next="${mode}" ${complete ? "disabled" : ""}>${complete ? `${label} complete ✓` : "Next 5 words"}</button><button class="secondary-button" type="button" data-lexicon-calibration-done>Back to Lexicon Lab</button>`;
   }
 
   function renderProgress() {
@@ -959,7 +1036,8 @@
     open: openDialog,
     startNext: () => {
       openDialog();
-      if (!starterComplete() && !state().calibration.active) chooseCalibrationChunk("starter");
+      if (state().calibration.active) enterCalibrationFocus();
+      else if (!starterComplete()) chooseCalibrationChunk("starter", { enterFocus: true });
       else render();
     },
     getProgress: () => ({ completed: completedSet().size, total: TOTAL, next: nextLevel(), poolTotal: POOL.length, starterRated: STARTER_POOL.length - ratingCounts(STARTER_POOL).unrated, starterTotal: STARTER_POOL.length })
