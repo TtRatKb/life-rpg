@@ -972,6 +972,44 @@
       );
     }
 
+    if (order === 28) {
+      return gate(
+        "workday-release-momentum-v1",
+        "Close one small loop from the day — or deliberately put the day down.",
+        "Work and recovery are equally valid routes. The scene should meet the day you actually had, not force more productivity after a hard one.",
+        [group("release", "Workday release", [
+          { type: "realmActivity", realms: ["Work", "Recovery"], label: "Complete one Work or Recovery action" },
+          { type: "time", categories: ["work_home", "focus"], minutes: 10, label: "Spend 10 minutes closing one work loop" },
+          { type: "time", categories: ["recovery", "reading", "gaming", "hobby"], minutes: 10, label: "Spend 10 minutes deliberately off duty" }
+        ])]
+      );
+    }
+
+    if (order === 29) {
+      return gate(
+        "ordinary-errand-momentum-v1",
+        "Bring one small bit of ordinary-life momentum with you.",
+        "A Home action or a few minutes of practical life admin is enough.",
+        [group("home", "Ordinary-life momentum", [
+          { type: "realmActivity", realms: ["Home"], label: "Complete one Home action" },
+          { type: "time", categories: ["life_admin"], minutes: 10, label: "Spend 10 minutes on errands, household or life admin" },
+          { type: "realmAdvance", realm: "Home", label: "Reach your next Home rank" }
+        ])]
+      );
+    }
+
+    if (order === 31) {
+      return gate(
+        "soft-evening-momentum-v1",
+        "Make a little room for an actual off-duty evening first.",
+        "Gaming, reading, hobbies and recovery all count. This is a permission-to-stop gate, not a performance gate.",
+        [group("off-duty", "Off-duty momentum", [
+          { type: "realmActivity", realms: ["Hobbies", "Recovery"], label: "Complete one Hobbies or Recovery action" },
+          { type: "time", categories: ["recovery", "hobby", "gaming", "reading"], minutes: 10, label: "Spend 10 minutes on rest, reading, gaming or a hobby" }
+        ])]
+      );
+    }
+
     return null;
   }
 

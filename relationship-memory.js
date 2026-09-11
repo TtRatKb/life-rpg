@@ -1,13 +1,13 @@
 (() => {
   "use strict";
 
-  if (window.__lifeRpgRelationshipMemoryV314ba) return;
-  window.__lifeRpgRelationshipMemoryV314ba = true;
+  if (window.__lifeRpgRelationshipMemoryV314bb) return;
+  window.__lifeRpgRelationshipMemoryV314bb = true;
 
   const app = window.LifeRPGApp;
   if (!app?.getState || !app?.saveState) return;
 
-  const VERSION = "0.31.4ba";
+  const VERSION = "0.31.4bb";
   const SCHEMA = 1;
   const PEOPLE = ["mina", "bakugo", "kirishima"];
   let syncing = false;
@@ -57,7 +57,30 @@
     // Optional hangout memories.
     ["BAKUGO_GRID_MATH", ["bakugo"], "bakugo:grid-math", "Katsuki remembers that you spotted a useful pattern in his training grid.", "competence"],
     ["BAKUGO_GRID_TEA", ["bakugo"], "bakugo:grid-tea", "Katsuki remembers your consulting fee was tea.", "humor"],
-    ["BAKUGO_GRID_ASK", ["bakugo"], "bakugo:grid-question", "Katsuki remembers that you asked what the grid was for before changing it.", "trust"]
+    ["BAKUGO_GRID_ASK", ["bakugo"], "bakugo:grid-question", "Katsuki remembers that you asked what the grid was for before changing it.", "trust"],
+
+    // Familiar Distance — later household / attraction-phase memories.
+    ["MINA_HOME_WORD_EASY", ["mina"], "home:easy", "Mina knows the shared apartment became easier than you expected.", "household"],
+    ["MINA_HOME_WORD_SCARY", ["mina"], "home:scary", "Mina knows it scared you a little how quickly the shared home started to matter.", "vulnerability"],
+    ["MINA_HOME_WORD_MINE", ["mina"], "home:mine", "Mina remembers the day you called the shared apartment yours too.", "household"],
+    ["KIRISHIMA_OFFDUTY_LISTEN", ["kirishima"], "offduty:listen", "Eijiro knows he does not have to package a bad day for you.", "care"],
+    ["KIRISHIMA_OFFDUTY_NOTICE", ["kirishima"], "offduty:notice", "Eijiro knows you can tell when his smile is doing extra work.", "vulnerability"],
+    ["KIRISHIMA_OFFDUTY_TEASE", ["kirishima"], "offduty:tease", "Eijiro knows low-volume humor is allowed on rough days.", "care"],
+    ["SPICE_TOLERANCE_HIGH", ["bakugo"], "spice:high", "Katsuki knows you can handle serious heat.", "preference"],
+    ["SPICE_TOLERANCE_MEDIUM", ["bakugo"], "spice:medium", "Katsuki knows you like spice, just not at his maximum setting.", "preference"],
+    ["SPICE_TOLERANCE_LOW", ["bakugo"], "spice:low", "Katsuki knows your preferred spice level needs a gentler hand.", "preference"],
+    ["BAD_DAY_SUPPORT_VENT", ["bakugo","kirishima"], "bad-day:vent", "They know some workdays need listening before solutions.", "care"],
+    ["BAD_DAY_SUPPORT_SOLVE", ["bakugo","kirishima"], "bad-day:solve", "They know you sometimes want a second brain for the part you can actually change.", "care"],
+    ["BAD_DAY_SUPPORT_DISTRACT", ["bakugo","kirishima"], "bad-day:distract", "They know getting you out of work-mode can be the useful thing.", "care"],
+    ["SHOPPING_STYLE_LIST", ["bakugo","kirishima"], "errands:list", "They know you can make a grocery list behave like a system.", "household"],
+    ["SHOPPING_STYLE_DIVIDE", ["bakugo","kirishima"], "errands:divide", "They remember the household can split errands and reconvene.", "household"],
+    ["SHOPPING_STYLE_WANDER", ["bakugo","kirishima"], "errands:wander", "They know you are capable of abandoning the list for something interesting.", "household"],
+    ["BAKUGO_CROWD_THANK", ["bakugo"], "crowd:thanks", "Katsuki remembers you accepted a small protective gesture without making it complicated.", "trust"],
+    ["BAKUGO_CROWD_TEASE", ["bakugo"], "crowd:tease", "Katsuki remembers you teased him for an ordinary protective reflex.", "humor"],
+    ["BAKUGO_CROWD_IGNORE", ["bakugo"], "crowd:ignore", "Katsuki remembers you let an ordinary protective moment stay ordinary.", "trust"],
+    ["MINA_HOUSEHOLD_MISS", ["mina"], "household:miss", "Mina knows you notice when your roommates' schedules stop overlapping with yours.", "vulnerability"],
+    ["MINA_HOUSEHOLD_PEACE", ["mina"], "household:peace", "Mina knows the shared apartment feels peaceful in a way you did not expect.", "household"],
+    ["MINA_HOUSEHOLD_OVERTHINK", ["mina"], "household:overthink", "Mina knows there are parts of the household dynamic you are deliberately not naming yet.", "vulnerability"]
   ];
 
   const MESSAGE_MEMORIES = [
