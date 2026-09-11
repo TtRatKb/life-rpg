@@ -4,7 +4,7 @@
   const app = window.LifeRPGApp;
   if (!app) return;
 
-  const VERSION = "0.31.4ay1";
+  const VERSION = "0.31.4az";
   const SCHEMA_VERSION = 2;
   const WEEKLY_REWARD_FIND_THRESHOLDS = [3, 8];
   const MAX_HISTORY = 180;
@@ -42,7 +42,17 @@
     { id:"retro-hero-magazine", icon:"🦸", name:"Vintage hero magazine", category:"nerdy", keepsake:true, flavor:"An older hero magazine in surprisingly good condition, rescued from a second-hand shelf." },
     { id:"retro-game-charm", icon:"🎮", name:"Retro game charm", category:"nerdy", keepsake:true, flavor:"A tiny acrylic charm shaped like an old handheld game console." },
     { id:"plush-charm", icon:"🧸", name:"Tiny plush charm", category:"cute", keepsake:true, flavor:"A pocket-sized soft mascot with an expression far too dramatic for its size." },
-    { id:"red-bead-bracelet", icon:"📿", name:"Red bead bracelet", category:"accessory", keepsake:true, flavor:"Simple red beads on a sturdy cord — casual enough to wear without thinking about it." }
+    { id:"red-bead-bracelet", icon:"📿", name:"Red bead bracelet", category:"accessory", keepsake:true, flavor:"Simple red beads on a sturdy cord — casual enough to wear without thinking about it." },
+    { id:"omamori-charm", icon:"🎍", name:"Small omamori charm", category:"seasonal", seasonalOnly:true, keepsake:true, flavor:"A small New Year charm picked up during the season — more meaningful than flashy." },
+    { id:"winter-hand-warmers", icon:"🧤", name:"Pocket hand warmers", category:"seasonal", seasonalOnly:true, keepsake:false, flavor:"A practical little winter pack for freezing commutes and cold hands." },
+    { id:"roasted-soy-snack", icon:"🫘", name:"Roasted soy snack", category:"seasonal", seasonalOnly:true, keepsake:false, flavor:"A crunchy little Setsubun-season packet that feels both traditional and snackable." },
+    { id:"chocolate-truffles", icon:"🍫", name:"Small truffle box", category:"seasonal", seasonalOnly:true, keepsake:false, flavor:"A compact box of genuinely good chocolate without an enormous romantic bow attached." },
+    { id:"white-chocolate-box", icon:"🤍", name:"White chocolate bites", category:"seasonal", seasonalOnly:true, keepsake:false, flavor:"A tidy little White Day box with crisp, not-too-sweet chocolate pieces." },
+    { id:"trail-map-notebook", icon:"🗺️", name:"Pocket trail notebook", category:"seasonal", seasonalOnly:true, keepsake:true, flavor:"A compact field notebook with a tiny foldout map pocket — made for outings, not decoration." },
+    { id:"star-charm", icon:"⭐", name:"Tanabata star charm", category:"seasonal", seasonalOnly:true, keepsake:true, flavor:"A small star-shaped charm in deep blue and silver, found among the Tanabata displays." },
+    { id:"summer-hand-fan", icon:"🎐", name:"Foldable summer fan", category:"seasonal", seasonalOnly:true, keepsake:true, flavor:"A lightweight folding fan that is prettier than a plastic convenience-store one and just as useful." },
+    { id:"halloween-candy", icon:"🎃", name:"Halloween candy mix", category:"seasonal", seasonalOnly:true, keepsake:false, flavor:"A bright little bag of limited-edition sweets in aggressively seasonal wrappers." },
+    { id:"holiday-cookie-tin", icon:"🎄", name:"Winter cookie tin", category:"seasonal", seasonalOnly:true, keepsake:true, flavor:"A small festive tin of butter cookies that can keep holding things after the cookies disappear." }
   ];
 
   const GIFT_BY_ID = Object.fromEntries(GIFTS.map(item => [item.id, item]));
@@ -50,17 +60,17 @@
   const REACTIONS = {
     mina: {
       loved: new Set(["crispy-okra-chips", "natto-snack-pack", "nail-stickers", "hair-clips", "dance-socks"]),
-      liked: new Set(["fruit-candy", "local-bakery-cookies", "bath-salts", "soft-socks", "sheet-masks", "cute-stationery", "plush-charm", "red-bead-bracelet", "retro-game-charm"]),
+      liked: new Set(["fruit-candy", "local-bakery-cookies", "bath-salts", "soft-socks", "sheet-masks", "cute-stationery", "plush-charm", "red-bead-bracelet", "retro-game-charm", "star-charm", "summer-hand-fan", "halloween-candy", "holiday-cookie-tin", "chocolate-truffles"]),
       disliked: new Set(["key-organizer"])
     },
     bakugo: {
       loved: new Set(["spicy-rice-crackers", "chili-crisp", "trail-thermos"]),
-      liked: new Set(["key-organizer", "heatproof-mug", "protein-snack", "peppered-beef-jerky"]),
+      liked: new Set(["key-organizer", "heatproof-mug", "protein-snack", "peppered-beef-jerky", "winter-hand-warmers", "trail-map-notebook"]),
       disliked: new Set(["hair-clips", "cute-stationery", "plush-charm"])
     },
     kirishima: {
       loved: new Set(["peppered-beef-jerky", "retro-hero-magazine", "color-care-shampoo"]),
-      liked: new Set(["protein-snack", "red-bead-bracelet", "local-bakery-cookies", "heatproof-mug", "soft-socks", "trail-thermos"]),
+      liked: new Set(["protein-snack", "red-bead-bracelet", "local-bakery-cookies", "heatproof-mug", "soft-socks", "trail-thermos", "winter-hand-warmers", "trail-map-notebook", "holiday-cookie-tin"]),
       disliked: new Set([])
     }
   };
@@ -227,8 +237,9 @@
 
   function rewardPoolForWeek(seedSuffix = "") {
     const recentFound = new Set(ensureState().history.filter(entry => entry.type === "found").slice(-8).map(entry => entry.giftId));
-    const fresh = GIFTS.filter(item => !recentFound.has(item.id));
-    const pool = fresh.length >= 6 ? fresh : GIFTS;
+    const standardGifts = GIFTS.filter(item => !item.seasonalOnly);
+    const fresh = standardGifts.filter(item => !recentFound.has(item.id));
+    const pool = fresh.length >= 6 ? fresh : standardGifts;
     return [...pool].sort((a,b) => hashFraction(`${weekKey()}:${seedSuffix}:${a.id}`) - hashFraction(`${weekKey()}:${seedSuffix}:${b.id}`));
   }
 
@@ -315,7 +326,8 @@
     const count = inventoryCount();
     if (givenToday(personId)) return { visible:true, enabled:false, count, reason:"You already gave them something today." };
     if (!count) return { visible:true, enabled:false, count:0, reason:"Your Gift Shelf is empty." };
-    return { visible:true, enabled:true, count, reason:`${count} gift${count === 1 ? "" : "s"} on your shelf.` };
+    const seasonal = window.LifeRPGSeasons?.giftContext?.(personId) || null;
+    return { visible:true, enabled:true, count, birthdayWindow:Boolean(seasonal?.birthdayWindow), reason:seasonal?.birthdayWindow ? `${seasonal.label} · ${count} gift${count === 1 ? "" : "s"} on your shelf.` : `${count} gift${count === 1 ? "" : "s"} on your shelf.` };
   }
 
   function discoveredReaction(personId, giftId) {
@@ -358,11 +370,12 @@
       if (!already) s.kept[personId].push({ giftId, at:new Date().toISOString(), reaction });
     }
 
-    const registered = window.LifeRPGRelationshipEngine?.registerGift?.(personId, reaction, giftId);
+    const seasonalContext = window.LifeRPGSeasons?.giftContext?.(personId) || { multiplier:1, birthdayWindow:false };
+    const registered = window.LifeRPGRelationshipEngine?.registerGift?.(personId, reaction, giftId, seasonalContext);
     app.saveState({ source:"gift-given" });
     renderGiftShelf();
     app.renderAll?.();
-    return { ok:true, item:{ ...item }, reaction, line, registered:Boolean(registered) };
+    return { ok:true, item:{ ...item }, reaction, line, registered:Boolean(registered), birthdayWindow:Boolean(seasonalContext.birthdayWindow) };
   }
 
   function keptSummary() {
@@ -462,7 +475,7 @@
     const body = dialog.querySelector("#giftDialogBody");
     const subtitle = dialog.querySelector("#giftDialogSubtitle");
     if (subtitle) subtitle.textContent = `${PEOPLE[personId]?.name || "They"} reacted. Life RPG quietly remembers what you learned.`;
-    if (body) body.innerHTML = `<div class="gift-reaction-v314ay is-${result.reaction}"><span>${result.item.icon}</span><div><small>${preferenceLabel(result.reaction).toUpperCase()}</small><h3>${app.escapeHtml?.(result.item.name)}</h3><p>${app.escapeHtml?.(result.line)}</p>${result.item.keepsake && result.reaction !== "disliked" ? `<em>They kept it. You may notice that little keepsake again later.</em>` : ""}</div></div><button class="primary-button gift-reaction-close-v314ay" type="button" data-gift-dialog-close>Okay ♡</button>`;
+    if (body) body.innerHTML = `<div class="gift-reaction-v314ay is-${result.reaction}"><span>${result.item.icon}</span><div><small>${preferenceLabel(result.reaction).toUpperCase()}</small><h3>${app.escapeHtml?.(result.item.name)}</h3><p>${app.escapeHtml?.(result.line)}</p>${result.item.keepsake && result.reaction !== "disliked" ? `<em>They kept it. You may notice that little keepsake again later.</em>` : ""}${result.birthdayWindow ? `<em>Birthday week makes the gesture land a little warmer — with no penalty if you skip it.</em>` : ""}</div></div><button class="primary-button gift-reaction-close-v314ay" type="button" data-gift-dialog-close>Okay ♡</button>`;
     app.showToast?.(`${PEOPLE[personId]?.name || "They"}: ${preferenceLabel(result.reaction)} · preference learned.`);
   }
 

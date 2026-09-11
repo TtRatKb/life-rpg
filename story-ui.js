@@ -2631,6 +2631,9 @@
     if (recentWork) contextSignals.push("workday");
     if (recentRecovery || ["fumes", "low"].includes(checkIn?.energy)) contextSignals.push("low-battery");
     if (recentGaming) contextSignals.push("gaming");
+    for (const signal of (window.LifeRPGSeasons?.contextSignals?.() || [])) {
+      if (!contextSignals.includes(signal)) contextSignals.push(signal);
+    }
 
     return {
       active: true,
@@ -3467,6 +3470,23 @@
 
     if (Array.isArray(node.dayparts) && node.dayparts.length && !node.dayparts.includes(currentWorldDaypart())) return false;
     if (Array.isArray(node.weekdays) && node.weekdays.length && !node.weekdays.includes(new Date().getDay())) return false;
+
+    const seasonal = window.LifeRPGSeasons;
+    if (node.when?.season && seasonal?.currentSeason?.() !== node.when.season) return false;
+    if (Array.isArray(node.when?.seasons) && node.when.seasons.length && !node.when.seasons.includes(seasonal?.currentSeason?.())) return false;
+    if (node.when?.specialDay) {
+      const ids = seasonal?.activeSpecialEvents?.().map(item => item.id) || [];
+      if (!ids.includes(node.when.specialDay)) return false;
+    }
+    if (Array.isArray(node.when?.specialDays) && node.when.specialDays.length) {
+      const ids = seasonal?.activeSpecialEvents?.().map(item => item.id) || [];
+      if (!node.when.specialDays.some(id => ids.includes(id))) return false;
+    }
+    if (node.unless?.season && seasonal?.currentSeason?.() === node.unless.season) return false;
+    if (node.unless?.specialDay) {
+      const ids = seasonal?.activeSpecialEvents?.().map(item => item.id) || [];
+      if (ids.includes(node.unless.specialDay)) return false;
+    }
 
     if (node.when?.trait && !traits[node.when.trait]) return false;
     if (Array.isArray(node.when?.traits) && node.when.traits.some(key => !traits[key])) return false;

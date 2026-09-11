@@ -1,0 +1,61 @@
+/* V0.31.4az — Seasons & Special Days */
+#seasonalLifeRoot { margin-top: .65rem; }
+.seasonal-life-card-v314az {
+  border: 1px solid color-mix(in srgb, var(--line) 72%, transparent);
+  background: linear-gradient(145deg, color-mix(in srgb, var(--surface) 90%, #fff), color-mix(in srgb, var(--surface-2) 92%, transparent));
+  border-radius: 18px;
+  padding: .8rem;
+  display: grid;
+  gap: .65rem;
+}
+.seasonal-life-head-v314az { display:flex; align-items:flex-start; justify-content:space-between; gap:.7rem; }
+.seasonal-life-season-v314az { display:flex; gap:.65rem; min-width:0; }
+.seasonal-life-season-v314az > span { width:2.2rem; height:2.2rem; display:grid; place-items:center; border-radius:14px; background:rgba(255,255,255,.52); font-size:1.15rem; flex:none; }
+.seasonal-life-season-v314az small { display:block; font-size:.61rem; font-weight:900; letter-spacing:.12em; color:var(--muted); }
+.seasonal-life-season-v314az strong { display:block; color:var(--ink); font-size:.92rem; margin:.04rem 0; }
+.seasonal-life-season-v314az p { margin:0; color:var(--muted); font-size:.72rem; line-height:1.45; }
+.seasonal-archive-button-v314az { border:0; background:transparent; color:var(--accent); font-weight:800; font-size:.7rem; cursor:pointer; white-space:nowrap; }
+.seasonal-chip-row-v314az { display:flex; flex-wrap:wrap; gap:.4rem; }
+.seasonal-holiday-chip-v314az,.seasonal-birthday-chip-v314az { display:inline-flex; align-items:center; padding:.28rem .52rem; border-radius:999px; font-size:.64rem; font-weight:800; background:rgba(255,255,255,.55); border:1px solid color-mix(in srgb, var(--line) 70%, transparent); color:var(--ink); }
+.seasonal-special-strip-v314az { display:grid; grid-template-columns:auto minmax(0,1fr) auto; align-items:center; gap:.55rem; padding:.6rem .65rem; border-radius:14px; background:color-mix(in srgb, var(--accent-soft, #f3dbe9) 48%, transparent); }
+.seasonal-special-strip-v314az > span { font-size:1.05rem; }
+.seasonal-special-strip-v314az strong { display:block; color:var(--ink); font-size:.78rem; }
+.seasonal-special-strip-v314az p { margin:.08rem 0 0; color:var(--muted); font-size:.66rem; line-height:1.4; }
+.seasonal-special-strip-v314az button { border:0; border-radius:999px; padding:.42rem .62rem; background:var(--accent); color:white; font-weight:900; font-size:.64rem; cursor:pointer; }
+.seasonal-special-strip-v314az em { color:var(--muted); font-style:normal; font-size:.63rem; font-weight:800; white-space:nowrap; }
+.seasonal-moment-button-v314az { width:100%; display:grid; grid-template-columns:auto minmax(0,1fr) auto; align-items:center; gap:.55rem; border:1px solid color-mix(in srgb, var(--line) 72%, transparent); background:rgba(255,255,255,.38); padding:.55rem .62rem; border-radius:14px; text-align:left; cursor:pointer; color:inherit; }
+.seasonal-moment-button-v314az:hover { transform:translateY(-1px); border-color:color-mix(in srgb, var(--accent) 36%, var(--line)); }
+.seasonal-moment-button-v314az.is-seen { opacity:.74; }
+.seasonal-moment-button-v314az > span { font-size:1rem; }
+.seasonal-moment-button-v314az small { display:block; color:var(--muted); font-size:.56rem; letter-spacing:.09em; font-weight:900; }
+.seasonal-moment-button-v314az strong { display:block; color:var(--ink); font-size:.74rem; }
+.seasonal-moment-button-v314az p { margin:.05rem 0 0; color:var(--muted); font-size:.64rem; }
+.seasonal-moment-button-v314az b { color:var(--accent); font-size:.9rem; }
+.seasonal-dialog-v314az { width:min(92vw, 650px); }
+.seasonal-dialog-shell-v314az { padding:1rem; }
+.seasonal-prose-v314az { display:flex; gap:.85rem; align-items:flex-start; padding:1rem; border-radius:18px; background:linear-gradient(145deg, rgba(255,255,255,.62), rgba(255,245,250,.5)); border:1px solid var(--line); }
+.seasonal-prose-v314az > span { font-size:1.65rem; }
+.seasonal-prose-v314az p { margin:0; line-height:1.7; color:var(--ink); }
+.seasonal-find-copy-v314az { color:var(--muted); line-height:1.55; }
+.seasonal-find-grid-v314az { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:.65rem; }
+.seasonal-find-grid-v314az button { display:flex; flex-direction:column; gap:.25rem; text-align:left; min-height:140px; padding:.8rem; border:1px solid var(--line); background:var(--surface); border-radius:16px; cursor:pointer; color:inherit; }
+.seasonal-find-grid-v314az button:hover { border-color:var(--accent); transform:translateY(-1px); }
+.seasonal-find-grid-v314az button > span { font-size:1.4rem; }
+.seasonal-find-grid-v314az button strong { color:var(--ink); }
+.seasonal-find-grid-v314az button small { color:var(--muted); line-height:1.35; }
+.seasonal-archive-v314az { display:grid; gap:.55rem; max-height:60vh; overflow:auto; padding-right:.2rem; }
+.seasonal-archive-v314az article { display:grid; grid-template-columns:auto 1fr; gap:.6rem; padding:.65rem; border-radius:14px; background:rgba(255,255,255,.42); border:1px solid var(--line); }
+.seasonal-archive-v314az article > span { font-size:1.1rem; }
+.seasonal-archive-v314az strong { color:var(--ink); }
+.seasonal-archive-v314az p { margin:.14rem 0; color:var(--muted); font-size:.72rem; line-height:1.45; }
+.seasonal-archive-v314az small { color:var(--muted); font-size:.62rem; }
+.seasonal-empty-v314az { text-align:center; padding:1.5rem; color:var(--muted); }
+.seasonal-empty-v314az > span { display:block; font-size:1.8rem; }
+.seasonal-empty-v314az strong { display:block; color:var(--ink); margin:.35rem 0; }
+.seasonal-empty-v314az p { margin:0; }
+@media (max-width: 720px) {
+  .seasonal-special-strip-v314az { grid-template-columns:auto 1fr; }
+  .seasonal-special-strip-v314az button,.seasonal-special-strip-v314az em { grid-column:2; justify-self:start; }
+  .seasonal-find-grid-v314az { grid-template-columns:1fr; }
+  .seasonal-find-grid-v314az button { min-height:0; }
+}

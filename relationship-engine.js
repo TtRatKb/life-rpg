@@ -10,7 +10,7 @@
     return;
   }
 
-  const VERSION = "0.31.4aq";
+  const VERSION = "0.31.4az";
   const SCHEMA = 1;
   const MAX_HISTORY = 500;
   const MAX_PROCESSED = 1200;
@@ -390,10 +390,12 @@
     }
   }
 
-  function registerGift(personId, reaction = "neutral", giftId = "") {
+  function registerGift(personId, reaction = "neutral", giftId = "", options = {}) {
     const id = normalizePersonId(personId);
     if (!id) return false;
-    const gain = ({ loved: 4, liked: 2, neutral: 1, disliked: 0 })[reaction] ?? 1;
+    const baseGain = ({ loved: 4, liked: 2, neutral: 1, disliked: 0 })[reaction] ?? 1;
+    const multiplier = Math.max(1, Math.min(1.5, Number(options?.multiplier || 1)));
+    const gain = baseGain * multiplier;
     const key = `gift:${id}:${dateKey(new Date())}:${giftId || reaction}`;
     if (wasProcessed(key)) return false;
     markProcessed(key);
@@ -403,7 +405,7 @@
         personId: id,
         type: PEOPLE[id].type,
         source: "gift",
-        detail: reaction,
+        detail: options?.detail ? `${reaction}:${options.detail}` : reaction,
         gain: 0
       });
       app.saveState({ source: "relationship-v2-gift-learning" });
@@ -411,8 +413,8 @@
     }
     return addProgress(id, gain, {
       source: "gift",
-      detail: reaction,
-      rawRecovery: reaction === "loved" ? .75 : reaction === "liked" ? .4 : .15,
+      detail: options?.detail ? `${reaction}:${options.detail}` : reaction,
+      rawRecovery: (reaction === "loved" ? .75 : reaction === "liked" ? .4 : .15) * multiplier,
       save: true
     });
   }
