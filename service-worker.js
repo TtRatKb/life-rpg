@@ -1,10 +1,10 @@
-const CACHE_NAME = "life-rpg-v0314ay-gifts-preferences";
+const CACHE_NAME = "life-rpg-v0314ay1-gifts-canon-polish";
 const CORE = [
   "./",
   "./index.html",
   "./data/quests.js?v=0.31.4h",
   "./styles.css?v=0.31.4aw",
-  "./gifts.css?v=0.31.4ay",
+  "./gifts.css?v=0.31.4ay1",
   "./skills.css?v=0.31.4ah",
   "./talent-v2.css?v=0.31.4an",
   "./talent-tree-v2-graph.css?v=0.31.4ar",
@@ -22,7 +22,7 @@ const CORE = [
   "./weekly-review.css?v=0.31.4ag",
   "./weekly-review.js?v=0.31.4ag",
   "./manifest.webmanifest?v=0.30.3a",
-  "./pwa.js?v=0.31.4ay",
+  "./pwa.js?v=0.31.4ay1",
   "./visual-performance.js?v=0.31.4c",
   "./modal-manager.js?v=0.31.4d",
   "./training-focus.js?v=0.31.4o",
@@ -58,7 +58,7 @@ const CORE = [
   "./story-engine.js?v=0.31.4aw",
   "./story-ui.js?v=0.31.4aw",
   "./relationship-engine.js?v=0.31.4aq",
-  "./gifts.js?v=0.31.4ay",
+  "./gifts.js?v=0.31.4ay1",
   "./content/SP_003.dat?v=0.31.4aw",
   "./shop.js?v=0.30.6",
   "./achievements.js?v=0.31.0",

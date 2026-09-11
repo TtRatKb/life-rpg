@@ -4,8 +4,8 @@
   const app = window.LifeRPGApp;
   if (!app) return;
 
-  const VERSION = "0.31.4ay";
-  const SCHEMA_VERSION = 1;
+  const VERSION = "0.31.4ay1";
+  const SCHEMA_VERSION = 2;
   const WEEKLY_REWARD_FIND_THRESHOLDS = [3, 8];
   const MAX_HISTORY = 180;
   const PEOPLE = {
@@ -16,22 +16,32 @@
 
   const GIFTS = [
     { id:"spicy-rice-crackers", icon:"🌶️", name:"Spicy rice crackers", category:"snack", keepsake:false, flavor:"A little dangerously red. Exactly the sort of snack that looks like a challenge." },
+    { id:"chili-crisp", icon:"🔥", name:"Small-batch chili crisp", category:"food", keepsake:false, flavor:"Deep red, crunchy, and labelled with a warning that feels more like a dare." },
     { id:"local-bakery-cookies", icon:"🍪", name:"Local bakery cookies", category:"snack", keepsake:false, flavor:"A small box from a neighborhood bakery — easy to share, easy to like." },
     { id:"fruit-candy", icon:"🍬", name:"Bright fruit candy", category:"snack", keepsake:false, flavor:"Colorful little wrapped candies that look more cheerful than practical." },
     { id:"premium-coffee-beans", icon:"☕", name:"Good coffee beans", category:"drink", keepsake:false, flavor:"A small bag of beans that smells better than most mornings feel." },
     { id:"black-tea-tin", icon:"🫖", name:"Black tea tin", category:"drink", keepsake:true, flavor:"A compact tin of fragrant tea that looks nice enough to leave on a shelf." },
     { id:"protein-snack", icon:"🥜", name:"Savory protein snack", category:"snack", keepsake:false, flavor:"Portable, filling, and much less sad than a generic protein bar." },
+    { id:"peppered-beef-jerky", icon:"🥩", name:"Peppered beef jerky", category:"snack", keepsake:false, flavor:"A good butcher-shop packet: smoky, peppery, unapologetically meaty." },
+    { id:"crispy-okra-chips", icon:"🫛", name:"Crispy okra chips", category:"snack", keepsake:false, flavor:"Light, salty little okra slices with much more crunch than they have any right to." },
+    { id:"natto-snack-pack", icon:"🫘", name:"Natto snack pack", category:"snack", keepsake:false, flavor:"A very specific little convenience-store find. Definitely not an everyone snack." },
     { id:"tiny-cactus", icon:"🌵", name:"Tiny cactus", category:"plant", keepsake:true, flavor:"Small, sturdy, and hard to accidentally kill." },
     { id:"plant-cutting", icon:"🪴", name:"Little plant cutting", category:"plant", keepsake:true, flavor:"A healthy cutting in a simple glass jar, ready to root somewhere new." },
     { id:"key-organizer", icon:"🔑", name:"Sturdy key organizer", category:"practical", keepsake:true, flavor:"A neat little organizer for keys and small everyday tools." },
     { id:"heatproof-mug", icon:"🥛", name:"Heavy ceramic mug", category:"practical", keepsake:true, flavor:"Simple, solid, and difficult to knock over." },
+    { id:"trail-thermos", icon:"🏔️", name:"Compact trail thermos", category:"outdoor", keepsake:true, flavor:"A tough little insulated bottle made for early starts, long walks and being knocked around." },
     { id:"bath-salts", icon:"🛁", name:"Bath salts", category:"care", keepsake:false, flavor:"A small pouch meant for one very deliberate evening off." },
     { id:"soft-socks", icon:"🧦", name:"Ridiculously soft socks", category:"care", keepsake:false, flavor:"The kind of unnecessary softness that becomes very necessary once worn." },
+    { id:"color-care-shampoo", icon:"🧴", name:"Color-care shampoo", category:"care", keepsake:false, flavor:"A good salon-size bottle made to keep vivid dyed color from fading too quickly." },
+    { id:"sheet-masks", icon:"🫧", name:"Fun sheet-mask set", category:"care", keepsake:false, flavor:"A small mix of bright packaging, cute designs and low-effort skincare." },
     { id:"nail-stickers", icon:"✨", name:"Graphic nail stickers", category:"style", keepsake:false, flavor:"Tiny stars, flames and metallic accents for a five-minute style upgrade." },
     { id:"hair-clips", icon:"🎀", name:"Statement hair clips", category:"style", keepsake:true, flavor:"A bright little pair that can make a basic outfit look intentional." },
+    { id:"dance-socks", icon:"💿", name:"Bright dance socks", category:"style", keepsake:false, flavor:"Comfortable crew socks with a bold little graphic — made for moving, not just matching." },
     { id:"cute-stationery", icon:"📝", name:"Cute stationery set", category:"stationery", keepsake:true, flavor:"Small note cards, stickers and paper that make ordinary lists suspiciously charming." },
     { id:"mystery-paperback", icon:"📖", name:"Pocket mystery novel", category:"book", keepsake:true, flavor:"A compact little whodunit with a dramatic cover and short chapters." },
+    { id:"retro-hero-magazine", icon:"🦸", name:"Vintage hero magazine", category:"nerdy", keepsake:true, flavor:"An older hero magazine in surprisingly good condition, rescued from a second-hand shelf." },
     { id:"retro-game-charm", icon:"🎮", name:"Retro game charm", category:"nerdy", keepsake:true, flavor:"A tiny acrylic charm shaped like an old handheld game console." },
+    { id:"plush-charm", icon:"🧸", name:"Tiny plush charm", category:"cute", keepsake:true, flavor:"A pocket-sized soft mascot with an expression far too dramatic for its size." },
     { id:"red-bead-bracelet", icon:"📿", name:"Red bead bracelet", category:"accessory", keepsake:true, flavor:"Simple red beads on a sturdy cord — casual enough to wear without thinking about it." }
   ];
 
@@ -39,19 +49,19 @@
 
   const REACTIONS = {
     mina: {
-      loved: new Set(["fruit-candy", "nail-stickers", "hair-clips", "cute-stationery", "retro-game-charm"]),
-      liked: new Set(["local-bakery-cookies", "bath-salts", "soft-socks", "red-bead-bracelet", "plant-cutting"]),
+      loved: new Set(["crispy-okra-chips", "natto-snack-pack", "nail-stickers", "hair-clips", "dance-socks"]),
+      liked: new Set(["fruit-candy", "local-bakery-cookies", "bath-salts", "soft-socks", "sheet-masks", "cute-stationery", "plush-charm", "red-bead-bracelet", "retro-game-charm"]),
       disliked: new Set(["key-organizer"])
     },
     bakugo: {
-      loved: new Set(["spicy-rice-crackers", "premium-coffee-beans", "key-organizer", "heatproof-mug"]),
-      liked: new Set(["black-tea-tin", "protein-snack", "tiny-cactus", "mystery-paperback"]),
-      disliked: new Set(["hair-clips", "fruit-candy"])
+      loved: new Set(["spicy-rice-crackers", "chili-crisp", "trail-thermos"]),
+      liked: new Set(["key-organizer", "heatproof-mug", "protein-snack", "peppered-beef-jerky"]),
+      disliked: new Set(["hair-clips", "cute-stationery", "plush-charm"])
     },
     kirishima: {
-      loved: new Set(["protein-snack", "red-bead-bracelet", "tiny-cactus", "local-bakery-cookies"]),
-      liked: new Set(["premium-coffee-beans", "plant-cutting", "soft-socks", "heatproof-mug", "retro-game-charm"]),
-      disliked: new Set(["nail-stickers"])
+      loved: new Set(["peppered-beef-jerky", "retro-hero-magazine", "color-care-shampoo"]),
+      liked: new Set(["protein-snack", "red-bead-bracelet", "local-bakery-cookies", "heatproof-mug", "soft-socks", "trail-thermos"]),
+      disliked: new Set([])
     }
   };
 
@@ -73,6 +83,24 @@
       liked: ["Eijiro brightens. “Oh, nice! I’m definitely using this.”", "“That’s really thoughtful.” He means it, and the gift seems to land well too."],
       neutral: ["Eijiro smiles and thanks you easily. The gesture matters even if the exact item is not a perfect hit.", "“Thanks, Luca.” Warm, genuine, uncomplicated."],
       disliked: ["Eijiro still thanks you sincerely, but he is not very good at hiding that the item itself is not quite his style.", "He handles the miss kindly. No damage done — just one more thing learned about him."]
+    }
+  };
+
+  const SPECIAL_REACTION_COPY = {
+    mina: {
+      "crispy-okra-chips": ["Mina stares at the bag, then at you. “Wait — you found these? Give me. Immediately.”"],
+      "natto-snack-pack": ["Her eyes go wide in delighted recognition. “Okay, you actually know me. This is dangerous.”"],
+      "dance-socks": ["Mina holds them up against herself, already grinning. “These are going straight into rotation.”"]
+    },
+    bakugo: {
+      "spicy-rice-crackers": ["Katsuki checks the heat label and gives a sharp little grin. “Finally. Something that isn’t weak.”"],
+      "chili-crisp": ["He reads the warning on the jar, snorts, and tucks it under his arm. “Yeah. I’m using this tonight.”"],
+      "trail-thermos": ["Katsuki tests the lid and weight like he’s inspecting gear. The approving grunt is immediate. “Good pick.”"]
+    },
+    kirishima: {
+      "peppered-beef-jerky": ["Eijiro’s grin is instant. “Oh, hell yeah. This is perfect.”"],
+      "retro-hero-magazine": ["Eijiro freezes on the cover. “No way — where did you even find this?” The careful way he holds it answers the rest."],
+      "color-care-shampoo": ["He reads the label twice, then laughs. “Okay, this is ridiculously thoughtful. I’m absolutely using it.”"]
     }
   };
 
@@ -303,7 +331,10 @@
   }
 
   function reactionLine(personId, reaction, giftId) {
-    const options = REACTION_COPY?.[personId]?.[reaction] || ["The reaction tells you a little more than the gift did."];
+    const special = SPECIAL_REACTION_COPY?.[personId]?.[giftId];
+    const options = (reaction === "loved" && Array.isArray(special) && special.length)
+      ? special
+      : (REACTION_COPY?.[personId]?.[reaction] || ["The reaction tells you a little more than the gift did."]);
     return pickDeterministic(options, `${personId}:${giftId}:${localDateKey()}:reaction`) || options[0];
   }
 
@@ -498,8 +529,30 @@
     });
   }
 
+  function migratePreferenceResearchPass() {
+    const s = ensureState();
+    const key = "ay1-character-preference-research";
+    if (s.migrations[key]) return false;
+
+    for (const personId of Object.keys(PEOPLE)) {
+      const learned = s.discovered?.[personId] || {};
+      for (const giftId of Object.keys(learned)) {
+        if (GIFT_BY_ID[giftId]) learned[giftId] = reactionFor(personId, giftId);
+      }
+      s.kept[personId] = (s.kept?.[personId] || []).map(entry => ({
+        ...entry,
+        reaction: GIFT_BY_ID[entry.giftId] ? reactionFor(personId, entry.giftId) : entry.reaction
+      }));
+    }
+
+    s.migrations[key] = { at:new Date().toISOString(), version:VERSION };
+    app.saveState({ source:"gift-preference-research-migration" });
+    return true;
+  }
+
   function init() {
     ensureState();
+    migratePreferenceResearchPass();
     ensureGiftDialog();
     installEvents();
     renderGiftShelf();
