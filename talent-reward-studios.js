@@ -1,8 +1,8 @@
 (() => {
   "use strict";
 
-  if (window.__lifeRpgTalentRewardStudiosV314as) return;
-  window.__lifeRpgTalentRewardStudiosV314as = true;
+  if (window.__lifeRpgTalentRewardStudiosV314at) return;
+  window.__lifeRpgTalentRewardStudiosV314at = true;
 
   const app = window.LifeRPGApp;
   const graph = window.LifeRPGTalentTreeGraph;
@@ -11,8 +11,8 @@
     return;
   }
 
-  const VERSION = "0.31.4as";
-  const SCHEMA = 1;
+  const VERSION = "0.31.4at";
+  const SCHEMA = 2;
 
   const JAPANESE_CARDS = [
     {
@@ -493,8 +493,27 @@
     return false;
   }
 
+  function contentRank(realm, id) {
+    const rank = Number(graph.getContentRank?.(realm, id) || 0);
+    return Math.max(0, Math.floor(rank));
+  }
+
   function isUnlocked(realm, id) {
-    return Boolean(graph.isContentUnlocked?.(realm, id));
+    return contentRank(realm, id) > 0 || Boolean(graph.isContentUnlocked?.(realm, id));
+  }
+
+  function japaneseCardPool() {
+    const rank = contentRank("Japanese", "dynariot-japanese");
+    return JAPANESE_CARDS.slice(0, rank >= 2 ? JAPANESE_CARDS.length : 8);
+  }
+
+  function homeWheelLimit() {
+    return contentRank("Home", "home-oracle") >= 2 ? Infinity : 1;
+  }
+
+  function coloringPagePool() {
+    const rank = contentRank("Hobbies", "coloring-studio");
+    return COLORING_PAGES.slice(0, rank >= 2 ? COLORING_PAGES.length : 1);
   }
 
   function showDialog() {
@@ -533,11 +552,12 @@
   function todayJapaneseCard() {
     const s = state().japanese;
     const today = dateKey();
-    if (s.daily.dateKey === today && s.daily.cardId && JAPANESE_CARDS.some(card => card.id === s.daily.cardId)) {
-      return JAPANESE_CARDS.find(card => card.id === s.daily.cardId);
+    const available = japaneseCardPool();
+    if (s.daily.dateKey === today && s.daily.cardId && available.some(card => card.id === s.daily.cardId)) {
+      return available.find(card => card.id === s.daily.cardId);
     }
-    const unseen = JAPANESE_CARDS.filter(card => !s.collected[card.id]);
-    const pool = unseen.length ? unseen : JAPANESE_CARDS;
+    const unseen = available.filter(card => !s.collected[card.id]);
+    const pool = unseen.length ? unseen : available;
     const card = pool[hash(`dynariot:${today}:${Object.keys(s.collected).length}`) % pool.length];
     s.daily = { dateKey: today, cardId: card.id, completedAt: null, rewardEventId: null, selected: null, checked: false };
     save("japanese-daily-roll");
@@ -564,8 +584,8 @@
 
     content.innerHTML = `
       <header class="reward-studio-head-v314as japanese">
-        <div><p class="eyebrow">JAPANESE TALENT CONTENT · NON-CANON BONUS</p><h2>DynaRiot Japanese Extras</h2><p>Character content first; Japanese is the medium. No vocabulary rating, no SRS, no Story flags.</p></div>
-        <div class="reward-studio-tabs-v314as"><button type="button" class="${archiveMode ? "" : "is-active"}" data-jp-tab="daily">Today's extra</button><button type="button" class="${archiveMode ? "is-active" : ""}" data-jp-tab="archive">Archive ${Object.keys(state().japanese.collected).length}/${JAPANESE_CARDS.length}</button></div>
+        <div><p class="eyebrow">JAPANESE TALENT CONTENT · RANK ${roman(contentRank("Japanese", "dynariot-japanese"))}/II · NON-CANON BONUS</p><h2>DynaRiot Japanese Extras</h2><p>Character content first; Japanese is the medium. No vocabulary rating, no SRS, no Story flags. ${contentRank("Japanese", "dynariot-japanese") < 2 ? "Rank II expands the daily pool from 8 to 16 cards." : "All 16 current cards are in the daily pool."}</p></div>
+        <div class="reward-studio-tabs-v314as"><button type="button" class="${archiveMode ? "" : "is-active"}" data-jp-tab="daily">Today's extra</button><button type="button" class="${archiveMode ? "is-active" : ""}" data-jp-tab="archive">Archive ${Object.keys(state().japanese.collected).length}/${japaneseCardPool().length} available</button></div>
       </header>
       <article class="jp-extra-card-v314as">
         <div class="jp-extra-meta-v314as"><span>${card.icon}</span><div><small>${esc(card.type)}</small><strong>${esc(card.title)}</strong></div>${collected ? "<b>COLLECTED</b>" : ""}</div>
@@ -631,12 +651,13 @@
   function renderJapaneseArchive() {
     activeJapaneseCardId = null;
     const collected = JAPANESE_CARDS.filter(card => state().japanese.collected[card.id]);
+    const availableCount = japaneseCardPool().length;
     const content = body();
     if (!content) return;
     content.innerHTML = `
       <header class="reward-studio-head-v314as japanese">
         <div><p class="eyebrow">JAPANESE TALENT CONTENT · COLLECTION</p><h2>DynaRiot Extras Archive</h2><p>Re-read anything you've collected. Archive replay never gives another reward.</p></div>
-        <div class="reward-studio-tabs-v314as"><button type="button" data-jp-tab="daily">Today's extra</button><button type="button" class="is-active" data-jp-tab="archive">Archive ${collected.length}/${JAPANESE_CARDS.length}</button></div>
+        <div class="reward-studio-tabs-v314as"><button type="button" data-jp-tab="daily">Today's extra</button><button type="button" class="is-active" data-jp-tab="archive">Archive ${collected.length}/${availableCount} available</button></div>
       </header>
       <div class="jp-extra-archive-v314as">${collected.length ? collected.map(card => `<button type="button" data-jp-open-card="${escAttr(card.id)}"><span>${card.icon}</span><div><small>${esc(card.type)}</small><strong>${esc(card.title)}</strong></div><b>›</b></button>`).join("") : `<div class="reward-studio-empty-v314as"><span>🌸</span><h3>Your archive is waiting.</h3><p>Complete today's first DynaRiot Extra and it will stay here.</p></div>`}</div>`;
     showDialog();
@@ -660,8 +681,8 @@
 
     content.innerHTML = `
       <header class="reward-studio-head-v314as home">
-        <div><p class="eyebrow">HOME TALENT CONTENT</p><h2>Home Oracle</h2><p>Build your own decision wheels. Spin when choosing is the annoying part; nothing here counts as a Quest.</p></div>
-        <div class="home-oracle-decks-v314as">${s.decks.map(item => `<button type="button" class="${item.id === deck.id ? "is-active" : ""}" data-home-deck="${escAttr(item.id)}">${esc(item.name || "Untitled")}</button>`).join("")}<button type="button" data-home-new>＋ New</button></div>
+        <div><p class="eyebrow">HOME TALENT CONTENT · RANK ${roman(contentRank("Home", "home-oracle"))}/II</p><h2>Home Oracle</h2><p>Build your own decision wheels. Spin when choosing is the annoying part; nothing here counts as a Quest. ${contentRank("Home", "home-oracle") < 2 ? "Rank I keeps one wheel; Rank II removes the saved-wheel limit." : "Rank II · unlimited saved wheels unlocked."}</p></div>
+        <div class="home-oracle-decks-v314as">${s.decks.map(item => `<button type="button" class="${item.id === deck.id ? "is-active" : ""}" data-home-deck="${escAttr(item.id)}">${esc(item.name || "Untitled")}</button>`).join("")}<button type="button" data-home-new ${Number.isFinite(homeWheelLimit()) && s.decks.length >= homeWheelLimit() ? 'disabled title="Home Oracle II unlocks more wheels"' : ""}>${Number.isFinite(homeWheelLimit()) && s.decks.length >= homeWheelLimit() ? "🔒 Rank II" : "＋ New"}</button></div>
       </header>
       <div class="home-oracle-layout-v314as">
         <section class="home-oracle-wheel-panel-v314as">
@@ -686,6 +707,11 @@
   }
 
   function createHomeDeck() {
+    const limit = homeWheelLimit();
+    if (Number.isFinite(limit) && state().home.decks.length >= limit) {
+      app.showToast?.("🔮 Home Oracle II unlocks additional saved wheels.");
+      return false;
+    }
     saveHomeDeckFromForm(false);
     const deck = { id: `wheel-${Date.now().toString(36)}`, name: "New wheel", noRepeat: true, lastPick: null, options: [] };
     state().home.decks.push(deck);
@@ -855,16 +881,22 @@
     const content = body();
     if (!content) return;
     const meta = state().coloring;
+    const available = new Set(coloringPagePool().map(page => page.id));
+    const rank = contentRank("Hobbies", "coloring-studio");
     content.innerHTML = `
-      <header class="reward-studio-head-v314as hobbies"><div><p class="eyebrow">HOBBIES TALENT CONTENT</p><h2>Coloring Studio</h2><p>Pencil, touch or mouse. The starter pages are spoiler-free bonus art derived from the approved character references, not future Story CGs.</p></div></header>
-      <div class="coloring-gallery-v314as">${COLORING_PAGES.map(page => `<button type="button" data-coloring-page="${escAttr(page.id)}"><div class="coloring-thumb-v314as"><img src="${escAttr(page.src)}" alt="${escAttr(page.title)} coloring page"></div><div><small>${meta.finished[page.id] ? "FINISHED ✓" : meta.lastPageId === page.id ? "LAST OPENED" : "COLORING PAGE"}</small><strong>${esc(page.title)}</strong><span>${esc(page.subtitle)}</span></div><b>Open ›</b></button>`).join("")}</div>
-      <div class="coloring-storage-note-v314as"><span>✦</span><p><strong>Canvas progress stays on this device.</strong> The large stroke data is stored in IndexedDB instead of the main Life RPG save so Coloring Studio cannot cause another localStorage quota problem. Finished status remains in the normal save; you can export any page as PNG.</p></div>`;
+      <header class="reward-studio-head-v314as hobbies"><div><p class="eyebrow">HOBBIES TALENT CONTENT · RANK ${roman(rank)}/II</p><h2>Coloring Studio</h2><p>Pencil, touch or mouse. ${rank < 2 ? "Rank I starts with one page; Rank II adds Kirishima + the DynaRiot Duo." : "Full current three-page starter pack unlocked."} The art is spoiler-free bonus content, not future Story CGs.</p></div></header>
+      <div class="coloring-gallery-v314as">${COLORING_PAGES.map(page => { const unlocked = available.has(page.id); return `<button type="button" data-coloring-page="${escAttr(page.id)}" ${unlocked ? "" : "disabled"}><div class="coloring-thumb-v314as"><img src="${escAttr(page.src)}" alt="${escAttr(page.title)} coloring page"></div><div><small>${unlocked ? meta.finished[page.id] ? "FINISHED ✓" : meta.lastPageId === page.id ? "LAST OPENED" : "COLORING PAGE" : "🔒 COLORING STUDIO II"}</small><strong>${esc(page.title)}</strong><span>${unlocked ? esc(page.subtitle) : "Unlock Rank II to color this page."}</span></div><b>${unlocked ? "Open ›" : "Locked"}</b></button>`; }).join("")}</div>
+      <div class="coloring-storage-note-v314as"><span>✦</span><p><strong>Canvas progress stays on this device.</strong> The large stroke data is stored in IndexedDB instead of the main Life RPG save so Coloring Studio cannot cause another localStorage quota problem. Finished status remains in the normal save; you can export any unlocked page as PNG.</p></div>`;
     showDialog();
   }
 
   async function openColoringPage(pageId) {
     const page = COLORING_PAGES.find(item => item.id === pageId);
     if (!page) return;
+    if (!coloringPagePool().some(item => item.id === pageId)) {
+      app.showToast?.("🖍️ Coloring Studio II unlocks this page.");
+      return false;
+    }
     finishColoringSession();
     state().coloring.lastPageId = pageId;
     save("coloring-open");
@@ -1126,6 +1158,8 @@
   function loadImage(src) {
     return new Promise((resolve,reject)=>{ const img=new Image(); img.onload=()=>resolve(img); img.onerror=reject; img.src=src; });
   }
+
+  function roman(value) { return ["", "I", "II", "III", "IV", "V"][Number(value || 0)] || String(value || ""); }
 
   function esc(value) {
     return app.escapeHtml ? app.escapeHtml(value) : String(value ?? "").replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));

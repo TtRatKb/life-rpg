@@ -1,8 +1,8 @@
 (() => {
   "use strict";
 
-  if (window.__lifeRpgTalentTreeGraphV314as) return;
-  window.__lifeRpgTalentTreeGraphV314as = true;
+  if (window.__lifeRpgTalentTreeGraphV314at) return;
+  window.__lifeRpgTalentTreeGraphV314at = true;
 
   const app = window.LifeRPGApp;
   const skills = window.LifeRPGSkills;
@@ -12,110 +12,110 @@
     return;
   }
 
-  const VERSION = "0.31.4as";
-  const SCHEMA = 3;
+  const VERSION = "0.31.4at";
+  const SCHEMA = 4;
   const REALMS = ["Work", "Knowledge", "Japanese", "Health", "Recovery", "Home", "Hobbies"];
 
   const META = {
     Work: {
       icon: "💼",
       special: { id: "deep-work", icon: "🎯", title: "Deep Work Bonus", max: 3 },
-      subtitle: "Build from chance → momentum → deeper focus, then branch into optional work tools.",
+      subtitle: "Try a real Work tool with your first point, then deepen the Realm at your own pace.",
       dream: { title: "After Hours", copy: "after-work quiet, tiredness, and being taken care of when the day is finally over" },
       content: [
-        content("work-debrief", "🧾", "Work Deep Brief", 2,
-          "Unlock a deeper Work reflection for closing the loop after a demanding day: what moved, what drained you, what matters next, and what can be released. It supports voice dictation as well as typing.",
-          { special: 1 }),
-        content("work-focus-challenges", "◆", "Focus Challenge Deck", 2,
-          "Unlock rotating optional 35-minute focus challenges. They give you a concrete way to start; the normal Focus system stays free.",
-          { special: 2, content: "work-debrief" }),
+        content("work-debrief", "🧾", "Work Deep Brief", 1,
+          "Starter unlock · spend 1 Work point and use it immediately. A deeper Work reflection for closing the loop after a demanding day, with voice dictation or typing.",
+          {}),
+        content("work-focus-challenges", "◆", "Focus Challenge Deck", 1,
+          "Second content step · rotating optional 35-minute focus challenges. The normal Focus system stays free.",
+          { content: "work-debrief" }),
         planned("lesson-spark", "💡", "Lesson Spark Deck · Redesign",
           "Parked for now. Your existing Pinterest/books/resources already cover inspiration, so this needs a more genuinely rewarding concept before it can cost points.",
-          { special: 3, content: "work-focus-challenges" })
+          { content: "work-focus-challenges" })
       ]
     },
     Knowledge: {
       icon: "🧠",
       special: { id: "puzzle-spark", icon: "🧩", title: "Puzzle Spark", max: 3 },
-      subtitle: "Turn regular thinking into stronger puzzle rewards, then unlock new ways to think.",
+      subtitle: "Your first point can unlock a real logic game; later points add new puzzle types and stronger passives.",
       dream: { title: "Quiet Minds", copy: "books, puzzles, teaching each other, and the intimacy of shared concentration" },
       content: [
-        linkedContent("slitherlink", "◫", "Slitherlink", 2,
-          "Unlock a real Daily + Practice Slitherlink puzzle inside Training Grounds.",
-          { special: 1 }, "Open Slitherlink", () => window.LifeRPGLogicExpansion?.open?.("slitherlink")),
-        linkedContent("nurikabe", "▦", "Nurikabe", 2,
-          "Unlock a real Daily + Practice Nurikabe puzzle inside Training Grounds.",
-          { special: 2, content: "slitherlink" }, "Open Nurikabe", () => window.LifeRPGLogicExpansion?.open?.("nurikabe")),
-        linkedContent("kakuro", "＋", "Kakuro", 2,
-          "Unlock a real Daily + Practice Kakuro puzzle inside Training Grounds.",
-          { special: 3, content: "nurikabe" }, "Open Kakuro", () => window.LifeRPGLogicExpansion?.open?.("kakuro"))
+        linkedContent("slitherlink", "◫", "Slitherlink", 1,
+          "Starter unlock · a real Daily + Practice Slitherlink puzzle inside Training Grounds.",
+          {}, "Open Slitherlink", () => window.LifeRPGLogicExpansion?.open?.("slitherlink")),
+        linkedContent("nurikabe", "▦", "Nurikabe", 1,
+          "Add a second real logic game: Daily + Practice Nurikabe.",
+          { content: "slitherlink" }, "Open Nurikabe", () => window.LifeRPGLogicExpansion?.open?.("nurikabe")),
+        linkedContent("kakuro", "＋", "Kakuro", 1,
+          "Add a third real logic game: Daily + Practice Kakuro.",
+          { content: "nurikabe" }, "Open Kakuro", () => window.LifeRPGLogicExpansion?.open?.("kakuro"))
       ]
     },
     Japanese: {
       icon: "🌸",
       special: { id: "immersion-echo", icon: "🎧", title: "Immersion Echo", max: 3 },
-      subtitle: "Reward contact with Japanese, then open extra production/immersion toys rather than hiding the basics.",
+      subtitle: "Open character-driven Japanese content immediately, then expand the pool or branch into speaking practice.",
       dream: { title: "Between Words", copy: "language, repeated phrases, and things that become easier to say softly" },
       content: [
-        content("shadowing-sprint", "🎙️", "Shadowing Sprint", 2,
-          "Unlock a five-minute bring-your-own-audio shadowing sprint with a real countdown and Japanese completion reward.",
-          { special: 1 }),
-        linkedContent("dynariot-japanese", "🌸", "DynaRiot Japanese Extras", 2,
-          "Unlock a daily collection of spoiler-free, non-canon Bakugo/Kirishima media cards in Japanese: chats, Q&As, notes and posts with quick comprehension instead of another vocabulary/SRS layer.",
-          { special: 2, content: "shadowing-sprint" }, "Open DynaRiot Extras", () => window.LifeRPGTalentRewardStudios?.open?.("dynariot-japanese"))
+        rankedContent("dynariot-japanese", "🌸", "DynaRiot Japanese Extras", 2,
+          "Rank I: 8 spoiler-free, non-canon Bakugo/Kirishima media cards enter the daily pool. Rank II: expand to all 16 current cards. Japanese is the medium; no vocabulary/SRS layer.",
+          {}, "Open DynaRiot Extras", () => window.LifeRPGTalentRewardStudios?.open?.("dynariot-japanese")),
+        content("shadowing-sprint", "🎙️", "Shadowing Sprint", 1,
+          "Optional second tool · a five-minute bring-your-own-audio shadowing sprint with a real countdown and Japanese completion reward.",
+          { content: "dynariot-japanese", contentRank: 1 })
       ]
     },
     Health: {
       icon: "🌿",
       special: { id: "reflection-bloom", icon: "🌙", title: "Reflection Bloom", max: 3 },
-      subtitle: "Build visible care/reflection bonuses, then unlock additional reflection content.",
+      subtitle: "Your first point can open a real reflection tool; deeper investment improves the surrounding Realm effects.",
       dream: { title: "Close Enough to Notice", copy: "care, warmth, touch, and noticing the body without turning it into a task" },
       content: [
-        nativeContent("year-question", "📅", "365 Question Journal", 2,
-          "Unlock one different reflection question for every date of the year. The same date gets the same question next year, and the answer can be spoken or typed.",
-          { special: 1 }, "Open Journal", () => app.showView?.("journal")),
+        nativeContent("year-question", "📅", "365 Question Journal", 1,
+          "Starter unlock · one different reflection question for every date of the year, recurring annually, with spoken or typed answers.",
+          {}, "Open Journal", () => app.showView?.("journal")),
         planned("health-reflection-2", "◌", "Second Reflection Form · Redesign",
           "Reserved for a future reflection form that feels meaningfully different from the normal Journal instead of another generic prompt box.",
-          { special: 2, content: "year-question" })
+          { content: "year-question" })
       ]
     },
     Recovery: {
       icon: "🛋️",
       special: { id: "rested-charge", icon: "☾", title: "Rested Charge", max: 3 },
-      subtitle: "Let recovery create useful momentum, then unlock additional regulation activities.",
+      subtitle: "Open a regulation activity with your first point, then add more Recovery tools or deepen the passive path.",
       dream: { title: "Soft Landing", copy: "couches, blankets, sleepiness, stillness, and being allowed to lean on someone" },
       content: [
-        nativeContent("grounding-54321", "✋", "5–4–3–2–1 Grounding", 2,
-          "Permanently unlock the guided 7-minute sensory grounding session already built into Recovery Studio.",
-          { special: 1 }, "Open Recovery Studio", () => window.LifeRPGRecoveryStudio?.open?.()),
-        content("recovery-toolkit", "✦", "Recovery Toolkit", 2,
-          "Unlock a rotating set of short regulation prompts with a real Recovery timer and its own completion reward.",
-          { special: 2, content: "grounding-54321" })
+        nativeContent("grounding-54321", "✋", "5–4–3–2–1 Grounding", 1,
+          "Starter unlock · the guided 7-minute sensory grounding session already built into Recovery Studio.",
+          {}, "Open Recovery Studio", () => window.LifeRPGRecoveryStudio?.open?.()),
+        content("recovery-toolkit", "✦", "Recovery Toolkit", 1,
+          "Second content step · a rotating set of short regulation prompts with a real Recovery timer and its own completion reward.",
+          { content: "grounding-54321" })
       ]
     },
     Home: {
       icon: "🏠",
       special: { id: "quick-win", icon: "✨", title: "Quick Win", max: 3 },
-      subtitle: "Make practical wins pay a little better, then branch into genuinely new Home content once it earns its Skill Point cost.",
+      subtitle: "Spend the first point on a playful decision tool; later investment expands it instead of making you wait to try it.",
       dream: { title: "Domestic Gravity", copy: "shared-apartment mornings, kitchens, laundry, ordinary routines, and dangerous familiarity" },
       content: [
-        linkedContent("home-oracle", "🔮", "Home Oracle", 2,
-          "Unlock saved personal decision wheels with weighted choices, temporary skips, no-repeat mode, a wheel spin and a fast Pick for me action. It helps with decisions without turning them into Quests.",
-          { special: 1 }, "Open Home Oracle", () => window.LifeRPGTalentRewardStudios?.open?.("home-oracle"))
+        rankedContent("home-oracle", "🔮", "Home Oracle", 2,
+          "Rank I: create and use one weighted decision wheel. Rank II: remove the wheel limit and keep as many saved wheels as you actually use.",
+          {}, "Open Home Oracle", () => window.LifeRPGTalentRewardStudios?.open?.("home-oracle"))
       ]
     },
     Hobbies: {
       icon: "🎨",
       special: { id: "joy-spark", icon: "♡", title: "Joy Spark", max: 3 },
-      subtitle: "Reward play and creativity, then unlock genuinely new things to do with that time.",
+      subtitle: "Your first point opens something genuinely fun to use; later points expand the toy rather than merely increasing a number.",
       dream: { title: "Play After Dark", copy: "games, music, playful competition, and moments that feel suspiciously like dates" },
       content: [
-        linkedContent("coloring-studio", "🖍️", "Coloring Studio", 2,
-          "Unlock a Pencil/touch/mouse coloring canvas with undo, redo, eraser, autosave and spoiler-free DynaRiot starter pages. Large drawing data stays outside the main save to protect storage stability.",
-          { special: 1 }, "Open Coloring Studio", () => window.LifeRPGTalentRewardStudios?.open?.("coloring-studio")),
+        rankedContent("coloring-studio", "🖍️", "Coloring Studio", 2,
+          "Rank I: unlock Coloring Studio plus the first spoiler-free character page. Rank II: add the Kirishima and DynaRiot Duo pages for the full current starter pack.",
+          {}, "Open Coloring Studio", () => window.LifeRPGTalentRewardStudios?.open?.("coloring-studio")),
         planned("moodboard-mixer", "▣", "Moodboard Mixer · Later",
           "A future focused board tool for outfits, makeup, DIY and Adventure inspiration. Visible as a possible Hobbies expansion, but it cannot cost points until the tool actually exists.",
-          { special: 2, content: "coloring-studio" })
+          { content: "coloring-studio", contentRank: 2 })
       ]
     }
   };
@@ -134,6 +134,10 @@
 
   function linkedContent(id, icon, title, cost, copy, requires = {}, openLabel = "Open", open = null) {
     return { id, icon, title, cost, copy, requires, native: false, planned: false, linked: true, openLabel, open };
+  }
+
+  function rankedContent(id, icon, title, maxRank, copy, requires = {}, openLabel = "Open", open = null) {
+    return { id, icon, title, cost: 1, copy, requires, native: false, planned: false, linked: true, rankable: true, maxRank: Math.max(1, Number(maxRank || 1)), openLabel, open };
   }
 
   function planned(id, icon, title, copy, requires = {}) {
@@ -196,7 +200,19 @@
       state.migrations.skillContentCleanupAR = { at: Date.now(), refundedPoints };
       migratedNow = true;
     }
-    if (migratedNow) app.saveState({ source: "talent-tree-content-cleanup-ar" });
+    if (!state.migrations.starterContentRanksAT) {
+      for (const [realm, id] of [["Japanese", "dynariot-japanese"], ["Home", "home-oracle"], ["Hobbies", "coloring-studio"]]) {
+        const raw = state.unlocks?.[realm]?.[id];
+        if (raw) {
+          // V0.31.4as charged 2 points for the complete feature. Rank II is the
+          // complete current feature in AT, so old owners keep exactly what they had.
+          state.unlocks[realm][id] = 2;
+        }
+      }
+      state.migrations.starterContentRanksAT = { at: Date.now() };
+      migratedNow = true;
+    }
+    if (migratedNow) app.saveState({ source: "talent-tree-content-migrations-at" });
     return state;
   }
 
@@ -206,9 +222,21 @@
     return (META[realm]?.content || []).filter(item => !item.native && !item.planned);
   }
 
+  function getContentRank(realm, itemOrId) {
+    const id = typeof itemOrId === "string" ? itemOrId : itemOrId?.id;
+    const item = typeof itemOrId === "string" ? (META[realm]?.content || []).find(entry => entry.id === id) : itemOrId;
+    if (!id || !item) return 0;
+    if (item.native) return v2.isContentUnlocked?.(realm, id) ? 1 : 0;
+    const raw = state().unlocks?.[realm]?.[id];
+    if (item.rankable) return Math.max(0, Math.min(Number(item.maxRank || 1), Math.floor(Number(raw || 0))));
+    return raw ? 1 : 0;
+  }
+
   function extraSpent(realm) {
-    const owned = state().unlocks?.[realm] || {};
-    const contentSpent = customContentDefs(realm).reduce((sum, item) => sum + (owned[item.id] ? Number(item.cost || 0) : 0), 0);
+    const contentSpent = customContentDefs(realm).reduce((sum, item) => {
+      const rank = getContentRank(realm, item);
+      return sum + (item.rankable ? rank * Number(item.cost || 1) : rank ? Number(item.cost || 0) : 0);
+    }, 0);
     const dreamSpent = getDreamThreadRank(realm) * 2;
     return contentSpent + dreamSpent;
   }
@@ -253,7 +281,11 @@
     const special = Number(v2.getRank(realm, meta.special.id) || 0);
     if (special < 3) return { ok: false, label: `${meta.special.title} III` };
     const second = secondRealContent(realm);
-    if (second && !isOwned(realm, second)) return { ok: false, label: second.title };
+    if (second) {
+      const real = (META[realm]?.content || []).filter(item => !item.planned);
+      const neededRank = real.length === 1 && second.rankable ? Number(second.maxRank || 1) : 1;
+      if (getContentRank(realm, second) < neededRank) return { ok: false, label: `${second.title}${neededRank > 1 ? ` ${roman(neededRank)}` : ""}` };
+    }
     return { ok: true, label: "" };
   }
 
@@ -294,11 +326,7 @@
   }
 
   function isOwned(realm, itemOrId) {
-    const id = typeof itemOrId === "string" ? itemOrId : itemOrId?.id;
-    const item = typeof itemOrId === "string" ? (META[realm]?.content || []).find(entry => entry.id === id) : itemOrId;
-    if (!id || !item) return false;
-    if (item.native) return Boolean(v2.isContentUnlocked?.(realm, id));
-    return Boolean(state().unlocks?.[realm]?.[id]);
+    return getContentRank(realm, itemOrId) > 0;
   }
 
   function prereqStatus(realm, item) {
@@ -308,14 +336,20 @@
     }
     if (req.content) {
       const parent = (META[realm].content || []).find(entry => entry.id === req.content);
-      if (!parent || !isOwned(realm, parent)) return { ok: false, label: parent?.title || "previous content unlock" };
+      const neededRank = Math.max(1, Number(req.contentRank || 1));
+      if (!parent || getContentRank(realm, parent) < neededRank) {
+        return { ok: false, label: `${parent?.title || "previous content unlock"}${neededRank > 1 ? ` ${roman(neededRank)}` : ""}` };
+      }
     }
     return { ok: true, label: "" };
   }
 
   function purchaseContent(realm, id) {
     const item = (META[realm]?.content || []).find(entry => entry.id === id);
-    if (!item || item.planned || isOwned(realm, item)) return false;
+    if (!item || item.planned) return false;
+    const currentRank = getContentRank(realm, item);
+    const maxRank = item.rankable ? Number(item.maxRank || 1) : 1;
+    if (currentRank >= maxRank) return false;
 
     const prereq = prereqStatus(realm, item);
     if (!prereq.ok) {
@@ -332,14 +366,15 @@
     const points = skills.getRealmPoints(realm);
     const cost = Math.max(1, Number(item.cost || 1));
     if (Number(points.available || 0) < cost) {
-      app.showToast?.(`You need ${cost} ${realm} points for ${item.title}.`);
+      app.showToast?.(`You need ${cost} ${realm} point${cost === 1 ? "" : "s"} for ${item.title}.`);
       return false;
     }
 
-    state().unlocks[realm][item.id] = Date.now();
+    const nextRank = currentRank + 1;
+    state().unlocks[realm][item.id] = item.rankable ? nextRank : Date.now();
     app.saveState({ source: `talent-content-unlock-${realm.toLowerCase()}` });
     emitChange(realm, item.id);
-    app.showToast?.(`🔓 ${item.title} unlocked · ${cost} ${realm} points.`);
+    app.showToast?.(`🔓 ${item.title}${item.rankable ? ` ${roman(nextRank)}/${maxRank}` : ""} unlocked · ${cost} ${realm} point${cost === 1 ? "" : "s"}.`);
     scheduleRender(20);
     return true;
   }
@@ -379,7 +414,7 @@
     const points = skills.getRealmPoints(realm);
     const effects = [
       ...(v2.getActiveEffects?.(realm) || []),
-      ...customContentDefs(realm).filter(item => isOwned(realm, item)).map(item => `${item.icon} ${item.title} · permanently unlocked`)
+      ...customContentDefs(realm).filter(item => isOwned(realm, item)).map(item => `${item.icon} ${item.title}${item.rankable ? ` ${roman(getContentRank(realm, item))}/${item.maxRank}` : ""} · permanently unlocked`)
     ];
     const dreamRank = getDreamThreadRank(realm);
     if (dreamRank) effects.push(`🌙 Dream Thread ${dreamRank}/2 · ${meta.dream.title} pool · global cadence every ${dreamCadenceDays()} day${dreamCadenceDays() === 1 ? "" : "s"}`);
@@ -477,7 +512,7 @@
 
           <section class="talent-v3-branch is-content">
             <header><span>🔓</span><div><small>BRANCH C</small><strong>Content</strong><p>New things to actually use.</p></div></header>
-            <div class="talent-v3-content-origin"><span>↳</span><strong>Branches from ${esc(meta.special.title)} I</strong></div>
+            <div class="talent-v3-content-origin"><span>↳</span><strong>Starter content is available immediately · 1 point</strong></div>
             ${contentNodes}
           </section>
 
@@ -558,7 +593,7 @@
   function contentNode(realm, item, index) {
     if (item.planned) {
       const prereq = prereqStatus(realm, item);
-      return `${index ? treeLink(item.requires?.content ? `After ${contentTitle(realm, item.requires.content)}` : `After ${META[realm].special.title}`) : ""}
+      return `${index ? treeLink(item.requires?.content ? `After ${contentTitle(realm, item.requires.content)}` : `Future expansion`) : ""}
         <article class="talent-v3-node talent-v3-content-node is-planned">
           <div class="talent-v3-node-top">
             <span class="talent-v3-node-icon">${item.icon}</span>
@@ -569,25 +604,29 @@
         </article>`;
     }
 
-    const owned = isOwned(realm, item);
+    const rank = getContentRank(realm, item);
+    const maxRank = item.rankable ? Number(item.maxRank || 1) : 1;
+    const owned = rank > 0;
+    const complete = rank >= maxRank;
     const prereq = prereqStatus(realm, item);
     const points = skills.getRealmPoints(realm);
     const cost = Number(item.cost || 1);
-    const canBuy = !owned && prereq.ok && Number(points.available || 0) >= cost;
-    const stateClass = owned ? "is-owned" : !prereq.ok ? "is-locked" : canBuy ? "is-ready" : "is-poor";
+    const canBuy = !complete && prereq.ok && Number(points.available || 0) >= cost;
+    const stateClass = complete ? "is-owned" : !prereq.ok ? "is-locked" : canBuy ? "is-ready" : "is-poor";
 
-    const action = owned
-      ? `<button class="secondary-button" type="button" data-talent-v3-open="${escAttr(realm)}|${escAttr(item.id)}">${esc(item.openLabel || "Open")}</button>`
-      : `<button class="${canBuy ? "primary-button" : "secondary-button"}" type="button" data-talent-v3-content="${escAttr(realm)}|${escAttr(item.id)}" ${!prereq.ok ? "disabled" : ""}>${!prereq.ok ? `Requires ${esc(prereq.label)}` : `Unlock for ${cost} points`}</button>`;
+    const openButton = owned ? `<button class="secondary-button" type="button" data-talent-v3-open="${escAttr(realm)}|${escAttr(item.id)}">${esc(item.openLabel || "Open")}</button>` : "";
+    const buyButton = complete ? "" : `<button class="${canBuy ? "primary-button" : "secondary-button"}" type="button" data-talent-v3-content="${escAttr(realm)}|${escAttr(item.id)}" ${!prereq.ok ? "disabled" : ""}>${!prereq.ok ? `Requires ${esc(prereq.label)}` : item.rankable ? `Unlock Rank ${roman(rank + 1)} · ${cost} point` : `Unlock for ${cost} point${cost === 1 ? "" : "s"}`}</button>`;
+    const action = complete ? openButton : `<span class="talent-v3-content-actions">${openButton}${buyButton}</span>`;
 
-    return `${index ? treeLink(item.requires?.content ? `Previous unlock: ${contentTitle(realm, item.requires.content)}` : `${META[realm].special.title} path`) : ""}
+    return `${index ? treeLink(item.requires?.content ? `Previous unlock: ${contentTitle(realm, item.requires.content)}${item.requires.contentRank > 1 ? ` ${roman(item.requires.contentRank)}` : ""}` : `Content expansion`) : ""}
       <article class="talent-v3-node talent-v3-content-node ${stateClass}">
         <div class="talent-v3-node-top">
           <span class="talent-v3-node-icon">${item.icon}</span>
-          <div><small>CONTENT UNLOCK · ${cost} POINT${cost === 1 ? "" : "S"} · PERMANENT</small><h3>${esc(item.title)}</h3></div>
+          <div><small>CONTENT ${item.rankable ? `RANK · 1 POINT / RANK` : `UNLOCK · ${cost} POINT${cost === 1 ? "" : "S"}`} · PERMANENT</small><h3>${esc(item.title)}</h3></div>
         </div>
+        ${item.rankable ? `<div class="talent-v3-ranks" aria-label="${rank} of ${maxRank} ranks">${Array.from({ length: maxRank }, (_, i) => `<i class="${i < rank ? "filled" : ""}"></i>`).join("")}</div>` : ""}
         <p>${esc(item.copy)}</p>
-        <div class="talent-v3-node-foot"><em>${owned ? "Permanently unlocked" : `Path: ${esc(requirementLabel(realm, item))}`}</em>${action}</div>
+        <div class="talent-v3-node-foot"><em>${owned ? item.rankable ? `Rank ${roman(rank)}/${roman(maxRank)} unlocked` : "Permanently unlocked" : `Path: ${esc(requirementLabel(realm, item))}`}</em>${action}</div>
       </article>`;
   }
 
@@ -599,8 +638,8 @@
     const req = item?.requires || {};
     const bits = [];
     if (req.special) bits.push(`${META[realm].special.title} ${roman(req.special)}`);
-    if (req.content) bits.push(contentTitle(realm, req.content));
-    return bits.join(" + ") || "Realm branch";
+    if (req.content) bits.push(`${contentTitle(realm, req.content)}${Number(req.contentRank || 1) > 1 ? ` ${roman(req.contentRank)}` : ""}`);
+    return bits.join(" + ") || "Available immediately";
   }
 
   function treeLink(label) {
@@ -692,6 +731,7 @@
     version: VERSION,
     meta: META,
     isContentUnlocked: isOwned,
+    getContentRank,
     purchaseContent,
     openContent,
     extraSpent,

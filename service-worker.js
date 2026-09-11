@@ -1,4 +1,4 @@
-const CACHE_NAME = "life-rpg-v0314as-reward-studios";
+const CACHE_NAME = "life-rpg-v0314at-early-content-paths";
 const CORE = [
   "./",
   "./index.html",
@@ -11,17 +11,17 @@ const CORE = [
   "./logic-expansion.css?v=0.31.4ar",
   "./dreamscape.css?v=0.31.4aq",
   "./skills.js?v=0.31.4ap",
-  "./talent-v2.js?v=0.31.4ar",
-  "./talent-tree-v2-graph.js?v=0.31.4as",
+  "./talent-v2.js?v=0.31.4at",
+  "./talent-tree-v2-graph.js?v=0.31.4at",
   "./talent-reward-studios.css?v=0.31.4as",
-  "./talent-reward-studios.js?v=0.31.4as",
+  "./talent-reward-studios.js?v=0.31.4at",
   "./talent-content-v2.js?v=0.31.4ar",
   "./dreamscape.js?v=0.31.4aq",
   "./journal-rewards.js?v=0.31.4ag",
   "./weekly-review.css?v=0.31.4ag",
   "./weekly-review.js?v=0.31.4ag",
   "./manifest.webmanifest?v=0.30.3a",
-  "./pwa.js?v=0.31.4as",
+  "./pwa.js?v=0.31.4at",
   "./visual-performance.js?v=0.31.4c",
   "./modal-manager.js?v=0.31.4d",
   "./training-focus.js?v=0.31.4o",

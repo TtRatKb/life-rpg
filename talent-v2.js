@@ -8,8 +8,8 @@
     return;
   }
 
-  const VERSION = "0.31.4ar";
-  const SCHEMA = 3;
+  const VERSION = "0.31.4at";
+  const SCHEMA = 4;
   const RESONANCE_DAILY_CAP = 3;
   const REALM_ORDER = ["Work", "Knowledge", "Japanese", "Health", "Recovery", "Home", "Hobbies"];
   const LEGACY_TREE_KEYS = {
@@ -89,8 +89,8 @@
         id: "year-question",
         icon: "📅",
         title: "365 Question Journal",
-        cost: 2,
-        requiresSpecial: 1,
+        cost: 1,
+        requiresSpecial: 0,
         copy: "Permanently unlock one different reflection question for every calendar day. The same question returns on the same date each year, so answers can become a long-term time capsule.",
         openLabel: "Open Journal",
         open: () => app.showView?.("journal")
@@ -112,8 +112,8 @@
         id: "grounding-54321",
         icon: "✋",
         title: "5–4–3–2–1 Grounding",
-        cost: 2,
-        requiresSpecial: 1,
+        cost: 1,
+        requiresSpecial: 0,
         copy: "Permanently unlock a new guided 7-minute sensory grounding session in Recovery Studio.",
         openLabel: "Open Recovery Studio",
         open: () => window.LifeRPGRecoveryStudio?.open?.()
