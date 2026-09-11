@@ -4,7 +4,7 @@
   const app = window.LifeRPGApp;
   if (!app) return;
 
-  const VERSION = "0.31.4az";
+  const VERSION = "0.31.4ba";
   const SCHEMA_VERSION = 2;
   const WEEKLY_REWARD_FIND_THRESHOLDS = [3, 8];
   const MAX_HISTORY = 180;

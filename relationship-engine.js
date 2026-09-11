@@ -10,7 +10,7 @@
     return;
   }
 
-  const VERSION = "0.31.4az";
+  const VERSION = "0.31.4ba";
   const SCHEMA = 1;
   const MAX_HISTORY = 500;
   const MAX_PROCESSED = 1200;

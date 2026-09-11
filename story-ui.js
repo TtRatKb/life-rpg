@@ -1448,7 +1448,8 @@
       </div>
       <div class="people-social-rhythm"><small>CURRENT RHYTHM</small><p>${escapeHtml(socialRhythmForPerson(selected))}</p></div>
       <div class="people-known-list">${details.map(item => `<div><span>✿</span><p>${escapeHtml(item)}</p></div>`).join("")}</div>
-      <div class="people-known-footnote">Hidden trust, memories and preferences stay hidden. You'll notice them when they matter.</div>`;
+      ${window.LifeRPGRelationshipMemory?.sharedThreadMarkup?.(selected.id) || ""}
+      <div class="people-known-footnote">No meter. No optimization math. Shared history shows up through what people remember and how they behave.</div>`;
   }
 
   function selectPeoplePerson(personId) {
@@ -3467,6 +3468,13 @@
     const traits = state.story?.traits || {};
     const flags = state.flags || {};
     const relationships = state.story?.relationships || {};
+    const relationshipMemory = window.LifeRPGRelationshipMemory;
+
+    if (node.when?.memory && !relationshipMemory?.matches?.(node.when.memory)) return false;
+    if (Array.isArray(node.when?.memories) && node.when.memories.some(req => !relationshipMemory?.matches?.(req))) return false;
+    if (Array.isArray(node.when?.anyMemory) && !node.when.anyMemory.some(req => relationshipMemory?.matches?.(req))) return false;
+    if (node.unless?.memory && relationshipMemory?.matches?.(node.unless.memory)) return false;
+    if (Array.isArray(node.unless?.memories) && node.unless.memories.some(req => relationshipMemory?.matches?.(req))) return false;
 
     if (Array.isArray(node.dayparts) && node.dayparts.length && !node.dayparts.includes(currentWorldDaypart())) return false;
     if (Array.isArray(node.weekdays) && node.weekdays.length && !node.weekdays.includes(new Date().getDay())) return false;
@@ -3628,14 +3636,14 @@
         const speaker = document.createElement("strong");
         speaker.textContent = block.speaker || "Dialogue";
         const text = document.createElement("span");
-        text.textContent = block.text || "";
+        text.textContent = window.LifeRPGRelationshipMemory?.resolveText?.(block.text || "") || block.text || "";
         element.append(speaker, text);
       } else if (block.kind === "thought") {
         element.className = "story-prose-thought";
-        element.textContent = block.text || "";
+        element.textContent = window.LifeRPGRelationshipMemory?.resolveText?.(block.text || "") || block.text || "";
       } else {
         element.className = "story-prose-paragraph";
-        element.textContent = block.text || "";
+        element.textContent = window.LifeRPGRelationshipMemory?.resolveText?.(block.text || "") || block.text || "";
       }
 
       els.beatContent.appendChild(element);
@@ -3960,6 +3968,9 @@
           break;
         case "location":
           state.locations[effect.key] = effect.value ?? true;
+          break;
+        case "memory":
+          window.LifeRPGRelationshipMemory?.remember?.(effect.personId || effect.person, effect.key, effect.label || effect.key, effect.category || "shared", effect.detail || "", effect.source || "authored");
           break;
         default:
           break;

@@ -4,7 +4,7 @@
   const app = window.LifeRPGApp;
   if (!app) return;
 
-  const VERSION = "0.31.4az";
+  const VERSION = "0.31.4ba";
   const SCHEMA_VERSION = 1;
   const MAX_ARCHIVE = 120;
 
