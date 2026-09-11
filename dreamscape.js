@@ -1,17 +1,18 @@
 (() => {
   "use strict";
 
-  if (window.__lifeRpgDreamscapeV314ap) return;
-  window.__lifeRpgDreamscapeV314ap = true;
+  if (window.__lifeRpgDreamscapeV314aq) return;
+  window.__lifeRpgDreamscapeV314aq = true;
 
   const app = window.LifeRPGApp;
   const graph = window.LifeRPGTalentTreeGraph;
+  const relationships = window.LifeRPGRelationshipEngine;
   if (!app?.getState || !app?.saveState || !graph?.getTotalDreamThreads) {
     console.error("Dreamscape could not initialize because Talent Tree progression is unavailable.");
     return;
   }
 
-  const VERSION = "0.31.4ap";
+  const VERSION = "0.31.4aq";
   const SCHEMA = 1;
   const DAY_MS = 24 * 60 * 60 * 1000;
   const REALMS = ["Work","Knowledge","Japanese","Health","Recovery","Home","Hobbies"];
@@ -763,8 +764,6 @@
       const close = event.target.closest?.("[data-dreamscape-close]");
       if (close) { event.preventDefault(); document.getElementById("dreamscapeDialog")?.close?.(); return; }
 
-      const focus = event.target.closest?.("[data-dreamscape-focus]");
-      if (focus) { event.preventDefault(); chooseDream(focus.dataset.dreamscapeFocus); return; }
 
       const wake = event.target.closest?.("[data-dreamscape-wake]");
       if (wake) { event.preventDefault(); finishDream(); return; }
@@ -784,41 +783,31 @@
     }
     if (!isReady()) renderStatusDialog();
     else if (state().pendingDreamId) showDream(state().pendingDreamId, false);
-    else renderChooser();
+    else chooseDreamAutomatically();
     const dialog = document.getElementById("dreamscapeDialog");
     if (dialog && !dialog.open) dialog.showModal?.();
     return true;
   }
 
-  function renderChooser() {
-    const body = document.getElementById("dreamscapeDialogBody");
-    if (!body) return;
-    const pools = REALMS.filter(realm => Number(graph.getDreamThreadRank?.(realm) || 0) > 0)
-      .map(realm => `${realm} · ${graph.getDreamTheme?.(realm)?.title || "Dream pool"}`)
-      .join(" · ");
-    body.innerHTML = `
-      <p class="eyebrow">A DREAM IS WAITING</p>
-      <h2>Who drifts into it?</h2>
-      <p class="dreamscape-lead-v314ap">Dreams are deliberately non-canon. They can be softer, closer or more romantic than the current Slow Burn without changing anything when Luca wakes up.</p>
-      <div class="dreamscape-focus-grid-v314ap">
-        ${["surprise","bakugo","kirishima","both"].map(key => `<button type="button" data-dreamscape-focus="${key}"><span>${key === "surprise" ? "✦" : key === "bakugo" ? "爆" : key === "kirishima" ? "♡" : "∞"}</span><strong>${FOCUS_LABEL[key]}</strong><small>${key === "surprise" ? "Let the dream choose." : key === "both" ? "A shared dream with both of them." : `A dream focused on ${FOCUS_LABEL[key]}.`}</small></button>`).join("")}
-      </div>
-      <div class="dreamscape-pools-v314ap"><small>UNLOCKED THEMES</small><p>${esc(pools)}</p></div>
-      <p class="dreamscape-safety-v314ap">No Story Energy · no XP · no Coins · no affinity · no canon flags.</p>`;
-  }
-
-  function chooseDream(requestedFocus) {
+  function chooseDreamAutomatically() {
     if (!isReady() || state().pendingDreamId) return false;
-    let focus = ["bakugo","kirishima","both"].includes(requestedFocus) ? requestedFocus : null;
     const eligible = unlockedDreams();
     if (!eligible.length) return false;
 
-    if (!focus) {
-      const focusOptions = ["bakugo","kirishima","both"];
-      focus = focusOptions[Math.floor(Math.random() * focusOptions.length)];
+    // Character focus is never chosen by the player. Hidden romantic affection
+    // shifts this roll: Bakugo/Kirishima each stay within roughly 30–50%, while
+    // Both lives between 5–20% and rises when both relationships are similarly
+    // developed. If the relationship module is unavailable, use the balanced
+    // mature fallback (40 / 40 / 20).
+    let focus = relationships?.pickDreamFocus?.() || null;
+    if (!["bakugo", "kirishima", "both"].includes(focus)) {
+      const roll = Math.random() * 100;
+      focus = roll < 40 ? "bakugo" : roll < 80 ? "kirishima" : "both";
     }
 
     let candidates = eligible.filter(dream => dream.focus === focus);
+    if (!candidates.length) candidates = eligible;
+
     const seen = new Set(state().archive.map(item => item.dreamId));
     const unseen = candidates.filter(dream => !seen.has(dream.id));
     if (unseen.length) candidates = unseen;
@@ -827,11 +816,11 @@
     const freshRealm = candidates.filter(dream => !recentRealms.includes(dream.realm));
     if (freshRealm.length) candidates = freshRealm;
 
-    const dream = candidates[Math.floor(Math.random() * candidates.length)] || eligible[0];
-    state().pendingDreamId = dream.id;
-    state().pendingFocus = requestedFocus || "surprise";
+    const selected = candidates[Math.floor(Math.random() * candidates.length)] || eligible[0];
+    state().pendingDreamId = selected.id;
+    state().pendingFocus = focus;
     app.saveState({ source: "dreamscape-dream-chosen" });
-    showDream(dream.id, false);
+    showDream(selected.id, false);
     renderCard();
     return true;
   }
@@ -901,7 +890,7 @@
           return `<button type="button" data-dreamscape-replay="${escAttr(dream.id)}"><span>🌙</span><div><small>${esc(dream.realm.toUpperCase())} · ${esc(FOCUS_LABEL[dream.focus] || dream.focus)}</small><strong>${esc(dream.title)}</strong><p>${new Date(item.readAt).toLocaleDateString(undefined, { year:"numeric", month:"short", day:"numeric" })}</p></div><b>›</b></button>`;
         }).join("") : `<div class="dreamscape-empty-v314ap">No dreams archived yet.</div>`}
       </div>
-      ${isReady() ? `<button class="primary-button" type="button" data-dreamscape-open>${state().pendingDreamId ? "Resume waiting dream" : "Read waiting dream"}</button>` : ""}`;
+      ${isReady() ? `<button class="primary-button" type="button" data-dreamscape-open>${state().pendingDreamId ? "Resume waiting dream" : "Let the dream begin"}</button>` : ""}`;
     const dialog = document.getElementById("dreamscapeDialog");
     if (dialog && !dialog.open) dialog.showModal?.();
   }
@@ -936,7 +925,7 @@
     }),
     open: openDreamscape,
     openArchive,
-    chooseFocus: chooseDream,
+    rollPendingDream: chooseDreamAutomatically,
     finishPending: finishDream,
     getArchive: () => state().archive.map(item => ({ ...item })),
     refresh: renderCard

@@ -1,5 +1,5 @@
 
-/* Life RPG V0.31.4ap · Dreamscape */
+/* Life RPG V0.31.4aq · Dreamscape */
 .dreamscape-story-card-v314ap{display:grid;grid-template-columns:58px minmax(0,1fr) auto;gap:15px;align-items:center;margin-bottom:16px;border-color:rgba(101,74,139,.16);background:radial-gradient(circle at 92% 12%,rgba(123,96,163,.14),transparent 12rem),linear-gradient(135deg,rgba(255,249,246,.94),rgba(244,239,251,.84))}
 .dreamscape-story-card-v314ap.is-locked{border-style:dashed;opacity:.72}
 .dreamscape-card-icon-v314ap{display:grid;width:54px;height:54px;place-items:center;border-radius:18px;background:rgba(97,72,133,.08);font-size:1.35rem}
