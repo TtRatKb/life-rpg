@@ -10,7 +10,7 @@
   const PUZZLES = Array.isArray(DATA.puzzles) ? DATA.puzzles : [];
   if (!app?.getState || !app?.awardActivity || !ENTRIES.length || !PUZZLES.length) return;
 
-  const VERSION = "0.31.4am";
+  const VERSION = "0.31.4am1";
   const SCHEMA = 4;
   const TOTAL = PUZZLES.length;
   const REPEAT_SCALES = [1, .75, .5, .35];
@@ -1038,9 +1038,7 @@
 
     const existing = current();
     if (existing && !existing.completedAt && existing.mode === "daily" && existing.dateKey === dateKey && existing.puzzle?.id === record.puzzle.id) {
-      enterFocus(existing);
-      render();
-      return true;
+      return enterFocus(existing);
     }
 
     state().journey.active = record.progress
@@ -1048,8 +1046,7 @@
       : createActiveFromPuzzle(record.puzzle, { mode: "daily", dateKey });
     registerEncounters(state().journey.active, record.puzzle);
     persist("lexicon-daily-crossword-start");
-    enterFocus(current());
-    return true;
+    return enterFocus(current());
   }
 
   function startPracticeCrossword() {
@@ -1076,8 +1073,7 @@
     s.journey.active = createActiveFromPuzzle(puzzle, { mode: "practice" });
     registerEncounters(s.journey.active, puzzle);
     persist("lexicon-practice-crossword-start");
-    enterFocus(current());
-    return true;
+    return enterFocus(current());
   }
 
   function startLevel() {
@@ -1281,7 +1277,7 @@
       const mix = puzzle.profileMix || {};
       const mode = active.mode === "practice" ? "Practice · no economy reward" : active.mode === "daily" ? "Daily · rewarded once" : `Legacy Puzzle ${puzzle.level || ""}`;
       const mixText = active.mode === "daily" || active.mode === "practice"
-        ? `${number(mix.new)} new · ${number(mix.heard)} heard · ${number(mix.known)} known`
+        ? `${Math.max(0, Number(mix.new || 0))} new · ${Math.max(0, Number(mix.heard || 0))} heard · ${Math.max(0, Number(mix.known || 0))} known`
         : `${puzzle.words.length} terms`;
       els.puzzleMeta.innerHTML = `<span>${escapeHtml(mode)}</span><span>${escapeHtml(puzzle.title)}</span><span>${escapeHtml(puzzle.theme)}</span><span>${escapeHtml(mixText)}</span>`;
     }
@@ -1529,18 +1525,45 @@
 
   function enterFocus(active = current()) {
     if (!active || !els.play || !window.LifeRPGTrainingFocus?.enter) return false;
-    if (els.dialog?.open) els.dialog.close();
     const puzzle = activePuzzle(active);
-    render();
+    if (!puzzle) {
+      app.showToast?.("⌗ This Crossword could not be opened. Generate a fresh Practice puzzle or try the Daily again.");
+      return false;
+    }
+
+    // Render while the selection dialog is still open. If rendering ever fails,
+    // the user is not stranded behind a closed modal with an active saved puzzle.
+    try {
+      render();
+    } catch (error) {
+      console.error("Lexicon Crossword render failed", error);
+      app.showToast?.("⌗ Crossword display failed. Lexicon Lab stayed open so you can safely try again.");
+      return false;
+    }
+
     const modeLabel = active.mode === "practice" ? "Practice Crossword" : active.mode === "daily" ? "Daily Crossword" : `Crossword ${active.level}`;
-    return window.LifeRPGTrainingFocus.enter({
-      id: "lexicon-lab",
-      node: els.play,
-      title: `Lexicon Lab · ${modeLabel}`,
-      subtitle: `${puzzle.title} · ${puzzle.theme}`,
-      tone: "light",
-      onExit: () => { render(); if (els.dialog && !els.dialog.open) els.dialog.showModal(); }
-    });
+    let entered = false;
+    try {
+      entered = Boolean(window.LifeRPGTrainingFocus.enter({
+        id: "lexicon-lab",
+        node: els.play,
+        title: `Lexicon Lab · ${modeLabel}`,
+        subtitle: `${puzzle.title} · ${puzzle.theme}`,
+        tone: "light",
+        onExit: () => {
+          render();
+          if (els.dialog && !els.dialog.open) els.dialog.showModal();
+        }
+      }));
+    } catch (error) {
+      console.error("Lexicon Crossword focus entry failed", error);
+      app.showToast?.("⌗ Crossword display failed. Lexicon Lab stayed open so you can safely try again.");
+      entered = false;
+    }
+
+    if (!entered) return false;
+    if (els.dialog?.open) els.dialog.close();
+    return true;
   }
 
   function syncFocusHeader() {
@@ -1624,8 +1647,32 @@
   function rewardFromEvent(event) { return { eventId:event.id, xp:Number(event.xp||0), realmXP:Number(event.realmXP||0), statXP:Number(event.statXP||0), coins:Number(event.coins||0), storyEnergy:Number(event.storyEnergy||0) }; }
   function floor2(value) { return Math.floor((Number(value)||0)*100)/100; }
   function normalizeLetter(value) { return Array.from(String(value || "").trim().toUpperCase())[0] || ""; }
-  function queueSave(source) { window.clearTimeout(saveTimer); saveTimer = window.setTimeout(() => app.saveState({ source }), 80); }
-  function persist(source) { window.clearTimeout(saveTimer); app.saveState({ source }); render(); app.renderAll?.(); }
+  function syncDailyProgressSnapshot() {
+    const active = current();
+    if (!active || active.mode !== "daily" || !active.dateKey || active.completedAt) return;
+    const record = state().dailyCrosswords?.[active.dateKey];
+    if (!record?.puzzle || record.puzzle.id !== active.puzzle?.id) return;
+    record.progress = {
+      ...active,
+      values: { ...(active.values || {}) },
+      missedWordIds: [...(active.missedWordIds || [])],
+      hintLevels: { ...(active.hintLevels || {}) }
+    };
+  }
+
+  function queueSave(source) {
+    window.clearTimeout(saveTimer);
+    syncDailyProgressSnapshot();
+    saveTimer = window.setTimeout(() => app.saveState({ source }), 80);
+  }
+
+  function persist(source) {
+    window.clearTimeout(saveTimer);
+    syncDailyProgressSnapshot();
+    app.saveState({ source });
+    render();
+    app.renderAll?.();
+  }
   function byId(id) { return document.getElementById(id); }
   function escapeHtml(value) { return String(value ?? "").replace(/[&<>\"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[ch]); }
   function escapeAttr(value) { return escapeHtml(value); }

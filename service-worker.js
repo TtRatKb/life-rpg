@@ -1,4 +1,4 @@
-const CACHE_NAME = "life-rpg-v0314am-adaptive-daily-crossword";
+const CACHE_NAME = "life-rpg-v0314am1-daily-crossword-runtime-fix";
 const CORE = [
   "./",
   "./index.html",
@@ -24,7 +24,7 @@ const CORE = [
   "./home-tree.js?v=0.31.4ag3",
   "./hobbies-tree.js?v=0.31.4ai",
   "./manifest.webmanifest?v=0.30.3a",
-  "./pwa.js?v=0.31.4am",
+  "./pwa.js?v=0.31.4am1",
   "./visual-performance.js?v=0.31.4c",
   "./modal-manager.js?v=0.31.4d",
   "./training-focus.js?v=0.31.4o",
@@ -50,7 +50,7 @@ const CORE = [
   "./data/lexicon-lab-data.js?v=0.31.4q",
   "./data/lexicon-lab-enrichment.js?v=0.31.4y",
   "./data/lexicon-pool.js?v=0.31.4z",
-  "./lexicon-lab.js?v=0.31.4am",
+  "./lexicon-lab.js?v=0.31.4am1",
   "./smart-action-router.js?v=0.31.4s",
   "./smart-quests.js?v=0.31.0",
   "./daily.js?v=0.31.4ag",
