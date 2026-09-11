@@ -452,6 +452,10 @@
     if (event.source === "sudoku-complete" || event.source === "sudoku-solved") return m.level ? `Journey Level ${number(m.level)} completed · ${humanize(m.difficulty || "Sudoku")}` : `${humanize(m.difficulty || "Sudoku")} Practice puzzle completed`;
     if (event.source === "memory-garden-complete") return `Journey Level ${number(m.level)} completed · ${humanize(m.mode || "memory")} recall · ${number(m.rounds) || 3} rounds`;
     if (event.source === "word-lab-complete") return `${m.language === "de" ? "German Precision" : "English Fluency"} · legacy Word Lab level ${number(m.level)} · ${number(m.firstTryAccuracy)}% first-try`;
+    if (event.source === "talent-content-v2") {
+      const content = humanize(m.contentId || event.label || "Unlocked activity");
+      return `${content}${m.characters ? ` · ${number(m.characters)} chars` : m.seconds ? ` · ${Math.round(number(m.seconds) / 60)} min` : m.minutes ? ` · ${number(m.minutes)} min` : ""}`;
+    }
     if (event.source === "lexicon-lab-complete") {
       const label = m.mode === "daily-crossword" ? "Daily Crossword" : `Academic Crossword ${number(m.level)}`;
       return `${label} · ${humanize(m.theme || "German academic lexicon")} · ${number(m.perfectWords)}/${number(m.wordCount)} words recalled cleanly`;
@@ -591,6 +595,7 @@
       "talent-v2-cache": ["🎁", "Talent Reward"],
       "talent-v2-resonance": ["✨", "Talent Resonance"],
       "talent-v2-special": ["✦", "Talent Bonus"],
+      "talent-content-v2": ["🔓", "Talent Content"],
       "recovery-studio": ["🌿", "Recovery Studio"],
       "journal-reflection-base": ["🌸", "Journal"],
       "journal-reflection-effort": ["🌸", "Journal"],

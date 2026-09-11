@@ -7,7 +7,7 @@
     return;
   }
 
-  const VERSION = "0.31.4ai";
+  const VERSION = "0.31.4ap";
   const SCHEMA = 1;
   const MAX_EVENTS = 6000;
   const HABIT_XP = { tiny: 3, low: 5, normal: 8, high: 12, boss: 18 };
@@ -726,7 +726,13 @@
     const rankInfo = realmRankPointInfo(realm);
     const breadthInfo = breadthPointInfo(realm, totals);
     const bonus = Math.max(0, Number(state().realmBonusPoints?.[realm] || 0));
-    const spent = Math.max(0, Number(state().spentPointsByRealm?.[realm] || 0));
+    const baseSpent = Math.max(0, Number(state().spentPointsByRealm?.[realm] || 0));
+    // V2 core ranks live in spentPointsByRealm. Permanent AO/AP content and
+    // Dream Threads keep their ownership in their own save model, so count
+    // those costs here as an external contribution instead of duplicating them
+    // into the core ledger.
+    const externalSpent = Math.max(0, Number(window.LifeRPGTalentTreeGraph?.extraSpent?.(realm) || 0));
+    const spent = baseSpent + externalSpent;
     const earned = earnedFromSkills + rankInfo.points + breadthInfo.points + bonus;
     return {
       earned,
@@ -944,8 +950,8 @@
     const pointRows = Object.keys(REALMS).map(realm => realmPointInfo(realm, totals));
     const availablePoints = pointRows.reduce((sum, row) => sum + row.available, 0);
     const spentPoints = pointRows.reduce((sum, row) => sum + row.spent, 0);
-    const treeNodes = [...document.querySelectorAll("#skillsTalentTreePanels article.is-bought, #skillsTalentTreePanels article.is-available, #skillsTalentTreePanels article.is-short, #skillsTalentTreePanels article.is-locked")];
-    const unlockedNodes = treeNodes.filter(node => node.classList.contains("is-bought")).length;
+    const treeNodes = [...document.querySelectorAll("#skillsTalentTreePanels article.is-bought, #skillsTalentTreePanels article.is-available, #skillsTalentTreePanels article.is-short, #skillsTalentTreePanels article.is-locked, #skillsTalentTreePanels article.is-owned, #skillsTalentTreePanels article.is-ready, #skillsTalentTreePanels article.is-poor")];
+    const unlockedNodes = treeNodes.filter(node => node.classList.contains("is-bought") || node.classList.contains("is-owned")).length;
     container.innerHTML = `
       <article><small>DISCOVERED</small><strong>${discovered} / ${SKILLS.length}</strong><span>Skills with observed practice</span></article>
       <article><small>PRACTICE XP</small><strong>${formatXp(totalXP)}</strong><span>Skill XP from observable actions</span></article>

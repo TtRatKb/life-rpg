@@ -1,5 +1,5 @@
 
-/* Life RPG V0.31.4ao · actual branching Talent Tree layout */
+/* Life RPG V0.31.4ap · actual branching Talent Tree layout */
 
 .talent-v2-tree {
   overflow: visible;
@@ -157,7 +157,7 @@
 .talent-v3-branches {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(0,.82fr) minmax(0,1.05fr) minmax(0,1.05fr);
+  grid-template-columns: repeat(4, minmax(0,1fr));
   gap: 16px;
   align-items: start;
 }
@@ -167,8 +167,8 @@
   position: absolute;
   z-index: 0;
   top: 0;
-  left: 16.5%;
-  right: 16.5%;
+  left: 12.5%;
+  right: 12.5%;
   height: 2px;
   background: linear-gradient(90deg, rgba(167,101,131,.35), rgba(167,101,131,.8), rgba(167,101,131,.35));
 }
@@ -498,5 +498,36 @@
   .talent-v3-footer {
     align-items: flex-start;
     flex-direction: column;
+  }
+}
+
+
+.talent-v3-branch.is-dream > header {
+  background:
+    radial-gradient(circle at 90% 10%, rgba(117,91,157,.13), transparent 8rem),
+    rgba(255,255,255,.76);
+}
+.talent-v3-dream-node {
+  border-color: rgba(106,78,145,.18);
+  background:
+    radial-gradient(circle at 94% 7%, rgba(119,91,158,.10), transparent 8rem),
+    rgba(255,255,255,.73);
+}
+.talent-v3-dream-node.is-owned {
+  border-color: rgba(106,78,145,.30);
+  background:
+    radial-gradient(circle at 94% 7%, rgba(119,91,158,.14), transparent 8rem),
+    linear-gradient(135deg,rgba(255,249,244,.94),rgba(240,235,249,.83));
+}
+@media (max-width: 1180px) {
+  .talent-v3-branches { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .talent-v3-branches::before { display:none; }
+  .talent-v3-branch > header::before { display:none; }
+  .talent-v3-branch.is-content,
+  .talent-v3-branch.is-dream {
+    grid-column:auto;
+    max-width:none;
+    width:auto;
+    margin:0;
   }
 }

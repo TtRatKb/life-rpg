@@ -1,8 +1,8 @@
 (() => {
   "use strict";
 
-  if (window.__lifeRpgTalentTreeGraphV314ao) return;
-  window.__lifeRpgTalentTreeGraphV314ao = true;
+  if (window.__lifeRpgTalentTreeGraphV314ap) return;
+  window.__lifeRpgTalentTreeGraphV314ap = true;
 
   const app = window.LifeRPGApp;
   const skills = window.LifeRPGSkills;
@@ -12,8 +12,8 @@
     return;
   }
 
-  const VERSION = "0.31.4ao";
-  const SCHEMA = 1;
+  const VERSION = "0.31.4ap";
+  const SCHEMA = 2;
   const REALMS = ["Work", "Knowledge", "Japanese", "Health", "Recovery", "Home", "Hobbies"];
 
   const META = {
@@ -21,6 +21,7 @@
       icon: "💼",
       special: { id: "deep-work", icon: "🎯", title: "Deep Work Bonus", max: 3 },
       subtitle: "Build from chance → momentum → deeper focus, then branch into optional work tools.",
+      dream: { title: "After Hours", copy: "after-work quiet, tiredness, and being taken care of when the day is finally over" },
       content: [
         content("work-debrief", "🧾", "Work Debrief", 2,
           "Unlock a short end-of-work reflection: what moved, what is next, and what can wait. It has its own modest writing rewards.",
@@ -28,8 +29,8 @@
         content("lesson-spark", "💡", "Lesson Spark Deck", 2,
           "Unlock a deck of concrete teaching/design prompts and launch a focused 25-minute planning block straight from the prompt.",
           { special: 2, content: "work-debrief" }),
-        planned("work-focus-challenges", "◆", "Focus Challenge Deck",
-          "A later branch for optional one-off focus challenges — not basic Focus features behind a paywall.",
+        content("work-focus-challenges", "◆", "Focus Challenge Deck", 2,
+          "Unlock rotating optional 35-minute focus challenges. They give you a concrete way to start; the normal Focus system stays free.",
           { special: 3, content: "lesson-spark" })
       ]
     },
@@ -37,6 +38,7 @@
       icon: "🧠",
       special: { id: "puzzle-spark", icon: "🧩", title: "Puzzle Spark", max: 3 },
       subtitle: "Turn regular thinking into stronger puzzle rewards, then unlock new ways to think.",
+      dream: { title: "Quiet Minds", copy: "books, puzzles, teaching each other, and the intimacy of shared concentration" },
       content: [
         content("decision-lens", "🔎", "Decision Lens", 2,
           "Unlock a structured reflection for a real decision: options, evidence, uncertainty and the next reversible step.",
@@ -50,12 +52,13 @@
       icon: "🌸",
       special: { id: "immersion-echo", icon: "🎧", title: "Immersion Echo", max: 3 },
       subtitle: "Reward contact with Japanese, then open extra production/immersion toys rather than hiding the basics.",
+      dream: { title: "Between Words", copy: "language, repeated phrases, and things that become easier to say softly" },
       content: [
         content("sentence-forge", "文", "Sentence Forge", 2,
           "Unlock a tiny Japanese production journal with rotating prompts. Write one or a few real sentences; longer attempts earn a few extra tiers.",
           { special: 1 }),
-        planned("shadowing-sprint", "🎙️", "Shadowing Sprint",
-          "A future focused shadowing activity using short Japanese audio/text. It stays unbuyable until the activity itself is ready.",
+        content("shadowing-sprint", "🎙️", "Shadowing Sprint", 2,
+          "Unlock a five-minute bring-your-own-audio shadowing sprint with a real countdown and Japanese completion reward.",
           { special: 2, content: "sentence-forge" })
       ]
     },
@@ -63,12 +66,13 @@
       icon: "🌿",
       special: { id: "reflection-bloom", icon: "🌙", title: "Reflection Bloom", max: 3 },
       subtitle: "Build visible care/reflection bonuses, then unlock additional reflection content.",
+      dream: { title: "Close Enough to Notice", copy: "care, warmth, touch, and noticing the body without turning it into a task" },
       content: [
         nativeContent("thought-untangler", "🧶", "Thought Untangler", 2,
           "Permanently unlock the fourth Journal reflection already built into Life RPG.",
           { special: 1 }, "Open Journal", () => app.showView?.("journal")),
-        planned("body-signals", "◌", "Body Signals",
-          "A later gentle body/energy noticing tool — information, not a score and not a fitness obligation.",
+        content("body-signals", "◌", "Body Signals", 2,
+          "Unlock a gentle body/energy noticing reflection. It records information, not a score, streak or fitness target.",
           { special: 2, content: "thought-untangler" })
       ]
     },
@@ -76,12 +80,13 @@
       icon: "🛋️",
       special: { id: "rested-charge", icon: "☾", title: "Rested Charge", max: 3 },
       subtitle: "Let recovery create useful momentum, then unlock additional regulation activities.",
+      dream: { title: "Soft Landing", copy: "couches, blankets, sleepiness, stillness, and being allowed to lean on someone" },
       content: [
         nativeContent("grounding-54321", "✋", "5–4–3–2–1 Grounding", 2,
           "Permanently unlock the guided 7-minute sensory grounding session already built into Recovery Studio.",
           { special: 1 }, "Open Recovery Studio", () => window.LifeRPGRecoveryStudio?.open?.()),
-        planned("recovery-toolkit", "✦", "Recovery Toolkit",
-          "A later extra recovery activity slot. It will only become purchasable once the new session genuinely exists.",
+        content("recovery-toolkit", "✦", "Recovery Toolkit", 2,
+          "Unlock a rotating set of short regulation prompts with a real Recovery timer and its own completion reward.",
           { special: 2, content: "grounding-54321" })
       ]
     },
@@ -89,12 +94,13 @@
       icon: "🏠",
       special: { id: "quick-win", icon: "✨", title: "Quick Win", max: 3 },
       subtitle: "Make practical wins pay a little better, then unlock optional small reset activities.",
+      dream: { title: "Domestic Gravity", copy: "shared-apartment mornings, kitchens, laundry, ordinary routines, and dangerous familiarity" },
       content: [
         content("one-surface-reset", "🧺", "One-Surface Reset", 2,
           "Unlock a small prompt deck for a 7-minute household reset. It launches a real Home timer and logs the actual time.",
           { special: 1 }),
-        planned("home-reset-deck", "▦", "Home Reset Deck",
-          "A later larger deck of tiny practical reset activities with more variety than the first one-surface session.",
+        content("home-reset-deck", "▦", "Home Reset Deck", 2,
+          "Unlock a larger deck of 12-minute practical reset activities for when you want a little more variety than One-Surface Reset.",
           { special: 2, content: "one-surface-reset" })
       ]
     },
@@ -102,6 +108,7 @@
       icon: "🎨",
       special: { id: "joy-spark", icon: "♡", title: "Joy Spark", max: 3 },
       subtitle: "Reward play and creativity, then unlock genuinely new things to do with that time.",
+      dream: { title: "Play After Dark", copy: "games, music, playful competition, and moments that feel suspiciously like dates" },
       content: [
         content("creative-prompt-deck", "✦", "Creative Prompt Deck", 2,
           "Unlock rotating low-pressure creative prompts and a 15-minute creative timer. The point is to make something, not to optimize it.",
@@ -109,8 +116,8 @@
         content("idea-garden", "🌱", "Idea Garden", 2,
           "Unlock a flexible creative journal for ideas, fragments, concepts and things you might want to make later.",
           { special: 2, content: "creative-prompt-deck" }),
-        planned("creative-dice", "🎲", "Creative Dice",
-          "A later playful generator that combines medium, mood and constraint into tiny creative experiments.",
+        content("creative-dice", "🎲", "Creative Dice", 2,
+          "Unlock a playful generator that combines a medium, mood and constraint into a 20-minute creative experiment.",
           { special: 3, content: "idea-garden" })
       ]
     }
@@ -134,7 +141,6 @@
 
   function init() {
     ensureState();
-    wrapRealmPointAccounting();
     bind();
     scheduleRender(0);
     window.addEventListener("life-rpg:render", () => scheduleRender(90));
@@ -146,14 +152,16 @@
   function ensureState() {
     const root = app.getState();
     if (!root.talentTreeExpansion || typeof root.talentTreeExpansion !== "object" || Array.isArray(root.talentTreeExpansion)) {
-      root.talentTreeExpansion = { schemaVersion: SCHEMA, version: VERSION, unlocks: {} };
+      root.talentTreeExpansion = { schemaVersion: SCHEMA, version: VERSION, unlocks: {}, dreamThreads: {} };
     }
     const state = root.talentTreeExpansion;
     state.schemaVersion = SCHEMA;
     state.version = VERSION;
     state.unlocks ||= {};
+    state.dreamThreads ||= {};
     for (const realm of REALMS) {
       if (!state.unlocks[realm] || typeof state.unlocks[realm] !== "object") state.unlocks[realm] = {};
+      state.dreamThreads[realm] = Math.max(0, Math.min(2, Math.floor(Number(state.dreamThreads[realm] || 0))));
     }
     return state;
   }
@@ -166,25 +174,89 @@
 
   function extraSpent(realm) {
     const owned = state().unlocks?.[realm] || {};
-    return customContentDefs(realm).reduce((sum, item) => sum + (owned[item.id] ? Number(item.cost || 0) : 0), 0);
+    const contentSpent = customContentDefs(realm).reduce((sum, item) => sum + (owned[item.id] ? Number(item.cost || 0) : 0), 0);
+    const dreamSpent = getDreamThreadRank(realm) * 2;
+    return contentSpent + dreamSpent;
+  }
+
+
+  function getDreamThreadRank(realm) {
+    return Math.max(0, Math.min(2, Math.floor(Number(state().dreamThreads?.[realm] || 0))));
+  }
+
+  function totalDreamThreads() {
+    return REALMS.reduce((sum, realm) => sum + getDreamThreadRank(realm), 0);
+  }
+
+  function dreamCadenceDays() {
+    const total = totalDreamThreads();
+    return total ? Math.max(1, 15 - total) : null;
+  }
+
+  function firstRealContent(realm) {
+    return (META[realm]?.content || []).find(item => !item.planned) || null;
+  }
+
+  function secondRealContent(realm) {
+    const real = (META[realm]?.content || []).filter(item => !item.planned);
+    return real[1] || real[0] || null;
+  }
+
+  function dreamPrereqStatus(realm, targetRank) {
+    const current = getDreamThreadRank(realm);
+    const meta = META[realm];
+    if (!meta) return { ok: false, label: "Realm unavailable" };
+
+    if (targetRank <= 1) {
+      const special = Number(v2.getRank(realm, meta.special.id) || 0);
+      if (special < 2) return { ok: false, label: `${meta.special.title} II` };
+      const first = firstRealContent(realm);
+      if (first && !isOwned(realm, first)) return { ok: false, label: first.title };
+      return { ok: true, label: "" };
+    }
+
+    if (current < 1) return { ok: false, label: "Dream Thread I" };
+    const special = Number(v2.getRank(realm, meta.special.id) || 0);
+    if (special < 3) return { ok: false, label: `${meta.special.title} III` };
+    const second = secondRealContent(realm);
+    if (second && !isOwned(realm, second)) return { ok: false, label: second.title };
+    return { ok: true, label: "" };
+  }
+
+  function purchaseDreamThread(realm) {
+    if (!META[realm]) return false;
+    const current = getDreamThreadRank(realm);
+    if (current >= 2) return false;
+    const target = current + 1;
+    const prereq = dreamPrereqStatus(realm, target);
+    if (!prereq.ok) {
+      app.showToast?.(`Requires ${prereq.label} first.`);
+      return false;
+    }
+
+    const cost = 2;
+    const points = skills.getRealmPoints(realm);
+    if (Number(points.available || 0) < cost) {
+      app.showToast?.(`You need ${cost} ${realm} points for Dream Thread ${roman(target)}.`);
+      return false;
+    }
+
+    state().dreamThreads[realm] = target;
+    app.saveState({ source: `dream-thread-${realm.toLowerCase()}-${target}` });
+    try {
+      window.dispatchEvent(new CustomEvent("life-rpg:dream-thread-change", {
+        detail: { realm, rank: target, total: totalDreamThreads(), cadenceDays: dreamCadenceDays() }
+      }));
+    } catch {}
+    app.showToast?.(`🌙 ${realm} Dream Thread ${roman(target)} unlocked · Dreamscape cadence: every ${dreamCadenceDays()} day${dreamCadenceDays() === 1 ? "" : "s"}.`);
+    scheduleRender(20);
+    return true;
   }
 
   function wrapRealmPointAccounting() {
-    if (!skills.__talentTreeBaseGetRealmPointsV314ao) {
-      skills.__talentTreeBaseGetRealmPointsV314ao = skills.getRealmPoints.bind(skills);
-    }
-    const base = skills.__talentTreeBaseGetRealmPointsV314ao;
-    if (skills.__talentTreePointWrapperV314ao) return;
-    skills.__talentTreePointWrapperV314ao = true;
-    skills.getRealmPoints = realm => {
-      const info = base(realm);
-      const extra = extraSpent(realm);
-      return {
-        ...info,
-        spent: Math.max(0, Number(info.spent || 0)) + extra,
-        available: Math.max(0, Number(info.available || 0) - extra)
-      };
-    };
+    // V0.31.4ap: realmPointInfo in skills.js now owns external-spend accounting.
+    // Keeping this no-op avoids double-subtracting Content/Dream costs.
+    return true;
   }
 
   function isOwned(realm, itemOrId) {
@@ -275,6 +347,8 @@
       ...(v2.getActiveEffects?.(realm) || []),
       ...customContentDefs(realm).filter(item => isOwned(realm, item)).map(item => `${item.icon} ${item.title} · permanently unlocked`)
     ];
+    const dreamRank = getDreamThreadRank(realm);
+    if (dreamRank) effects.push(`🌙 Dream Thread ${dreamRank}/2 · ${meta.dream.title} pool · global cadence every ${dreamCadenceDays()} day${dreamCadenceDays() === 1 ? "" : "s"}`);
 
     const rewardNode = rankNode(realm, "reward-cache", {
       icon: "🎁",
@@ -320,6 +394,7 @@
     });
 
     const contentNodes = meta.content.map((item, index) => contentNode(realm, item, index)).join("");
+    const dreamNodes = dreamBranchNodes(realm);
 
     section.innerHTML = `
       <div class="talent-v3-head">
@@ -371,6 +446,12 @@
             <div class="talent-v3-content-origin"><span>↳</span><strong>Branches from ${esc(meta.special.title)} I</strong></div>
             ${contentNodes}
           </section>
+
+          <section class="talent-v3-branch is-dream">
+            <header><span>🌙</span><div><small>BRANCH D · META STORY</small><strong>${esc(meta.dream.title)}</strong><p>${esc(meta.dream.copy)}</p></div></header>
+            <div class="talent-v3-content-origin"><span>↳</span><strong>Deep branch · Dreamscape ${totalDreamThreads()}/14</strong></div>
+            ${dreamNodes}
+          </section>
         </div>
       </div>
 
@@ -403,6 +484,41 @@
       <p>${esc(cfg.copy)}</p>
       <div class="talent-v3-node-foot"><em>${rank}/${max}${cfg.permanent ? " · permanent" : cfg.prereq ? ` · path: ${esc(cfg.prereq)}` : ""}</em>${button}</div>
     </article>`;
+  }
+
+
+  function dreamBranchNodes(realm) {
+    const rank = getDreamThreadRank(realm);
+    const meta = META[realm];
+    const points = skills.getRealmPoints(realm);
+    const cadence = dreamCadenceDays();
+    const firstReq = dreamPrereqStatus(realm, 1);
+    const secondReq = dreamPrereqStatus(realm, 2);
+
+    const make = (target, prereq, copy) => {
+      const owned = rank >= target;
+      const cost = 2;
+      const canBuy = !owned && prereq.ok && Number(points.available || 0) >= cost && rank === target - 1;
+      const locked = !owned && (!prereq.ok || rank !== target - 1);
+      const stateClass = owned ? "is-owned" : locked ? "is-locked" : canBuy ? "is-ready" : "is-poor";
+      const action = owned
+        ? `<span class="talent-v3-owned">✓ Thread ${roman(target)}</span>`
+        : `<button class="${canBuy ? "primary-button" : "secondary-button"}" type="button" data-talent-v3-dream="${escAttr(realm)}" ${locked ? "disabled" : ""}>${locked ? `Requires ${esc(prereq.label || `Dream Thread ${roman(target - 1)}`)}` : "Unlock for 2 points"}</button>`;
+      return `<article class="talent-v3-node talent-v3-dream-node ${stateClass}">
+        <div class="talent-v3-node-top">
+          <span class="talent-v3-node-icon">🌙</span>
+          <div><small>DREAM THREAD ${roman(target)} · 2 POINTS · PERMANENT</small><h3>${target === 1 ? `${esc(meta.dream.title)} Pool` : `${esc(meta.dream.title)} · Deeper Dreams`}</h3></div>
+        </div>
+        <p>${esc(copy)}</p>
+        <div class="talent-v3-node-foot"><em>${owned
+          ? `Owned · Dreamscape cadence currently every ${cadence} day${cadence === 1 ? "" : "s"}`
+          : `Path: ${esc(target === 1 ? `${meta.special.title} II + ${firstRealContent(realm)?.title || "first content unlock"}` : `${meta.special.title} III + ${secondRealContent(realm)?.title || "content path"} + Thread I`)}`}</em>${action}</div>
+      </article>`;
+    };
+
+    return make(1, firstReq, `Unlock this Realm's ${meta.dream.title} dream pool. The very first Dream Thread anywhere also makes one dream available immediately.`)
+      + treeLink("Thread I + deeper Realm investment")
+      + make(2, secondReq, `Adds more intimate variants to the ${meta.dream.title} pool and contributes another step toward the global 1-day Dreamscape cadence.`);
   }
 
   function contentNode(realm, item, index) {
@@ -501,6 +617,13 @@
         return;
       }
 
+      const dream = event.target.closest?.("[data-talent-v3-dream]");
+      if (dream) {
+        event.preventDefault();
+        purchaseDreamThread(dream.dataset.talentV3Dream);
+        return;
+      }
+
       const reset = event.target.closest?.("[data-talent-v3-reset]");
       if (reset) {
         event.preventDefault();
@@ -538,6 +661,11 @@
     purchaseContent,
     openContent,
     extraSpent,
+    getDreamThreadRank,
+    getTotalDreamThreads: totalDreamThreads,
+    getDreamCadenceDays: dreamCadenceDays,
+    getDreamTheme: realm => META[realm]?.dream ? { ...META[realm].dream } : null,
+    purchaseDreamThread,
     focusRealm,
     refresh: renderAll
   };

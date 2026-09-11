@@ -1,8 +1,8 @@
 (() => {
   "use strict";
 
-  if (window.__lifeRpgTalentContentV314ao) return;
-  window.__lifeRpgTalentContentV314ao = true;
+  if (window.__lifeRpgTalentContentV314ap) return;
+  window.__lifeRpgTalentContentV314ap = true;
 
   const app = window.LifeRPGApp;
   const graph = window.LifeRPGTalentTreeGraph;
@@ -11,7 +11,7 @@
     return;
   }
 
-  const VERSION = "0.31.4ao";
+  const VERSION = "0.31.4ap";
   const SCHEMA = 1;
   const JOURNAL = {
     "work-debrief": {
@@ -67,6 +67,19 @@
         "What are you drawn to aesthetically right now? Capture the pieces, not a finished concept."
       ],
       placeholder: "Fragments absolutely count…"
+    },
+    "body-signals": {
+      realm: "Health",
+      icon: "◌",
+      title: "Body Signals",
+      capability: "wellbeing",
+      thresholds: [25, 90, 200],
+      prompts: [
+        "Notice three things without fixing them: one body sensation, one energy signal, and one thing that would feel supportive right now.",
+        "What does your body seem to be asking for: movement, food, water, warmth, quiet, stretching, sleep, space — or nothing obvious?",
+        "Where does the day feel easy in your body, and where does it feel effortful? Description is enough; no score needed."
+      ],
+      placeholder: "Information, not a grade…"
     }
   };
 
@@ -119,11 +132,75 @@
         ["No outcome required", "Explore one idea for fifteen minutes with permission to keep absolutely nothing at the end."]
       ],
       completionBonus: { xp: 6, realmXP: 8, statXP: 4, coins: 8, storyEnergyBase: .12 }
+    },
+    "work-focus-challenges": {
+      realm: "Work", title: "Focus Challenge Deck", icon: "◆", minutes: 35, mode: "focus",
+      categoryId: "work_home", subcategory: "Preparation",
+      prompts: [
+        ["Finish one annoying edge", "Pick the small unfinished edge that keeps reopening in your head and give it one uninterrupted block."],
+        ["Make tomorrow easier", "Use this block only for something that removes friction from tomorrow's work."],
+        ["Ugly first version", "Produce the rough version before judging it. Polish is explicitly outside this challenge."],
+        ["One hard decision", "Choose the single decision that is blocking several smaller tasks and resolve only that."],
+        ["Close the loop", "Take one almost-finished work item all the way to a clean stopping point."]
+      ]
+    },
+    "recovery-toolkit": {
+      realm: "Recovery", title: "Recovery Toolkit", icon: "✦", minutes: 6, mode: "action",
+      categoryId: "recovery", subcategory: "Other recovery",
+      prompts: [
+        ["Eyes-off-screen reset", "Put the screen down or look away from it. Let your eyes rest on something farther away and do nothing useful for six minutes."],
+        ["Warm drink reset", "Make or hold something warm. Sit down for six minutes without stacking another task onto it."],
+        ["Floor / sofa reset", "Choose the most comfortable available surface and let your body be fully supported for six minutes."],
+        ["Music only", "Put on one or two songs and make listening the entire activity. No tidying, planning or catching up."],
+        ["Quiet window", "Sit somewhere you can see outside or a calm part of the room. Six minutes of being there is enough."]
+      ],
+      completionBonus: { xp: 8, realmXP: 8, statXP: 6, coins: 6, storyEnergyBase: .30 }
+    },
+    "home-reset-deck": {
+      realm: "Home", title: "Home Reset Deck", icon: "▦", minutes: 12, mode: "action",
+      categoryId: "life_admin", subcategory: "Household",
+      prompts: [
+        ["Twelve-minute kitchen reset", "Choose the few things that would make the kitchen nicer to walk into later. Stop when the timer ends."],
+        ["Laundry checkpoint", "Move one laundry process forward exactly one step: collect, start, hang, fold or put away."],
+        ["Entrance reset", "Make the first area you see when coming home a little calmer or more usable."],
+        ["Desk landing zone", "Clear enough space that the desk can receive tomorrow without becoming a whole organizing project."],
+        ["Bathroom quick reset", "Do the small visible things that make the bathroom feel fresher. No deep clean required."],
+        ["Room rescue", "Pick whichever room currently creates the most friction and spend twelve minutes only on obvious wins."]
+      ]
+    },
+    "creative-dice": {
+      realm: "Hobbies", title: "Creative Dice", icon: "🎲", minutes: 20, mode: "action",
+      categoryId: "hobby", subcategory: "Creative",
+      prompts: [
+        ["Soft + strange + tiny", "Make something small that combines softness with one unsettling or unexpected detail."],
+        ["Warm + nostalgic + limited", "Use only a very small palette / set of sounds / handful of materials and aim for nostalgia."],
+        ["Sharp + romantic + unfinished", "Create a deliberately unfinished fragment where something edgy and something romantic meet."],
+        ["Cozy + witchy + ordinary", "Take an everyday object or moment and make it feel quietly magical."],
+        ["Playful + dramatic + repetitive", "Choose one motif, phrase, shape or sound and repeat it until it becomes the whole piece."],
+        ["Minimal + moody + one accent", "Keep almost everything restrained and let exactly one element become expressive."]
+      ],
+      completionBonus: { xp: 8, realmXP: 10, statXP: 6, coins: 10, storyEnergyBase: .15 }
+    }
+  };
+
+  const SPRINT_CONTENT = {
+    "shadowing-sprint": {
+      realm: "Japanese",
+      title: "Shadowing Sprint",
+      icon: "🎙️",
+      seconds: 300,
+      prompts: [
+        "Pick one short line from Japanese audio you already have. Listen once, then imitate rhythm and intonation rather than chasing perfect pronunciation.",
+        "Choose a line you can mostly hear. Loop it, speak with it, then speak just after it. Meaning can stay imperfect for this sprint.",
+        "Use one sentence from anime, a show, a podcast or a video. Copy the speaker's pace and emotional shape for five minutes.",
+        "Pick a line with one sound or rhythm you find difficult. Keep it playful: listen → echo → listen → echo."
+      ]
     }
   };
 
   let activeId = null;
   let timerScan = null;
+  let sprintTicker = null;
 
   init();
 
@@ -147,7 +224,8 @@
       schemaVersion: SCHEMA,
       version: VERSION,
       entries: {},
-      timerClaims: {}
+      timerClaims: {},
+      sprints: {}
     };
   }
 
@@ -161,6 +239,7 @@
     s.version = VERSION;
     s.entries ||= {};
     s.timerClaims ||= {};
+    s.sprints ||= {};
     return s;
   }
 
@@ -182,7 +261,8 @@
   function isUnlocked(id) {
     const journal = JOURNAL[id];
     const timer = TIMER_CONTENT[id];
-    const realm = journal?.realm || timer?.realm;
+    const sprint = SPRINT_CONTENT[id];
+    const realm = journal?.realm || timer?.realm || sprint?.realm;
     return Boolean(realm && graph.isContentUnlocked(realm, id));
   }
 
@@ -233,6 +313,13 @@
       if (reroll) {
         event.preventDefault();
         renderTimerContent(reroll.dataset.talentContentReroll, true);
+        return;
+      }
+
+      const sprint = event.target.closest?.("[data-talent-content-sprint]");
+      if (sprint) {
+        event.preventDefault();
+        startOrResumeSprint(sprint.dataset.talentContentSprint);
       }
     });
 
@@ -259,10 +346,10 @@
     const page = document.getElementById("view-journal");
     if (!page) return;
 
-    let panel = document.getElementById("talentJournalToolsV314ao");
+    let panel = document.getElementById("talentJournalToolsV314ap");
     if (!panel) {
       panel = document.createElement("section");
-      panel.id = "talentJournalToolsV314ao";
+      panel.id = "talentJournalToolsV314ap";
       panel.className = "panel talent-journal-tools-v314ao";
       const firstDialog = page.querySelector("dialog");
       if (firstDialog) page.insertBefore(panel, firstDialog);
@@ -301,6 +388,7 @@
     }
     if (JOURNAL[id]) renderJournal(id);
     else if (TIMER_CONTENT[id]) renderTimerContent(id, false);
+    else if (SPRINT_CONTENT[id]) renderSprintContent(id);
     else return false;
     return true;
   }
@@ -324,7 +412,8 @@
         <button class="primary-button" type="button" data-talent-content-save="${escAttr(id)}">Save entry</button>
       </div>`;
     updateMeter(id, entry.text || "");
-    document.getElementById("talentContentDialog")?.showModal?.();
+    const dialog = document.getElementById("talentContentDialog");
+    if (dialog && !dialog.open) dialog.showModal?.();
   }
 
   function updateMeter(id, text) {
@@ -430,7 +519,8 @@
         <button class="primary-button" type="button" data-talent-content-timer="${escAttr(id)}" data-prompt-title="${escAttr(prompt[0])}">Start ${def.minutes}-minute session</button>
         <button class="secondary-button" type="button" data-talent-content-reroll="${escAttr(id)}">Draw another</button>
       </div>`;
-    document.getElementById("talentContentDialog")?.showModal?.();
+    const dialog = document.getElementById("talentContentDialog");
+    if (dialog && !dialog.open) dialog.showModal?.();
   }
 
   function startTimer(id, promptTitle) {
@@ -499,6 +589,110 @@
     }
   }
 
+
+  function renderSprintContent(id) {
+    const def = SPRINT_CONTENT[id];
+    if (!def || !isUnlocked(id)) return;
+    activeId = id;
+    const sprint = state().sprints[id] || null;
+    const prompt = pickDaily(def.prompts, `${id}:${dateKey()}`);
+    const remaining = sprintRemaining(id);
+    const body = document.getElementById("talentContentBody");
+    if (!body) return;
+
+    body.innerHTML = `
+      <div class="talent-content-kicker-v314ao">${def.icon} ${esc(def.realm)} · unlocked activity</div>
+      <h2>${esc(def.title)}</h2>
+      <article class="talent-content-prompt-card-v314ao">
+        <small>BRING YOUR OWN AUDIO</small>
+        <strong>Five minutes of echoing real Japanese</strong>
+        <p>${esc(prompt)}</p>
+      </article>
+      <div class="talent-sprint-clock-v314ap" id="talentSprintClock">${formatClock(remaining)}</div>
+      <p class="talent-content-timer-note-v314ao">Use any Japanese clip you already enjoy. No embedded audio is required.</p>
+      <div class="talent-content-actions-v314ao">
+        <button class="primary-button" type="button" data-talent-content-sprint="${escAttr(id)}">${sprint && !sprint.completedAt ? "Resume sprint" : sprint?.completedAt && sprint.dateKey === dateKey() ? "Completed today ✓" : "Start 5-minute sprint"}</button>
+      </div>`;
+    const button = body.querySelector("[data-talent-content-sprint]");
+    if (sprint?.completedAt && sprint.dateKey === dateKey()) button.disabled = true;
+    const dialog = document.getElementById("talentContentDialog");
+    if (dialog && !dialog.open) dialog.showModal?.();
+    tickSprint(id);
+  }
+
+  function startOrResumeSprint(id) {
+    const def = SPRINT_CONTENT[id];
+    if (!def || !isUnlocked(id)) return false;
+    const existing = state().sprints[id];
+    if (existing?.completedAt && existing.dateKey === dateKey()) return false;
+
+    if (!existing || existing.dateKey !== dateKey() || existing.completedAt) {
+      state().sprints[id] = {
+        dateKey: dateKey(),
+        startedAt: Date.now(),
+        targetSeconds: def.seconds,
+        completedAt: null,
+        rewardEventId: null
+      };
+      app.saveState({ source: `talent-content-sprint-start-${id}` });
+    } else if (!existing.startedAt) {
+      existing.startedAt = Date.now();
+    }
+
+    window.clearInterval(sprintTicker);
+    sprintTicker = window.setInterval(() => tickSprint(id), 250);
+    tickSprint(id);
+    return true;
+  }
+
+  function sprintRemaining(id) {
+    const def = SPRINT_CONTENT[id];
+    const sprint = state().sprints[id];
+    if (!def || !sprint || sprint.dateKey !== dateKey()) return Number(def?.seconds || 0);
+    if (sprint.completedAt) return 0;
+    return Math.max(0, Number(sprint.targetSeconds || def.seconds) - Math.floor((Date.now() - Number(sprint.startedAt || Date.now())) / 1000));
+  }
+
+  function tickSprint(id) {
+    const def = SPRINT_CONTENT[id];
+    const sprint = state().sprints[id];
+    const clock = document.getElementById("talentSprintClock");
+    if (!def || !sprint || sprint.dateKey !== dateKey() || sprint.completedAt) {
+      if (clock && def) clock.textContent = formatClock(sprint?.completedAt ? 0 : def.seconds);
+      return;
+    }
+    const remaining = sprintRemaining(id);
+    if (clock) clock.textContent = formatClock(remaining);
+    if (remaining > 0) return;
+
+    window.clearInterval(sprintTicker);
+    sprintTicker = null;
+    sprint.completedAt = Date.now();
+    const reward = app.awardActivity?.({
+      source: "talent-content-v2",
+      sourceId: `shadowing-sprint:${dateKey()}`,
+      label: "Shadowing Sprint",
+      realm: "Japanese",
+      capability: "japanese",
+      xp: 8,
+      realmXP: 10,
+      statXP: 8,
+      coins: 8,
+      storyEnergyBase: .20,
+      progressionRelevant: true,
+      metadata: { talentContentV2: true, contentId: id, seconds: def.seconds }
+    });
+    sprint.rewardEventId = reward?.eventId || null;
+    app.saveState({ source: "talent-content-sprint-complete" });
+    app.showToast?.("🎙️ Shadowing Sprint complete · Japanese practice saved.");
+    renderSprintContent(id);
+  }
+
+  function formatClock(seconds) {
+    const value = Math.max(0, Math.floor(Number(seconds || 0)));
+    return `${String(Math.floor(value / 60)).padStart(2, "0")}:${String(value % 60).padStart(2, "0")}`;
+  }
+
   function pickDaily(items, seedText) {
     if (!Array.isArray(items) || !items.length) return "";
     let hash = 2166136261;
@@ -522,6 +716,7 @@
     open: openContent,
     refresh,
     journalDefs: JOURNAL,
-    timerDefs: TIMER_CONTENT
+    timerDefs: TIMER_CONTENT,
+    sprintDefs: SPRINT_CONTENT
   };
 })();

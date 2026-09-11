@@ -1,5 +1,5 @@
 
-/* Life RPG V0.31.4ao · Talent-unlocked content */
+/* Life RPG V0.31.4ap · Talent-unlocked content */
 
 .talent-journal-tools-v314ao {
   margin-top: 16px;
@@ -228,4 +228,18 @@
   .talent-content-shell-v314ao {
     padding: 20px 16px;
   }
+}
+
+.talent-sprint-clock-v314ap {
+  display:grid;
+  width:min(240px,100%);
+  min-height:96px;
+  place-items:center;
+  margin:14px auto;
+  border:1px solid rgba(92,41,75,.12);
+  border-radius:22px;
+  background:radial-gradient(circle at 50% 0%,rgba(230,156,188,.14),transparent 7rem),rgba(255,255,255,.74);
+  color:#5c294b;
+  font:700 2.2rem/1 Georgia,serif;
+  letter-spacing:.04em;
 }
