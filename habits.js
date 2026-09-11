@@ -37,6 +37,9 @@
     board: byId("habitBoard"),
     empty: byId("habitEmpty"),
     dashboard: byId("dashboardHabits"),
+    dashboardTitle: byId("dashboardHabitsTitle"),
+    dashboardToday: byId("dashboardHabitToday"),
+    dashboardYesterday: byId("dashboardHabitYesterday"),
     activeSummary: byId("habitSummaryActive"),
     dueSummary: byId("habitSummaryDue"),
     dueSummaryLabel: byId("habitSummaryDueLabel"),
@@ -342,7 +345,7 @@
 
     renderDateControls(viewDate);
     renderBoard(boardSnapshots, archived, viewDate, active.length);
-    renderDashboard(todaySnapshots);
+    renderDashboard(boardSnapshots, viewDate);
   }
 
   function renderDateControls(dateKey) {
@@ -406,70 +409,55 @@
     els.board.innerHTML = groups + archivedHtml;
   }
 
-  function renderDashboard(activeSnapshots) {
+  function renderDashboard(activeSnapshots, dateKey = todayKey()) {
     if (!els.dashboard) return;
+
+    const historical = dateKey !== todayKey();
+    if (els.dashboardTitle) els.dashboardTitle.textContent = historical ? "Yesterday's Habits" : "Today's Habits";
+    els.dashboardToday?.classList.toggle("active", !historical);
+    els.dashboardYesterday?.classList.toggle("active", historical);
+    els.dashboardToday?.setAttribute("aria-pressed", String(!historical));
+    els.dashboardYesterday?.setAttribute("aria-pressed", String(historical));
 
     if (!activeSnapshots.length) {
       els.dashboard.innerHTML = `
-        <div class="dashboard-habit-empty-v1">
-          <span>🌱</span>
-          <div><strong>No habits yet.</strong><small>Add the things you want a little extra support to remember.</small></div>
-          <button class="secondary-button" type="button" data-view-target="habits">Create habits</button>
+        <div class="dashboard-habit-empty-v1 dashboard-habit-empty-v314au">
+          <span>${historical ? "🕰️" : "🌱"}</span>
+          <div><strong>${historical ? "Nothing to backfill yesterday." : "No habits yet."}</strong><small>${historical ? "Only habits that already existed yesterday can be logged here." : "Add the things you want a little extra support to remember."}</small></div>
+          ${historical ? "" : '<button class="secondary-button" type="button" data-view-target="habits">Create habits</button>'}
         </div>`;
       return;
     }
 
     const sorted = [...activeSnapshots].sort(compareHabitSnapshots);
     const readyCount = sorted.filter(s => s.canComplete).length;
-    const current = currentDaypart();
-    const groups = Object.keys(DAYPARTS)
-      .map(key => {
-        const entries = sorted.filter(snapshot => normalizedDaypart(snapshot.habit) === key);
-        if (!entries.length) return "";
-        const meta = DAYPARTS[key];
-        const ready = entries.filter(snapshot => snapshot.canComplete).length;
-        const clear = daypartClearInfo(key, entries, todayKey());
-        const allDone = entries.every(snapshot => snapshot.completedToday || snapshot.periodComplete || !snapshot.canComplete);
-        const isPast = key !== "anytime" && DAYPARTS[key].order < DAYPARTS[current].order;
-        const compact = isPast && allDone;
-        return `
-          <section class="dashboard-habit-daypart-v131 ${key === current ? "current" : ""} ${compact ? "compact" : ""}">
-            <header>
-              <span>${meta.icon}</span>
-              <strong>${escapeHtml(meta.label)}</strong>
-              <small>${clear.awarded ? `Cleared +${formatEnergy(clear.rewardStoryEnergy)} 🔥` : compact ? "Done ✓" : clear.eligible ? `${clear.done}/${clear.total} · clear bonus` : ready ? `${ready} ready` : "Clear"}</small>
-            </header>
-            ${compact ? "" : `<div class="dashboard-habit-timeline-v131">${entries.map(renderDashboardHabit).join("")}</div>`}
-          </section>`;
-      })
-      .join("");
+    const doneCount = sorted.filter(s => s.completedToday || s.periodComplete).length;
+    const bestStreak = Math.max(...sorted.map(s => s.streak), 0);
 
     els.dashboard.innerHTML = `
-      <div class="dashboard-habit-summary-v1">
-        <strong>${readyCount ? `${readyCount} ready today` : "Today's habit rhythm is clear"}</strong>
-        <span>${sorted.length} active · best streak ${Math.max(...sorted.map(s => s.streak), 0)}</span>
+      <div class="dashboard-habit-summary-v314au">
+        <strong>${readyCount ? `${readyCount} ${historical ? "still loggable" : "ready"}` : historical ? "Yesterday is caught up" : "Habit rhythm is clear"}</strong>
+        <span>${doneCount}/${sorted.length} done${bestStreak ? ` · best streak ${bestStreak}` : ""}</span>
       </div>
-      <div class="dashboard-habit-dayplan-v131">${groups}</div>`;
+      <div class="dashboard-habit-compact-grid-v314au">${sorted.map(snapshot => renderDashboardHabit(snapshot, dateKey)).join("")}</div>`;
   }
 
-  function renderDashboardHabit(snapshot) {
-    const { habit, canComplete, reward, streak, progressText, timingText, completedToday } = snapshot;
+  function renderDashboardHabit(snapshot, dateKey = todayKey()) {
+    const { habit, canComplete, reward, streak, timingText, completedToday, periodComplete } = snapshot;
+    const historical = dateKey !== todayKey();
     const daypart = DAYPARTS[normalizedDaypart(habit)];
+    const done = completedToday || periodComplete;
     return `
-      <article class="dashboard-habit-row-v131 ${canComplete ? "ready" : ""} ${completedToday ? "done" : ""}">
+      <article class="dashboard-habit-compact-row-v314au ${canComplete ? "ready" : ""} ${done ? "done" : ""}">
         <span class="habit-realm-dot-v1 realm-${cssToken(habit.realm)}"></span>
-        <div class="dashboard-habit-row-copy-v131">
+        <div class="dashboard-habit-compact-copy-v314au">
           <strong>${escapeHtml(habit.name)}</strong>
-          <small>${escapeHtml(progressText)} · ${escapeHtml(timingText)}</small>
+          <small><span title="${escapeHtml(daypart.label)}">${daypart.icon}</span> ${escapeHtml(timingText)}${streak ? ` · ✦ ${streak}` : ""}</small>
         </div>
-        <div class="dashboard-habit-row-meta-v131">
-          <span title="${escapeHtml(daypart.label)}">${daypart.icon}</span>
-          <span>🔥 ${formatEnergy(reward)}</span>
-          ${streak ? `<span>✦ ${streak}</span>` : ""}
-        </div>
+        <span class="dashboard-habit-reward-v314au">🔥 ${formatEnergy(reward)}</span>
         ${canComplete
-          ? `<button class="habit-quick-complete-v1" type="button" data-habit-complete="${escapeHtml(habit.id)}" data-habit-date="${todayKey()}">Done</button>`
-          : `<span class="dashboard-habit-state-v1">${completedToday ? "✓" : escapeHtml(timingText)}</span>`}
+          ? `<button class="habit-quick-complete-v1" type="button" data-habit-complete="${escapeHtml(habit.id)}" data-habit-date="${escapeHtml(dateKey)}">${historical ? "Log" : "Done"}</button>`
+          : `<span class="dashboard-habit-state-v1">${done ? "✓" : "—"}</span>`}
       </article>`;
   }
 

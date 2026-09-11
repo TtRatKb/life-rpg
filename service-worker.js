@@ -1,9 +1,9 @@
-const CACHE_NAME = "life-rpg-v0314at-early-content-paths";
+const CACHE_NAME = "life-rpg-v0314au-dashboard-focus";
 const CORE = [
   "./",
   "./index.html",
   "./data/quests.js?v=0.31.4h",
-  "./styles.css?v=0.31.4am",
+  "./styles.css?v=0.31.4au",
   "./skills.css?v=0.31.4ah",
   "./talent-v2.css?v=0.31.4an",
   "./talent-tree-v2-graph.css?v=0.31.4ar",
@@ -21,14 +21,14 @@ const CORE = [
   "./weekly-review.css?v=0.31.4ag",
   "./weekly-review.js?v=0.31.4ag",
   "./manifest.webmanifest?v=0.30.3a",
-  "./pwa.js?v=0.31.4at",
+  "./pwa.js?v=0.31.4au",
   "./visual-performance.js?v=0.31.4c",
   "./modal-manager.js?v=0.31.4d",
   "./training-focus.js?v=0.31.4o",
   "./app.js?v=0.31.4an",
   "./daily-streaks.js?v=0.31.4z",
   "./stewardship.js?v=0.31.3a",
-  "./habits.js?v=0.31.4ag",
+  "./habits.js?v=0.31.4au",
   "./adventures.js?v=0.31.4ag",
   "./adventure-workspace.js?v=0.31.4c",
   "./library.js?v=0.31.4ag",

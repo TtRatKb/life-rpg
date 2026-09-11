@@ -14,7 +14,7 @@
   <link rel="manifest" href="manifest.webmanifest?v=0.30.3a" />
   <link rel="apple-touch-icon" href="assets/app-icon-180.png?v=0.30.3a" />
   <link rel="icon" type="image/png" sizes="192x192" href="assets/app-icon-192.png?v=0.30.3a" />
-  <link rel="stylesheet" href="styles.css?v=0.31.4am" />
+  <link rel="stylesheet" href="styles.css?v=0.31.4au" />
   <link rel="stylesheet" href="skills.css?v=0.31.4ah" />
   <link rel="stylesheet" href="talent-v2.css?v=0.31.4an" />
   <link rel="stylesheet" href="talent-tree-v2-graph.css?v=0.31.4ar" />
@@ -140,68 +140,9 @@
           </aside>
         </section>
 
-        <section class="dashboard-command-strip dashboard-command-strip-habits" aria-label="Life RPG quick navigation">
-          <button data-view-target="habits" data-habit-date-mode="today"><span class="command-strip-icon">❀</span><span><strong>Habits</strong><small>Build consistency without punishment.</small></span><b>›</b></button>
-          <button data-view-target="journal"><span class="command-strip-icon">🌸</span><span><strong>Journal</strong><small>Check in, reflect, and see the month take shape.</small></span><b>›</b></button>
-          <button data-view-target="rhythm"><span class="command-strip-icon">◷</span><span><strong>Focus & Time</strong><small>Pomodoro, clock-in, and the real shape of your week.</small></span><b>›</b></button>
-          <button data-view-target="activity"><span class="command-strip-icon">≡</span><span><strong>Activity Log</strong><small>See exactly what counted and what it paid.</small></span><b>›</b></button>
-          <button data-view-target="skills"><span class="command-strip-icon">✦</span><span><strong>Skills</strong><small>Levels, Realm Points and Talent Trees.</small></span><b>›</b></button>
-          <button data-view-target="quests"><span class="command-strip-icon">☷</span><span><strong>Quest Board</strong><small>Choose what fits today.</small></span><b>›</b></button>
-          <button data-view-target="adventures"><span class="command-strip-icon">✧</span><span><strong>Side Adventures</strong><small>Come back to things you actually want.</small></span><b>›</b></button>
-          <button data-view-target="library"><span class="command-strip-icon">📚</span><span><strong>Library</strong><small>Your books, without database homework.</small></span><b>›</b></button>
-          <button data-view-target="games"><span class="command-strip-icon">🎮</span><span><strong>Games</strong><small>Keep active games and personal goals in rotation.</small></span><b>›</b></button>
-          <button data-sudoku-open type="button"><span class="command-strip-icon">🧩</span><span><strong>Sudoku</strong><small id="sudokuQuickStatus">Play a logic puzzle inside Life RPG.</small></span><b>›</b></button>
-          <button data-nonogram-open type="button"><span class="command-strip-icon">◩</span><span><strong>Nonogram</strong><small id="nonogramQuickStatus">Reveal a picture through logic clues.</small></span><b>›</b></button>
-          <button data-number-sense-open type="button"><span class="command-strip-icon">🔢</span><span><strong>Number Sense</strong><small id="numberSenseQuickStatus">Train mental math without speed pressure.</small></span><b>›</b></button>
-          <button data-memory-garden-open type="button"><span class="command-strip-icon">🧠</span><span><strong>Memory Garden</strong><small id="memoryGardenQuickStatus">Train spatial, sequence, pattern and working memory.</small></span><b>›</b></button>
-          <button data-lexicon-lab-open type="button"><span class="command-strip-icon">⌗</span><span><strong>Lexicon Lab</strong><small id="lexiconLabQuickStatus">Academic German vocabulary through real word puzzles.</small></span><b>›</b></button>
-          <button data-recovery-open type="button"><span class="command-strip-icon">🌿</span><span><strong>Recovery Studio</strong><small id="recoveryQuickStatus">Guided rest, breathing, and gentle recovery.</small></span><b>›</b></button>
-          <button data-view-target="people"><span class="command-strip-icon">♧</span><span><strong>People</strong><small>Talk, message, connect.</small></span><b>›</b></button>
-          <button data-view-target="story"><span class="command-strip-icon">♡</span><span><strong>Main Story</strong><small>Spend energy when you're ready.</small></span><b>›</b></button>
-          <button data-view-target="achievements"><span class="command-strip-icon">🏆</span><span><strong>Achievements</strong><small>Collect milestones and hidden moments.</small></span><b>›</b></button>
-          <button data-view-target="shop"><span class="command-strip-icon">🛍️</span><span><strong>Reward Shop</strong><small>Turn earned Coins into guilt-free wants.</small></span><b>›</b></button>
-        </section>
-
-        <section class="panel dashboard-achievement-panel-v306" aria-labelledby="dashboardAchievementTitle">
-          <div class="panel-heading dashboard-achievement-heading-v306">
-            <div>
-              <p class="eyebrow">TRACKED GOALS</p>
-              <h2 id="dashboardAchievementTitle">What you're working toward</h2>
-              <p class="panel-subcopy">Pin up to three visible Achievements and keep their progress in sight like tracked quests.</p>
-            </div>
-            <button class="mini-nav-button" data-view-target="achievements" type="button">Choose achievements ›</button>
-          </div>
-          <div id="dashboardAchievementTracker" class="dashboard-achievement-tracker-v306"></div>
-          <button id="dashboardAchievementTrackerEmpty" class="dashboard-achievement-empty-v306" data-view-target="achievements" type="button"><span>🏆</span><div><strong>No Achievement tracked yet.</strong><small>Pick a visible milestone that feels worth aiming at right now.</small></div><b>›</b></button>
-        </section>
-
-        <section class="panel dashboard-shop-wish-panel-v306" aria-labelledby="dashboardShopWishTitle">
-          <div class="panel-heading">
-            <div><p class="eyebrow">REWARD TARGET</p><h2 id="dashboardShopWishTitle">Current Wish</h2><p class="panel-subcopy">A visible reminder of what your Coins are slowly turning into.</p></div>
-            <button class="mini-nav-button" data-view-target="shop" type="button">Open Shop ›</button>
-          </div>
-          <div id="dashboardShopWish" class="dashboard-shop-wish-v306"></div>
-        </section>
-
-        <section class="panel dashboard-habits-preview" aria-labelledby="dashboardHabitsTitle">
-          <div class="panel-heading">
-            <div>
-              <p class="eyebrow">CONSISTENCY</p>
-              <h2 id="dashboardHabitsTitle">Today's Habits</h2>
-              <p class="panel-subcopy">Small things worth remembering. Streaks raise the reward; missing one never takes anything away.</p>
-            </div>
-            <button class="mini-nav-button dashboard-habits-desktop-open-v250" data-view-target="habits" data-habit-date-mode="today" type="button">Open habits ›</button>
-            <div class="dashboard-habit-mobile-actions-v250" aria-label="Mobile habit quick actions">
-              <button class="secondary-button" data-view-target="habits" data-habit-date-mode="yesterday" type="button">↶ Yesterday</button>
-              <button class="primary-button" data-view-target="habits" data-habit-date-mode="today" type="button">Log habits</button>
-            </div>
-          </div>
-          <div id="dashboardHabits" class="dashboard-habit-list"></div>
-        </section>
-
-        <section class="dashboard-grid dashboard-grid-v3">
-          <div class="dashboard-daily-stack-v14">
-            <section class="panel daily-briefing-card-v14" id="dailyBriefingPanel" aria-labelledby="dailyBriefingTitle">
+        <section class="dashboard-focus-grid-v314au" aria-label="Today at a glance">
+          <div class="dashboard-daily-stack-v14 dashboard-plan-column-v314au">
+            <section class="panel daily-briefing-card-v14 dashboard-briefing-compact-v314au" id="dailyBriefingPanel" aria-labelledby="dailyBriefingTitle">
               <div class="daily-briefing-head-v14">
                 <div>
                   <p class="eyebrow">DAILY BRIEFING</p>
@@ -217,12 +158,12 @@
               </div>
             </section>
 
-            <section class="panel daily-picks-card-v14" id="dailyPicksPanel" aria-labelledby="dailyPicksTitle">
+            <section class="panel daily-picks-card-v14 dashboard-plan-card-v314au" id="dailyPicksPanel" aria-labelledby="dailyPicksTitle">
               <div class="panel-heading daily-picks-heading-v14">
                 <div>
-                  <p class="eyebrow">TODAY'S PICKS</p>
-                  <h2 id="dailyPicksTitle">A plan that fits the day.</h2>
-                  <p class="panel-subcopy">Anchor, Care and Optional are filled only when something genuinely fits. Your workday can already be the main load.</p>
+                  <p class="eyebrow">PLAN FOR TODAY</p>
+                  <h2 id="dailyPicksTitle">Plan for Today</h2>
+                  <p class="panel-subcopy">Anchor, Care and Optional — only when something genuinely fits the day you actually have.</p>
                 </div>
                 <div class="daily-picks-heading-actions-v303"><button class="mini-nav-button hidden" id="dailyRebalanceButton" type="button">Day got heavier ↻</button><span class="count-badge" id="dailyPicksCount">Waiting for briefing</span></div>
               </div>
@@ -231,14 +172,13 @@
               <div id="dailyPicksEmpty" class="daily-picks-empty-v14">
                 <span>✿</span>
                 <strong>No giant menu yet.</strong>
-                <p>Do the short briefing first. Life RPG will use your real current state to surface only actions that make sense today — and it may deliberately leave slots empty.</p>
+                <p>Do the short briefing first. Life RPG will surface only actions that make sense today — and may deliberately leave slots empty.</p>
               </div>
-              <footer class="daily-picks-footer-v14 daily-picks-footer-v15">
-                <button class="text-button" data-view-target="library" type="button">Open Library →</button>
-                <button class="text-button" data-view-target="games" type="button">Open Games →</button>
-                <button class="text-button" data-sudoku-open type="button">Play Sudoku →</button>
-                <button class="text-button" data-view-target="adventures" type="button">Open Side Adventures →</button>
-                <button class="text-button" data-view-target="quests" type="button">Browse the Quest Board →</button>
+              <footer class="daily-picks-footer-v14 daily-picks-footer-v15 dashboard-plan-footer-v314au">
+                <button class="text-button" data-view-target="library" type="button">Library →</button>
+                <button class="text-button" data-view-target="games" type="button">Games →</button>
+                <button class="text-button" data-view-target="adventures" type="button">Adventures →</button>
+                <button class="text-button" data-view-target="quests" type="button">Quest Board →</button>
               </footer>
             </section>
 
@@ -251,56 +191,78 @@
             </div>
           </div>
 
-          <aside class="side-stack dashboard-side-stack-v3">
-            <section class="panel home-panel dashboard-home-card-v3">
-              <div class="panel-heading">
+          <aside class="dashboard-focus-side-v314au">
+            <section class="panel dashboard-habits-preview dashboard-habits-compact-v314au" aria-labelledby="dashboardHabitsTitle">
+              <div class="panel-heading dashboard-habits-heading-v314au">
                 <div>
-                  <p class="eyebrow">HOME BASE</p>
-                  <h3 id="homeName">Current Apartment</h3>
+                  <p class="eyebrow">QUICK LOG</p>
+                  <h2 id="dashboardHabitsTitle">Today's Habits</h2>
                 </div>
-                <span class="status-dot"></span>
+                <button class="mini-nav-button" data-view-target="habits" type="button">Open habits ›</button>
               </div>
-              <p id="homeDescription" class="muted">Small, familiar, and unfortunately much too far from work.</p>
-              <div id="roomGrid" class="room-grid"></div>
-              <div id="roomMessage" class="soft-callout hidden"></div>
+              <div class="dashboard-habit-switch-v314au" role="group" aria-label="Habit date">
+                <button id="dashboardHabitToday" class="active" data-habit-date-mode="today" type="button" aria-pressed="true">Today</button>
+                <button id="dashboardHabitYesterday" data-habit-date-mode="yesterday" type="button" aria-pressed="false">Yesterday</button>
+              </div>
+              <div id="dashboardHabits" class="dashboard-habit-list dashboard-habit-list-v314au"></div>
             </section>
 
-            <section class="panel pulse-panel dashboard-social-card-v3">
-              <div class="panel-heading">
-                <div>
-                  <p class="eyebrow">SOCIAL</p>
-                  <h3>Life around me</h3>
+            <div class="dashboard-goal-pair-v314au">
+              <section class="panel dashboard-achievement-panel-v306 dashboard-mini-goal-v314au" aria-labelledby="dashboardAchievementTitle">
+                <div class="panel-heading dashboard-achievement-heading-v306">
+                  <div><p class="eyebrow">TRACKED GOALS</p><h2 id="dashboardAchievementTitle">Working toward</h2></div>
+                  <button class="mini-nav-button" data-view-target="achievements" type="button">Edit ›</button>
                 </div>
-                <button class="mini-nav-button" data-view-target="people" type="button">People ›</button>
-              </div>
-              <div id="socialPulse"></div>
-            </section>
+                <div id="dashboardAchievementTracker" class="dashboard-achievement-tracker-v306"></div>
+                <button id="dashboardAchievementTrackerEmpty" class="dashboard-achievement-empty-v306" data-view-target="achievements" type="button"><span>🏆</span><div><strong>No Achievement tracked.</strong><small>Choose a milestone to keep in sight.</small></div><b>›</b></button>
+              </section>
 
-            <section class="panel external-task-panel dashboard-external-card-v3">
-              <div class="panel-heading">
-                <div>
-                  <p class="eyebrow">REAL-LIFE CLEAR</p>
-                  <h3>External Task</h3>
+              <section class="panel dashboard-shop-wish-panel-v306 dashboard-mini-goal-v314au" aria-labelledby="dashboardShopWishTitle">
+                <div class="panel-heading">
+                  <div><p class="eyebrow">REWARD TARGET</p><h2 id="dashboardShopWishTitle">Current Wish</h2></div>
+                  <button class="mini-nav-button" data-view-target="shop" type="button">Shop ›</button>
                 </div>
-                <span class="tiny-badge">Todoist</span>
-              </div>
-              <p class="muted external-task-copy">Keep the actual obligation in Todoist. Claim only the Life RPG reward here when it is done.</p>
-              <div id="externalTaskTodaySummary" class="external-task-summary"></div>
-              <button class="secondary-button external-task-button" id="externalTaskButton" type="button">Claim completed task</button>
-            </section>
+                <div id="dashboardShopWish" class="dashboard-shop-wish-v306"></div>
+              </section>
+            </div>
           </aside>
         </section>
 
-        <section class="section-block dashboard-growth-preview-v3">
-          <div class="panel-heading">
-            <div>
-              <p class="eyebrow">CHARACTER DEVELOPMENT</p>
-              <h2>What is changing?</h2>
-              <p class="panel-subcopy">Real actions slowly become abilities, confidence and a bigger life.</p>
+        <section class="dashboard-context-grid-v314au" aria-label="Life at a glance">
+          <section class="panel home-panel dashboard-home-card-v3 dashboard-context-card-v314au">
+            <div class="panel-heading">
+              <div><p class="eyebrow">HOME BASE</p><h3 id="homeName">Current Apartment</h3></div>
+              <span class="status-dot"></span>
             </div>
-            <button class="text-button" data-view-target="growth">Open full profile →</button>
-          </div>
-          <div id="miniStats" class="stat-strip dashboard-stat-strip-v3"></div>
+            <p id="homeDescription" class="muted">Small, familiar, and unfortunately much too far from work.</p>
+            <div id="roomGrid" class="room-grid"></div>
+            <div id="roomMessage" class="soft-callout hidden"></div>
+          </section>
+
+          <section class="panel pulse-panel dashboard-social-card-v3 dashboard-context-card-v314au">
+            <div class="panel-heading">
+              <div><p class="eyebrow">SOCIAL</p><h3>Life around me</h3></div>
+              <button class="mini-nav-button" data-view-target="people" type="button">People ›</button>
+            </div>
+            <div id="socialPulse"></div>
+          </section>
+
+          <section class="panel external-task-panel dashboard-external-card-v3 dashboard-context-card-v314au">
+            <div class="panel-heading">
+              <div><p class="eyebrow">REAL-LIFE CLEAR</p><h3>External Task</h3></div>
+              <span class="tiny-badge">Todoist</span>
+            </div>
+            <div id="externalTaskTodaySummary" class="external-task-summary"></div>
+            <button class="secondary-button external-task-button" id="externalTaskButton" type="button">Claim completed task</button>
+          </section>
+
+          <section class="panel dashboard-growth-preview-v3 dashboard-context-card-v314au dashboard-growth-compact-v314au">
+            <div class="panel-heading">
+              <div><p class="eyebrow">GROWTH</p><h3>What is changing?</h3></div>
+              <button class="mini-nav-button" data-view-target="growth" type="button">Profile ›</button>
+            </div>
+            <div id="miniStats" class="stat-strip dashboard-stat-strip-v3"></div>
+          </section>
         </section>
       </section>
 
@@ -3200,7 +3162,7 @@ League of Legends — PC" required></textarea></label>
   <script src="app.js?v=0.31.4an"></script>
   <script src="daily-streaks.js?v=0.31.4z"></script>
   <script src="stewardship.js?v=0.31.3a"></script>
-  <script src="habits.js?v=0.31.4ag"></script>
+  <script src="habits.js?v=0.31.4au"></script>
   <script src="adventures.js?v=0.31.4ag"></script>
   <script src="adventure-workspace.js?v=0.31.4c"></script>
   <script src="library.js?v=0.31.4ag"></script>
@@ -3246,6 +3208,6 @@ League of Legends — PC" required></textarea></label>
   <script src="weekly-review.js?v=0.31.4ag"></script>
 
   <script type="module" src="cloud-save.js?v=0.31.4ag"></script>
-  <script src="pwa.js?v=0.31.4at"></script>
+  <script src="pwa.js?v=0.31.4au"></script>
 </body>
 </html>

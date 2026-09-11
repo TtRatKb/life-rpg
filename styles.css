@@ -16518,3 +16518,547 @@ body.training-focus-active-v314o > *:not(#trainingFocusView):not(.toast):not(.ac
     width: 100%;
   }
 }
+
+/* ========================================================================== 
+   V0.31.4au · Dashboard Focus Pass
+   Daily plan first, compact habit backfill, reduced secondary dashboard chrome.
+   ========================================================================== */
+
+.dashboard-focus-grid-v314au {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(340px, .65fr);
+  gap: 18px;
+  align-items: start;
+  margin-top: 18px;
+}
+
+.dashboard-plan-column-v314au,
+.dashboard-focus-side-v314au {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+.dashboard-briefing-compact-v314au,
+.dashboard-plan-card-v314au,
+.dashboard-habits-compact-v314au,
+.dashboard-mini-goal-v314au,
+.dashboard-context-card-v314au {
+  border-radius: 22px !important;
+  box-shadow: 0 12px 30px rgba(72,41,68,.065) !important;
+}
+
+.dashboard-briefing-compact-v314au {
+  padding: 18px 20px !important;
+}
+
+.dashboard-briefing-compact-v314au .daily-briefing-head-v14,
+.dashboard-plan-card-v314au .panel-heading,
+.dashboard-habits-heading-v314au,
+.dashboard-mini-goal-v314au .panel-heading,
+.dashboard-context-card-v314au .panel-heading {
+  margin-bottom: 10px;
+}
+
+.dashboard-plan-card-v314au {
+  padding: 20px !important;
+}
+
+.dashboard-plan-card-v314au .daily-picks-grid-v14 {
+  gap: 10px;
+}
+
+.dashboard-plan-footer-v314au {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  padding-top: 12px;
+}
+
+.dashboard-plan-footer-v314au .text-button {
+  font-size: .69rem;
+}
+
+.dashboard-habits-compact-v314au {
+  padding: 17px !important;
+  min-width: 0;
+}
+
+.dashboard-habits-heading-v314au {
+  align-items: center;
+}
+
+.dashboard-habits-heading-v314au h2,
+.dashboard-mini-goal-v314au h2 {
+  font-size: 1.18rem;
+}
+
+.dashboard-habit-switch-v314au {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  margin: 2px 0 10px;
+  padding: 4px;
+  border: 1px solid rgba(102,61,94,.09);
+  border-radius: 13px;
+  background: rgba(113,71,102,.055);
+}
+
+.dashboard-habit-switch-v314au button {
+  min-height: 34px;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 10px;
+  color: #7b6071;
+  background: transparent;
+  font: inherit;
+  font-size: .7rem;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.dashboard-habit-switch-v314au button.active {
+  color: #5b354f;
+  background: rgba(255,255,255,.92);
+  box-shadow: 0 4px 12px rgba(72,41,68,.07);
+}
+
+.dashboard-habit-list-v314au {
+  margin-top: 0 !important;
+}
+
+.dashboard-habit-summary-v314au {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+  padding: 0 2px;
+}
+
+.dashboard-habit-summary-v314au strong {
+  color: #624258;
+  font-size: .75rem;
+}
+
+.dashboard-habit-summary-v314au span {
+  color: #957e8b;
+  font-size: .62rem;
+  white-space: nowrap;
+}
+
+.dashboard-habit-compact-grid-v314au {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+  max-height: 370px;
+  overflow-y: auto;
+  padding-right: 2px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(178,104,133,.24) transparent;
+}
+
+.dashboard-habit-compact-row-v314au {
+  display: grid;
+  grid-template-columns: 7px minmax(0,1fr) auto auto;
+  align-items: center;
+  gap: 8px;
+  min-height: 52px;
+  padding: 8px 9px;
+  border: 1px solid rgba(105,65,97,.075);
+  border-radius: 13px;
+  background: rgba(255,253,251,.72);
+}
+
+.dashboard-habit-compact-row-v314au.ready {
+  border-color: rgba(199,96,139,.17);
+  background: linear-gradient(145deg, rgba(255,255,255,.9), rgba(252,238,244,.74));
+}
+
+.dashboard-habit-compact-row-v314au.done {
+  opacity: .72;
+}
+
+.dashboard-habit-compact-copy-v314au {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.dashboard-habit-compact-copy-v314au strong {
+  overflow: hidden;
+  color: #583e51;
+  font-size: .75rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dashboard-habit-compact-copy-v314au small {
+  overflow: hidden;
+  color: #907a87;
+  font-size: .59rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dashboard-habit-reward-v314au {
+  color: #93667a;
+  font-size: .6rem;
+  white-space: nowrap;
+}
+
+.dashboard-habit-compact-row-v314au .habit-quick-complete-v1 {
+  min-width: 52px;
+  min-height: 32px;
+  padding: 5px 8px;
+  border-radius: 10px;
+  font-size: .62rem;
+}
+
+.dashboard-habit-compact-row-v314au .dashboard-habit-state-v1 {
+  min-width: 32px;
+  text-align: center;
+  font-size: .75rem;
+}
+
+.dashboard-habit-empty-v314au {
+  min-height: 74px;
+  padding: 10px 2px !important;
+}
+
+.dashboard-goal-pair-v314au {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.dashboard-mini-goal-v314au {
+  padding: 15px !important;
+}
+
+.dashboard-mini-goal-v314au .panel-heading .panel-subcopy {
+  display: none;
+}
+
+.dashboard-mini-goal-v314au .dashboard-achievement-tracker-v306 {
+  grid-template-columns: 1fr;
+  gap: 6px;
+}
+
+.dashboard-mini-goal-v314au .dashboard-achievement-main-v306 {
+  grid-template-columns: auto minmax(0,1fr) auto;
+  gap: 8px;
+  padding: 9px 34px 9px 9px;
+}
+
+.dashboard-mini-goal-v314au .dashboard-achievement-icon-v306 {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  font-size: 1rem;
+}
+
+.dashboard-mini-goal-v314au .dashboard-achievement-copy-v306 small,
+.dashboard-mini-goal-v314au .dashboard-achievement-copy-v306 em {
+  font-size: .58rem;
+}
+
+.dashboard-mini-goal-v314au .dashboard-achievement-copy-v306 strong {
+  font-size: .72rem;
+}
+
+.dashboard-mini-goal-v314au .dashboard-achievement-empty-v306,
+.dashboard-mini-goal-v314au .shop-current-empty-v306 {
+  min-height: 58px;
+  padding: 9px 10px;
+  border-radius: 13px;
+}
+
+.dashboard-mini-goal-v314au .dashboard-achievement-empty-v306 > span,
+.dashboard-mini-goal-v314au .shop-current-empty-v306 > span {
+  font-size: 1.05rem;
+}
+
+.dashboard-mini-goal-v314au .dashboard-achievement-empty-v306 strong,
+.dashboard-mini-goal-v314au .shop-current-empty-v306 strong {
+  font-size: .72rem;
+}
+
+.dashboard-mini-goal-v314au .dashboard-achievement-empty-v306 small,
+.dashboard-mini-goal-v314au .shop-current-empty-v306 small {
+  font-size: .58rem;
+}
+
+.dashboard-mini-goal-v314au .dashboard-shop-wish-v306 {
+  min-height: 0;
+}
+
+.dashboard-mini-goal-v314au .dashboard-shop-target-v306,
+.dashboard-mini-goal-v314au .dashboard-shop-empty-v306 {
+  grid-template-columns: auto minmax(0,1fr) auto;
+  gap: 8px;
+  padding: 8px 9px;
+  border-radius: 13px;
+}
+
+.dashboard-mini-goal-v314au .dashboard-shop-thumb-v306 {
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+}
+
+.dashboard-mini-goal-v314au .dashboard-shop-copy-v306 small,
+.dashboard-mini-goal-v314au .dashboard-shop-copy-v306 em {
+  font-size: .58rem;
+}
+
+.dashboard-mini-goal-v314au .dashboard-shop-copy-v306 strong {
+  font-size: .72rem;
+}
+
+.dashboard-context-grid-v314au {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0,1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.dashboard-context-card-v314au {
+  min-height: 128px;
+  padding: 14px !important;
+  overflow: hidden;
+}
+
+.dashboard-context-card-v314au h3 {
+  margin: 0;
+  font-size: .96rem;
+}
+
+.dashboard-context-card-v314au .eyebrow {
+  margin-bottom: 2px;
+  font-size: .55rem;
+}
+
+.dashboard-context-card-v314au .panel-heading {
+  align-items: center;
+}
+
+.dashboard-context-card-v314au .muted,
+.dashboard-context-card-v314au .pulse-card p,
+.dashboard-context-card-v314au .external-task-copy {
+  font-size: .65rem;
+  line-height: 1.4;
+}
+
+.dashboard-context-grid-v314au .dashboard-home-card-v3 .room-grid,
+.dashboard-context-grid-v314au .dashboard-home-card-v3 .room-message,
+.dashboard-context-grid-v314au .external-task-copy {
+  display: none !important;
+}
+
+.dashboard-context-grid-v314au .pulse-card {
+  min-height: 0;
+  padding: 9px;
+  border-radius: 13px;
+}
+
+.dashboard-context-grid-v314au .pulse-card .pulse-icon {
+  width: 32px;
+  height: 32px;
+  font-size: .9rem;
+}
+
+.dashboard-context-grid-v314au .external-task-summary {
+  margin: 0 0 8px;
+  font-size: .64rem;
+}
+
+.dashboard-context-grid-v314au .external-task-button {
+  min-height: 32px;
+  padding: 6px 9px;
+  font-size: .62rem;
+}
+
+.dashboard-growth-compact-v314au::after {
+  display: none !important;
+}
+
+.dashboard-growth-compact-v314au .dashboard-stat-strip-v3 {
+  grid-template-columns: repeat(2, minmax(0,1fr));
+  gap: 5px;
+}
+
+.dashboard-growth-compact-v314au .stat-tile {
+  min-height: 0;
+  padding: 7px 8px;
+  border-radius: 11px;
+}
+
+.dashboard-growth-compact-v314au .stat-tile small {
+  font-size: .48rem;
+}
+
+.dashboard-growth-compact-v314au .stat-tile strong {
+  font-size: .7rem;
+}
+
+/* The hero remains the visual anchor, but gives the daily tools more room above the fold. */
+#view-basecamp .dashboard-hero-v3 {
+  margin-bottom: 0;
+  padding: 24px;
+}
+
+#view-basecamp .dashboard-player-art-v3 {
+  min-height: 230px;
+}
+
+@media (max-width: 1180px) {
+  .dashboard-focus-grid-v314au {
+    grid-template-columns: minmax(0,1.15fr) minmax(310px,.85fr);
+  }
+  .dashboard-context-grid-v314au {
+    grid-template-columns: repeat(2, minmax(0,1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .dashboard-focus-grid-v314au {
+    grid-template-columns: 1fr;
+  }
+  .dashboard-focus-side-v314au {
+    grid-template-columns: 1fr;
+  }
+  .dashboard-habit-compact-grid-v314au {
+    grid-template-columns: repeat(2, minmax(0,1fr));
+    max-height: none;
+  }
+  .dashboard-goal-pair-v314au {
+    grid-template-columns: repeat(2, minmax(0,1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  #view-basecamp.active {
+    display: flex;
+    flex-direction: column;
+  }
+
+  #view-basecamp .dashboard-hero-v3 { order: -30; }
+  #view-basecamp .dashboard-focus-grid-v314au { order: -20; }
+  #view-basecamp .dashboard-context-grid-v314au { order: -10; }
+
+  .dashboard-focus-grid-v314au {
+    gap: 10px;
+    margin-top: 10px;
+  }
+
+  .dashboard-focus-side-v314au {
+    order: -1;
+  }
+
+  .dashboard-habits-compact-v314au {
+    order: -1;
+    margin-top: 0;
+    padding: 13px !important;
+  }
+
+  .dashboard-habits-heading-v314au {
+    margin-bottom: 6px !important;
+  }
+
+  .dashboard-habit-compact-grid-v314au {
+    grid-template-columns: 1fr;
+    gap: 5px;
+    max-height: 320px;
+  }
+
+  .dashboard-habit-compact-row-v314au {
+    min-height: 48px;
+    padding: 7px 8px;
+  }
+
+  .dashboard-goal-pair-v314au {
+    grid-template-columns: 1fr 1fr;
+    gap: 7px;
+  }
+
+  .dashboard-mini-goal-v314au {
+    padding: 12px !important;
+  }
+
+  .dashboard-mini-goal-v314au .panel-heading {
+    gap: 6px;
+  }
+
+  .dashboard-mini-goal-v314au .panel-heading .mini-nav-button {
+    padding-inline: 6px;
+    font-size: .58rem;
+  }
+
+  .dashboard-mini-goal-v314au .dashboard-achievement-track-v306:nth-child(n+2) {
+    display: none;
+  }
+
+  .dashboard-context-grid-v314au {
+    grid-template-columns: 1fr 1fr;
+    gap: 7px;
+    margin-top: 10px;
+  }
+
+  .dashboard-context-card-v314au {
+    min-height: 108px;
+    padding: 11px !important;
+  }
+
+  .dashboard-context-card-v314au .panel-heading .mini-nav-button,
+  .dashboard-context-card-v314au .tiny-badge,
+  .dashboard-context-card-v314au .status-dot {
+    display: none;
+  }
+
+  .dashboard-growth-compact-v314au .dashboard-stat-strip-v3 {
+    grid-template-columns: repeat(2, minmax(0,1fr));
+  }
+
+  .dashboard-plan-card-v314au,
+  .dashboard-briefing-compact-v314au {
+    padding: 14px !important;
+  }
+
+  .dashboard-plan-card-v314au .panel-subcopy,
+  .dashboard-briefing-compact-v314au .panel-subcopy {
+    display: none;
+  }
+
+  .dashboard-plan-footer-v314au {
+    display: none;
+  }
+}
+
+@media (max-width: 430px) {
+  .dashboard-goal-pair-v314au,
+  .dashboard-context-grid-v314au {
+    grid-template-columns: 1fr;
+  }
+  .dashboard-habit-summary-v314au {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 2px;
+  }
+}
+
+/* V0.31.4au mobile ordering correction: quick habits first, then the actual day plan,
+   then supporting goals. display:contents lets the side-card children participate in
+   the same mobile flow without changing desktop structure or JS anchors. */
+@media (max-width: 720px) {
+  .dashboard-focus-grid-v314au {
+    display: flex;
+    flex-direction: column;
+  }
+  .dashboard-focus-side-v314au {
+    display: contents;
+  }
+  .dashboard-habits-compact-v314au { order: 0; }
+  .dashboard-plan-column-v314au { order: 1; }
+  .dashboard-goal-pair-v314au { order: 2; }
+}
