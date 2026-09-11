@@ -204,9 +204,11 @@
     if (reward.statXP) growth.push(`+${trim(reward.statXP)} ${capabilityLabel(row.capability)} XP`);
     const rewardMarkup = row.rewardKnown === false
       ? `<span class="activity-reward-pill-v314 muted">Reward unavailable</span>`
-      : hasMainReward
-        ? `${reward.xp ? `<span class="activity-reward-pill-v314 xp">+${trim(reward.xp)} XP</span>` : ""}${reward.storyEnergy ? `<span class="activity-reward-pill-v314 energy">+${app.formatEnergy?.(reward.storyEnergy) ?? trim(reward.storyEnergy)} 🔥</span>` : ""}${reward.coins ? `<span class="activity-reward-pill-v314 coins">+${trim(reward.coins)} 🪙</span>` : ""}`
-        : `<span class="activity-reward-pill-v314 muted">No direct reward</span>`;
+      : row.giftReward
+        ? `<span class="activity-reward-pill-v314 gift">${esc(row.giftReward.icon || "🎁")} ${esc(row.giftReward.name || "Gift Find")}</span>`
+        : hasMainReward
+          ? `${reward.xp ? `<span class="activity-reward-pill-v314 xp">+${trim(reward.xp)} XP</span>` : ""}${reward.storyEnergy ? `<span class="activity-reward-pill-v314 energy">+${app.formatEnergy?.(reward.storyEnergy) ?? trim(reward.storyEnergy)} 🔥</span>` : ""}${reward.coins ? `<span class="activity-reward-pill-v314 coins">+${trim(reward.coins)} 🪙</span>` : ""}`
+          : `<span class="activity-reward-pill-v314 muted">No direct reward</span>`;
     const flags = [];
     if (row.duplicate) flags.push("Already counted elsewhere");
     if (row.migrated) flags.push("Migrated history");
@@ -427,6 +429,7 @@
       id: event.id, at: event.at, category, icon: meta.icon, sourceLabel: meta.label,
       title: event.label || meta.label, detail: details,
       reward: rewardFromEvent(event), rewardKnown: true, realm: event.realm || null, capability: event.capability || null,
+      giftReward: event.source === "gift-find" ? { name: event.metadata?.giftName || "Gift Find", icon: event.metadata?.giftIcon || "🎁" } : null,
       duplicate: Boolean(event.duplicate), migrated: Boolean(event.migrated), why: genericWhy(event)
     };
   }
@@ -439,6 +442,7 @@
     if (event.source === "daily-checkin") return `${number(m.streak) ? `${number(m.streak)} day streak · ` : ""}Daily plan updated`;
     if (event.source === "stewardship") return `${humanize(m.type || "library upkeep")} · system stewardship`;
     if (event.source === "game-goal") return "Tracked Game Goal completed";
+    if (event.source === "gift-find") return `${m.giftSourceLabel || "Gift reward"} · added to the Gift Shelf · no Coins spent`;
     if (event.source === "steam-playtime") {
       const imported = number(m.importedMinutes);
       const covered = number(m.manualCoveredMinutes);
@@ -602,7 +606,8 @@
       "journal-reflection-base": ["🌸", "Journal"],
       "journal-reflection-effort": ["🌸", "Journal"],
       "journal-reflection-field-effort": ["🌸", "Journal"],
-      "habit-coin-repair": ["↺", "Reward repair"]
+      "habit-coin-repair": ["↺", "Reward repair"],
+      "gift-find": ["🎁", "Gift Find"]
     };
     const found = map[source];
     if (found) return { icon: found[0], label: found[1] };

@@ -835,6 +835,13 @@
       console.error("Talent V2 reward post-hook failed", error);
     }
 
+    try {
+      const giftFind = window.LifeRPGGifts?.afterActivityReward?.(effectiveSpec, reward);
+      if (giftFind?.item) reward.giftFind = { ...giftFind.item };
+    } catch (error) {
+      console.error("Gift reward post-hook failed", error);
+    }
+
     applyHiddenEngineChecks();
     return reward;
   }
@@ -1719,7 +1726,11 @@
               <span class="home-resident-chip-v314aw ${person.home ? "is-home" : "is-away"}">
                 <i>${person.id === "bakugo" ? "✦" : "◆"}</i><b>${escapeHtml(person.name)}</b><small>${escapeHtml(person.label || (person.home ? "Home" : "Out"))}</small>
               </span>`).join("")}
-          </div>`;
+          </div>
+          ${(() => {
+            const kept = window.LifeRPGGifts?.keptSummary?.() || [];
+            return kept.length ? `<div class="home-keepsake-note-v314ay"><span>🎁</span><span><strong>Little things have started to stay.</strong><br>${kept.map(escapeHtml).join(" · ")}</span></div>` : "";
+          })()}`;
       }
 
       const rooms = hub?.rooms || [
