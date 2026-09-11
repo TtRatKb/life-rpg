@@ -109,6 +109,28 @@
       ],
       reward: { xp: 20, realmXP: 20, statXP: 14, story: 0.75, coins: 14 }
     },
+    grounding54321: {
+      id: "grounding54321",
+      icon: "✋",
+      title: "5–4–3–2–1 Grounding",
+      short: "7 min · sensory grounding",
+      minutes: 7,
+      subcategory: "Grounding",
+      kind: "stages",
+      intensity: "passive",
+      talentUnlock: { realm: "Recovery", id: "grounding-54321" },
+      blurb: "A gentle sensory grounding sequence: notice five things you can see, four you can feel, three you can hear, two you can smell (or imagine), and one thing you can taste or appreciate. No need to force any sensation.",
+      stages: [
+        ["Arrive", 30, "Get comfortable and let your eyes settle on the room around you."],
+        ["5 · See", 90, "Notice five things you can see. Shapes, colours, light, tiny details — anything counts."],
+        ["4 · Feel", 90, "Notice four things you can physically feel: clothing, the chair, temperature, your feet on the floor."],
+        ["3 · Hear", 90, "Notice three sounds. Near or far, pleasant or neutral."],
+        ["2 · Smell", 75, "Notice two scents if any are available. If not, imagine two familiar calming smells."],
+        ["1 · Taste / appreciate", 75, "Notice one taste, or simply name one small thing in this moment that feels okay enough."],
+        ["Finish", 30, "Look around once more. You do not have to feel transformed; being a little more here is enough."]
+      ],
+      reward: { xp: 13, realmXP: 13, statXP: 9, story: 0.45, coins: 9 }
+    },
     neckShoulders7: {
       id: "neckShoulders7",
       icon: "🌿",
@@ -168,6 +190,7 @@
     reconcileExternalTimer();
     render();
     window.addEventListener("life-rpg:render", render);
+    window.addEventListener("life-rpg:talent-v2-change", render);
     window.addEventListener("life-rpg:time-change", () => {
       reconcileExternalTimer();
       render();
@@ -240,9 +263,18 @@
     if (els.dialog && !els.dialog.open) els.dialog.showModal();
   }
 
+  function sessionUnlocked(def) {
+    if (!def?.talentUnlock) return true;
+    return Boolean(window.LifeRPGTalentV2?.isContentUnlocked?.(def.talentUnlock.realm, def.talentUnlock.id));
+  }
+
   function startSession(sessionId) {
     const def = SESSIONS[sessionId];
     if (!def) return false;
+    if (!sessionUnlocked(def)) {
+      app.showToast?.("🔒 Unlock 5–4–3–2–1 Grounding in the Recovery Talent Tree first.");
+      return false;
+    }
     const currentTime = window.LifeRPGTime?.getActive?.();
     if (state().active && currentTime?.id === state().active.timeActiveId) {
       enterFocus(state().active);
@@ -481,12 +513,13 @@
     els.library.innerHTML = Object.values(SESSIONS).map(def => {
       const preview = previewReward(def);
       const active = currentId === def.id;
+      const unlocked = sessionUnlocked(def);
       const movementNote = def.intensity === "gentle-movement" ? `<small class="recovery-safety-tag-v314m">gentle movement</small>` : `<small class="recovery-safety-tag-v314m">passive recovery</small>`;
-      return `<article class="recovery-session-card-v314m ${active ? "is-active" : ""}">
-        <div class="recovery-session-head-v314m"><span>${def.icon}</span><div><small>${def.minutes} MIN · RECOVERY</small><strong>${escapeHtml(def.title)}</strong></div></div>
+      return `<article class="recovery-session-card-v314m ${active ? "is-active" : ""} ${unlocked ? "" : "is-talent-locked-v314an"}">
+        <div class="recovery-session-head-v314m"><span>${unlocked ? def.icon : "🔒"}</span><div><small>${def.minutes} MIN · ${unlocked ? "RECOVERY" : "TALENT CONTENT"}</small><strong>${escapeHtml(def.title)}</strong></div></div>
         <p>${escapeHtml(def.blurb)}</p>
-        <div class="recovery-session-meta-v314m">${movementNote}<span>+${preview.xp} XP · +${preview.coins} 🪙 · +${app.formatEnergy?.(preview.storyEnergy) ?? preview.storyEnergy} 🔥</span></div>
-        <button class="${active ? "primary-button" : "secondary-button"}" data-recovery-session-start="${def.id}" type="button">${active ? "Continue session" : "Start session"}</button>
+        <div class="recovery-session-meta-v314m">${movementNote}<span>${unlocked ? `+${preview.xp} XP · +${preview.coins} 🪙 · +${app.formatEnergy?.(preview.storyEnergy) ?? preview.storyEnergy} 🔥` : "Unlock in Recovery Talent Tree"}</span></div>
+        <button class="${active ? "primary-button" : "secondary-button"}" ${unlocked ? `data-recovery-session-start="${def.id}"` : "disabled"} type="button">${unlocked ? (active ? "Continue session" : "Start session") : "🔒 Locked"}</button>
       </article>`;
     }).join("");
   }

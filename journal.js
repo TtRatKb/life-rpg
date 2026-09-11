@@ -38,7 +38,8 @@
   const REFLECTION_META = {
     gratitude: { icon: "🌸", label: "Something I'm grateful for" },
     smallWin: { icon: "⭐", label: "Something that went well" },
-    hardThing: { icon: "🌧", label: "Something that was hard" }
+    hardThing: { icon: "🌧", label: "Something that was hard" },
+    thoughtUntangler: { icon: "🧶", label: "Thought Untangler", talentRealm: "Health", talentId: "thought-untangler" }
   };
 
   const JOURNAL_FIELD_REWARD_TIERS = [
@@ -59,12 +60,14 @@
         choice: "Want to keep one more thing from today?",
         gratitude: "One good thing. Tiny counts. What do I want to remember?",
         smallWin: "What actually went right today?",
-        hardThing: "What was hard today? No fixing it required."
+        hardThing: "What was hard today? No fixing it required.",
+        thoughtUntangler: "What's tangled up in my head right now? I can separate the pieces without solving all of them."
       },
       saved: {
         gratitude: "Good. Worth keeping.",
         smallWin: "That counts. No moving the goalposts.",
-        hardThing: "Okay. It can just be hard without becoming a project."
+        hardThing: "Okay. It can just be hard without becoming a project.",
+        thoughtUntangler: "A little less tangled is enough. I don't need a final answer."
       }
     },
     mina: {
@@ -76,12 +79,14 @@
         choice: "Wanna do one more? Tiny counts, promise.",
         gratitude: "Okay, one good thing. Coffee absolutely counts.",
         smallWin: "Tiny victory check! What are we giving you credit for?",
-        hardThing: "Okay, what sucked? You can just say it."
+        hardThing: "Okay, what sucked? You can just say it.",
+        thoughtUntangler: "Brain spaghetti check. What's mixed together that would feel better separated?"
       },
       saved: {
         gratitude: "See? Keeping that one. 🌸",
         smallWin: "YES. It counts. I'm putting a star on it.",
-        hardThing: "Yeah. That sounds rough. No silver lining required."
+        hardThing: "Yeah. That sounds rough. No silver lining required.",
+        thoughtUntangler: "Okay, that's clearer. You don't have to turn it into a plan tonight."
       }
     },
     kirishima: {
@@ -93,12 +98,14 @@
         choice: "Hey, want to keep one more thing from today?",
         gratitude: "Give me one good thing from today. Doesn't have to be huge.",
         smallWin: "What went better than you expected?",
-        hardThing: "What felt heavy today?"
+        hardThing: "What felt heavy today?",
+        thoughtUntangler: "What's been looping around in your head? We can just sort the pieces out a little."
       },
       saved: {
         gratitude: "That's a good one to keep.",
         smallWin: "Nice. Seriously — give yourself that one.",
-        hardThing: "Got it. You don't have to make it smaller than it was."
+        hardThing: "Got it. You don't have to make it smaller than it was.",
+        thoughtUntangler: "That makes more sense laid out like that. You don't need to finish the thought right now."
       }
     },
     bakugo: {
@@ -110,12 +117,14 @@
         choice: "You done, or you keeping one more thing from today?",
         gratitude: "One thing that didn't suck. Go.",
         smallWin: "What actually went right today? And don't move the goalposts.",
-        hardThing: "What was the pain in the ass today?"
+        hardThing: "What was the pain in the ass today?",
+        thoughtUntangler: "What's stuck in your head? Separate the actual problem from the extra noise."
       },
       saved: {
         gratitude: "Fine. Keep that one.",
         smallWin: "Counts. Obviously.",
-        hardThing: "Yeah. Sounds like a pain. Doesn't mean you handled it badly."
+        hardThing: "Yeah. Sounds like a pain. Doesn't mean you handled it badly.",
+        thoughtUntangler: "Better. At least now you know what the hell is actually tangled."
       }
     }
   };
@@ -167,6 +176,7 @@
     dayGratitude: byId("journalDayGratitude"),
     daySmallWin: byId("journalDaySmallWin"),
     dayHardThing: byId("journalDayHardThing"),
+    dayThoughtUntangler: byId("journalDayThoughtUntangler"),
     dayRewardMeter: byId("journalDayRewardMeter")
   };
 
@@ -280,7 +290,7 @@
     els.reflectionBack?.addEventListener("click", showReflectionChoices);
     els.reflectionSave?.addEventListener("click", saveReflectionField);
     els.reflectionTextarea?.addEventListener("input", renderReflectionRewardMeter);
-    [els.dayGratitude, els.daySmallWin, els.dayHardThing].forEach(input => input?.addEventListener("input", renderDayRewardMeter));
+    [els.dayGratitude, els.daySmallWin, els.dayHardThing, els.dayThoughtUntangler].forEach(input => input?.addEventListener("input", renderDayRewardMeter));
     els.reflectionChoiceStep?.addEventListener("click", event => {
       const choice = event.target.closest?.("[data-reflection-field]");
       if (choice) showReflectionWrite(choice.dataset.reflectionField);
@@ -292,6 +302,13 @@
     document.addEventListener("click", event => {
       const open = event.target.closest?.("[data-journal-reflect]");
       if (open) openReflection(open.dataset.journalReflect || todayKey());
+    });
+
+    window.addEventListener("life-rpg:talent-v2-change", () => {
+      if (!initialized) return;
+      render();
+      if (els.reflectionDialog?.open) showReflectionChoices();
+      if (els.dayDialog?.open && editingDate) syncThoughtUntanglerDayField(entryFor(editingDate, false) || {});
     });
 
     window.addEventListener("life-rpg:render", () => {
@@ -465,6 +482,12 @@
     if (els.reflectionDialog?.open) els.reflectionDialog.close();
   }
 
+  function reflectionFieldUnlocked(field) {
+    const meta = REFLECTION_META[field];
+    if (!meta?.talentId) return true;
+    return Boolean(window.LifeRPGTalentV2?.isContentUnlocked?.(meta.talentRealm, meta.talentId));
+  }
+
   function showReflectionChoices() {
     reflectionField = null;
     els.reflectionWriteStep?.classList.add("hidden");
@@ -474,14 +497,17 @@
     const entry = entryFor(reflectionDate, false) || {};
     els.reflectionChoiceStep.querySelectorAll("[data-reflection-field]").forEach(button => {
       const field = button.dataset.reflectionField;
-      button.classList.toggle("saved", Boolean(cleanText(entry[field])));
+      const unlocked = reflectionFieldUnlocked(field);
+      button.disabled = !unlocked;
+      button.classList.toggle("is-talent-locked", !unlocked);
+      button.classList.toggle("saved", unlocked && Boolean(cleanText(entry[field])));
       const status = button.querySelector("small");
-      if (status) status.textContent = cleanText(entry[field]) ? "Saved · tap to edit" : "Optional";
+      if (status) status.textContent = !unlocked ? "Unlock in Health Talent Tree" : cleanText(entry[field]) ? "Saved · tap to edit" : "Optional";
     });
   }
 
   function showReflectionWrite(field) {
-    if (!REFLECTION_META[field]) return;
+    if (!REFLECTION_META[field] || !reflectionFieldUnlocked(field)) return;
     reflectionField = field;
     const entry = entryFor(reflectionDate, true);
     els.reflectionChoiceStep?.classList.add("hidden");
@@ -489,7 +515,7 @@
     if (els.reflectionPrompt) els.reflectionPrompt.textContent = reflectionCompanion.prompts[field];
     if (els.reflectionTextarea) {
       els.reflectionTextarea.value = entry[field] || "";
-      els.reflectionTextarea.placeholder = field === "gratitude" ? "Tiny things count…" : field === "smallWin" ? "What deserves credit?" : "You don't have to solve it here…";
+      els.reflectionTextarea.placeholder = field === "gratitude" ? "Tiny things count…" : field === "smallWin" ? "What deserves credit?" : field === "thoughtUntangler" ? "What are the separate pieces of this thought?" : "You don't have to solve it here…";
       renderReflectionRewardMeter();
       setTimeout(() => els.reflectionTextarea.focus(), 30);
     }
@@ -529,8 +555,20 @@
     if (els.dayGratitude) els.dayGratitude.value = entry.gratitude || "";
     if (els.daySmallWin) els.daySmallWin.value = entry.smallWin || "";
     if (els.dayHardThing) els.dayHardThing.value = entry.hardThing || "";
+    syncThoughtUntanglerDayField(entry);
     renderDayRewardMeter();
     els.dayDialog.showModal();
+  }
+
+  function syncThoughtUntanglerDayField(entry = {}) {
+    if (!els.dayThoughtUntangler) return;
+    const unlocked = reflectionFieldUnlocked("thoughtUntangler");
+    els.dayThoughtUntangler.value = entry.thoughtUntangler || "";
+    els.dayThoughtUntangler.disabled = !unlocked;
+    els.dayThoughtUntangler.closest("label")?.classList.toggle("is-talent-locked", !unlocked);
+    const tag = els.dayThoughtUntangler.closest("label")?.querySelector("small");
+    if (tag) tag.textContent = unlocked ? "Talent unlock" : "Locked · Health Talent Tree";
+    renderDayRewardMeter();
   }
 
   function renderDayHealthSummary(health) {
@@ -564,6 +602,7 @@
     entry.gratitude = cleanText(els.dayGratitude?.value);
     entry.smallWin = cleanText(els.daySmallWin?.value);
     entry.hardThing = cleanText(els.dayHardThing?.value);
+    if (reflectionFieldUnlocked("thoughtUntangler")) entry.thoughtUntangler = cleanText(els.dayThoughtUntangler?.value);
     entry.updatedAt = Date.now();
     const rewards = maybeAwardReflectionRewards(editingDate, entry);
     app.saveState({ source: "journal-day-edit" });
@@ -747,6 +786,7 @@
         if (cleanText(entry.gratitude)) lines.push("", `**Grateful for**  `, entry.gratitude);
         if (cleanText(entry.smallWin)) lines.push("", `**Small win**  `, entry.smallWin);
         if (cleanText(entry.hardThing)) lines.push("", `**What was hard**  `, entry.hardThing);
+        if (cleanText(entry.thoughtUntangler)) lines.push("", `**Thought Untangler**  `, entry.thoughtUntangler);
         lines.push("");
       });
     });
@@ -859,6 +899,7 @@
     }
 
     Object.keys(REFLECTION_META).forEach(field => {
+      if (!reflectionFieldUnlocked(field)) return;
       const chars = reflectionFieldCharacterCount(entry, field);
       JOURNAL_FIELD_REWARD_TIERS.forEach((tier, index) => {
         if (chars < tier.threshold || independentTierAlreadyAwarded(dateKeyValue, field, index, tier.threshold)) return;
@@ -935,7 +976,7 @@
   }
 
   function dayDraftFieldCount(field) {
-    const map = { gratitude: els.dayGratitude, smallWin: els.daySmallWin, hardThing: els.dayHardThing };
+    const map = { gratitude: els.dayGratitude, smallWin: els.daySmallWin, hardThing: els.dayHardThing, thoughtUntangler: els.dayThoughtUntangler };
     return cleanText(map[field]?.value).length;
   }
 
@@ -959,11 +1000,13 @@
 
   function renderDayRewardMeter() {
     if (!els.dayRewardMeter || !editingDate) return;
-    els.dayRewardMeter.innerHTML = Object.keys(REFLECTION_META).map(field => `
-      <section class="journal-independent-meter-v314ag">
+    els.dayRewardMeter.innerHTML = Object.keys(REFLECTION_META).map(field => {
+      if (!reflectionFieldUnlocked(field)) return "";
+      return `<section class="journal-independent-meter-v314ag">
         <small>${REFLECTION_META[field].icon} ${esc(REFLECTION_META[field].label)}</small>
         ${rewardMeterMarkup(dayDraftFieldCount(field), editingDate, field)}
-      </section>`).join("");
+      </section>`;
+    }).join("");
   }
 
   function emptyRewardTotal() { return { xp: 0, coins: 0, storyEnergy: 0 }; }
@@ -989,7 +1032,7 @@
   }
 
   function hasReflection(entry) {
-    return Boolean(entry && (cleanText(entry.gratitude) || cleanText(entry.smallWin) || cleanText(entry.hardThing)));
+    return Boolean(entry && (cleanText(entry.gratitude) || cleanText(entry.smallWin) || cleanText(entry.hardThing) || cleanText(entry.thoughtUntangler)));
   }
 
   function cleanText(value) {

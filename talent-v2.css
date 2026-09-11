@@ -1,0 +1,57 @@
+
+/* Life RPG V0.31.4an · Talent Trees V2 */
+.talent-v2-tree { overflow: hidden; }
+.talent-v2-head { display:flex; justify-content:space-between; gap:18px; align-items:flex-start; margin-bottom:14px; }
+.talent-v2-head h2 { margin:.15rem 0 .3rem; }
+.talent-v2-head p:not(.eyebrow) { margin:0; max-width:760px; color:var(--muted-text,#74656d); }
+.talent-v2-bank { flex:0 0 auto; min-width:145px; padding:12px 15px; border:1px solid rgba(92,41,75,.12); border-radius:16px; background:rgba(255,255,255,.62); text-align:right; }
+.talent-v2-bank small,.talent-v2-bank span { display:block; color:var(--muted-text,#74656d); font-size:.65rem; }
+.talent-v2-bank strong { display:block; color:var(--plum,#5c294b); font:700 1.7rem/1 Georgia,serif; margin:.15rem 0; }
+.talent-v2-active { display:grid; grid-template-columns:auto minmax(0,1fr); gap:14px; align-items:start; padding:13px 15px; margin:0 0 16px; border:1px solid rgba(177,95,126,.14); border-radius:17px; background:linear-gradient(135deg,rgba(255,248,244,.88),rgba(250,237,244,.64)); }
+.talent-v2-active-title { display:flex; gap:9px; align-items:center; min-width:190px; }
+.talent-v2-active-title>span { display:grid; place-items:center; width:34px; height:34px; border-radius:11px; color:#6b3559; background:rgba(107,53,89,.08); }
+.talent-v2-active-title small,.talent-v2-active-title strong { display:block; }
+.talent-v2-active-title small { font-size:.6rem; letter-spacing:.1em; color:#a85d7c; font-weight:900; }
+.talent-v2-active-title strong { font-size:.76rem; color:#5c294b; }
+.talent-v2-effect-list { display:flex; flex-wrap:wrap; gap:7px; }
+.talent-v2-effect-list>span { padding:7px 9px; border-radius:999px; border:1px solid rgba(92,41,75,.10); background:rgba(255,255,255,.78); color:#66535e; font-size:.64rem; line-height:1.2; }
+.talent-v2-effect-list>span.is-empty { border-style:dashed; background:rgba(255,255,255,.42); }
+.talent-v2-map { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+.talent-v2-node { position:relative; display:grid; grid-template-columns:44px minmax(0,1fr) auto; gap:12px; align-items:center; min-height:144px; padding:15px; border:1px solid rgba(92,41,75,.11); border-radius:18px; background:rgba(255,255,255,.67); transition:transform .15s ease,border-color .15s ease,box-shadow .15s ease; }
+.talent-v2-node.is-available { border-color:rgba(181,92,127,.28); box-shadow:0 7px 22px rgba(92,41,75,.055); }
+.talent-v2-node.is-bought { background:linear-gradient(135deg,rgba(255,249,244,.92),rgba(245,233,240,.78)); border-color:rgba(133,78,109,.24); }
+.talent-v2-node.is-locked,.talent-v2-node.is-short { opacity:.72; }
+.talent-v2-node.is-permanent { background-image:radial-gradient(circle at 96% 8%,rgba(235,184,105,.12),transparent 7rem); }
+.talent-v2-node-icon { display:grid; place-items:center; width:42px; height:42px; border-radius:14px; background:rgba(92,41,75,.07); font-size:1.15rem; }
+.talent-v2-node-copy { min-width:0; }
+.talent-v2-node-copy small { display:block; color:#a75d7b; font-size:.58rem; letter-spacing:.08em; font-weight:900; }
+.talent-v2-node-copy h3 { margin:.2rem 0 .25rem; color:#5c294b; font:700 1rem/1.15 Georgia,serif; }
+.talent-v2-node-copy p { margin:.25rem 0; color:#6f6068; font-size:.68rem; line-height:1.43; }
+.talent-v2-node-copy em { display:block; margin-top:.38rem; color:#8d7783; font-size:.61rem; font-style:normal; }
+.talent-v2-ranks { display:flex; gap:4px; margin:.34rem 0 .4rem; }
+.talent-v2-ranks i { width:18px; height:5px; border-radius:999px; background:rgba(92,41,75,.10); }
+.talent-v2-ranks i.filled { background:#9c5675; }
+.talent-v2-node>button,.talent-v2-owned { align-self:center; min-width:118px; }
+.talent-v2-owned { display:inline-flex; justify-content:center; padding:8px 10px; border-radius:11px; background:rgba(92,41,75,.07); color:#6b3559; font-size:.65rem; font-weight:800; }
+.talent-v2-owned.is-planned { border:1px dashed rgba(92,41,75,.2); background:transparent; }
+.talent-v2-content { grid-column:1/-1; border-style:dashed; }
+.talent-v2-planned { grid-column:1/-1; border-style:dashed; background:rgba(92,41,75,.025); opacity:.72; }
+.talent-v2-footer { display:flex; justify-content:space-between; gap:12px; align-items:center; margin-top:13px; padding-top:11px; border-top:1px solid rgba(92,41,75,.08); color:#7b6972; font-size:.64rem; }
+
+/* Actual content-unlock surfaces. */
+[data-reflection-field="thoughtUntangler"].is-talent-locked,
+.journal-day-talent-field-v314an.is-talent-locked { border-style:dashed !important; opacity:.62; background:rgba(92,41,75,.035) !important; }
+[data-reflection-field="thoughtUntangler"].is-talent-locked strong::after { content:" · Locked"; color:#a45c7a; font-size:.7em; }
+.recovery-session-card-v314m.is-talent-locked-v314an { border-style:dashed; opacity:.66; background:rgba(92,41,75,.035); }
+.recovery-session-card-v314m.is-talent-locked-v314an button { pointer-events:none; }
+
+@media (max-width: 820px) {
+  .talent-v2-head { flex-direction:column; }
+  .talent-v2-bank { width:100%; text-align:left; }
+  .talent-v2-active { grid-template-columns:1fr; }
+  .talent-v2-map { grid-template-columns:1fr; }
+  .talent-v2-content,.talent-v2-planned { grid-column:auto; }
+  .talent-v2-node { grid-template-columns:40px minmax(0,1fr); }
+  .talent-v2-node>button,.talent-v2-owned { grid-column:1/-1; width:100%; }
+  .talent-v2-footer { align-items:flex-start; flex-direction:column; }
+}

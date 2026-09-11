@@ -16,14 +16,8 @@
   <link rel="icon" type="image/png" sizes="192x192" href="assets/app-icon-192.png?v=0.30.3a" />
   <link rel="stylesheet" href="styles.css?v=0.31.4am" />
   <link rel="stylesheet" href="skills.css?v=0.31.4ah" />
+  <link rel="stylesheet" href="talent-v2.css?v=0.31.4an" />
   <link rel="stylesheet" href="weekly-review.css?v=0.31.4ag" />
-  <link rel="stylesheet" href="knowledge-tree.css?v=0.31.4ag" />
-  <link rel="stylesheet" href="health-tree.css?v=0.31.4ag" />
-  <link rel="stylesheet" href="work-tree.css?v=0.31.4ag" />
-  <link rel="stylesheet" href="recovery-tree.css?v=0.31.4ag1" />
-  <link rel="stylesheet" href="japanese-tree.css?v=0.31.4ag2" />
-  <link rel="stylesheet" href="home-tree.css?v=0.31.4ag3" />
-  <link rel="stylesheet" href="hobbies-tree.css?v=0.31.4ag4" />
   <link rel="preload" as="image" href="assets/ui/thumbs/characters/luca_neutral.webp" fetchpriority="high" />
 </head>
 <body>
@@ -2345,6 +2339,7 @@ League of Legends — PC" required></textarea></label>
         <button type="button" data-reflection-field="gratitude"><span>🌸</span><div><strong>Something I'm grateful for</strong><small>Optional</small></div><b>›</b></button>
         <button type="button" data-reflection-field="smallWin"><span>⭐</span><div><strong>Something that went well</strong><small>Optional</small></div><b>›</b></button>
         <button type="button" data-reflection-field="hardThing"><span>🌧</span><div><strong>Something that was hard</strong><small>Optional</small></div><b>›</b></button>
+        <button type="button" data-reflection-field="thoughtUntangler" class="is-talent-locked"><span>🧶</span><div><strong>Thought Untangler</strong><small>Unlock in Health Talent Tree</small></div><b>›</b></button>
         <button id="journalReflectionDone" class="text-button" type="button">I'm good for today</button>
       </section>
       <section id="journalReflectionWriteStep" class="journal-reflection-write-v302 hidden">
@@ -2370,6 +2365,7 @@ League of Legends — PC" required></textarea></label>
         <label><span>🌸 Gratitude</span><textarea id="journalDayGratitude" rows="3" maxlength="2400" placeholder="Something worth keeping…"></textarea></label>
         <label><span>⭐ Small win</span><textarea id="journalDaySmallWin" rows="3" maxlength="2400" placeholder="Something that went right…"></textarea></label>
         <label><span>🌧 What was hard</span><textarea id="journalDayHardThing" rows="3" maxlength="2400" placeholder="Context, not a score…"></textarea></label>
+        <label class="journal-day-talent-field-v314an is-talent-locked"><span>🧶 Thought Untangler <small>Locked · Health Talent Tree</small></span><textarea id="journalDayThoughtUntangler" rows="3" maxlength="2400" placeholder="What are the separate pieces of this thought?" disabled></textarea></label>
       </div>
       <div id="journalDayRewardMeter" class="journal-effort-meter-v310" aria-live="polite"></div>
       <p class="journal-day-note-v302">Editing this page changes the journal record. If today's Daily Check-in is edited later, its mood/energy/sleep/stress values become the source of truth again; your written reflections stay untouched.</p>
@@ -3186,7 +3182,7 @@ League of Legends — PC" required></textarea></label>
   <script src="modal-manager.js?v=0.31.4d"></script>
   <script src="training-focus.js?v=0.31.4o"></script>
   <script src="visual-performance.js?v=0.31.4c"></script>
-  <script src="app.js?v=0.31.4ag"></script>
+  <script src="app.js?v=0.31.4an"></script>
   <script src="daily-streaks.js?v=0.31.4z"></script>
   <script src="stewardship.js?v=0.31.3a"></script>
   <script src="habits.js?v=0.31.4ag"></script>
@@ -3203,7 +3199,7 @@ League of Legends — PC" required></textarea></label>
   <script src="nonogram.js?v=0.31.4z"></script>
   <script src="data/number-sense-levels.js?v=0.31.4l"></script>
   <script src="number-sense.js?v=0.31.4z"></script>
-  <script src="recovery-studio.js?v=0.31.4s"></script>
+  <script src="recovery-studio.js?v=0.31.4an"></script>
   <script src="memory-garden.js?v=0.31.4z"></script>
   <script src="data/lexicon-lab-data.js?v=0.31.4q"></script>
   <script src="data/lexicon-lab-enrichment.js?v=0.31.4y"></script>
@@ -3212,7 +3208,7 @@ League of Legends — PC" required></textarea></label>
   <script src="smart-action-router.js?v=0.31.4s"></script>
   <script src="smart-quests.js?v=0.31.0"></script>
   <script src="daily.js?v=0.31.4ag"></script>
-  <script src="journal.js?v=0.31.4ag"></script>
+  <script src="journal.js?v=0.31.4an"></script>
   <script src="story-ui.js?v=0.31.4al"></script>
   <script src="shop.js?v=0.30.6"></script>
   <script src="achievements.js?v=0.31.0"></script>
@@ -3222,18 +3218,12 @@ League of Legends — PC" required></textarea></label>
 
   <!-- Progression modules are loaded statically and in dependency order.
        This avoids the dynamic-loader races that caused intermittent dead UI. -->
-  <script src="skills.js?v=0.31.4ai"></script>
+  <script src="skills.js?v=0.31.4an"></script>
+  <script src="talent-v2.js?v=0.31.4an"></script>
   <script src="journal-rewards.js?v=0.31.4ag"></script>
   <script src="weekly-review.js?v=0.31.4ag"></script>
-  <script src="knowledge-tree.js?v=0.31.4ag"></script>
-  <script src="health-tree.js?v=0.31.4ag"></script>
-  <script src="work-tree.js?v=0.31.4ag"></script>
-  <script src="recovery-tree.js?v=0.31.4ag1"></script>
-  <script src="japanese-tree.js?v=0.31.4ai"></script>
-  <script src="home-tree.js?v=0.31.4ag3"></script>
-  <script src="hobbies-tree.js?v=0.31.4ai"></script>
 
   <script type="module" src="cloud-save.js?v=0.31.4ag"></script>
-  <script src="pwa.js?v=0.31.4am1"></script>
+  <script src="pwa.js?v=0.31.4an"></script>
 </body>
 </html>

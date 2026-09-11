@@ -812,7 +812,29 @@
   }
 
   function awardActivity(spec = {}) {
-    const reward = calculateActivityReward(spec, { mutate: true });
+    let effectiveSpec = spec;
+    try {
+      effectiveSpec = window.LifeRPGTalentV2?.modifyRewardSpec?.(spec) || spec;
+    } catch (error) {
+      console.error("Talent V2 reward pre-hook failed", error);
+      effectiveSpec = spec;
+    }
+
+    const reward = calculateActivityReward(effectiveSpec, { mutate: true });
+
+    try {
+      const talent = window.LifeRPGTalentV2?.afterActivityReward?.(effectiveSpec, reward);
+      if (talent?.messages?.length) {
+        reward.talentBonuses = [...talent.messages];
+        window.setTimeout(() => showToast(talent.messages.join(" · ")), 650);
+      }
+      // Talent post-hooks can add Coins / Story Energy directly, so refresh the
+      // tiny resource readouts once more after the hook.
+      refreshRewardResourceNumbers();
+    } catch (error) {
+      console.error("Talent V2 reward post-hook failed", error);
+    }
+
     applyHiddenEngineChecks();
     return reward;
   }

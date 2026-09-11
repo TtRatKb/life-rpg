@@ -786,7 +786,7 @@
       <section id="skillsSummary" class="skills-summary-v314aa"></section>
       <section id="skillsHabitMapping" class="skills-habit-map-v314aa"></section>
       <section id="skillsTalentHub" class="panel skills-talent-hub-v314ag">
-        <div class="skills-talent-hub-head-v314ag"><div><p class="eyebrow">REALM TALENT TREES</p><h2>Spend points where you want the next unlock.</h2><p class="panel-subcopy">One Realm at a time. Existing Life RPG features never become locked behind talents.</p></div></div>
+        <div class="skills-talent-hub-head-v314ag"><div><p class="eyebrow">REALM TALENT TREES · V2</p><h2>Spend points on rewards you can actually feel.</h2><p class="panel-subcopy">Rank visible bonuses, unlock real new content, or take permanent reward caches. Existing Life RPG features never become retroactively locked.</p></div></div>
         <div id="skillsTalentTabs" class="skills-talent-tabs-v314ag" role="tablist" aria-label="Talent tree Realm"></div>
         <div id="skillsTalentMeta" class="skills-talent-meta-v314ah" aria-live="polite"></div>
         <div id="skillsTalentTreePanels" class="skills-talent-panels-v314ag"></div>
@@ -1028,14 +1028,21 @@
   function treeProgress(section) {
     if (!section) return { unlocked: 0, total: 0, totalCost: 0 };
     const nodes = [...section.querySelectorAll("article.is-bought, article.is-available, article.is-short, article.is-locked")];
-    return {
-      unlocked: nodes.filter(node => node.classList.contains("is-bought")).length,
-      total: nodes.length,
-      totalCost: nodes.reduce((sum, node) => sum + nodeCost(node), 0)
-    };
+    return nodes.reduce((out, node) => {
+      const ranked = node.hasAttribute("data-talent-max-rank");
+      const maxRank = ranked ? Math.max(1, Number(node.dataset.talentMaxRank || 1)) : 1;
+      const currentRank = ranked ? Math.max(0, Math.min(maxRank, Number(node.dataset.talentCurrentRank || 0))) : (node.classList.contains("is-bought") ? 1 : 0);
+      const fullCost = Math.max(0, Number(node.dataset.talentFullCost || 0)) || (nodeCost(node) * maxRank);
+      out.unlocked += currentRank;
+      out.total += maxRank;
+      out.totalCost += fullCost;
+      return out;
+    }, { unlocked: 0, total: 0, totalCost: 0 });
   }
 
   function nodeCost(node) {
+    const explicit = Math.max(0, Number(node?.dataset?.talentNextCost || 0));
+    if (explicit) return explicit;
     const text = node?.querySelector("small")?.textContent || "";
     const match = text.match(/(\d+)\s*POINT/i);
     return Math.max(0, Number(match?.[1] || 0));
@@ -1096,7 +1103,7 @@
           if (badge.textContent !== label) badge.textContent = label;
         }
         const button = node.querySelector(":scope > button");
-        const buttonLabel = status === "short" ? label : status === "locked" ? "Unlock connected path first" : null;
+        const buttonLabel = node.classList.contains("talent-v2-node") ? null : (status === "short" ? label : status === "locked" ? "Unlock connected path first" : null);
         if (button && buttonLabel && button.textContent !== buttonLabel) button.textContent = buttonLabel;
       });
     } finally {

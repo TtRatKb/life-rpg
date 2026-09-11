@@ -433,6 +433,9 @@
 
   function genericDetail(event) {
     const m = event.metadata || {};
+    if (event.source === "talent-v2-cache") return `Talent Tree permanent Reward Cache · Rank ${number(m.rank) || 1} · no XP`;
+    if (event.source === "talent-v2-resonance") return `Talent Tree Resonance proc · Rank ${number(m.rank) || 1} · bonus Coins / Story Energy`;
+    if (event.source === "talent-v2-special") return `Talent Tree Realm-special bonus · ${humanize(m.talentId || "special")} · Rank ${number(m.rank) || 1}`;
     if (event.source === "daily-checkin") return `${number(m.streak) ? `${number(m.streak)} day streak · ` : ""}Daily plan updated`;
     if (event.source === "stewardship") return `${humanize(m.type || "library upkeep")} · system stewardship`;
     if (event.source === "game-goal") return "Tracked Game Goal completed";
@@ -484,6 +487,7 @@
     const streakMultiplier = number(event.metadata?.dailyStreakMultiplier);
     if (streak && streakMultiplier >= 1) bits.push(`<p>This was the first qualifying Daily completion for <strong>${esc(event.metadata?.dailyStreakLabel || "this activity")}</strong> today. A <strong>${streak}-day consistency streak</strong> applied a positive <strong>×${trim(streakMultiplier)}</strong> multiplier to the listed base reward. Missing a day never removes XP, Coins or Story Energy; the next completion simply starts again from the normal base.</p>`);
     if (reward.rawStoryEnergy > reward.storyEnergy + 0.001) bits.push(`<p>This action generated ${app.formatEnergy?.(reward.rawStoryEnergy) ?? trim(reward.rawStoryEnergy)} 🔥 base, but daily Story Energy diminishing returns credited <strong>${app.formatEnergy?.(reward.storyEnergy) ?? trim(reward.storyEnergy)} 🔥</strong>.</p>`);
+    if (String(event.source || "").startsWith("talent-v2-")) bits.push(`<p><strong>Talent Tree bonus.</strong> This event never grants Character XP or Skill XP. It exists separately so the exact Coins / Story Energy paid by a purchased Talent stays visible in the Activity Log.</p>`);
     if (event.source === "stewardship") bits.push(`<p>Library/system stewardship uses a small daily cap, so adding many Books, Games, Habits or Adventure details in one day cannot become the dominant progression source.</p>`);
     if (event.source === "game-goal") bits.push(`<p>This reward comes from completing a tracked Game Goal. Merely importing a goal and actually completing it are intentionally separate actions.</p>`);
     if (event.source === "steam-achievement") {
@@ -584,6 +588,9 @@
       "memory-garden-complete": ["🧠", "Memory Garden"],
       "word-lab-complete": ["🔤", "Word Lab · Legacy"],
       "lexicon-lab-complete": ["⌗", "Lexicon Lab"],
+      "talent-v2-cache": ["🎁", "Talent Reward"],
+      "talent-v2-resonance": ["✨", "Talent Resonance"],
+      "talent-v2-special": ["✦", "Talent Bonus"],
       "recovery-studio": ["🌿", "Recovery Studio"],
       "journal-reflection-base": ["🌸", "Journal"],
       "journal-reflection-effort": ["🌸", "Journal"],
@@ -685,7 +692,7 @@
     return realms.join(" / ");
   }
 
-  function hasReflection(entry) { return Boolean(entry && [entry.gratitude, entry.smallWin, entry.hardThing].some(value => String(value || "").trim())); }
+  function hasReflection(entry) { return Boolean(entry && [entry.gratitude, entry.smallWin, entry.hardThing, entry.thoughtUntangler].some(value => String(value || "").trim())); }
   function journalCharacterCount(entry) { return [entry?.gratitude, entry?.smallWin, entry?.hardThing].reduce((sum, value) => sum + String(value || "").trim().length, 0); }
 
   function capabilityLabel(key) {
