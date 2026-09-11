@@ -7,7 +7,7 @@
     return;
   }
 
-  const SCHEMA = 1;
+  const SCHEMA = 2;
   const MOOD = {
     rough: { label: "Rough", score: 1, icon: "✦" },
     meh: { label: "Meh", score: 2, icon: "❀" },
@@ -39,7 +39,7 @@
     gratitude: { icon: "🌸", label: "Something I'm grateful for" },
     smallWin: { icon: "⭐", label: "Something that went well" },
     hardThing: { icon: "🌧", label: "Something that was hard" },
-    thoughtUntangler: { icon: "🧶", label: "Thought Untangler", talentRealm: "Health", talentId: "thought-untangler" }
+    yearQuestion: { icon: "📅", label: "365 Question Journal", talentRealm: "Health", talentId: "year-question" }
   };
 
   const JOURNAL_FIELD_REWARD_TIERS = [
@@ -61,13 +61,13 @@
         gratitude: "One good thing. Tiny counts. What do I want to remember?",
         smallWin: "What actually went right today?",
         hardThing: "What was hard today? No fixing it required.",
-        thoughtUntangler: "What's tangled up in my head right now? I can separate the pieces without solving all of them."
+        yearQuestion: "Today's question is different from yesterday's. I can answer it however I want."
       },
       saved: {
         gratitude: "Good. Worth keeping.",
         smallWin: "That counts. No moving the goalposts.",
         hardThing: "Okay. It can just be hard without becoming a project.",
-        thoughtUntangler: "A little less tangled is enough. I don't need a final answer."
+        yearQuestion: "Saved. Same date next year, I get to meet the question again."
       }
     },
     mina: {
@@ -80,13 +80,13 @@
         gratitude: "Okay, one good thing. Coffee absolutely counts.",
         smallWin: "Tiny victory check! What are we giving you credit for?",
         hardThing: "Okay, what sucked? You can just say it.",
-        thoughtUntangler: "Brain spaghetti check. What's mixed together that would feel better separated?"
+        yearQuestion: "Okay babe, mystery-question-of-the-day time. Let's see what today's one is."
       },
       saved: {
         gratitude: "See? Keeping that one. 🌸",
         smallWin: "YES. It counts. I'm putting a star on it.",
         hardThing: "Yeah. That sounds rough. No silver lining required.",
-        thoughtUntangler: "Okay, that's clearer. You don't have to turn it into a plan tonight."
+        yearQuestion: "Cute. Saved for future-you to rediscover next year."
       }
     },
     kirishima: {
@@ -99,13 +99,13 @@
         gratitude: "Give me one good thing from today. Doesn't have to be huge.",
         smallWin: "What went better than you expected?",
         hardThing: "What felt heavy today?",
-        thoughtUntangler: "What's been looping around in your head? We can just sort the pieces out a little."
+        yearQuestion: "Alright, today's question. No right answer — just whatever feels true today."
       },
       saved: {
         gratitude: "That's a good one to keep.",
         smallWin: "Nice. Seriously — give yourself that one.",
         hardThing: "Got it. You don't have to make it smaller than it was.",
-        thoughtUntangler: "That makes more sense laid out like that. You don't need to finish the thought right now."
+        yearQuestion: "Nice. That's one little snapshot of where you are right now."
       }
     },
     bakugo: {
@@ -118,13 +118,13 @@
         gratitude: "One thing that didn't suck. Go.",
         smallWin: "What actually went right today? And don't move the goalposts.",
         hardThing: "What was the pain in the ass today?",
-        thoughtUntangler: "What's stuck in your head? Separate the actual problem from the extra noise."
+        yearQuestion: "Daily question. Answer it straight; don't turn it into homework."
       },
       saved: {
         gratitude: "Fine. Keep that one.",
         smallWin: "Counts. Obviously.",
         hardThing: "Yeah. Sounds like a pain. Doesn't mean you handled it badly.",
-        thoughtUntangler: "Better. At least now you know what the hell is actually tangled."
+        yearQuestion: "Done. Saved. Don't overwork the answer."
       }
     }
   };
@@ -176,7 +176,9 @@
     dayGratitude: byId("journalDayGratitude"),
     daySmallWin: byId("journalDaySmallWin"),
     dayHardThing: byId("journalDayHardThing"),
-    dayThoughtUntangler: byId("journalDayThoughtUntangler"),
+    dayYearQuestion: byId("journalDayYearQuestion"),
+    dayYearQuestionPrompt: byId("journalDayYearQuestionPrompt"),
+    reflectionDictate: byId("journalReflectionDictate"),
     dayRewardMeter: byId("journalDayRewardMeter")
   };
 
@@ -186,6 +188,8 @@
   let reflectionField = null;
   let editingDate = null;
   let initialized = false;
+  let speechRecognition = null;
+  let speechActive = false;
 
   init();
 
@@ -289,8 +293,9 @@
     els.reflectionDone?.addEventListener("click", closeReflection);
     els.reflectionBack?.addEventListener("click", showReflectionChoices);
     els.reflectionSave?.addEventListener("click", saveReflectionField);
+    els.reflectionDictate?.addEventListener("click", toggleReflectionDictation);
     els.reflectionTextarea?.addEventListener("input", renderReflectionRewardMeter);
-    [els.dayGratitude, els.daySmallWin, els.dayHardThing, els.dayThoughtUntangler].forEach(input => input?.addEventListener("input", renderDayRewardMeter));
+    [els.dayGratitude, els.daySmallWin, els.dayHardThing, els.dayYearQuestion].forEach(input => input?.addEventListener("input", renderDayRewardMeter));
     els.reflectionChoiceStep?.addEventListener("click", event => {
       const choice = event.target.closest?.("[data-reflection-field]");
       if (choice) showReflectionWrite(choice.dataset.reflectionField);
@@ -308,7 +313,7 @@
       if (!initialized) return;
       render();
       if (els.reflectionDialog?.open) showReflectionChoices();
-      if (els.dayDialog?.open && editingDate) syncThoughtUntanglerDayField(entryFor(editingDate, false) || {});
+      if (els.dayDialog?.open && editingDate) syncYearQuestionDayField(entryFor(editingDate, false) || {});
     });
 
     window.addEventListener("life-rpg:render", () => {
@@ -512,14 +517,15 @@
     const entry = entryFor(reflectionDate, true);
     els.reflectionChoiceStep?.classList.add("hidden");
     els.reflectionWriteStep?.classList.remove("hidden");
-    if (els.reflectionPrompt) els.reflectionPrompt.textContent = reflectionCompanion.prompts[field];
+    const prompt = field === "yearQuestion" ? yearQuestionForDate(reflectionDate) : reflectionCompanion.prompts[field];
+    if (els.reflectionPrompt) els.reflectionPrompt.textContent = prompt;
     if (els.reflectionTextarea) {
       els.reflectionTextarea.value = entry[field] || "";
-      els.reflectionTextarea.placeholder = field === "gratitude" ? "Tiny things count…" : field === "smallWin" ? "What deserves credit?" : field === "thoughtUntangler" ? "What are the separate pieces of this thought?" : "You don't have to solve it here…";
+      els.reflectionTextarea.placeholder = field === "gratitude" ? "Tiny things count…" : field === "smallWin" ? "What deserves credit?" : field === "yearQuestion" ? "Type it — or tap Speak answer and just talk…" : "You don't have to solve it here…";
       renderReflectionRewardMeter();
       setTimeout(() => els.reflectionTextarea.focus(), 30);
     }
-    renderReflectionCompanion(reflectionCompanion, reflectionCompanion.prompts[field]);
+    renderReflectionCompanion(reflectionCompanion, prompt);
   }
 
   function saveReflectionField() {
@@ -555,19 +561,20 @@
     if (els.dayGratitude) els.dayGratitude.value = entry.gratitude || "";
     if (els.daySmallWin) els.daySmallWin.value = entry.smallWin || "";
     if (els.dayHardThing) els.dayHardThing.value = entry.hardThing || "";
-    syncThoughtUntanglerDayField(entry);
+    syncYearQuestionDayField(entry);
     renderDayRewardMeter();
     els.dayDialog.showModal();
   }
 
-  function syncThoughtUntanglerDayField(entry = {}) {
-    if (!els.dayThoughtUntangler) return;
-    const unlocked = reflectionFieldUnlocked("thoughtUntangler");
-    els.dayThoughtUntangler.value = entry.thoughtUntangler || "";
-    els.dayThoughtUntangler.disabled = !unlocked;
-    els.dayThoughtUntangler.closest("label")?.classList.toggle("is-talent-locked", !unlocked);
-    const tag = els.dayThoughtUntangler.closest("label")?.querySelector("small");
-    if (tag) tag.textContent = unlocked ? "Talent unlock" : "Locked · Health Talent Tree";
+  function syncYearQuestionDayField(entry = {}) {
+    if (!els.dayYearQuestion) return;
+    const unlocked = reflectionFieldUnlocked("yearQuestion");
+    els.dayYearQuestion.value = entry.yearQuestion || "";
+    els.dayYearQuestion.disabled = !unlocked;
+    els.dayYearQuestion.closest("label")?.classList.toggle("is-talent-locked", !unlocked);
+    if (els.dayYearQuestionPrompt && editingDate) {
+      els.dayYearQuestionPrompt.textContent = unlocked ? yearQuestionForDate(editingDate) : "Locked · Health Talent Tree";
+    }
     renderDayRewardMeter();
   }
 
@@ -602,7 +609,7 @@
     entry.gratitude = cleanText(els.dayGratitude?.value);
     entry.smallWin = cleanText(els.daySmallWin?.value);
     entry.hardThing = cleanText(els.dayHardThing?.value);
-    if (reflectionFieldUnlocked("thoughtUntangler")) entry.thoughtUntangler = cleanText(els.dayThoughtUntangler?.value);
+    if (reflectionFieldUnlocked("yearQuestion")) entry.yearQuestion = cleanText(els.dayYearQuestion?.value);
     entry.updatedAt = Date.now();
     const rewards = maybeAwardReflectionRewards(editingDate, entry);
     app.saveState({ source: "journal-day-edit" });
@@ -786,7 +793,8 @@
         if (cleanText(entry.gratitude)) lines.push("", `**Grateful for**  `, entry.gratitude);
         if (cleanText(entry.smallWin)) lines.push("", `**Small win**  `, entry.smallWin);
         if (cleanText(entry.hardThing)) lines.push("", `**What was hard**  `, entry.hardThing);
-        if (cleanText(entry.thoughtUntangler)) lines.push("", `**Thought Untangler**  `, entry.thoughtUntangler);
+        if (cleanText(entry.yearQuestion)) lines.push("", `**365 Question** — ${yearQuestionForDate(entry.date || date)}  `, entry.yearQuestion);
+        if (cleanText(entry.thoughtUntangler)) lines.push("", `**Legacy Thought Untangler**  `, entry.thoughtUntangler);
         lines.push("");
       });
     });
@@ -976,7 +984,7 @@
   }
 
   function dayDraftFieldCount(field) {
-    const map = { gratitude: els.dayGratitude, smallWin: els.daySmallWin, hardThing: els.dayHardThing, thoughtUntangler: els.dayThoughtUntangler };
+    const map = { gratitude: els.dayGratitude, smallWin: els.daySmallWin, hardThing: els.dayHardThing, yearQuestion: els.dayYearQuestion };
     return cleanText(map[field]?.value).length;
   }
 
@@ -1032,7 +1040,70 @@
   }
 
   function hasReflection(entry) {
-    return Boolean(entry && (cleanText(entry.gratitude) || cleanText(entry.smallWin) || cleanText(entry.hardThing) || cleanText(entry.thoughtUntangler)));
+    if (!entry) return false;
+    return Object.keys(REFLECTION_META).some(field => cleanText(entry[field])) || Boolean(cleanText(entry.thoughtUntangler));
+  }
+
+  function yearQuestionForDate(dateKeyValue = todayKey()) {
+    const date = typeof dateKeyValue === "string" ? dateFromKey(dateKeyValue) : dateKeyValue;
+    return window.LifeRPGYearJournalQuestions?.questionForDate?.(date)
+      || "What feels worth noticing about today?";
+  }
+
+  function toggleReflectionDictation() {
+    if (!els.reflectionTextarea) return;
+    if (speechActive && speechRecognition) {
+      try { speechRecognition.stop(); } catch {}
+      return;
+    }
+
+    const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!Recognition) {
+      app.showToast?.("Voice dictation is not available in this browser. You can still use your device's normal dictation in the text box.");
+      return;
+    }
+
+    const recognition = new Recognition();
+    recognition.lang = navigator.language || "de-DE";
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    const base = cleanText(els.reflectionTextarea.value);
+    let committed = "";
+
+    recognition.onstart = () => {
+      speechRecognition = recognition;
+      speechActive = true;
+      if (els.reflectionDictate) els.reflectionDictate.textContent = "■ Stop speaking";
+    };
+
+    recognition.onresult = event => {
+      let interim = "";
+      for (let i = event.resultIndex; i < event.results.length; i += 1) {
+        const part = cleanText(event.results[i][0]?.transcript);
+        if (!part) continue;
+        if (event.results[i].isFinal) committed += `${committed ? " " : ""}${part}`;
+        else interim += `${interim ? " " : ""}${part}`;
+      }
+      els.reflectionTextarea.value = [base, committed, interim].filter(Boolean).join(" ");
+      renderReflectionRewardMeter();
+    };
+
+    recognition.onerror = event => {
+      if (!["aborted", "no-speech"].includes(event.error)) {
+        app.showToast?.("Voice dictation stopped. You can keep typing or try again.");
+      }
+    };
+
+    recognition.onend = () => {
+      speechActive = false;
+      speechRecognition = null;
+      if (els.reflectionDictate) els.reflectionDictate.textContent = "🎙️ Speak answer";
+      els.reflectionTextarea.value = [base, committed].filter(Boolean).join(" ");
+      renderReflectionRewardMeter();
+    };
+
+    try { recognition.start(); }
+    catch { app.showToast?.("Voice dictation could not start. Please allow microphone access and try again."); }
   }
 
   function cleanText(value) {

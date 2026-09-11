@@ -8,8 +8,8 @@
     return;
   }
 
-  const VERSION = "0.31.4an";
-  const SCHEMA = 2;
+  const VERSION = "0.31.4ar";
+  const SCHEMA = 3;
   const RESONANCE_DAILY_CAP = 3;
   const REALM_ORDER = ["Work", "Knowledge", "Japanese", "Health", "Recovery", "Home", "Hobbies"];
   const LEGACY_TREE_KEYS = {
@@ -58,7 +58,7 @@
         effect: rank => `The first rewarded logic/knowledge puzzle each day gets +${[0,8,12,18][rank]} Coins and +${[0,.20,.30,.45][rank].toFixed(2)} Story Energy.`,
         active: rank => `Puzzle Spark ${rank}/3 · first logic puzzle: +${[0,8,12,18][rank]} 🪙 +${fmtEnergy([0,.20,.30,.45][rank])} 🔥`
       },
-      planned: { icon: "◇", title: "Logic Expansion", copy: "Future logic games such as Slitherlink/Nurikabe belong here once they actually exist. This node is deliberately not purchasable yet." }
+      planned: { icon: "◇", title: "Logic Expansion", copy: "Slitherlink, Nurikabe and Kakuro are now real permanent Content Unlocks in the Knowledge Talent Tree." }
     },
     Japanese: {
       icon: "🌸",
@@ -86,12 +86,12 @@
         active: rank => `Reflection Bloom ${rank}/3 · first reflection/check-in: +${[0,5,10,15][rank]} 🪙 +${fmtEnergy([0,.15,.25,.35][rank])} 🔥`
       },
       content: {
-        id: "thought-untangler",
-        icon: "🧶",
-        title: "Thought Untangler",
+        id: "year-question",
+        icon: "📅",
+        title: "365 Question Journal",
         cost: 2,
         requiresSpecial: 1,
-        copy: "Permanently unlock a fourth Journal reflection: unpack one tangled thought without needing to solve it. It uses the same independent writing-reward ladder as the other Journal forms.",
+        copy: "Permanently unlock one different reflection question for every calendar day. The same question returns on the same date each year, so answers can become a long-term time capsule.",
         openLabel: "Open Journal",
         open: () => app.showView?.("journal")
       }
@@ -235,6 +235,18 @@
       r.build.resonance = clampInt(r.build.resonance, 0, 5);
       r.build.momentum = clampInt(r.build.momentum, 0, 3);
       r.build.special = clampInt(r.build.special, 0, 3);
+
+      // V0.31.4ar replaces the rejected Thought Untangler purchase with the
+      // 365 Question Journal without charging the player again.
+      if (realm === "Health" && r.permanent.content["thought-untangler"]) {
+        if (!r.permanent.content["year-question"]) {
+          r.permanent.content["year-question"] = r.permanent.content["thought-untangler"];
+        }
+        delete r.permanent.content["thought-untangler"];
+        model.migrations.thoughtUntanglerToYearQuestion = model.migrations.thoughtUntanglerToYearQuestion || Date.now();
+        changed = true;
+      }
+
       normalizeDaily(realm, new Date());
       const expectedSpent = spentForRealm(realm);
       if (Number(root.skills.spentPointsByRealm[realm] || 0) !== expectedSpent) {
@@ -553,9 +565,9 @@
   }
 
   function isKnowledgePuzzleSource(source, metadata = {}) {
-    if (["sudoku-complete", "sudoku-solved", "nonogram-complete", "number-sense-complete", "memory-garden-complete", "lexicon-lab-complete"].includes(source)) return true;
+    if (["sudoku-complete", "sudoku-solved", "nonogram-complete", "number-sense-complete", "memory-garden-complete", "lexicon-lab-complete", "logic-unlock-complete"].includes(source)) return true;
     if (["sudoku-daily-replay", "nonogram-daily-replay", "number-sense-daily-replay", "memory-garden-daily-replay"].includes(source)) return true;
-    return Boolean(metadata.sudoku || metadata.nonogram || metadata.numberSense || metadata.memoryGarden || metadata.lexiconLab);
+    return Boolean(metadata.sudoku || metadata.nonogram || metadata.numberSense || metadata.memoryGarden || metadata.lexiconLab || metadata.logicExpansion);
   }
 
   function grantDirectBonus({ realm, source, sourceId, label, coins = 0, story = 0, at = new Date(), metadata = {} }) {

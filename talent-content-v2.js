@@ -1,8 +1,8 @@
 (() => {
   "use strict";
 
-  if (window.__lifeRpgTalentContentV314ap) return;
-  window.__lifeRpgTalentContentV314ap = true;
+  if (window.__lifeRpgTalentContentV314ar) return;
+  window.__lifeRpgTalentContentV314ar = true;
 
   const app = window.LifeRPGApp;
   const graph = window.LifeRPGTalentTreeGraph;
@@ -11,128 +11,27 @@
     return;
   }
 
-  const VERSION = "0.31.4ap";
+  const VERSION = "0.31.4ar";
   const SCHEMA = 1;
   const JOURNAL = {
     "work-debrief": {
       realm: "Work",
       icon: "🧾",
-      title: "Work Debrief",
+      title: "Work Deep Brief",
       capability: "confidence",
-      thresholds: [40, 140, 320],
-      prompts: [
-        "What actually moved forward today? What is the clearest next step — and what is allowed to wait?",
-        "What took more energy than expected today? What would make the next work block easier?",
-        "What did you handle well today, even if the whole task is not finished yet?"
-      ],
-      placeholder: "A few honest lines are enough…"
-    },
-    "decision-lens": {
-      realm: "Knowledge",
-      icon: "🔎",
-      title: "Decision Lens",
-      capability: "knowledge",
       thresholds: [50, 160, 340],
       prompts: [
-        "What are the real options? What evidence do you have, what is still uncertain, and which next step is reversible?",
-        "If you removed the pressure to find the perfect answer, what information would actually change your decision?",
-        "What assumption are you currently treating like a fact?"
+        "Close the workday in four pieces: What actually moved? What cost more energy than expected? What is the single clearest next step? What can be deliberately left for later?",
+        "What did today ask from you as a teacher or professional? What did you handle well? What still feels open, and what would make tomorrow's first work block easier?",
+        "Separate output from effort: What got finished, what meaningful work happened even if it stayed unfinished, and what are you allowed to stop carrying tonight?",
+        "If you had to hand tomorrow-you a two-minute briefing, what would they genuinely need to know — and what detail can safely be forgotten?",
+        "What part of work felt most satisfying today? What part drained you? What boundary, shortcut or preparation would improve the next similar day?"
       ],
-      placeholder: "Options, evidence, uncertainty, next step…"
-    },
-    "sentence-forge": {
-      realm: "Japanese",
-      icon: "文",
-      title: "Sentence Forge",
-      capability: "japanese",
-      thresholds: [8, 25, 60],
-      prompts: [
-        "今日のことを日本語で一文だけ書いてみよう。 One real sentence is enough.",
-        "今ほしいもの・したいことについて、日本語で一〜三文書いてみよう。",
-        "今日覚えたい言葉を一つ使って、自分について文を作ってみよう。",
-        "最近楽しかったことを、日本語で短く書いてみよう。"
-      ],
-      placeholder: "日本語で書いてみる…"
-    },
-    "idea-garden": {
-      realm: "Hobbies",
-      icon: "🌱",
-      title: "Idea Garden",
-      capability: "creativity",
-      thresholds: [30, 110, 280],
-      prompts: [
-        "What idea, image, lyric, project fragment or tiny obsession do you want to keep before it disappears?",
-        "What would be fun to make if it did not need to become impressive or useful?",
-        "Take one half-formed idea and give it one more detail.",
-        "What are you drawn to aesthetically right now? Capture the pieces, not a finished concept."
-      ],
-      placeholder: "Fragments absolutely count…"
-    },
-    "body-signals": {
-      realm: "Health",
-      icon: "◌",
-      title: "Body Signals",
-      capability: "wellbeing",
-      thresholds: [25, 90, 200],
-      prompts: [
-        "Notice three things without fixing them: one body sensation, one energy signal, and one thing that would feel supportive right now.",
-        "What does your body seem to be asking for: movement, food, water, warmth, quiet, stretching, sleep, space — or nothing obvious?",
-        "Where does the day feel easy in your body, and where does it feel effortful? Description is enough; no score needed."
-      ],
-      placeholder: "Information, not a grade…"
+      placeholder: "Type it, or use Speak answer and just talk it through…"
     }
   };
 
   const TIMER_CONTENT = {
-    "one-surface-reset": {
-      realm: "Home",
-      title: "One-Surface Reset",
-      icon: "🧺",
-      minutes: 7,
-      mode: "action",
-      categoryId: "life_admin",
-      subcategory: "Household",
-      prompts: [
-        ["One visible surface", "Pick one table, counter, desk or shelf. Only reset that surface; the rest of the room is not part of this session."],
-        ["One small pile", "Choose one contained pile and reduce it for seven minutes. You do not have to finish the whole category."],
-        ["Kitchen landing zone", "Reset the small area that would make the kitchen feel noticeably easier to use."],
-        ["Visual calm", "Choose the one visible spot whose reset would make the room feel about 10% calmer."],
-        ["Put-away pass", "Put away only things that already have an obvious home. No organizing project required."]
-      ]
-    },
-    "lesson-spark": {
-      realm: "Work",
-      title: "Lesson Spark Deck",
-      icon: "💡",
-      minutes: 25,
-      mode: "focus",
-      categoryId: "focus",
-      subcategory: "Planning",
-      prompts: [
-        ["One strong example", "Build one example that makes the mathematical/religious idea easier to see. Ignore the rest of the lesson for this block."],
-        ["Misconception pass", "Pick one likely misconception and design one way to make it visible or discussable."],
-        ["Board structure", "Sketch the clearest possible board/slide structure for one important phase."],
-        ["Exit question", "Create one question that would actually tell you what students understood."],
-        ["Explanation pass", "Take one explanation and make it shorter, clearer and more concrete without redesigning everything."]
-      ]
-    },
-    "creative-prompt-deck": {
-      realm: "Hobbies",
-      title: "Creative Prompt Deck",
-      icon: "✦",
-      minutes: 15,
-      mode: "action",
-      categoryId: "hobby",
-      subcategory: "Creative",
-      prompts: [
-        ["Make the tiny version", "Take something you would normally imagine as a whole project and make the smallest complete fragment of it."],
-        ["Remix an old fragment", "Open something unfinished or abandoned and change one thing just for fun."],
-        ["Contrast", "Make something around a contrast: soft / sharp, cute / eerie, quiet / loud, polished / messy."],
-        ["One constraint", "Choose one material, tool, color, chord, shape or format and let that limitation decide the next fifteen minutes."],
-        ["No outcome required", "Explore one idea for fifteen minutes with permission to keep absolutely nothing at the end."]
-      ],
-      completionBonus: { xp: 6, realmXP: 8, statXP: 4, coins: 8, storyEnergyBase: .12 }
-    },
     "work-focus-challenges": {
       realm: "Work", title: "Focus Challenge Deck", icon: "◆", minutes: 35, mode: "focus",
       categoryId: "work_home", subcategory: "Preparation",
@@ -155,31 +54,6 @@
         ["Quiet window", "Sit somewhere you can see outside or a calm part of the room. Six minutes of being there is enough."]
       ],
       completionBonus: { xp: 8, realmXP: 8, statXP: 6, coins: 6, storyEnergyBase: .30 }
-    },
-    "home-reset-deck": {
-      realm: "Home", title: "Home Reset Deck", icon: "▦", minutes: 12, mode: "action",
-      categoryId: "life_admin", subcategory: "Household",
-      prompts: [
-        ["Twelve-minute kitchen reset", "Choose the few things that would make the kitchen nicer to walk into later. Stop when the timer ends."],
-        ["Laundry checkpoint", "Move one laundry process forward exactly one step: collect, start, hang, fold or put away."],
-        ["Entrance reset", "Make the first area you see when coming home a little calmer or more usable."],
-        ["Desk landing zone", "Clear enough space that the desk can receive tomorrow without becoming a whole organizing project."],
-        ["Bathroom quick reset", "Do the small visible things that make the bathroom feel fresher. No deep clean required."],
-        ["Room rescue", "Pick whichever room currently creates the most friction and spend twelve minutes only on obvious wins."]
-      ]
-    },
-    "creative-dice": {
-      realm: "Hobbies", title: "Creative Dice", icon: "🎲", minutes: 20, mode: "action",
-      categoryId: "hobby", subcategory: "Creative",
-      prompts: [
-        ["Soft + strange + tiny", "Make something small that combines softness with one unsettling or unexpected detail."],
-        ["Warm + nostalgic + limited", "Use only a very small palette / set of sounds / handful of materials and aim for nostalgia."],
-        ["Sharp + romantic + unfinished", "Create a deliberately unfinished fragment where something edgy and something romantic meet."],
-        ["Cozy + witchy + ordinary", "Take an everyday object or moment and make it feel quietly magical."],
-        ["Playful + dramatic + repetitive", "Choose one motif, phrase, shape or sound and repeat it until it becomes the whole piece."],
-        ["Minimal + moody + one accent", "Keep almost everything restrained and let exactly one element become expressive."]
-      ],
-      completionBonus: { xp: 8, realmXP: 10, statXP: 6, coins: 10, storyEnergyBase: .15 }
     }
   };
 
@@ -201,6 +75,8 @@
   let activeId = null;
   let timerScan = null;
   let sprintTicker = null;
+  let speechRecognition = null;
+  let speechActive = false;
 
   init();
 
@@ -302,6 +178,13 @@
         return;
       }
 
+      const dictate = event.target.closest?.("[data-talent-content-dictate]");
+      if (dictate) {
+        event.preventDefault();
+        toggleDictation();
+        return;
+      }
+
       const timer = event.target.closest?.("[data-talent-content-timer]");
       if (timer) {
         event.preventDefault();
@@ -346,10 +229,10 @@
     const page = document.getElementById("view-journal");
     if (!page) return;
 
-    let panel = document.getElementById("talentJournalToolsV314ap");
+    let panel = document.getElementById("talentJournalToolsV314ar");
     if (!panel) {
       panel = document.createElement("section");
-      panel.id = "talentJournalToolsV314ap";
+      panel.id = "talentJournalToolsV314ar";
       panel.className = "panel talent-journal-tools-v314ao";
       const firstDialog = page.querySelector("dialog");
       if (firstDialog) page.insertBefore(panel, firstDialog);
@@ -375,7 +258,7 @@
 
     panel.innerHTML = `
       <div class="talent-journal-head-v314ao">
-        <div><p class="eyebrow">TALENT JOURNAL TOOLS</p><h2>Extra reflection forms you can actually unlock</h2><p class="panel-subcopy">These are optional content rewards, not required parts of the normal Journal.</p></div>
+        <div><p class="eyebrow">TALENT JOURNAL TOOLS</p><h2>Extra reflection content you can actually unlock</h2><p class="panel-subcopy">These are optional content rewards, not required parts of the normal Journal.</p></div>
       </div>
       <div class="talent-journal-grid-v314ao">${cards}</div>`;
   }
@@ -409,11 +292,73 @@
       <textarea id="talentContentTextarea" rows="8" maxlength="3000" placeholder="${escAttr(def.placeholder)}">${esc(entry.text || "")}</textarea>
       <div id="talentContentMeter" class="talent-content-meter-v314ao"></div>
       <div class="talent-content-actions-v314ao">
+        <button class="secondary-button" type="button" data-talent-content-dictate>🎙️ Speak answer</button>
         <button class="primary-button" type="button" data-talent-content-save="${escAttr(id)}">Save entry</button>
       </div>`;
     updateMeter(id, entry.text || "");
     const dialog = document.getElementById("talentContentDialog");
     if (dialog && !dialog.open) dialog.showModal?.();
+  }
+
+  function toggleDictation() {
+    if (speechActive && speechRecognition) {
+      try { speechRecognition.stop(); } catch {}
+      return;
+    }
+
+    const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!Recognition) {
+      app.showToast?.("Voice dictation is not available in this browser. Your device's normal dictation can still be used in the text box.");
+      return;
+    }
+
+    const area = document.getElementById("talentContentTextarea");
+    if (!area) return;
+
+    const recognition = new Recognition();
+    recognition.lang = navigator.language || "de-DE";
+    recognition.continuous = true;
+    recognition.interimResults = true;
+
+    let committed = "";
+    const existing = String(area.value || "").trim();
+
+    recognition.onstart = () => {
+      speechRecognition = recognition;
+      speechActive = true;
+      const button = document.querySelector("[data-talent-content-dictate]");
+      if (button) button.textContent = "■ Stop speaking";
+    };
+
+    recognition.onresult = event => {
+      let interim = "";
+      for (let i = event.resultIndex; i < event.results.length; i += 1) {
+        const transcript = String(event.results[i][0]?.transcript || "").trim();
+        if (!transcript) continue;
+        if (event.results[i].isFinal) committed += `${committed ? " " : ""}${transcript}`;
+        else interim += `${interim ? " " : ""}${transcript}`;
+      }
+      area.value = [existing, committed, interim].filter(Boolean).join(" ").trim();
+      area.dispatchEvent(new Event("input", { bubbles: true }));
+    };
+
+    recognition.onerror = event => {
+      if (!["aborted", "no-speech"].includes(event.error)) {
+        app.showToast?.("Voice dictation stopped. You can keep typing or try again.");
+      }
+    };
+
+    recognition.onend = () => {
+      speechActive = false;
+      speechRecognition = null;
+      const button = document.querySelector("[data-talent-content-dictate]");
+      if (button) button.textContent = "🎙️ Speak answer";
+      area.value = [existing, committed].filter(Boolean).join(" ").trim();
+      area.dispatchEvent(new Event("input", { bubbles: true }));
+    };
+
+    try { recognition.start(); }
+    catch { app.showToast?.("Voice dictation could not start. Please allow microphone access and try again."); }
   }
 
   function updateMeter(id, text) {

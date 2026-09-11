@@ -1,0 +1,283 @@
+
+/* Life RPG V0.31.4ar · Talent-unlocked logic games */
+.logic-unlock-card-v314ar.is-locked-v314ar{
+  opacity:.66;
+  border-style:dashed;
+}
+.logic-unlock-card-v314ar.is-locked-v314ar:hover{
+  transform:none;
+  box-shadow:none;
+}
+.logic-expansion-dialog-v314ar{
+  width:min(880px,calc(100vw - 22px));
+  max-height:calc(100vh - 22px);
+  padding:0;
+  border:0;
+  background:transparent;
+}
+.logic-expansion-dialog-v314ar::backdrop{
+  background:rgba(38,25,34,.58);
+  backdrop-filter:blur(6px);
+}
+.logic-expansion-shell-v314ar{
+  position:relative;
+  max-height:calc(100vh - 22px);
+  overflow:auto;
+  padding:26px;
+  border:1px solid rgba(82,44,72,.14);
+  border-radius:24px;
+  background:
+    radial-gradient(circle at 90% 5%,rgba(225,158,191,.16),transparent 14rem),
+    linear-gradient(155deg,#fffaf5,#f8f0f5);
+  box-shadow:0 28px 80px rgba(45,29,39,.25);
+}
+.logic-expansion-close-v314ar{
+  position:absolute;
+  top:12px;
+  right:12px;
+  display:grid;
+  width:34px;
+  height:34px;
+  place-items:center;
+  border:0;
+  border-radius:50%;
+  background:rgba(80,45,69,.07);
+  color:#5a304e;
+  font-size:1.25rem;
+  cursor:pointer;
+}
+.logic-expansion-head-v314ar{
+  display:grid;
+  grid-template-columns:58px minmax(0,1fr);
+  gap:14px;
+  align-items:center;
+  padding-right:36px;
+}
+.logic-expansion-head-v314ar h2,
+.logic-expansion-head-v314ar p{margin:0}
+.logic-expansion-head-v314ar h2{
+  margin:.1rem 0 .2rem;
+  color:#552e4c;
+  font-family:Georgia,serif;
+}
+.logic-expansion-head-v314ar>div:last-child>p:last-child{
+  color:#7b6875;
+  font-size:.78rem;
+}
+.logic-expansion-icon-v314ar{
+  display:grid;
+  width:54px;
+  height:54px;
+  place-items:center;
+  border-radius:18px;
+  background:rgba(114,75,103,.08);
+  font-size:1.45rem;
+}
+.logic-mode-tabs-v314ar{
+  display:flex;
+  gap:8px;
+  margin:18px 0 10px;
+}
+.logic-mode-tabs-v314ar button{
+  flex:1;
+  padding:9px 12px;
+  border:1px solid rgba(78,44,67,.12);
+  border-radius:12px;
+  background:rgba(255,255,255,.55);
+  color:#73596c;
+  font:700 .74rem/1 inherit;
+  cursor:pointer;
+}
+.logic-mode-tabs-v314ar button.is-active{
+  border-color:rgba(133,73,108,.26);
+  background:rgba(255,255,255,.92);
+  color:#552e4c;
+  box-shadow:0 4px 14px rgba(70,38,61,.05);
+}
+.logic-instructions-v314ar{
+  padding:10px 12px;
+  border-radius:12px;
+  background:rgba(109,71,96,.055);
+  color:#746371;
+  font-size:.72rem;
+  line-height:1.45;
+}
+.logic-board-wrap-v314ar{
+  display:grid;
+  place-items:center;
+  min-height:300px;
+  margin:16px 0;
+  padding:18px;
+  border:1px solid rgba(82,44,72,.10);
+  border-radius:20px;
+  background:rgba(255,255,255,.68);
+  overflow:auto;
+}
+.logic-session-meta-v314ar{
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  color:#937f8d;
+  font-size:.6rem;
+}
+.logic-result-v314ar{
+  min-height:0;
+  margin-top:10px;
+  padding:0;
+  border-radius:12px;
+}
+.logic-result-v314ar.is-error,
+.logic-result-v314ar.is-success{
+  padding:10px 12px;
+  border:1px solid rgba(93,60,80,.11);
+  background:rgba(255,255,255,.55);
+}
+.logic-result-v314ar.is-success{background:rgba(244,249,240,.82)}
+.logic-result-v314ar.is-error{background:rgba(255,244,244,.82)}
+.logic-result-v314ar strong,
+.logic-result-v314ar p{display:block;margin:0}
+.logic-result-v314ar strong{color:#5c4054;font-family:Georgia,serif}
+.logic-result-v314ar p{margin-top:3px;color:#796a75;font-size:.7rem}
+.logic-actions-v314ar{
+  display:flex;
+  justify-content:flex-end;
+  gap:8px;
+  flex-wrap:wrap;
+  margin-top:12px;
+}
+.logic-input-hint-v314ar{
+  margin:10px 0 0;
+  color:#93808e;
+  font-size:.62rem;
+  text-align:center;
+}
+
+/* Slitherlink */
+.slither-board-scroll-v314ar{max-width:100%;overflow:auto;padding:4px}
+.slither-board-v314ar{display:block;max-width:none;touch-action:manipulation}
+.slither-edge-v314ar{
+  stroke:rgba(74,54,67,.10);
+  stroke-width:2;
+  stroke-linecap:round;
+  pointer-events:none;
+}
+.slither-edge-v314ar.state-1{
+  stroke:#5d3350;
+  stroke-width:5;
+}
+.slither-edge-v314ar.state-2{stroke:transparent}
+.slither-hit-v314ar{
+  stroke:transparent;
+  stroke-width:20;
+  cursor:pointer;
+}
+.slither-dot-v314ar{fill:#71566a;pointer-events:none}
+.slither-clue-v314ar{
+  fill:#5b3b52;
+  font:700 22px/1 Georgia,serif;
+  text-anchor:middle;
+  pointer-events:none;
+}
+.slither-x-v314ar{
+  fill:#b096a7;
+  font:700 18px/1 system-ui,sans-serif;
+  text-anchor:middle;
+  pointer-events:none;
+}
+
+/* Nurikabe */
+.nuri-board-v314ar{
+  display:grid;
+  grid-template-columns:repeat(var(--nuri-cols),52px);
+  gap:3px;
+  padding:8px;
+  border-radius:16px;
+  background:#71586a;
+}
+.nuri-cell-v314ar{
+  display:grid;
+  width:52px;
+  height:52px;
+  place-items:center;
+  border:0;
+  border-radius:7px;
+  background:#f8f3ee;
+  color:#5a3a50;
+  font:700 1rem/1 Georgia,serif;
+  cursor:pointer;
+}
+.nuri-cell-v314ar.is-wall{background:#4b3c48;color:white}
+.nuri-cell-v314ar.is-island{background:#fffaf3}
+.nuri-cell-v314ar.is-unknown{background:#e9e1e6}
+.nuri-cell-v314ar.is-clue{
+  background:#fffaf3;
+  box-shadow:inset 0 0 0 2px rgba(132,79,111,.18);
+  cursor:default;
+}
+
+/* Kakuro */
+.kakuro-board-v314ar{
+  display:grid;
+  grid-template-columns:repeat(var(--kakuro-cols),52px);
+  gap:2px;
+  padding:7px;
+  border-radius:14px;
+  background:#5e4658;
+}
+.kakuro-cell-v314ar{
+  position:relative;
+  width:52px;
+  height:52px;
+}
+.kakuro-cell-v314ar.is-white{
+  display:grid;
+  place-items:center;
+  background:#fffaf3;
+}
+.kakuro-cell-v314ar.is-white input{
+  width:100%;
+  height:100%;
+  padding:0;
+  border:0;
+  outline:0;
+  background:transparent;
+  color:#573a4f;
+  font:700 1.15rem/1 Georgia,serif;
+  text-align:center;
+}
+.kakuro-cell-v314ar.is-white input:focus{
+  box-shadow:inset 0 0 0 3px rgba(190,116,151,.22);
+}
+.kakuro-cell-v314ar.is-black{
+  background:#4d3b48;
+  color:#f8ecf3;
+  font-size:.52rem;
+}
+.kakuro-cell-v314ar.is-black::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:linear-gradient(to bottom right,transparent 49%,rgba(255,255,255,.30) 50%,transparent 51%);
+}
+.kakuro-cell-v314ar .down{
+  position:absolute;
+  top:5px;
+  right:5px;
+}
+.kakuro-cell-v314ar .across{
+  position:absolute;
+  left:5px;
+  bottom:5px;
+}
+
+@media(max-width:620px){
+  .logic-expansion-shell-v314ar{padding:22px 12px}
+  .logic-expansion-head-v314ar{grid-template-columns:46px minmax(0,1fr)}
+  .logic-expansion-icon-v314ar{width:44px;height:44px}
+  .logic-board-wrap-v314ar{padding:10px;min-height:250px}
+  .logic-session-meta-v314ar{flex-direction:column}
+  .nuri-board-v314ar{grid-template-columns:repeat(var(--nuri-cols),44px)}
+  .nuri-cell-v314ar{width:44px;height:44px}
+  .kakuro-board-v314ar{grid-template-columns:repeat(var(--kakuro-cols),44px)}
+  .kakuro-cell-v314ar{width:44px;height:44px}
+}

@@ -451,6 +451,7 @@
     }
     if (event.source === "sudoku-complete" || event.source === "sudoku-solved") return m.level ? `Journey Level ${number(m.level)} completed · ${humanize(m.difficulty || "Sudoku")}` : `${humanize(m.difficulty || "Sudoku")} Practice puzzle completed`;
     if (event.source === "memory-garden-complete") return `Journey Level ${number(m.level)} completed · ${humanize(m.mode || "memory")} recall · ${number(m.rounds) || 3} rounds`;
+    if (event.source === "logic-unlock-complete") return `${humanize(m.gameId || "logic puzzle")} · ${m.mode === "daily" ? "Daily puzzle" : "Practice puzzle"} completed`;
     if (event.source === "word-lab-complete") return `${m.language === "de" ? "German Precision" : "English Fluency"} · legacy Word Lab level ${number(m.level)} · ${number(m.firstTryAccuracy)}% first-try`;
     if (event.source === "talent-content-v2") {
       const content = humanize(m.contentId || event.label || "Unlocked activity");
@@ -596,6 +597,7 @@
       "talent-v2-resonance": ["✨", "Talent Resonance"],
       "talent-v2-special": ["✦", "Talent Bonus"],
       "talent-content-v2": ["🔓", "Talent Content"],
+      "logic-unlock-complete": ["🧩", "Logic Unlock"],
       "recovery-studio": ["🌿", "Recovery Studio"],
       "journal-reflection-base": ["🌸", "Journal"],
       "journal-reflection-effort": ["🌸", "Journal"],

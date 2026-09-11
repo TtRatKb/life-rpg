@@ -1,8 +1,8 @@
 (() => {
   "use strict";
 
-  if (window.__lifeRpgTalentTreeGraphV314ap) return;
-  window.__lifeRpgTalentTreeGraphV314ap = true;
+  if (window.__lifeRpgTalentTreeGraphV314ar) return;
+  window.__lifeRpgTalentTreeGraphV314ar = true;
 
   const app = window.LifeRPGApp;
   const skills = window.LifeRPGSkills;
@@ -12,8 +12,8 @@
     return;
   }
 
-  const VERSION = "0.31.4ap";
-  const SCHEMA = 2;
+  const VERSION = "0.31.4ar";
+  const SCHEMA = 3;
   const REALMS = ["Work", "Knowledge", "Japanese", "Health", "Recovery", "Home", "Hobbies"];
 
   const META = {
@@ -23,15 +23,15 @@
       subtitle: "Build from chance → momentum → deeper focus, then branch into optional work tools.",
       dream: { title: "After Hours", copy: "after-work quiet, tiredness, and being taken care of when the day is finally over" },
       content: [
-        content("work-debrief", "🧾", "Work Debrief", 2,
-          "Unlock a short end-of-work reflection: what moved, what is next, and what can wait. It has its own modest writing rewards.",
+        content("work-debrief", "🧾", "Work Deep Brief", 2,
+          "Unlock a deeper Work reflection for closing the loop after a demanding day: what moved, what drained you, what matters next, and what can be released. It supports voice dictation as well as typing.",
           { special: 1 }),
-        content("lesson-spark", "💡", "Lesson Spark Deck", 2,
-          "Unlock a deck of concrete teaching/design prompts and launch a focused 25-minute planning block straight from the prompt.",
-          { special: 2, content: "work-debrief" }),
         content("work-focus-challenges", "◆", "Focus Challenge Deck", 2,
           "Unlock rotating optional 35-minute focus challenges. They give you a concrete way to start; the normal Focus system stays free.",
-          { special: 3, content: "lesson-spark" })
+          { special: 2, content: "work-debrief" }),
+        planned("lesson-spark", "💡", "Lesson Spark Deck · Redesign",
+          "Parked for now. Your existing Pinterest/books/resources already cover inspiration, so this needs a more genuinely rewarding concept before it can cost points.",
+          { special: 3, content: "work-focus-challenges" })
       ]
     },
     Knowledge: {
@@ -40,12 +40,15 @@
       subtitle: "Turn regular thinking into stronger puzzle rewards, then unlock new ways to think.",
       dream: { title: "Quiet Minds", copy: "books, puzzles, teaching each other, and the intimacy of shared concentration" },
       content: [
-        content("decision-lens", "🔎", "Decision Lens", 2,
-          "Unlock a structured reflection for a real decision: options, evidence, uncertainty and the next reversible step.",
-          { special: 1 }),
-        planned("logic-expansion", "◇", "Logic Expansion",
-          "This is where new logic games such as Slitherlink or Nurikabe will become real purchasable unlocks once the games exist.",
-          { special: 2, content: "decision-lens" })
+        linkedContent("slitherlink", "◫", "Slitherlink", 2,
+          "Unlock a real Daily + Practice Slitherlink puzzle inside Training Grounds.",
+          { special: 1 }, "Open Slitherlink", () => window.LifeRPGLogicExpansion?.open?.("slitherlink")),
+        linkedContent("nurikabe", "▦", "Nurikabe", 2,
+          "Unlock a real Daily + Practice Nurikabe puzzle inside Training Grounds.",
+          { special: 2, content: "slitherlink" }, "Open Nurikabe", () => window.LifeRPGLogicExpansion?.open?.("nurikabe")),
+        linkedContent("kakuro", "＋", "Kakuro", 2,
+          "Unlock a real Daily + Practice Kakuro puzzle inside Training Grounds.",
+          { special: 3, content: "nurikabe" }, "Open Kakuro", () => window.LifeRPGLogicExpansion?.open?.("kakuro"))
       ]
     },
     Japanese: {
@@ -54,12 +57,12 @@
       subtitle: "Reward contact with Japanese, then open extra production/immersion toys rather than hiding the basics.",
       dream: { title: "Between Words", copy: "language, repeated phrases, and things that become easier to say softly" },
       content: [
-        content("sentence-forge", "文", "Sentence Forge", 2,
-          "Unlock a tiny Japanese production journal with rotating prompts. Write one or a few real sentences; longer attempts earn a few extra tiers.",
-          { special: 1 }),
         content("shadowing-sprint", "🎙️", "Shadowing Sprint", 2,
           "Unlock a five-minute bring-your-own-audio shadowing sprint with a real countdown and Japanese completion reward.",
-          { special: 2, content: "sentence-forge" })
+          { special: 1 }),
+        planned("sentence-forge", "文", "Sentence Forge · Redesign",
+          "Parked for now. A plain typed sentence prompt is not rewarding enough to justify a Skill Point; this slot will be redesigned around a stronger Japanese toy later.",
+          { special: 2, content: "shadowing-sprint" })
       ]
     },
     Health: {
@@ -68,12 +71,12 @@
       subtitle: "Build visible care/reflection bonuses, then unlock additional reflection content.",
       dream: { title: "Close Enough to Notice", copy: "care, warmth, touch, and noticing the body without turning it into a task" },
       content: [
-        nativeContent("thought-untangler", "🧶", "Thought Untangler", 2,
-          "Permanently unlock the fourth Journal reflection already built into Life RPG.",
+        nativeContent("year-question", "📅", "365 Question Journal", 2,
+          "Unlock one different reflection question for every date of the year. The same date gets the same question next year, and the answer can be spoken or typed.",
           { special: 1 }, "Open Journal", () => app.showView?.("journal")),
-        content("body-signals", "◌", "Body Signals", 2,
-          "Unlock a gentle body/energy noticing reflection. It records information, not a score, streak or fitness target.",
-          { special: 2, content: "thought-untangler" })
+        planned("health-reflection-2", "◌", "Second Reflection Form · Redesign",
+          "Reserved for a future reflection form that feels meaningfully different from the normal Journal instead of another generic prompt box.",
+          { special: 2, content: "year-question" })
       ]
     },
     Recovery: {
@@ -93,15 +96,12 @@
     Home: {
       icon: "🏠",
       special: { id: "quick-win", icon: "✨", title: "Quick Win", max: 3 },
-      subtitle: "Make practical wins pay a little better, then unlock optional small reset activities.",
+      subtitle: "Make practical wins pay a little better, then branch into genuinely new Home content once it earns its Skill Point cost.",
       dream: { title: "Domestic Gravity", copy: "shared-apartment mornings, kitchens, laundry, ordinary routines, and dangerous familiarity" },
       content: [
-        content("one-surface-reset", "🧺", "One-Surface Reset", 2,
-          "Unlock a small prompt deck for a 7-minute household reset. It launches a real Home timer and logs the actual time.",
-          { special: 1 }),
-        content("home-reset-deck", "▦", "Home Reset Deck", 2,
-          "Unlock a larger deck of 12-minute practical reset activities for when you want a little more variety than One-Surface Reset.",
-          { special: 2, content: "one-surface-reset" })
+        planned("home-content-redesign", "🏠", "Home Content · Redesign",
+          "The old One-Surface Reset duplicated things the Quest system already does. This branch is deliberately not purchasable until it offers genuinely new Home content.",
+          { special: 1 })
       ]
     },
     Hobbies: {
@@ -110,15 +110,9 @@
       subtitle: "Reward play and creativity, then unlock genuinely new things to do with that time.",
       dream: { title: "Play After Dark", copy: "games, music, playful competition, and moments that feel suspiciously like dates" },
       content: [
-        content("creative-prompt-deck", "✦", "Creative Prompt Deck", 2,
-          "Unlock rotating low-pressure creative prompts and a 15-minute creative timer. The point is to make something, not to optimize it.",
-          { special: 1 }),
-        content("idea-garden", "🌱", "Idea Garden", 2,
-          "Unlock a flexible creative journal for ideas, fragments, concepts and things you might want to make later.",
-          { special: 2, content: "creative-prompt-deck" }),
-        content("creative-dice", "🎲", "Creative Dice", 2,
-          "Unlock a playful generator that combines a medium, mood and constraint into a 20-minute creative experiment.",
-          { special: 3, content: "idea-garden" })
+        planned("hobbies-content-redesign", "🎨", "Hobbies Content · Redesign",
+          "The prompt/deck ideas are parked because they do not feel like a strong enough reward. This branch will stay free of Skill-Point costs until the unlock is actually exciting.",
+          { special: 1 })
       ]
     }
   };
@@ -133,6 +127,10 @@
 
   function nativeContent(id, icon, title, cost, copy, requires = {}, openLabel = "Open", open = null) {
     return { id, icon, title, cost, copy, requires, native: true, planned: false, openLabel, open };
+  }
+
+  function linkedContent(id, icon, title, cost, copy, requires = {}, openLabel = "Open", open = null) {
+    return { id, icon, title, cost, copy, requires, native: false, planned: false, linked: true, openLabel, open };
   }
 
   function planned(id, icon, title, copy, requires = {}) {
@@ -159,10 +157,43 @@
     state.version = VERSION;
     state.unlocks ||= {};
     state.dreamThreads ||= {};
+    state.migrations ||= {};
     for (const realm of REALMS) {
       if (!state.unlocks[realm] || typeof state.unlocks[realm] !== "object") state.unlocks[realm] = {};
       state.dreamThreads[realm] = Math.max(0, Math.min(2, Math.floor(Number(state.dreamThreads[realm] || 0))));
     }
+
+    let migratedNow = false;
+    if (!state.migrations.skillContentCleanupAR) {
+      let refundedPoints = 0;
+      const transfer = (realm, fromId, toId) => {
+        const owned = state.unlocks[realm] || {};
+        if (!owned[fromId]) return;
+        if (!owned[toId]) owned[toId] = owned[fromId];
+        delete owned[fromId];
+      };
+      const refund = (realm, id, cost = 2) => {
+        const owned = state.unlocks[realm] || {};
+        if (!owned[id]) return;
+        delete owned[id];
+        refundedPoints += Number(cost || 0);
+      };
+
+      transfer("Work", "lesson-spark", "work-focus-challenges");
+      transfer("Knowledge", "decision-lens", "slitherlink");
+      transfer("Japanese", "sentence-forge", "shadowing-sprint");
+
+      refund("Health", "body-signals");
+      refund("Home", "one-surface-reset");
+      refund("Home", "home-reset-deck");
+      refund("Hobbies", "creative-prompt-deck");
+      refund("Hobbies", "idea-garden");
+      refund("Hobbies", "creative-dice");
+
+      state.migrations.skillContentCleanupAR = { at: Date.now(), refundedPoints };
+      migratedNow = true;
+    }
+    if (migratedNow) app.saveState({ source: "talent-tree-content-cleanup-ar" });
     return state;
   }
 
@@ -313,7 +344,7 @@
   function openContent(realm, id) {
     const item = (META[realm]?.content || []).find(entry => entry.id === id);
     if (!item || !isOwned(realm, item)) return false;
-    if (item.native) {
+    if (item.native || item.linked) {
       item.open?.();
       return true;
     }

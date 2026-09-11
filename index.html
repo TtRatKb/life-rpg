@@ -17,8 +17,9 @@
   <link rel="stylesheet" href="styles.css?v=0.31.4am" />
   <link rel="stylesheet" href="skills.css?v=0.31.4ah" />
   <link rel="stylesheet" href="talent-v2.css?v=0.31.4an" />
-  <link rel="stylesheet" href="talent-tree-v2-graph.css?v=0.31.4ap" />
-  <link rel="stylesheet" href="talent-content-v2.css?v=0.31.4ap" />
+  <link rel="stylesheet" href="talent-tree-v2-graph.css?v=0.31.4ar" />
+  <link rel="stylesheet" href="talent-content-v2.css?v=0.31.4ar" />
+  <link rel="stylesheet" href="logic-expansion.css?v=0.31.4ar" />
   <link rel="stylesheet" href="dreamscape.css?v=0.31.4aq" />
   <link rel="stylesheet" href="weekly-review.css?v=0.31.4ag" />
   <link rel="stylesheet" href="knowledge-tree.css?v=0.31.4ag" />
@@ -1153,6 +1154,9 @@
           <div class="training-grounds-grid-v314k">
             <button class="training-card-v314k is-live" data-sudoku-open type="button"><span class="training-card-icon-v314k">🧩</span><div><small>LOGICAL THINKING</small><strong>Sudoku Journey</strong><p>50 fixed levels · Daily + Practice</p><em id="trainingGroundsSudokuStatus">Continue your Journey</em></div><b>›</b></button>
             <button class="training-card-v314k is-live" data-nonogram-open type="button"><span class="training-card-icon-v314k">◩</span><div><small>LOGIC · PATTERN REASONING</small><strong>Nonogram Journey</strong><p>50 fixed picture-logic levels · 5×5 → 10×10</p><em id="trainingGroundsNonogramStatus">Level 1 / 50</em></div><b>›</b></button>
+            <button class="training-card-v314k is-planned logic-unlock-card-v314ar" data-logic-game="slitherlink" type="button"><span class="training-card-icon-v314k">◫</span><div><small>KNOWLEDGE · TALENT UNLOCK</small><strong>Slitherlink</strong><p>One-loop deduction · Daily + Practice</p><em data-logic-status="slitherlink">Locked · Knowledge Talent Tree</em></div><b>🔒</b></button>
+            <button class="training-card-v314k is-planned logic-unlock-card-v314ar" data-logic-game="nurikabe" type="button"><span class="training-card-icon-v314k">▦</span><div><small>KNOWLEDGE · TALENT UNLOCK</small><strong>Nurikabe</strong><p>Islands and walls · Daily + Practice</p><em data-logic-status="nurikabe">Locked · Knowledge Talent Tree</em></div><b>🔒</b></button>
+            <button class="training-card-v314k is-planned logic-unlock-card-v314ar" data-logic-game="kakuro" type="button"><span class="training-card-icon-v314k">＋</span><div><small>KNOWLEDGE · TALENT UNLOCK</small><strong>Kakuro</strong><p>Cross-sum deduction · Daily + Practice</p><em data-logic-status="kakuro">Locked · Knowledge Talent Tree</em></div><b>🔒</b></button>
             <a class="training-card-v314k is-live" href="#kotobaIntegrationPanel"><span class="training-card-icon-v314k">🌸</span><div><small>JAPANESE</small><strong>Kotoba Quick Study</strong><p>Real due Vocabulary, Grammar & Particle SRS reviews</p><em>Synced with Kotoba Quest</em></div><b>↓</b></a>
             <button class="training-card-v314k is-live" data-number-sense-open type="button"><span class="training-card-icon-v314k">🔢</span><div><small>NUMBER SENSE · MENTAL MATH</small><strong>Number Sense Journey</strong><p>50 fixed levels · strategies, estimation, percentages and magnitude</p><em id="trainingGroundsNumberSenseStatus">Level 1 / 50</em></div><b>›</b></button>
             <button class="training-card-v314k is-live" data-memory-garden-open type="button"><span class="training-card-icon-v314k">🧠</span><div><small>MEMORY · ATTENTION</small><strong>Memory Garden</strong><p>50 Journey levels · spatial, sequence, pattern and working-memory trials</p><em id="trainingGroundsMemoryStatus">Level 1 / 50</em></div><b>›</b></button>
@@ -2349,12 +2353,12 @@ League of Legends — PC" required></textarea></label>
         <button type="button" data-reflection-field="gratitude"><span>🌸</span><div><strong>Something I'm grateful for</strong><small>Optional</small></div><b>›</b></button>
         <button type="button" data-reflection-field="smallWin"><span>⭐</span><div><strong>Something that went well</strong><small>Optional</small></div><b>›</b></button>
         <button type="button" data-reflection-field="hardThing"><span>🌧</span><div><strong>Something that was hard</strong><small>Optional</small></div><b>›</b></button>
-        <button type="button" data-reflection-field="thoughtUntangler" class="is-talent-locked"><span>🧶</span><div><strong>Thought Untangler</strong><small>Unlock in Health Talent Tree</small></div><b>›</b></button>
+        <button type="button" data-reflection-field="yearQuestion" class="is-talent-locked"><span>📅</span><div><strong>365 Question Journal</strong><small>Unlock in Health Talent Tree</small></div><b>›</b></button>
         <button id="journalReflectionDone" class="text-button" type="button">I'm good for today</button>
       </section>
       <section id="journalReflectionWriteStep" class="journal-reflection-write-v302 hidden">
         <label><strong id="journalReflectionPrompt">What do you want to keep?</strong><textarea id="journalReflectionTextarea" rows="5" maxlength="2400"></textarea></label><div id="journalReflectionRewardMeter" class="journal-effort-meter-v310" aria-live="polite"></div>
-        <div class="journal-reflection-write-actions-v302"><button id="journalReflectionBack" class="secondary-button" type="button">← Back</button><button id="journalReflectionSave" class="primary-button" type="button">Save to journal</button></div>
+        <div class="journal-reflection-write-actions-v302"><button id="journalReflectionBack" class="secondary-button" type="button">← Back</button><button id="journalReflectionDictate" class="secondary-button" type="button">🎙️ Speak answer</button><button id="journalReflectionSave" class="primary-button" type="button">Save to journal</button></div>
       </section>
     </div>
   </dialog>
@@ -2375,7 +2379,7 @@ League of Legends — PC" required></textarea></label>
         <label><span>🌸 Gratitude</span><textarea id="journalDayGratitude" rows="3" maxlength="2400" placeholder="Something worth keeping…"></textarea></label>
         <label><span>⭐ Small win</span><textarea id="journalDaySmallWin" rows="3" maxlength="2400" placeholder="Something that went right…"></textarea></label>
         <label><span>🌧 What was hard</span><textarea id="journalDayHardThing" rows="3" maxlength="2400" placeholder="Context, not a score…"></textarea></label>
-        <label class="journal-day-talent-field-v314an is-talent-locked"><span>🧶 Thought Untangler <small>Locked · Health Talent Tree</small></span><textarea id="journalDayThoughtUntangler" rows="3" maxlength="2400" placeholder="What are the separate pieces of this thought?" disabled></textarea></label>
+        <label class="journal-day-talent-field-v314an is-talent-locked"><span>📅 365 Question Journal <small id="journalDayYearQuestionPrompt">Locked · Health Talent Tree</small></span><textarea id="journalDayYearQuestion" rows="3" maxlength="2400" placeholder="Today's question appears here after you unlock it." disabled></textarea></label>
       </div>
       <div id="journalDayRewardMeter" class="journal-effort-meter-v310" aria-live="polite"></div>
       <p class="journal-day-note-v302">Editing this page changes the journal record. If today's Daily Check-in is edited later, its mood/energy/sleep/stress values become the source of truth again; your written reflections stay untouched.</p>
@@ -3218,26 +3222,28 @@ League of Legends — PC" required></textarea></label>
   <script src="smart-action-router.js?v=0.31.4s"></script>
   <script src="smart-quests.js?v=0.31.0"></script>
   <script src="daily.js?v=0.31.4ag"></script>
-  <script src="journal.js?v=0.31.4an"></script>
+  <script src="data/year-journal-questions.js?v=0.31.4ar"></script>
+  <script src="journal.js?v=0.31.4ar"></script>
   <script src="story-ui.js?v=0.31.4al"></script>
   <script src="relationship-engine.js?v=0.31.4aq"></script>
   <script src="shop.js?v=0.30.6"></script>
   <script src="achievements.js?v=0.31.0"></script>
-  <script src="activity-log.js?v=0.31.4ap"></script>
+  <script src="activity-log.js?v=0.31.4ar"></script>
   <script src="kotoba-integration.js?v=0.31.4k"></script>
   <script src="kotoba-quick-training.js?v=0.31.4k"></script>
 
   <!-- Progression modules are loaded statically and in dependency order.
        This avoids the dynamic-loader races that caused intermittent dead UI. -->
   <script src="skills.js?v=0.31.4ap"></script>
-  <script src="talent-v2.js?v=0.31.4an"></script>
-  <script src="talent-tree-v2-graph.js?v=0.31.4ap"></script>
-  <script src="talent-content-v2.js?v=0.31.4ap"></script>
+  <script src="talent-v2.js?v=0.31.4ar"></script>
+  <script src="talent-tree-v2-graph.js?v=0.31.4ar"></script>
+  <script src="logic-expansion.js?v=0.31.4ar"></script>
+  <script src="talent-content-v2.js?v=0.31.4ar"></script>
   <script src="dreamscape.js?v=0.31.4aq"></script>
   <script src="journal-rewards.js?v=0.31.4ag"></script>
   <script src="weekly-review.js?v=0.31.4ag"></script>
 
   <script type="module" src="cloud-save.js?v=0.31.4ag"></script>
-  <script src="pwa.js?v=0.31.4aq"></script>
+  <script src="pwa.js?v=0.31.4ar"></script>
 </body>
 </html>
