@@ -1,4 +1,4 @@
-const CACHE_NAME = "life-rpg-v0314au-dashboard-focus";
+const CACHE_NAME = "life-rpg-v0314av-story-expansion";
 const CORE = [
   "./",
   "./index.html",
@@ -21,7 +21,7 @@ const CORE = [
   "./weekly-review.css?v=0.31.4ag",
   "./weekly-review.js?v=0.31.4ag",
   "./manifest.webmanifest?v=0.30.3a",
-  "./pwa.js?v=0.31.4au",
+  "./pwa.js?v=0.31.4av",
   "./visual-performance.js?v=0.31.4c",
   "./modal-manager.js?v=0.31.4d",
   "./training-focus.js?v=0.31.4o",
@@ -54,10 +54,10 @@ const CORE = [
   "./daily.js?v=0.31.4ag",
   "./data/year-journal-questions.js?v=0.31.4ar",
   "./journal.js?v=0.31.4ar",
-  "./story-engine.js?v=0.31.4r",
-  "./story-ui.js?v=0.31.4al",
+  "./story-engine.js?v=0.31.4av",
+  "./story-ui.js?v=0.31.4av",
   "./relationship-engine.js?v=0.31.4aq",
-  "./content/SP_003.dat?v=0.31.4r",
+  "./content/SP_003.dat?v=0.31.4av",
   "./shop.js?v=0.30.6",
   "./achievements.js?v=0.31.0",
   "./activity-log.js?v=0.31.4ar",

@@ -913,6 +913,65 @@
       );
     }
 
+    if (order === 15) {
+      return gate(
+        "common-space-momentum-v1",
+        "Make a little room for something that is yours.",
+        "One small off-duty action is enough. Reading, gaming, hobbies and curiosity all count.",
+        [group("personal", "Something-for-you momentum", [
+          { type: "realmActivity", realms: ["Hobbies", "Knowledge"], label: "Complete one Hobbies or Knowledge action" },
+          { type: "time", categories: ["hobby", "gaming", "reading"], minutes: 10, label: "Spend 10 minutes on a hobby, game or reading" },
+          { type: "adventure", realms: ["Hobbies"], label: "Move one hobby / creative Adventure forward" }
+        ])]
+      );
+    }
+
+    if (order === 18) {
+      return gate(
+        "shared-dinner-home-momentum-v1",
+        "Bring one small bit of Home momentum with you.",
+        "A tiny household or life-admin action is enough; this is about lived rhythm, not cleaning performance.",
+        [group("home", "Home momentum", [
+          { type: "realmActivity", realms: ["Home"], label: "Complete one Home action" },
+          { type: "time", categories: ["life_admin"], minutes: 10, label: "Spend 10 minutes on household or life admin" },
+          { type: "realmAdvance", realm: "Home", label: "Reach your next Home rank" }
+        ])]
+      );
+    }
+
+    if (order === 21) {
+      return gate(
+        "play-momentum-v1",
+        "Make a little room for play first.",
+        "This can be gaming, reading, a hobby or any other Hobbies action. The point is enjoyment, not productivity.",
+        [group("play", "Play momentum", [
+          { type: "realmActivity", realms: ["Hobbies"], label: "Complete one Hobbies action" },
+          { type: "time", categories: ["gaming", "hobby", "reading"], minutes: 10, label: "Spend 10 minutes gaming, reading or on a hobby" },
+          { type: "adventure", realms: ["Hobbies"], label: "Move one hobby / creative Adventure forward" }
+        ])]
+      );
+    }
+
+    if (order === 24) {
+      return gate(
+        "home-and-off-duty-momentum-v1",
+        "Bring two small pieces of ordinary life with you.",
+        "One household step and one off-duty step are enough. Every group keeps flexible routes.",
+        [
+          group("home", "1 · Home momentum", [
+            { type: "realmActivity", realms: ["Home"], label: "Complete one Home action" },
+            { type: "time", categories: ["life_admin"], minutes: 10, label: "Spend 10 minutes on household or life admin" },
+            { type: "realmAdvance", realm: "Home", label: "Reach your next Home rank" }
+          ]),
+          group("off-duty", "2 · Off-duty momentum", [
+            { type: "realmActivity", realms: ["Hobbies", "Recovery", "Health"], label: "Complete one Hobbies, Recovery or gentle Health action" },
+            { type: "time", categories: ["recovery", "hobby", "gaming", "reading"], minutes: 10, label: "Spend 10 minutes on rest, reading, gaming or a hobby" },
+            { type: "adventure", realms: ["Hobbies"], label: "Move one hobby / creative Adventure forward" }
+          ])
+        ]
+      );
+    }
+
     return null;
   }
 
@@ -2612,6 +2671,9 @@
     const state = app.getState();
     if (person.id === "mina" && state.flags?.MINA_CLOSE_FRIEND) return "Pro Hero · Close friend";
     if (person.id === "mina" && state.flags?.MINA_FRIENDSHIP_ESTABLISHED) return "Pro Hero · Friend";
+    if (["kirishima", "bakugo"].includes(person.id) && (state.flags?.DYNARIOT_MOVE_IN_COMPLETE || state.flags?.SHARED_APARTMENT_IS_HOME)) {
+      return "Pro Hero · Roommate · DynaRiot co-founder";
+    }
     if (person.id === "kirishima" && state.flags?.DYNARIOT_ROOMMATE_MEETING_COMPLETE) return "Pro Hero · Possible roommate";
     if (person.id === "bakugo" && state.flags?.DYNARIOT_ROOMMATE_MEETING_COMPLETE) return "Pro Hero · Possible roommate";
     return person.role || "Known person";
@@ -2641,7 +2703,11 @@
       else if (state.flags?.MINA_HANGOUTS_UNLOCKED) base = "The friendship is beginning to exist outside the original school context.";
       else if (state.flags?.STORY_MINA_FRIENDSHIP_STARTED) base = "She keeps finding reasons to continue the conversation.";
     } else if (["kirishima", "bakugo"].includes(person.id)) {
-      base = "You have met once. An everyday relationship has not formed yet, so Talk and Hang Out remain locked.";
+      if (state.flags?.SHARED_APARTMENT_EMOTIONAL_HOME_STARTED) base = "You share enough ordinary life now that care, teasing and quiet coexistence can happen without turning every moment into an event.";
+      else if (state.flags?.HOUSEHOLD_FORMATION_PHASE_TWO_COMPLETE) base = "Living together has moved beyond logistics. You have seen each other tired, playful, unwell and off-duty without the connection becoming fragile.";
+      else if (state.flags?.HOUSEHOLD_ROUTINE_STARTED) base = "You live together now. Shared routines, errands and quiet time are doing more work than formal getting-to-know-you conversations.";
+      else if (state.flags?.DYNARIOT_MOVE_IN_COMPLETE) base = "You share a home now, but the everyday relationship is still new enough that everyone is learning each other’s boundaries.";
+      else base = "You have met once. An everyday relationship has not formed yet, so Talk and Hang Out remain locked.";
     }
     const recent = recentInteractionPhrase(person.id);
     return recent ? `${base} ${recent}` : base;
