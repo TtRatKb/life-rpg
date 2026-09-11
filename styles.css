@@ -17062,3 +17062,77 @@ body.training-focus-active-v314o > *:not(#trainingFocusView):not(.toast):not(.ac
   .dashboard-plan-column-v314au { order: 1; }
   .dashboard-goal-pair-v314au { order: 2; }
 }
+
+/* V0.31.4aw — Shared Apartment Hub + Living World 2.0 */
+.home-household-status-v314aw {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+.home-household-status-v314aw.hidden { display: none; }
+.home-household-summary-v314aw {
+  display: grid;
+  grid-template-columns: 34px minmax(0,1fr);
+  gap: 2px 9px;
+  align-items: center;
+  padding: 9px 10px;
+  border: 1px solid rgba(151,99,129,.18);
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(255,250,247,.94), rgba(248,236,241,.9));
+}
+.home-household-summary-v314aw > span {
+  grid-row: 1 / span 2;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
+  background: rgba(131,79,112,.10);
+}
+.home-household-summary-v314aw strong { color: var(--ink); font-size: .82rem; }
+.home-household-summary-v314aw small { color: var(--muted); font-size: .68rem; }
+.home-resident-row-v314aw { display: flex; gap: 7px; flex-wrap: wrap; }
+.home-resident-chip-v314aw {
+  display: grid;
+  grid-template-columns: 18px auto;
+  gap: 0 5px;
+  align-items: center;
+  min-width: 0;
+  padding: 6px 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(132,91,116,.16);
+  background: rgba(255,255,255,.72);
+}
+.home-resident-chip-v314aw i { grid-row: 1 / span 2; font-style: normal; opacity: .7; }
+.home-resident-chip-v314aw b { font-size: .69rem; line-height: 1.1; color: var(--ink); }
+.home-resident-chip-v314aw small { font-size: .58rem; line-height: 1.1; color: var(--muted); }
+.home-resident-chip-v314aw.is-home { border-color: rgba(87,145,117,.28); background: rgba(239,249,244,.84); }
+.home-resident-chip-v314aw.is-away { opacity: .72; }
+.room-button { position: relative; }
+.room-button.is-live-v314aw {
+  border-color: rgba(173,92,134,.34);
+  box-shadow: 0 8px 22px rgba(103,55,86,.07);
+  background: linear-gradient(145deg, rgba(255,252,250,.98), rgba(251,239,245,.94));
+}
+.room-live-badge-v314aw {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: #70415f;
+  color: #fff;
+  font-size: .56rem;
+  letter-spacing: .02em;
+}
+.world-presence-card .world-presence-room-v314aw {
+  display: inline-flex;
+  margin-left: 5px;
+  color: #8b6f7e;
+  font-size: .58rem;
+  font-weight: 700;
+}
+@media (max-width: 760px) {
+  .home-resident-row-v314aw { display: grid; grid-template-columns: 1fr 1fr; }
+  .home-resident-chip-v314aw { border-radius: 12px; }
+}

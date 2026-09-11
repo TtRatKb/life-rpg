@@ -1,8 +1,8 @@
 (() => {
   "use strict";
 
-  if (window.__lifeRpgDreamscapeV314aq) return;
-  window.__lifeRpgDreamscapeV314aq = true;
+  if (window.__lifeRpgDreamscapeV314ax) return;
+  window.__lifeRpgDreamscapeV314ax = true;
 
   const app = window.LifeRPGApp;
   const graph = window.LifeRPGTalentTreeGraph;
@@ -12,11 +12,11 @@
     return;
   }
 
-  const VERSION = "0.31.4aq";
+  const VERSION = "0.31.4ax";
   const SCHEMA = 1;
   const DAY_MS = 24 * 60 * 60 * 1000;
   const REALMS = ["Work","Knowledge","Japanese","Health","Recovery","Home","Hobbies"];
-  const DREAMS = [
+  const BASE_DREAMS = [
   {
     "id": "work-bakugo-t1",
     "realm": "Work",
@@ -606,9 +606,604 @@
     ]
   }
 ];
+
+  const EXPANDED_DREAMS = [
+  {
+    "id": "work-bakugo-t1-x1",
+    "realm": "Work",
+    "tier": 1,
+    "focus": "bakugo",
+    "title": "After Hours · Last Train · Bakugo",
+    "body": [
+      "In the dream, I am still at a desk long after the building should be empty. My bag is packed, the last train is becoming a real concern, and I am pretending one more line of work will make the day feel finished.",
+      "Bakugo appears in the doorway with two canned coffees and the expression of someone who has already decided my plan is stupid. He sets the sweeter one beside my hand without asking.",
+      "“Pack it.” He taps the edge of the desk. When I tell him I need five minutes, he sits on the corner of it and says, “Then I’m counting.”",
+      "The fifth minute ends with his fingers closing around my wrist before I can reach for another page. It is not forceful. It is worse: patient, warm, and completely certain I am coming with him.",
+      "I wake with the absurd certainty that somebody had been waiting for me to stop working, not for me to finish."
+    ]
+  },
+  {
+    "id": "work-kirishima-t1-x1",
+    "realm": "Work",
+    "tier": 1,
+    "focus": "kirishima",
+    "title": "After Hours · Last Train · Kirishima",
+    "body": [
+      "In the dream, I am still at a desk long after the building should be empty. My bag is packed, the last train is becoming a real concern, and I am pretending one more line of work will make the day feel finished.",
+      "Kirishima leans into the doorway and asks whether I am actually leaving or just moving papers into different piles. The accuracy is offensive.",
+      "He gathers the books I have already finished with and stacks them neatly while I complain. “You don’t have to help.” “I know.” He smiles like that is the point.",
+      "At the elevator, he takes my bag before I can object. Our shoulders bump as the doors close, and neither of us bothers to correct the distance.",
+      "I wake with the absurd certainty that somebody had been waiting for me to stop working, not for me to finish."
+    ]
+  },
+  {
+    "id": "work-both-t1-x1",
+    "realm": "Work",
+    "tier": 1,
+    "focus": "both",
+    "title": "After Hours · Last Train · Both",
+    "body": [
+      "In the dream, I am still at a desk long after the building should be empty. My bag is packed, the last train is becoming a real concern, and I am pretending one more line of work will make the day feel finished.",
+      "Kirishima arrives first with snacks. Bakugo arrives two minutes later, calls both of us idiots, and somehow still has my coat over one arm.",
+      "They bracket the desk while I try to defend the concept of finishing one last thing. Kirishima negotiates. Bakugo simply shuts my laptop. The betrayal is coordinated enough to be suspicious.",
+      "On the walk out, I end up between them. Kirishima is laughing at something I said; Bakugo is grumbling about the train schedule while keeping pace exactly with mine.",
+      "I wake with the absurd certainty that somebody had been waiting for me to stop working, not for me to finish."
+    ]
+  },
+  {
+    "id": "work-bakugo-t2-x1",
+    "realm": "Work",
+    "tier": 2,
+    "focus": "bakugo",
+    "title": "After Hours · Lights Out · Bakugo",
+    "body": [
+      "The dream gives me an empty staff room, rain against the windows, and a power-saving system that turns half the lights off while I am still pretending to work.",
+      "Bakugo crosses the darkened room without hesitation and stops close enough that the desk presses into the backs of my thighs. “You done running yourself into the ground?”",
+      "I tell him that is dramatic. His hand settles at my waist as if he needs somewhere to put it while he argues. “You’re dramatic.” His eyes drop to my mouth and stay there.",
+      "The kiss is slow only after the first one proves neither of us is backing away. When the motion sensor lights flicker back on, he swears under his breath and kisses me again anyway.",
+      "I wake before the lights come back on, with my pulse far too awake for the hour."
+    ]
+  },
+  {
+    "id": "work-kirishima-t2-x1",
+    "realm": "Work",
+    "tier": 2,
+    "focus": "kirishima",
+    "title": "After Hours · Lights Out · Kirishima",
+    "body": [
+      "The dream gives me an empty staff room, rain against the windows, and a power-saving system that turns half the lights off while I am still pretending to work.",
+      "Kirishima finds me by the light of my laptop and laughs softly. “This feels like the opening of a very specific kind of bad decision.”",
+      "He braces one hand on the desk beside me and asks if I want him to move. I should. Instead I catch the front of his shirt and watch the answer register across his face.",
+      "His kiss is warm and careful until I lean into it. Then his other hand finds my waist, and the dark staff room stops feeling empty at all.",
+      "I wake before the lights come back on, with my pulse far too awake for the hour."
+    ]
+  },
+  {
+    "id": "work-both-t2-x1",
+    "realm": "Work",
+    "tier": 2,
+    "focus": "both",
+    "title": "After Hours · Lights Out · Both",
+    "body": [
+      "The dream gives me an empty staff room, rain against the windows, and a power-saving system that turns half the lights off while I am still pretending to work.",
+      "The lights go out with all three of us still in the room. Kirishima laughs. Bakugo mutters something vicious about public buildings. I can barely make out either of them.",
+      "A hand finds mine—Kirishima’s, from the warmth and the careful squeeze. Bakugo is closer on my other side, close enough that I feel his breath when he says my name.",
+      "The dark makes everything easier and more impossible. Kirishima kisses my temple; Bakugo catches my mouth when I turn. For one suspended moment, nobody treats the arrangement like a mistake.",
+      "I wake before the lights come back on, with my pulse far too awake for the hour."
+    ]
+  },
+  {
+    "id": "knowledge-bakugo-t1-x1",
+    "realm": "Knowledge",
+    "tier": 1,
+    "focus": "bakugo",
+    "title": "Quiet Minds · One More Clue · Bakugo",
+    "body": [
+      "The dream puts us in a tiny puzzle café with rain fogging the windows and a logic problem spread across the table between half-finished drinks.",
+      "Bakugo solves one of the constraints before I do and looks unbearable about it. “Don’t gloat.” “Wasn’t.” He absolutely was.",
+      "We argue over the next deduction until both of us reach for the same pencil. His fingers stay over mine for a beat too long, smugness disappearing into something quieter.",
+      "He lets go of the pencil but not my gaze. “You had it,” he says, voice lower now. The compliment lands harder than it has any right to.",
+      "I wake still wanting the answer, though I am no longer sure I mean the puzzle."
+    ]
+  },
+  {
+    "id": "knowledge-kirishima-t1-x1",
+    "realm": "Knowledge",
+    "tier": 1,
+    "focus": "kirishima",
+    "title": "Quiet Minds · One More Clue · Kirishima",
+    "body": [
+      "The dream puts us in a tiny puzzle café with rain fogging the windows and a logic problem spread across the table between half-finished drinks.",
+      "Kirishima does not pretend to be better at the puzzle than he is. He asks good questions instead, and every time I explain something his attention stays completely on me.",
+      "“Wait, say that part again.” I do. He gets it this time and lights up like the deduction belongs to both of us.",
+      "When we finally fill the last square, he throws an arm around my shoulders on instinct. Neither of us moves when the celebration should logically be over.",
+      "I wake still wanting the answer, though I am no longer sure I mean the puzzle."
+    ]
+  },
+  {
+    "id": "knowledge-both-t1-x1",
+    "realm": "Knowledge",
+    "tier": 1,
+    "focus": "both",
+    "title": "Quiet Minds · One More Clue · Both",
+    "body": [
+      "The dream puts us in a tiny puzzle café with rain fogging the windows and a logic problem spread across the table between half-finished drinks.",
+      "Bakugo wants to solve the puzzle properly. Kirishima wants to test every ridiculous possibility. I am caught in the middle as appointed judge.",
+      "The three of us lean over the same small table until personal space becomes theoretical. Every explanation starts with someone pointing at the page and ends with shoulders pressed together.",
+      "We solve it at exactly the same time. Kirishima cheers. Bakugo says he knew two minutes ago. Under the table, his knee stays against mine while Kirishima’s arm remains around my chair.",
+      "I wake still wanting the answer, though I am no longer sure I mean the puzzle."
+    ]
+  },
+  {
+    "id": "knowledge-bakugo-t2-x1",
+    "realm": "Knowledge",
+    "tier": 2,
+    "focus": "bakugo",
+    "title": "Quiet Minds · Too Close to Think · Bakugo",
+    "body": [
+      "In the dream, a library alcove has exactly one lamp, exactly one open book, and nowhere near enough space for the number of people occupying it.",
+      "Bakugo leans over my shoulder to read the same paragraph instead of taking the empty chair across from me. I can feel the heat of him along my back.",
+      "“You’re on the wrong line,” he murmurs. His finger traces the page. Mine is still there, trapped under his hand. I stop understanding written language entirely.",
+      "When I turn to tell him to move, there is nowhere for my face to go. He looks at my mouth, then at me, and closes the remaining distance like solving the obvious final step.",
+      "I wake without remembering a single sentence from the book."
+    ]
+  },
+  {
+    "id": "knowledge-kirishima-t2-x1",
+    "realm": "Knowledge",
+    "tier": 2,
+    "focus": "kirishima",
+    "title": "Quiet Minds · Too Close to Think · Kirishima",
+    "body": [
+      "In the dream, a library alcove has exactly one lamp, exactly one open book, and nowhere near enough space for the number of people occupying it.",
+      "Kirishima squeezes into the alcove beside me with an apologetic grin. “I can go.” “You could.” Neither of us moves.",
+      "We read from the same page until his hand settles behind me on the seat, not touching, just surrounding. I become painfully aware of every breath.",
+      "He asks what I am thinking about. I look at the book, then at him. His smile turns soft and knowing before he kisses me, slow enough to make the answer unnecessary.",
+      "I wake without remembering a single sentence from the book."
+    ]
+  },
+  {
+    "id": "knowledge-both-t2-x1",
+    "realm": "Knowledge",
+    "tier": 2,
+    "focus": "both",
+    "title": "Quiet Minds · Too Close to Think · Both",
+    "body": [
+      "In the dream, a library alcove has exactly one lamp, exactly one open book, and nowhere near enough space for the number of people occupying it.",
+      "There is technically enough seating for three. The dream simply refuses to arrange it sensibly. I end up between them on a narrow bench.",
+      "Kirishima reads over my shoulder from one side. Bakugo makes a correction from the other. Their voices are low enough that the words blur into warmth and proximity.",
+      "I turn toward Kirishima first and find his face close. Bakugo’s hand settles on my knee as if to anchor me. By the time anyone remembers the book, nobody is pretending to read.",
+      "I wake without remembering a single sentence from the book."
+    ]
+  },
+  {
+    "id": "japanese-bakugo-t1-x1",
+    "realm": "Japanese",
+    "tier": 1,
+    "focus": "bakugo",
+    "title": "Between Words · Say It Again · Bakugo",
+    "body": [
+      "The dream catches on one ordinary Japanese phrase and refuses to let it stay ordinary. I know exactly what it means. The problem is how they keep saying it.",
+      "Bakugo says the phrase once from across the room and again when he is standing beside me. The second version is quieter, stripped of all the irritation he usually uses as camouflage.",
+      "I repeat it back with deliberately exaggerated politeness. His mouth twitches. “That’s not how I said it.” “No?” “No.”",
+      "He leans closer and says it a third time, right beside my ear, as if proximity is a grammar point he intends to teach personally.",
+      "I wake translating the tone instead of the words."
+    ]
+  },
+  {
+    "id": "japanese-kirishima-t1-x1",
+    "realm": "Japanese",
+    "tier": 1,
+    "focus": "kirishima",
+    "title": "Between Words · Say It Again · Kirishima",
+    "body": [
+      "The dream catches on one ordinary Japanese phrase and refuses to let it stay ordinary. I know exactly what it means. The problem is how they keep saying it.",
+      "Kirishima uses the phrase casually, then notices the way I look at him. “What?” “Nothing. Your tone changed.”",
+      "He tries it again, more careful this time, and somehow makes it worse. Warmer. More personal. His eyebrows lift when my face gives me away.",
+      "“Oh,” he says, finally hearing himself. Then he laughs, blushes, and repeats it one more time anyway.",
+      "I wake translating the tone instead of the words."
+    ]
+  },
+  {
+    "id": "japanese-both-t1-x1",
+    "realm": "Japanese",
+    "tier": 1,
+    "focus": "both",
+    "title": "Between Words · Say It Again · Both",
+    "body": [
+      "The dream catches on one ordinary Japanese phrase and refuses to let it stay ordinary. I know exactly what it means. The problem is how they keep saying it.",
+      "They say the same phrase in completely different ways. Kirishima makes it sound warm. Bakugo makes it sound like an argument he expects me to understand.",
+      "I point this out. They both object at once, which proves nothing except that the dream enjoys me suffering.",
+      "When they repeat it again—one from each side—the literal translation becomes useless. Whatever it means now exists entirely in the space between the three of us.",
+      "I wake translating the tone instead of the words."
+    ]
+  },
+  {
+    "id": "japanese-bakugo-t2-x1",
+    "realm": "Japanese",
+    "tier": 2,
+    "focus": "bakugo",
+    "title": "Between Words · No Translation Needed · Bakugo",
+    "body": [
+      "The dream gives me a phrase I understand perfectly and still cannot translate without admitting what it sounds like in this context.",
+      "Bakugo says it while looking directly at me, then has the nerve to ask why I went quiet. “You know what that sounds like.” “Yeah.”",
+      "The answer knocks the air out of me more effectively than denial would have. His hand slides to the back of my neck, thumb resting just below my ear.",
+      "He repeats the phrase against my mouth before kissing me, as if the language was only ever an excuse to make sure I understood.",
+      "I wake with the sentence intact and no safe translation for it."
+    ]
+  },
+  {
+    "id": "japanese-kirishima-t2-x1",
+    "realm": "Japanese",
+    "tier": 2,
+    "focus": "kirishima",
+    "title": "Between Words · No Translation Needed · Kirishima",
+    "body": [
+      "The dream gives me a phrase I understand perfectly and still cannot translate without admitting what it sounds like in this context.",
+      "Kirishima says it softly and then freezes, apparently realizing one second too late what the sentence can imply. “I mean—”",
+      "I ask whether he wants to take it back. He looks at me for a long moment and shakes his head. “No. I just want to say it right.”",
+      "The second attempt is quieter. So is the kiss that follows it. This time there is nothing left to translate.",
+      "I wake with the sentence intact and no safe translation for it."
+    ]
+  },
+  {
+    "id": "japanese-both-t2-x1",
+    "realm": "Japanese",
+    "tier": 2,
+    "focus": "both",
+    "title": "Between Words · No Translation Needed · Both",
+    "body": [
+      "The dream gives me a phrase I understand perfectly and still cannot translate without admitting what it sounds like in this context.",
+      "Kirishima says the phrase first. Bakugo goes still. I understand the words; Bakugo understands the implication; Kirishima understands both of our faces.",
+      "“Well,” Kirishima says, red to the ears. Bakugo tells him to stop talking, which would work better if his hand were not already at my waist.",
+      "The dream resolves the linguistic problem by removing language entirely. One kiss becomes two, and the phrase hangs in the air after nobody is speaking.",
+      "I wake with the sentence intact and no safe translation for it."
+    ]
+  },
+  {
+    "id": "health-bakugo-t1-x1",
+    "realm": "Health",
+    "tier": 1,
+    "focus": "bakugo",
+    "title": "Close Enough to Notice · Cool Down · Bakugo",
+    "body": [
+      "The dream begins after movement: warm skin, tired muscles, cold water bottles, and the strange clarity that comes when my body has been doing something instead of being evaluated.",
+      "Bakugo catches me rolling one shoulder and immediately asks what hurts. “Nothing.” He gives me a look that makes the lie feel childish.",
+      "He steps behind me and presses two fingers lightly beside the tense muscle. “Here?” I inhale too sharply. His hand stills.",
+      "The touch becomes gentler, not less certain. “Tell me if it’s too much.” The fact that he asks at all is what makes me lean back into his hand.",
+      "I wake remembering the feeling of being noticed without being inspected."
+    ]
+  },
+  {
+    "id": "health-kirishima-t1-x1",
+    "realm": "Health",
+    "tier": 1,
+    "focus": "kirishima",
+    "title": "Close Enough to Notice · Cool Down · Kirishima",
+    "body": [
+      "The dream begins after movement: warm skin, tired muscles, cold water bottles, and the strange clarity that comes when my body has been doing something instead of being evaluated.",
+      "Kirishima offers me his water without thinking, then realizes I already have one and laughs at himself. “Habit.”",
+      "He notices the way I stretch my wrist and asks before taking my hand. His thumb works a slow circle into the tight spot while he keeps talking about something completely ordinary.",
+      "It should make the touch less intimate. It does not. I catch him looking at my face to make sure I am okay, and the care lands warm and uncomplicated.",
+      "I wake remembering the feeling of being noticed without being inspected."
+    ]
+  },
+  {
+    "id": "health-both-t1-x1",
+    "realm": "Health",
+    "tier": 1,
+    "focus": "both",
+    "title": "Close Enough to Notice · Cool Down · Both",
+    "body": [
+      "The dream begins after movement: warm skin, tired muscles, cold water bottles, and the strange clarity that comes when my body has been doing something instead of being evaluated.",
+      "We are all cooling down in the same room, sprawled across whatever surfaces the dream provides. Kirishima is talking. Bakugo is pretending not to listen.",
+      "I flex a sore hand. Kirishima notices first; Bakugo is the one who reaches for it. The coordination happens without discussion and makes all three of us pause.",
+      "Kirishima’s shoulder presses against mine while Bakugo checks my palm. Nobody makes a joke. The quiet attention feels more intimate than one would have.",
+      "I wake remembering the feeling of being noticed without being inspected."
+    ]
+  },
+  {
+    "id": "health-bakugo-t2-x1",
+    "realm": "Health",
+    "tier": 2,
+    "focus": "bakugo",
+    "title": "Close Enough to Notice · Heartbeat · Bakugo",
+    "body": [
+      "The dream has reduced the world to warmth, breathing and the undeniable fact that I can feel my own pulse everywhere someone touches me.",
+      "Bakugo has one hand at my waist and the other around my wrist, thumb resting directly over my pulse. He notices the speed of it before I can hide anything.",
+      "“That from the workout?” he asks. The smirk says he already knows the answer. I tell him he is insufferable. He steps closer.",
+      "“Still fast.” His thumb presses once against my pulse before he kisses me. The measurement becomes completely useless after that.",
+      "I wake with my hand over my own heartbeat, annoyed that it still feels borrowed."
+    ]
+  },
+  {
+    "id": "health-kirishima-t2-x1",
+    "realm": "Health",
+    "tier": 2,
+    "focus": "kirishima",
+    "title": "Close Enough to Notice · Heartbeat · Kirishima",
+    "body": [
+      "The dream has reduced the world to warmth, breathing and the undeniable fact that I can feel my own pulse everywhere someone touches me.",
+      "Kirishima’s palm rests flat against my upper back while I catch my breath. His own breathing is not much steadier, which helps until I notice how close we are.",
+      "“You okay?” he asks. I nod. He does not move his hand. I do not ask him to.",
+      "When he kisses me, I feel his smile first. My pulse jumps hard enough that he laughs softly against my mouth, delighted and a little wrecked.",
+      "I wake with my hand over my own heartbeat, annoyed that it still feels borrowed."
+    ]
+  },
+  {
+    "id": "health-both-t2-x1",
+    "realm": "Health",
+    "tier": 2,
+    "focus": "both",
+    "title": "Close Enough to Notice · Heartbeat · Both",
+    "body": [
+      "The dream has reduced the world to warmth, breathing and the undeniable fact that I can feel my own pulse everywhere someone touches me.",
+      "I end up sitting between them after whatever impossible dream exercise we were doing. My pulse is already high before either of them touches me.",
+      "Kirishima’s hand settles between my shoulder blades. Bakugo takes my wrist with a muttered complaint about checking whether I am overdoing it. They both notice the reaction.",
+      "The look they exchange is brief and devastating. Kirishima leans in at my shoulder; Bakugo lifts my hand and kisses the inside of my wrist like the dream has abandoned subtlety entirely.",
+      "I wake with my hand over my own heartbeat, annoyed that it still feels borrowed."
+    ]
+  },
+  {
+    "id": "recovery-bakugo-t1-x1",
+    "realm": "Recovery",
+    "tier": 1,
+    "focus": "bakugo",
+    "title": "Soft Landing · Rain Against Glass · Bakugo",
+    "body": [
+      "Rain turns the apartment windows grey and soft. In the dream, nothing is urgent enough to justify leaving the couch.",
+      "Bakugo drops a blanket over my legs with the aggression of somebody refusing to admit this is caretaking. “You looked cold.”",
+      "I tell him I was fine. He sits at the other end of the couch and says, “Didn’t ask.” Ten minutes later my feet are tucked under his thigh for warmth.",
+      "Neither of us acknowledges how it happened. When I drift sideways, my head finds his shoulder and he only adjusts the blanket higher.",
+      "I wake to a quiet room and miss the impossible permission to stay still."
+    ]
+  },
+  {
+    "id": "recovery-kirishima-t1-x1",
+    "realm": "Recovery",
+    "tier": 1,
+    "focus": "kirishima",
+    "title": "Soft Landing · Rain Against Glass · Kirishima",
+    "body": [
+      "Rain turns the apartment windows grey and soft. In the dream, nothing is urgent enough to justify leaving the couch.",
+      "Kirishima asks whether I want a movie or quiet. I choose quiet. He nods like that is a complete activity.",
+      "We end up under the same blanket because the dream has opinions about personal space. His arm rests along the back of the couch until I lean into it.",
+      "“Comfy?” he whispers. I nod against his shoulder. His cheek settles briefly against my hair, and the rain keeps talking for us.",
+      "I wake to a quiet room and miss the impossible permission to stay still."
+    ]
+  },
+  {
+    "id": "recovery-both-t1-x1",
+    "realm": "Recovery",
+    "tier": 1,
+    "focus": "both",
+    "title": "Soft Landing · Rain Against Glass · Both",
+    "body": [
+      "Rain turns the apartment windows grey and soft. In the dream, nothing is urgent enough to justify leaving the couch.",
+      "The couch is objectively not designed for three people plus blankets. The dream does not care.",
+      "Kirishima is warm on one side of me. Bakugo is pretending the contact on the other is an unavoidable engineering problem. Nobody fixes it.",
+      "Rain traces the glass while conversation thins into silence. I fall asleep inside the dream with one hand loosely held and someone’s breathing steady near my ear.",
+      "I wake to a quiet room and miss the impossible permission to stay still."
+    ]
+  },
+  {
+    "id": "recovery-bakugo-t2-x1",
+    "realm": "Recovery",
+    "tier": 2,
+    "focus": "bakugo",
+    "title": "Soft Landing · Half Awake · Bakugo",
+    "body": [
+      "The dream begins in the hazy space after falling asleep somewhere I did not mean to. Everything is warm, dark and close enough to make waking feel optional.",
+      "Bakugo is sitting beside me, one hand still resting at my waist as if he caught me before I slid off the couch. “Go back to sleep.”",
+      "I mumble that he is uncomfortable. “Then move.” I do not. His thumb makes one slow pass over my side.",
+      "When I look up, he kisses me like he has been waiting for me to be awake enough to choose it. Then he pulls the blanket back over us both.",
+      "I wake for real with the cruel awareness that the room is much emptier."
+    ]
+  },
+  {
+    "id": "recovery-kirishima-t2-x1",
+    "realm": "Recovery",
+    "tier": 2,
+    "focus": "kirishima",
+    "title": "Soft Landing · Half Awake · Kirishima",
+    "body": [
+      "The dream begins in the hazy space after falling asleep somewhere I did not mean to. Everything is warm, dark and close enough to make waking feel optional.",
+      "I wake in the dream with my cheek against Kirishima’s chest and his arm around me. He notices the exact second I become conscious.",
+      "“Sorry,” he whispers. “I can move.” I catch his shirt before he can. The smile that spreads across his face is sleepy and almost unbearably tender.",
+      "The kiss is soft, barely there, followed by another when neither of us moves away. I fall asleep again with his hand threaded through mine.",
+      "I wake for real with the cruel awareness that the room is much emptier."
+    ]
+  },
+  {
+    "id": "recovery-both-t2-x1",
+    "realm": "Recovery",
+    "tier": 2,
+    "focus": "both",
+    "title": "Soft Landing · Half Awake · Both",
+    "body": [
+      "The dream begins in the hazy space after falling asleep somewhere I did not mean to. Everything is warm, dark and close enough to make waking feel optional.",
+      "I surface from sleep wedged into an arrangement that should be impossible: Kirishima behind me, Bakugo close enough in front that our knees overlap under the blanket.",
+      "Bakugo is awake. Kirishima might be. Nobody moves. I whisper that this is ridiculous. “Sleep,” Bakugo whispers back.",
+      "Kirishima’s arm tightens gently around my waist. Bakugo’s fingers find mine between us. The dream lets me stay there long enough to stop questioning it.",
+      "I wake for real with the cruel awareness that the room is much emptier."
+    ]
+  },
+  {
+    "id": "home-bakugo-t1-x1",
+    "realm": "Home",
+    "tier": 1,
+    "focus": "bakugo",
+    "title": "Domestic Gravity · Sunday Morning · Bakugo",
+    "body": [
+      "The dream gives us a slow morning with no alarms, no missions, no school schedule and no reason to be anywhere else.",
+      "Bakugo is already in the kitchen, hair worse than usual and expression deeply offended by consciousness. He slides a mug toward me before I speak.",
+      "“You remembered.” “You drink the same thing every time.” He says it like memory is not a form of attention.",
+      "I lean against the counter beside him. Our shoulders touch. He leaves them that way while the kettle clicks off and the apartment stays quiet.",
+      "I wake missing a morning that never existed."
+    ]
+  },
+  {
+    "id": "home-kirishima-t1-x1",
+    "realm": "Home",
+    "tier": 1,
+    "focus": "kirishima",
+    "title": "Domestic Gravity · Sunday Morning · Kirishima",
+    "body": [
+      "The dream gives us a slow morning with no alarms, no missions, no school schedule and no reason to be anywhere else.",
+      "Kirishima wanders in wearing a shirt that looks slept in and asks whether breakfast has rules today. “No rules.” “Excellent.”",
+      "We make something badly organized together, bumping hips at the counter and stealing ingredients from each other’s side.",
+      "When he tastes something from the spoon I am holding, his eyes meet mine over it. The moment is absurdly domestic and suddenly not innocent at all.",
+      "I wake missing a morning that never existed."
+    ]
+  },
+  {
+    "id": "home-both-t1-x1",
+    "realm": "Home",
+    "tier": 1,
+    "focus": "both",
+    "title": "Domestic Gravity · Sunday Morning · Both",
+    "body": [
+      "The dream gives us a slow morning with no alarms, no missions, no school schedule and no reason to be anywhere else.",
+      "Nobody has plans. This appears to confuse all three of us enough that breakfast becomes an event.",
+      "Bakugo cooks. Kirishima keeps stealing pieces before they are finished. I am assigned coffee and quality control, which mostly means being in the way with official status.",
+      "At some point I realize I am barefoot in their kitchen—our kitchen—laughing while both of them argue around me. The dream makes the word ours feel dangerously easy.",
+      "I wake missing a morning that never existed."
+    ]
+  },
+  {
+    "id": "home-bakugo-t2-x1",
+    "realm": "Home",
+    "tier": 2,
+    "focus": "bakugo",
+    "title": "Domestic Gravity · Stay · Bakugo",
+    "body": [
+      "It is late in the dream, the apartment dim and settled. I say I should go to my room. Nobody reacts like that is obviously the correct answer.",
+      "Bakugo looks up from the couch. “Why?” It is such a simple question that I forget every practical answer.",
+      "“Because it’s late.” “So?” He reaches out, catches two fingers in the hem of my sleeve, and looks irritated with himself for doing it.",
+      "I sit back down. His hand shifts from my sleeve to mine. When he kisses me, it feels less like a beginning than admitting I was already staying.",
+      "I wake in my own bed with the word stay still warm in my chest."
+    ]
+  },
+  {
+    "id": "home-kirishima-t2-x1",
+    "realm": "Home",
+    "tier": 2,
+    "focus": "kirishima",
+    "title": "Domestic Gravity · Stay · Kirishima",
+    "body": [
+      "It is late in the dream, the apartment dim and settled. I say I should go to my room. Nobody reacts like that is obviously the correct answer.",
+      "Kirishima pats the space beside him before I finish saying goodnight. “You can stay, you know.”",
+      "The words are casual. His expression is not. I sit, and he lets out a breath like he had been preparing not to look disappointed.",
+      "We talk until talking stops. His forehead rests against mine. “Still okay?” he asks. I answer by kissing him.",
+      "I wake in my own bed with the word stay still warm in my chest."
+    ]
+  },
+  {
+    "id": "home-both-t2-x1",
+    "realm": "Home",
+    "tier": 2,
+    "focus": "both",
+    "title": "Domestic Gravity · Stay · Both",
+    "body": [
+      "It is late in the dream, the apartment dim and settled. I say I should go to my room. Nobody reacts like that is obviously the correct answer.",
+      "I make it two steps toward the hallway before Kirishima says my name and Bakugo says, at the same time, “Where’re you going?”",
+      "I turn around. They are both looking at me like leaving the room is a decision they had not considered. The realization is almost comical.",
+      "I return to the couch. Kirishima makes space on one side; Bakugo catches my hand on the other. The dream settles us together as if this was always the obvious shape of the evening.",
+      "I wake in my own bed with the word stay still warm in my chest."
+    ]
+  },
+  {
+    "id": "hobbies-bakugo-t1-x1",
+    "realm": "Hobbies",
+    "tier": 1,
+    "focus": "bakugo",
+    "title": "Play After Dark · High Score · Bakugo",
+    "body": [
+      "The dream builds an arcade out of neon, impossible machines and exactly enough competitiveness to turn a harmless evening into a problem.",
+      "Bakugo discovers a game he is good at and becomes intolerable within thirty seconds. “Beginner’s luck.” “Scoreboard says otherwise.”",
+      "I demand a rematch. He steps behind me to demonstrate the timing, reaching around far enough that I forget to press the button.",
+      "“Distracted?” he asks, smug as hell. I elbow him without conviction and lose the round by an embarrassing margin.",
+      "I wake wanting a rematch with people who were never actually there."
+    ]
+  },
+  {
+    "id": "hobbies-kirishima-t1-x1",
+    "realm": "Hobbies",
+    "tier": 1,
+    "focus": "kirishima",
+    "title": "Play After Dark · High Score · Kirishima",
+    "body": [
+      "The dream builds an arcade out of neon, impossible machines and exactly enough competitiveness to turn a harmless evening into a problem.",
+      "Kirishima celebrates every point like we are at a championship, including mine. Especially mine.",
+      "We end up at a co-op machine, shoulders touching while both of us shout contradictory instructions and laugh too hard to play well.",
+      "When the victory screen flashes, he grabs me around the waist in celebration. We freeze one beat after the hug should end, faces suddenly much closer than the scoreboard.",
+      "I wake wanting a rematch with people who were never actually there."
+    ]
+  },
+  {
+    "id": "hobbies-both-t1-x1",
+    "realm": "Hobbies",
+    "tier": 1,
+    "focus": "both",
+    "title": "Play After Dark · High Score · Both",
+    "body": [
+      "The dream builds an arcade out of neon, impossible machines and exactly enough competitiveness to turn a harmless evening into a problem.",
+      "The three of us turn one rhythm game into a matter of personal honor. This is a mistake.",
+      "Kirishima is laughing too hard to breathe. Bakugo is furious that I beat him by a fraction. I am being gracious about victory, meaning not gracious at all.",
+      "The rematch ends with all three of us crowded around the machine, hands colliding over controls and faces bright from neon. I cannot tell whether the heat in my cheeks is competition anymore.",
+      "I wake wanting a rematch with people who were never actually there."
+    ]
+  },
+  {
+    "id": "hobbies-bakugo-t2-x1",
+    "realm": "Hobbies",
+    "tier": 2,
+    "focus": "bakugo",
+    "title": "Play After Dark · Photo Booth · Bakugo",
+    "body": [
+      "The dream traps us in a photo booth with a countdown timer, too many ridiculous filters and absolutely no respect for personal space.",
+      "Bakugo refuses every cute frame until the timer starts without permission. “Move.” There is nowhere to move. His arm ends up around my waist to fit us both in frame.",
+      "The first photo catches me laughing at his expression. The second catches him looking at me instead of the camera.",
+      "On the final countdown, I turn to say something. He kisses me before the flash. The dream prints the evidence in a tiny glossy strip he immediately tries to steal.",
+      "I wake without the photos, which feels unfair enough to count as a personal loss."
+    ]
+  },
+  {
+    "id": "hobbies-kirishima-t2-x1",
+    "realm": "Hobbies",
+    "tier": 2,
+    "focus": "kirishima",
+    "title": "Play After Dark · Photo Booth · Kirishima",
+    "body": [
+      "The dream traps us in a photo booth with a countdown timer, too many ridiculous filters and absolutely no respect for personal space.",
+      "Kirishima commits to every stupid sticker option available. By the second photo we both have digital animal ears and no dignity.",
+      "He pulls me closer for the frame, cheek pressed to mine. The countdown keeps going while we are still laughing.",
+      "For the last photo, his smile changes. “Can I?” I nod. The flash goes off exactly as he kisses me, turning the moment into something we could theoretically keep.",
+      "I wake without the photos, which feels unfair enough to count as a personal loss."
+    ]
+  },
+  {
+    "id": "hobbies-both-t2-x1",
+    "realm": "Hobbies",
+    "tier": 2,
+    "focus": "both",
+    "title": "Play After Dark · Photo Booth · Both",
+    "body": [
+      "The dream traps us in a photo booth with a countdown timer, too many ridiculous filters and absolutely no respect for personal space.",
+      "Fitting three adults into the booth requires negotiation, knees overlapping and Kirishima laughing directly into my ear. Bakugo says the machine is garbage while refusing to leave.",
+      "The first photos are chaos. The last countdown starts after we have gone strangely still, my shoulder against Kirishima and Bakugo’s hand at my waist.",
+      "Nobody plans the final picture. Kirishima kisses my cheek at the same moment I turn toward Bakugo, who closes the remaining distance. The flash catches all three of us mid-disaster.",
+      "I wake without the photos, which feels unfair enough to count as a personal loss."
+    ]
+  }
+];
+  const DREAMS = [...BASE_DREAMS, ...EXPANDED_DREAMS];
+
   const FOCUS_LABEL = { surprise: "Surprise me", bakugo: "Bakugo", kirishima: "Kirishima", both: "Both" };
 
   let renderTimer = null;
+  let archiveFilter = "all";
+  let archiveRealm = "all";
 
   init();
 
@@ -706,6 +1301,8 @@
     const total = totalThreads();
     const cadence = cadenceDays();
     const archive = state().archive.length;
+    const uniqueArchive = new Set(state().archive.map(item => item.dreamId)).size;
+    const unlockedCount = unlockedDreams().length;
     const pools = REALMS.filter(realm => Number(graph.getDreamThreadRank?.(realm) || 0) > 0).length;
 
     if (!total) {
@@ -729,7 +1326,7 @@
         <p class="eyebrow">DREAMSCAPE · ${total}/14 THREADS</p>
         <h3>${isReady() ? "A dream is waiting…" : "The next dream is still forming."}</h3>
         <p>${pools} themed Realm pool${pools === 1 ? "" : "s"} unlocked · current cadence: every ${cadence} day${cadence === 1 ? "" : "s"}.</p>
-        <small>${archive} archived dream${archive === 1 ? "" : "s"} · replay is always free and does not affect the cooldown.</small>
+        <small>${uniqueArchive} unique dream${uniqueArchive === 1 ? "" : "s"} discovered · ${unlockedCount} currently in your unlocked pool · ${archive} total reads.</small>
       </div>
       <div class="dreamscape-card-actions-v314ap">
         <button class="${isReady() ? "primary-button" : "secondary-button"}" type="button" data-dreamscape-open>${isReady() ? "Read Dream" : `Next in ${nextLabel()}`}</button>
@@ -760,6 +1357,12 @@
 
       const tree = event.target.closest?.("[data-dreamscape-tree]");
       if (tree) { event.preventDefault(); window.LifeRPGSkills?.open?.(); return; }
+
+      const filter = event.target.closest?.("[data-dreamscape-filter]");
+      if (filter) { event.preventDefault(); archiveFilter = filter.dataset.dreamscapeFilter || "all"; openArchive(); return; }
+
+      const realmFilter = event.target.closest?.("[data-dreamscape-realm]");
+      if (realmFilter) { event.preventDefault(); archiveRealm = realmFilter.dataset.dreamscapeRealm || "all"; openArchive(); return; }
 
       const close = event.target.closest?.("[data-dreamscape-close]");
       if (close) { event.preventDefault(); document.getElementById("dreamscapeDialog")?.close?.(); return; }
@@ -812,17 +1415,41 @@
     const unseen = candidates.filter(dream => !seen.has(dream.id));
     if (unseen.length) candidates = unseen;
 
-    const recentRealms = state().archive.slice(-3).map(item => dreamById(item.dreamId)?.realm).filter(Boolean);
+    const recentEntries = state().archive.slice(-8);
+    const recentIds = new Set(recentEntries.map(item => item.dreamId));
+    const recentRealms = recentEntries.slice(-3).map(item => dreamById(item.dreamId)?.realm).filter(Boolean);
     const freshRealm = candidates.filter(dream => !recentRealms.includes(dream.realm));
     if (freshRealm.length) candidates = freshRealm;
+    if (!unseen.length) {
+      const notRecent = candidates.filter(dream => !recentIds.has(dream.id));
+      if (notRecent.length) candidates = notRecent;
+    }
 
-    const selected = candidates[Math.floor(Math.random() * candidates.length)] || eligible[0];
+    const selected = weightedDreamPick(candidates, seen, recentIds) || eligible[0];
     state().pendingDreamId = selected.id;
     state().pendingFocus = focus;
     app.saveState({ source: "dreamscape-dream-chosen" });
     showDream(selected.id, false);
     renderCard();
     return true;
+  }
+
+  function weightedDreamPick(candidates, seen = new Set(), recentIds = new Set()) {
+    if (!candidates.length) return null;
+    const weighted = candidates.map(dream => {
+      const rank = Number(graph.getDreamThreadRank?.(dream.realm) || 0);
+      let weight = dream.tier === 2 && rank >= 2 ? 1.45 : 1;
+      if (!seen.has(dream.id)) weight *= 2.2;
+      if (recentIds.has(dream.id)) weight *= .16;
+      return { dream, weight: Math.max(.02, weight) };
+    });
+    const total = weighted.reduce((sum,item) => sum + item.weight, 0);
+    let cursor = Math.random() * total;
+    for (const item of weighted) {
+      cursor -= item.weight;
+      if (cursor <= 0) return item.dream;
+    }
+    return weighted[weighted.length - 1]?.dream || null;
   }
 
   function showDream(id, replay = false) {
@@ -878,17 +1505,47 @@
   function openArchive() {
     const body = document.getElementById("dreamscapeDialogBody");
     if (!body) return;
-    const archive = state().archive.slice().reverse();
+
+    const grouped = new Map();
+    for (const item of state().archive) {
+      const current = grouped.get(item.dreamId) || { ...item, readCount: 0, firstReadAt: item.readAt, lastReadAt: item.readAt };
+      current.readCount += 1;
+      if (Number(item.readAt || 0) < Number(current.firstReadAt || Infinity)) current.firstReadAt = item.readAt;
+      if (Number(item.readAt || 0) >= Number(current.lastReadAt || 0)) current.lastReadAt = item.readAt;
+      grouped.set(item.dreamId, current);
+    }
+
+    const discovered = [...grouped.values()].filter(item => {
+      const dream = dreamById(item.dreamId);
+      if (!dream) return false;
+      if (archiveFilter !== "all" && dream.focus !== archiveFilter) return false;
+      if (archiveRealm !== "all" && dream.realm !== archiveRealm) return false;
+      return true;
+    }).sort((a,b) => Number(b.lastReadAt || 0) - Number(a.lastReadAt || 0));
+
+    const uniqueTotal = grouped.size;
+    const unlockedCount = unlockedDreams().length;
     body.innerHTML = `
-      <p class="eyebrow">DREAM ARCHIVE</p>
+      <p class="eyebrow">DREAM ARCHIVE · ${uniqueTotal} DISCOVERED</p>
       <h2>Things that never happened.</h2>
-      <p class="dreamscape-lead-v314ap">Replay freely. Archived dreams remain non-canon and never restart the cooldown.</p>
+      <p class="dreamscape-lead-v314ap">Replay freely. The archive is a gallery now: repeat reads stay counted without filling the list with duplicates.</p>
+      <div class="dreamscape-archive-stats-v314ax">
+        <span><b>${uniqueTotal}</b><small>unique found</small></span>
+        <span><b>${unlockedCount}</b><small>currently unlockable</small></span>
+        <span><b>${DREAMS.length}</b><small>total dream library</small></span>
+      </div>
+      <div class="dreamscape-filter-row-v314ax" role="group" aria-label="Filter dream focus">
+        ${["all","bakugo","kirishima","both"].map(value => `<button class="${archiveFilter === value ? "active" : ""}" type="button" data-dreamscape-filter="${value}">${value === "all" ? "All" : FOCUS_LABEL[value]}</button>`).join("")}
+      </div>
+      <div class="dreamscape-filter-row-v314ax realms" role="group" aria-label="Filter dream theme">
+        <button class="${archiveRealm === "all" ? "active" : ""}" type="button" data-dreamscape-realm="all">All themes</button>
+        ${REALMS.map(realm => `<button class="${archiveRealm === realm ? "active" : ""}" type="button" data-dreamscape-realm="${escAttr(realm)}">${esc(realm)}</button>`).join("")}
+      </div>
       <div class="dreamscape-archive-list-v314ap">
-        ${archive.length ? archive.map(item => {
+        ${discovered.length ? discovered.map(item => {
           const dream = dreamById(item.dreamId);
-          if (!dream) return "";
-          return `<button type="button" data-dreamscape-replay="${escAttr(dream.id)}"><span>🌙</span><div><small>${esc(dream.realm.toUpperCase())} · ${esc(FOCUS_LABEL[dream.focus] || dream.focus)}</small><strong>${esc(dream.title)}</strong><p>${new Date(item.readAt).toLocaleDateString(undefined, { year:"numeric", month:"short", day:"numeric" })}</p></div><b>›</b></button>`;
-        }).join("") : `<div class="dreamscape-empty-v314ap">No dreams archived yet.</div>`}
+          return `<button type="button" data-dreamscape-replay="${escAttr(dream.id)}"><span>🌙</span><div><small>${esc(dream.realm.toUpperCase())} · ${esc(FOCUS_LABEL[dream.focus] || dream.focus)} · ${dream.tier === 2 ? "DEEP" : "SOFT"}</small><strong>${esc(dream.title)}</strong><p>Last read ${new Date(item.lastReadAt).toLocaleDateString(undefined, { year:"numeric", month:"short", day:"numeric" })}${item.readCount > 1 ? ` · ${item.readCount}× read` : ""}</p></div><b>›</b></button>`;
+        }).join("") : `<div class="dreamscape-empty-v314ap">No dreams match this filter yet.</div>`}
       </div>
       ${isReady() ? `<button class="primary-button" type="button" data-dreamscape-open>${state().pendingDreamId ? "Resume waiting dream" : "Let the dream begin"}</button>` : ""}`;
     const dialog = document.getElementById("dreamscapeDialog");

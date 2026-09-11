@@ -121,7 +121,7 @@
       ensurePackState();
       syncMessageScheduler({ allowDelivery: true });
       refreshWeatherContextIfNeeded();
-      app.renderWorld?.();
+      app.renderAll?.();
     } catch (error) {
       loadError = error;
       console.error(error);
@@ -2183,6 +2183,35 @@
     });
   }
 
+  function socialItemParticipantIds(item) {
+    const ids = new Set(array(item?.participants));
+    if (item?.personId) ids.add(item.personId);
+    for (const node of array(item?.nodes)) {
+      for (const character of array(node?.visual?.characters)) {
+        if (character?.id) ids.add(character.id);
+      }
+    }
+    return [...ids];
+  }
+
+  function worldEventsForSurface(locationKey, roomId = null) {
+    const candidates = worldEventsForLocation(locationKey).filter(event => !roomId || inferHomeRoom(event) === roomId);
+    if (candidates.length <= 1) return candidates;
+    const activeId = app.getState().story?.social?.activeRandomEventId;
+    const active = candidates.find(event => event.id === activeId);
+    if (active) return [active];
+
+    const maxReactive = Math.max(0, ...candidates.map(reactivityScore));
+    let pool = maxReactive > 0 ? candidates.filter(event => reactivityScore(event) === maxReactive) : candidates;
+    const total = pool.reduce((sum,event) => sum + Math.max(.1, Number(event.weight || 1)), 0);
+    let cursor = stableWorldFraction(`${localDateKey()}:${currentWorldDaypart()}:${locationKey}:${roomId || "all"}:world-event`) * total;
+    for (const event of pool) {
+      cursor -= Math.max(.1, Number(event.weight || 1));
+      if (cursor <= 0) return [event];
+    }
+    return [pool[pool.length - 1]];
+  }
+
   function inferWorldLocation(item) {
     if (!item) return null;
     if (item.worldLocation) return item.worldLocation;
@@ -2194,6 +2223,64 @@
     if (value.includes("station") || value.includes("commute")) return "station";
     if (value.includes("luca’s apartment") || value.includes("luca's apartment") || value.includes("current apartment")) return "currentHome";
     return null;
+  }
+
+  function inferHomeRoom(item) {
+    if (!item) return null;
+    if (item.homeRoom) return String(item.homeRoom);
+    const value = String(item.location || "").toLowerCase();
+    if (value.includes("kitchen")) return "kitchen";
+    if (value.includes("living room") || value.includes("couch") || value.includes("sofa")) return "living";
+    if (value.includes("balcony")) return "balcony";
+    if (value.includes("luca's room") || value.includes("luca’s room") || value.includes("your room")) return "bedroom";
+    return null;
+  }
+
+  const HOME_ROOM_META = {
+    living: { label: "Living Room", icon: "🛋️", description: "The shared room where accidental company keeps turning into routine." },
+    kitchen: { label: "Kitchen", icon: "☕", description: "Food, tea, schedules and the suspiciously domestic parts of living together." },
+    bedroom: { label: "Your Room", icon: "🌸", description: "Luca's private space. The door can stay closed; home does not mean constant access." },
+    balcony: { label: "Balcony", icon: "🌿", description: "A little air, city noise and the kind of conversations that happen when nobody planned one." },
+    private: { label: "Their rooms", icon: "◌", description: "Home, but keeping to themselves for a while." }
+  };
+
+  function householdAmbientRoom(personId, part = currentWorldDaypart()) {
+    const today = localDateKey();
+    const tables = personId === "bakugo"
+      ? {
+          morning: [["kitchen", .56], ["living", .14], ["balcony", .12], ["private", .18]],
+          day: [["kitchen", .22], ["living", .22], ["balcony", .12], ["private", .44]],
+          evening: [["kitchen", .42], ["living", .33], ["balcony", .10], ["private", .15]],
+          night: [["kitchen", .22], ["living", .34], ["balcony", .08], ["private", .36]],
+          late: [["kitchen", .12], ["living", .18], ["private", .70]]
+        }
+      : {
+          morning: [["kitchen", .34], ["living", .25], ["balcony", .23], ["private", .18]],
+          day: [["kitchen", .18], ["living", .28], ["balcony", .18], ["private", .36]],
+          evening: [["kitchen", .28], ["living", .46], ["balcony", .16], ["private", .10]],
+          night: [["kitchen", .17], ["living", .43], ["balcony", .08], ["private", .32]],
+          late: [["living", .22], ["private", .78]]
+        };
+    const options = tables[part] || tables.evening;
+    let cursor = stableWorldFraction(`${today}:${part}:home-room:${personId}`);
+    for (const [room, weight] of options) {
+      cursor -= weight;
+      if (cursor <= 0) return room;
+    }
+    return options[options.length - 1]?.[0] || "private";
+  }
+
+  function householdResidentStatus(personId) {
+    const state = app.getState();
+    const movedIn = Boolean(state.flags?.DYNARIOT_MOVE_IN_COMPLETE || state.flags?.SHARED_APARTMENT_IS_HOME);
+    if (!movedIn || !["bakugo", "kirishima"].includes(personId)) return { home: false, room: null, label: "Away" };
+    const part = currentWorldDaypart();
+    const chance = presenceChance(personId, "sharedApartment");
+    const roll = stableWorldFraction(`${localDateKey()}:${part}:sharedApartment:${personId}`);
+    const home = chance > 0 && roll <= chance;
+    if (!home) return { home: false, room: null, label: part === "late" ? "Probably asleep or out" : "Out right now" };
+    const room = householdAmbientRoom(personId, part);
+    return { home: true, room, label: room === "private" ? "Home · keeping to himself" : `Home · ${HOME_ROOM_META[room]?.label || "around"}` };
   }
 
   function stableWorldFraction(key) {
@@ -2240,6 +2327,46 @@
       if (locationKey === "district") return .14;
     }
     return 0;
+  }
+
+  function householdActiveRoomForPerson(personId) {
+    const state = app.getState();
+    const movedIn = Boolean(state.flags?.DYNARIOT_MOVE_IN_COMPLETE || state.flags?.SHARED_APARTMENT_IS_HOME);
+    if (!movedIn || !["bakugo", "kirishima"].includes(personId)) return null;
+
+    const candidates = [];
+    worldEventsForLocation("sharedApartment")
+      .filter(event => socialItemParticipantIds(event).includes(personId))
+      .forEach(event => {
+        const room = inferHomeRoom(event);
+        if (room) candidates.push({ room, score: 20 + reactivityScore(event) * 4 + Number(event.weight || 1) });
+      });
+    socialTalks()
+      .filter(talk => talk.personId === personId && inferWorldLocation(talk) === "sharedApartment" && conditionMatches(talk))
+      .forEach(talk => {
+        const room = inferHomeRoom(talk);
+        if (room) candidates.push({ room, score: 10 + reactivityScore(talk) * 4 + Number(talk.priority || 0) });
+      });
+    socialHangouts()
+      .filter(hangout => hangout.personId === personId && inferWorldLocation(hangout) === "sharedApartment" && conditionMatches(hangout))
+      .filter(hangout => !hangout.once || !array(state.story?.social?.completedHangoutIds).includes(hangout.id))
+      .forEach(hangout => {
+        const room = inferHomeRoom(hangout);
+        if (room) candidates.push({ room, score: 12 + Number(hangout.priority || 0) });
+      });
+
+    if (candidates.length) {
+      const byRoom = new Map();
+      for (const candidate of candidates) byRoom.set(candidate.room, Math.max(Number(byRoom.get(candidate.room) || 0), candidate.score));
+      const ranked = [...byRoom.entries()].map(([room, score]) => ({ room, score })).sort((a,b) => b.score - a.score || a.room.localeCompare(b.room));
+      const best = ranked[0]?.score ?? 0;
+      const top = ranked.filter(item => item.score >= best - .001);
+      if (top.length === 1) return top[0].room;
+      const pick = Math.floor(stableWorldFraction(`${localDateKey()}:${currentWorldDaypart()}:active-room:${personId}`) * top.length);
+      return top[Math.min(top.length - 1, pick)]?.room || ranked[0]?.room || null;
+    }
+
+    return householdResidentStatus(personId).room;
   }
 
   function selectTalkFromEligible(personId, eligible) {
@@ -2373,49 +2500,76 @@
       .find(hangout => !hangout.once || !social.completedHangoutIds.includes(hangout.id)) || null;
   }
 
-  function worldPresenceForLocation(locationKey) {
+  function worldPresenceForLocation(locationKey, roomId = null) {
     const people = knownPeople();
-    const events = worldEventsForLocation(locationKey);
-    const forcedPeople = new Set(events.map(event => event.personId).filter(Boolean));
+    const events = worldEventsForSurface(locationKey, roomId);
+    const forcedPeople = new Set(events.flatMap(event => socialItemParticipantIds(event)).filter(Boolean));
     const today = localDateKey();
     const part = currentWorldDaypart();
+    const isHome = locationKey === "sharedApartment";
 
     return people.map(person => {
       const talk = nextWorldTalkForPerson(person.id, locationKey);
+      let roomTalk = talk && (!roomId || inferHomeRoom(talk) === roomId) ? talk : null;
       const hangout = nextWorldHangoutForPerson(person.id, locationKey);
-      const event = events.find(item => item.personId === person.id) || null;
-      if (!event && !talk && !hangout) return null;
+      let roomHangout = hangout && (!roomId || inferHomeRoom(hangout) === roomId) ? hangout : null;
+      let event = events.find(item => item.personId === person.id) || null;
+      const authoredRoom = inferHomeRoom(event || roomTalk || roomHangout);
 
-      const forced = forcedPeople.has(person.id);
-      const chance = presenceChance(person.id, locationKey);
-      const roll = stableWorldFraction(`${today}:${part}:${locationKey}:${person.id}`);
-      if (!forced && (chance <= 0 || roll > chance)) return null;
+      let present = false;
+      let ambientRoom = authoredRoom;
+      if (isHome && ["bakugo", "kirishima"].includes(person.id)) {
+        const status = householdResidentStatus(person.id);
+        const activeRoom = householdActiveRoomForPerson(person.id) || status.room;
+        const hasAuthoredHere = Boolean(event || roomTalk || roomHangout);
+        const forcedHome = forcedPeople.has(person.id) && activeRoom === roomId;
+        ambientRoom = activeRoom;
+        present = (status.home || forcedHome || (!roomId && hasAuthoredHere)) && (!roomId || activeRoom === roomId);
+      } else {
+        const forced = forcedPeople.has(person.id);
+        const chance = presenceChance(person.id, locationKey);
+        const roll = stableWorldFraction(`${today}:${part}:${locationKey}:${person.id}`);
+        present = forced || (chance > 0 && roll <= chance);
+      }
+
+      if (isHome && roomId && ambientRoom !== roomId) { event = null; roomTalk = null; roomHangout = null; }
+      if ((event || roomTalk || roomHangout) && forcedPeople.has(person.id) && (!roomId || ambientRoom === roomId)) present = true;
+      if (!present) return null;
 
       const actions = [];
-      if (event) actions.push({ kind: "event", id: event.id, personId: person.id, icon: "✦", label: event.actionLabel || "See what happened", note: "World moment · free" });
-      if (talk) actions.push({ kind: "talk", id: talk.id, personId: person.id, icon: "💬", label: `Talk to ${person.name}`, note: talkBondEarnedToday(person.id) ? "Free · social progress already earned today" : "Free · first Talk today can deepen familiarity" });
-      if (hangout) actions.push({ kind: "hangout", id: hangout.id, personId: person.id, icon: "♡", label: `Spend time with ${person.name}`, note: "Hangout · free" });
+      if (event) actions.push({ kind: "event", id: event.id, personId: person.id, icon: "✦", label: event.actionLabel || "See what happened", note: "World moment · free", roomId: inferHomeRoom(event) });
+      if (roomTalk) actions.push({ kind: "talk", id: roomTalk.id, personId: person.id, icon: "💬", label: `Talk to ${person.name}`, note: talkBondEarnedToday(person.id) ? "Free · social progress already earned today" : "Free · first Talk today can deepen familiarity", roomId: inferHomeRoom(roomTalk) });
+      if (roomHangout) actions.push({ kind: "hangout", id: roomHangout.id, personId: person.id, icon: "♡", label: `Spend time with ${person.name}`, note: "Hangout · free", roomId: inferHomeRoom(roomHangout) });
+
+      const roomMeta = isHome && ambientRoom ? HOME_ROOM_META[ambientRoom] : null;
+      const ambientHint = isHome
+        ? ambientRoom === "private"
+          ? `${person.name} is home, but having some private time.`
+          : `${person.name} is in the ${roomMeta?.label?.toLowerCase() || "apartment"}. ${actions.length ? "There is room for a small moment." : "Nothing needs your attention."}`
+        : "You could stop and talk for a minute.";
 
       return {
         id: person.id,
         name: person.name,
         cardAsset: person.cardAsset || null,
         icon: person.id === "mina" ? "✿" : person.id === "kirishima" ? "◆" : "✦",
-        hint: event?.worldHint || (hangout ? "You have enough time for more than a quick hello." : "You could stop and talk for a minute."),
+        roomId: ambientRoom || null,
+        hint: event?.worldHint || (roomHangout ? "You have enough time for more than a quick hello." : roomTalk ? "You could stop and talk for a minute." : ambientHint),
         actions
       };
     }).filter(Boolean);
   }
 
-  function getWorldLocationDetails(locationKey) {
+  function getWorldLocationDetails(locationKey, options = {}) {
     if (!pack || !locationKey) return { available: false, presences: [], actions: [], summary: "Quiet right now." };
-    const events = worldEventsForLocation(locationKey);
-    const presences = worldPresenceForLocation(locationKey);
+    const roomId = typeof options === "string" ? options : options?.roomId || null;
+    const events = worldEventsForSurface(locationKey, roomId);
+    const presences = worldPresenceForLocation(locationKey, roomId);
     const actions = presences.flatMap(person => person.actions || []);
 
-    // Some world moments are environmental or remote rather than tied to a visible person.
+    // Some world moments are environmental or joint rather than tied to a visible person.
     events.filter(event => !event.personId).forEach(event => {
-      actions.unshift({ kind: "event", id: event.id, personId: null, icon: "✦", label: event.actionLabel || "See what happened", note: "World moment · free" });
+      actions.unshift({ kind: "event", id: event.id, personId: null, icon: "✦", label: event.actionLabel || "See what happened", note: "World moment · free", roomId: inferHomeRoom(event) });
     });
 
     const unique = [];
@@ -2427,15 +2581,67 @@
       unique.push(action);
     });
 
+    const roomName = roomId ? HOME_ROOM_META[roomId]?.label : null;
     const summary = presences.length
       ? presences.length === 1
-        ? `${presences[0].name} is around.`
-        : `${presences.map(person => person.name).join(" · ")} are around.`
+        ? `${presences[0].name} is ${roomName ? `in the ${roomName.toLowerCase()}` : "around"}.`
+        : `${presences.map(person => person.name).join(" · ")} are ${roomName ? `in the ${roomName.toLowerCase()}` : "around"}.`
       : unique.length
         ? "A small moment is waiting here."
-        : "Quiet right now.";
+        : roomId === "bedroom"
+          ? "Your room is quiet and private."
+          : "Quiet right now.";
 
-    return { available: unique.length > 0, presences, actions: unique, summary };
+    return { available: unique.length > 0, presences, actions: unique, summary, roomId, roomMeta: roomId ? HOME_ROOM_META[roomId] : null };
+  }
+
+  function getSharedApartmentHubDetails() {
+    const state = app.getState();
+    const movedIn = Boolean(state.flags?.DYNARIOT_MOVE_IN_COMPLETE || state.flags?.SHARED_APARTMENT_IS_HOME);
+    if (!movedIn) return { active: false, residents: [], rooms: [] };
+
+    const people = knownPeople();
+    const rooms = ["living", "kitchen", "bedroom", "balcony"].map(roomId => {
+      const details = getWorldLocationDetails("sharedApartment", { roomId });
+      return {
+        id: roomId,
+        ...HOME_ROOM_META[roomId],
+        presences: details.presences,
+        actionCount: details.actions.length,
+        summary: details.summary,
+        available: details.available
+      };
+    });
+
+    const residents = ["bakugo", "kirishima"].map(id => {
+      const person = people.find(item => item.id === id);
+      let status = householdResidentStatus(id);
+      const authoredRoom = rooms.find(room => room.presences.some(presence => presence.id === id));
+      if (authoredRoom) {
+        status = { home: true, room: authoredRoom.id, label: `Home · ${HOME_ROOM_META[authoredRoom.id]?.label || "around"}` };
+      }
+      return { id, name: person?.name || (id === "bakugo" ? "Bakugo" : "Kirishima"), cardAsset: person?.cardAsset || null, ...status };
+    });
+
+    const contextSignals = [];
+    const recentWork = typeof app.getActivityCount === "function" ? Number(app.getActivityCount({ realm: "Work", sinceDays: 1 }) || 0) : 0;
+    const recentRecovery = typeof app.getActivityCount === "function" ? Number(app.getActivityCount({ realm: "Recovery", sinceDays: 1 }) || 0) : 0;
+    const recentGaming = typeof app.getActivityCount === "function" ? Number(app.getActivityCount({ dedupeFamily: "gaming", sinceDays: 1 }) || 0) : 0;
+    const checkIn = state.dailyPlanner?.days?.[localDateKey()]?.checkIn || null;
+    if (recentWork) contextSignals.push("workday");
+    if (recentRecovery || ["fumes", "low"].includes(checkIn?.energy)) contextSignals.push("low-battery");
+    if (recentGaming) contextSignals.push("gaming");
+
+    return {
+      active: true,
+      daypart: currentWorldDaypart(),
+      residents,
+      rooms,
+      contextSignals,
+      summary: residents.filter(item => item.home).length
+        ? `${residents.filter(item => item.home).map(item => item.name).join(" · ")} ${residents.filter(item => item.home).length === 1 ? "is" : "are"} home.`
+        : "The apartment is yours for a while."
+    };
   }
 
   function recordWorldVisit(locationKey) {
@@ -3258,6 +3464,9 @@
     const traits = state.story?.traits || {};
     const flags = state.flags || {};
     const relationships = state.story?.relationships || {};
+
+    if (Array.isArray(node.dayparts) && node.dayparts.length && !node.dayparts.includes(currentWorldDaypart())) return false;
+    if (Array.isArray(node.weekdays) && node.weekdays.length && !node.weekdays.includes(new Date().getDay())) return false;
 
     if (node.when?.trait && !traits[node.when.trait]) return false;
     if (Array.isArray(node.when?.traits) && node.when.traits.some(key => !traits[key])) return false;
@@ -4510,6 +4719,7 @@
     openPhone,
     getWorldLocationStatus,
     getWorldLocationDetails,
+    getSharedApartmentHubDetails,
     recordWorldVisit,
     openWorldInteraction,
     visitWorldLocation

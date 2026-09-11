@@ -980,6 +980,7 @@
 
     homeName: byId("homeName"),
     homeDescription: byId("homeDescription"),
+    homeHouseholdStatus: byId("homeHouseholdStatus"),
     roomGrid: byId("roomGrid"),
     roomMessage: byId("roomMessage"),
     socialPulse: byId("socialPulse"),
@@ -1703,20 +1704,41 @@
     const sharedHome = Boolean(state.flags?.SHARED_APARTMENT_IS_HOME || state.flags?.DYNARIOT_MOVE_IN_COMPLETE);
 
     if (sharedHome) {
+      const hub = window.LifeRPGStoryUI?.getSharedApartmentHubDetails?.() || null;
       els.homeName.textContent = "Shared Apartment";
       els.homeDescription.textContent =
-        "The household has become part of Luca's everyday life. Who is around can change with time and story state.";
+        "Home is becoming a living place, not a static card. Presence, little moments and room activity can change with the day.";
 
-      els.roomGrid.innerHTML = [
-        roomHtml("living", "🛋️", "Living Room", "Shared space"),
-        roomHtml("kitchen", "☕", "Kitchen", "Shared space"),
-        roomHtml("bedroom", "🌸", "Your Room", "Private"),
-        roomHtml("balcony", "🌿", "Balcony", "Shared space")
-      ].join("");
+      if (els.homeHouseholdStatus) {
+        els.homeHouseholdStatus.classList.remove("hidden");
+        const residents = hub?.residents || [];
+        els.homeHouseholdStatus.innerHTML = `
+          <div class="home-household-summary-v314aw"><span>🏠</span><strong>${escapeHtml(hub?.summary || "Checking who's around…")}</strong><small>${escapeHtml(worldDaypartLabel())} · no obligation to interact</small></div>
+          <div class="home-resident-row-v314aw">
+            ${residents.map(person => `
+              <span class="home-resident-chip-v314aw ${person.home ? "is-home" : "is-away"}">
+                <i>${person.id === "bakugo" ? "✦" : "◆"}</i><b>${escapeHtml(person.name)}</b><small>${escapeHtml(person.label || (person.home ? "Home" : "Out"))}</small>
+              </span>`).join("")}
+          </div>`;
+      }
+
+      const rooms = hub?.rooms || [
+        { id:"living", icon:"🛋️", label:"Living Room", summary:"Shared space", actionCount:0, presences:[] },
+        { id:"kitchen", icon:"☕", label:"Kitchen", summary:"Shared space", actionCount:0, presences:[] },
+        { id:"bedroom", icon:"🌸", label:"Your Room", summary:"Private", actionCount:0, presences:[] },
+        { id:"balcony", icon:"🌿", label:"Balcony", summary:"Shared space", actionCount:0, presences:[] }
+      ];
+      els.roomGrid.innerHTML = rooms.map(room => roomHtml(room.id, room.icon, room.label, room.summary, {
+        people: (room.presences || []).map(person => person.name),
+        actionCount: Number(room.actionCount || 0),
+        live: Boolean(room.available || (room.presences || []).length)
+      })).join("");
     } else {
       els.homeName.textContent = "Current Apartment";
       els.homeDescription.textContent =
         "Small, familiar, and unfortunately much too far from work.";
+      els.homeHouseholdStatus?.classList.add("hidden");
+      if (els.homeHouseholdStatus) els.homeHouseholdStatus.innerHTML = "";
 
       els.roomGrid.innerHTML = [
         roomHtml("current-main", "🛋️", "Living Space", "Home"),
@@ -1728,20 +1750,31 @@
 
     els.roomGrid.querySelectorAll(".room-button").forEach(button => {
       button.addEventListener("click", () => {
+        if (sharedHome) {
+          openWorldLocation("sharedApartment", { roomId: button.dataset.roomId });
+          return;
+        }
         els.roomMessage.classList.remove("hidden");
-        els.roomMessage.textContent = sharedHome
-          ? "Social room content will activate after the private story pack introduces the household state."
-          : "This is Luca's current home. The app can later let décor, routines and personal unlocks live here without spoiling future story locations.";
+        els.roomMessage.textContent = "A familiar corner of the old apartment. The Shared Apartment becomes the real home hub after the move-in.";
       });
     });
   }
 
-  function roomHtml(id, icon, name, stateLabel) {
+  function roomHtml(id, icon, name, stateLabel, options = {}) {
+    const people = Array.isArray(options.people) ? options.people.filter(Boolean) : [];
+    const actionCount = Math.max(0, Number(options.actionCount || 0));
+    const live = Boolean(options.live);
+    const detail = people.length
+      ? people.join(" · ")
+      : actionCount
+        ? `${actionCount} moment${actionCount === 1 ? "" : "s"} available`
+        : stateLabel;
     return `
-      <button class="room-button" data-room-id="${id}">
+      <button class="room-button ${live ? "is-live-v314aw" : ""}" data-room-id="${escapeHtml(id)}">
         <span class="room-icon">${icon}</span>
         <strong>${escapeHtml(name)}</strong>
-        <small>${escapeHtml(stateLabel)}</small>
+        <small>${escapeHtml(detail)}</small>
+        ${actionCount ? `<b class="room-live-badge-v314aw">${actionCount} ✦</b>` : ""}
       </button>
     `;
   }
@@ -2425,16 +2458,19 @@
     document.body.classList.remove("world-location-open");
   }
 
-  function openWorldLocation(locationKey) {
+  function openWorldLocation(locationKey, options = {}) {
     const meta = LOCATION_META[locationKey];
     if (!meta || !state.locations?.[locationKey]) return false;
-    const details = window.LifeRPGStoryUI?.getWorldLocationDetails?.(locationKey) || { available: false, presences: [], actions: [] };
+    const details = window.LifeRPGStoryUI?.getWorldLocationDetails?.(locationKey, options) || { available: false, presences: [], actions: [] };
     window.LifeRPGStoryUI?.recordWorldVisit?.(locationKey);
 
     const movedIntoSharedHome = Boolean(state.flags?.SHARED_APARTMENT_IS_HOME || state.flags?.DYNARIOT_MOVE_IN_COMPLETE);
-    const displayMeta = locationKey === "currentHome" && movedIntoSharedHome
+    let displayMeta = locationKey === "currentHome" && movedIntoSharedHome
       ? { ...meta, label: "Previous Apartment", description: "Luca’s old apartment — familiar, inconveniently far away, and no longer home." }
       : meta;
+    if (locationKey === "sharedApartment" && details.roomMeta) {
+      displayMeta = { ...displayMeta, label: `Shared Apartment · ${details.roomMeta.label}`, description: details.roomMeta.description || displayMeta.description };
+    }
 
     if (els.worldLocationHero) {
       els.worldLocationHero.style.backgroundImage = displayMeta.art
@@ -2445,7 +2481,7 @@
     if (els.worldLocationTitle) els.worldLocationTitle.textContent = displayMeta.label;
     if (els.worldLocationDescription) els.worldLocationDescription.textContent = displayMeta.description;
     if (els.worldLocationStatus) {
-      els.worldLocationStatus.textContent = `${worldDaypartLabel()} · ${details.presences?.length ? `${details.presences.length} familiar ${details.presences.length === 1 ? "face" : "faces"} around` : details.available ? "something is happening" : "quiet right now"}`;
+      els.worldLocationStatus.textContent = `${worldDaypartLabel()} · ${details.roomId ? details.summary : details.presences?.length ? `${details.presences.length} familiar ${details.presences.length === 1 ? "face" : "faces"} around` : details.available ? "something is happening" : "quiet right now"}`;
     }
 
     if (els.worldLocationPresenceList) {

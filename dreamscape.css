@@ -43,3 +43,55 @@
 .dreamscape-archive-list-v314ap p{margin-top:2px;color:#8b7d8d;font-size:.57rem}
 .dreamscape-empty-v314ap{padding:24px;border:1px dashed rgba(91,69,119,.13);border-radius:14px;color:#8b7d8d;text-align:center}
 @media(max-width:720px){.dreamscape-story-card-v314ap{grid-template-columns:48px minmax(0,1fr)}.dreamscape-card-actions-v314ap{grid-column:1/-1;flex-direction:row}.dreamscape-focus-grid-v314ap{grid-template-columns:repeat(2,minmax(0,1fr))}.dreamscape-shell-v314ap{padding:24px 16px}.dreamscape-reader-v314ap footer{align-items:stretch;flex-direction:column}.dreamscape-reader-v314ap footer button{width:100%}}
+
+/* V0.31.4ax — Dreamscape Content Expansion */
+.dreamscape-archive-stats-v314ax {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0,1fr));
+  gap: 8px;
+  margin: 12px 0;
+}
+.dreamscape-archive-stats-v314ax span {
+  display: grid;
+  gap: 2px;
+  padding: 9px 10px;
+  border-radius: 14px;
+  background: rgba(255,255,255,.07);
+  border: 1px solid rgba(255,255,255,.10);
+  text-align: center;
+}
+.dreamscape-archive-stats-v314ax b { font-size: 1rem; color: #fff4fb; }
+.dreamscape-archive-stats-v314ax small { font-size: .62rem; color: rgba(255,242,250,.68); }
+.dreamscape-filter-row-v314ax {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0;
+}
+.dreamscape-filter-row-v314ax button {
+  appearance: none;
+  border: 1px solid rgba(255,255,255,.14);
+  background: rgba(255,255,255,.07);
+  color: rgba(255,247,252,.82);
+  border-radius: 999px;
+  padding: 6px 10px;
+  font: inherit;
+  font-size: .68rem;
+  cursor: pointer;
+}
+.dreamscape-filter-row-v314ax button:hover,
+.dreamscape-filter-row-v314ax button.active {
+  background: rgba(231,154,199,.20);
+  border-color: rgba(244,188,221,.45);
+  color: #fff;
+}
+.dreamscape-filter-row-v314ax.realms {
+  max-height: 82px;
+  overflow: auto;
+  padding-bottom: 4px;
+}
+@media (max-width: 620px) {
+  .dreamscape-archive-stats-v314ax { grid-template-columns: 1fr 1fr 1fr; gap: 5px; }
+  .dreamscape-archive-stats-v314ax span { padding: 7px 6px; }
+  .dreamscape-filter-row-v314ax button { font-size: .64rem; padding: 6px 8px; }
+}
