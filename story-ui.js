@@ -353,6 +353,7 @@
       completedHangoutIds: [],
       hangoutCounts: {},
       recentTalkIdsByPerson: {},
+      recentHangoutIdsByPerson: {},
       lastInteractionByPerson: {},
       dailyTalkBondDatesByPerson: {},
       completedRandomEventIds: [],
@@ -388,6 +389,7 @@
     state.story.social.completedHangoutIds = array(state.story.social.completedHangoutIds);
     state.story.social.hangoutCounts = object(state.story.social.hangoutCounts);
     state.story.social.recentTalkIdsByPerson = object(state.story.social.recentTalkIdsByPerson);
+    state.story.social.recentHangoutIdsByPerson = object(state.story.social.recentHangoutIdsByPerson);
     state.story.social.lastInteractionByPerson = object(state.story.social.lastInteractionByPerson);
     state.story.social.dailyTalkBondDatesByPerson = object(state.story.social.dailyTalkBondDatesByPerson);
     state.story.social.completedRandomEventIds = array(state.story.social.completedRandomEventIds);
@@ -2542,9 +2544,16 @@
       if (active && active.personId === personId && inferWorldLocation(active) === locationKey && conditionMatches(active)) return active;
     }
 
-    return socialHangouts()
-      .filter(hangout => hangout.personId === personId && inferWorldLocation(hangout) === locationKey && conditionMatches(hangout))
-      .find(hangout => !hangout.once || !social.completedHangoutIds.includes(hangout.id)) || null;
+    const eligible = socialHangouts()
+      .filter(hangout => hangout.personId === personId && inferWorldLocation(hangout) === locationKey && conditionMatches(hangout));
+    const unseenOnce = eligible.filter(hangout => hangout.once && !social.completedHangoutIds.includes(hangout.id));
+    if (unseenOnce.length) return unseenOnce[0];
+    let repeatable = eligible.filter(hangout => !hangout.once);
+    if (!repeatable.length) return null;
+    const recent = new Set(array(social.recentHangoutIdsByPerson?.[personId]));
+    const fresh = repeatable.filter(hangout => !recent.has(hangout.id));
+    if (fresh.length) repeatable = fresh;
+    return weightedPick(repeatable, hangout => 1 + Math.max(0, Number(hangout.priority || 0)) * .08) || repeatable[0] || null;
   }
 
   function worldPresenceForLocation(locationKey, roomId = null) {
@@ -2860,6 +2869,7 @@
     const social = state.story.social;
     social.lastInteractionByPerson = object(social.lastInteractionByPerson);
     social.recentTalkIdsByPerson = object(social.recentTalkIdsByPerson);
+    social.recentHangoutIdsByPerson = object(social.recentHangoutIdsByPerson);
 
     const interaction = kind === "talk"
       ? talkById(interactionId)
@@ -2880,6 +2890,10 @@
     if (kind === "talk" && interactionId) {
       const previous = array(social.recentTalkIdsByPerson[personId]);
       social.recentTalkIdsByPerson[personId] = [interactionId, ...previous.filter(id => id !== interactionId)].slice(0, 3);
+    }
+    if (kind === "hangout" && interactionId) {
+      const previous = array(social.recentHangoutIdsByPerson[personId]);
+      social.recentHangoutIdsByPerson[personId] = [interactionId, ...previous.filter(id => id !== interactionId)].slice(0, 3);
     }
   }
 
@@ -2985,9 +2999,16 @@
       if (active && active.personId === personId && conditionMatches(active)) return active;
     }
 
-    return socialHangouts()
-      .filter(hangout => hangout.personId === personId && conditionMatches(hangout))
-      .find(hangout => !hangout.once || !social.completedHangoutIds.includes(hangout.id)) || null;
+    const eligible = socialHangouts()
+      .filter(hangout => hangout.personId === personId && conditionMatches(hangout));
+    const unseenOnce = eligible.filter(hangout => hangout.once && !social.completedHangoutIds.includes(hangout.id));
+    if (unseenOnce.length) return unseenOnce[0];
+    let repeatable = eligible.filter(hangout => !hangout.once);
+    if (!repeatable.length) return null;
+    const recent = new Set(array(social.recentHangoutIdsByPerson?.[personId]));
+    const fresh = repeatable.filter(hangout => !recent.has(hangout.id));
+    if (fresh.length) repeatable = fresh;
+    return weightedPick(repeatable, hangout => 1 + Math.max(0, Number(hangout.priority || 0)) * .08) || repeatable[0] || null;
   }
 
   function openNextHangout(personId) {
