@@ -1,8 +1,8 @@
 (() => {
   "use strict";
 
-  if (window.__lifeRpgTalentTreeGraphV314ar) return;
-  window.__lifeRpgTalentTreeGraphV314ar = true;
+  if (window.__lifeRpgTalentTreeGraphV314as) return;
+  window.__lifeRpgTalentTreeGraphV314as = true;
 
   const app = window.LifeRPGApp;
   const skills = window.LifeRPGSkills;
@@ -12,7 +12,7 @@
     return;
   }
 
-  const VERSION = "0.31.4ar";
+  const VERSION = "0.31.4as";
   const SCHEMA = 3;
   const REALMS = ["Work", "Knowledge", "Japanese", "Health", "Recovery", "Home", "Hobbies"];
 
@@ -60,9 +60,9 @@
         content("shadowing-sprint", "🎙️", "Shadowing Sprint", 2,
           "Unlock a five-minute bring-your-own-audio shadowing sprint with a real countdown and Japanese completion reward.",
           { special: 1 }),
-        planned("sentence-forge", "文", "Sentence Forge · Redesign",
-          "Parked for now. A plain typed sentence prompt is not rewarding enough to justify a Skill Point; this slot will be redesigned around a stronger Japanese toy later.",
-          { special: 2, content: "shadowing-sprint" })
+        linkedContent("dynariot-japanese", "🌸", "DynaRiot Japanese Extras", 2,
+          "Unlock a daily collection of spoiler-free, non-canon Bakugo/Kirishima media cards in Japanese: chats, Q&As, notes and posts with quick comprehension instead of another vocabulary/SRS layer.",
+          { special: 2, content: "shadowing-sprint" }, "Open DynaRiot Extras", () => window.LifeRPGTalentRewardStudios?.open?.("dynariot-japanese"))
       ]
     },
     Health: {
@@ -99,9 +99,9 @@
       subtitle: "Make practical wins pay a little better, then branch into genuinely new Home content once it earns its Skill Point cost.",
       dream: { title: "Domestic Gravity", copy: "shared-apartment mornings, kitchens, laundry, ordinary routines, and dangerous familiarity" },
       content: [
-        planned("home-content-redesign", "🏠", "Home Content · Redesign",
-          "The old One-Surface Reset duplicated things the Quest system already does. This branch is deliberately not purchasable until it offers genuinely new Home content.",
-          { special: 1 })
+        linkedContent("home-oracle", "🔮", "Home Oracle", 2,
+          "Unlock saved personal decision wheels with weighted choices, temporary skips, no-repeat mode, a wheel spin and a fast Pick for me action. It helps with decisions without turning them into Quests.",
+          { special: 1 }, "Open Home Oracle", () => window.LifeRPGTalentRewardStudios?.open?.("home-oracle"))
       ]
     },
     Hobbies: {
@@ -110,9 +110,12 @@
       subtitle: "Reward play and creativity, then unlock genuinely new things to do with that time.",
       dream: { title: "Play After Dark", copy: "games, music, playful competition, and moments that feel suspiciously like dates" },
       content: [
-        planned("hobbies-content-redesign", "🎨", "Hobbies Content · Redesign",
-          "The prompt/deck ideas are parked because they do not feel like a strong enough reward. This branch will stay free of Skill-Point costs until the unlock is actually exciting.",
-          { special: 1 })
+        linkedContent("coloring-studio", "🖍️", "Coloring Studio", 2,
+          "Unlock a Pencil/touch/mouse coloring canvas with undo, redo, eraser, autosave and spoiler-free DynaRiot starter pages. Large drawing data stays outside the main save to protect storage stability.",
+          { special: 1 }, "Open Coloring Studio", () => window.LifeRPGTalentRewardStudios?.open?.("coloring-studio")),
+        planned("moodboard-mixer", "▣", "Moodboard Mixer · Later",
+          "A future focused board tool for outfits, makeup, DIY and Adventure inspiration. Visible as a possible Hobbies expansion, but it cannot cost points until the tool actually exists.",
+          { special: 2, content: "coloring-studio" })
       ]
     }
   };

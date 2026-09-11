@@ -1,4 +1,4 @@
-const CACHE_NAME = "life-rpg-v0314ar-skill-tree-content-expansion";
+const CACHE_NAME = "life-rpg-v0314as-reward-studios";
 const CORE = [
   "./",
   "./index.html",
@@ -12,14 +12,16 @@ const CORE = [
   "./dreamscape.css?v=0.31.4aq",
   "./skills.js?v=0.31.4ap",
   "./talent-v2.js?v=0.31.4ar",
-  "./talent-tree-v2-graph.js?v=0.31.4ar",
+  "./talent-tree-v2-graph.js?v=0.31.4as",
+  "./talent-reward-studios.css?v=0.31.4as",
+  "./talent-reward-studios.js?v=0.31.4as",
   "./talent-content-v2.js?v=0.31.4ar",
   "./dreamscape.js?v=0.31.4aq",
   "./journal-rewards.js?v=0.31.4ag",
   "./weekly-review.css?v=0.31.4ag",
   "./weekly-review.js?v=0.31.4ag",
   "./manifest.webmanifest?v=0.30.3a",
-  "./pwa.js?v=0.31.4ar",
+  "./pwa.js?v=0.31.4as",
   "./visual-performance.js?v=0.31.4c",
   "./modal-manager.js?v=0.31.4d",
   "./training-focus.js?v=0.31.4o",
@@ -62,6 +64,9 @@ const CORE = [
   "./kotoba-integration.js?v=0.31.4k",
   "./kotoba-quick-training.js?v=0.31.4k",
   "./cloud-save.js?v=0.31.4ag",
+  "./assets/coloring/bakugo-off-duty-line.png",
+  "./assets/coloring/kirishima-off-duty-line.png",
+  "./assets/coloring/dynariot-duo-line.png",
   "./assets/app-icon-192.png",
   "./assets/app-icon-512.png",
   "./assets/ui/thumbs/characters/luca_neutral.webp"
