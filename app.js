@@ -352,14 +352,32 @@
     agency: {
       label: "DynaRiot Agency",
       icon: "💥",
-      art: "assets/story/backgrounds/city_dusk.png",
-      description: "Not part of Luca's ordinary world yet."
+      art: "assets/story/backgrounds/gym_training_space.png",
+      description: "Katsuki and Eijiro’s agency — still their workplace first, but no longer an abstract part of their lives."
     },
     gym: {
       label: "Training Gym",
       icon: "🏋️",
       art: "assets/story/backgrounds/gym_training_space.png",
-      description: "A location that should unlock through narrative introduction."
+      description: "DynaRiot’s private training space — professional equipment, no public-gym pressure, and increasingly familiar company."
+    },
+    konbini: {
+      label: "Neighborhood Konbini",
+      icon: "🥤",
+      art: "assets/story/backgrounds/city_dusk.png",
+      description: "A five-minute stop that keeps becoming part of ordinary household life."
+    },
+    grocery: {
+      label: "Neighborhood Supermarket",
+      icon: "🛒",
+      art: "assets/story/backgrounds/city_dusk.png",
+      description: "The less glamorous side of living together: lists, produce, forgotten extras and carrying bags home."
+    },
+    park: {
+      label: "Riverside Park",
+      icon: "🌿",
+      art: "assets/story/backgrounds/city_dusk.png",
+      description: "A slower route through the neighborhood for walks, air and conversations that do not need a destination."
     },
     cafe: {
       label: "Koharu Café",
@@ -952,6 +970,9 @@
         sharedApartment: false,
         agency: false,
         gym: false,
+        konbini: false,
+        grocery: false,
+        park: false,
         cafe: false,
         district: false
       },
@@ -1332,6 +1353,11 @@
     if (state.flags.MINA_KNOWS_COMMUTE_BAD) {
       state.locations.station = true;
     }
+    if (state.flags.LOCATION_GYM_INTRODUCED) state.locations.gym = true;
+    if (state.flags.LOCATION_AGENCY_INTRODUCED) state.locations.agency = true;
+    if (state.flags.LOCATION_KONBINI_INTRODUCED) state.locations.konbini = true;
+    if (state.flags.LOCATION_GROCERY_INTRODUCED) state.locations.grocery = true;
+    if (state.flags.LOCATION_PARK_INTRODUCED) state.locations.park = true;
 
     if (!Array.isArray(state.selectedQuestIds)) state.selectedQuestIds = defaultState().selectedQuestIds;
     migrateQuestReferencesInState();
@@ -1396,6 +1422,9 @@
     if (state.flags.MINA_KNOWS_COMMUTE_BAD) state.locations.station = true;
     if (state.flags.LOCATION_GYM_INTRODUCED) state.locations.gym = true;
     if (state.flags.LOCATION_AGENCY_INTRODUCED) state.locations.agency = true;
+    if (state.flags.LOCATION_KONBINI_INTRODUCED) state.locations.konbini = true;
+    if (state.flags.LOCATION_GROCERY_INTRODUCED) state.locations.grocery = true;
+    if (state.flags.LOCATION_PARK_INTRODUCED) state.locations.park = true;
 
     migrateQuestReferencesInState();
     migrateCapabilityCurve();
@@ -2440,6 +2469,9 @@
     if (state.flags.MINA_KNOWS_COMMUTE_BAD) state.locations.station = true;
     if (state.flags.LOCATION_GYM_INTRODUCED) state.locations.gym = true;
     if (state.flags.LOCATION_AGENCY_INTRODUCED) state.locations.agency = true;
+    if (state.flags.LOCATION_KONBINI_INTRODUCED) state.locations.konbini = true;
+    if (state.flags.LOCATION_GROCERY_INTRODUCED) state.locations.grocery = true;
+    if (state.flags.LOCATION_PARK_INTRODUCED) state.locations.park = true;
   }
 
   function showQuestClear(quest, reward) {

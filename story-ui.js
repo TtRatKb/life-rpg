@@ -2260,6 +2260,9 @@
     if (value.includes("shared apartment") || value.includes("near home")) return "sharedApartment";
     if (value.includes("nishikawa") || value.includes("school")) return "school";
     if (value.includes("station") || value.includes("commute")) return "station";
+    if (value.includes("konbini") || value.includes("convenience store")) return "konbini";
+    if (value.includes("supermarket") || value.includes("grocery") || value.includes("market")) return "grocery";
+    if (value.includes("riverside") || value.includes("park")) return "park";
     if (value.includes("luca’s apartment") || value.includes("luca's apartment") || value.includes("current apartment")) return "currentHome";
     return null;
   }
@@ -2351,6 +2354,8 @@
       if (locationKey === "school") return part === "morning" || part === "day" ? .58 : .18;
       if (locationKey === "cafe") return closeMina ? (part === "day" || part === "evening" ? .72 : .38) : .34;
       if (locationKey === "district") return closeMina ? .46 : .24;
+      if (locationKey === "park") return closeMina ? .30 : .12;
+      if (locationKey === "konbini" || locationKey === "grocery") return closeMina ? .14 : .06;
       if (locationKey === "sharedApartment") return movedIn && closeMina ? .20 : 0;
       return 0;
     }
@@ -2362,7 +2367,10 @@
         return .38;
       }
       if (locationKey === "agency") return .62;
-      if (locationKey === "gym") return .48;
+      if (locationKey === "gym") return state.flags?.GYM_FIRST_SESSION_COMPLETE ? .58 : .30;
+      if (locationKey === "konbini") return state.flags?.KONBINI_ROUTINE_STARTED ? .20 : .05;
+      if (locationKey === "grocery") return state.flags?.LOCATION_GROCERY_INTRODUCED ? .16 : 0;
+      if (locationKey === "park") return state.flags?.LOCATION_PARK_INTRODUCED ? .18 : 0;
       if (locationKey === "district") return .14;
     }
     return 0;

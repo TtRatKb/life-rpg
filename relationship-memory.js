@@ -7,7 +7,7 @@
   const app = window.LifeRPGApp;
   if (!app?.getState || !app?.saveState) return;
 
-  const VERSION = "0.31.4bb";
+  const VERSION = "0.31.4bc";
   const SCHEMA = 1;
   const PEOPLE = ["mina", "bakugo", "kirishima"];
   let syncing = false;
