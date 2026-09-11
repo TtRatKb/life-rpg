@@ -14,7 +14,7 @@
   <link rel="manifest" href="manifest.webmanifest?v=0.30.3a" />
   <link rel="apple-touch-icon" href="assets/app-icon-180.png?v=0.30.3a" />
   <link rel="icon" type="image/png" sizes="192x192" href="assets/app-icon-192.png?v=0.30.3a" />
-  <link rel="stylesheet" href="styles.css?v=0.31.4al" />
+  <link rel="stylesheet" href="styles.css?v=0.31.4am" />
   <link rel="stylesheet" href="skills.css?v=0.31.4ah" />
   <link rel="stylesheet" href="weekly-review.css?v=0.31.4ag" />
   <link rel="stylesheet" href="knowledge-tree.css?v=0.31.4ag" />
@@ -1152,7 +1152,7 @@
             <a class="training-card-v314k is-live" href="#kotobaIntegrationPanel"><span class="training-card-icon-v314k">🌸</span><div><small>JAPANESE</small><strong>Kotoba Quick Study</strong><p>Real due Vocabulary, Grammar & Particle SRS reviews</p><em>Synced with Kotoba Quest</em></div><b>↓</b></a>
             <button class="training-card-v314k is-live" data-number-sense-open type="button"><span class="training-card-icon-v314k">🔢</span><div><small>NUMBER SENSE · MENTAL MATH</small><strong>Number Sense Journey</strong><p>50 fixed levels · strategies, estimation, percentages and magnitude</p><em id="trainingGroundsNumberSenseStatus">Level 1 / 50</em></div><b>›</b></button>
             <button class="training-card-v314k is-live" data-memory-garden-open type="button"><span class="training-card-icon-v314k">🧠</span><div><small>MEMORY · ATTENTION</small><strong>Memory Garden</strong><p>50 Journey levels · spatial, sequence, pattern and working-memory trials</p><em id="trainingGroundsMemoryStatus">Level 1 / 50</em></div><b>›</b></button>
-            <button class="training-card-v314k is-live" data-lexicon-lab-open type="button"><span class="training-card-icon-v314k">⌗</span><div><small>LANGUAGE · ACADEMIC LEXICON</small><strong>Lexicon Lab</strong><p>300-word pool · calibration · Daily Word · calibrated Crosswords</p><em id="trainingGroundsLexiconStatus">Calibration ready</em></div><b>›</b></button>
+            <button class="training-card-v314k is-live" data-lexicon-lab-open type="button"><span class="training-card-icon-v314k">⌗</span><div><small>LANGUAGE · ACADEMIC LEXICON</small><strong>Lexicon Lab</strong><p>300-word pool · Daily Word · adaptive Daily Crossword</p><em id="trainingGroundsLexiconStatus">Calibration ready</em></div><b>›</b></button>
             <button class="training-card-v314k is-live" data-recovery-open type="button"><span class="training-card-icon-v314k">🌿</span><div><small>RECOVERY · WELLBEING</small><strong>Recovery Studio</strong><p>Breathing, body scan, quiet rest and gentle release sessions.</p><em id="trainingGroundsRecoveryStatus">Optional recovery available</em></div><b>›</b></button>
           </div>
           <section id="lexiconDashboardDailyWord" class="lexicon-dashboard-daily-v314z" aria-label="Daily Word"></section>
@@ -2748,7 +2748,7 @@ League of Legends — PC" required></textarea></label>
       <div id="lexiconLabStats" class="lexicon-stats-v314q"></div>
       <section id="lexiconCalibrationPanel" class="lexicon-calibration-panel-v314z" aria-labelledby="lexiconCalibrationTitle">
         <div class="sudoku-section-title-v314h"><div><small>PERSONAL CALIBRATION</small><strong id="lexiconCalibrationTitle">Five words at a time</strong></div><span id="lexiconCalibrationStatus">0/100 Starter · 0/200 Extended</span></div>
-        <p>Starter words are the basis for the next Crossword Journey. The Extended Pool is future vocabulary context and can be explored whenever you feel like it.</p>
+        <p>Starter words unlock the adaptive Daily Crossword. Extended words join future puzzles automatically as soon as you rate them, so you never need to export a profile just to refresh the puzzle pool.</p>
         <div class="lexicon-calibration-actions-v314z"><button id="lexiconCalibrationStarter" class="primary-button" data-lexicon-calibration-start="starter" type="button">Next 5 Starter words</button><button id="lexiconCalibrationExtended" class="secondary-button" data-lexicon-calibration-start="extended" type="button">Explore next 5</button><button id="lexiconExportProfile" class="text-button" data-lexicon-export-profile type="button">Export profile</button></div>
         <div id="lexiconCalibrationWords" class="lexicon-calibration-words-v314z"></div>
       </section>
@@ -2762,7 +2762,7 @@ League of Legends — PC" required></textarea></label>
       </section>
       <section id="lexiconLabJourneyProgress" class="sudoku-journey-progress-v314h" aria-label="Academic Crossword progress"></section>
       <section class="lexicon-section-v314q" aria-labelledby="lexiconCrosswordTitle">
-        <div class="sudoku-section-title-v314h"><div><small>CROSSWORD JOURNEY</small><strong id="lexiconCrosswordTitle">Calibrated Crosswords · profile first</strong></div><span>Legacy fixed puzzles paused</span></div>
+        <div class="sudoku-section-title-v314h"><div><small>ADAPTIVE CROSSWORDS</small><strong id="lexiconCrosswordTitle">Daily Crossword + Practice</strong></div><span>Adaptive from your live Lexicon profile</span></div>
         <div id="lexiconLabLevelGrid" class="lexicon-level-grid-v314q"></div>
       </section>
       <section class="lexicon-section-v314q" aria-labelledby="lexiconCollectionsTitle">
@@ -3208,7 +3208,7 @@ League of Legends — PC" required></textarea></label>
   <script src="data/lexicon-lab-data.js?v=0.31.4q"></script>
   <script src="data/lexicon-lab-enrichment.js?v=0.31.4y"></script>
   <script src="data/lexicon-pool.js?v=0.31.4z"></script>
-  <script src="lexicon-lab.js?v=0.31.4z1"></script>
+  <script src="lexicon-lab.js?v=0.31.4am"></script>
   <script src="smart-action-router.js?v=0.31.4s"></script>
   <script src="smart-quests.js?v=0.31.0"></script>
   <script src="daily.js?v=0.31.4ag"></script>
@@ -3216,7 +3216,7 @@ League of Legends — PC" required></textarea></label>
   <script src="story-ui.js?v=0.31.4al"></script>
   <script src="shop.js?v=0.30.6"></script>
   <script src="achievements.js?v=0.31.0"></script>
-  <script src="activity-log.js?v=0.31.4ai"></script>
+  <script src="activity-log.js?v=0.31.4am"></script>
   <script src="kotoba-integration.js?v=0.31.4k"></script>
   <script src="kotoba-quick-training.js?v=0.31.4k"></script>
 
@@ -3234,6 +3234,6 @@ League of Legends — PC" required></textarea></label>
   <script src="hobbies-tree.js?v=0.31.4ai"></script>
 
   <script type="module" src="cloud-save.js?v=0.31.4ag"></script>
-  <script src="pwa.js?v=0.31.4al"></script>
+  <script src="pwa.js?v=0.31.4am"></script>
 </body>
 </html>

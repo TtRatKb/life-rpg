@@ -449,7 +449,10 @@
     if (event.source === "sudoku-complete" || event.source === "sudoku-solved") return m.level ? `Journey Level ${number(m.level)} completed · ${humanize(m.difficulty || "Sudoku")}` : `${humanize(m.difficulty || "Sudoku")} Practice puzzle completed`;
     if (event.source === "memory-garden-complete") return `Journey Level ${number(m.level)} completed · ${humanize(m.mode || "memory")} recall · ${number(m.rounds) || 3} rounds`;
     if (event.source === "word-lab-complete") return `${m.language === "de" ? "German Precision" : "English Fluency"} · legacy Word Lab level ${number(m.level)} · ${number(m.firstTryAccuracy)}% first-try`;
-    if (event.source === "lexicon-lab-complete") return `Academic Crossword ${number(m.level)} · ${humanize(m.theme || "German academic lexicon")} · ${number(m.perfectWords)}/${number(m.wordCount)} words recalled cleanly`;
+    if (event.source === "lexicon-lab-complete") {
+      const label = m.mode === "daily-crossword" ? "Daily Crossword" : `Academic Crossword ${number(m.level)}`;
+      return `${label} · ${humanize(m.theme || "German academic lexicon")} · ${number(m.perfectWords)}/${number(m.wordCount)} words recalled cleanly`;
+    }
     if (event.source === "lexicon-calibration") return `${humanize(m.pool || "lexicon")} pool · ${number(m.chunkSize) || 5} words self-rated`;
     if (event.source === "lexicon-daily-word") return `Daily Word · ${humanize(m.selfRating || "rated")} · personal vocabulary pool`;
     if (event.source === "recovery-studio") {
@@ -505,7 +508,7 @@
     }
     if (event.source === "lexicon-lab-complete") {
       const multiplier = number(event.metadata?.repeatScale) || 1;
-      bits.push(`<p>This is the first-completion reward for a <strong>Lexicon Lab Academic Crossword</strong>. The puzzle trains active recall of advanced German vocabulary; repeated clean recalls also grow the personal lexicon from Discovered toward Active/Mastered.</p>`);
+      bits.push(`<p>This is the rewarded completion of a <strong>${event.metadata?.mode === "daily-crossword" ? "Lexicon Lab Daily Crossword" : "Lexicon Lab Academic Crossword"}</strong>. The puzzle trains active recall of advanced German vocabulary; repeated clean recalls also grow the personal lexicon from Discovered toward Active/Mastered.</p>`);
       if (multiplier < 0.999) bits.push(`<p>Multiple new Lexicon Lab crosswords on the same day taper gently. This puzzle used a <strong>×${trim(multiplier)}</strong> activity multiplier.</p>`);
     }
     if (event.source === "recovery-studio") {

@@ -16396,3 +16396,125 @@ body.training-focus-active-v314o > *:not(#trainingFocusView):not(.toast):not(.ac
     linear-gradient(180deg, rgba(34,21,33,.01) 0%, rgba(34,21,33,.01) 52%, rgba(27,16,29,.58) 100%),
     linear-gradient(90deg, rgba(46,28,43,.07), transparent 18%, transparent 82%, rgba(46,28,43,.07)) !important;
 }
+
+
+/* =========================================================
+   V0.31.4am · Adaptive Daily Crossword
+   ========================================================= */
+
+.lexicon-crossword-actions-v314am {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.lexicon-crossword-next-v314y.is-complete-v314am {
+  background:
+    radial-gradient(circle at 92% 12%, rgba(151, 193, 164, .16), transparent 8rem),
+    rgba(255,255,255,.58);
+}
+
+.lexicon-level-grid-v314q {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.lexicon-adaptive-card-v314am {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  padding: 16px;
+  border: 1px solid rgba(92, 41, 75, .10);
+  border-radius: 18px;
+  background: rgba(255,255,255,.66);
+}
+
+.lexicon-adaptive-card-v314am.is-daily {
+  background:
+    radial-gradient(circle at 94% 10%, rgba(225, 131, 170, .12), transparent 10rem),
+    rgba(255,255,255,.70);
+}
+
+.lexicon-adaptive-card-v314am > div {
+  min-width: 0;
+}
+
+.lexicon-adaptive-card-v314am small {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--rose, #b45d7d);
+  font-size: .62rem;
+  font-weight: 900;
+  letter-spacing: .10em;
+}
+
+.lexicon-adaptive-card-v314am strong {
+  display: block;
+  color: var(--plum, #5c294b);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1rem;
+}
+
+.lexicon-adaptive-card-v314am p {
+  max-width: 700px;
+  margin: 5px 0 0;
+  color: var(--muted-text, #705f69);
+  font-size: .72rem;
+  line-height: 1.46;
+}
+
+.lexicon-adaptive-card-v314am > button {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.lexicon-adaptive-note-v314am {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  padding: 12px 14px;
+  border: 1px dashed rgba(92, 41, 75, .17);
+  border-radius: 15px;
+  color: var(--muted-text, #705f69);
+  background: rgba(92, 41, 75, .035);
+}
+
+.lexicon-adaptive-note-v314am > span {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border-radius: 11px;
+  color: var(--plum, #5c294b);
+  background: rgba(92, 41, 75, .07);
+}
+
+.lexicon-adaptive-note-v314am p {
+  margin: 0;
+  font-size: .7rem;
+  line-height: 1.45;
+}
+
+.lexicon-puzzle-meta-v314q span:first-child {
+  font-weight: 850;
+}
+
+@media (max-width: 760px) {
+  .lexicon-level-grid-v314q {
+    grid-template-columns: 1fr;
+  }
+
+  .lexicon-adaptive-card-v314am {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .lexicon-adaptive-card-v314am > button {
+    width: 100%;
+  }
+}
