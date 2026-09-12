@@ -1346,8 +1346,9 @@
       const talk = nextTalkForPerson(person.id);
       const hangout = nextHangoutForPerson(person.id);
       const hangoutUnlocked = !person.hangoutUnlockFlag || Boolean(app.getState().flags?.[person.hangoutUnlockFlag]);
-      const unread = unreadMessageCount(person.id);
-      const pending = pendingReplyCount(person.id);
+      const messagesUnlocked = !person.messageUnlockFlag || Boolean(app.getState().flags?.[person.messageUnlockFlag]);
+      const unread = messagesUnlocked ? unreadMessageCount(person.id) : 0;
+      const pending = messagesUnlocked ? pendingReplyCount(person.id) : 0;
       const avatar = person.cardAsset
         ? `<span class="story-person-avatar"><img src="${escapeHtml(uiThumb(person.cardAsset))}" alt="" loading="lazy" decoding="async" /></span>`
         : `<span class="story-person-initial">${escapeHtml(person.name?.charAt(0) || "✦")}</span>`;
@@ -1364,7 +1365,7 @@
           </div>
           <div class="story-person-actions">
             <button class="secondary-button" type="button" data-talk-person="${escapeHtml(person.id)}" ${talk ? "" : "disabled"}>${escapeHtml(talkLabel)}</button>
-            <button class="ghost-button" type="button" data-message-person="${escapeHtml(person.id)}">Messages${unread ? ` · ${unread} new` : pending ? " · reply open" : ""}</button>
+            <button class="ghost-button" type="button" data-message-person="${escapeHtml(person.id)}" ${messagesUnlocked ? "" : "disabled"}>${messagesUnlocked ? `Messages${unread ? ` · ${unread} new` : pending ? " · reply open" : ""}` : "Messages · Not exchanged"}</button>
             <button class="ghost-button hangout-button ${hangoutUnlocked && hangout ? "ready" : "locked"}" type="button" data-hangout-person="${escapeHtml(person.id)}" ${hangoutUnlocked && hangout ? "" : "disabled"}>${hangoutUnlocked ? (hangout ? "Hang Out" : "Hang Out · More later") : "Hang Out · Locked"}</button>
           </div>
         </article>
@@ -1380,6 +1381,12 @@
       if (state.flags?.MINA_FRIENDSHIP_ESTABLISHED) return "Friend";
       if (state.flags?.MINA_HANGOUTS_UNLOCKED) return "Making plans";
       if (state.flags?.STORY_MINA_FRIENDSHIP_STARTED) return "New connection";
+    }
+    if (person.id === "izuku") {
+      if (state.flags?.IZUKU_DYNA_COOP_STARTED && state.flags?.IZUKU_CONTACT_ESTABLISHED) return "Familiar acquaintance";
+      if (state.flags?.IZUKU_CONTACT_ESTABLISHED) return "New contact";
+      if (state.flags?.IZUKU_DYNA_COOP_STARTED) return "Acquaintance · temporary DynaRiot overlap";
+      if (state.flags?.STORY_MET_IZUKU) return "New acquaintance";
     }
     if (["kirishima", "bakugo"].includes(person.id)) {
       if (state.flags?.HOUSEHOLD_FORMATION_PHASE_ONE_COMPLETE) return "Roommate · getting familiar";
@@ -1418,6 +1425,12 @@
       if (state.flags?.DYNARIOT_ROOMMATE_MEETING_COMPLETE) details.push("He made it clear that the spare room comes with rules, not instant friendship.");
       if (state.flags?.DYNARIOT_MOVE_IN_COMPLETE) details.push("You now share a home. Reliability and respecting each other’s space are doing more work than small talk.");
       if (state.flags?.HOUSEHOLD_ROUTINE_STARTED) details.push("Household standards, schedules and practical care are becoming a language you can both understand.");
+    }
+    if (person.id === "izuku") {
+      if (state.flags?.STORY_MET_IZUKU) details.push("Mina introduced you after an accidental encounter during an ordinary shopping afternoon.");
+      if (state.flags?.IZUKU_INTRO_VIA_MINA) details.push("You met him through Mina rather than through DynaRiot, which means the connection has its own starting point.");
+      if (state.flags?.IZUKU_CONTACT_ESTABLISHED) details.push("Contact details were exchanged only after Mina checked with you first.");
+      if (state.flags?.IZUKU_DYNA_COOP_STARTED) details.push("A temporary DynaRiot collaboration means you sometimes cross paths at the agency as well.");
     }
     if (!details.length) details.push("You are still learning what this connection might become.");
     return details;
@@ -1467,14 +1480,15 @@
     const talk = nextTalkForPerson(selected.id);
     const hangout = nextHangoutForPerson(selected.id);
     const hangoutUnlocked = !selected.hangoutUnlockFlag || Boolean(state.flags?.[selected.hangoutUnlockFlag]);
-    const unread = unreadMessageCount(selected.id);
-    const pending = pendingReplyCount(selected.id);
+    const messagesUnlocked = !selected.messageUnlockFlag || Boolean(state.flags?.[selected.messageUnlockFlag]);
+    const unread = messagesUnlocked ? unreadMessageCount(selected.id) : 0;
+    const pending = messagesUnlocked ? pendingReplyCount(selected.id) : 0;
     els.peopleProfileActions.innerHTML = `
       <button class="social-action-card" type="button" data-talk-person="${escapeHtml(selected.id)}" ${talk ? "" : "disabled"}>
         <span class="social-action-icon">💬</span><span><strong>Talk</strong><small>${talk && reactivityScore(talk) > 0 ? "Conversation can pick up on what you’ve been doing lately · free" : talkBondEarnedToday(selected.id) ? "Today’s relationship gain is already earned · keep chatting for fun" : "First completed chat today grows familiarity · extra chats are just for fun"}</small></span><b>${talkBondEarnedToday(selected.id) ? "✓ TODAY" : "FREE"}</b>
       </button>
-      <button class="social-action-card" type="button" data-profile-message-person="${escapeHtml(selected.id)}" data-view-target="phone">
-        <span class="social-action-icon">✉</span><span><strong>Messages</strong><small>${unread ? `${unread} unread conversation${unread === 1 ? "" : "s"}` : pending ? `${pending} ${pending === 1 ? "reply is" : "replies are"} still open whenever you want` : "Story-linked threads · no expiry"}</small></span>${unread ? `<b class="message-count">${unread} NEW</b>` : pending ? `<b class="message-count reply-waiting">REPLY</b>` : ""}
+      <button class="social-action-card" type="button" data-profile-message-person="${escapeHtml(selected.id)}" data-view-target="phone" ${messagesUnlocked ? "" : "disabled"}>
+        <span class="social-action-icon">${messagesUnlocked ? "✉" : "🔒"}</span><span><strong>Messages</strong><small>${messagesUnlocked ? (unread ? `${unread} unread conversation${unread === 1 ? "" : "s"}` : pending ? `${pending} ${pending === 1 ? "reply is" : "replies are"} still open whenever you want` : "Story-linked threads · no expiry") : "Contact details have not been exchanged."}</small></span>${messagesUnlocked && unread ? `<b class="message-count">${unread} NEW</b>` : messagesUnlocked && pending ? `<b class="message-count reply-waiting">REPLY</b>` : ""}
       </button>
       <button class="social-action-card ${hangoutUnlocked && hangout ? "ready" : "locked"}" type="button" data-hangout-person="${escapeHtml(selected.id)}" ${hangoutUnlocked && hangout ? "" : "disabled"}>
         <span class="social-action-icon">${hangoutUnlocked ? "☕" : "🔒"}</span><span><strong>Hang Out</strong><small>${hangoutUnlocked ? (hangout ? "Spend time together · free" : "More hangouts can appear later") : "Unlocks naturally through the story"}</small></span><b>${hangoutUnlocked && hangout ? "FREE" : "???"}</b>
@@ -2362,6 +2376,17 @@
       return 0;
     }
 
+    if (personId === "izuku") {
+      const contacted = Boolean(state.flags?.IZUKU_CONTACT_ESTABLISHED);
+      const coop = Boolean(state.flags?.IZUKU_DYNA_COOP_STARTED);
+      if (locationKey === "agency") return coop ? (part === "day" ? .42 : part === "evening" ? .16 : .04) : 0;
+      if (locationKey === "district") return contacted ? .16 : state.flags?.STORY_MET_IZUKU ? .06 : 0;
+      if (locationKey === "cafe") return contacted ? .12 : 0;
+      if (locationKey === "park") return contacted ? .10 : 0;
+      if (locationKey === "konbini") return coop ? .06 : 0;
+      return 0;
+    }
+
     if (["kirishima", "bakugo"].includes(personId)) {
       if (locationKey === "sharedApartment") {
         if (!movedIn) return .14;
@@ -2463,6 +2488,15 @@
         currentHome: { morning: .18, day: .22, evening: .38, night: .28, late: .04 }
       };
       weight *= table[locationKey]?.[part] ?? .62;
+    } else if (personId === "izuku") {
+      const table = {
+        agency: { morning: .25, day: 1.30, evening: .62, night: .08, late: .02 },
+        cafe: { morning: .22, day: .82, evening: 1.05, night: .28, late: .02 },
+        district: { morning: .28, day: .92, evening: 1.08, night: .42, late: .03 },
+        park: { morning: .28, day: .62, evening: 1.00, night: .46, late: .03 },
+        konbini: { morning: .16, day: .46, evening: .72, night: .34, late: .03 }
+      };
+      weight *= table[locationKey]?.[part] ?? .55;
     } else if (["kirishima", "bakugo"].includes(personId)) {
       const table = {
         sharedApartment: { morning: 1.05, day: .62, evening: 1.35, night: 1.22, late: .32 },
@@ -2941,6 +2975,11 @@
     const state = app.getState();
     if (person.id === "mina" && state.flags?.MINA_CLOSE_FRIEND) return "Pro Hero · Close friend";
     if (person.id === "mina" && state.flags?.MINA_FRIENDSHIP_ESTABLISHED) return "Pro Hero · Friend";
+    if (person.id === "izuku") {
+      if (state.flags?.IZUKU_DYNA_COOP_STARTED) return "Pro Hero · Temporary DynaRiot collaborator";
+      if (state.flags?.IZUKU_CONTACT_ESTABLISHED) return "Pro Hero · New contact";
+      return "Pro Hero · New acquaintance";
+    }
     if (["kirishima", "bakugo"].includes(person.id) && (state.flags?.DYNARIOT_MOVE_IN_COMPLETE || state.flags?.SHARED_APARTMENT_IS_HOME)) {
       return "Pro Hero · Roommate · DynaRiot co-founder";
     }
@@ -2972,6 +3011,11 @@
       else if (state.flags?.MINA_FRIENDSHIP_ESTABLISHED) base = "Conversation has started to feel ordinary instead of scheduled.";
       else if (state.flags?.MINA_HANGOUTS_UNLOCKED) base = "The friendship is beginning to exist outside the original school context.";
       else if (state.flags?.STORY_MINA_FRIENDSHIP_STARTED) base = "She keeps finding reasons to continue the conversation.";
+    } else if (person.id === "izuku") {
+      if (state.flags?.IZUKU_DYNA_COOP_STARTED && state.flags?.IZUKU_CONTACT_ESTABLISHED) base = "You are still new to each other, but ordinary texts and repeated agency overlap are making the connection less formal.";
+      else if (state.flags?.IZUKU_CONTACT_ESTABLISHED) base = "The connection is new and low-pressure. Conversation is happening because you both seem to enjoy it, not because anyone has named what it is.";
+      else if (state.flags?.IZUKU_DYNA_COOP_STARTED) base = "You keep crossing paths through DynaRiot while the collaboration lasts. Familiarity can grow without turning it into a route or obligation.";
+      else if (state.flags?.STORY_MET_IZUKU) base = "You have met once through Mina. Nothing about that meeting requires a sequel.";
     } else if (["kirishima", "bakugo"].includes(person.id)) {
       if (state.flags?.SHARED_APARTMENT_EMOTIONAL_HOME_STARTED) base = "You share enough ordinary life now that care, teasing and quiet coexistence can happen without turning every moment into an event.";
       else if (state.flags?.HOUSEHOLD_FORMATION_PHASE_TWO_COMPLETE) base = "Living together has moved beyond logistics. You have seen each other tired, playful, unwell and off-duty without the connection becoming fragile.";

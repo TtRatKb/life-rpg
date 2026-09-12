@@ -1,4 +1,4 @@
-const CACHE_NAME = "life-rpg-v0314bd-social-density";
+const CACHE_NAME = "life-rpg-v0314be-izuku-intro";
 const CORE = [
   "./",
   "./index.html",
@@ -23,7 +23,7 @@ const CORE = [
   "./weekly-review.css?v=0.31.4ag",
   "./weekly-review.js?v=0.31.4ag",
   "./manifest.webmanifest?v=0.30.3a",
-  "./pwa.js?v=0.31.4bd",
+  "./pwa.js?v=0.31.4be",
   "./visual-performance.js?v=0.31.4c",
   "./modal-manager.js?v=0.31.4d",
   "./training-focus.js?v=0.31.4o",
@@ -56,14 +56,14 @@ const CORE = [
   "./daily.js?v=0.31.4ag",
   "./data/year-journal-questions.js?v=0.31.4ar",
   "./journal.js?v=0.31.4ar",
-  "./story-engine.js?v=0.31.4bd",
-  "./story-ui.js?v=0.31.4bd",
+  "./story-engine.js?v=0.31.4be",
+  "./story-ui.js?v=0.31.4be",
   "./relationship-memory.js?v=0.31.4bc",
   "./relationship-memory.css?v=0.31.4ba",
   "./relationship-engine.js?v=0.31.4ba",
   "./gifts.js?v=0.31.4ba",
   "./seasons.js?v=0.31.4ba",
-  "./content/SP_003.dat?v=0.31.4bd",
+  "./content/SP_003.dat?v=0.31.4be",
   "./shop.js?v=0.30.6",
   "./achievements.js?v=0.31.0",
   "./activity-log.js?v=0.31.4ay",
