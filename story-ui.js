@@ -4316,10 +4316,10 @@
       night: { src: "assets/story/backgrounds/time/station_night.webp", alt: "Train station at night" }
     },
     cityDusk: {
-      dawn: { src: "assets/story/backgrounds/time/city_dawn.webp", alt: "City district at dawn" },
-      day: { src: "assets/story/backgrounds/time/city_day.webp", alt: "City district in daylight" },
-      sunset: { src: "assets/story/backgrounds/time/city_sunset.webp", alt: "City district at sunset" },
-      night: { src: "assets/story/backgrounds/time/city_night.webp", alt: "City district at night" }
+      dawn: { src: "assets/story/backgrounds/time/city_dawn.webp", alt: "Collector District at dawn" },
+      day: { src: "assets/story/backgrounds/time/city_day.webp", alt: "Collector District in daylight" },
+      sunset: { src: "assets/story/backgrounds/time/city_sunset.webp", alt: "Collector District at sunset" },
+      night: { src: "assets/story/backgrounds/time/city_night.webp", alt: "Collector District at night" }
     },
     cityCafe: {
       dawn: { src: "assets/story/backgrounds/time/koharu_cafe_dawn.webp", alt: "Koharu Café at dawn" },
@@ -4338,6 +4338,31 @@
       day: { src: "assets/story/backgrounds/time/shared_apartment_kitchen_day.webp", alt: "Shared apartment kitchen in daylight" },
       sunset: { src: "assets/story/backgrounds/time/shared_apartment_kitchen_sunset.webp", alt: "Shared apartment kitchen at sunset" },
       night: { src: "assets/story/backgrounds/time/shared_apartment_kitchen_night.webp", alt: "Shared apartment kitchen at night" }
+    },
+    agency: {
+      dawn: { src: "assets/story/backgrounds/time/dynariot_agency_dawn.webp", alt: "DynaRiot Agency at dawn" },
+      sunset: { src: "assets/story/backgrounds/time/dynariot_agency_sunset.webp", alt: "DynaRiot Agency at sunset" },
+      night: { src: "assets/story/backgrounds/time/dynariot_agency_night.webp", alt: "DynaRiot Agency at night" }
+    },
+    gym: {
+      dawn: { src: "assets/story/backgrounds/time/gym_dawn.webp", alt: "Training gym at dawn" },
+      sunset: { src: "assets/story/backgrounds/time/gym_sunset.webp", alt: "Training gym at sunset" },
+      night: { src: "assets/story/backgrounds/time/gym_night.webp", alt: "Training gym at night" }
+    },
+    park: {
+      dawn: { src: "assets/story/backgrounds/time/riverside_park_dawn.webp", alt: "Riverside Park at dawn" },
+      sunset: { src: "assets/story/backgrounds/time/riverside_park_sunset.webp", alt: "Riverside Park at sunset" },
+      night: { src: "assets/story/backgrounds/time/riverside_park_night.webp", alt: "Riverside Park at night" }
+    },
+    schoolHallway: {
+      dawn: { src: "assets/story/backgrounds/time/school_dawn.webp", alt: "School at dawn" },
+      sunset: { src: "assets/story/backgrounds/time/school_sunset.webp", alt: "School at sunset" },
+      night: { src: "assets/story/backgrounds/time/school_night.webp", alt: "School at night" }
+    },
+    konbini: {
+      dawn: { src: "assets/story/backgrounds/time/konbini_dawn.webp", alt: "Neighborhood konbini at dawn" },
+      sunset: { src: "assets/story/backgrounds/time/konbini_sunset.webp", alt: "Neighborhood konbini at sunset" },
+      night: { src: "assets/story/backgrounds/time/konbini_night.webp", alt: "Neighborhood konbini at night" }
     }
   };
 
@@ -4378,17 +4403,35 @@
       sunset: ["sharedApartmentKitchenSunset", "sharedApartmentKitchen", "sharedApartment"],
       night: ["sharedApartmentKitchenNight", "sharedApartmentKitchen", "sharedApartment"]
     },
+    agency: {
+      dawn: ["agency"],
+      day: ["agency"],
+      sunset: ["agency"],
+      night: ["agency"]
+    },
     gym: {
       dawn: ["gymDawn", "gymDay", "gym"],
       day: ["gymDay", "gym"],
       sunset: ["gymSunset", "gymEvening", "gym"],
       night: ["gymNight", "gymEvening", "gym"]
     },
+    park: {
+      dawn: ["park"],
+      day: ["park"],
+      sunset: ["park"],
+      night: ["park"]
+    },
     schoolHallway: {
       dawn: ["schoolHallway"],
       day: ["schoolHallway"],
       sunset: ["schoolHallway"],
       night: ["schoolHallway"]
+    },
+    konbini: {
+      dawn: ["konbini"],
+      day: ["konbini"],
+      sunset: ["konbini"],
+      night: ["konbini"]
     }
   };
 
@@ -4411,7 +4454,6 @@
   function storyLightingContext(visual = null, activeRuntime = runtime) {
     const requested = visual?.background || contextualBackgroundForRuntime(activeRuntime);
     const locationKey = inferWorldLocation(activeRuntime?.scene) || locationKeyFromBackground(requested);
-    if (locationKey === "school") return { part: "day", locationKey, fixed: true, source: "school-fixed-day" };
 
     const solar = app.getSolarDaypart?.(new Date()) || null;
     if (solar?.part) {

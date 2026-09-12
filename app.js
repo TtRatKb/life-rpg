@@ -2533,11 +2533,36 @@
       sunset: "assets/story/backgrounds/time/home_sunset.webp",
       night: "assets/story/backgrounds/time/home_night.webp"
     },
+    school: {
+      dawn: "assets/story/backgrounds/time/school_dawn.webp",
+      sunset: "assets/story/backgrounds/time/school_sunset.webp",
+      night: "assets/story/backgrounds/time/school_night.webp"
+    },
     station: {
       dawn: "assets/story/backgrounds/time/station_dawn.webp",
       day: "assets/story/backgrounds/time/station_day.webp",
       sunset: "assets/story/backgrounds/time/station_sunset.webp",
       night: "assets/story/backgrounds/time/station_night.webp"
+    },
+    agency: {
+      dawn: "assets/story/backgrounds/time/dynariot_agency_dawn.webp",
+      sunset: "assets/story/backgrounds/time/dynariot_agency_sunset.webp",
+      night: "assets/story/backgrounds/time/dynariot_agency_night.webp"
+    },
+    gym: {
+      dawn: "assets/story/backgrounds/time/gym_dawn.webp",
+      sunset: "assets/story/backgrounds/time/gym_sunset.webp",
+      night: "assets/story/backgrounds/time/gym_night.webp"
+    },
+    konbini: {
+      dawn: "assets/story/backgrounds/time/konbini_dawn.webp",
+      sunset: "assets/story/backgrounds/time/konbini_sunset.webp",
+      night: "assets/story/backgrounds/time/konbini_night.webp"
+    },
+    park: {
+      dawn: "assets/story/backgrounds/time/riverside_park_dawn.webp",
+      sunset: "assets/story/backgrounds/time/riverside_park_sunset.webp",
+      night: "assets/story/backgrounds/time/riverside_park_night.webp"
     },
     cafe: {
       dawn: "assets/story/backgrounds/time/koharu_cafe_dawn.webp",
