@@ -2063,7 +2063,11 @@ League of Legends — PC" required></textarea></label>
         <label>Steam App ID <span class="optional-label-v16">optional · auto-filled when found</span>
           <input id="gameSteamAppId" inputmode="numeric" maxlength="12" placeholder="e.g. 413150" />
         </label>
-        <div class="game-smart-meta-note-v305"><small>Game type helps with tracking suggestions. Steam App ID enables real achievement import; you can paste it manually if the public catalog misses it.</small><div id="gameGenreChips" class="game-genre-chips-v305"></div></div>
+        <label>Steam total playtime <span class="optional-label-v16">hours · manual fallback</span>
+          <input id="gameSteamPlaytimeHours" type="text" inputmode="decimal" maxlength="10" placeholder="e.g. 25.4" />
+          <small class="game-field-hint-v17">Use Steam's decimal-hour value. The first manual value becomes a reward-free baseline; later higher totals log only the new difference.</small>
+        </label>
+        <div class="game-smart-meta-note-v305"><small>Game type helps with tracking suggestions. Steam App ID enables real achievement import; manual Steam hours also work when Family Sharing hides playtime from the API.</small><div id="gameGenreChips" class="game-genre-chips-v305"></div></div>
       </div>
 
       <section id="gameSteamGoals" class="game-steam-goals-v312 hidden" aria-live="polite">
@@ -3180,18 +3184,18 @@ League of Legends — PC" required></textarea></label>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <script src="data/quests.js?v=0.31.4h"></script>
-  <script src="story-engine.js?v=0.31.4bt"></script>
+  <script src="story-engine.js?v=0.31.4bu"></script>
   <script src="modal-manager.js?v=0.31.4d"></script>
   <script src="training-focus.js?v=0.31.4o"></script>
-  <script src="visual-performance.js?v=0.31.4bt"></script>
-  <script src="app.js?v=0.31.4bt"></script>
+  <script src="visual-performance.js?v=0.31.4bu"></script>
+  <script src="app.js?v=0.31.4bu"></script>
   <script src="daily-streaks.js?v=0.31.4z"></script>
   <script src="stewardship.js?v=0.31.3a"></script>
   <script src="habits.js?v=0.31.4au"></script>
   <script src="adventures.js?v=0.31.4ag"></script>
   <script src="adventure-workspace.js?v=0.31.4c"></script>
   <script src="library.js?v=0.31.4ag"></script>
-  <script src="games.js?v=0.31.4bt"></script>
+  <script src="games.js?v=0.31.4bu"></script>
   <script src="time.js?v=0.31.1"></script>
   <script src="universal-timers.js?v=0.31.1"></script>
   <script src="inspirations.js?v=0.31.4c"></script>
@@ -3213,7 +3217,7 @@ League of Legends — PC" required></textarea></label>
   <script src="data/year-journal-questions.js?v=0.31.4ar"></script>
   <script src="journal.js?v=0.31.4ar"></script>
   <script src="relationship-memory.js?v=0.31.4bc"></script>
-  <script src="story-ui.js?v=0.31.4bt"></script>
+  <script src="story-ui.js?v=0.31.4bu"></script>
   <script src="relationship-engine.js?v=0.31.4ba"></script>
   <script src="gifts.js?v=0.31.4ba"></script>
   <script src="seasons.js?v=0.31.4ba"></script>
@@ -3235,8 +3239,8 @@ League of Legends — PC" required></textarea></label>
   <script src="journal-rewards.js?v=0.31.4ag"></script>
   <script src="weekly-review.js?v=0.31.4ag"></script>
 
-  <script type="module" src="cloud-save.js?v=0.31.4bt"></script>
-  <script src="pwa.js?v=0.31.4bt"></script>
+  <script type="module" src="cloud-save.js?v=0.31.4bu"></script>
+  <script src="pwa.js?v=0.31.4bu"></script>
 </body>
 </html>
 
