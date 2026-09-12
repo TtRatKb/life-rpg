@@ -1343,6 +1343,7 @@
     }
 
     els.peopleList.innerHTML = visible.map(person => {
+      const schedule = personScheduleStatus(person.id);
       const talk = nextTalkForPerson(person.id);
       const hangout = nextHangoutForPerson(person.id);
       const hangoutUnlocked = !person.hangoutUnlockFlag || Boolean(app.getState().flags?.[person.hangoutUnlockFlag]);
@@ -1361,7 +1362,8 @@
           <div class="story-person-copy">
             <strong>${escapeHtml(person.name)}</strong>
             <small>${escapeHtml(personRole(person))}</small>
-            <span class="story-person-social-note">Talk = responsive everyday chat · Hang Out = story-unlocked · Messages = story-linked.</span>
+            <span class="story-person-now-v314bf">${escapeHtml(schedule.label)}</span>
+            <span class="story-person-social-note">Talk and Hang Out follow where people actually are. Messages stay asynchronous.</span>
           </div>
           <div class="story-person-actions">
             <button class="secondary-button" type="button" data-talk-person="${escapeHtml(person.id)}" ${talk ? "" : "disabled"}>${escapeHtml(talkLabel)}</button>
@@ -1475,8 +1477,10 @@
         <h2>${escapeHtml(selected.name)}</h2>
         <p class="people-profile-role">${escapeHtml(personRole(selected))}</p>
         <div class="people-profile-status"><span>✿</span><strong>${escapeHtml(label)}</strong><small>Relationship state is shown through access and behavior — never a love meter.</small></div>
+        <div class="people-profile-now-v314bf"><span>◷</span><strong>${escapeHtml(schedule.label)}</strong><small>${schedule.talkReachable ? "You can talk if there is a fitting conversation here." : schedule.working ? "They have their own workday. Messages can still wait for them." : "Not every moment is available on demand."}</small></div>
       </div>`;
 
+    const schedule = personScheduleStatus(selected.id);
     const talk = nextTalkForPerson(selected.id);
     const hangout = nextHangoutForPerson(selected.id);
     const hangoutUnlocked = !selected.hangoutUnlockFlag || Boolean(state.flags?.[selected.hangoutUnlockFlag]);
@@ -1485,13 +1489,13 @@
     const pending = messagesUnlocked ? pendingReplyCount(selected.id) : 0;
     els.peopleProfileActions.innerHTML = `
       <button class="social-action-card" type="button" data-talk-person="${escapeHtml(selected.id)}" ${talk ? "" : "disabled"}>
-        <span class="social-action-icon">💬</span><span><strong>Talk</strong><small>${talk && reactivityScore(talk) > 0 ? "Conversation can pick up on what you’ve been doing lately · free" : talkBondEarnedToday(selected.id) ? "Today’s relationship gain is already earned · keep chatting for fun" : "First completed chat today grows familiarity · extra chats are just for fun"}</small></span><b>${talkBondEarnedToday(selected.id) ? "✓ TODAY" : "FREE"}</b>
+        <span class="social-action-icon">💬</span><span><strong>Talk</strong><small>${talk ? (reactivityScore(talk) > 0 ? "Conversation can pick up on what you’ve been doing lately · free" : talkBondEarnedToday(selected.id) ? "Today’s relationship gain is already earned · keep chatting for fun" : "First completed chat today grows familiarity · extra chats are just for fun") : schedule.working ? "Not available right now · they are working" : schedule.locationKey && !schedule.unlocked ? "They are out somewhere you cannot visit yet" : "No fitting Talk is available at their current location"}</small></span><b>${talk ? (talkBondEarnedToday(selected.id) ? "✓ TODAY" : "FREE") : "LATER"}</b>
       </button>
       <button class="social-action-card" type="button" data-profile-message-person="${escapeHtml(selected.id)}" data-view-target="phone" ${messagesUnlocked ? "" : "disabled"}>
         <span class="social-action-icon">${messagesUnlocked ? "✉" : "🔒"}</span><span><strong>Messages</strong><small>${messagesUnlocked ? (unread ? `${unread} unread conversation${unread === 1 ? "" : "s"}` : pending ? `${pending} ${pending === 1 ? "reply is" : "replies are"} still open whenever you want` : "Story-linked threads · no expiry") : "Contact details have not been exchanged."}</small></span>${messagesUnlocked && unread ? `<b class="message-count">${unread} NEW</b>` : messagesUnlocked && pending ? `<b class="message-count reply-waiting">REPLY</b>` : ""}
       </button>
       <button class="social-action-card ${hangoutUnlocked && hangout ? "ready" : "locked"}" type="button" data-hangout-person="${escapeHtml(selected.id)}" ${hangoutUnlocked && hangout ? "" : "disabled"}>
-        <span class="social-action-icon">${hangoutUnlocked ? "☕" : "🔒"}</span><span><strong>Hang Out</strong><small>${hangoutUnlocked ? (hangout ? "Spend time together · free" : "More hangouts can appear later") : "Unlocks naturally through the story"}</small></span><b>${hangoutUnlocked && hangout ? "FREE" : "???"}</b>
+        <span class="social-action-icon">${hangoutUnlocked ? "☕" : "🔒"}</span><span><strong>Hang Out</strong><small>${hangoutUnlocked ? (hangout ? "Spend time together · free" : schedule.working ? "Not now · they are working" : "No hangout fits right now; try another part of the day") : "Unlocks naturally through the story"}</small></span><b>${hangoutUnlocked && hangout ? "FREE" : hangoutUnlocked ? "LATER" : "???"}</b>
       </button>`;
 
     const details = knownDetailsForPerson(selected);
@@ -2205,6 +2209,8 @@
     const state = app.getState();
     const social = state.story?.social || {};
     if (!event || !conditionMatches(event)) return false;
+    const locationKey = inferWorldLocation(event);
+    if (locationKey && state.locations?.[locationKey] === false) return false;
     if (event.personId && !knownPeople().some(person => person.id === event.personId)) return false;
     if (event.once && array(social.completedRandomEventIds).includes(event.id)) return false;
 
@@ -2250,7 +2256,21 @@
   }
 
   function worldEventsForSurface(locationKey, roomId = null) {
-    const candidates = worldEventsForLocation(locationKey).filter(event => !roomId || inferHomeRoom(event) === roomId);
+    const candidates = worldEventsForLocation(locationKey).filter(event => {
+      if (roomId && inferHomeRoom(event) !== roomId) return false;
+      const participants = socialItemParticipantIds(event);
+      if (!participants.length) return true;
+      return participants.every(personId => {
+        const schedule = personScheduleStatus(personId);
+        if (schedule.locationKey !== locationKey) return false;
+        if (locationKey === "sharedApartment") {
+          const eventRoom = inferHomeRoom(event);
+          if (eventRoom && schedule.roomId !== eventRoom) return false;
+          if (roomId && schedule.roomId !== roomId) return false;
+        }
+        return true;
+      });
+    });
     if (candidates.length <= 1) return candidates;
     const activeId = app.getState().story?.social?.activeRandomEventId;
     const active = candidates.find(event => event.id === activeId);
@@ -2328,19 +2348,6 @@
     return options[options.length - 1]?.[0] || "private";
   }
 
-  function householdResidentStatus(personId) {
-    const state = app.getState();
-    const movedIn = Boolean(state.flags?.DYNARIOT_MOVE_IN_COMPLETE || state.flags?.SHARED_APARTMENT_IS_HOME);
-    if (!movedIn || !["bakugo", "kirishima"].includes(personId)) return { home: false, room: null, label: "Away" };
-    const part = currentWorldDaypart();
-    const chance = presenceChance(personId, "sharedApartment");
-    const roll = stableWorldFraction(`${localDateKey()}:${part}:sharedApartment:${personId}`);
-    const home = chance > 0 && roll <= chance;
-    if (!home) return { home: false, room: null, label: part === "late" ? "Probably asleep or out" : "Out right now" };
-    const room = householdAmbientRoom(personId, part);
-    return { home: true, room, label: room === "private" ? "Home · keeping to himself" : `Home · ${HOME_ROOM_META[room]?.label || "around"}` };
-  }
-
   function stableWorldFraction(key) {
     let hash = 2166136261;
     const text = String(key || "");
@@ -2360,47 +2367,150 @@
     return "night";
   }
 
-  function presenceChance(personId, locationKey) {
+  function currentWorldWeekday() {
+    return new Date().getDay(); // 0 Sunday ... 6 Saturday
+  }
+
+  function weightedRoutinePick(personId, part, options) {
+    const total = options.reduce((sum, item) => sum + Math.max(0, Number(item.weight || 0)), 0);
+    if (!(total > 0)) return options[0] || { kind: "away" };
+    let cursor = stableWorldFraction(`${localDateKey()}:${part}:schedule:${personId}`) * total;
+    for (const item of options) {
+      cursor -= Math.max(0, Number(item.weight || 0));
+      if (cursor <= 0) return item;
+    }
+    return options[options.length - 1];
+  }
+
+  function authoredScheduleOverride(personId) {
+    const state = app.getState();
+    const candidates = socialRandomEvents()
+      .filter(event => conditionMatches(event) && socialItemParticipantIds(event).includes(personId))
+      .filter(event => !event.once || !array(state.story?.social?.completedRandomEventIds).includes(event.id))
+      .map(event => ({
+        event,
+        locationKey: inferWorldLocation(event),
+        roomId: inferHomeRoom(event),
+        priority: 100 + Number(event.priority || 0) + reactivityScore(event) * 4
+      }))
+      .filter(item => item.locationKey);
+    if (!candidates.length) return null;
+    candidates.sort((a,b) => b.priority - a.priority || String(a.event.id).localeCompare(String(b.event.id)));
+    const topScore = candidates[0].priority;
+    const top = candidates.filter(item => item.priority === topScore);
+    return top[Math.floor(stableWorldFraction(`${localDateKey()}:${currentWorldDaypart()}:authored:${personId}`) * top.length)] || top[0];
+  }
+
+  function routineForPerson(personId) {
     const state = app.getState();
     const part = currentWorldDaypart();
+    const weekday = currentWorldWeekday();
+    const weekend = weekday === 0 || weekday === 6;
     const movedIn = Boolean(state.flags?.DYNARIOT_MOVE_IN_COMPLETE || state.flags?.SHARED_APARTMENT_IS_HOME);
-    const closeMina = Boolean(state.flags?.MINA_FRIENDSHIP_ESTABLISHED || state.flags?.MINA_CLOSE_FRIEND);
 
-    if (personId === "mina") {
-      if (locationKey === "school") return part === "morning" || part === "day" ? .58 : .18;
-      if (locationKey === "cafe") return closeMina ? (part === "day" || part === "evening" ? .72 : .38) : .34;
-      if (locationKey === "district") return closeMina ? .46 : .24;
-      if (locationKey === "park") return closeMina ? .30 : .12;
-      if (locationKey === "konbini" || locationKey === "grocery") return closeMina ? .14 : .06;
-      if (locationKey === "sharedApartment") return movedIn && closeMina ? .20 : 0;
-      return 0;
+    const authored = authoredScheduleOverride(personId);
+    if (authored) {
+      const roomId = authored.locationKey === "sharedApartment" ? (authored.roomId || householdAmbientRoom(personId, part)) : null;
+      return { kind: "location", locationKey: authored.locationKey, roomId, working: ["agency", "gym", "school"].includes(authored.locationKey), authored: true };
     }
 
-    if (personId === "izuku") {
-      const contacted = Boolean(state.flags?.IZUKU_CONTACT_ESTABLISHED);
-      const coop = Boolean(state.flags?.IZUKU_DYNA_COOP_STARTED);
-      if (locationKey === "agency") return coop ? (part === "day" ? .42 : part === "evening" ? .16 : .04) : 0;
-      if (locationKey === "district") return contacted ? .16 : state.flags?.STORY_MET_IZUKU ? .06 : 0;
-      if (locationKey === "cafe") return contacted ? .12 : 0;
-      if (locationKey === "park") return contacted ? .10 : 0;
-      if (locationKey === "konbini") return coop ? .06 : 0;
-      return 0;
-    }
-
-    if (["kirishima", "bakugo"].includes(personId)) {
-      if (locationKey === "sharedApartment") {
-        if (!movedIn) return .14;
-        if (part === "morning" || part === "evening" || part === "night") return .78;
-        return .38;
+    let options = [];
+    if (["bakugo", "kirishima"].includes(personId)) {
+      if (!movedIn) return { kind: "work", locationKey: null, roomId: null, working: true };
+      if (!weekend) {
+        if (part === "morning") options = [
+          { kind:"location", locationKey:"sharedApartment", weight:.68 }, { kind:"location", locationKey:"agency", weight:.24, working:true }, { kind:"location", locationKey:"gym", weight:.08 }
+        ];
+        else if (part === "day") options = [
+          { kind:"location", locationKey:"agency", weight:.72, working:true }, { kind:"work", weight:.18, working:true }, { kind:"location", locationKey:"gym", weight:.10 }
+        ];
+        else if (part === "evening") {
+          const trainingDay = [1,3,5].includes(weekday);
+          options = trainingDay
+            ? [{ kind:"location", locationKey:"gym", weight:.38 }, { kind:"location", locationKey:"sharedApartment", weight:.40 }, { kind:"location", locationKey:"agency", weight:.17, working:true }, { kind:"work", weight:.05, working:true }]
+            : [{ kind:"location", locationKey:"sharedApartment", weight:.58 }, { kind:"location", locationKey:"agency", weight:.20, working:true }, { kind:"location", locationKey:"gym", weight:.16 }, { kind:"work", weight:.06, working:true }];
+        } else if (part === "night") options = [
+          { kind:"location", locationKey:"sharedApartment", weight:.82 }, { kind:"location", locationKey:"konbini", weight:.06 }, { kind:"work", weight:.12, working:true }
+        ];
+        else options = [{ kind:"location", locationKey:"sharedApartment", weight:.92 }, { kind:"work", weight:.08, working:true }];
+      } else if (weekday === 6) {
+        if (part === "morning") options = [{ kind:"location", locationKey:"sharedApartment", weight:.56 }, { kind:"location", locationKey:"gym", weight:.27 }, { kind:"location", locationKey:"agency", weight:.12, working:true }, { kind:"work", weight:.05, working:true }];
+        else if (part === "day") options = [{ kind:"location", locationKey:"sharedApartment", weight:.28 }, { kind:"location", locationKey:"gym", weight:.25 }, { kind:"location", locationKey:"agency", weight:.21, working:true }, { kind:"location", locationKey:"grocery", weight:.10 }, { kind:"location", locationKey:"park", weight:.08 }, { kind:"work", weight:.08, working:true }];
+        else if (part === "evening") options = [{ kind:"location", locationKey:"sharedApartment", weight:.50 }, { kind:"location", locationKey:"park", weight:.13 }, { kind:"location", locationKey:"konbini", weight:.10 }, { kind:"location", locationKey:"agency", weight:.12, working:true }, { kind:"work", weight:.15, working:true }];
+        else options = [{ kind:"location", locationKey:"sharedApartment", weight:.88 }, { kind:"work", weight:.12, working:true }];
+      } else {
+        if (part === "morning") options = [{ kind:"location", locationKey:"sharedApartment", weight:.76 }, { kind:"location", locationKey:"park", weight:.10 }, { kind:"work", weight:.14, working:true }];
+        else if (part === "day") options = [{ kind:"location", locationKey:"sharedApartment", weight:.42 }, { kind:"location", locationKey:"grocery", weight:.16 }, { kind:"location", locationKey:"park", weight:.15 }, { kind:"location", locationKey:"gym", weight:.10 }, { kind:"location", locationKey:"agency", weight:.06, working:true }, { kind:"work", weight:.11, working:true }];
+        else if (part === "evening") options = [{ kind:"location", locationKey:"sharedApartment", weight:.62 }, { kind:"location", locationKey:"park", weight:.13 }, { kind:"location", locationKey:"konbini", weight:.08 }, { kind:"work", weight:.17, working:true }];
+        else options = [{ kind:"location", locationKey:"sharedApartment", weight:.91 }, { kind:"work", weight:.09, working:true }];
       }
-      if (locationKey === "agency") return .62;
-      if (locationKey === "gym") return state.flags?.GYM_FIRST_SESSION_COMPLETE ? .58 : .30;
-      if (locationKey === "konbini") return state.flags?.KONBINI_ROUTINE_STARTED ? .20 : .05;
-      if (locationKey === "grocery") return state.flags?.LOCATION_GROCERY_INTRODUCED ? .16 : 0;
-      if (locationKey === "park") return state.flags?.LOCATION_PARK_INTRODUCED ? .18 : 0;
-      if (locationKey === "district") return .14;
+    } else if (personId === "mina") {
+      const closeMina = Boolean(state.flags?.MINA_FRIENDSHIP_ESTABLISHED || state.flags?.MINA_CLOSE_FRIEND);
+      if (!closeMina) return { kind:"work", working:true };
+      if (!weekend) {
+        if (part === "morning" || part === "day") options = [{ kind:"work", weight:.72, working:true }, { kind:"location", locationKey:"cafe", weight:.10 }, { kind:"location", locationKey:"district", weight:.10 }, { kind:"private", weight:.08 }];
+        else if (part === "evening") options = [{ kind:"work", weight:.28, working:true }, { kind:"location", locationKey:"cafe", weight:.27 }, { kind:"location", locationKey:"district", weight:.20 }, { kind:"location", locationKey:"park", weight:.10 }, { kind:"private", weight:.15 }];
+        else options = [{ kind:"private", weight:.58 }, { kind:"location", locationKey:"cafe", weight:.15 }, { kind:"work", weight:.27, working:true }];
+      } else {
+        if (part === "morning") options = [{ kind:"private", weight:.42 }, { kind:"location", locationKey:"cafe", weight:.18 }, { kind:"location", locationKey:"park", weight:.16 }, { kind:"work", weight:.24, working:true }];
+        else if (part === "day") options = [{ kind:"location", locationKey:"district", weight:.26 }, { kind:"location", locationKey:"cafe", weight:.24 }, { kind:"location", locationKey:"park", weight:.18 }, { kind:"private", weight:.17 }, { kind:"work", weight:.15, working:true }];
+        else if (part === "evening") options = [{ kind:"location", locationKey:"cafe", weight:.23 }, { kind:"location", locationKey:"district", weight:.23 }, { kind:"private", weight:.27 }, { kind:"work", weight:.17, working:true }, { kind:"location", locationKey:"park", weight:.10 }];
+        else options = [{ kind:"private", weight:.72 }, { kind:"work", weight:.18, working:true }, { kind:"location", locationKey:"cafe", weight:.10 }];
+      }
+    } else if (personId === "izuku") {
+      const met = Boolean(state.flags?.STORY_MET_IZUKU);
+      if (!met) return { kind:"unknown" };
+      const coop = Boolean(state.flags?.IZUKU_DYNA_COOP_STARTED);
+      if (!weekend && (part === "morning" || part === "day")) options = coop
+        ? [{ kind:"work", weight:.58, working:true }, { kind:"location", locationKey:"agency", weight:.34, working:true }, { kind:"private", weight:.08 }]
+        : [{ kind:"work", weight:.82, working:true }, { kind:"private", weight:.18 }];
+      else if (part === "evening") options = [{ kind:"work", weight:.32, working:true }, { kind:"location", locationKey:"district", weight:.20 }, { kind:"location", locationKey:"cafe", weight:.15 }, { kind:"location", locationKey:"park", weight:.13 }, { kind:"private", weight:.20 }];
+      else options = [{ kind:"private", weight:.60 }, { kind:"work", weight:.22, working:true }, { kind:"location", locationKey:"park", weight:.10 }, { kind:"location", locationKey:"konbini", weight:.08 }];
+    } else {
+      return { kind:"unknown" };
     }
-    return 0;
+
+    const picked = weightedRoutinePick(personId, part, options);
+    const result = { ...picked, roomId: null };
+    if (result.locationKey === "sharedApartment") result.roomId = householdAmbientRoom(personId, part);
+    return result;
+  }
+
+  function personScheduleStatus(personId) {
+    const state = app.getState();
+    const result = routineForPerson(personId);
+    const locationKey = result.locationKey || null;
+    const unlocked = locationKey ? Boolean(state.locations?.[locationKey]) : false;
+    const reachable = Boolean(locationKey && unlocked && !result.working);
+    const talkReachable = Boolean(locationKey && unlocked && !result.working);
+    const hangoutReachable = Boolean(!result.working && result.kind !== "private" && result.kind !== "unknown");
+    let label = "Unavailable right now";
+    if (locationKey === "sharedApartment") label = result.roomId === "private" ? "Home · private time" : `Home · ${HOME_ROOM_META[result.roomId]?.label || "around"}`;
+    else if (locationKey && unlocked) label = result.working ? `At ${worldLocationLabel(locationKey)} · working` : `At ${worldLocationLabel(locationKey)}`;
+    else if (result.working) label = "Out · working";
+    else if (result.kind === "private") label = "Off doing their own thing";
+    else if (locationKey) label = "Out right now";
+    return { personId, ...result, locationKey, unlocked, reachable, talkReachable, hangoutReachable, label };
+  }
+
+  function worldLocationLabel(locationKey) {
+    const labels = {
+      sharedApartment:"Shared Apartment", agency:"DynaRiot Agency", gym:"Training Gym", konbini:"Neighborhood Konbini",
+      grocery:"Neighborhood Supermarket", park:"Riverside Park", cafe:"Koharu Café", district:"Collector District",
+      school:"School", station:"Station", currentHome:"Previous Apartment"
+    };
+    return labels[locationKey] || "somewhere nearby";
+  }
+
+  function householdResidentStatus(personId) {
+    const status = personScheduleStatus(personId);
+    const home = status.locationKey === "sharedApartment";
+    return { home, room: home ? status.roomId : null, label: status.label, locationKey: status.locationKey, working: Boolean(status.working), unlocked: Boolean(status.unlocked) };
+  }
+
+  function presenceChance(personId, locationKey) {
+    const status = personScheduleStatus(personId);
+    return status.locationKey === locationKey ? 1 : 0;
   }
 
   function householdActiveRoomForPerson(personId) {
@@ -2557,12 +2667,15 @@
     }) || selectTalkFromEligible(personId, pool);
   }
 
-  function nextWorldTalkForPerson(personId, locationKey) {
-    const eligible = socialTalks().filter(talk =>
+  function nextWorldTalkForPerson(personId, locationKey, roomId = null) {
+    let eligible = socialTalks().filter(talk =>
       talk.personId === personId &&
       conditionMatches(talk) &&
       inferWorldLocation(talk) === locationKey
     );
+    if (roomId && locationKey === "sharedApartment") {
+      eligible = eligible.filter(talk => inferHomeRoom(talk) === roomId);
+    }
     return selectTalkFromEligible(personId, eligible);
   }
 
@@ -2572,6 +2685,8 @@
     const person = knownPeople().find(item => item.id === personId);
     if (!person) return null;
     if (person.hangoutUnlockFlag && !state.flags?.[person.hangoutUnlockFlag]) return null;
+    const schedule = personScheduleStatus(personId);
+    if (!schedule.hangoutReachable) return null;
 
     if (social.activeHangoutId) {
       const active = hangoutById(social.activeHangoutId);
@@ -2593,58 +2708,37 @@
   function worldPresenceForLocation(locationKey, roomId = null) {
     const people = knownPeople();
     const events = worldEventsForSurface(locationKey, roomId);
-    const forcedPeople = new Set(events.flatMap(event => socialItemParticipantIds(event)).filter(Boolean));
-    const today = localDateKey();
-    const part = currentWorldDaypart();
     const isHome = locationKey === "sharedApartment";
 
     return people.map(person => {
-      const talk = nextWorldTalkForPerson(person.id, locationKey);
-      let roomTalk = talk && (!roomId || inferHomeRoom(talk) === roomId) ? talk : null;
+      const schedule = personScheduleStatus(person.id);
+      if (schedule.locationKey !== locationKey) return null;
+      if (isHome && roomId && schedule.roomId !== roomId) return null;
+
+      const talk = nextWorldTalkForPerson(person.id, locationKey, isHome ? schedule.roomId : null);
       const hangout = nextWorldHangoutForPerson(person.id, locationKey);
-      let roomHangout = hangout && (!roomId || inferHomeRoom(hangout) === roomId) ? hangout : null;
-      let event = events.find(item => item.personId === person.id) || null;
-      const authoredRoom = inferHomeRoom(event || roomTalk || roomHangout);
-
-      let present = false;
-      let ambientRoom = authoredRoom;
-      if (isHome && ["bakugo", "kirishima"].includes(person.id)) {
-        const status = householdResidentStatus(person.id);
-        const activeRoom = householdActiveRoomForPerson(person.id) || status.room;
-        const hasAuthoredHere = Boolean(event || roomTalk || roomHangout);
-        const forcedHome = forcedPeople.has(person.id) && activeRoom === roomId;
-        ambientRoom = activeRoom;
-        present = (status.home || forcedHome || (!roomId && hasAuthoredHere)) && (!roomId || activeRoom === roomId);
-      } else {
-        const forced = forcedPeople.has(person.id);
-        const chance = presenceChance(person.id, locationKey);
-        const roll = stableWorldFraction(`${today}:${part}:${locationKey}:${person.id}`);
-        present = forced || (chance > 0 && roll <= chance);
-      }
-
-      if (isHome && roomId && ambientRoom !== roomId) { event = null; roomTalk = null; roomHangout = null; }
-      if ((event || roomTalk || roomHangout) && forcedPeople.has(person.id) && (!roomId || ambientRoom === roomId)) present = true;
-      if (!present) return null;
-
+      const event = events.find(item => socialItemParticipantIds(item).includes(person.id)) || null;
       const actions = [];
-      if (event) actions.push({ kind: "event", id: event.id, personId: person.id, icon: "✦", label: event.actionLabel || "See what happened", note: "World moment · free", roomId: inferHomeRoom(event) });
-      if (roomTalk) actions.push({ kind: "talk", id: roomTalk.id, personId: person.id, icon: "💬", label: `Talk to ${person.name}`, note: talkBondEarnedToday(person.id) ? "Free · social progress already earned today" : "Free · first Talk today can deepen familiarity", roomId: inferHomeRoom(roomTalk) });
-      if (roomHangout) actions.push({ kind: "hangout", id: roomHangout.id, personId: person.id, icon: "♡", label: `Spend time with ${person.name}`, note: "Hangout · free", roomId: inferHomeRoom(roomHangout) });
+      if (event) actions.push({ kind:"event", id:event.id, personId:person.id, icon:"✦", label:event.actionLabel || "See what happened", note:"World moment · free", roomId:inferHomeRoom(event) });
+      if (talk && !schedule.working) actions.push({ kind:"talk", id:talk.id, personId:person.id, icon:"💬", label:`Talk to ${person.name}`, note:talkBondEarnedToday(person.id) ? "Free · social progress already earned today" : "Free · first Talk today can deepen familiarity", roomId:inferHomeRoom(talk) });
+      if (hangout && !schedule.working) actions.push({ kind:"hangout", id:hangout.id, personId:person.id, icon:"♡", label:`Spend time with ${person.name}`, note:"Hangout · free", roomId:inferHomeRoom(hangout) });
 
-      const roomMeta = isHome && ambientRoom ? HOME_ROOM_META[ambientRoom] : null;
+      const roomMeta = isHome && schedule.roomId ? HOME_ROOM_META[schedule.roomId] : null;
       const ambientHint = isHome
-        ? ambientRoom === "private"
+        ? schedule.roomId === "private"
           ? `${person.name} is home, but having some private time.`
           : `${person.name} is in the ${roomMeta?.label?.toLowerCase() || "apartment"}. ${actions.length ? "There is room for a small moment." : "Nothing needs your attention."}`
-        : "You could stop and talk for a minute.";
+        : schedule.working
+          ? `${person.name} is here, but currently working.`
+          : "You could stop and talk for a minute.";
 
       return {
         id: person.id,
         name: person.name,
         cardAsset: person.cardAsset || null,
         icon: person.id === "mina" ? "✿" : person.id === "kirishima" ? "◆" : "✦",
-        roomId: ambientRoom || null,
-        hint: event?.worldHint || (roomHangout ? "You have enough time for more than a quick hello." : roomTalk ? "You could stop and talk for a minute." : ambientHint),
+        roomId: schedule.roomId || null,
+        hint: event?.worldHint || (hangout ? "You have enough time for more than a quick hello." : talk ? "You could stop and talk for a minute." : ambientHint),
         actions
       };
     }).filter(Boolean);
@@ -3101,8 +3195,13 @@
   }
 
   function nextTalkForPerson(personId) {
-    const eligible = socialTalks().filter(talk => talk.personId === personId && conditionMatches(talk));
-    return selectTalkWithLocationContext(personId, eligible);
+    const status = personScheduleStatus(personId);
+    if (!status.talkReachable || !status.locationKey) return null;
+    let eligible = socialTalks().filter(talk => talk.personId === personId && conditionMatches(talk) && inferWorldLocation(talk) === status.locationKey);
+    if (status.locationKey === "sharedApartment" && status.roomId) {
+      eligible = eligible.filter(talk => inferHomeRoom(talk) === status.roomId);
+    }
+    return selectTalkFromEligible(personId, eligible);
   }
 
   function openNextTalk(personId) {
@@ -4861,6 +4960,7 @@
     openPhone,
     getWorldLocationStatus,
     getWorldLocationDetails,
+    getPersonScheduleStatus: personScheduleStatus,
     getSharedApartmentHubDetails,
     recordWorldVisit,
     openWorldInteraction,

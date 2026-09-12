@@ -1359,6 +1359,12 @@
     if (state.flags.LOCATION_GROCERY_INTRODUCED) state.locations.grocery = true;
     if (state.flags.LOCATION_PARK_INTRODUCED) state.locations.park = true;
 
+    // V0.31.4bf: the Atlas only contains places Luca has actually discovered.
+    // Collector District existed as a placeholder before it had a narrative unlock.
+    if (!state.flags.LOCATION_DISTRICT_INTRODUCED) state.locations.district = false;
+    // The old apartment remains part of story history, but it is no longer an active visitable place after move-in.
+    if (state.flags.SHARED_APARTMENT_IS_HOME || state.flags.DYNARIOT_MOVE_IN_COMPLETE) state.locations.currentHome = false;
+
     if (!Array.isArray(state.selectedQuestIds)) state.selectedQuestIds = defaultState().selectedQuestIds;
     migrateQuestReferencesInState();
 
@@ -1425,6 +1431,8 @@
     if (state.flags.LOCATION_KONBINI_INTRODUCED) state.locations.konbini = true;
     if (state.flags.LOCATION_GROCERY_INTRODUCED) state.locations.grocery = true;
     if (state.flags.LOCATION_PARK_INTRODUCED) state.locations.park = true;
+    if (!state.flags.LOCATION_DISTRICT_INTRODUCED) state.locations.district = false;
+    if (state.flags.SHARED_APARTMENT_IS_HOME || state.flags.DYNARIOT_MOVE_IN_COMPLETE) state.locations.currentHome = false;
 
     migrateQuestReferencesInState();
     migrateCapabilityCurve();
@@ -1749,7 +1757,7 @@
         els.homeHouseholdStatus.classList.remove("hidden");
         const residents = hub?.residents || [];
         els.homeHouseholdStatus.innerHTML = `
-          <div class="home-household-summary-v314aw"><span>🏠</span><strong>${escapeHtml(hub?.summary || "Checking who's around…")}</strong><small>${escapeHtml(worldDaypartLabel())} · no obligation to interact</small></div>
+          <div class="home-household-summary-v314aw"><span>🏠</span><strong>${escapeHtml(hub?.summary || "Checking who's around…")}</strong><small>${escapeHtml(worldDaypartLabel())} · no obligation to interact</small><button class="mini-nav-button home-open-world-v314bf" type="button" data-home-world-open="sharedApartment">Open apartment ›</button></div>
           <div class="home-resident-row-v314aw">
             ${residents.map(person => `
               <span class="home-resident-chip-v314aw ${person.home ? "is-home" : "is-away"}">
@@ -1761,6 +1769,11 @@
             return kept.length ? `<div class="home-keepsake-note-v314ay"><span>🎁</span><span><strong>Little things have started to stay.</strong><br>${kept.map(escapeHtml).join(" · ")}</span></div>` : "";
           })()}`;
       }
+
+      els.homeHouseholdStatus?.querySelector?.("[data-home-world-open]")?.addEventListener("click", event => {
+        event.preventDefault();
+        openWorldLocation(event.currentTarget.dataset.homeWorldOpen || "sharedApartment");
+      });
 
       const rooms = hub?.rooms || [
         { id:"living", icon:"🛋️", label:"Living Room", summary:"Shared space", actionCount:0, presences:[] },
@@ -2472,6 +2485,8 @@
     if (state.flags.LOCATION_KONBINI_INTRODUCED) state.locations.konbini = true;
     if (state.flags.LOCATION_GROCERY_INTRODUCED) state.locations.grocery = true;
     if (state.flags.LOCATION_PARK_INTRODUCED) state.locations.park = true;
+    if (!state.flags.LOCATION_DISTRICT_INTRODUCED) state.locations.district = false;
+    if (state.flags.SHARED_APARTMENT_IS_HOME || state.flags.DYNARIOT_MOVE_IN_COMPLETE) state.locations.currentHome = false;
   }
 
   function showQuestClear(quest, reward) {
@@ -2561,40 +2576,42 @@
 
   function renderWorld() {
     if (!els.locationGrid) return;
-    els.locationGrid.innerHTML = Object.entries(LOCATION_META)
-      .map(([key, meta]) => {
-        const movedIntoSharedHome = Boolean(state.flags?.SHARED_APARTMENT_IS_HOME || state.flags?.DYNARIOT_MOVE_IN_COMPLETE);
-        const displayMeta = key === "currentHome" && movedIntoSharedHome
-          ? { ...meta, label: "Previous Apartment", description: "Luca’s old apartment — familiar, inconveniently far away, and no longer home." }
-          : meta;
-        const unlocked = Boolean(state.locations[key]);
-        const worldStatus = unlocked ? window.LifeRPGStoryUI?.getWorldLocationDetails?.(key) : null;
-        const presences = worldStatus?.presences || [];
-        const hasActivity = Boolean(worldStatus?.available);
-        const art = unlocked && displayMeta.art ? `<div class="location-card-art"><img src="${escapeHtml(uiThumb(displayMeta.art))}" alt="" loading="lazy" decoding="async" /></div>` : "";
-        const presence = unlocked
-          ? presences.length
-            ? `<div class="location-presence is-active"><div class="location-presence-stack">${presences.slice(0, 3).map(person => person.cardAsset ? `<img src="${escapeHtml(uiThumb(person.cardAsset))}" alt="" loading="lazy" decoding="async" />` : `<span>${escapeHtml(person.icon || "♡")}</span>`).join("")}</div><span><strong>${escapeHtml(presences.map(person => person.name).join(" · "))}</strong><small>${escapeHtml(worldStatus.summary || "Someone familiar is here right now.")}</small></span></div>`
-            : hasActivity
-              ? `<div class="location-presence is-active"><span>✦</span><span><strong>Something is happening</strong><small>${escapeHtml(worldStatus.summary || "A small free moment is available here.")}</small></span></div>`
-              : `<div class="location-presence is-quiet"><span>☁</span><span><strong>Quiet right now</strong><small>Still visitable · availability changes with story and time of day.</small></span></div>`
-          : "";
+    const movedIntoSharedHome = Boolean(state.flags?.SHARED_APARTMENT_IS_HOME || state.flags?.DYNARIOT_MOVE_IN_COMPLETE);
+    const visibleLocations = Object.entries(LOCATION_META).filter(([key]) => {
+      if (!state.locations?.[key]) return false;
+      if (key === "currentHome" && movedIntoSharedHome) return false;
+      return true;
+    });
 
-        return `
-          <article class="location-card ${unlocked ? "unlocked" : "locked"}">
-            ${unlocked ? "" : `<span class="location-lock">🔒 Unknown</span>`}
-            ${art}
-            <div class="location-card-copy">
-              <span class="location-icon">${unlocked ? displayMeta.icon : "✦"}</span>
-              <strong>${escapeHtml(unlocked ? displayMeta.label : "Unknown Location")}</strong>
-              <small>${escapeHtml(unlocked ? displayMeta.description : "This place has not been introduced in Luca's story yet.")}</small>
-              ${presence}
-              ${unlocked ? `<button class="secondary-button location-visit-button" type="button" data-world-location="${escapeHtml(key)}">${hasActivity ? "Visit · something's here" : "Visit"}</button>` : ""}
-            </div>
-          </article>
-        `;
-      })
-      .join("");
+    if (!visibleLocations.length) {
+      els.locationGrid.innerHTML = `<div class="empty-state compact">Places enter the Atlas when Luca actually discovers them in the story.</div>`;
+      return;
+    }
+
+    els.locationGrid.innerHTML = visibleLocations.map(([key, meta]) => {
+      const worldStatus = window.LifeRPGStoryUI?.getWorldLocationDetails?.(key) || null;
+      const presences = worldStatus?.presences || [];
+      const hasActivity = Boolean(worldStatus?.available);
+      const art = meta.art ? `<div class="location-card-art"><img src="${escapeHtml(uiThumb(meta.art))}" alt="" loading="lazy" decoding="async" /></div>` : "";
+      const presence = presences.length
+        ? `<div class="location-presence is-active"><div class="location-presence-stack">${presences.slice(0, 3).map(person => person.cardAsset ? `<img src="${escapeHtml(uiThumb(person.cardAsset))}" alt="" loading="lazy" decoding="async" />` : `<span>${escapeHtml(person.icon || "♡")}</span>`).join("")}</div><span><strong>${escapeHtml(presences.map(person => person.name).join(" · "))}</strong><small>${escapeHtml(worldStatus.summary || "Someone familiar is here right now.")}</small></span></div>`
+        : hasActivity
+          ? `<div class="location-presence is-active"><span>✦</span><span><strong>Something is happening</strong><small>${escapeHtml(worldStatus.summary || "A small free moment is available here.")}</small></span></div>`
+          : `<div class="location-presence is-quiet"><span>☁</span><span><strong>Quiet right now</strong><small>This place is still here even when nobody familiar is around.</small></span></div>`;
+
+      return `
+        <article class="location-card unlocked">
+          ${art}
+          <div class="location-card-copy">
+            <span class="location-icon">${meta.icon}</span>
+            <strong>${escapeHtml(meta.label)}</strong>
+            <small>${escapeHtml(meta.description)}</small>
+            ${presence}
+            <button class="secondary-button location-visit-button" type="button" data-world-location="${escapeHtml(key)}">${hasActivity ? "Visit · something's here" : "Visit"}</button>
+          </div>
+        </article>
+      `;
+    }).join("");
   }
 
   function renderMemories() {

@@ -14,7 +14,7 @@
   <link rel="manifest" href="manifest.webmanifest?v=0.30.3a" />
   <link rel="apple-touch-icon" href="assets/app-icon-180.png?v=0.30.3a" />
   <link rel="icon" type="image/png" sizes="192x192" href="assets/app-icon-192.png?v=0.30.3a" />
-  <link rel="stylesheet" href="styles.css?v=0.31.4aw" />
+  <link rel="stylesheet" href="styles.css?v=0.31.4bf" />
   <link rel="stylesheet" href="skills.css?v=0.31.4ah" />
   <link rel="stylesheet" href="talent-v2.css?v=0.31.4an" />
   <link rel="stylesheet" href="talent-tree-v2-graph.css?v=0.31.4ar" />
@@ -533,6 +533,20 @@
           <article class="games-summary-card-v17"><span>▶</span><div><small>PLAYING NOW</small><strong id="gameSummaryPlaying">0</strong></div></article>
           <article class="games-summary-card-v17"><span>✦</span><div><small>WANT TO PLAY</small><strong id="gameSummaryBacklog">0</strong></div></article>
           <article class="games-summary-card-v17"><span>☐</span><div><small>OPEN PERSONAL GOALS</small><strong id="gameSummaryGoals">0</strong></div></article>
+        </section>
+
+        <section class="games-playtime-insights-v314bf" aria-label="Playtime statistics">
+          <div class="games-playtime-insight-head-v314bf">
+            <div><p class="eyebrow">PLAYTIME · LIFE RPG + STEAM</p><h2>Your play, actually counted</h2><p>Steam deltas and manual sessions share one history without double-counting the same minutes.</p></div>
+            <button class="mini-nav-button" type="button" data-view-target="activity">Activity log ›</button>
+          </div>
+          <div class="games-playtime-stat-grid-v314bf">
+            <article><small>LAST 7 DAYS</small><strong id="gamePlaytime7d">0m</strong></article>
+            <article><small>LAST 30 DAYS</small><strong id="gamePlaytime30d">0m</strong></article>
+            <article><small>ALL LIFE RPG LOGGED</small><strong id="gamePlaytimeLogged">0m</strong></article>
+            <article><small>STEAM AUTO-LOGGED</small><strong id="gamePlaytimeSteam">0m</strong></article>
+          </div>
+          <div id="gamePlaytimeBars" class="games-playtime-bars-v314bf"></div>
         </section>
 
         <section class="games-steam-connection-v314u" id="gamesSteamConnectionCard" aria-label="Steam connection">
@@ -3166,18 +3180,18 @@ League of Legends — PC" required></textarea></label>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <script src="data/quests.js?v=0.31.4h"></script>
-  <script src="story-engine.js?v=0.31.4be"></script>
+  <script src="story-engine.js?v=0.31.4bf"></script>
   <script src="modal-manager.js?v=0.31.4d"></script>
   <script src="training-focus.js?v=0.31.4o"></script>
   <script src="visual-performance.js?v=0.31.4c"></script>
-  <script src="app.js?v=0.31.4bc"></script>
+  <script src="app.js?v=0.31.4bf"></script>
   <script src="daily-streaks.js?v=0.31.4z"></script>
   <script src="stewardship.js?v=0.31.3a"></script>
   <script src="habits.js?v=0.31.4au"></script>
   <script src="adventures.js?v=0.31.4ag"></script>
   <script src="adventure-workspace.js?v=0.31.4c"></script>
   <script src="library.js?v=0.31.4ag"></script>
-  <script src="games.js?v=0.31.4ai"></script>
+  <script src="games.js?v=0.31.4bf"></script>
   <script src="time.js?v=0.31.1"></script>
   <script src="universal-timers.js?v=0.31.1"></script>
   <script src="inspirations.js?v=0.31.4c"></script>
@@ -3199,7 +3213,7 @@ League of Legends — PC" required></textarea></label>
   <script src="data/year-journal-questions.js?v=0.31.4ar"></script>
   <script src="journal.js?v=0.31.4ar"></script>
   <script src="relationship-memory.js?v=0.31.4bc"></script>
-  <script src="story-ui.js?v=0.31.4be"></script>
+  <script src="story-ui.js?v=0.31.4bf"></script>
   <script src="relationship-engine.js?v=0.31.4ba"></script>
   <script src="gifts.js?v=0.31.4ba"></script>
   <script src="seasons.js?v=0.31.4ba"></script>
@@ -3222,6 +3236,6 @@ League of Legends — PC" required></textarea></label>
   <script src="weekly-review.js?v=0.31.4ag"></script>
 
   <script type="module" src="cloud-save.js?v=0.31.4ag"></script>
-  <script src="pwa.js?v=0.31.4be"></script>
+  <script src="pwa.js?v=0.31.4bf"></script>
 </body>
 </html>
