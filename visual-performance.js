@@ -45,6 +45,20 @@
     'assets/story/sprites/mina_embarrassed.webp': 'assets/ui/thumbs/characters/mina_embarrassed.webp',
     'assets/story/sprites/mina_annoyed.webp': 'assets/ui/thumbs/characters/mina_annoyed.webp',
     'assets/story/sprites/mina_soft_sad.webp': 'assets/ui/thumbs/characters/mina_soft_sad.webp',
+    'assets/story/sprites/izuku/izuku_neutral.webp': 'assets/ui/thumbs/characters/izuku/izuku_neutral.webp',
+    'assets/story/sprites/izuku/izuku_slightSmile.webp': 'assets/ui/thumbs/characters/izuku/izuku_slightSmile.webp',
+    'assets/story/sprites/izuku/izuku_happy.webp': 'assets/ui/thumbs/characters/izuku/izuku_happy.webp',
+    'assets/story/sprites/izuku/izuku_laughing.webp': 'assets/ui/thumbs/characters/izuku/izuku_laughing.webp',
+    'assets/story/sprites/izuku/izuku_serious.webp': 'assets/ui/thumbs/characters/izuku/izuku_serious.webp',
+    'assets/story/sprites/izuku/izuku_determined.webp': 'assets/ui/thumbs/characters/izuku/izuku_determined.webp',
+    'assets/story/sprites/izuku/izuku_annoyed.webp': 'assets/ui/thumbs/characters/izuku/izuku_annoyed.webp',
+    'assets/story/sprites/izuku/izuku_surprised.webp': 'assets/ui/thumbs/characters/izuku/izuku_surprised.webp',
+    'assets/story/sprites/izuku/izuku_embarrassed.webp': 'assets/ui/thumbs/characters/izuku/izuku_embarrassed.webp',
+    'assets/story/sprites/izuku/izuku_concerned.webp': 'assets/ui/thumbs/characters/izuku/izuku_concerned.webp',
+    'assets/story/sprites/izuku/izuku_nerdy.webp': 'assets/ui/thumbs/characters/izuku/izuku_nerdy.webp',
+    'assets/story/sprites/izuku/izuku_soft.webp': 'assets/ui/thumbs/characters/izuku/izuku_soft.webp',
+    'assets/story/sprites/izuku/izuku_tired.webp': 'assets/ui/thumbs/characters/izuku/izuku_tired.webp',
+    'assets/story/sprites/izuku/izuku_confident.webp': 'assets/ui/thumbs/characters/izuku/izuku_confident.webp',
   });
 
   function thumbnail(src) {
