@@ -4283,7 +4283,8 @@
     if (/konbini|convenience store/.test(value)) candidates.push("konbini");
     if (/supermarket|grocery|neighborhood market/.test(value)) candidates.push("grocery");
     if (/riverside|park/.test(value)) candidates.push("park");
-    if (/café|cafe|coffee|bookstore/.test(value)) candidates.push("cityCafe");
+    if (/café|cafe|coffee/.test(value)) candidates.push("cityCafe");
+    if (/bookstore|bookshop|collector/.test(value)) candidates.push("cityDusk");
     if (/station|commute|train|platform/.test(value)) candidates.push("stationEvening");
     if (/shared apartment|new apartment|possible new apartment/.test(value)) candidates.push("sharedApartment");
     if (/apartment|home|room/.test(value)) candidates.push("homeMorning");
@@ -4320,6 +4321,12 @@
       sunset: { src: "assets/story/backgrounds/time/city_sunset.webp", alt: "City district at sunset" },
       night: { src: "assets/story/backgrounds/time/city_night.webp", alt: "City district at night" }
     },
+    cityCafe: {
+      dawn: { src: "assets/story/backgrounds/time/koharu_cafe_dawn.webp", alt: "Koharu Café at dawn" },
+      day: { src: "assets/story/backgrounds/time/koharu_cafe_day.webp", alt: "Koharu Café in daylight" },
+      sunset: { src: "assets/story/backgrounds/time/koharu_cafe_sunset.webp", alt: "Koharu Café at sunset" },
+      night: { src: "assets/story/backgrounds/time/koharu_cafe_night.webp", alt: "Koharu Café at night" }
+    },
     sharedApartment: {
       dawn: { src: "assets/story/backgrounds/time/shared_apartment_dawn.webp", alt: "Shared apartment living room at dawn" },
       day: { src: "assets/story/backgrounds/time/shared_apartment_day.webp", alt: "Shared apartment living room in daylight" },
@@ -4352,6 +4359,12 @@
       day: ["cityDay", "cityDusk"],
       sunset: ["citySunset", "cityDusk"],
       night: ["cityNight", "cityDusk"]
+    },
+    cityCafe: {
+      dawn: ["cityCafeDawn", "cityCafe"],
+      day: ["cityCafeDay", "cityCafe"],
+      sunset: ["cityCafeSunset", "cityCafe"],
+      night: ["cityCafeNight", "cityCafe"]
     },
     sharedApartment: {
       dawn: ["sharedApartmentDawn", "sharedApartment"],
@@ -4398,15 +4411,19 @@
   function storyLightingContext(visual = null, activeRuntime = runtime) {
     const requested = visual?.background || contextualBackgroundForRuntime(activeRuntime);
     const locationKey = inferWorldLocation(activeRuntime?.scene) || locationKeyFromBackground(requested);
-    if (locationKey === "school") return { part: "day", locationKey, fixed: true };
+    if (locationKey === "school") return { part: "day", locationKey, fixed: true, source: "school-fixed-day" };
+
+    const solar = app.getSolarDaypart?.(new Date()) || null;
+    if (solar?.part) {
+      return { ...solar, locationKey: locationKey || "other", fixed: false };
+    }
 
     const hour = new Date().getHours() + new Date().getMinutes() / 60;
     let part = "night";
     if (hour >= 5 && hour < 8) part = "dawn";
     else if (hour >= 8 && hour < 17) part = "day";
     else if (hour >= 17 && hour < 20) part = "sunset";
-
-    return { part, locationKey: locationKey || "other", fixed: false };
+    return { part, locationKey: locationKey || "other", fixed: false, source: "legacy-clock" };
   }
 
   function timeAwareBackgroundKey(backgroundKey, backgroundAssets, visual = null) {

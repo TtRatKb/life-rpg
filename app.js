@@ -2526,8 +2526,104 @@
     }
   };
 
-  function worldBackgroundTimePart() {
-    const now = new Date();
+  const WORLD_LOCATION_TIME_ART = {
+    currentHome: {
+      dawn: "assets/story/backgrounds/time/home_dawn.webp",
+      day: "assets/story/backgrounds/time/home_day.webp",
+      sunset: "assets/story/backgrounds/time/home_sunset.webp",
+      night: "assets/story/backgrounds/time/home_night.webp"
+    },
+    station: {
+      dawn: "assets/story/backgrounds/time/station_dawn.webp",
+      day: "assets/story/backgrounds/time/station_day.webp",
+      sunset: "assets/story/backgrounds/time/station_sunset.webp",
+      night: "assets/story/backgrounds/time/station_night.webp"
+    },
+    cafe: {
+      dawn: "assets/story/backgrounds/time/koharu_cafe_dawn.webp",
+      day: "assets/story/backgrounds/time/koharu_cafe_day.webp",
+      sunset: "assets/story/backgrounds/time/koharu_cafe_sunset.webp",
+      night: "assets/story/backgrounds/time/koharu_cafe_night.webp"
+    },
+    district: {
+      dawn: "assets/story/backgrounds/time/city_dawn.webp",
+      day: "assets/story/backgrounds/time/city_day.webp",
+      sunset: "assets/story/backgrounds/time/city_sunset.webp",
+      night: "assets/story/backgrounds/time/city_night.webp"
+    }
+  };
+
+  const SOLAR_TIMEZONE_FALLBACKS = {
+    "Europe/Berlin": { lat: 52.52, lon: 13.405, label: "Europe/Berlin solar fallback" }
+  };
+
+  function normalizedDegrees(value) {
+    return ((value % 360) + 360) % 360;
+  }
+
+  function normalizedHours(value) {
+    return ((value % 24) + 24) % 24;
+  }
+
+  function degreesToRadians(value) {
+    return value * Math.PI / 180;
+  }
+
+  function radiansToDegrees(value) {
+    return value * 180 / Math.PI;
+  }
+
+  function dayOfYear(date) {
+    const start = new Date(date.getFullYear(), 0, 0);
+    return Math.floor((date - start) / 86400000);
+  }
+
+  function solarEventHour(date, latitude, longitude, sunrise) {
+    const zenith = 90.833;
+    const n = dayOfYear(date);
+    const lngHour = longitude / 15;
+    const t = n + (((sunrise ? 6 : 18) - lngHour) / 24);
+    const m = (0.9856 * t) - 3.289;
+    let l = m + (1.916 * Math.sin(degreesToRadians(m))) + (0.020 * Math.sin(degreesToRadians(2 * m))) + 282.634;
+    l = normalizedDegrees(l);
+
+    let ra = radiansToDegrees(Math.atan(0.91764 * Math.tan(degreesToRadians(l))));
+    ra = normalizedDegrees(ra);
+    const lQuadrant = Math.floor(l / 90) * 90;
+    const raQuadrant = Math.floor(ra / 90) * 90;
+    ra = (ra + (lQuadrant - raQuadrant)) / 15;
+
+    const sinDec = 0.39782 * Math.sin(degreesToRadians(l));
+    const cosDec = Math.cos(Math.asin(sinDec));
+    const cosH = (Math.cos(degreesToRadians(zenith)) - (sinDec * Math.sin(degreesToRadians(latitude))))
+      / (cosDec * Math.cos(degreesToRadians(latitude)));
+    if (!Number.isFinite(cosH) || cosH > 1 || cosH < -1) return null;
+
+    let h = sunrise
+      ? 360 - radiansToDegrees(Math.acos(cosH))
+      : radiansToDegrees(Math.acos(cosH));
+    h /= 15;
+
+    const localMean = h + ra - (0.06571 * t) - 6.622;
+    const utcHour = normalizedHours(localMean - lngHour);
+    const tzOffsetHours = -new Date(date.getFullYear(), date.getMonth(), date.getDate(), 12).getTimezoneOffset() / 60;
+    return normalizedHours(utcHour + tzOffsetHours);
+  }
+
+  function solarCoordinates() {
+    const weather = state.story?.social?.weatherContext || {};
+    const lat = Number(weather.lat);
+    const lon = Number(weather.lon);
+    if (Number.isFinite(lat) && Number.isFinite(lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180) {
+      return { lat, lon, source: "saved-weather-location" };
+    }
+
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
+    const fallback = SOLAR_TIMEZONE_FALLBACKS[timezone];
+    return fallback ? { ...fallback, source: "timezone-fallback" } : null;
+  }
+
+  function legacyClockDaypart(now = new Date()) {
     const hour = now.getHours() + now.getMinutes() / 60;
     if (hour >= 5 && hour < 8) return "dawn";
     if (hour >= 8 && hour < 17) return "day";
@@ -2535,18 +2631,55 @@
     return "night";
   }
 
+  function getSolarDaypart(now = new Date()) {
+    const coords = solarCoordinates();
+    if (!coords) return { part: legacyClockDaypart(now), source: "legacy-clock" };
+
+    const sunrise = solarEventHour(now, coords.lat, coords.lon, true);
+    const sunset = solarEventHour(now, coords.lat, coords.lon, false);
+    if (!Number.isFinite(sunrise) || !Number.isFinite(sunset)) {
+      return { part: legacyClockDaypart(now), source: "legacy-clock" };
+    }
+
+    const currentMinutes = now.getHours() * 60 + now.getMinutes() + now.getSeconds() / 60;
+    const sunriseMinutes = sunrise * 60;
+    const sunsetMinutes = sunset * 60;
+    const dawnStart = sunriseMinutes - 75;
+    const dawnEnd = sunriseMinutes + 75;
+    const sunsetStart = sunsetMinutes - 75;
+    const sunsetEnd = sunsetMinutes + 75;
+
+    let part = "night";
+    if (currentMinutes >= dawnStart && currentMinutes < dawnEnd) part = "dawn";
+    else if (currentMinutes >= dawnEnd && currentMinutes < sunsetStart) part = "day";
+    else if (currentMinutes >= sunsetStart && currentMinutes < sunsetEnd) part = "sunset";
+
+    return {
+      part,
+      sunriseHour: sunrise,
+      sunsetHour: sunset,
+      source: coords.source,
+      latitude: coords.lat,
+      longitude: coords.lon
+    };
+  }
+
+  function worldBackgroundTimePart() {
+    return getSolarDaypart(new Date()).part;
+  }
+
   function worldLocationArt(locationKey, roomId, fallbackArt) {
     const part = worldBackgroundTimePart();
-    const timed = WORLD_ROOM_TIME_ART?.[locationKey]?.[roomId]?.[part];
-    return timed || WORLD_ROOM_ART?.[locationKey]?.[roomId] || fallbackArt || "";
+    const timedRoom = WORLD_ROOM_TIME_ART?.[locationKey]?.[roomId]?.[part];
+    const timedLocation = WORLD_LOCATION_TIME_ART?.[locationKey]?.[part];
+    return timedRoom || timedLocation || WORLD_ROOM_ART?.[locationKey]?.[roomId] || fallbackArt || "";
   }
 
   function worldDaypartLabel() {
-    const hour = new Date().getHours();
-    if (hour < 6) return "Late night";
-    if (hour < 11) return "Morning";
-    if (hour < 16) return "Daytime";
-    if (hour < 21) return "Evening";
+    const part = worldBackgroundTimePart();
+    if (part === "dawn") return "Dawn";
+    if (part === "day") return "Daytime";
+    if (part === "sunset") return "Sunset";
     return "Night";
   }
 
@@ -3011,6 +3144,7 @@
     replaceState,
     renderAll,
     renderWorld,
+    getSolarDaypart,
     showView,
     showToast,
     escapeHtml
