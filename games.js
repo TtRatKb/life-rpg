@@ -2593,7 +2593,7 @@
     };
   }
 
-  function applySteamLibrary(data = {}, syncedAt = Date.now()) {
+  function applySteamLibrary(data = {}, syncedAt = Date.now(), onlyAppId = "") {
     const rawGames = Array.isArray(data.games) ? data.games : data.game ? [data.game] : Array.isArray(data.response?.games) ? data.response.games : [];
     const remoteGames = rawGames.map(normalizeSteamOwnedGame).filter(item => item.appId);
     const byAppId = new Map(remoteGames.map(item => [item.appId, item]));
@@ -2609,6 +2609,7 @@
     };
 
     for (const game of model().items) {
+      if (onlyAppId && String(game.steamAppId || "") !== String(onlyAppId)) continue;
       const remote = byAppId.get(String(game.steamAppId || ""));
       if (!remote) continue;
 
@@ -2636,14 +2637,44 @@
   }
 
   async function syncSteamLibrary({ appId = "", silent = true } = {}) {
+    let primaryError = null;
+    let usedFullLibraryFallback = false;
     try {
-      const data = await fetchSteamLibrary(appId);
-      const result = applySteamLibrary(data, Date.now());
+      let data;
+      try {
+        data = await fetchSteamLibrary(appId);
+      } catch (error) {
+        primaryError = error;
+        // Some Steam/Worker combinations fail on a filtered GetOwnedGames request even
+        // though the full owned-games library loads correctly. Retry the unfiltered
+        // library and then match only the requested App ID locally.
+        if (!appId) throw error;
+        console.warn("Filtered Steam library load failed; retrying full library", appId, error);
+        data = await fetchSteamLibrary("");
+        usedFullLibraryFallback = true;
+      }
+
+      const syncedAt = Date.now();
+      const result = applySteamLibrary(data, syncedAt, appId);
+
+      if (appId && result.matched === 0) {
+        const game = model().items.find(item => String(item.steamAppId || "") === String(appId));
+        if (game) {
+          const sync = steamPlaytimeSyncState(game);
+          sync.lastSyncAt = syncedAt;
+          sync.lastError = "Steam returned no owned-game playtime for this App ID. Achievements can still sync; the game may be missing from GetOwnedGames (for example with Family Sharing) or Steam may not expose its playtime through this endpoint.";
+        }
+        persist("steam-library-sync-no-match", { render: false });
+        if (!silent) showToast("Steam playtime unavailable", `${game?.title || `App ${appId}`} · ${steamPlaytimeSyncState(game || {}).lastError || "No playtime record returned."}`);
+        return { data, ...result, unavailable: true, usedFullLibraryFallback };
+      }
+
       result.games.forEach(row => { const game = findGame(row.gameId); if (game) steamPlaytimeSyncState(game).lastError = ""; });
       persist("steam-library-sync", { render: false });
 
       if (!silent) {
         const bits = [`${result.matched} Life RPG game${result.matched === 1 ? "" : "s"} matched`];
+        if (usedFullLibraryFallback) bits.push("recovered via full-library fallback");
         if (result.baselined) bits.push(`${result.baselined} reward-free playtime baseline${result.baselined === 1 ? "" : "s"} created`);
         if (result.importedMinutes) bits.push(`${formatDuration(result.importedMinutes)} new Steam playtime logged`);
         if (result.coveredMinutes) bits.push(`${formatDuration(result.coveredMinutes)} already covered by local logs`);
@@ -2652,9 +2683,9 @@
         showToast("Steam playtime synced ✓", bits.join(" · "));
       }
 
-      return { data, ...result };
+      return { data, ...result, usedFullLibraryFallback };
     } catch (error) {
-      console.warn("Steam library sync failed", error);
+      console.warn("Steam library sync failed", error, primaryError ? { primaryError } : "");
       const message = String(error?.message || error);
       const affected = appId ? model().items.filter(game => String(game.steamAppId || "") === String(appId)) : model().items.filter(game => game.steamAppId);
       affected.forEach(game => { const sync = steamPlaytimeSyncState(game); sync.lastError = message; sync.lastSyncAt = Date.now(); });
