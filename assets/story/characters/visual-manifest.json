@@ -36,7 +36,7 @@
       "legacyRule": "Older white-matte Luca runtime portraits and legacy character illustrations are transitional only and are excluded as visual-generation references."
     },
     "bakugo": {
-      "status": "locked-base+angry-pack+happy-pack+soft-pack+tired-pack+smug-cocky-pack+hero-costume-pack+hero-expansion-pack",
+      "status": "locked-base+angry-pack+happy-pack+soft-pack+tired-pack+smug-cocky-pack+hero-costume-pack+hero-expansion-pack+off-duty-mirror-pack",
       "displayName": "Katsuki Bakugo",
       "visualVersion": "bakugo-offduty-v2",
       "canonNotes": [
@@ -101,7 +101,24 @@
         "heroAffectionate": "assets/story/characters/bakugo-hero-affectionate.png",
         "heroVulnerable": "assets/story/characters/bakugo-hero-vulnerable.png",
         "heroInPain": "assets/story/characters/bakugo-hero-in-pain.png",
-        "heroRage": "assets/story/characters/bakugo-hero-rage.png"
+        "heroRage": "assets/story/characters/bakugo-hero-rage.png",
+        "casualConcerned": "assets/story/characters/bakugo-casual-concerned.png",
+        "casualProtective": "assets/story/characters/bakugo-casual-protective.png",
+        "casualJealous": "assets/story/characters/bakugo-casual-jealous.png",
+        "casualVulnerable": "assets/story/characters/bakugo-casual-vulnerable.png",
+        "casualRage": "assets/story/characters/bakugo-casual-rage.png",
+        "casualTired": "assets/story/characters/bakugo-casual-tired.png",
+        "casualDisgusted": "assets/story/characters/bakugo-casual-disgusted.png",
+        "casualInPain": "assets/story/characters/bakugo-casual-in-pain.png",
+        "casualScornful": "assets/story/characters/bakugo-casual-scornful.png",
+        "casualDetermined": "assets/story/characters/bakugo-casual-determined.png",
+        "casualSurprised": "assets/story/characters/bakugo-casual-surprised.png",
+        "casualLaughing": "assets/story/characters/bakugo-casual-laughing.png",
+        "casualEmbarrassed": "assets/story/characters/bakugo-casual-embarrassed.png",
+        "casualTsundere": "assets/story/characters/bakugo-casual-tsundere.png",
+        "casualAffectionate": "assets/story/characters/bakugo-casual-affectionate.png",
+        "casualUnimpressed": "assets/story/characters/bakugo-casual-unimpressed.png",
+        "casualShy": "assets/story/characters/bakugo-casual-shy.png"
       },
       "temporaryFallbacks": {
         "tired": "assets/story/characters/bakugo-annoyed-away.png",
@@ -145,7 +162,24 @@
         "heroAffectionate": "assets/story/characters/bakugo-hero-affectionate.png (approved tiny-smile affectionate hero expression)",
         "heroVulnerable": "assets/story/characters/bakugo-hero-vulnerable.png (approved guarded hurt/vulnerable hero expression)",
         "heroInPain": "assets/story/characters/bakugo-hero-in-pain.png (approved battle-worn pain sprite)",
-        "heroRage": "assets/story/characters/bakugo-hero-rage.png (approved feral/explosive-rage special hero sprite)"
+        "heroRage": "assets/story/characters/bakugo-hero-rage.png (approved feral/explosive-rage special hero sprite)",
+        "casualConcerned": "assets/story/characters/bakugo-casual-concerned.png (approved off-duty mirror of the hero concerned/alert expression)",
+        "casualProtective": "assets/story/characters/bakugo-casual-protective.png (approved off-duty mirror of the hero protective expression)",
+        "casualJealous": "assets/story/characters/bakugo-casual-jealous.png (approved off-duty mirror of the hero jealous/brooding expression)",
+        "casualVulnerable": "assets/story/characters/bakugo-casual-vulnerable.png (approved off-duty guarded vulnerable expression)",
+        "casualRage": "assets/story/characters/bakugo-casual-rage.png (approved off-duty mirror of the hero feral rage expression)",
+        "casualTired": "assets/story/characters/bakugo-casual-tired.png (approved off-duty mirror of the hero tired expression)",
+        "casualDisgusted": "assets/story/characters/bakugo-casual-disgusted.png (approved off-duty mirror of the hero disgusted expression)",
+        "casualInPain": "assets/story/characters/bakugo-casual-in-pain.png (approved off-duty mirror of the hero in-pain sprite)",
+        "casualScornful": "assets/story/characters/bakugo-casual-scornful.png (approved off-duty scornful/skeptical extra)",
+        "casualDetermined": "assets/story/characters/bakugo-casual-determined.png (approved off-duty mirror of the hero determined expression)",
+        "casualSurprised": "assets/story/characters/bakugo-casual-surprised.png (approved off-duty mirror of the hero surprised/caught-off-guard expression)",
+        "casualLaughing": "assets/story/characters/bakugo-casual-laughing.png (approved off-duty mirror of the hero laughing expression)",
+        "casualEmbarrassed": "assets/story/characters/bakugo-casual-embarrassed.png (approved off-duty mirror of the hero embarrassed expression)",
+        "casualTsundere": "assets/story/characters/bakugo-casual-tsundere.png (approved off-duty mirror of the hero tsundere expression)",
+        "casualAffectionate": "assets/story/characters/bakugo-casual-affectionate.png (approved off-duty mirror of the hero affectionate tiny-smile expression)",
+        "casualUnimpressed": "assets/story/characters/bakugo-casual-unimpressed.png (approved off-duty mirror of the hero unimpressed/deadpan expression)",
+        "casualShy": "assets/story/characters/bakugo-casual-shy.png (approved off-duty mirror of the hero shy/soft-flustered expression)"
       },
       "expressionNotes": [
         "Dedicated Angry pack approved 2026-08-24. Angry must read clearly stronger than the Annoyed/Irritated family through face and body language.",
@@ -172,7 +206,10 @@
         "Hero expressions are intentionally a compact standard set for story use rather than a duplicate of every off-duty emotion.",
         "Expanded Adult Pro-Hero expression pack integrated 2026-09-12 from approved standalone runtime cutouts only; no collage assets are canonical runtime sources.",
         "Hero runtime coverage now includes core conversational expressions (concerned, surprised, determined, tired, jealous, tsundere, embarrassed, laughing, unimpressed, protective, shy, disgusted, affectionate) plus special-use sprites (vulnerable, in pain, feral rage).",
-        "Use heroSpecialRuntimePack sparingly for heightened scenes; heroCoreRuntimePack is the default pool for routine story/runtime use."
+        "Use heroSpecialRuntimePack sparingly for heightened scenes; heroCoreRuntimePack is the default pool for routine story/runtime use.",
+        "Adult Bakugo now also has an off-duty mirror pack that matches the newer expanded Pro Hero expression coverage in the approved pretty/casual rendering style.",
+        "Off-duty mirror pack uses standalone transparent PNG sprites only and mirrors the hero-expression expansion with casual clothes for continuity between casual Bakugo and Dynamight scenes.",
+        "casualScornful is retained as an optional extra alongside the core/special mirror pack because it is useful for skeptical and dry reaction shots."
       ],
       "heroCostumeVersion": "bakugo-adult-pro-hero-v2",
       "heroCoreRuntimePack": [
@@ -199,6 +236,35 @@
         "heroVulnerable",
         "heroInPain",
         "heroRage"
+      ],
+      "offDutyMirrorCoreRuntimePack": [
+        "neutral",
+        "angryClenched",
+        "annoyedMild",
+        "smugHandsPockets",
+        "soft",
+        "happyGenuineGrin",
+        "casualConcerned",
+        "casualDetermined",
+        "casualTired",
+        "casualJealous",
+        "casualProtective",
+        "casualUnimpressed",
+        "casualDisgusted",
+        "casualSurprised",
+        "casualLaughing",
+        "casualEmbarrassed",
+        "casualTsundere",
+        "casualShy",
+        "casualAffectionate"
+      ],
+      "offDutyMirrorSpecialRuntimePack": [
+        "casualVulnerable",
+        "casualInPain",
+        "casualRage"
+      ],
+      "offDutyMirrorOptionalExtras": [
+        "casualScornful"
       ]
     },
     "kirishima": {
