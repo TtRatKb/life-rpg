@@ -2105,11 +2105,12 @@
       if (!response.ok || !data.ok) throw new Error(data.error || `HTTP ${response.status}`);
       const supportsPlayerSync = data?.capabilities?.playerAchievements === true || Number(data?.protocolVersion || 0) >= 2;
       const supportsLibrarySync = data?.capabilities?.ownedGames === true || Number(data?.protocolVersion || 0) >= 3;
+      const supportsFamilyPlaytimeFallback = data?.capabilities?.recentlyPlayed === true || Number(data?.protocolVersion || 0) >= 4;
       if (els.steamConnectionStatus) {
         els.steamConnectionStatus.textContent = !data.steamKeyConfigured
           ? "Worker is online, but STEAM_API_KEY is not configured yet."
           : supportsPlayerSync
-            ? `✓ Worker ready · personal achievements${supportsLibrarySync ? " + Steam playtime" : ""} supported`
+            ? `✓ Worker ready · personal achievements${supportsLibrarySync ? " + Steam playtime" : ""}${supportsFamilyPlaytimeFallback ? " + Family Sharing fallback" : ""} supported`
             : "Worker + Steam key are online, but this is the old Worker build. Update the Worker to v3 for personal achievement unlocks and Steam playtime.";
       }
     } catch (error) {
@@ -2584,6 +2585,23 @@
     return data;
   }
 
+  async function fetchSteamRecentlyPlayed(appId = "") {
+    const settings = steamSettings();
+    if (!settings.workerUrl) throw new Error("Configure the Steam Worker in Settings first.");
+    if (!settings.steamId) throw new Error("Add your SteamID64 in Settings first.");
+    const params = new URLSearchParams({ steamid: settings.steamId, count: "0" });
+    if (appId) params.set("appid", String(appId));
+    const response = await fetch(`${settings.workerUrl}/api/steam/recently?${params.toString()}`, { headers: { Accept: "application/json" } });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data.ok) {
+      const workerUpdate = response.status === 404
+        ? "Steam Worker v4 is required for Family Sharing playtime fallback."
+        : "";
+      throw new Error(data.error || workerUpdate || `HTTP ${response.status}`);
+    }
+    return data;
+  }
+
   function normalizeSteamOwnedGame(remote = {}) {
     return {
       appId: String(remote.appid ?? remote.appId ?? remote.app_id ?? ""),
@@ -2636,9 +2654,20 @@
     return result;
   }
 
+  function mergeSteamLibraryResults(target, extra) {
+    if (!extra) return target;
+    for (const key of ["matched", "baselined", "importedMinutes", "coveredMinutes", "remoteDeltaMinutes", "skillXp", "realmXp"]) {
+      target[key] = Number(target[key] || 0) + Number(extra[key] || 0);
+    }
+    target.games = [...(target.games || []), ...(extra.games || [])];
+    return target;
+  }
+
   async function syncSteamLibrary({ appId = "", silent = true } = {}) {
     let primaryError = null;
     let usedFullLibraryFallback = false;
+    let usedRecentlyPlayedFallback = false;
+    let recentlyPlayedError = null;
     try {
       let data;
       try {
@@ -2657,16 +2686,54 @@
       const syncedAt = Date.now();
       const result = applySteamLibrary(data, syncedAt, appId);
 
+      // Steam Families / Family Sharing games may be absent from GetOwnedGames even though
+      // the user can play them and Steam records personal achievements. For games played
+      // recently, GetRecentlyPlayedGames can still expose playtime_forever. Use it only as
+      // a fallback so owned-library behavior remains unchanged.
+      if (appId && result.matched === 0) {
+        try {
+          const recentData = await fetchSteamRecentlyPlayed(appId);
+          const recentResult = applySteamLibrary(recentData, syncedAt, appId);
+          if (recentResult.matched > 0) {
+            mergeSteamLibraryResults(result, recentResult);
+            usedRecentlyPlayedFallback = true;
+          }
+        } catch (error) {
+          recentlyPlayedError = error;
+          console.warn("Recently-played Steam fallback failed", appId, error);
+        }
+      } else if (!appId) {
+        const matchedGameIds = new Set((result.games || []).map(row => row?.gameId).filter(Boolean));
+        const missing = model().items.filter(game => game?.steamAppId && !matchedGameIds.has(game.id));
+        if (missing.length) {
+          try {
+            const recentData = await fetchSteamRecentlyPlayed("");
+            for (const game of missing) {
+              const recentResult = applySteamLibrary(recentData, syncedAt, String(game.steamAppId || ""));
+              if (recentResult.matched > 0) {
+                mergeSteamLibraryResults(result, recentResult);
+                usedRecentlyPlayedFallback = true;
+              }
+            }
+          } catch (error) {
+            recentlyPlayedError = error;
+            console.warn("Recently-played Steam fallback failed for unmatched library games", error);
+          }
+        }
+      }
+
       if (appId && result.matched === 0) {
         const game = model().items.find(item => String(item.steamAppId || "") === String(appId));
         if (game) {
           const sync = steamPlaytimeSyncState(game);
           sync.lastSyncAt = syncedAt;
-          sync.lastError = "Steam returned no owned-game playtime for this App ID. Achievements can still sync; the game may be missing from GetOwnedGames (for example with Family Sharing) or Steam may not expose its playtime through this endpoint.";
+          sync.lastError = recentlyPlayedError
+            ? `Family Sharing fallback unavailable · ${String(recentlyPlayedError?.message || recentlyPlayedError)}`
+            : "Steam returned no playtime for this App ID from either GetOwnedGames or GetRecentlyPlayedGames. Family-shared games can only be recovered while Steam still lists them as recently played.";
         }
         persist("steam-library-sync-no-match", { render: false });
         if (!silent) showToast("Steam playtime unavailable", `${game?.title || `App ${appId}`} · ${steamPlaytimeSyncState(game || {}).lastError || "No playtime record returned."}`);
-        return { data, ...result, unavailable: true, usedFullLibraryFallback };
+        return { data, ...result, unavailable: true, usedFullLibraryFallback, usedRecentlyPlayedFallback };
       }
 
       result.games.forEach(row => { const game = findGame(row.gameId); if (game) steamPlaytimeSyncState(game).lastError = ""; });
@@ -2675,6 +2742,7 @@
       if (!silent) {
         const bits = [`${result.matched} Life RPG game${result.matched === 1 ? "" : "s"} matched`];
         if (usedFullLibraryFallback) bits.push("recovered via full-library fallback");
+        if (usedRecentlyPlayedFallback) bits.push("Family Sharing playtime recovered via Recently Played");
         if (result.baselined) bits.push(`${result.baselined} reward-free playtime baseline${result.baselined === 1 ? "" : "s"} created`);
         if (result.importedMinutes) bits.push(`${formatDuration(result.importedMinutes)} new Steam playtime logged`);
         if (result.coveredMinutes) bits.push(`${formatDuration(result.coveredMinutes)} already covered by local logs`);
@@ -2683,7 +2751,7 @@
         showToast("Steam playtime synced ✓", bits.join(" · "));
       }
 
-      return { data, ...result, usedFullLibraryFallback };
+      return { data, ...result, usedFullLibraryFallback, usedRecentlyPlayedFallback };
     } catch (error) {
       console.warn("Steam library sync failed", error, primaryError ? { primaryError } : "");
       const message = String(error?.message || error);
