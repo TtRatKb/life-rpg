@@ -4319,6 +4319,18 @@
       day: { src: "assets/story/backgrounds/time/city_day.webp", alt: "City district in daylight" },
       sunset: { src: "assets/story/backgrounds/time/city_sunset.webp", alt: "City district at sunset" },
       night: { src: "assets/story/backgrounds/time/city_night.webp", alt: "City district at night" }
+    },
+    sharedApartment: {
+      dawn: { src: "assets/story/backgrounds/time/shared_apartment_dawn.webp", alt: "Shared apartment living room at dawn" },
+      day: { src: "assets/story/backgrounds/time/shared_apartment_day.webp", alt: "Shared apartment living room in daylight" },
+      sunset: { src: "assets/story/backgrounds/time/shared_apartment_sunset.webp", alt: "Shared apartment living room at sunset" },
+      night: { src: "assets/story/backgrounds/time/shared_apartment_night.webp", alt: "Shared apartment living room at night" }
+    },
+    sharedApartmentKitchen: {
+      dawn: { src: "assets/story/backgrounds/time/shared_apartment_kitchen_dawn.webp", alt: "Shared apartment kitchen at dawn" },
+      day: { src: "assets/story/backgrounds/time/shared_apartment_kitchen_day.webp", alt: "Shared apartment kitchen in daylight" },
+      sunset: { src: "assets/story/backgrounds/time/shared_apartment_kitchen_sunset.webp", alt: "Shared apartment kitchen at sunset" },
+      night: { src: "assets/story/backgrounds/time/shared_apartment_kitchen_night.webp", alt: "Shared apartment kitchen at night" }
     }
   };
 
@@ -4340,6 +4352,18 @@
       day: ["cityDay", "cityDusk"],
       sunset: ["citySunset", "cityDusk"],
       night: ["cityNight", "cityDusk"]
+    },
+    sharedApartment: {
+      dawn: ["sharedApartmentDawn", "sharedApartment"],
+      day: ["sharedApartmentDay", "sharedApartment"],
+      sunset: ["sharedApartmentSunset", "sharedApartment"],
+      night: ["sharedApartmentNight", "sharedApartment"]
+    },
+    sharedApartmentKitchen: {
+      dawn: ["sharedApartmentKitchenDawn", "sharedApartmentKitchen", "sharedApartment"],
+      day: ["sharedApartmentKitchenDay", "sharedApartmentKitchen", "sharedApartment"],
+      sunset: ["sharedApartmentKitchenSunset", "sharedApartmentKitchen", "sharedApartment"],
+      night: ["sharedApartmentKitchenNight", "sharedApartmentKitchen", "sharedApartment"]
     },
     gym: {
       dawn: ["gymDawn", "gymDay", "gym"],

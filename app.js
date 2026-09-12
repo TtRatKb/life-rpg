@@ -2509,8 +2509,36 @@
     }
   };
 
+  const WORLD_ROOM_TIME_ART = {
+    sharedApartment: {
+      living: {
+        dawn: "assets/story/backgrounds/time/shared_apartment_dawn.webp",
+        day: "assets/story/backgrounds/time/shared_apartment_day.webp",
+        sunset: "assets/story/backgrounds/time/shared_apartment_sunset.webp",
+        night: "assets/story/backgrounds/time/shared_apartment_night.webp"
+      },
+      kitchen: {
+        dawn: "assets/story/backgrounds/time/shared_apartment_kitchen_dawn.webp",
+        day: "assets/story/backgrounds/time/shared_apartment_kitchen_day.webp",
+        sunset: "assets/story/backgrounds/time/shared_apartment_kitchen_sunset.webp",
+        night: "assets/story/backgrounds/time/shared_apartment_kitchen_night.webp"
+      }
+    }
+  };
+
+  function worldBackgroundTimePart() {
+    const now = new Date();
+    const hour = now.getHours() + now.getMinutes() / 60;
+    if (hour >= 5 && hour < 8) return "dawn";
+    if (hour >= 8 && hour < 17) return "day";
+    if (hour >= 17 && hour < 20) return "sunset";
+    return "night";
+  }
+
   function worldLocationArt(locationKey, roomId, fallbackArt) {
-    return WORLD_ROOM_ART?.[locationKey]?.[roomId] || fallbackArt || "";
+    const part = worldBackgroundTimePart();
+    const timed = WORLD_ROOM_TIME_ART?.[locationKey]?.[roomId]?.[part];
+    return timed || WORLD_ROOM_ART?.[locationKey]?.[roomId] || fallbackArt || "";
   }
 
   function worldDaypartLabel() {
