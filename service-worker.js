@@ -1,4 +1,6 @@
-const CACHE_NAME = "life-rpg-v0314bh-mina-expansion";
+const CACHE_NAME = "life-rpg-v0314bi-shell";
+const ASSET_CACHE_NAME = "life-rpg-assets-v1";
+const MAX_RUNTIME_ASSETS = 96;
 const CORE = [
   "./",
   "./index.html",
@@ -23,11 +25,11 @@ const CORE = [
   "./weekly-review.css?v=0.31.4ag",
   "./weekly-review.js?v=0.31.4ag",
   "./manifest.webmanifest?v=0.30.3a",
-  "./pwa.js?v=0.31.4bh",
+  "./pwa.js?v=0.31.4bi",
   "./visual-performance.js?v=0.31.4c",
   "./modal-manager.js?v=0.31.4d",
   "./training-focus.js?v=0.31.4o",
-  "./app.js?v=0.31.4bh",
+  "./app.js?v=0.31.4bi",
   "./daily-streaks.js?v=0.31.4z",
   "./stewardship.js?v=0.31.3a",
   "./habits.js?v=0.31.4au",
@@ -56,45 +58,22 @@ const CORE = [
   "./daily.js?v=0.31.4ag",
   "./data/year-journal-questions.js?v=0.31.4ar",
   "./journal.js?v=0.31.4ar",
-  "./story-engine.js?v=0.31.4bh",
-  "./story-ui.js?v=0.31.4bh",
+  "./story-engine.js?v=0.31.4bi",
+  "./story-ui.js?v=0.31.4bi",
   "./relationship-memory.js?v=0.31.4bc",
   "./relationship-memory.css?v=0.31.4ba",
   "./relationship-engine.js?v=0.31.4ba",
   "./gifts.js?v=0.31.4ba",
   "./seasons.js?v=0.31.4ba",
-  "./content/SP_003.dat?v=0.31.4bh",
+  "./content/SP_003.dat?v=0.31.4bi",
   "./shop.js?v=0.30.6",
   "./achievements.js?v=0.31.0",
   "./activity-log.js?v=0.31.4ay",
   "./kotoba-integration.js?v=0.31.4k",
   "./kotoba-quick-training.js?v=0.31.4k",
   "./cloud-save.js?v=0.31.4ag",
-  "./assets/coloring/bakugo-off-duty-line.png",
-  "./assets/coloring/kirishima-off-duty-line.png",
-  "./assets/coloring/dynariot-duo-line.png",
   "./assets/app-icon-192.png",
   "./assets/app-icon-512.png",
-  "./assets/ui/thumbs/characters/luca_neutral.webp",
-  "./assets/story/backgrounds/shared_apartment_living_room.png",
-  "./assets/story/backgrounds/shared_apartment_kitchen.png",
-  "./assets/story/backgrounds/dynariot_agency_reception.png",
-  "./assets/story/backgrounds/gym_training_space.png",
-  "./assets/story/backgrounds/koharu_cafe.png",
-  "./assets/story/backgrounds/konbini.png",
-  "./assets/story/backgrounds/grocery_store.png",
-  "./assets/story/backgrounds/riverside_park.png",
-  "./assets/story/backgrounds/school_hallway.png",
-  "./assets/story/sprites/mina_neutral.webp",
-  "./assets/story/sprites/mina_teasing.webp",
-  "./assets/story/sprites/mina_happy.webp",
-  "./assets/story/sprites/mina_surprised.webp",
-  "./assets/story/sprites/mina_sassy.webp",
-  "./assets/story/sprites/mina_concerned.webp",
-  "./assets/story/sprites/mina_excited.webp",
-  "./assets/story/sprites/mina_embarrassed.webp",
-  "./assets/story/sprites/mina_annoyed.webp",
-  "./assets/story/sprites/mina_soft_sad.webp",
 ];
 
 self.addEventListener("install", event => {
@@ -112,21 +91,34 @@ self.addEventListener("install", event => {
 });
 
 self.addEventListener("activate", event => {
-  event.waitUntil(
-    caches.keys()
-      .then(keys => Promise.all(keys.filter(key => key.startsWith("life-rpg-") && key !== CACHE_NAME).map(key => caches.delete(key))))
-      .then(() => self.clients.claim())
-  );
+  event.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(keys
+      .filter(key => key.startsWith("life-rpg-") && key !== CACHE_NAME && key !== ASSET_CACHE_NAME)
+      .map(key => caches.delete(key)));
+    await self.clients.claim();
+  })());
 });
 
+async function pruneRuntimeAssets(cache) {
+  try {
+    const keys = await cache.keys();
+    const overflow = Math.max(0, keys.length - MAX_RUNTIME_ASSETS);
+    if (!overflow) return;
+    await Promise.all(keys.slice(0, overflow).map(request => cache.delete(request)));
+  } catch (_) {}
+}
+
 async function cacheFirstAsset(request) {
-  const cached = await caches.match(request, { ignoreSearch: false });
+  const assetCache = await caches.open(ASSET_CACHE_NAME);
+  const cached = await assetCache.match(request, { ignoreSearch: false });
   if (cached) return cached;
 
   const response = await fetch(request);
   if (response && response.ok) {
-    const cache = await caches.open(CACHE_NAME);
-    cache.put(request, response.clone()).catch(() => {});
+    assetCache.put(request, response.clone())
+      .then(() => pruneRuntimeAssets(assetCache))
+      .catch(() => {});
   }
   return response;
 }

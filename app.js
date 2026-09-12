@@ -334,7 +334,7 @@
     school: {
       label: "School",
       icon: "🏫",
-      art: "assets/story/backgrounds/school_hallway.png",
+      art: "assets/story/backgrounds/school_hallway.webp",
       description: "Luca's real daily world: lessons, colleagues, students and everything that comes with teaching."
     },
     station: {
@@ -346,43 +346,43 @@
     sharedApartment: {
       label: "Shared Apartment",
       icon: "🛋️",
-      art: "assets/story/backgrounds/shared_apartment_living_room.png",
+      art: "assets/story/backgrounds/shared_apartment_living_room.webp",
       description: "A place that can only become home after the story makes it part of Luca's life."
     },
     agency: {
       label: "DynaRiot Agency",
       icon: "💥",
-      art: "assets/story/backgrounds/dynariot_agency_reception.png",
+      art: "assets/story/backgrounds/dynariot_agency_reception.webp",
       description: "Katsuki and Eijiro’s newly opened agency — a real workplace with its own reception, office space and meeting room, still growing into itself."
     },
     gym: {
       label: "Pro Hero Training Gym",
       icon: "🏋️",
-      art: "assets/story/backgrounds/gym_training_space.png",
+      art: "assets/story/backgrounds/gym_training_space.webp",
       description: "A Pro Hero-only training facility — professional equipment, more privacy than a public gym, and a place Luca can access through Katsuki and Eijiro."
     },
     konbini: {
       label: "Neighborhood Konbini",
       icon: "🥤",
-      art: "assets/story/backgrounds/konbini.png",
+      art: "assets/story/backgrounds/konbini.webp",
       description: "A five-minute stop that keeps becoming part of ordinary household life."
     },
     grocery: {
       label: "Neighborhood Supermarket",
       icon: "🛒",
-      art: "assets/story/backgrounds/grocery_store.png",
+      art: "assets/story/backgrounds/grocery_store.webp",
       description: "The less glamorous side of living together: lists, produce, forgotten extras and carrying bags home."
     },
     park: {
       label: "Riverside Park",
       icon: "🌿",
-      art: "assets/story/backgrounds/riverside_park.png",
+      art: "assets/story/backgrounds/riverside_park.webp",
       description: "A slower route through the neighborhood for walks, air and conversations that do not need a destination."
     },
     cafe: {
       label: "Koharu Café",
       icon: "☕",
-      art: "assets/story/backgrounds/koharu_cafe.png",
+      art: "assets/story/backgrounds/koharu_cafe.webp",
       description: "A small café Mina introduced — easy to reach, low-pressure, and starting to feel like a shared spot."
     },
     district: {
@@ -2504,8 +2504,8 @@
 
   const WORLD_ROOM_ART = {
     sharedApartment: {
-      living: "assets/story/backgrounds/shared_apartment_living_room.png",
-      kitchen: "assets/story/backgrounds/shared_apartment_kitchen.png"
+      living: "assets/story/backgrounds/shared_apartment_living_room.webp",
+      kitchen: "assets/story/backgrounds/shared_apartment_kitchen.webp"
     }
   };
 
