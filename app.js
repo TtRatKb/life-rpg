@@ -346,37 +346,37 @@
     sharedApartment: {
       label: "Shared Apartment",
       icon: "🛋️",
-      art: "assets/story/backgrounds/shared_apartment_evening.png",
+      art: "assets/story/backgrounds/shared_apartment_living_room.png",
       description: "A place that can only become home after the story makes it part of Luca's life."
     },
     agency: {
       label: "DynaRiot Agency",
       icon: "💥",
-      art: "assets/story/backgrounds/gym_training_space.png",
-      description: "Katsuki and Eijiro’s agency — still their workplace first, but no longer an abstract part of their lives."
+      art: "assets/story/backgrounds/dynariot_agency_reception.png",
+      description: "Katsuki and Eijiro’s newly opened agency — a real workplace with its own reception, office space and meeting room, still growing into itself."
     },
     gym: {
-      label: "Training Gym",
+      label: "Pro Hero Training Gym",
       icon: "🏋️",
       art: "assets/story/backgrounds/gym_training_space.png",
-      description: "DynaRiot’s private training space — professional equipment, no public-gym pressure, and increasingly familiar company."
+      description: "A Pro Hero-only training facility — professional equipment, more privacy than a public gym, and a place Luca can access through Katsuki and Eijiro."
     },
     konbini: {
       label: "Neighborhood Konbini",
       icon: "🥤",
-      art: "assets/story/backgrounds/city_dusk.png",
+      art: "assets/story/backgrounds/konbini.png",
       description: "A five-minute stop that keeps becoming part of ordinary household life."
     },
     grocery: {
       label: "Neighborhood Supermarket",
       icon: "🛒",
-      art: "assets/story/backgrounds/city_dusk.png",
+      art: "assets/story/backgrounds/grocery_store.png",
       description: "The less glamorous side of living together: lists, produce, forgotten extras and carrying bags home."
     },
     park: {
       label: "Riverside Park",
       icon: "🌿",
-      art: "assets/story/backgrounds/city_dusk.png",
+      art: "assets/story/backgrounds/riverside_park.png",
       description: "A slower route through the neighborhood for walks, air and conversations that do not need a destination."
     },
     cafe: {
@@ -2502,6 +2502,17 @@
     els.clearOverlay.classList.remove("hidden");
   }
 
+  const WORLD_ROOM_ART = {
+    sharedApartment: {
+      living: "assets/story/backgrounds/shared_apartment_living_room.png",
+      kitchen: "assets/story/backgrounds/shared_apartment_kitchen.png"
+    }
+  };
+
+  function worldLocationArt(locationKey, roomId, fallbackArt) {
+    return WORLD_ROOM_ART?.[locationKey]?.[roomId] || fallbackArt || "";
+  }
+
   function worldDaypartLabel() {
     const hour = new Date().getHours();
     if (hour < 6) return "Late night";
@@ -2529,6 +2540,7 @@
     if (locationKey === "sharedApartment" && details.roomMeta) {
       displayMeta = { ...displayMeta, label: `Shared Apartment · ${details.roomMeta.label}`, description: details.roomMeta.description || displayMeta.description };
     }
+    displayMeta = { ...displayMeta, art: worldLocationArt(locationKey, details.roomId, displayMeta.art) };
 
     if (els.worldLocationHero) {
       els.worldLocationHero.style.backgroundImage = displayMeta.art

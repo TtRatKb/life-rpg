@@ -1,4 +1,4 @@
-const CACHE_NAME = "life-rpg-v0314bf-simulation-consistency";
+const CACHE_NAME = "life-rpg-v0314bg-world-coverage";
 const CORE = [
   "./",
   "./index.html",
@@ -23,11 +23,11 @@ const CORE = [
   "./weekly-review.css?v=0.31.4ag",
   "./weekly-review.js?v=0.31.4ag",
   "./manifest.webmanifest?v=0.30.3a",
-  "./pwa.js?v=0.31.4bf",
+  "./pwa.js?v=0.31.4bg",
   "./visual-performance.js?v=0.31.4c",
   "./modal-manager.js?v=0.31.4d",
   "./training-focus.js?v=0.31.4o",
-  "./app.js?v=0.31.4bf",
+  "./app.js?v=0.31.4bg",
   "./daily-streaks.js?v=0.31.4z",
   "./stewardship.js?v=0.31.3a",
   "./habits.js?v=0.31.4au",
@@ -56,14 +56,14 @@ const CORE = [
   "./daily.js?v=0.31.4ag",
   "./data/year-journal-questions.js?v=0.31.4ar",
   "./journal.js?v=0.31.4ar",
-  "./story-engine.js?v=0.31.4bf",
-  "./story-ui.js?v=0.31.4bf",
+  "./story-engine.js?v=0.31.4bg",
+  "./story-ui.js?v=0.31.4bg",
   "./relationship-memory.js?v=0.31.4bc",
   "./relationship-memory.css?v=0.31.4ba",
   "./relationship-engine.js?v=0.31.4ba",
   "./gifts.js?v=0.31.4ba",
   "./seasons.js?v=0.31.4ba",
-  "./content/SP_003.dat?v=0.31.4bf",
+  "./content/SP_003.dat?v=0.31.4bg",
   "./shop.js?v=0.30.6",
   "./achievements.js?v=0.31.0",
   "./activity-log.js?v=0.31.4ay",
@@ -75,7 +75,16 @@ const CORE = [
   "./assets/coloring/dynariot-duo-line.png",
   "./assets/app-icon-192.png",
   "./assets/app-icon-512.png",
-  "./assets/ui/thumbs/characters/luca_neutral.webp"
+  "./assets/ui/thumbs/characters/luca_neutral.webp",
+  "./assets/story/backgrounds/shared_apartment_living_room.png",
+  "./assets/story/backgrounds/shared_apartment_kitchen.png",
+  "./assets/story/backgrounds/dynariot_agency_reception.png",
+  "./assets/story/backgrounds/gym_training_space.png",
+  "./assets/story/backgrounds/koharu_cafe.png",
+  "./assets/story/backgrounds/konbini.png",
+  "./assets/story/backgrounds/grocery_store.png",
+  "./assets/story/backgrounds/riverside_park.png",
+  "./assets/story/backgrounds/school_hallway.png"
 ];
 
 self.addEventListener("install", event => {

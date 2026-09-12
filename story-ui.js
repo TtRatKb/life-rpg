@@ -4278,9 +4278,13 @@
     const candidates = [];
 
     if (/school|classroom|hallway|senior high|academy/.test(value)) candidates.push("schoolHallway");
+    if (/dyna\s*riot|agency|staff lounge|reception|office/.test(value)) candidates.push("agency");
+    if (/pro hero.*gym|hero.*gym|gym|training/.test(value)) candidates.push("gym");
+    if (/konbini|convenience store/.test(value)) candidates.push("konbini");
+    if (/supermarket|grocery|neighborhood market/.test(value)) candidates.push("grocery");
+    if (/riverside|park/.test(value)) candidates.push("park");
     if (/café|cafe|coffee|bookstore/.test(value)) candidates.push("cityCafe");
     if (/station|commute|train|platform/.test(value)) candidates.push("stationEvening");
-    if (/gym|training/.test(value)) candidates.push("gym");
     if (/shared apartment|new apartment|possible new apartment/.test(value)) candidates.push("sharedApartment");
     if (/apartment|home|room/.test(value)) candidates.push("homeMorning");
     if (/collector|district|city|street|outside|evening/.test(value)) candidates.push("cityDusk");
@@ -4304,18 +4308,6 @@
       sunset: { src: "assets/story/backgrounds/time/home_sunset.webp", alt: "Luca's home at sunset" },
       night: { src: "assets/story/backgrounds/time/home_night.webp", alt: "Luca's home at night" }
     },
-    sharedApartment: {
-      dawn: { src: "assets/story/backgrounds/time/shared_apartment_dawn.webp", alt: "Shared apartment at dawn" },
-      day: { src: "assets/story/backgrounds/time/shared_apartment_day.webp", alt: "Shared apartment in daylight" },
-      sunset: { src: "assets/story/backgrounds/time/shared_apartment_sunset.webp", alt: "Shared apartment at sunset" },
-      night: { src: "assets/story/backgrounds/time/shared_apartment_night.webp", alt: "Shared apartment at night" }
-    },
-    cityCafe: {
-      dawn: { src: "assets/story/backgrounds/time/koharu_cafe_dawn.webp", alt: "Koharu Café at dawn" },
-      day: { src: "assets/story/backgrounds/time/koharu_cafe_day.webp", alt: "Koharu Café in daylight" },
-      sunset: { src: "assets/story/backgrounds/time/koharu_cafe_sunset.webp", alt: "Koharu Café at sunset" },
-      night: { src: "assets/story/backgrounds/time/koharu_cafe_night.webp", alt: "Koharu Café at night" }
-    },
     stationEvening: {
       dawn: { src: "assets/story/backgrounds/time/station_dawn.webp", alt: "Train station at dawn" },
       day: { src: "assets/story/backgrounds/time/station_day.webp", alt: "Train station in daylight" },
@@ -4336,18 +4328,6 @@
       day: ["homeDay", "homeMorning"],
       sunset: ["homeSunset", "homeEvening", "homeMorning"],
       night: ["homeNight", "homeEvening", "homeMorning"]
-    },
-    sharedApartment: {
-      dawn: ["sharedApartmentDawn", "sharedApartmentDay", "sharedApartment"],
-      day: ["sharedApartmentDay", "sharedApartment"],
-      sunset: ["sharedApartmentSunset", "sharedApartmentEvening", "sharedApartment"],
-      night: ["sharedApartmentNight", "sharedApartmentEvening", "sharedApartment"]
-    },
-    cityCafe: {
-      dawn: ["cityCafeDawn", "cityCafeDay", "cityCafe"],
-      day: ["cityCafeDay", "cityCafe"],
-      sunset: ["cityCafeSunset", "cityCafeEvening", "cityCafe"],
-      night: ["cityCafeNight", "cityCafeEvening", "cityCafe"]
     },
     stationEvening: {
       dawn: ["stationDawn", "stationDay", "stationEvening"],
@@ -4378,6 +4358,10 @@
   function locationKeyFromBackground(backgroundKey) {
     const key = String(backgroundKey || "");
     if (/school/i.test(key)) return "school";
+    if (/agency/i.test(key)) return "agency";
+    if (/konbini/i.test(key)) return "konbini";
+    if (/grocery/i.test(key)) return "grocery";
+    if (/park/i.test(key)) return "park";
     if (/cafe/i.test(key)) return "cafe";
     if (/station/i.test(key)) return "station";
     if (/sharedApartment/i.test(key)) return "sharedApartment";
@@ -4416,11 +4400,22 @@
     return STORY_BACKGROUND_TIME_ASSETS[backgroundKey]?.[lighting.part] || null;
   }
 
+  function approvedRoomBackgroundKey(backgroundKey, activeRuntime = runtime, backgroundAssets = null) {
+    const key = String(backgroundKey || "");
+    if (key !== "sharedApartment") return key;
+
+    const location = String(activeRuntime?.scene?.location || "").toLowerCase();
+    const kitchenLike = /kitchen|dining|dinner|breakfast|pantry|leftover|takeout|tea/.test(location);
+    if (kitchenLike && backgroundAssets?.sharedApartmentKitchen?.src) return "sharedApartmentKitchen";
+    return key;
+  }
+
   function backgroundAssetForVisual(visual, backgroundAssets) {
     const cg = cgAssetForVisual(visual);
     if (cg?.src) return cg;
 
-    const requested = visual?.background;
+    const requestedRaw = visual?.background;
+    const requested = approvedRoomBackgroundKey(requestedRaw, runtime, backgroundAssets);
     if (requested) {
       const trueVariant = realTimeBackgroundAsset(requested, visual);
       if (trueVariant?.src) return trueVariant;
@@ -4431,7 +4426,8 @@
       if (backgroundAssets?.[requested]?.src) return backgroundAssets[requested];
     }
 
-    const fallback = contextualBackgroundForRuntime(runtime);
+    const fallbackRaw = contextualBackgroundForRuntime(runtime);
+    const fallback = approvedRoomBackgroundKey(fallbackRaw, runtime, backgroundAssets);
     const trueFallback = realTimeBackgroundAsset(fallback, visual);
     if (trueFallback?.src) return trueFallback;
 
