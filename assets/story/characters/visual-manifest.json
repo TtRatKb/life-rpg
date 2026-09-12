@@ -36,7 +36,7 @@
       "legacyRule": "Older white-matte Luca runtime portraits and legacy character illustrations are transitional only and are excluded as visual-generation references."
     },
     "bakugo": {
-      "status": "locked-base+angry-pack+happy-pack+soft-pack+tired-pack+smug-cocky-pack+hero-costume-pack",
+      "status": "locked-base+angry-pack+happy-pack+soft-pack+tired-pack+smug-cocky-pack+hero-costume-pack+hero-expansion-pack",
       "displayName": "Katsuki Bakugo",
       "visualVersion": "bakugo-offduty-v2",
       "canonNotes": [
@@ -85,7 +85,23 @@
         "heroFocused": "assets/story/characters/bakugo-hero-focused.png",
         "heroAnnoyed": "assets/story/characters/bakugo-hero-annoyed.png",
         "heroHappy": "assets/story/characters/bakugo-hero-happy.png",
-        "heroProfile": "assets/story/characters/bakugo-hero-profile.png"
+        "heroProfile": "assets/story/characters/bakugo-hero-profile.png",
+        "heroConcerned": "assets/story/characters/bakugo-hero-concerned.png",
+        "heroSurprised": "assets/story/characters/bakugo-hero-surprised.png",
+        "heroDetermined": "assets/story/characters/bakugo-hero-determined.png",
+        "heroTired": "assets/story/characters/bakugo-hero-tired.png",
+        "heroJealous": "assets/story/characters/bakugo-hero-jealous.png",
+        "heroTsundere": "assets/story/characters/bakugo-hero-tsundere.png",
+        "heroEmbarrassed": "assets/story/characters/bakugo-hero-embarrassed.png",
+        "heroLaughing": "assets/story/characters/bakugo-hero-laughing.png",
+        "heroUnimpressed": "assets/story/characters/bakugo-hero-unimpressed.png",
+        "heroProtective": "assets/story/characters/bakugo-hero-protective.png",
+        "heroShy": "assets/story/characters/bakugo-hero-shy.png",
+        "heroDisgusted": "assets/story/characters/bakugo-hero-disgusted.png",
+        "heroAffectionate": "assets/story/characters/bakugo-hero-affectionate.png",
+        "heroVulnerable": "assets/story/characters/bakugo-hero-vulnerable.png",
+        "heroInPain": "assets/story/characters/bakugo-hero-in-pain.png",
+        "heroRage": "assets/story/characters/bakugo-hero-rage.png"
       },
       "temporaryFallbacks": {
         "tired": "assets/story/characters/bakugo-annoyed-away.png",
@@ -110,7 +126,26 @@
         "cocky": "assets/story/characters/bakugo-cocky-swagger.png (approved generic alias for cocky/confident references)",
         "heroNeutral": "assets/story/characters/bakugo-hero-neutral.png (default expression for Hero outfit)",
         "heroFocused": "assets/story/characters/bakugo-hero-focused.png (focused/ready Hero expression)",
-        "heroSmug": "assets/story/characters/bakugo-hero-smug.png (confident/smug Hero expression)"
+        "heroSmug": "assets/story/characters/bakugo-hero-smug.png (confident/smug Hero expression)",
+        "heroCocky": "assets/story/characters/bakugo-hero-smug.png (approved generic hero cocky/confident alias)",
+        "heroSmiling": "assets/story/characters/bakugo-hero-happy.png (approved generic hero smile alias)",
+        "heroSoft": "assets/story/characters/bakugo-hero-relaxed.png (approved generic hero soft/warmed alias)",
+        "heroConcerned": "assets/story/characters/bakugo-hero-concerned.png (approved protective/besorgte hero expression)",
+        "heroSurprised": "assets/story/characters/bakugo-hero-surprised.png (approved startled/caught-off-guard hero expression)",
+        "heroDetermined": "assets/story/characters/bakugo-hero-determined.png (approved locked pro-hero determined expression)",
+        "heroTired": "assets/story/characters/bakugo-hero-tired.png (approved locked pro-hero tired expression)",
+        "heroJealous": "assets/story/characters/bakugo-hero-jealous.png (approved locked pro-hero jealous/brooding expression)",
+        "heroTsundere": "assets/story/characters/bakugo-hero-tsundere.png (approved locked pro-hero tsundere expression)",
+        "heroEmbarrassed": "assets/story/characters/bakugo-hero-embarrassed.png (approved locked pro-hero embarrassed expression)",
+        "heroLaughing": "assets/story/characters/bakugo-hero-laughing.png (approved locked pro-hero laughing expression)",
+        "heroUnimpressed": "assets/story/characters/bakugo-hero-unimpressed.png (approved skeptical/deadpan hero expression)",
+        "heroProtective": "assets/story/characters/bakugo-hero-protective.png (approved intense protective hero expression)",
+        "heroShy": "assets/story/characters/bakugo-hero-shy.png (approved soft-flustered/shy hero expression)",
+        "heroDisgusted": "assets/story/characters/bakugo-hero-disgusted.png (approved disgusted/repulsed hero expression)",
+        "heroAffectionate": "assets/story/characters/bakugo-hero-affectionate.png (approved tiny-smile affectionate hero expression)",
+        "heroVulnerable": "assets/story/characters/bakugo-hero-vulnerable.png (approved guarded hurt/vulnerable hero expression)",
+        "heroInPain": "assets/story/characters/bakugo-hero-in-pain.png (approved battle-worn pain sprite)",
+        "heroRage": "assets/story/characters/bakugo-hero-rage.png (approved feral/explosive-rage special hero sprite)"
       },
       "expressionNotes": [
         "Dedicated Angry pack approved 2026-08-24. Angry must read clearly stronger than the Annoyed/Irritated family through face and body language.",
@@ -134,9 +169,37 @@
         "Hero-costume canon: adult streamlined black tactical suit with orange X harness, high black collar, rectangular gray metal shoulder plates, segmented metal forearm/bracer armor, dark green utility canisters/pouches and black gloves.",
         "Do not revert to the older oversized grenade-gauntlet costume silhouette for the adult Hero set.",
         "The approved Hero sprites must preserve the locked V2 face, scar placement, compact blond hair shape and warm painterly cel-shaded rendering used by the approved off-duty set.",
-        "Hero expressions are intentionally a compact standard set for story use rather than a duplicate of every off-duty emotion."
+        "Hero expressions are intentionally a compact standard set for story use rather than a duplicate of every off-duty emotion.",
+        "Expanded Adult Pro-Hero expression pack integrated 2026-09-12 from approved standalone runtime cutouts only; no collage assets are canonical runtime sources.",
+        "Hero runtime coverage now includes core conversational expressions (concerned, surprised, determined, tired, jealous, tsundere, embarrassed, laughing, unimpressed, protective, shy, disgusted, affectionate) plus special-use sprites (vulnerable, in pain, feral rage).",
+        "Use heroSpecialRuntimePack sparingly for heightened scenes; heroCoreRuntimePack is the default pool for routine story/runtime use."
       ],
-      "heroCostumeVersion": "bakugo-adult-pro-hero-v2"
+      "heroCostumeVersion": "bakugo-adult-pro-hero-v2",
+      "heroCoreRuntimePack": [
+        "heroNeutral",
+        "heroSmug",
+        "heroAnnoyed",
+        "heroRelaxed",
+        "heroHappy",
+        "heroConcerned",
+        "heroSurprised",
+        "heroDetermined",
+        "heroTired",
+        "heroJealous",
+        "heroTsundere",
+        "heroEmbarrassed",
+        "heroLaughing",
+        "heroUnimpressed",
+        "heroProtective",
+        "heroShy",
+        "heroDisgusted",
+        "heroAffectionate"
+      ],
+      "heroSpecialRuntimePack": [
+        "heroVulnerable",
+        "heroInPain",
+        "heroRage"
+      ]
     },
     "kirishima": {
       "status": "locked-base+offduty-starter-pack",
