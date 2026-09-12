@@ -1,4 +1,4 @@
-const CACHE_NAME = "life-rpg-v0314bg-world-coverage";
+const CACHE_NAME = "life-rpg-v0314bh-mina-expansion";
 const CORE = [
   "./",
   "./index.html",
@@ -23,11 +23,11 @@ const CORE = [
   "./weekly-review.css?v=0.31.4ag",
   "./weekly-review.js?v=0.31.4ag",
   "./manifest.webmanifest?v=0.30.3a",
-  "./pwa.js?v=0.31.4bg",
+  "./pwa.js?v=0.31.4bh",
   "./visual-performance.js?v=0.31.4c",
   "./modal-manager.js?v=0.31.4d",
   "./training-focus.js?v=0.31.4o",
-  "./app.js?v=0.31.4bg",
+  "./app.js?v=0.31.4bh",
   "./daily-streaks.js?v=0.31.4z",
   "./stewardship.js?v=0.31.3a",
   "./habits.js?v=0.31.4au",
@@ -56,14 +56,14 @@ const CORE = [
   "./daily.js?v=0.31.4ag",
   "./data/year-journal-questions.js?v=0.31.4ar",
   "./journal.js?v=0.31.4ar",
-  "./story-engine.js?v=0.31.4bg",
-  "./story-ui.js?v=0.31.4bg",
+  "./story-engine.js?v=0.31.4bh",
+  "./story-ui.js?v=0.31.4bh",
   "./relationship-memory.js?v=0.31.4bc",
   "./relationship-memory.css?v=0.31.4ba",
   "./relationship-engine.js?v=0.31.4ba",
   "./gifts.js?v=0.31.4ba",
   "./seasons.js?v=0.31.4ba",
-  "./content/SP_003.dat?v=0.31.4bg",
+  "./content/SP_003.dat?v=0.31.4bh",
   "./shop.js?v=0.30.6",
   "./achievements.js?v=0.31.0",
   "./activity-log.js?v=0.31.4ay",
@@ -84,7 +84,17 @@ const CORE = [
   "./assets/story/backgrounds/konbini.png",
   "./assets/story/backgrounds/grocery_store.png",
   "./assets/story/backgrounds/riverside_park.png",
-  "./assets/story/backgrounds/school_hallway.png"
+  "./assets/story/backgrounds/school_hallway.png",
+  "./assets/story/sprites/mina_neutral.webp",
+  "./assets/story/sprites/mina_teasing.webp",
+  "./assets/story/sprites/mina_happy.webp",
+  "./assets/story/sprites/mina_surprised.webp",
+  "./assets/story/sprites/mina_sassy.webp",
+  "./assets/story/sprites/mina_concerned.webp",
+  "./assets/story/sprites/mina_excited.webp",
+  "./assets/story/sprites/mina_embarrassed.webp",
+  "./assets/story/sprites/mina_annoyed.webp",
+  "./assets/story/sprites/mina_soft_sad.webp",
 ];
 
 self.addEventListener("install", event => {
