@@ -30,6 +30,9 @@ const CLOUD_META_KEY = "lifeRpgCloudMetaV01";
 const LOCAL_ROLLBACK_KEY = "lifeRpgLocalRollbackV01";
 const SAVE_SCHEMA_VERSION = 7;
 const SAVE_DEBOUNCE_MS = 900;
+const CLOUD_STATE_FORMAT_GZIP = "gzip-base64-chunks-v1";
+const CLOUD_STATE_FORMAT_PLAIN = "json-base64-chunks-v1";
+const CLOUD_CHUNK_BYTE_LIMIT = 450000;
 
 const firebaseApp = initializeApp(firebaseConfig);
 const auth = getAuth(firebaseApp);
@@ -218,7 +221,7 @@ async function reconcileWithCloud() {
     return;
   }
 
-  const remote = normalizeRemote(snap.data());
+  const remote = await hydrateRemoteSave(ref, snap.data());
   const remoteFingerprint = fingerprint(remote.state);
   lastCloudSavedAtClient = remote.savedAtClient || null;
 
@@ -285,6 +288,7 @@ async function saveToCloud({ force = false, backupRemote = false, reason = "auto
   clearTimeout(saveTimer);
   const candidate = cleanState(app.getState());
   const candidateFingerprint = fingerprint(candidate);
+  const candidatePacked = await encodeCloudState(candidate);
   const ref = currentSaveRef();
   const deviceId = getDeviceId();
   const savedAtClient = new Date().toISOString();
@@ -294,7 +298,8 @@ async function saveToCloud({ force = false, backupRemote = false, reason = "auto
   try {
     const result = await runTransaction(db, async transaction => {
       const snap = await transaction.get(ref);
-      const remote = snap.exists() ? normalizeRemote(snap.data()) : null;
+      const remoteData = snap.exists() ? snap.data() : null;
+      const remote = remoteData ? normalizeRemoteMeta(remoteData) : null;
       const remoteRevision = remote?.revision || 0;
 
       if (!force && knownRemoteRevision !== null && remoteRevision !== knownRemoteRevision) {
@@ -303,7 +308,10 @@ async function saveToCloud({ force = false, backupRemote = false, reason = "auto
         throw error;
       }
 
-      if (remote && !force && isMeaningfullyEmpty(candidate) && !isMeaningfullyEmpty(remote.state)) {
+      const remoteProgress = remoteData
+        ? remoteProgressScore(remoteData)
+        : 0;
+      if (remote && !force && isMeaningfullyEmpty(candidate) && remoteProgress > 0) {
         const error = new Error("EMPTY_SAVE_BLOCKED");
         error.code = "life-rpg/empty-overwrite-blocked";
         throw error;
@@ -314,16 +322,56 @@ async function saveToCloud({ force = false, backupRemote = false, reason = "auto
         (remoteRevision > 0 && (remoteRevision + 1) % 20 === 0)
       );
 
+      let remoteChunkPayloads = null;
+      if (shouldBackup && isChunkedRemote(remoteData)) {
+        remoteChunkPayloads = [];
+        for (let index = 0; index < remote.chunkCount; index += 1) {
+          const chunkSnap = await transaction.get(cloudChunkRef(ref, index));
+          if (!chunkSnap.exists()) {
+            const error = new Error(`Cloud save chunk ${index + 1}/${remote.chunkCount} is missing.`);
+            error.code = "life-rpg/cloud-chunk-missing";
+            throw error;
+          }
+          remoteChunkPayloads.push(String(chunkSnap.data()?.data || ""));
+        }
+      }
+
       if (shouldBackup) {
         const backupRef = doc(collection(db, "users", currentUser.uid, "backups"));
+        let backupFormat;
+        let backupChunks;
+        let backupStateBytes;
+
+        if (isChunkedRemote(remoteData)) {
+          backupFormat = remote.stateFormat;
+          backupChunks = remoteChunkPayloads || [];
+          backupStateBytes = Math.max(0, Number(remoteData?.stateBytes || 0));
+        } else {
+          const legacyPacked = encodePlainCloudState(remoteData?.state && typeof remoteData.state === "object" ? remoteData.state : {});
+          backupFormat = legacyPacked.stateFormat;
+          backupChunks = legacyPacked.chunks;
+          backupStateBytes = legacyPacked.stateBytes;
+        }
+
         transaction.set(backupRef, {
           revision: remoteRevision,
-          state: remote.state,
           schemaVersion: Number(remote.schemaVersion || SAVE_SCHEMA_VERSION),
+          stateFormat: backupFormat,
+          chunkCount: backupChunks.length,
+          stateBytes: backupStateBytes,
+          stateFingerprint: remoteData?.stateFingerprint || null,
+          progressScore: remoteProgress,
           savedAtClient: remote.savedAtClient || null,
           backupReason: backupRemote ? reason : "periodic",
           createdAtClient: savedAtClient,
           createdAt: serverTimestamp()
+        });
+        backupChunks.forEach((data, index) => {
+          transaction.set(cloudChunkRef(backupRef, index), {
+            index,
+            data,
+            revision: remoteRevision
+          });
         });
       }
 
@@ -331,11 +379,29 @@ async function saveToCloud({ force = false, backupRemote = false, reason = "auto
       transaction.set(ref, {
         revision,
         schemaVersion: SAVE_SCHEMA_VERSION,
-        state: candidate,
+        stateFormat: candidatePacked.stateFormat,
+        chunkCount: candidatePacked.chunks.length,
+        stateBytes: candidatePacked.stateBytes,
+        encodedBytes: candidatePacked.encodedBytes,
+        stateFingerprint: candidateFingerprint,
+        progressScore: progressScore(candidate),
         deviceId,
         savedAtClient,
         updatedAt: serverTimestamp()
       });
+
+      candidatePacked.chunks.forEach((data, index) => {
+        transaction.set(cloudChunkRef(ref, index), {
+          index,
+          data,
+          revision
+        });
+      });
+
+      const previousChunkCount = isChunkedRemote(remoteData) ? remote.chunkCount : 0;
+      for (let index = candidatePacked.chunks.length; index < previousChunkCount; index += 1) {
+        transaction.delete(cloudChunkRef(ref, index));
+      }
 
       return { revision, savedAtClient };
     });
@@ -352,8 +418,8 @@ async function saveToCloud({ force = false, backupRemote = false, reason = "auto
     setStatus("synced", "Synced", "Local autosave and cloud save are up to date.");
   } catch (error) {
     if (error?.code === "life-rpg/remote-revision-changed" || error?.code === "life-rpg/empty-overwrite-blocked") {
-      const snap = await getDoc(ref);
-      if (snap.exists()) showConflict(normalizeRemote(snap.data()));
+      const remote = await readRemoteSave(ref);
+      if (remote) showConflict(remote);
       return;
     }
     throw error;
@@ -473,14 +539,146 @@ function currentSaveRef() {
   return doc(db, "users", currentUser.uid, "saves", "current");
 }
 
-function normalizeRemote(data) {
+function normalizeRemoteMeta(data) {
   return {
     revision: Math.max(0, Number(data?.revision || 0)),
     schemaVersion: Number(data?.schemaVersion || 0),
-    state: data?.state && typeof data.state === "object" ? data.state : {},
     savedAtClient: data?.savedAtClient || null,
-    deviceId: data?.deviceId || null
+    deviceId: data?.deviceId || null,
+    stateFormat: String(data?.stateFormat || "legacy-inline"),
+    chunkCount: Math.max(0, Number(data?.chunkCount || 0))
   };
+}
+
+function isChunkedRemote(data) {
+  const format = String(data?.stateFormat || "");
+  return (format === CLOUD_STATE_FORMAT_GZIP || format === CLOUD_STATE_FORMAT_PLAIN) && Number(data?.chunkCount || 0) > 0;
+}
+
+function cloudChunkRef(parentRef, index) {
+  const suffix = String(index).padStart(4, "0");
+  return doc(parentRef.parent, `${parentRef.id}__chunk__${suffix}`);
+}
+
+async function readRemoteSave(ref) {
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return null;
+  return hydrateRemoteSave(ref, snap.data());
+}
+
+async function hydrateRemoteSave(ref, data) {
+  const meta = normalizeRemoteMeta(data);
+  if (!isChunkedRemote(data)) {
+    return {
+      ...meta,
+      state: data?.state && typeof data.state === "object" ? data.state : {}
+    };
+  }
+
+  const chunks = [];
+  for (let index = 0; index < meta.chunkCount; index += 1) {
+    const chunkSnap = await getDoc(cloudChunkRef(ref, index));
+    if (!chunkSnap.exists()) {
+      const error = new Error(`Cloud save chunk ${index + 1}/${meta.chunkCount} is missing.`);
+      error.code = "life-rpg/cloud-chunk-missing";
+      throw error;
+    }
+    chunks.push(String(chunkSnap.data()?.data || ""));
+  }
+
+  return {
+    ...meta,
+    state: await decodeCloudState(meta.stateFormat, chunks)
+  };
+}
+
+function remoteProgressScore(data) {
+  if (Number.isFinite(Number(data?.progressScore))) return Math.max(0, Number(data.progressScore));
+  if (data?.state && typeof data.state === "object") return progressScore(data.state);
+  return Number(data?.chunkCount || 0) > 0 ? 1 : 0;
+}
+
+async function encodeCloudState(state) {
+  const json = JSON.stringify(state || {});
+  const rawBytes = new TextEncoder().encode(json);
+  let encodedBytes = rawBytes;
+  let stateFormat = CLOUD_STATE_FORMAT_PLAIN;
+
+  if (typeof CompressionStream === "function") {
+    try {
+      const stream = new Blob([rawBytes]).stream().pipeThrough(new CompressionStream("gzip"));
+      encodedBytes = new Uint8Array(await new Response(stream).arrayBuffer());
+      stateFormat = CLOUD_STATE_FORMAT_GZIP;
+    } catch (error) {
+      console.warn("Cloud save compression unavailable; using chunked JSON instead.", error);
+    }
+  }
+
+  return {
+    stateFormat,
+    chunks: bytesToCloudChunks(encodedBytes),
+    stateBytes: rawBytes.byteLength,
+    encodedBytes: encodedBytes.byteLength
+  };
+}
+
+function encodePlainCloudState(state) {
+  const rawBytes = new TextEncoder().encode(JSON.stringify(state || {}));
+  return {
+    stateFormat: CLOUD_STATE_FORMAT_PLAIN,
+    chunks: bytesToCloudChunks(rawBytes),
+    stateBytes: rawBytes.byteLength,
+    encodedBytes: rawBytes.byteLength
+  };
+}
+
+function bytesToCloudChunks(bytes) {
+  const chunks = [];
+  for (let offset = 0; offset < bytes.byteLength; offset += CLOUD_CHUNK_BYTE_LIMIT) {
+    chunks.push(bytesToBase64(bytes.subarray(offset, Math.min(bytes.byteLength, offset + CLOUD_CHUNK_BYTE_LIMIT))));
+  }
+  return chunks.length ? chunks : [""];
+}
+
+function bytesToBase64(bytes) {
+  let binary = "";
+  const block = 0x8000;
+  for (let offset = 0; offset < bytes.length; offset += block) {
+    binary += String.fromCharCode(...bytes.subarray(offset, Math.min(bytes.length, offset + block)));
+  }
+  return btoa(binary);
+}
+
+function base64ToBytes(value) {
+  const binary = atob(String(value || ""));
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
+  return bytes;
+}
+
+async function decodeCloudState(stateFormat, chunks) {
+  const parts = chunks.map(base64ToBytes);
+  const total = parts.reduce((sum, part) => sum + part.byteLength, 0);
+  const packed = new Uint8Array(total);
+  let offset = 0;
+  parts.forEach(part => {
+    packed.set(part, offset);
+    offset += part.byteLength;
+  });
+
+  let jsonBytes = packed;
+  if (stateFormat === CLOUD_STATE_FORMAT_GZIP) {
+    if (typeof DecompressionStream !== "function") {
+      const error = new Error("This browser cannot open the compressed cloud save. Please update the browser and try again.");
+      error.code = "life-rpg/cloud-decompression-unsupported";
+      throw error;
+    }
+    const stream = new Blob([packed]).stream().pipeThrough(new DecompressionStream("gzip"));
+    jsonBytes = new Uint8Array(await new Response(stream).arrayBuffer());
+  }
+
+  const parsed = JSON.parse(new TextDecoder().decode(jsonBytes));
+  return parsed && typeof parsed === "object" ? parsed : {};
 }
 
 function cleanState(state) {

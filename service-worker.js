@@ -1,5 +1,5 @@
-const CACHE_NAME = "life-rpg-v0314bp-shell";
-const ASSET_CACHE_NAME = "life-rpg-assets-v1";
+const CACHE_NAME = "life-rpg-v0314br-shell";
+const ASSET_CACHE_NAME = "life-rpg-assets-v2";
 const MAX_RUNTIME_ASSETS = 96;
 const CORE = [
   "./",
@@ -25,11 +25,11 @@ const CORE = [
   "./weekly-review.css?v=0.31.4ag",
   "./weekly-review.js?v=0.31.4ag",
   "./manifest.webmanifest?v=0.30.3a",
-  "./pwa.js?v=0.31.4bp",
-  "./visual-performance.js?v=0.31.4bp",
+  "./pwa.js?v=0.31.4br",
+  "./visual-performance.js?v=0.31.4br",
   "./modal-manager.js?v=0.31.4d",
   "./training-focus.js?v=0.31.4o",
-  "./app.js?v=0.31.4bp",
+  "./app.js?v=0.31.4br",
   "./daily-streaks.js?v=0.31.4z",
   "./stewardship.js?v=0.31.3a",
   "./habits.js?v=0.31.4au",
@@ -58,20 +58,20 @@ const CORE = [
   "./daily.js?v=0.31.4ag",
   "./data/year-journal-questions.js?v=0.31.4ar",
   "./journal.js?v=0.31.4ar",
-  "./story-engine.js?v=0.31.4bp",
-  "./story-ui.js?v=0.31.4bp",
+  "./story-engine.js?v=0.31.4br",
+  "./story-ui.js?v=0.31.4br",
   "./relationship-memory.js?v=0.31.4bc",
   "./relationship-memory.css?v=0.31.4ba",
   "./relationship-engine.js?v=0.31.4ba",
   "./gifts.js?v=0.31.4ba",
   "./seasons.js?v=0.31.4ba",
-  "./content/SP_003.dat?v=0.31.4bp",
+  "./content/SP_003.dat?v=0.31.4br",
   "./shop.js?v=0.30.6",
   "./achievements.js?v=0.31.0",
   "./activity-log.js?v=0.31.4ay",
   "./kotoba-integration.js?v=0.31.4k",
   "./kotoba-quick-training.js?v=0.31.4k",
-  "./cloud-save.js?v=0.31.4ag",
+  "./cloud-save.js?v=0.31.4br",
   "./assets/app-icon-192.png",
   "./assets/app-icon-512.png",
 ];
