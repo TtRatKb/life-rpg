@@ -59,6 +59,20 @@
     'assets/story/sprites/izuku/izuku_soft.webp': 'assets/ui/thumbs/characters/izuku/izuku_soft.webp',
     'assets/story/sprites/izuku/izuku_tired.webp': 'assets/ui/thumbs/characters/izuku/izuku_tired.webp',
     'assets/story/sprites/izuku/izuku_confident.webp': 'assets/ui/thumbs/characters/izuku/izuku_confident.webp',
+    'assets/story/sprites/izuku/izuku_casual_neutral.webp': 'assets/ui/thumbs/characters/izuku/izuku_casual_neutral.webp',
+    'assets/story/sprites/izuku/izuku_casual_slightSmile.webp': 'assets/ui/thumbs/characters/izuku/izuku_casual_slightSmile.webp',
+    'assets/story/sprites/izuku/izuku_casual_happy.webp': 'assets/ui/thumbs/characters/izuku/izuku_casual_happy.webp',
+    'assets/story/sprites/izuku/izuku_casual_laughing.webp': 'assets/ui/thumbs/characters/izuku/izuku_casual_laughing.webp',
+    'assets/story/sprites/izuku/izuku_casual_serious.webp': 'assets/ui/thumbs/characters/izuku/izuku_casual_serious.webp',
+    'assets/story/sprites/izuku/izuku_casual_determined.webp': 'assets/ui/thumbs/characters/izuku/izuku_casual_determined.webp',
+    'assets/story/sprites/izuku/izuku_casual_annoyed.webp': 'assets/ui/thumbs/characters/izuku/izuku_casual_annoyed.webp',
+    'assets/story/sprites/izuku/izuku_casual_surprised.webp': 'assets/ui/thumbs/characters/izuku/izuku_casual_surprised.webp',
+    'assets/story/sprites/izuku/izuku_casual_embarrassed.webp': 'assets/ui/thumbs/characters/izuku/izuku_casual_embarrassed.webp',
+    'assets/story/sprites/izuku/izuku_casual_concerned.webp': 'assets/ui/thumbs/characters/izuku/izuku_casual_concerned.webp',
+    'assets/story/sprites/izuku/izuku_casual_nerdy.webp': 'assets/ui/thumbs/characters/izuku/izuku_casual_nerdy.webp',
+    'assets/story/sprites/izuku/izuku_casual_soft.webp': 'assets/ui/thumbs/characters/izuku/izuku_casual_soft.webp',
+    'assets/story/sprites/izuku/izuku_casual_tired.webp': 'assets/ui/thumbs/characters/izuku/izuku_casual_tired.webp',
+    'assets/story/sprites/izuku/izuku_casual_confident.webp': 'assets/ui/thumbs/characters/izuku/izuku_casual_confident.webp',
   });
 
   function thumbnail(src) {
