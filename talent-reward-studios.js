@@ -1,8 +1,8 @@
 (() => {
   "use strict";
 
-  if (window.__lifeRpgTalentRewardStudiosV314at) return;
-  window.__lifeRpgTalentRewardStudiosV314at = true;
+  if (window.__lifeRpgTalentRewardStudiosV314bv) return;
+  window.__lifeRpgTalentRewardStudiosV314bv = true;
 
   const app = window.LifeRPGApp;
   const graph = window.LifeRPGTalentTreeGraph;
@@ -11,7 +11,7 @@
     return;
   }
 
-  const VERSION = "0.31.4at";
+  const VERSION = "0.31.4bv";
   const SCHEMA = 2;
 
   const JAPANESE_CARDS = [
@@ -211,6 +211,7 @@
 
   const COLORING_PAGES = [
     { id: "bakugo-off-duty", title: "Off-Duty Bakugo", subtitle: "Canon-board portrait · spoiler-free bonus page", src: "assets/coloring/bakugo-off-duty-line.png" },
+    { id: "bakugo-trading-card", title: "Bakugo Trading Card", subtitle: "Non-canon bonus card · portrait breaks out of the frame", src: "assets/coloring/bakugo-trading-card-line.png" },
     { id: "kirishima-off-duty", title: "Off-Duty Kirishima", subtitle: "Canon-board portrait · spoiler-free bonus page", src: "assets/coloring/kirishima-off-duty-line.png" },
     { id: "dynariot-duo", title: "DynaRiot Duo", subtitle: "Non-canon character bonus · no Story state", src: "assets/coloring/dynariot-duo-line.png" }
   ];
