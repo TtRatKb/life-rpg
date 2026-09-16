@@ -1,8 +1,8 @@
 (() => {
   "use strict";
 
-  if (window.__lifeRpgTalentRewardStudiosV314bv) return;
-  window.__lifeRpgTalentRewardStudiosV314bv = true;
+  if (window.__lifeRpgTalentRewardStudiosV314bw) return;
+  window.__lifeRpgTalentRewardStudiosV314bw = true;
 
   const app = window.LifeRPGApp;
   const graph = window.LifeRPGTalentTreeGraph;
@@ -11,7 +11,7 @@
     return;
   }
 
-  const VERSION = "0.31.4bv";
+  const VERSION = "0.31.4bw";
   const SCHEMA = 2;
 
   const JAPANESE_CARDS = [
@@ -471,6 +471,19 @@
         const out = document.getElementById("coloringBrushSizeLabelV314as");
         if (out) out.textContent = `${coloring.size}px`;
       }
+      if (event.target?.id === "coloringValueV314bw" && coloring) {
+        coloring.colorV = Math.max(0, Math.min(1, Number(event.target.value || 100) / 100));
+        const rgb = hsvToRgb(coloring.colorH, coloring.colorS, coloring.colorV);
+        coloring.color = rgbToHex(rgb.r, rgb.g, rgb.b);
+        coloring.eraser = false;
+        updateColorPickerUi();
+        drawColorWheel();
+        updateColoringToolButtons();
+      }
+      if (event.target?.id === "coloringHexInputV314bw" && coloring) {
+        const value = String(event.target.value || "").trim();
+        if (/^#[0-9a-f]{6}$/i.test(value)) setColoringColor(value);
+      }
     });
   }
 
@@ -908,6 +921,13 @@
       <header class="reward-studio-head-v314as hobbies compact"><div><p class="eyebrow">COLORING STUDIO · NON-CANON BONUS ART</p><h2>${esc(page.title)}</h2><p>${esc(page.subtitle)}</p></div><button class="secondary-button" type="button" data-coloring-back>← Page gallery</button></header>
       <div class="coloring-studio-layout-v314as">
         <aside class="coloring-tools-v314as">
+          <div class="coloring-color-picker-v314bw">
+            <div class="coloring-color-picker-head-v314bw"><span>COLOR WHEEL</span><output id="coloringHexLabelV314bw">#D8759E</output></div>
+            <canvas id="coloringColorWheelV314bw" class="coloring-color-wheel-v314bw" width="180" height="180" aria-label="Color wheel"></canvas>
+            <label class="coloring-value-v314bw"><span>Brightness <b id="coloringValueLabelV314bw">100%</b></span><input id="coloringValueV314bw" type="range" min="0" max="100" value="100"></label>
+            <div class="coloring-custom-color-v314bw"><span id="coloringColorPreviewV314bw" style="--custom-color:#d8759e"></span><label><small>HEX / RGB COLOR</small><input id="coloringHexInputV314bw" type="text" value="#D8759E" maxlength="7" inputmode="text" autocomplete="off" spellcheck="false"></label></div>
+          </div>
+          <div class="coloring-quick-label-v314bw">QUICK COLORS</div>
           <div class="coloring-palette-v314as">${PALETTE.map((color,index) => `<button type="button" title="Color ${index+1}" data-coloring-color="${color}" style="--swatch:${color}"></button>`).join("")}</div>
           <label class="coloring-size-v314as"><span>Brush <b id="coloringBrushSizeLabelV314as">14px</b></span><input id="coloringBrushSizeV314as" type="range" min="2" max="60" value="14"></label>
           <div class="coloring-tool-buttons-v314as"><button class="secondary-button" type="button" data-coloring-eraser>⌫ Eraser</button><button class="secondary-button" type="button" data-coloring-undo>↶ Undo</button><button class="secondary-button" type="button" data-coloring-redo>↷ Redo</button></div>
@@ -933,6 +953,10 @@
       current: null,
       pointerId: null,
       color: "#d8759e",
+      colorH: 337,
+      colorS: .51,
+      colorV: .85,
+      wheelPointerId: null,
       size: 14,
       eraser: false,
       dirty: false
@@ -942,6 +966,15 @@
     canvas.addEventListener("pointermove", coloringPointerMove);
     canvas.addEventListener("pointerup", coloringPointerUp);
     canvas.addEventListener("pointercancel", coloringPointerUp);
+    const wheel = document.getElementById("coloringColorWheelV314bw");
+    if (wheel) {
+      wheel.style.touchAction = "none";
+      wheel.addEventListener("pointerdown", coloringWheelPointerDown);
+      wheel.addEventListener("pointermove", coloringWheelPointerMove);
+      wheel.addEventListener("pointerup", coloringWheelPointerUp);
+      wheel.addEventListener("pointercancel", coloringWheelPointerUp);
+    }
+    syncColorPickerFromColor(coloring.color);
     redrawColoring();
     updateColoringToolButtons();
     setColoringStatus(saved ? "Saved progress loaded." : "New page · progress autosaves after every stroke.");
@@ -956,6 +989,11 @@
       canvas?.removeEventListener("pointermove", coloringPointerMove);
       canvas?.removeEventListener("pointerup", coloringPointerUp);
       canvas?.removeEventListener("pointercancel", coloringPointerUp);
+      const wheel = document.getElementById("coloringColorWheelV314bw");
+      wheel?.removeEventListener("pointerdown", coloringWheelPointerDown);
+      wheel?.removeEventListener("pointermove", coloringWheelPointerMove);
+      wheel?.removeEventListener("pointerup", coloringWheelPointerUp);
+      wheel?.removeEventListener("pointercancel", coloringWheelPointerUp);
     } catch {}
     coloring = null;
   }
@@ -1035,10 +1073,143 @@
     coloring.strokes.forEach(drawStroke);
   }
 
+  function clamp01(value) { return Math.max(0, Math.min(1, Number(value) || 0)); }
+
+  function hsvToRgb(h, s, v) {
+    h = ((Number(h) % 360) + 360) % 360;
+    s = clamp01(s); v = clamp01(v);
+    const c = v * s;
+    const x = c * (1 - Math.abs((h / 60) % 2 - 1));
+    const m = v - c;
+    let r=0,g=0,b=0;
+    if (h < 60) [r,g,b]=[c,x,0];
+    else if (h < 120) [r,g,b]=[x,c,0];
+    else if (h < 180) [r,g,b]=[0,c,x];
+    else if (h < 240) [r,g,b]=[0,x,c];
+    else if (h < 300) [r,g,b]=[x,0,c];
+    else [r,g,b]=[c,0,x];
+    return { r: Math.round((r+m)*255), g: Math.round((g+m)*255), b: Math.round((b+m)*255) };
+  }
+
+  function rgbToHsv(r, g, b) {
+    r=Math.max(0,Math.min(255,Number(r)||0))/255;
+    g=Math.max(0,Math.min(255,Number(g)||0))/255;
+    b=Math.max(0,Math.min(255,Number(b)||0))/255;
+    const max=Math.max(r,g,b), min=Math.min(r,g,b), d=max-min;
+    let h=0;
+    if (d) {
+      if (max===r) h=60*(((g-b)/d)%6);
+      else if (max===g) h=60*((b-r)/d+2);
+      else h=60*((r-g)/d+4);
+    }
+    if (h<0) h+=360;
+    return { h, s:max===0?0:d/max, v:max };
+  }
+
+  function hexToRgb(hex) {
+    const match=String(hex||"").trim().match(/^#?([0-9a-f]{6})$/i);
+    if (!match) return null;
+    const n=parseInt(match[1],16);
+    return { r:(n>>16)&255, g:(n>>8)&255, b:n&255 };
+  }
+
+  function rgbToHex(r,g,b) {
+    const part=n=>Math.max(0,Math.min(255,Math.round(n))).toString(16).padStart(2,"0");
+    return `#${part(r)}${part(g)}${part(b)}`.toUpperCase();
+  }
+
+  function drawColorWheel() {
+    if (!coloring) return;
+    const canvas=document.getElementById("coloringColorWheelV314bw");
+    if (!canvas) return;
+    const ctx=canvas.getContext("2d");
+    const w=canvas.width,h=canvas.height,cx=w/2,cy=h/2,radius=Math.min(w,h)*.46;
+    const image=ctx.createImageData(w,h);
+    for (let y=0;y<h;y+=1) {
+      for (let x=0;x<w;x+=1) {
+        const dx=x-cx,dy=y-cy,dist=Math.sqrt(dx*dx+dy*dy);
+        const i=(y*w+x)*4;
+        if (dist>radius) { image.data[i+3]=0; continue; }
+        const hue=(Math.atan2(dy,dx)*180/Math.PI+360)%360;
+        const sat=Math.min(1,dist/radius);
+        const rgb=hsvToRgb(hue,sat,coloring.colorV);
+        image.data[i]=rgb.r; image.data[i+1]=rgb.g; image.data[i+2]=rgb.b; image.data[i+3]=255;
+      }
+    }
+    ctx.clearRect(0,0,w,h); ctx.putImageData(image,0,0);
+    const angle=coloring.colorH*Math.PI/180;
+    const markerR=coloring.colorS*radius;
+    const mx=cx+Math.cos(angle)*markerR, my=cy+Math.sin(angle)*markerR;
+    ctx.save();
+    ctx.beginPath(); ctx.arc(mx,my,6,0,Math.PI*2); ctx.lineWidth=3; ctx.strokeStyle="#fff"; ctx.stroke();
+    ctx.beginPath(); ctx.arc(mx,my,7.5,0,Math.PI*2); ctx.lineWidth=1.5; ctx.strokeStyle="#3f2838"; ctx.stroke();
+    ctx.restore();
+  }
+
+  function updateColorPickerUi() {
+    if (!coloring) return;
+    const hex=coloring.color.toUpperCase();
+    const label=document.getElementById("coloringHexLabelV314bw"); if (label) label.textContent=hex;
+    const input=document.getElementById("coloringHexInputV314bw"); if (input && document.activeElement!==input) input.value=hex;
+    const preview=document.getElementById("coloringColorPreviewV314bw"); if (preview) preview.style.setProperty("--custom-color",hex);
+    const value=document.getElementById("coloringValueV314bw"); if (value) value.value=String(Math.round(coloring.colorV*100));
+    const valueLabel=document.getElementById("coloringValueLabelV314bw"); if (valueLabel) valueLabel.textContent=`${Math.round(coloring.colorV*100)}%`;
+  }
+
+  function syncColorPickerFromColor(color) {
+    if (!coloring) return;
+    const rgb=hexToRgb(color);
+    if (!rgb) return;
+    const hsv=rgbToHsv(rgb.r,rgb.g,rgb.b);
+    coloring.colorH=hsv.h; coloring.colorS=hsv.s; coloring.colorV=hsv.v;
+    coloring.color=rgbToHex(rgb.r,rgb.g,rgb.b);
+    updateColorPickerUi();
+    drawColorWheel();
+  }
+
+  function coloringWheelPick(event) {
+    if (!coloring) return;
+    const canvas=document.getElementById("coloringColorWheelV314bw");
+    if (!canvas) return;
+    const rect=canvas.getBoundingClientRect();
+    const x=(event.clientX-rect.left)*canvas.width/rect.width;
+    const y=(event.clientY-rect.top)*canvas.height/rect.height;
+    const cx=canvas.width/2,cy=canvas.height/2,radius=Math.min(canvas.width,canvas.height)*.46;
+    let dx=x-cx,dy=y-cy,dist=Math.sqrt(dx*dx+dy*dy);
+    if (dist>radius && dist>0) { const scale=radius/dist; dx*=scale; dy*=scale; dist=radius; }
+    coloring.colorH=(Math.atan2(dy,dx)*180/Math.PI+360)%360;
+    coloring.colorS=Math.min(1,dist/radius);
+    const rgb=hsvToRgb(coloring.colorH,coloring.colorS,coloring.colorV);
+    coloring.color=rgbToHex(rgb.r,rgb.g,rgb.b);
+    coloring.eraser=false;
+    updateColorPickerUi(); drawColorWheel(); updateColoringToolButtons();
+  }
+
+  function coloringWheelPointerDown(event) {
+    if (!coloring || coloring.wheelPointerId!==null) return;
+    event.preventDefault();
+    coloring.wheelPointerId=event.pointerId;
+    event.currentTarget?.setPointerCapture?.(event.pointerId);
+    coloringWheelPick(event);
+  }
+  function coloringWheelPointerMove(event) {
+    if (!coloring || coloring.wheelPointerId!==event.pointerId) return;
+    event.preventDefault(); coloringWheelPick(event);
+  }
+  function coloringWheelPointerUp(event) {
+    if (!coloring || coloring.wheelPointerId!==event.pointerId) return;
+    event.preventDefault();
+    try { event.currentTarget?.releasePointerCapture?.(event.pointerId); } catch {}
+    coloringWheelPick(event); coloring.wheelPointerId=null;
+  }
+
   function setColoringColor(color) {
     if (!coloring) return;
-    coloring.color = color;
+    const rgb=hexToRgb(color);
+    if (!rgb) return;
+    coloring.color = rgbToHex(rgb.r,rgb.g,rgb.b);
     coloring.eraser = false;
+    syncColorPickerFromColor(coloring.color);
     updateColoringToolButtons();
   }
 
