@@ -1407,9 +1407,13 @@
     renderDevOutput();
 
     if (!options.suppressCloud) {
-      window.dispatchEvent(new CustomEvent("life-rpg:state-saved", {
-        detail: { source }
-      }));
+      const detail = { source, background: Boolean(options.suppressUiRefresh) };
+      // Cloud persistence must still hear about quiet/background saves, but most UI
+      // modules should not rebuild themselves for metadata-only background syncs.
+      window.dispatchEvent(new CustomEvent("life-rpg:state-persisted", { detail }));
+      if (!options.suppressUiRefresh) {
+        window.dispatchEvent(new CustomEvent("life-rpg:state-saved", { detail }));
+      }
     }
     return true;
   }

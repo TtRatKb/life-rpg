@@ -116,7 +116,7 @@ async function initCloudSave() {
     }
   });
 
-  window.addEventListener("life-rpg:state-saved", () => {
+  window.addEventListener("life-rpg:state-persisted", () => {
     if (applyingRemote || !currentUser || !cloudReady || conflictOpen) return;
     queueCloudSave();
   });

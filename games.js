@@ -692,9 +692,16 @@
     const current = model();
     if (current.logs.length > MAX_LOGS) current.logs = current.logs.slice(-MAX_LOGS);
     writeShadow(current);
-    app.saveState({ source });
-    if (shouldRender) render();
-    dispatchChange(source);
+    // Background Steam passes can save several games in succession. Broadcasting a
+    // normal state/game change for every one of those saves forces Daily/Dashboard
+    // and several other views to rebuild their image markup, which causes visible
+    // image flashes and card-height twitching. Persist quietly instead; cloud-save
+    // still receives life-rpg:state-persisted from app.js.
+    app.saveState({ source, suppressUiRefresh: !shouldRender });
+    if (shouldRender) {
+      render();
+      dispatchChange(source);
+    }
   }
 
   function dispatchChange(source) {
