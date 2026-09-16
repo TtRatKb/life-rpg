@@ -785,6 +785,28 @@
     els.empty.classList.toggle("hidden", games.length > 0);
   }
 
+  function refreshGameCardInPlace(gameId) {
+    if (!els.board) return false;
+    const game = findGame(gameId);
+    if (!game) return false;
+    const current = Array.from(els.board.children).find(node => node?.dataset?.gameCardId === String(gameId));
+    if (!current) return false;
+
+    const template = document.createElement("template");
+    template.innerHTML = gameCardMarkup(game).trim();
+    const fresh = template.content.firstElementChild;
+    const currentBody = current.querySelector(".game-card-body-v17");
+    const freshBody = fresh?.querySelector(".game-card-body-v17");
+    if (!currentBody || !freshBody) return false;
+
+    // Keep the existing cover <img> node mounted. Replacing the whole card
+    // during every background Steam request made covers briefly disappear while
+    // the new image node decoded, which caused the visible card/page twitch.
+    currentBody.replaceWith(freshBody);
+    current.className = fresh.className;
+    return true;
+  }
+
   function sortGames(a, b) {
     if (selectedSort === "title") return String(a.title || "").localeCompare(String(b.title || ""));
     if (selectedSort === "updated") return Number(b.updatedAt || 0) - Number(a.updatedAt || 0);
@@ -841,8 +863,8 @@
       : `${formatNumber(sessionAmount)} ${Number(sessionAmount) === 1 ? tracking.singular : tracking.plural} per Daily Pick`;
 
     return `
-      <article class="game-card-v17 ${active ? "active" : ""} ${cover ? "has-cover-v305" : ""}">
-        ${cover ? `<div class="game-card-cover-v305"><img src="${escAttr(cover)}" alt="" loading="lazy" /></div>` : `<div class="game-card-accent-v17"><span>${esc(role.icon)}</span></div>`}
+      <article class="game-card-v17 ${active ? "active" : ""} ${cover ? "has-cover-v305" : ""}" data-game-card-id="${escAttr(game.id)}">
+        ${cover ? `<div class="game-card-cover-v305"><img src="${escAttr(cover)}" alt="" width="460" height="215" loading="lazy" decoding="async" /></div>` : `<div class="game-card-accent-v17"><span>${esc(role.icon)}</span></div>`}
         <div class="game-card-body-v17">
           <div class="game-card-top-v17">
             <div class="game-card-heading-v17">
@@ -3113,7 +3135,6 @@
     sync.lastMatchedGoals = matchedGoals;
     sync.lastHistoricalImported = historicalImported;
     game.lastSteamSyncAt = syncedAt;
-    game.updatedAt = Math.max(Number(game.updatedAt || 0), syncedAt);
     persist(`steam-achievement-sync-${source}`, { render: false });
 
     if (!silent) {
@@ -3140,7 +3161,7 @@
     return { changed, baseline: isBaseline, unlocked: newUnlocks, historicalImported, matchedGoals, returned: steamItems.length };
   }
 
-  async function syncSteamGameById(gameId, { force = false, silent = false, reason = "manual", includeLibrary = true } = {}) {
+  async function syncSteamGameById(gameId, { force = false, silent = false, reason = "manual", includeLibrary = true, deferRender = false } = {}) {
     const game = findGame(gameId);
     if (!game?.steamAppId) return null;
     const settings = steamSettings();
@@ -3156,12 +3177,17 @@
     if (steamSyncInFlight.has(game.id)) return steamSyncInFlight.get(game.id);
 
     const task = (async () => {
-      renderBoard();
+      if (!deferRender) renderBoard();
       try {
         const playtimeResult = includeLibrary ? await syncSteamLibrary({ appId: game.steamAppId, silent: true }) : null;
         const { data, items } = await fetchSteamAchievements(game.steamAppId);
         const result = processSteamAchievementSync(game, items, data, Date.now(), { silent, source: reason, playtimeResult });
-        render();
+        if (deferRender) {
+          renderSummary();
+          refreshGameCardInPlace(game.id);
+        } else {
+          render();
+        }
         return result;
       } catch (error) {
         console.warn("Steam sync failed", game.title, error);
@@ -3169,7 +3195,7 @@
         return null;
       } finally {
         steamSyncInFlight.delete(game.id);
-        renderBoard();
+        if (!deferRender) renderBoard();
       }
     })();
     steamSyncInFlight.set(game.id, task);
@@ -3193,7 +3219,11 @@
       .sort((a, b) => Math.max(effectiveGameLastPlayedAt(b), Number(b.updatedAt || 0)) - Math.max(effectiveGameLastPlayedAt(a), Number(a.updatedAt || 0)));
     if (games.length) await syncSteamLibrary({ silent: true });
     for (const game of games) {
-      await syncSteamGameById(game.id, { force: false, silent: true, reason, includeLibrary: false });
+      await syncSteamGameById(game.id, { force: false, silent: true, reason, includeLibrary: false, deferRender: true });
+    }
+    if (games.length) {
+      renderSteamGamesConnection();
+      renderSummary();
     }
   }
 
