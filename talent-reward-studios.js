@@ -1,8 +1,8 @@
 (() => {
   "use strict";
 
-  if (window.__lifeRpgTalentRewardStudiosV314bz) return;
-  window.__lifeRpgTalentRewardStudiosV314bz = true;
+  if (window.__lifeRpgTalentRewardStudiosV314ca) return;
+  window.__lifeRpgTalentRewardStudiosV314ca = true;
 
   const app = window.LifeRPGApp;
   const graph = window.LifeRPGTalentTreeGraph;
@@ -11,7 +11,7 @@
     return;
   }
 
-  const VERSION = "0.31.4bz";
+  const VERSION = "0.31.4ca";
   const SCHEMA = 2;
 
   const JAPANESE_CARDS = [
@@ -210,7 +210,7 @@
   ];
 
   const COLORING_PAGES = [
-    { id: "bakugo-trading-card", title: "Bakugo Trading Card", subtitle: "Collectible-card coloring page · spoiler-free bonus art", src: "assets/coloring/bakugo-trading-card-line.png" }
+    { id: "bakugo-trading-card", title: "Bakugo Trading Card", subtitle: "Collectible-card coloring page · spoiler-free bonus art", src: "assets/coloring/bakugo-trading-card-line.png?v=0.31.4ca" }
   ];
 
   const PALETTE = ["#2d2130", "#5c294b", "#9a486d", "#d8759e", "#f2a7bf", "#efcfbc", "#f4d35e", "#e88945", "#bc3c38", "#7c2f34", "#4a6658", "#79a879", "#6c8dc6", "#8a72bc", "#d6c4ef", "#ffffff"];
@@ -527,7 +527,9 @@
       renderHomeOracle();
     } else if (kind === "coloring-studio") {
       if (!isUnlocked("Hobbies", "coloring-studio")) return focusLocked("Hobbies");
-      renderColoringGallery();
+      finishColoringSession();
+      window.location.assign("coloring-studio.html");
+      return true;
     } else return false;
     showDialog();
     return true;

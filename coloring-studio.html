@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#321d34" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <title>Coloring Studio · Life RPG</title>
+  <link rel="stylesheet" href="coloring-studio.css?v=0.31.4ca" />
+</head>
+<body>
+  <main class="coloring-app" id="coloringApp">
+    <header class="studio-topbar">
+      <button class="back-button" id="backToLifeRpg" type="button" aria-label="Back to Life RPG">← <span>Life RPG</span></button>
+      <div class="studio-title">
+        <small>HOBBIES · COLORING STUDIO</small>
+        <strong>Collectible Coloring Cards</strong>
+      </div>
+      <div class="save-pill" id="savePill" data-state="ready"><span>●</span><b>Ready</b></div>
+    </header>
+
+    <section class="studio-workspace">
+      <aside class="library-panel" aria-label="Coloring card library">
+        <div class="panel-heading">
+          <small>YOUR LIBRARY</small>
+          <strong>Coloring Cards</strong>
+        </div>
+        <div id="cardLibrary" class="card-library"></div>
+        <p class="library-note">New cards we create later will appear here automatically. Your brush strokes stay saved on this device.</p>
+      </aside>
+
+      <section class="canvas-column" aria-label="Coloring canvas">
+        <div class="canvas-toolbar-mobile">
+          <button type="button" id="toggleTools">🎨 Colors & tools</button>
+        </div>
+        <div class="canvas-shell">
+          <div class="canvas-stage" id="canvasStage">
+            <canvas id="paintCanvas" width="1122" height="1402" aria-label="Coloring canvas"></canvas>
+            <img id="lineArt" alt="Bakugo collectible coloring card line art" draggable="false" />
+          </div>
+        </div>
+      </section>
+
+      <aside class="tools-panel" id="toolsPanel" aria-label="Coloring tools">
+        <div class="panel-heading">
+          <small>COLOR</small>
+          <strong>Color Wheel</strong>
+        </div>
+        <div class="color-wheel-wrap">
+          <canvas id="colorWheel" width="200" height="200" aria-label="Color wheel"></canvas>
+        </div>
+        <label class="range-field">
+          <span>Brightness <b id="brightnessValue">100%</b></span>
+          <input id="brightness" type="range" min="0" max="100" value="100" />
+        </label>
+        <div class="hex-row">
+          <span class="color-preview" id="colorPreview"></span>
+          <label><small>HEX</small><input id="hexInput" type="text" value="#D8759E" maxlength="7" autocomplete="off" spellcheck="false" /></label>
+        </div>
+        <div class="quick-colors" id="quickColors" aria-label="Quick colors"></div>
+
+        <div class="tool-divider"></div>
+        <label class="range-field">
+          <span>Brush size <b id="brushSizeValue">18px</b></span>
+          <input id="brushSize" type="range" min="2" max="90" value="18" />
+        </label>
+        <div class="tool-grid three">
+          <button type="button" id="eraserButton">⌫ Eraser</button>
+          <button type="button" id="undoButton">↶ Undo</button>
+          <button type="button" id="redoButton">↷ Redo</button>
+        </div>
+        <div class="tool-grid">
+          <button type="button" id="exportButton" class="primary">Export PNG</button>
+          <button type="button" id="finishButton">Mark finished</button>
+        </div>
+        <button type="button" id="clearButton" class="danger-link">Clear all color</button>
+        <p class="tool-hint">Draw with mouse, touch, or Apple Pencil. Pencil pressure is used when your browser reports it.</p>
+      </aside>
+    </section>
+  </main>
+  <script src="coloring-studio.js?v=0.31.4ca"></script>
+</body>
+</html>
