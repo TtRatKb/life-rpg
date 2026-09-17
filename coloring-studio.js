@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "0.31.4ca";
+  const VERSION = "0.31.4cb";
   const DB_NAME = "life-rpg-coloring-v1";
   const STORE = "pages";
   const PAGES = [
@@ -26,7 +26,8 @@
   let pointerId = null;
   let saveTimer = null;
   let dirty = false;
-  let eraser = false;
+  let activeTool = "brush";
+  let lastTool = "brush";
   let brushSize = 18;
   let color = "#D8759E";
   let hue = 337;
@@ -52,7 +53,10 @@
       quick: document.getElementById("quickColors"),
       brush: document.getElementById("brushSize"),
       brushValue: document.getElementById("brushSizeValue"),
+      pen: document.getElementById("penButton"),
+      softBrush: document.getElementById("softBrushButton"),
       eraser: document.getElementById("eraserButton"),
+      eyedropper: document.getElementById("eyedropperButton"),
       undo: document.getElementById("undoButton"),
       redo: document.getElementById("redoButton"),
       clear: document.getElementById("clearButton"),
@@ -101,7 +105,10 @@
       brushSize = Math.max(2, Math.min(90, Number(els.brush.value) || 18));
       els.brushValue.textContent = `${brushSize}px`;
     });
-    els.eraser.addEventListener("click", () => { eraser = !eraser; updateTools(); });
+    els.pen.addEventListener("click", () => setTool("brush"));
+    els.softBrush.addEventListener("click", () => setTool("soft"));
+    els.eraser.addEventListener("click", () => setTool("eraser"));
+    els.eyedropper.addEventListener("click", () => setTool(activeTool === "eyedropper" ? lastTool : "eyedropper"));
     els.undo.addEventListener("click", undo);
     els.redo.addEventListener("click", redo);
     els.clear.addEventListener("click", clearAll);
@@ -178,7 +185,13 @@
     pointerId = event.pointerId;
     try { els.canvas.setPointerCapture(pointerId); } catch {}
     const p = pointFromEvent(event);
-    currentStroke = { color, size: brushSize, eraser, points: [p] };
+    if (activeTool === "eyedropper") {
+      pickColorFromCanvas(event);
+      setTool(lastTool);
+      pointerId = null;
+      return;
+    }
+    currentStroke = { color, size: brushSize, eraser: activeTool === "eraser", mode: activeTool === "soft" ? "soft" : "solid", points: [p] };
     drawStroke(currentStroke);
   }
 
@@ -222,12 +235,31 @@
 
   function drawSegment(stroke, a, b) {
     ctx.save();
-    ctx.globalCompositeOperation = stroke.eraser ? "destination-out" : "source-over";
+    const pressure = (Number(a[2] || .55) + Number(b[2] || .55)) / 2;
+    const width = Number(stroke.size || 18) * (.68 + pressure * .65);
+    if (stroke.eraser) {
+      ctx.globalCompositeOperation = "destination-out";
+      ctx.strokeStyle = stroke.color || "#000000";
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.lineWidth = width;
+      ctx.beginPath();
+      ctx.moveTo(a[0],a[1]);
+      ctx.lineTo(b[0],b[1]);
+      ctx.stroke();
+      ctx.restore();
+      return;
+    }
+    if ((stroke.mode || "solid") === "soft") {
+      drawSoftSegment(stroke, a, b, width);
+      ctx.restore();
+      return;
+    }
+    ctx.globalCompositeOperation = "source-over";
     ctx.strokeStyle = stroke.color || "#000000";
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
-    const pressure = (Number(a[2] || .55) + Number(b[2] || .55)) / 2;
-    ctx.lineWidth = Number(stroke.size || 18) * (.68 + pressure * .65);
+    ctx.lineWidth = width;
     ctx.beginPath();
     ctx.moveTo(a[0],a[1]);
     ctx.lineTo(b[0],b[1]);
@@ -238,6 +270,43 @@
   function redraw() {
     ctx.clearRect(0,0,els.canvas.width,els.canvas.height);
     strokes.forEach(drawStroke);
+  }
+
+
+  function drawSoftSegment(stroke, a, b, width) {
+    const dx = b[0] - a[0], dy = b[1] - a[1];
+    const distance = Math.hypot(dx, dy);
+    const spacing = Math.max(1.6, width * 0.16);
+    const steps = Math.max(1, Math.ceil(distance / spacing));
+    for (let i = 0; i <= steps; i++) {
+      const t = steps === 0 ? 0 : i / steps;
+      const x = a[0] + dx * t;
+      const y = a[1] + dy * t;
+      const pressure = (Number(a[2] || .55) * (1 - t)) + (Number(b[2] || .55) * t);
+      const size = Number(stroke.size || 18) * (.7 + pressure * .75);
+      drawSoftStamp(stroke.color || "#000000", x, y, size);
+    }
+  }
+
+  function drawSoftStamp(hex, x, y, size) {
+    const rgb = hexToRgb(hex) || { r: 0, g: 0, b: 0 };
+    const radius = Math.max(1.4, size * 0.56);
+    const gradient = ctx.createRadialGradient(x, y, 0, x, y, radius);
+    gradient.addColorStop(0, `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.30)`);
+    gradient.addColorStop(0.45, `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.18)`);
+    gradient.addColorStop(1, `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0)`);
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  function pickColorFromCanvas(event) {
+    const [x, y] = pointFromEvent(event);
+    const data = ctx.getImageData(Math.max(0, Math.min(els.canvas.width - 1, Math.round(x))), Math.max(0, Math.min(els.canvas.height - 1, Math.round(y))), 1, 1).data;
+    if (data[3] === 0) return;
+    setColor(rgbToHex(data[0], data[1], data[2]));
+    setSaveStatus("ready", `Picked ${color}`);
   }
 
   function undo() {
@@ -267,18 +336,27 @@
   }
 
   function updateTools() {
-    els.eraser.classList.toggle("is-active", eraser);
+    els.pen.classList.toggle("is-active", activeTool === "brush");
+    els.softBrush.classList.toggle("is-active", activeTool === "soft");
+    els.eraser.classList.toggle("is-active", activeTool === "eraser");
+    els.eyedropper.classList.toggle("is-active", activeTool === "eyedropper");
     els.undo.disabled = !strokes.length;
     els.redo.disabled = !redoStack.length;
     els.finish.textContent = finished ? "Finished ✓" : "Mark finished";
-    document.querySelectorAll("[data-color]").forEach(b => b.classList.toggle("is-selected", !eraser && b.dataset.color.toUpperCase() === color.toUpperCase()));
+    document.querySelectorAll("[data-color]").forEach(b => b.classList.toggle("is-selected", activeTool !== "eraser" && activeTool !== "eyedropper" && b.dataset.color.toUpperCase() === color.toUpperCase()));
+  }
+
+  function setTool(tool) {
+    activeTool = tool;
+    if (tool !== "eyedropper") lastTool = tool;
+    updateTools();
   }
 
   function setColor(hex) {
     const normalized = normalizeHex(hex);
     if (!normalized) return;
     color = normalized;
-    eraser = false;
+    if (activeTool === "eraser") setTool(lastTool === "soft" ? "soft" : "brush");
     syncPickerFromHex(color);
     updateTools();
   }
@@ -286,7 +364,7 @@
   function setColorFromHsv() {
     const rgb = hsvToRgb(hue,saturation,value);
     color = rgbToHex(rgb.r,rgb.g,rgb.b);
-    eraser = false;
+    if (activeTool === "eraser") setTool(lastTool === "soft" ? "soft" : "brush");
     updatePickerUi();
     drawWheel();
     updateTools();
