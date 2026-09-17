@@ -1,0 +1,5 @@
+These files are no longer referenced by Life RPG and can be deleted from the repository:
+
+assets/coloring/bakugo-off-duty-line.png
+assets/coloring/kirishima-off-duty-line.png
+assets/coloring/dynariot-duo-line.png

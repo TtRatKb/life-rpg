@@ -8,7 +8,7 @@
     return;
   }
 
-  const VERSION = "0.31.4at";
+  const VERSION = "0.31.4bz";
   const SCHEMA = 4;
   const RESONANCE_DAILY_CAP = 3;
   const REALM_ORDER = ["Work", "Knowledge", "Japanese", "Health", "Recovery", "Home", "Hobbies"];
@@ -367,7 +367,7 @@
     else if (meta.content?.id === id) r.permanent.content[id] = Date.now();
 
     syncSpent(realm);
-    app.saveState({ source: `talent-v2-buy-${realm.toLowerCase()}` });
+    app.saveState({ source: `talent-v2-buy-${realm.toLowerCase()}`, suppressUiRefresh: true });
     emitChange(realm);
     renderAllTrees();
 
@@ -412,7 +412,7 @@
     if (!window.confirm(`Reset the ${realm} passive build? ${refundable} point${refundable === 1 ? "" : "s"} will become available again. Permanent Reward Cache claims and content unlocks stay owned.`)) return false;
     r.build = { resonance: 0, momentum: 0, special: 0 };
     syncSpent(realm);
-    app.saveState({ source: `talent-v2-respec-${realm.toLowerCase()}` });
+    app.saveState({ source: `talent-v2-respec-${realm.toLowerCase()}`, suppressUiRefresh: true });
     emitChange(realm);
     renderAllTrees();
     app.showToast?.(`${realm} passive build reset · ${refundable} point${refundable === 1 ? "" : "s"} refunded.`);

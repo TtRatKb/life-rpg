@@ -1,8 +1,8 @@
 (() => {
   "use strict";
 
-  if (window.__lifeRpgTalentTreeGraphV314at) return;
-  window.__lifeRpgTalentTreeGraphV314at = true;
+  if (window.__lifeRpgTalentTreeGraphV314bz) return;
+  window.__lifeRpgTalentTreeGraphV314bz = true;
 
   const app = window.LifeRPGApp;
   const skills = window.LifeRPGSkills;
@@ -12,8 +12,8 @@
     return;
   }
 
-  const VERSION = "0.31.4at";
-  const SCHEMA = 4;
+  const VERSION = "0.31.4bz";
+  const SCHEMA = 5;
   const REALMS = ["Work", "Knowledge", "Japanese", "Health", "Recovery", "Home", "Hobbies"];
 
   const META = {
@@ -107,15 +107,15 @@
     Hobbies: {
       icon: "🎨",
       special: { id: "joy-spark", icon: "♡", title: "Joy Spark", max: 3 },
-      subtitle: "Your first point opens something genuinely fun to use; later points expand the toy rather than merely increasing a number.",
+      subtitle: "Your first point can unlock something genuinely fun to use; future coloring pages expand the library without asking for another Talent rank.",
       dream: { title: "Play After Dark", copy: "games, music, playful competition, and moments that feel suspiciously like dates" },
       content: [
-        rankedContent("coloring-studio", "🖍️", "Coloring Studio", 2,
-          "Rank I: unlock Coloring Studio plus the first spoiler-free character page. Rank II: add the Kirishima and DynaRiot Duo pages for the full current starter pack.",
+        rankedContent("coloring-studio", "🖍️", "Coloring Studio", 1,
+          "Rank I permanently unlocks Coloring Studio and its collectible-card coloring library. New coloring pages are library additions, not extra Talent ranks.",
           {}, "Open Coloring Studio", () => window.LifeRPGTalentRewardStudios?.open?.("coloring-studio")),
         planned("moodboard-mixer", "▣", "Moodboard Mixer · Later",
           "A future focused board tool for outfits, makeup, DIY and Adventure inspiration. Visible as a possible Hobbies expansion, but it cannot cost points until the tool actually exists.",
-          { content: "coloring-studio", contentRank: 2 })
+          { content: "coloring-studio", contentRank: 1 })
       ]
     }
   };
@@ -212,7 +212,13 @@
       state.migrations.starterContentRanksAT = { at: Date.now() };
       migratedNow = true;
     }
-    if (migratedNow) app.saveState({ source: "talent-tree-content-migrations-at" });
+    if (!state.migrations.coloringStudioSingleRankBZ) {
+      const raw = Math.max(0, Math.floor(Number(state.unlocks?.Hobbies?.["coloring-studio"] || 0)));
+      if (raw > 1) state.unlocks.Hobbies["coloring-studio"] = 1;
+      state.migrations.coloringStudioSingleRankBZ = { at: Date.now(), previousRank: raw, refundedPoints: raw > 1 ? raw - 1 : 0 };
+      migratedNow = true;
+    }
+    if (migratedNow) app.saveState({ source: "talent-tree-content-migrations-bz", suppressUiRefresh: true });
     return state;
   }
 
@@ -308,7 +314,7 @@
     }
 
     state().dreamThreads[realm] = target;
-    app.saveState({ source: `dream-thread-${realm.toLowerCase()}-${target}` });
+    app.saveState({ source: `dream-thread-${realm.toLowerCase()}-${target}`, suppressUiRefresh: true });
     try {
       window.dispatchEvent(new CustomEvent("life-rpg:dream-thread-change", {
         detail: { realm, rank: target, total: totalDreamThreads(), cadenceDays: dreamCadenceDays() }
@@ -372,7 +378,7 @@
 
     const nextRank = currentRank + 1;
     state().unlocks[realm][item.id] = item.rankable ? nextRank : Date.now();
-    app.saveState({ source: `talent-content-unlock-${realm.toLowerCase()}` });
+    app.saveState({ source: `talent-content-unlock-${realm.toLowerCase()}`, suppressUiRefresh: true });
     emitChange(realm, item.id);
     app.showToast?.(`🔓 ${item.title}${item.rankable ? ` ${roman(nextRank)}/${maxRank}` : ""} unlocked · ${cost} ${realm} point${cost === 1 ? "" : "s"}.`);
     scheduleRender(20);

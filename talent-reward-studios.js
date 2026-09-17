@@ -1,8 +1,8 @@
 (() => {
   "use strict";
 
-  if (window.__lifeRpgTalentRewardStudiosV314bw) return;
-  window.__lifeRpgTalentRewardStudiosV314bw = true;
+  if (window.__lifeRpgTalentRewardStudiosV314bz) return;
+  window.__lifeRpgTalentRewardStudiosV314bz = true;
 
   const app = window.LifeRPGApp;
   const graph = window.LifeRPGTalentTreeGraph;
@@ -11,7 +11,7 @@
     return;
   }
 
-  const VERSION = "0.31.4bw";
+  const VERSION = "0.31.4bz";
   const SCHEMA = 2;
 
   const JAPANESE_CARDS = [
@@ -210,10 +210,7 @@
   ];
 
   const COLORING_PAGES = [
-    { id: "bakugo-off-duty", title: "Off-Duty Bakugo", subtitle: "Canon-board portrait · spoiler-free bonus page", src: "assets/coloring/bakugo-off-duty-line.png" },
-    { id: "bakugo-trading-card", title: "Bakugo Trading Card", subtitle: "Non-canon bonus card · portrait breaks out of the frame", src: "assets/coloring/bakugo-trading-card-line.png" },
-    { id: "kirishima-off-duty", title: "Off-Duty Kirishima", subtitle: "Canon-board portrait · spoiler-free bonus page", src: "assets/coloring/kirishima-off-duty-line.png" },
-    { id: "dynariot-duo", title: "DynaRiot Duo", subtitle: "Non-canon character bonus · no Story state", src: "assets/coloring/dynariot-duo-line.png" }
+    { id: "bakugo-trading-card", title: "Bakugo Trading Card", subtitle: "Collectible-card coloring page · spoiler-free bonus art", src: "assets/coloring/bakugo-trading-card-line.png" }
   ];
 
   const PALETTE = ["#2d2130", "#5c294b", "#9a486d", "#d8759e", "#f2a7bf", "#efcfbc", "#f4d35e", "#e88945", "#bc3c38", "#7c2f34", "#4a6658", "#79a879", "#6c8dc6", "#8a72bc", "#d6c4ef", "#ffffff"];
@@ -231,6 +228,10 @@
     ensureState();
     ensureDialog();
     bind();
+    syncColoringLauncher();
+    window.addEventListener("life-rpg:talent-content-v2-change", syncColoringLauncher);
+    window.addEventListener("life-rpg:state-saved", syncColoringLauncher);
+    window.addEventListener("life-rpg:render", syncColoringLauncher);
   }
 
   function defaults() {
@@ -263,6 +264,9 @@
     s.home.selectedDeckId ||= s.home.decks[0]?.id || "dinner";
     s.coloring ||= { lastPageId: null, finished: {} };
     s.coloring.finished ||= {};
+    const validColoringIds = new Set(COLORING_PAGES.map(page => page.id));
+    Object.keys(s.coloring.finished).forEach(id => { if (!validColoringIds.has(id)) delete s.coloring.finished[id]; });
+    if (s.coloring.lastPageId && !validColoringIds.has(s.coloring.lastPageId)) s.coloring.lastPageId = null;
     return s;
   }
 
@@ -281,12 +285,39 @@
     document.body.appendChild(dialog);
   }
 
+  function syncColoringLauncher() {
+    const nav = document.querySelector(".bottom-nav");
+    if (!nav) return;
+    const unlocked = isUnlocked("Hobbies", "coloring-studio");
+    let button = nav.querySelector("[data-coloring-studio-launcher]");
+    if (!unlocked) {
+      button?.remove();
+      return;
+    }
+    if (button) return;
+    button = document.createElement("button");
+    button.className = "nav-button";
+    button.type = "button";
+    button.dataset.coloringStudioLauncher = "true";
+    button.innerHTML = `<span>🖍️</span><small>Coloring</small>`;
+    const games = nav.querySelector('.nav-button[data-view="games"]');
+    if (games) games.insertAdjacentElement("afterend", button);
+    else nav.appendChild(button);
+  }
+
   function bind() {
     document.addEventListener("click", event => {
       const close = event.target.closest?.("[data-reward-studio-close]");
       if (close) {
         event.preventDefault();
         closeStudio();
+        return;
+      }
+
+      const coloringLauncher = event.target.closest?.("[data-coloring-studio-launcher]");
+      if (coloringLauncher) {
+        event.preventDefault();
+        open("coloring-studio");
         return;
       }
 
@@ -526,8 +557,7 @@
   }
 
   function coloringPagePool() {
-    const rank = contentRank("Hobbies", "coloring-studio");
-    return COLORING_PAGES.slice(0, rank >= 2 ? COLORING_PAGES.length : 1);
+    return COLORING_PAGES;
   }
 
   function showDialog() {
@@ -895,22 +925,17 @@
     const content = body();
     if (!content) return;
     const meta = state().coloring;
-    const available = new Set(coloringPagePool().map(page => page.id));
-    const rank = contentRank("Hobbies", "coloring-studio");
     content.innerHTML = `
-      <header class="reward-studio-head-v314as hobbies"><div><p class="eyebrow">HOBBIES TALENT CONTENT · RANK ${roman(rank)}/II</p><h2>Coloring Studio</h2><p>Pencil, touch or mouse. ${rank < 2 ? "Rank I starts with one page; Rank II adds Kirishima + the DynaRiot Duo." : "Full current three-page starter pack unlocked."} The art is spoiler-free bonus content, not future Story CGs.</p></div></header>
-      <div class="coloring-gallery-v314as">${COLORING_PAGES.map(page => { const unlocked = available.has(page.id); return `<button type="button" data-coloring-page="${escAttr(page.id)}" ${unlocked ? "" : "disabled"}><div class="coloring-thumb-v314as"><img src="${escAttr(page.src)}" alt="${escAttr(page.title)} coloring page"></div><div><small>${unlocked ? meta.finished[page.id] ? "FINISHED ✓" : meta.lastPageId === page.id ? "LAST OPENED" : "COLORING PAGE" : "🔒 COLORING STUDIO II"}</small><strong>${esc(page.title)}</strong><span>${unlocked ? esc(page.subtitle) : "Unlock Rank II to color this page."}</span></div><b>${unlocked ? "Open ›" : "Locked"}</b></button>`; }).join("")}</div>
-      <div class="coloring-storage-note-v314as"><span>✦</span><p><strong>Canvas progress stays on this device.</strong> The large stroke data is stored in IndexedDB instead of the main Life RPG save so Coloring Studio cannot cause another localStorage quota problem. Finished status remains in the normal save; you can export any unlocked page as PNG.</p></div>`;
+      <header class="reward-studio-head-v314as hobbies"><div><p class="eyebrow">HOBBIES TALENT CONTENT · UNLOCKED</p><h2>Coloring Studio</h2><p>Your collectible-card coloring library lives here permanently once unlocked. New pages can be added to the library without buying another Talent rank.</p></div></header>
+      <div class="coloring-gallery-v314as">${COLORING_PAGES.map(page => `<button type="button" data-coloring-page="${escAttr(page.id)}"><div class="coloring-thumb-v314as"><img src="${escAttr(page.src)}" alt="${escAttr(page.title)} coloring page"></div><div><small>${meta.finished[page.id] ? "FINISHED ✓" : meta.lastPageId === page.id ? "LAST OPENED" : "COLLECTIBLE COLORING CARD"}</small><strong>${esc(page.title)}</strong><span>${esc(page.subtitle)}</span></div><b>Open ›</b></button>`).join("")}</div>
+      <div class="coloring-storage-note-v314as"><span>✦</span><p><strong>Canvas progress stays on this device.</strong> The large stroke data is stored in IndexedDB instead of the main Life RPG save so Coloring Studio cannot cause another localStorage quota problem. Finished status remains in the normal save; you can export any page as PNG.</p></div>`;
     showDialog();
   }
 
   async function openColoringPage(pageId) {
     const page = COLORING_PAGES.find(item => item.id === pageId);
     if (!page) return;
-    if (!coloringPagePool().some(item => item.id === pageId)) {
-      app.showToast?.("🖍️ Coloring Studio II unlocks this page.");
-      return false;
-    }
+    if (!coloringPagePool().some(item => item.id === pageId)) return false;
     finishColoringSession();
     state().coloring.lastPageId = pageId;
     save("coloring-open");
