@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "0.31.4cb";
+  const VERSION = "0.31.4cc";
   const DB_NAME = "life-rpg-coloring-v1";
   const STORE = "pages";
   const PAGES = [
@@ -55,6 +55,7 @@
       brushValue: document.getElementById("brushSizeValue"),
       pen: document.getElementById("penButton"),
       softBrush: document.getElementById("softBrushButton"),
+      smudge: document.getElementById("smudgeButton"),
       eraser: document.getElementById("eraserButton"),
       eyedropper: document.getElementById("eyedropperButton"),
       undo: document.getElementById("undoButton"),
@@ -107,6 +108,7 @@
     });
     els.pen.addEventListener("click", () => setTool("brush"));
     els.softBrush.addEventListener("click", () => setTool("soft"));
+    els.smudge.addEventListener("click", () => setTool("smudge"));
     els.eraser.addEventListener("click", () => setTool("eraser"));
     els.eyedropper.addEventListener("click", () => setTool(activeTool === "eyedropper" ? lastTool : "eyedropper"));
     els.undo.addEventListener("click", undo);
@@ -191,7 +193,7 @@
       pointerId = null;
       return;
     }
-    currentStroke = { color, size: brushSize, eraser: activeTool === "eraser", mode: activeTool === "soft" ? "soft" : "solid", points: [p] };
+    currentStroke = { color, size: brushSize, eraser: activeTool === "eraser", mode: activeTool === "soft" ? "soft" : activeTool === "smudge" ? "smudge" : "solid", points: [p] };
     drawStroke(currentStroke);
   }
 
@@ -255,6 +257,11 @@
       ctx.restore();
       return;
     }
+    if ((stroke.mode || "solid") === "smudge") {
+      drawSmudgeSegment(stroke, a, b, width);
+      ctx.restore();
+      return;
+    }
     ctx.globalCompositeOperation = "source-over";
     ctx.strokeStyle = stroke.color || "#000000";
     ctx.lineCap = "round";
@@ -301,6 +308,59 @@
     ctx.fill();
   }
 
+  function drawSmudgeSegment(stroke, a, b, width) {
+    ctx.globalCompositeOperation = "source-over";
+    const dx = b[0] - a[0], dy = b[1] - a[1];
+    const distance = Math.hypot(dx, dy);
+    const spacing = Math.max(1.2, width * 0.14);
+    const steps = Math.max(1, Math.ceil(distance / spacing));
+    let px = a[0], py = a[1];
+    for (let i = 1; i <= steps; i++) {
+      const t = i / steps;
+      const x = a[0] + dx * t;
+      const y = a[1] + dy * t;
+      const sample = sampleCanvasColor(px, py, Math.max(1, Math.round(width * 0.16)));
+      if (sample) drawSmudgeStamp(sample, x, y, width);
+      px = x;
+      py = y;
+    }
+  }
+
+  function sampleCanvasColor(x, y, radius = 2) {
+    const rx = Math.max(0, Math.min(els.canvas.width - 1, Math.round(x)));
+    const ry = Math.max(0, Math.min(els.canvas.height - 1, Math.round(y)));
+    const r = Math.max(1, Math.min(8, Math.round(radius)));
+    const sx = Math.max(0, rx - r), sy = Math.max(0, ry - r);
+    const sw = Math.min(els.canvas.width - sx, r * 2 + 1), sh = Math.min(els.canvas.height - sy, r * 2 + 1);
+    const data = ctx.getImageData(sx, sy, sw, sh).data;
+    let rr = 0, gg = 0, bb = 0, aa = 0, count = 0;
+    for (let i = 0; i < data.length; i += 4) {
+      const alpha = data[i + 3] / 255;
+      if (alpha <= 0.02) continue;
+      rr += data[i] * alpha;
+      gg += data[i + 1] * alpha;
+      bb += data[i + 2] * alpha;
+      aa += alpha;
+      count++;
+    }
+    if (!count || aa <= 0.01) return null;
+    return { r: rr / aa, g: gg / aa, b: bb / aa, a: Math.min(1, aa / count) };
+  }
+
+  function drawSmudgeStamp(sample, x, y, width) {
+    const radius = Math.max(1.5, width * 0.62);
+    const a1 = Math.max(0.08, Math.min(0.34, sample.a * 0.34));
+    const a2 = Math.max(0.03, Math.min(0.18, sample.a * 0.18));
+    const gradient = ctx.createRadialGradient(x, y, 0, x, y, radius);
+    gradient.addColorStop(0, `rgba(${Math.round(sample.r)}, ${Math.round(sample.g)}, ${Math.round(sample.b)}, ${a1})`);
+    gradient.addColorStop(0.55, `rgba(${Math.round(sample.r)}, ${Math.round(sample.g)}, ${Math.round(sample.b)}, ${a2})`);
+    gradient.addColorStop(1, `rgba(${Math.round(sample.r)}, ${Math.round(sample.g)}, ${Math.round(sample.b)}, 0)`);
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
   function pickColorFromCanvas(event) {
     const [x, y] = pointFromEvent(event);
     const data = ctx.getImageData(Math.max(0, Math.min(els.canvas.width - 1, Math.round(x))), Math.max(0, Math.min(els.canvas.height - 1, Math.round(y))), 1, 1).data;
@@ -338,6 +398,7 @@
   function updateTools() {
     els.pen.classList.toggle("is-active", activeTool === "brush");
     els.softBrush.classList.toggle("is-active", activeTool === "soft");
+    els.smudge.classList.toggle("is-active", activeTool === "smudge");
     els.eraser.classList.toggle("is-active", activeTool === "eraser");
     els.eyedropper.classList.toggle("is-active", activeTool === "eyedropper");
     els.undo.disabled = !strokes.length;

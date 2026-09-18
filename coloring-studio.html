@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <title>Coloring Studio · Life RPG</title>
-  <link rel="stylesheet" href="coloring-studio.css?v=0.31.4cb" />
+  <link rel="stylesheet" href="coloring-studio.css?v=0.31.4cc" />
 </head>
 <body>
   <main class="coloring-app" id="coloringApp">
@@ -65,9 +65,12 @@
           <span>Brush size <b id="brushSizeValue">18px</b></span>
           <input id="brushSize" type="range" min="2" max="90" value="18" />
         </label>
-        <div class="tool-grid">
+        <div class="tool-grid three">
           <button type="button" id="penButton">✏️ Pen</button>
           <button type="button" id="softBrushButton">☁️ Soft brush</button>
+          <button type="button" id="smudgeButton">🌀 Smudge</button>
+        </div>
+        <div class="tool-grid">
           <button type="button" id="eraserButton">⌫ Eraser</button>
           <button type="button" id="eyedropperButton">🧪 Pipette</button>
         </div>
@@ -80,10 +83,10 @@
           <button type="button" id="finishButton">Mark finished</button>
         </div>
         <button type="button" id="clearButton" class="danger-link">Clear all color</button>
-        <p class="tool-hint">Draw with mouse, touch, or Apple Pencil. Use the pipette to sample an existing color from your page, and the soft brush for gentler shading.</p>
+        <p class="tool-hint">Draw with mouse, touch, or Apple Pencil. Use the pipette to sample an existing color from your page, the soft brush for gentler shading, and the smudge tool to drag and blend color that is already on the card.</p>
       </aside>
     </section>
   </main>
-  <script src="coloring-studio.js?v=0.31.4cb"></script>
+  <script src="coloring-studio.js?v=0.31.4cc"></script>
 </body>
 </html>
