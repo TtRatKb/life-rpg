@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "0.31.4cf";
+  const VERSION = "0.31.4cg";
   const DB_NAME = "life-rpg-drawing-studio-v2";
   const STORE = "drawings";
   const META_KEY = "lifeRpgDrawingStudioMetaV2";
@@ -12,7 +12,7 @@
   const MAX_ACTIONS = 800;
 
   const TRACKS = [
-    { id: "all", icon: "✦", title: "All challenges", blurb: "Everything in V2" },
+    { id: "all", icon: "✦", title: "All challenges", blurb: "30 guided studies" },
     { id: "dynamic", icon: "⚡", title: "Dynamic Figures", blurb: "Gesture, action, flow" },
     { id: "anatomy", icon: "◇", title: "Hands & Anatomy", blurb: "Structure and proportion" },
     { id: "hair", icon: "〰", title: "Faces & Hair", blurb: "Hair masses and motion" },
@@ -20,6 +20,31 @@
     { id: "rendering", icon: "◐", title: "Color & Rendering", blurb: "Value and light" },
     { id: "story", icon: "✧", title: "Story Illustration", blurb: "Images that communicate" }
   ];
+
+  const TRACK_RESOURCES = {
+    dynamic: [
+      { label: "Proko · Figure Drawing Fundamentals", url: "https://www.proko.com/course/figure-drawing-fundamentals" },
+      { label: "Line of Action · Figure practice", url: "https://line-of-action.com/practice-tools" }
+    ],
+    anatomy: [
+      { label: "Proko · Figure Drawing Fundamentals", url: "https://www.proko.com/course/figure-drawing-fundamentals" },
+      { label: "Line of Action · Hands & figure practice", url: "https://line-of-action.com/practice-tools" }
+    ],
+    hair: [
+      { label: "Proko · Drawing Basics", url: "https://www.proko.com/course/drawing-basics" }
+    ],
+    perspective: [
+      { label: "Proko · Perspective Fundamentals", url: "https://www.proko.com/course/the-perspective-course" },
+      { label: "Ctrl+Paint · Free Video Library", url: "https://www.ctrlpaint.com/library" }
+    ],
+    rendering: [
+      { label: "Ctrl+Paint · Digital Painting Library", url: "https://www.ctrlpaint.com/library" },
+      { label: "Proko · Drawing Basics · Value & Edges", url: "https://www.proko.com/course/drawing-basics" }
+    ],
+    story: [
+      { label: "Ctrl+Paint · Composition & Film Studies", url: "https://www.ctrlpaint.com/library" }
+    ]
+  };
 
   const REWARDS = {
     small:  { xp: 10, realmXP: 10, statXP: 7, coins: 8, storyEnergyBase: .20, skillXP: 8 },
@@ -323,6 +348,455 @@
       referenceText: "The guide gives three thumbnail frames and a larger final frame. The content is entirely yours.",
       guide: drawStoryGuide
     }
+    ,
+    {
+      id: "balance-check-pose",
+      track: "dynamic",
+      icon: "⚖",
+      type: "POSE CHECK",
+      title: "Balance Check Pose",
+      summary: "Build a standing or leaning pose that actually feels supported by gravity.",
+      goal: "Train weight distribution, center of gravity and readable support so your characters stop feeling like they might topple over.",
+      remember: "A dynamic pose can be extreme and still feel balanced if the weight has somewhere believable to go.",
+      steps: [
+        "Draw the line of action and mark the head, ribcage and pelvis tilt.",
+        "Mark the weight-bearing foot and imagine a vertical plumb line from the body's center of mass.",
+        "Adjust hips, knees and shoulders until the pose feels supported.",
+        "Redraw once with a slightly stronger lean while preserving believable balance."
+      ],
+      minutes: 10,
+      difficulty: "Intermediate",
+      rewardClass: "medium",
+      tags: ["Pose", "Balance", "Gesture"],
+      timer: { rounds: 1, secondsPerRound: 600 },
+      referenceTitle: "Balance practice",
+      referenceText: "Use any standing, leaning or contrapposto photo. The built-in guide gives you a plumb line and support zone.",
+      referenceUrl: "https://line-of-action.com/practice-tools",
+      guide: drawBalanceGuide
+    },
+    {
+      id: "two-character-reaction",
+      track: "dynamic",
+      icon: "⇄",
+      type: "INTERACTION POSE",
+      title: "Two Characters, One Reaction",
+      summary: "Make two bodies react to the same event instead of posing independently.",
+      goal: "Practice shared action, opposing gesture and spatial interaction so a scene feels like something is happening.",
+      remember: "The relationship between the poses matters more than either pose by itself.",
+      steps: [
+        "Choose a simple event: pull, catch, shove, grab, dodge or turn toward something.",
+        "Draw both lines of action before adding anatomy.",
+        "Place the shared contact point or common focal point.",
+        "Build the figures as simple forms and check that their forces feel connected."
+      ],
+      minutes: 20,
+      difficulty: "Intermediate",
+      rewardClass: "medium",
+      tags: ["Pose", "Interaction", "Story"],
+      timer: { rounds: 1, secondsPerRound: 1200 },
+      referenceTitle: "Interaction pose",
+      referenceText: "Use two-person action references or stage the pose yourself with simple stick figures first.",
+      referenceUrl: "https://line-of-action.com/practice-tools",
+      guide: drawInteractionGuide
+    },
+    {
+      id: "body-proportion-debug",
+      track: "anatomy",
+      icon: "⌁",
+      type: "PROPORTION STUDY",
+      title: "Body Proportion Debug",
+      summary: "Draw a figure, measure it, then deliberately fix the parts that feel off.",
+      goal: "Turn 'I can see something is wrong' into a repeatable correction process using landmarks and comparative measuring.",
+      remember: "The goal is not a perfect canon ratio; it is consistency inside the figure you chose to draw.",
+      steps: [
+        "Sketch the full figure quickly without measuring.",
+        "Mark head height, shoulder line, ribcage, pelvis, knees and feet.",
+        "Compare major lengths and widths against your reference.",
+        "Redraw the corrected version beside the first one and note the biggest change."
+      ],
+      minutes: 15,
+      difficulty: "Intermediate",
+      rewardClass: "medium",
+      tags: ["Proportions", "Measuring", "Figure"],
+      timer: { rounds: 1, secondsPerRound: 900 },
+      referenceTitle: "Proportion correction",
+      referenceText: "Use a full-body reference with a clear camera angle. The guide gives landmark lines, not a fixed anime body ratio.",
+      referenceUrl: "https://www.proko.com/course/figure-drawing-fundamentals",
+      guide: drawProportionGuide
+    },
+    {
+      id: "head-turn-sheet",
+      track: "hair",
+      icon: "◔",
+      type: "HEAD STUDY",
+      title: "Head Turn Sheet",
+      summary: "Keep one character recognizable across front, 3/4, profile and tilted views.",
+      goal: "Practice skull volume, feature placement and consistency when the head rotates in space.",
+      remember: "The centerline and brow line wrap around the head; they are not flat stickers on the face.",
+      steps: [
+        "Draw four simple head masses first.",
+        "Wrap a centerline and brow line around each head.",
+        "Place jaw, eyes, nose and mouth using those guides.",
+        "Only then add the character's specific hair silhouette and details."
+      ],
+      minutes: 20,
+      difficulty: "Intermediate",
+      rewardClass: "medium",
+      tags: ["Face", "Perspective", "Consistency"],
+      timer: { rounds: 1, secondsPerRound: 1200 },
+      referenceTitle: "Head rotation",
+      referenceText: "Use one character or face reference and reconstruct it from several angles. The guide gives four head slots with wrap lines.",
+      guide: drawHeadTurnGuide
+    },
+    {
+      id: "expression-quartet",
+      track: "hair",
+      icon: "☺",
+      type: "EXPRESSION STUDY",
+      title: "Expression Quartet",
+      summary: "Draw the same face as neutral, annoyed, smug and hurt without losing identity.",
+      goal: "Practice expression through brows, eyes, mouth and head attitude rather than changing the whole character design.",
+      remember: "Tiny changes around the eyes and mouth often carry more emotion than huge distortions.",
+      steps: [
+        "Block the same head angle four times.",
+        "Keep face proportions and hairstyle consistent.",
+        "Change brows and eyes first, then mouth and cheek tension.",
+        "Compare the four silhouettes and make sure identity survives the expression shift."
+      ],
+      minutes: 20,
+      difficulty: "Intermediate",
+      rewardClass: "medium",
+      tags: ["Face", "Expression", "Consistency"],
+      timer: { rounds: 1, secondsPerRound: 1200 },
+      referenceTitle: "Expression grid",
+      referenceText: "Use your own character or an anime reference sheet. The guide simply separates four expression slots.",
+      guide: drawExpressionGuide
+    },
+    {
+      id: "hair-in-action",
+      track: "hair",
+      icon: "➰",
+      type: "MOTION STUDY",
+      title: "Hair in Action",
+      summary: "Let hair reinforce a turn, run or sudden stop instead of behaving like a helmet.",
+      goal: "Coordinate head movement, gravity and secondary motion so hair supports the pose.",
+      remember: "Hair lags behind motion. The roots follow the skull; the lengths follow momentum and gravity.",
+      steps: [
+        "Choose a turning, running or falling pose.",
+        "Mark the head direction and the opposite lag direction of the hair mass.",
+        "Draw 3–5 large ribbons or clumps before any strands.",
+        "Add a few smaller strands only where they reinforce the main motion."
+      ],
+      minutes: 20,
+      difficulty: "Intermediate",
+      rewardClass: "medium",
+      tags: ["Hair", "Motion", "Pose"],
+      timer: { rounds: 1, secondsPerRound: 1200 },
+      referenceTitle: "Hair motion",
+      referenceText: "Use photos, animation stills or your own character turning quickly. The guide shows delayed flow directions.",
+      guide: drawHairActionGuide
+    },
+    {
+      id: "two-point-street",
+      track: "perspective",
+      icon: "⌂",
+      type: "PERSPECTIVE",
+      title: "Two-Point Street Corner",
+      summary: "Build a simple street corner with believable depth before adding detail.",
+      goal: "Practice two vanishing directions and repeated architectural forms without overcomplicating the scene.",
+      remember: "Keep the big boxes correct first. Windows and signs cannot rescue broken space.",
+      steps: [
+        "Place a horizon and two vanishing points outside or near the frame.",
+        "Build one main corner box and extend two street directions.",
+        "Add two or three secondary building boxes.",
+        "Use repeated windows, signs or pavement lines to reinforce depth."
+      ],
+      minutes: 25,
+      difficulty: "Intermediate",
+      rewardClass: "large",
+      tags: ["Perspective", "Background", "Urban"],
+      timer: { rounds: 1, secondsPerRound: 1500 },
+      referenceTitle: "Two-point guide",
+      referenceText: "The built-in guide gives horizon and two vanishing directions. Use a simple street photo only for design ideas.",
+      referenceUrl: "https://www.proko.com/course/the-perspective-course",
+      guide: drawTwoPointGuide
+    },
+    {
+      id: "cafe-corner",
+      track: "perspective",
+      icon: "☕",
+      type: "BACKGROUND STUDY",
+      title: "Café Corner",
+      summary: "Turn boxes into a small believable interior with furniture and a focal area.",
+      goal: "Practice interior depth, object scale and making a background feel designed instead of empty.",
+      remember: "A few large furniture masses and clear depth cues are enough to sell a space.",
+      steps: [
+        "Choose one-point or two-point perspective and place the horizon.",
+        "Block walls, floor and the largest furniture masses.",
+        "Add a table, booth, counter or shelf using the same perspective system.",
+        "Finish with 3–5 props that imply what kind of café this is."
+      ],
+      minutes: 25,
+      difficulty: "Intermediate",
+      rewardClass: "large",
+      tags: ["Background", "Interior", "Perspective"],
+      timer: { rounds: 1, secondsPerRound: 1500 },
+      referenceTitle: "Interior construction",
+      referenceText: "Use the guide as a room box and add your own furniture. A real café photo can help with design and prop ideas.",
+      referenceUrl: "https://www.ctrlpaint.com/library",
+      guide: drawCafeGuide
+    },
+    {
+      id: "character-in-space",
+      track: "perspective",
+      icon: "♙",
+      type: "FIGURE + SPACE",
+      title: "Character in Space",
+      summary: "Place a character convincingly inside a perspective room instead of floating in front of it.",
+      goal: "Connect eye level, body scale and floor contact so character and environment feel like one scene.",
+      remember: "The feet, horizon and camera height determine whether the figure belongs in the room.",
+      steps: [
+        "Construct a simple room or street box first.",
+        "Mark the horizon and choose where the character stands on the ground plane.",
+        "Block the figure with simple forms at the correct scale.",
+        "Check feet contact, head height and overlaps with nearby objects."
+      ],
+      minutes: 20,
+      difficulty: "Intermediate",
+      rewardClass: "large",
+      tags: ["Perspective", "Figure", "Scene"],
+      timer: { rounds: 1, secondsPerRound: 1200 },
+      referenceTitle: "Figure placement",
+      referenceText: "The guide gives a room grid plus two possible figure positions. Use it as a scale check, not a tracing target.",
+      referenceUrl: "https://www.proko.com/course/the-perspective-course",
+      guide: drawCharacterSpaceGuide
+    },
+    {
+      id: "depth-layering",
+      track: "perspective",
+      icon: "▤",
+      type: "COMPOSITION STUDY",
+      title: "Foreground / Midground / Background",
+      summary: "Create a scene with three clear depth layers instead of one flat stage.",
+      goal: "Use overlap, scale and contrast to make a simple scene feel deeper and more cinematic.",
+      remember: "Every layer should have a job: frame, subject, or context.",
+      steps: [
+        "Block one large foreground shape that partially frames the image.",
+        "Place the main character or action in the midground.",
+        "Add a simpler background layer with smaller shapes and lower contrast.",
+        "Check the image at thumbnail size: the depth should still read."
+      ],
+      minutes: 20,
+      difficulty: "Intermediate",
+      rewardClass: "medium",
+      tags: ["Composition", "Depth", "Background"],
+      timer: { rounds: 1, secondsPerRound: 1200 },
+      referenceTitle: "Depth layers",
+      referenceText: "The guide divides the frame into three conceptual depth zones. Use any scene idea you like.",
+      referenceUrl: "https://www.ctrlpaint.com/library",
+      guide: drawDepthGuide
+    },
+    {
+      id: "single-light-source",
+      track: "rendering",
+      icon: "☀",
+      type: "LIGHT STUDY",
+      title: "Single Light Source",
+      summary: "Shade one head or torso using one clear light direction and simple planes.",
+      goal: "Make form readable with deliberate light and shadow instead of adding random soft shading everywhere.",
+      remember: "Choose the light direction first. Every shadow decision should answer to it.",
+      steps: [
+        "Draw or reuse a simple head or torso sketch.",
+        "Place one light arrow and divide the form into light-facing and shadow-facing planes.",
+        "Block the shadow family as one large shape.",
+        "Add only a few soft transitions where the form turns gradually."
+      ],
+      minutes: 20,
+      difficulty: "Intermediate",
+      rewardClass: "medium",
+      tags: ["Light", "Shading", "Form"],
+      timer: { rounds: 1, secondsPerRound: 1200 },
+      referenceTitle: "Light direction",
+      referenceText: "The guide gives a simple head mass and movable-looking light arrow. You can replace it with your own sketch.",
+      referenceUrl: "https://www.ctrlpaint.com/library",
+      guide: drawSingleLightGuide
+    },
+    {
+      id: "warm-light-cool-shadow",
+      track: "rendering",
+      icon: "◑",
+      type: "COLOR STUDY",
+      title: "Warm Light / Cool Shadow",
+      summary: "Use temperature contrast to make a simple portrait or scene feel more intentional.",
+      goal: "Practice separating light and shadow families by temperature as well as value.",
+      remember: "Warm/cool is a relationship, not a rule that every lit pixel must be orange and every shadow blue.",
+      steps: [
+        "Choose a simple sketch with one main light direction.",
+        "Pick one warm light family and one cooler shadow family.",
+        "Keep values readable before adding saturation changes.",
+        "Add one small accent color only after the big temperature split works."
+      ],
+      minutes: 20,
+      difficulty: "Intermediate",
+      rewardClass: "medium",
+      tags: ["Color", "Light", "Temperature"],
+      timer: { rounds: 1, secondsPerRound: 1200 },
+      referenceTitle: "Temperature split",
+      referenceText: "The built-in swatches show one possible warm/cool relationship. Choose your own hues if you prefer.",
+      referenceUrl: "https://www.ctrlpaint.com/library",
+      guide: drawWarmCoolGuide
+    },
+    {
+      id: "limited-palette",
+      track: "rendering",
+      icon: "◍",
+      type: "COLOR THEORY",
+      title: "Limited Palette",
+      summary: "Finish a small study using only four or five chosen colors.",
+      goal: "Practice harmony and deliberate color relationships instead of solving every local color separately.",
+      remember: "A limited palette should still have value contrast. Fewer hues does not mean flatter lighting.",
+      steps: [
+        "Choose 4–5 colors with at least one light, one dark and one accent.",
+        "Make a tiny palette strip before painting.",
+        "Block the whole image using only those colors.",
+        "Mix or blend between them rather than introducing new colors."
+      ],
+      minutes: 20,
+      difficulty: "Intermediate",
+      rewardClass: "medium",
+      tags: ["Color", "Palette", "Harmony"],
+      timer: { rounds: 1, secondsPerRound: 1200 },
+      referenceTitle: "Palette planning",
+      referenceText: "The guide gives five empty swatch slots and a study frame. Fill the swatches before starting the image.",
+      referenceUrl: "https://www.ctrlpaint.com/library",
+      guide: drawPaletteGuide
+    },
+    {
+      id: "same-sketch-three-moods",
+      track: "rendering",
+      icon: "☼",
+      type: "MOOD STUDY",
+      title: "Same Sketch, 3 Moods",
+      summary: "Use one composition three times: cozy, tense and melancholic.",
+      goal: "Practice changing story mood through value, temperature and accent placement without redesigning the drawing.",
+      remember: "If the mood changes only because you changed one hue slider, push the lighting and value pattern further.",
+      steps: [
+        "Make or reuse one very simple composition.",
+        "Duplicate it into three small frames.",
+        "Assign each frame a different dominant value pattern and temperature bias.",
+        "Add one accent color per mood and compare which version reads fastest."
+      ],
+      minutes: 30,
+      difficulty: "Intermediate",
+      rewardClass: "large",
+      tags: ["Color", "Mood", "Lighting"],
+      timer: { rounds: 1, secondsPerRound: 1800 },
+      referenceTitle: "Three mood frames",
+      referenceText: "The guide provides three identical frames for cozy, tense and melancholic passes.",
+      referenceUrl: "https://www.ctrlpaint.com/library",
+      guide: drawMoodGuide
+    },
+    {
+      id: "composition-thumbnails",
+      track: "story",
+      icon: "▦",
+      type: "COMPOSITION",
+      title: "Tiny Composition Thumbnails",
+      summary: "Explore six versions of the same scene before committing to one.",
+      goal: "Practice camera choice, focal point and value grouping before details lock you into a weak composition.",
+      remember: "Thumbnail decisions should be readable at a glance. Tiny drawings are a feature, not a limitation.",
+      steps: [
+        "Write one simple scene sentence.",
+        "Create six tiny frames with different camera distance, angle or character placement.",
+        "Use only large dark, mid and light masses.",
+        "Circle the strongest thumbnail and write one sentence about why it reads best."
+      ],
+      minutes: 15,
+      difficulty: "Intermediate",
+      rewardClass: "medium",
+      tags: ["Composition", "Story", "Thumbnails"],
+      timer: { rounds: 1, secondsPerRound: 900 },
+      referenceTitle: "Thumbnail grid",
+      referenceText: "The guide gives six small frames. Keep them rough enough to make decisions quickly.",
+      referenceUrl: "https://www.ctrlpaint.com/library",
+      guide: drawThumbnailGridGuide
+    },
+    {
+      id: "moment-after",
+      track: "story",
+      icon: "↘",
+      type: "MINI ILLUSTRATION",
+      title: "Moment After",
+      summary: "Show the immediate aftermath of an event through reaction and environmental clues.",
+      goal: "Tell the viewer what just happened without needing a caption or flashback.",
+      remember: "Aftermath is strongest when the environment carries evidence: an open door, spilled drink, dropped bag, broken object or changed body language.",
+      steps: [
+        "Write one sentence describing what just happened.",
+        "List three visual clues the viewer could notice.",
+        "Thumbnail the scene with the character reaction as the focal point.",
+        "Add the environmental clues and one clear lighting choice."
+      ],
+      minutes: 30,
+      difficulty: "Intermediate",
+      rewardClass: "large",
+      tags: ["Story", "Reaction", "Scene"],
+      timer: { rounds: 1, secondsPerRound: 1800 },
+      referenceTitle: "Aftermath staging",
+      referenceText: "The guide gives a final frame plus three clue slots to plan before you draw.",
+      guide: drawMomentAfterGuide
+    },
+    {
+      id: "two-characters-one-action",
+      track: "story",
+      icon: "∞",
+      type: "STORY POSE",
+      title: "Two Characters, One Action",
+      summary: "Stage a pull, catch, embrace, argument or shared task so both figures belong to one action.",
+      goal: "Combine gesture, contact, perspective and staging into a readable two-character beat.",
+      remember: "If you hide the faces, the bodies should still tell you what is happening.",
+      steps: [
+        "Choose one clear shared action.",
+        "Draw both lines of action and the contact point first.",
+        "Construct ribcage/pelvis and limbs with simple forms.",
+        "Add expressions only after the body interaction reads.",
+        "Place one prop or background cue that explains the context."
+      ],
+      minutes: 30,
+      difficulty: "Intermediate",
+      rewardClass: "large",
+      tags: ["Story", "Interaction", "Pose"],
+      timer: { rounds: 1, secondsPerRound: 1800 },
+      referenceTitle: "Shared action",
+      referenceText: "Use two-person references if helpful, but change the staging enough to make the story your own.",
+      referenceUrl: "https://line-of-action.com/practice-tools",
+      guide: drawTwoCharacterStoryGuide
+    },
+    {
+      id: "mini-story-illustration",
+      track: "story",
+      icon: "✦",
+      type: "FINAL STUDY",
+      title: "Mini Story Illustration",
+      summary: "Combine character, environment, composition and light into one small finished scene.",
+      goal: "Practice the whole pipeline from idea to readable illustration without aiming for a giant polished piece.",
+      remember: "This is a synthesis challenge. A clear story with simple rendering is better than a polished image with no focus.",
+      steps: [
+        "Write the one-sentence story beat.",
+        "Make three thumbnails and choose one.",
+        "Construct perspective and character action with simple forms.",
+        "Block three main value groups and one lighting direction.",
+        "Add color and only enough rendering to support the focal point."
+      ],
+      minutes: 50,
+      difficulty: "Intermediate",
+      rewardClass: "epic",
+      tags: ["Story", "Composition", "Color"],
+      timer: { rounds: 1, secondsPerRound: 3000 },
+      referenceTitle: "Illustration pipeline",
+      referenceText: "The guide gives thumbnail slots, a value-plan strip and a large final frame. Build the scene from your own idea or a favorite story beat.",
+      referenceUrl: "https://www.ctrlpaint.com/library",
+      guide: drawMiniIllustrationGuide
+    }
   ];
 
   const PROBLEM_TAGS = ["Proportions", "Pose", "Hands", "Hair", "Perspective", "Composition", "Color", "Rendering"];
@@ -581,13 +1055,19 @@
   }
 
   function renderTracks() {
-    const counts = Object.fromEntries(TRACKS.map(track => [track.id, track.id === "all" ? CHALLENGES.length : CHALLENGES.filter(c => c.track === track.id).length]));
-    els.trackList.innerHTML = TRACKS.map(track => `
+    const meta = readMeta();
+    const completedIds = new Set((meta.history || []).map(item => item.challengeId));
+    els.trackList.innerHTML = TRACKS.map(track => {
+      const trackChallenges = track.id === "all" ? CHALLENGES : CHALLENGES.filter(c => c.track === track.id);
+      const done = trackChallenges.filter(c => completedIds.has(c.id)).length;
+      const total = trackChallenges.length;
+      return `
       <button class="track-button${track.id === activeTrack ? " is-active" : ""}" type="button" data-track="${track.id}">
         <span class="track-icon">${track.icon}</span>
         <span><strong>${esc(track.title)}</strong><small>${esc(track.blurb)}</small></span>
-        <span class="track-count">${counts[track.id]}</span>
-      </button>`).join("");
+        <span class="track-count">${done}/${total}</span>
+      </button>`;
+    }).join("");
     els.trackList.querySelectorAll("[data-track]").forEach(button => button.addEventListener("click", () => selectTrack(button.dataset.track)));
   }
 
@@ -605,30 +1085,48 @@
     const meta = readMeta();
     const completedIds = new Set((meta.history || []).map(item => item.challengeId));
     const source = list || (activeTrack === "all" ? CHALLENGES : CHALLENGES.filter(c => c.track === activeTrack));
-    els.challengeGrid.innerHTML = source.map(challenge => `
-      <button class="challenge-card" type="button" data-challenge="${challenge.id}">
-        <span class="challenge-icon">${challenge.icon}</span>
+    const nextByTrack = new Map(TRACKS.filter(t => t.id !== "all").map(track => {
+      const next = CHALLENGES.filter(c => c.track === track.id).find(c => !completedIds.has(c.id));
+      return [track.id, next?.id || null];
+    }));
+    els.challengeGrid.innerHTML = source.map(challenge => {
+      const siblings = CHALLENGES.filter(c => c.track === challenge.track);
+      const pathIndex = siblings.findIndex(c => c.id === challenge.id) + 1;
+      const next = nextByTrack.get(challenge.track) === challenge.id;
+      return `
+      <button class="challenge-card${next ? " is-next" : ""}" type="button" data-challenge="${challenge.id}">
+        <div class="challenge-card-top"><span class="challenge-icon">${challenge.icon}</span><span class="path-step">${pathIndex}/${siblings.length}${next ? " · NEXT" : ""}</span></div>
         <small>${esc(challenge.type)}</small>
         <strong>${esc(challenge.title)}</strong>
         <p>${esc(challenge.summary)}</p>
         <footer><span>${challenge.minutes} min · ${esc(challenge.difficulty)}</span><span>${completedIds.has(challenge.id) ? '<b class="done-badge">✓ practiced</b>' : rewardLabel(challenge.rewardClass)}</span></footer>
-      </button>`).join("");
+      </button>`;
+    }).join("");
     els.challengeGrid.querySelectorAll("[data-challenge]").forEach(button => button.addEventListener("click", () => openChallenge(button.dataset.challenge)));
   }
 
   function showRecommended() {
     const meta = readMeta();
+    const completedIds = new Set((meta.history || []).map(item => item.challengeId));
     const troubleCounts = {};
     (meta.history || []).slice(-20).forEach(item => (item.problemTags || []).forEach(tag => troubleCounts[tag] = (troubleCounts[tag] || 0) + 1));
     const map = { Proportions: "anatomy", Pose: "dynamic", Hands: "anatomy", Hair: "hair", Perspective: "perspective", Composition: "story", Color: "rendering", Rendering: "rendering" };
     const top = Object.entries(troubleCounts).sort((a,b) => b[1] - a[1])[0]?.[0];
-    const preferredTrack = map[top] || "dynamic";
-    activeTrack = preferredTrack;
+    const preferredTrack = map[top] || null;
+    const orderedTracks = preferredTrack
+      ? [preferredTrack, ...TRACKS.filter(t => t.id !== "all" && t.id !== preferredTrack).map(t => t.id)]
+      : TRACKS.filter(t => t.id !== "all").map(t => t.id);
+    const list = [];
+    orderedTracks.forEach(trackId => {
+      const challenges = CHALLENGES.filter(c => c.track === trackId);
+      const next = challenges.find(c => !completedIds.has(c.id)) || challenges[0];
+      if (next && !list.some(c => c.id === next.id)) list.push(next);
+    });
+    activeTrack = preferredTrack || "all";
     renderTracks();
-    const list = CHALLENGES.filter(c => c.track === preferredTrack).slice(0, 4);
-    els.browserKicker.textContent = top ? `RECOMMENDED · ${top.toUpperCase()}` : "RECOMMENDED START";
-    els.browserTitle.textContent = top ? `Practice ${top}` : "Build momentum";
-    renderChallenges(list);
+    els.browserKicker.textContent = top ? `RECOMMENDED · ${top.toUpperCase()}` : "RECOMMENDED PATH";
+    els.browserTitle.textContent = top ? `Practice ${top}` : "Your next six studies";
+    renderChallenges(list.slice(0,6));
     showBrowser(false);
   }
 
@@ -653,7 +1151,14 @@
     els.briefingGoal.textContent = challenge.goal;
     els.briefingRemember.textContent = challenge.remember;
     els.briefingSteps.innerHTML = challenge.steps.map(step => `<li>${esc(step)}</li>`).join("");
-    els.referenceBrief.innerHTML = `<strong>${esc(challenge.referenceTitle || "Reference")}</strong><p>${esc(challenge.referenceText || "Use a reference that supports the exercise goal.")}</p>${challenge.referenceUrl ? `<a href="${challenge.referenceUrl}" target="_blank" rel="noopener">Open recommended practice source ↗</a>` : ""}`;
+    const resources = TRACK_RESOURCES[challenge.track] || [];
+    const links = [
+      ...(challenge.referenceUrl ? [{ label: "Open practice reference", url: challenge.referenceUrl }] : []),
+      ...resources
+    ].filter((item, index, all) => all.findIndex(other => other.url === item.url) === index);
+    const siblings = CHALLENGES.filter(c => c.track === challenge.track);
+    const pathIndex = siblings.findIndex(c => c.id === challenge.id) + 1;
+    els.referenceBrief.innerHTML = `<strong>${esc(challenge.referenceTitle || "Reference")}</strong><p>${esc(challenge.referenceText || "Use a reference that supports the exercise goal.")}</p><div class="path-note">Practice path · ${pathIndex}/${siblings.length} in ${esc(TRACKS.find(t => t.id === challenge.track)?.title || challenge.track)}</div>${links.length ? `<div class="learning-links">${links.map(link => `<a href="${link.url}" target="_blank" rel="noopener">${esc(link.label)} ↗</a>`).join("")}</div>` : ""}`;
     updateRightPanel(challenge);
   }
 
@@ -1306,4 +1811,88 @@
     baseGuide(g,"Thumbnail first — final scene second");
     g.save();g.strokeStyle="#9f7d8e";g.lineWidth=2;g.setLineDash([8,8]);[170,430,690].forEach(x=>{g.roundRect(x,130,220,150,14);g.stroke();});g.roundRect(170,350,780,440,18);g.stroke();g.setLineDash([]);g.fillStyle="#9f7d8e";g.font="700 18px system-ui";g.textAlign="center";g.fillText("THUMBNAILS",500,315);g.fillText("FINAL SCENE",560,830);g.restore();
   }
+  function drawBalanceGuide(g){
+    baseGuide(g,"Balance: center of mass must land over a believable support zone");
+    g.save();g.strokeStyle="#9f7d8e";g.fillStyle="#9f7d8e";g.lineWidth=3;g.setLineDash([8,8]);
+    g.beginPath();g.moveTo(600,120);g.lineTo(600,760);g.stroke();g.setLineDash([]);
+    g.fillRect(430,760,340,10);g.font="600 18px system-ui";g.fillText("support zone",505,800);
+    ellipse(g,570,250,58,76,-.12);ellipse(g,625,420,70,62,.18);arrow(g,590,485,470,720);arrow(g,645,480,735,720);g.restore();
+  }
+  function drawInteractionGuide(g){
+    baseGuide(g,"Two figures: connect the forces before adding anatomy");
+    g.save();g.strokeStyle="#9f7d8e";g.lineWidth=4;g.setLineDash([10,10]);
+    g.beginPath();g.moveTo(240,700);g.quadraticCurveTo(360,420,500,250);g.stroke();
+    g.beginPath();g.moveTo(960,700);g.quadraticCurveTo(820,430,690,270);g.stroke();
+    g.setLineDash([]);g.beginPath();g.arc(600,430,18,0,Math.PI*2);g.stroke();arrow(g,500,390,585,430);arrow(g,700,390,615,430);g.font="600 18px system-ui";g.fillText("shared contact / focal point",485,475);g.restore();
+  }
+  function drawProportionGuide(g){
+    baseGuide(g,"Debug proportions: sketch first, measure second, redraw third");
+    g.save();g.strokeStyle="#9f7d8e";g.lineWidth=2;g.setLineDash([8,8]);
+    [140,300,460,620,780].forEach(y=>{g.beginPath();g.moveTo(170,y);g.lineTo(520,y);g.stroke();g.beginPath();g.moveTo(680,y);g.lineTo(1030,y);g.stroke();});
+    g.setLineDash([]);g.font="700 18px system-ui";g.textAlign="center";g.fillText("FIRST SKETCH",345,835);g.fillText("CORRECTED",855,835);g.restore();
+  }
+  function drawHeadTurnGuide(g){
+    baseGuide(g,"Head turn sheet: wrap construction lines around the skull");
+    g.save();g.strokeStyle="#9f7d8e";g.lineWidth=2;const xs=[180,460,740,1020];
+    xs.forEach((x,i)=>{ellipse(g,x,420,95,125);g.beginPath();g.ellipse(x,420,82,30,i*.18,0,Math.PI*2);g.stroke();g.beginPath();g.moveTo(x+(i-1.5)*14,300);g.quadraticCurveTo(x+(i-1.5)*28,420,x+(i-1.5)*12,540);g.stroke();});g.restore();
+  }
+  function drawExpressionGuide(g){
+    baseGuide(g,"Same identity · four expression changes");
+    g.save();g.strokeStyle="#9f7d8e";g.lineWidth=2;const xs=[180,460,740,1020];const labels=["NEUTRAL","ANNOYED","SMUG","HURT"];
+    xs.forEach((x,i)=>{ellipse(g,x,400,95,120);g.font="700 17px system-ui";g.fillStyle="#9f7d8e";g.textAlign="center";g.fillText(labels[i],x,565);});g.restore();
+  }
+  function drawHairActionGuide(g){
+    baseGuide(g,"Hair follows the skull, then lags behind the motion");
+    g.save();g.strokeStyle="#9f7d8e";g.lineWidth=3;ellipse(g,430,390,85,105);arrow(g,430,390,620,330);arrow(g,455,290,760,220);arrow(g,470,340,820,360);arrow(g,470,430,760,500);g.font="600 18px system-ui";g.fillStyle="#9f7d8e";g.fillText("head moves →",560,320);g.fillText("hair lag / flow",760,535);g.restore();
+  }
+  function drawTwoPointGuide(g){
+    baseGuide(g,"Two-point street: one corner, two vanishing directions");
+    g.save();g.strokeStyle="#9f7d8e";g.lineWidth=2;g.setLineDash([7,8]);const y=390,l=70,r=1130;g.beginPath();g.moveTo(40,y);g.lineTo(1160,y);g.stroke();
+    const corner=[[600,170],[600,760]];corner.forEach(([x,yy])=>{g.beginPath();g.moveTo(x,yy);g.lineTo(l,y);g.moveTo(x,yy);g.lineTo(r,y);g.stroke();});
+    g.setLineDash([]);g.beginPath();g.moveTo(600,170);g.lineTo(600,760);g.stroke();g.fillStyle="#9f7d8e";g.fillText("VP",55,380);g.fillText("VP",1135,380);g.restore();
+  }
+  function drawCafeGuide(g){
+    drawOnePointRoomGuide(g);g.save();g.strokeStyle="#9f7d8e";g.lineWidth=3;g.strokeRect(180,520,250,120);g.strokeRect(730,510,260,130);g.strokeRect(500,460,180,110);g.fillStyle="#9f7d8e";g.font="600 18px system-ui";g.fillText("booth",250,675);g.fillText("counter",805,675);g.restore();
+  }
+  function drawCharacterSpaceGuide(g){
+    drawOnePointRoomGuide(g);g.save();g.strokeStyle="#9f7d8e";g.lineWidth=3;g.setLineDash([7,7]);
+    [[390,560,105],[800,500,145]].forEach(([x,y,h])=>{ellipse(g,x,y-h,20,25);g.beginPath();g.moveTo(x,y-h+25);g.lineTo(x,y-35);g.moveTo(x,y-75);g.lineTo(x-35,y-30);g.moveTo(x,y-75);g.lineTo(x+35,y-30);g.moveTo(x,y-35);g.lineTo(x-28,y+25);g.moveTo(x,y-35);g.lineTo(x+28,y+25);g.stroke();});g.setLineDash([]);g.restore();
+  }
+  function drawDepthGuide(g){
+    baseGuide(g,"Depth layers: foreground · midground · background");
+    g.save();g.strokeStyle="#9f7d8e";g.lineWidth=2;g.setLineDash([8,8]);g.roundRect(80,120,1040,680,18);g.stroke();g.setLineDash([]);g.globalAlpha=.12;g.fillStyle="#8d6a7c";g.fillRect(80,120,220,680);g.globalAlpha=.08;g.fillRect(300,120,470,680);g.globalAlpha=.04;g.fillRect(770,120,350,680);g.globalAlpha=1;g.font="700 18px system-ui";g.fillText("FG",150,160);g.fillText("MG",500,160);g.fillText("BG",900,160);g.restore();
+  }
+  function drawSingleLightGuide(g){
+    baseGuide(g,"Single light: one direction, one shadow family");
+    g.save();g.strokeStyle="#9f7d8e";g.lineWidth=3;ellipse(g,610,450,150,190);arrow(g,210,170,440,320);g.fillStyle="#9f7d8e";g.font="600 18px system-ui";g.fillText("LIGHT",190,145);g.setLineDash([8,8]);g.beginPath();g.moveTo(610,260);g.quadraticCurveTo(690,450,610,640);g.stroke();g.setLineDash([]);g.restore();
+  }
+  function drawWarmCoolGuide(g){
+    baseGuide(g,"Warm light / cool shadow: separate the families first");
+    g.save();g.fillStyle="#e7a165";g.fillRect(170,160,340,150);g.fillStyle="#7186b5";g.fillRect(690,160,340,150);g.fillStyle="#9f7d8e";g.font="700 18px system-ui";g.textAlign="center";g.fillText("WARM LIGHT FAMILY",340,345);g.fillText("COOL SHADOW FAMILY",860,345);g.strokeStyle="#9f7d8e";g.setLineDash([8,8]);g.roundRect(210,420,780,330,18);g.stroke();g.restore();
+  }
+  function drawPaletteGuide(g){
+    baseGuide(g,"Limited palette: choose before you paint");
+    g.save();g.strokeStyle="#9f7d8e";g.lineWidth=2;for(let i=0;i<5;i++){g.strokeRect(190+i*165,150,130,90);}g.setLineDash([8,8]);g.roundRect(160,320,880,430,18);g.stroke();g.setLineDash([]);g.fillStyle="#9f7d8e";g.font="700 18px system-ui";g.textAlign="center";g.fillText("STUDY FRAME",600,790);g.restore();
+  }
+  function drawMoodGuide(g){
+    baseGuide(g,"Same sketch · three lighting moods");
+    g.save();g.strokeStyle="#9f7d8e";g.lineWidth=2;const xs=[80,420,760];const labels=["COZY","TENSE","MELANCHOLIC"];xs.forEach((x,i)=>{g.roundRect(x,200,300,470,16);g.stroke();g.fillStyle="#9f7d8e";g.font="700 18px system-ui";g.textAlign="center";g.fillText(labels[i],x+150,710);});g.restore();
+  }
+  function drawThumbnailGridGuide(g){
+    baseGuide(g,"Six tiny compositions: change camera, scale and focal placement");
+    g.save();g.strokeStyle="#9f7d8e";g.lineWidth=2;g.setLineDash([7,7]);const xs=[120,420,720],ys=[180,500];ys.forEach(y=>xs.forEach(x=>{g.roundRect(x,y,240,170,12);g.stroke();}));g.setLineDash([]);g.restore();
+  }
+  function drawMomentAfterGuide(g){
+    baseGuide(g,"Plan the aftermath clues before the final scene");
+    g.save();g.strokeStyle="#9f7d8e";g.lineWidth=2;[120,380,640].forEach((x,i)=>{g.roundRect(x,140,220,130,12);g.stroke();g.fillStyle="#9f7d8e";g.font="700 16px system-ui";g.fillText(`CLUE ${i+1}`,x+78,300);});g.roundRect(150,360,900,390,18);g.stroke();g.restore();
+  }
+  function drawTwoCharacterStoryGuide(g){
+    baseGuide(g,"Shared action: bodies first, faces later");
+    g.save();g.strokeStyle="#9f7d8e";g.lineWidth=4;g.setLineDash([9,9]);g.beginPath();g.moveTo(240,730);g.quadraticCurveTo(380,450,510,260);g.stroke();g.beginPath();g.moveTo(960,730);g.quadraticCurveTo(820,470,700,280);g.stroke();g.setLineDash([]);g.beginPath();g.arc(605,445,22,0,Math.PI*2);g.stroke();g.font="600 18px system-ui";g.fillText("contact / shared object",515,490);g.restore();
+  }
+  function drawMiniIllustrationGuide(g){
+    baseGuide(g,"Thumbnail → value plan → final mini illustration");
+    g.save();g.strokeStyle="#9f7d8e";g.lineWidth=2;g.setLineDash([7,7]);[100,330,560].forEach(x=>{g.roundRect(x,120,190,120,10);g.stroke();});for(let i=0;i<3;i++){g.strokeRect(820+i*85,140,65,65);}g.roundRect(120,330,960,430,18);g.stroke();g.setLineDash([]);g.fillStyle="#9f7d8e";g.font="700 16px system-ui";g.fillText("3 THUMBNAILS",100,275);g.fillText("3 VALUE FAMILIES",820,235);g.fillText("FINAL SCENE",530,800);g.restore();
+  }
+
 })();
