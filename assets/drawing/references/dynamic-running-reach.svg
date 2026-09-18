@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" viewBox="0 0 1200 900">
+<defs>
+  <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="10" stdDeviation="18" flood-color="#4d3040" flood-opacity="0.10"/></filter>
+  <linearGradient id="paper" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#fff8fb"/></linearGradient>
+  
+</defs>
+<rect width="1200" height="900" fill="#fffaf7"/>
+<circle cx="1050" cy="80" r="180" fill="#f7e8ef" opacity=".7"/>
+<rect x="56" y="50" width="1088" height="800" rx="36" fill="url(#paper)" stroke="#eadce4" stroke-width="2" filter="url(#shadow)"/>
+<text x="100" y="120" font-family="Inter,Arial,sans-serif" font-size="25" font-weight="800" fill="#7c4665">Dynamic Figure · Running Reach</text>
+<text x="100" y="156" font-family="Inter,Arial,sans-serif" font-size="16" fill="#8b7482">Use the curve first; anatomy sits on top of the action.</text>
+
+<g transform="translate(0 5)">
+  <path d="M312 700 C365 610 415 525 485 430 C555 335 650 280 770 250" fill="none" stroke="#d8759e" stroke-width="10" stroke-linecap="round" opacity=".5"/>
+  <g stroke="#4b3a46" stroke-width="13" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <ellipse cx="520" cy="345" rx="74" ry="96" transform="rotate(-20 520 345)" fill="#f8edf2"/>
+    <path d="M505 435 C532 480 560 516 608 548"/>
+    <ellipse cx="620" cy="560" rx="61" ry="48" transform="rotate(17 620 560)" fill="#f8edf2"/>
+    <path d="M486 380 L382 466 L282 500"/>
+    <path d="M558 392 L682 350 L792 282"/>
+    <path d="M592 598 L500 680 L430 762"/>
+    <path d="M653 598 L760 662 L860 680"/>
+  </g>
+  <g fill="#ffffff" stroke="#4b3a46" stroke-width="10">
+    <circle cx="468" cy="280" r="49"/>
+    <circle cx="282" cy="500" r="21"/>
+    <circle cx="792" cy="282" r="21"/>
+    <circle cx="430" cy="762" r="22"/>
+    <circle cx="860" cy="680" r="22"/>
+  </g>
+  <g stroke="#87a6c9" stroke-width="5" opacity=".85" fill="none">
+    <path d="M460 350 Q520 370 575 345"/>
+    <path d="M598 560 Q622 580 654 570"/>
+  </g>
+  <g font-family="Inter,Arial" fill="#7c4665">
+    <text x="820" y="245" font-size="18" font-weight="700">Reach drives the pose</text>
+    <text x="165" y="535" font-size="16">counterbalance</text>
+    <text x="330" y="735" font-size="16">weight / push-off</text>
+  </g>
+</g>
+
+<text x="100" y="815" font-family="Inter,Arial,sans-serif" font-size="14" fill="#9b8793">Life RPG · Drawing Studio Practice Reference</text>
+</svg>

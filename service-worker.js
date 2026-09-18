@@ -1,5 +1,5 @@
-const CACHE_NAME = "life-rpg-v0314cg-shell";
-const ASSET_CACHE_NAME = "life-rpg-assets-v3";
+const CACHE_NAME = "life-rpg-v0314ch-shell";
+const ASSET_CACHE_NAME = "life-rpg-assets-v4";
 const MAX_RUNTIME_ASSETS = 96;
 const CORE = [
   "./",
@@ -23,15 +23,27 @@ const CORE = [
   "./coloring-studio.css?v=0.31.4cd",
   "./coloring-studio.js?v=0.31.4cd",
   "./drawing-studio.html",
-  "./drawing-studio.css?v=0.31.4cg",
-  "./drawing-studio.js?v=0.31.4cg",
+  "./drawing-studio.css?v=0.31.4ch",
+  "./drawing-studio.js?v=0.31.4ch",
+  "./assets/drawing/references/dynamic-running-reach.svg",
+  "./assets/drawing/references/dynamic-twist-turn.svg",
+  "./assets/drawing/references/hand-open-construction.svg",
+  "./assets/drawing/references/hand-mug-grip.svg",
+  "./assets/drawing/references/head-turn-three-quarter.svg",
+  "./assets/drawing/references/hair-flow-turn.svg",
+  "./assets/drawing/references/perspective-one-point-room.svg",
+  "./assets/drawing/references/perspective-two-point-street.svg",
+  "./assets/drawing/references/rendering-three-value-head.svg",
+  "./assets/drawing/references/rendering-warm-cool-bust.svg",
+  "./assets/drawing/references/story-moment-before.svg",
+  "./assets/drawing/references/story-shared-action.svg",
   "./talent-content-v2.js?v=0.31.4ar",
   "./dreamscape.js?v=0.31.4ax",
   "./journal-rewards.js?v=0.31.4ag",
   "./weekly-review.css?v=0.31.4ag",
   "./weekly-review.js?v=0.31.4ag",
   "./manifest.webmanifest?v=0.30.3a",
-  "./pwa.js?v=0.31.4cg",
+  "./pwa.js?v=0.31.4ch",
   "./visual-performance.js?v=0.31.4bu",
   "./modal-manager.js?v=0.31.4d",
   "./training-focus.js?v=0.31.4o",

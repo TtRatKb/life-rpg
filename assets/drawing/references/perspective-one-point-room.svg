@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" viewBox="0 0 1200 900">
+<defs>
+  <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="10" stdDeviation="18" flood-color="#4d3040" flood-opacity="0.10"/></filter>
+  <linearGradient id="paper" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#fff8fb"/></linearGradient>
+  
+</defs>
+<rect width="1200" height="900" fill="#fffaf7"/>
+<circle cx="1050" cy="80" r="180" fill="#f7e8ef" opacity=".7"/>
+<rect x="56" y="50" width="1088" height="800" rx="36" fill="url(#paper)" stroke="#eadce4" stroke-width="2" filter="url(#shadow)"/>
+<text x="100" y="120" font-family="Inter,Arial,sans-serif" font-size="25" font-weight="800" fill="#7c4665">Perspective · One-Point Room</text>
+<text x="100" y="156" font-family="Inter,Arial,sans-serif" font-size="16" fill="#8b7482">Use the vanishing point to place furniture and keep the room coherent.</text>
+
+<g>
+ <rect x="180" y="220" width="840" height="500" fill="#fff" stroke="#4b3a46" stroke-width="8"/>
+ <line x1="180" y1="440" x2="1020" y2="440" stroke="#87a6c9" stroke-width="4"/>
+ <circle cx="600" cy="440" r="10" fill="#d8759e"/>
+ <g stroke="#c8b6c0" stroke-width="3">
+  <line x1="600" y1="440" x2="180" y2="220"/><line x1="600" y1="440" x2="1020" y2="220"/>
+  <line x1="600" y1="440" x2="180" y2="720"/><line x1="600" y1="440" x2="1020" y2="720"/>
+  <line x1="600" y1="440" x2="300" y2="720"/><line x1="600" y1="440" x2="430" y2="720"/><line x1="600" y1="440" x2="770" y2="720"/><line x1="600" y1="440" x2="900" y2="720"/>
+ </g>
+ <g fill="#f8edf2" stroke="#4b3a46" stroke-width="5">
+  <path d="M270 540 L420 505 L420 615 L270 660 Z"/>
+  <path d="M740 505 L920 540 L920 660 L740 615 Z"/>
+  <path d="M500 520 L700 520 L700 635 L500 635 Z"/>
+ </g>
+ <text x="616" y="425" font-family="Inter,Arial" font-size="16" fill="#7c4665">VP</text>
+ <text x="820" y="410" font-family="Inter,Arial" font-size="16" fill="#7f6876">eye level / horizon</text>
+</g>
+
+<text x="100" y="815" font-family="Inter,Arial,sans-serif" font-size="14" fill="#9b8793">Life RPG · Drawing Studio Practice Reference</text>
+</svg>

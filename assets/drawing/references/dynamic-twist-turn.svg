@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" viewBox="0 0 1200 900">
+<defs>
+  <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="10" stdDeviation="18" flood-color="#4d3040" flood-opacity="0.10"/></filter>
+  <linearGradient id="paper" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#fff8fb"/></linearGradient>
+  
+</defs>
+<rect width="1200" height="900" fill="#fffaf7"/>
+<circle cx="1050" cy="80" r="180" fill="#f7e8ef" opacity=".7"/>
+<rect x="56" y="50" width="1088" height="800" rx="36" fill="url(#paper)" stroke="#eadce4" stroke-width="2" filter="url(#shadow)"/>
+<text x="100" y="120" font-family="Inter,Arial,sans-serif" font-size="25" font-weight="800" fill="#7c4665">Dynamic Figure · Twist &amp; Turn</text>
+<text x="100" y="156" font-family="Inter,Arial,sans-serif" font-size="16" fill="#8b7482">Track the opposing tilts of shoulders and pelvis.</text>
+
+<g>
+ <path d="M430 250 C510 320 555 415 590 520 C625 630 710 690 825 735" fill="none" stroke="#d8759e" stroke-width="10" stroke-linecap="round" opacity=".45"/>
+ <g fill="#f8edf2" stroke="#4b3a46" stroke-width="11">
+  <circle cx="445" cy="265" r="46" fill="white"/>
+  <ellipse cx="500" cy="380" rx="75" ry="96" transform="rotate(18 500 380)"/>
+  <path d="M555 455 C610 470 660 484 695 535 C660 580 610 600 560 584 C532 540 533 500 555 455Z"/>
+ </g>
+ <g stroke="#4b3a46" stroke-width="13" stroke-linecap="round" fill="none">
+  <path d="M475 355 L355 310 L265 245"/><path d="M535 365 L660 315 L790 355"/>
+  <path d="M585 590 L505 690 L485 770"/><path d="M660 578 L760 655 L845 715"/>
+ </g>
+ <g fill="white" stroke="#4b3a46" stroke-width="9"><circle cx="265" cy="245" r="20"/><circle cx="790" cy="355" r="20"/><circle cx="485" cy="770" r="22"/><circle cx="845" cy="715" r="22"/></g>
+ <g stroke="#87a6c9" stroke-width="4" fill="none" opacity=".9">
+  <path d="M462 355 Q515 390 560 364"/><path d="M570 506 Q620 532 677 515"/><path d="M505 284 Q453 265 416 242"/>
+ </g>
+ <path d="M905 300 C995 330 1000 410 920 445" fill="none" stroke="#d4a65d" stroke-width="7" stroke-linecap="round"/>
+ <path d="M920 445 l18 -32 l-36 7" fill="#d4a65d"/>
+ <text x="850" y="490" font-family="Inter,Arial" font-size="17" fill="#7c4665">shoulders and hips<br/>turn on different axes</text>
+</g>
+
+<text x="100" y="815" font-family="Inter,Arial,sans-serif" font-size="14" fill="#9b8793">Life RPG · Drawing Studio Practice Reference</text>
+</svg>

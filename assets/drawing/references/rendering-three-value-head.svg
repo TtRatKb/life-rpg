@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" viewBox="0 0 1200 900">
+<defs>
+  <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="10" stdDeviation="18" flood-color="#4d3040" flood-opacity="0.10"/></filter>
+  <linearGradient id="paper" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#fff8fb"/></linearGradient>
+  
+</defs>
+<rect width="1200" height="900" fill="#fffaf7"/>
+<circle cx="1050" cy="80" r="180" fill="#f7e8ef" opacity=".7"/>
+<rect x="56" y="50" width="1088" height="800" rx="36" fill="url(#paper)" stroke="#eadce4" stroke-width="2" filter="url(#shadow)"/>
+<text x="100" y="120" font-family="Inter,Arial,sans-serif" font-size="25" font-weight="800" fill="#7c4665">Rendering · Three-Value Head</text>
+<text x="100" y="156" font-family="Inter,Arial,sans-serif" font-size="16" fill="#8b7482">Reduce before rendering: light, midtone and shadow family.</text>
+
+<g transform="translate(100 15)">
+ <path d="M360 245 C470 185 630 205 690 330 C735 435 690 570 585 640 C500 695 375 645 330 555 C285 465 290 320 360 245Z" fill="#ece7ea" stroke="#4b3a46" stroke-width="9"/>
+ <path d="M352 260 C470 205 585 220 650 310 C565 315 520 350 505 430 C490 520 420 560 340 545 C300 430 300 330 352 260Z" fill="#b9adb4"/>
+ <path d="M505 430 C555 380 620 355 690 380 C712 470 675 555 590 625 C560 590 535 550 525 510 C515 478 510 452 505 430Z" fill="#625660"/>
+ <path d="M405 385 Q450 360 495 382" fill="none" stroke="#2f2730" stroke-width="5"/><path d="M535 390 Q575 370 615 390" fill="none" stroke="#2f2730" stroke-width="5"/><path d="M505 455 L535 505 L505 520" fill="none" stroke="#2f2730" stroke-width="5"/><path d="M455 560 Q520 590 575 560" fill="none" stroke="#2f2730" stroke-width="5"/>
+ <circle cx="845" cy="300" r="60" fill="#fff" stroke="#d9ccd3" stroke-width="3"/><circle cx="845" cy="450" r="60" fill="#b9adb4"/><circle cx="845" cy="600" r="60" fill="#625660"/>
+ <text x="930" y="305" font-family="Inter,Arial" font-size="17" fill="#7c4665">LIGHT</text><text x="930" y="455" font-family="Inter,Arial" font-size="17" fill="#7c4665">MID</text><text x="930" y="605" font-family="Inter,Arial" font-size="17" fill="#7c4665">DARK</text>
+</g>
+
+<text x="100" y="815" font-family="Inter,Arial,sans-serif" font-size="14" fill="#9b8793">Life RPG · Drawing Studio Practice Reference</text>
+</svg>

@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" viewBox="0 0 1200 900">
+<defs>
+  <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="10" stdDeviation="18" flood-color="#4d3040" flood-opacity="0.10"/></filter>
+  <linearGradient id="paper" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#fff8fb"/></linearGradient>
+  
+</defs>
+<rect width="1200" height="900" fill="#fffaf7"/>
+<circle cx="1050" cy="80" r="180" fill="#f7e8ef" opacity=".7"/>
+<rect x="56" y="50" width="1088" height="800" rx="36" fill="url(#paper)" stroke="#eadce4" stroke-width="2" filter="url(#shadow)"/>
+<text x="100" y="120" font-family="Inter,Arial,sans-serif" font-size="25" font-weight="800" fill="#7c4665">Hands · Grip &amp; Contact</text>
+<text x="100" y="156" font-family="Inter,Arial,sans-serif" font-size="16" fill="#8b7482">Practice contact points: the object exists first; the hand wraps around it.</text>
+
+<g transform="translate(70 20)">
+ <rect x="520" y="280" width="220" height="300" rx="28" fill="#f4e1e9" stroke="#4b3a46" stroke-width="10"/>
+ <path d="M740 345 C860 332 868 510 744 515" fill="none" stroke="#4b3a46" stroke-width="12"/>
+ <path d="M475 340 C420 340 390 392 412 446 L470 570 C492 612 540 625 573 590 L612 548" fill="#f9edf2" stroke="#4b3a46" stroke-width="10"/>
+ <g fill="#f9edf2" stroke="#4b3a46" stroke-width="9">
+   <path d="M468 350 C500 318 548 320 568 350 L590 385 C610 415 570 445 548 417 L520 388 C500 368 480 367 468 350Z"/>
+   <path d="M485 394 C515 365 560 374 578 404 L600 438 C616 466 580 493 557 468 L530 438 C510 418 493 414 485 394Z"/>
+   <path d="M495 445 C528 420 566 431 580 460 L596 492 C610 518 577 543 553 520 L530 495 C510 477 500 466 495 445Z"/>
+ </g>
+ <path d="M455 350 Q545 310 610 380" fill="none" stroke="#d8759e" stroke-width="5" stroke-dasharray="12 12"/>
+ <path d="M605 470 Q665 430 740 445" fill="none" stroke="#87a6c9" stroke-width="5"/>
+ <text x="825" y="320" font-family="Inter,Arial" font-size="18" font-weight="700" fill="#7c4665">Draw the mug first.</text>
+ <text x="825" y="355" font-family="Inter,Arial" font-size="16" fill="#7f6876">Then wrap the palm</text>
+ <text x="825" y="382" font-family="Inter,Arial" font-size="16" fill="#7f6876">and fingers around it.</text>
+</g>
+
+<text x="100" y="815" font-family="Inter,Arial,sans-serif" font-size="14" fill="#9b8793">Life RPG · Drawing Studio Practice Reference</text>
+</svg>

@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "0.31.4cg";
+  const VERSION = "0.31.4ch";
   const DB_NAME = "life-rpg-drawing-studio-v2";
   const STORE = "drawings";
   const META_KEY = "lifeRpgDrawingStudioMetaV2";
@@ -806,6 +806,105 @@
   let dbPromise = null;
   let activeTrack = "all";
   let activeChallenge = null;
+  const LOCAL_REFERENCES = {
+    "gesture-30s-five": [
+      { src: "assets/drawing/references/dynamic-running-reach.svg", title: "Running Reach", note: "Find the long action curve before thinking about anatomy." },
+      { src: "assets/drawing/references/dynamic-twist-turn.svg", title: "Twist & Turn", note: "Track how shoulders and pelvis oppose each other." }
+    ],
+    "gesture-2m-three": [
+      { src: "assets/drawing/references/dynamic-running-reach.svg", title: "Running Reach", note: "Build ribcage and pelvis on top of the gesture." },
+      { src: "assets/drawing/references/dynamic-twist-turn.svg", title: "Twist & Turn", note: "Use simple masses to preserve the action." }
+    ],
+    "push-the-pose": [
+      { src: "assets/drawing/references/dynamic-running-reach.svg", title: "Push the Reach", note: "Compare the main curve, counterbalance and support leg." },
+      { src: "assets/drawing/references/dynamic-twist-turn.svg", title: "Push the Twist", note: "Exaggerate opposing axes without losing balance." }
+    ],
+    "ribcage-pelvis-twist": [
+      { src: "assets/drawing/references/dynamic-twist-turn.svg", title: "Torso Twist", note: "Study the relationship between ribcage and pelvis rather than the outline." }
+    ],
+    "action-mannequin": [
+      { src: "assets/drawing/references/dynamic-running-reach.svg", title: "Action Mannequin Reference", note: "Reduce this pose to spheres, boxes and cylinders." },
+      { src: "assets/drawing/references/dynamic-twist-turn.svg", title: "Twisting Mannequin Reference", note: "Keep each major mass readable in 3D." }
+    ],
+    "hand-open-fist-point": [
+      { src: "assets/drawing/references/hand-open-construction.svg", title: "Open Palm Construction", note: "Palm wedge first, then knuckle arc, then grouped fingers." }
+    ],
+    "hands-doing-something": [
+      { src: "assets/drawing/references/hand-mug-grip.svg", title: "Grip & Contact", note: "Construct the object first and wrap the hand around it." }
+    ],
+    "balance-check-pose": [
+      { src: "assets/drawing/references/dynamic-twist-turn.svg", title: "Balance + Counter-Tilt", note: "Look for the support leg and the counterweight of the torso." }
+    ],
+    "two-character-reaction": [
+      { src: "assets/drawing/references/story-shared-action.svg", title: "Shared Action", note: "One figure initiates; the other must visibly react." }
+    ],
+    "body-proportion-debug": [
+      { src: "assets/drawing/references/dynamic-running-reach.svg", title: "Proportion Check in Motion", note: "Compare major lengths before polishing the contour." }
+    ],
+    "head-turn-sheet": [
+      { src: "assets/drawing/references/head-turn-three-quarter.svg", title: "3/4 Head Construction", note: "Wrap feature guides around the skull volume." }
+    ],
+    "expression-quartet": [
+      { src: "assets/drawing/references/head-turn-three-quarter.svg", title: "Stable Head Base", note: "Keep the underlying head construction stable while changing expression." }
+    ],
+    "hair-big-shapes": [
+      { src: "assets/drawing/references/head-turn-three-quarter.svg", title: "Hair on a Head Volume", note: "Treat hair as masses that sit over the skull, not as a flat sticker." }
+    ],
+    "hair-flow-study": [
+      { src: "assets/drawing/references/hair-flow-turn.svg", title: "Hair Flow in Motion", note: "Start with big directional ribbons; strands come later." }
+    ],
+    "hair-in-action": [
+      { src: "assets/drawing/references/hair-flow-turn.svg", title: "Hair Lag + Direction", note: "Let movement and gravity decide the overall flow." }
+    ],
+    "one-point-room": [
+      { src: "assets/drawing/references/perspective-one-point-room.svg", title: "One-Point Room", note: "Horizon first, then one vanishing point, then furniture volumes." }
+    ],
+    "two-point-street": [
+      { src: "assets/drawing/references/perspective-two-point-street.svg", title: "Two-Point Corner", note: "Verticals stay vertical; left and right edges travel to different vanishing points." }
+    ],
+    "cafe-corner": [
+      { src: "assets/drawing/references/perspective-one-point-room.svg", title: "Interior Box", note: "Use the room box as scaffolding, then design furniture inside it." }
+    ],
+    "character-in-space": [
+      { src: "assets/drawing/references/perspective-one-point-room.svg", title: "Room Scale Reference", note: "Use eye level and floor contact to keep the character inside the scene." }
+    ],
+    "depth-layering": [
+      { src: "assets/drawing/references/perspective-one-point-room.svg", title: "Depth Through Space", note: "Use overlap and scale change to separate foreground, middle and background." }
+    ],
+    "three-value-study": [
+      { src: "assets/drawing/references/rendering-three-value-head.svg", title: "Three-Value Head", note: "Compress the image into light, midtone and dark families before rendering." }
+    ],
+    "single-light-source": [
+      { src: "assets/drawing/references/rendering-three-value-head.svg", title: "Single Light Value Plan", note: "Keep the shadow family grouped instead of chasing tiny gradients." }
+    ],
+    "warm-light-cool-shadow": [
+      { src: "assets/drawing/references/rendering-warm-cool-bust.svg", title: "Warm / Cool Split", note: "Value readability comes first; temperature creates the mood on top." }
+    ],
+    "limited-palette": [
+      { src: "assets/drawing/references/rendering-warm-cool-bust.svg", title: "Temperature-Led Palette", note: "Choose a small family of hues and reuse them intentionally." }
+    ],
+    "same-sketch-three-moods": [
+      { src: "assets/drawing/references/rendering-warm-cool-bust.svg", title: "Mood Through Temperature", note: "Change light color and value grouping before adding detail." }
+    ],
+    "moment-before": [
+      { src: "assets/drawing/references/story-moment-before.svg", title: "Moment Before", note: "Use body language, props and exits to imply what is about to happen." }
+    ],
+    "composition-thumbnails": [
+      { src: "assets/drawing/references/story-moment-before.svg", title: "Story Staging Seed", note: "Reduce this idea into several tiny arrangements before committing." }
+    ],
+    "moment-after": [
+      { src: "assets/drawing/references/story-moment-before.svg", title: "Scene Clue Placement", note: "Let the environment carry evidence of what just happened." }
+    ],
+    "two-characters-one-action": [
+      { src: "assets/drawing/references/story-shared-action.svg", title: "Shared Contact Point", note: "The shared object/contact point should anchor both poses." }
+    ],
+    "mini-story-illustration": [
+      { src: "assets/drawing/references/story-moment-before.svg", title: "Story Composition", note: "Stage the room, character relationship and focal point before rendering." },
+      { src: "assets/drawing/references/story-shared-action.svg", title: "Character Interaction", note: "Make both figures participate in the same action." }
+    ]
+  };
+
+  let referenceIndex = 0;
   let ctx = null;
   let guideCtx = null;
   let actions = [];
@@ -895,6 +994,17 @@
       referenceTitle: document.getElementById("referenceTitle"),
       referenceText: document.getElementById("referenceText"),
       referenceLink: document.getElementById("referenceLink"),
+      referenceAssetViewer: document.getElementById("referenceAssetViewer"),
+      referenceImage: document.getElementById("referenceImage"),
+      referenceAssetTitle: document.getElementById("referenceAssetTitle"),
+      referenceAssetNote: document.getElementById("referenceAssetNote"),
+      referencePrev: document.getElementById("referencePrev"),
+      referenceNext: document.getElementById("referenceNext"),
+      referenceOpen: document.getElementById("referenceOpen"),
+      referenceCounter: document.getElementById("referenceCounter"),
+      referenceDialog: document.getElementById("referenceDialog"),
+      referenceDialogImage: document.getElementById("referenceDialogImage"),
+      closeReferenceDialog: document.getElementById("closeReferenceDialog"),
       guideToggle: document.getElementById("guideToggle"),
       flipCanvas: document.getElementById("flipCanvas"),
       guideOpacity: document.getElementById("guideOpacity"),
@@ -956,6 +1066,12 @@
       if (challenge) openChallenge(challenge.id, true);
     });
     els.mobileTools.addEventListener("click", () => els.toolsPanel.scrollIntoView({ behavior: "smooth", block: "start" }));
+    els.referencePrev.addEventListener("click", () => stepReference(-1));
+    els.referenceNext.addEventListener("click", () => stepReference(1));
+    els.referenceOpen.addEventListener("click", openReferenceDialog);
+    els.referenceImage.addEventListener("click", openReferenceDialog);
+    els.closeReferenceDialog.addEventListener("click", () => els.referenceDialog.close());
+    els.referenceDialog.addEventListener("click", event => { if (event.target === els.referenceDialog) els.referenceDialog.close(); });
 
     els.graphite.addEventListener("click", () => setTool("graphite"));
     els.clean.addEventListener("click", () => setTool("clean"));
@@ -1096,7 +1212,7 @@
       return `
       <button class="challenge-card${next ? " is-next" : ""}" type="button" data-challenge="${challenge.id}">
         <div class="challenge-card-top"><span class="challenge-icon">${challenge.icon}</span><span class="path-step">${pathIndex}/${siblings.length}${next ? " · NEXT" : ""}</span></div>
-        <small>${esc(challenge.type)}</small>
+        <small>${esc(challenge.type)}${(LOCAL_REFERENCES[challenge.id] || []).length ? ' · BUILT-IN REF' : ''}</small>
         <strong>${esc(challenge.title)}</strong>
         <p>${esc(challenge.summary)}</p>
         <footer><span>${challenge.minutes} min · ${esc(challenge.difficulty)}</span><span>${completedIds.has(challenge.id) ? '<b class="done-badge">✓ practiced</b>' : rewardLabel(challenge.rewardClass)}</span></footer>
@@ -1158,7 +1274,9 @@
     ].filter((item, index, all) => all.findIndex(other => other.url === item.url) === index);
     const siblings = CHALLENGES.filter(c => c.track === challenge.track);
     const pathIndex = siblings.findIndex(c => c.id === challenge.id) + 1;
-    els.referenceBrief.innerHTML = `<strong>${esc(challenge.referenceTitle || "Reference")}</strong><p>${esc(challenge.referenceText || "Use a reference that supports the exercise goal.")}</p><div class="path-note">Practice path · ${pathIndex}/${siblings.length} in ${esc(TRACKS.find(t => t.id === challenge.track)?.title || challenge.track)}</div>${links.length ? `<div class="learning-links">${links.map(link => `<a href="${link.url}" target="_blank" rel="noopener">${esc(link.label)} ↗</a>`).join("")}</div>` : ""}`;
+    const builtIns = LOCAL_REFERENCES[challenge.id] || [];
+    const preview = builtIns.length ? `<div class="brief-reference-preview"><img src="${builtIns[0].src}" alt="${esc(builtIns[0].title)}"><div><small>BUILT-IN PRACTICE REFERENCE</small><strong>${esc(builtIns[0].title)}</strong><p>${esc(builtIns[0].note || "")}</p></div></div>` : "";
+    els.referenceBrief.innerHTML = `<strong>${esc(challenge.referenceTitle || "Reference")}</strong><p>${esc(challenge.referenceText || "Use a reference that supports the exercise goal.")}</p>${preview}<div class="path-note">Practice path · ${pathIndex}/${siblings.length} in ${esc(TRACKS.find(t => t.id === challenge.track)?.title || challenge.track)}</div>${links.length ? `<div class="learning-links">${links.map(link => `<a href="${link.url}" target="_blank" rel="noopener">${esc(link.label)} ↗</a>`).join("")}</div>` : ""}`;
     updateRightPanel(challenge);
   }
 
@@ -1199,6 +1317,7 @@
     els.referenceTitle.textContent = "Select a challenge";
     els.referenceText.textContent = "Open a challenge to see its built-in guide and practice reference.";
     els.referenceLink.classList.add("is-hidden");
+    els.referenceAssetViewer.classList.add("is-hidden");
   }
 
   function updateRightPanel(challenge) {
@@ -1210,6 +1329,46 @@
     } else {
       els.referenceLink.classList.add("is-hidden");
     }
+    referenceIndex = 0;
+    renderReferenceAsset(challenge);
+  }
+
+  function getReferenceAssets(challenge = activeChallenge) {
+    return challenge ? (LOCAL_REFERENCES[challenge.id] || []) : [];
+  }
+
+  function renderReferenceAsset(challenge = activeChallenge) {
+    const assets = getReferenceAssets(challenge);
+    if (!assets.length) {
+      els.referenceAssetViewer.classList.add("is-hidden");
+      return;
+    }
+    referenceIndex = Math.max(0, Math.min(referenceIndex, assets.length - 1));
+    const item = assets[referenceIndex];
+    els.referenceImage.src = item.src;
+    els.referenceImage.alt = item.title || "Practice reference";
+    els.referenceAssetTitle.textContent = item.title || "Practice reference";
+    els.referenceAssetNote.textContent = item.note || "Use this as a study reference, not as a tracing requirement.";
+    els.referenceCounter.textContent = `${referenceIndex + 1}/${assets.length}`;
+    els.referencePrev.disabled = assets.length <= 1;
+    els.referenceNext.disabled = assets.length <= 1;
+    els.referenceAssetViewer.classList.remove("is-hidden");
+  }
+
+  function stepReference(delta) {
+    const assets = getReferenceAssets();
+    if (!assets.length) return;
+    referenceIndex = (referenceIndex + delta + assets.length) % assets.length;
+    renderReferenceAsset();
+  }
+
+  function openReferenceDialog() {
+    const assets = getReferenceAssets();
+    if (!assets.length) return;
+    const item = assets[referenceIndex];
+    els.referenceDialogImage.src = item.src;
+    els.referenceDialogImage.alt = item.title || "Practice reference";
+    els.referenceDialog.showModal();
   }
 
   function drawActiveGuide() {

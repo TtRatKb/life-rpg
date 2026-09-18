@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" viewBox="0 0 1200 900">
+<defs>
+  <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="10" stdDeviation="18" flood-color="#4d3040" flood-opacity="0.10"/></filter>
+  <linearGradient id="paper" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#fff8fb"/></linearGradient>
+  <linearGradient id="warmcool" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#f2a66f"/><stop offset=".5" stop-color="#f7d9c6"/><stop offset="1" stop-color="#7b91c5"/></linearGradient>
+</defs>
+<rect width="1200" height="900" fill="#fffaf7"/>
+<circle cx="1050" cy="80" r="180" fill="#f7e8ef" opacity=".7"/>
+<rect x="56" y="50" width="1088" height="800" rx="36" fill="url(#paper)" stroke="#eadce4" stroke-width="2" filter="url(#shadow)"/>
+<text x="100" y="120" font-family="Inter,Arial,sans-serif" font-size="25" font-weight="800" fill="#7c4665">Rendering · Warm Light / Cool Shadow</text>
+<text x="100" y="156" font-family="Inter,Arial,sans-serif" font-size="16" fill="#8b7482">A simple temperature study with a readable light family and shadow family.</text>
+
+<g transform="translate(85 10)">
+ <circle cx="505" cy="390" r="210" fill="url(#warmcool)" opacity=".85"/>
+ <path d="M410 265 C480 205 600 225 650 320 C690 400 655 525 575 585 C490 650 385 605 350 515 C315 430 335 325 410 265Z" fill="#f6dccd" stroke="#4b3a46" stroke-width="9"/>
+ <path d="M510 238 C590 265 650 330 665 410 C625 380 580 365 535 380 C490 395 455 430 435 480 C380 440 345 360 372 300 C410 260 457 242 510 238Z" fill="#d48663" opacity=".75"/>
+ <path d="M545 380 C610 355 655 380 665 430 C655 510 620 565 565 600 C525 555 510 505 510 460 C512 428 522 402 545 380Z" fill="#6f82b3" opacity=".72"/>
+ <path d="M403 395 Q450 370 495 390" fill="none" stroke="#2f2730" stroke-width="5"/><path d="M548 392 Q585 378 620 395" fill="none" stroke="#2f2730" stroke-width="5"/>
+ <path d="M525 458 L548 503 L520 516" fill="none" stroke="#2f2730" stroke-width="4"/><path d="M462 550 Q520 580 570 550" fill="none" stroke="#2f2730" stroke-width="4"/>
+ <text x="800" y="335" font-family="Inter,Arial" font-size="20" font-weight="700" fill="#b7673f">warm key light</text>
+ <text x="800" y="490" font-family="Inter,Arial" font-size="20" font-weight="700" fill="#5c72a6">cool shadow family</text>
+ <text x="800" y="545" font-family="Inter,Arial" font-size="16" fill="#7f6876">Keep the value structure readable first.</text>
+</g>
+
+<text x="100" y="815" font-family="Inter,Arial,sans-serif" font-size="14" fill="#9b8793">Life RPG · Drawing Studio Practice Reference</text>
+</svg>

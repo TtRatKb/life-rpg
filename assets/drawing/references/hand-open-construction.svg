@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" viewBox="0 0 1200 900">
+<defs>
+  <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="10" stdDeviation="18" flood-color="#4d3040" flood-opacity="0.10"/></filter>
+  <linearGradient id="paper" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#fff8fb"/></linearGradient>
+  
+</defs>
+<rect width="1200" height="900" fill="#fffaf7"/>
+<circle cx="1050" cy="80" r="180" fill="#f7e8ef" opacity=".7"/>
+<rect x="56" y="50" width="1088" height="800" rx="36" fill="url(#paper)" stroke="#eadce4" stroke-width="2" filter="url(#shadow)"/>
+<text x="100" y="120" font-family="Inter,Arial,sans-serif" font-size="25" font-weight="800" fill="#7c4665">Hands · Open Palm Construction</text>
+<text x="100" y="156" font-family="Inter,Arial,sans-serif" font-size="16" fill="#8b7482">A clean construction reference: palm block, knuckle arc, grouped fingers.</text>
+
+<g transform="translate(105 40)">
+ <path d="M405 520 L370 390 L400 275 L455 308 L480 180 L525 195 L535 305 L565 160 L612 177 L600 320 L635 192 L680 210 L650 340 L700 255 L742 280 L690 415 L666 545 Z" fill="#f9edf2" stroke="#4b3a46" stroke-width="10" stroke-linejoin="round"/>
+ <path d="M405 520 L385 600 L470 690 L620 665 L666 545" fill="#f9edf2" stroke="#4b3a46" stroke-width="10"/>
+ <path d="M412 475 Q520 420 655 455" fill="none" stroke="#87a6c9" stroke-width="5"/>
+ <path d="M438 530 Q520 560 640 540" fill="none" stroke="#87a6c9" stroke-width="4" stroke-dasharray="12 12"/>
+ <g stroke="#d8759e" stroke-width="4" fill="none" stroke-dasharray="10 10">
+   <path d="M466 316 L490 535"/><path d="M535 306 L535 542"/><path d="M600 322 L584 545"/><path d="M650 340 L622 545"/>
+ </g>
+ <circle cx="525" cy="450" r="8" fill="#d8759e"/>
+ <text x="765" y="315" font-family="Inter,Arial" font-size="19" font-weight="700" fill="#7c4665">Palm = wedge</text>
+ <text x="765" y="350" font-family="Inter,Arial" font-size="16" fill="#7f6876">Knuckles form an arc</text>
+ <text x="765" y="395" font-family="Inter,Arial" font-size="16" fill="#7f6876">Finger lengths taper</text>
+ <text x="765" y="440" font-family="Inter,Arial" font-size="16" fill="#7f6876">Thumb starts lower than you think</text>
+</g>
+
+<text x="100" y="815" font-family="Inter,Arial,sans-serif" font-size="14" fill="#9b8793">Life RPG · Drawing Studio Practice Reference</text>
+</svg>
