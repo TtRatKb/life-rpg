@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" viewBox="0 0 1200 900">
+<defs><filter id="s"><feDropShadow dx="0" dy="10" stdDeviation="18" flood-color="#4d3040" flood-opacity=".10"/></filter></defs>
+<rect width="1200" height="900" fill="#fffaf7"/><circle cx="1080" cy="60" r="190" fill="#f8edf2" opacity=".7"/>
+<rect x="56" y="50" width="1088" height="800" rx="36" fill="#ffffff" stroke="#eadce4" stroke-width="2" filter="url(#s)"/>
+<rect x="90" y="90" width="8" height="74" rx="4" fill="#d8759e"/>
+<text x="118" y="119" font-family="Inter,Arial,sans-serif" font-size="25" font-weight="800" fill="#7c4665">Heads · Front Construction</text>
+<text x="118" y="154" font-family="Inter,Arial,sans-serif" font-size="16" fill="#8b7482">Use wrap lines to keep features on a 3D skull.</text>
+<ellipse cx="500" cy="390" rx="155" ry="185" fill="#fff" stroke="#4b3a46" stroke-width="8"/><path d="M350 390 Q500 390 650 390" stroke="#7f9fc3" stroke-width="5" fill="none" opacity=".8"/><path d="M500 210 Q500 390 500 580" stroke="#7f9fc3" stroke-width="5" fill="none" opacity=".8"/><path d="M390 485 Q500 610 610 485" fill="none" stroke="#4b3a46" stroke-width="8"/><line x1="330" y1="650" x2="670" y2="650" stroke="#eadce4" stroke-width="3"/><text x="355" y="690" font-family="Inter,Arial" font-size="17" fill="#8b7482">Keep the skull volume stable before features or hair.</text>
+<text x="100" y="815" font-family="Inter,Arial,sans-serif" font-size="14" fill="#9b8793">Life RPG · Drawing Studio Practice Reference</text>
+</svg>

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" viewBox="0 0 1200 900">
+<defs><filter id="s"><feDropShadow dx="0" dy="10" stdDeviation="18" flood-color="#4d3040" flood-opacity=".10"/></filter></defs>
+<rect width="1200" height="900" fill="#fffaf7"/><circle cx="1080" cy="60" r="190" fill="#f8edf2" opacity=".7"/>
+<rect x="56" y="50" width="1088" height="800" rx="36" fill="#ffffff" stroke="#eadce4" stroke-width="2" filter="url(#s)"/>
+<rect x="90" y="90" width="8" height="74" rx="4" fill="#d8759e"/>
+<text x="118" y="119" font-family="Inter,Arial,sans-serif" font-size="25" font-weight="800" fill="#7c4665">Color Mood · Tense</text>
+<text x="118" y="154" font-family="Inter,Arial,sans-serif" font-size="16" fill="#8b7482">Harder contrast and focused warm accents against darks.</text>
+<ellipse cx="475" cy="420" rx="150" ry="190" fill="#efe5ea" stroke="#4b3a46" stroke-width="8"/><path d="M360 500 Q475 625 590 500" fill="none" stroke="#4b3a46" stroke-width="8"/><rect x="315" y="235" width="320" height="360" rx="30" fill="#15151d" opacity=".95"/><circle cx="450" cy="355" r="115" fill="#d35c5c" opacity=".8"/><path d="M315 520 Q475 400 635 520 L635 595 L315 595 Z" fill="#362d46" opacity=".9"/><text x="730" y="340" font-family="Georgia,serif" font-size="38" font-style="italic" fill="#7c4665">tense</text>
+<text x="100" y="815" font-family="Inter,Arial,sans-serif" font-size="14" fill="#9b8793">Life RPG · Drawing Studio Practice Reference</text>
+</svg>

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" viewBox="0 0 1200 900">
+<defs><filter id="s"><feDropShadow dx="0" dy="10" stdDeviation="18" flood-color="#4d3040" flood-opacity=".10"/></filter></defs>
+<rect width="1200" height="900" fill="#fffaf7"/><circle cx="1080" cy="60" r="190" fill="#f8edf2" opacity=".7"/>
+<rect x="56" y="50" width="1088" height="800" rx="36" fill="#ffffff" stroke="#eadce4" stroke-width="2" filter="url(#s)"/>
+<rect x="90" y="90" width="8" height="74" rx="4" fill="#7f9fc3"/>
+<text x="118" y="119" font-family="Inter,Arial,sans-serif" font-size="25" font-weight="800" fill="#7c4665">Perspective · Café Booth</text>
+<text x="118" y="154" font-family="Inter,Arial,sans-serif" font-size="16" fill="#8b7482">Build the room box first, then seat, table and window as simple volumes.</text>
+<line x1="130" y1="390" x2="1070" y2="390" stroke="#d8759e" stroke-width="5" opacity=".6"/><circle cx="600" cy="395" r="9" fill="#d8759e"/><text x="614" y="383" font-family="Inter,Arial" font-size="15" fill="#7c4665">VP</text><path d="M170 740 L600 395 L1030 740" stroke="#7f9fc3" stroke-width="4" fill="none" opacity=".65"/><path d="M170 170 L600 395 L1030 170" stroke="#7f9fc3" stroke-width="4" fill="none" opacity=".65"/><path d="M250 670 L600 395 L950 670" stroke="#7f9fc3" stroke-width="4" fill="none" opacity=".65"/><path d="M205 230 L205 710 L995 710 L995 230" stroke="#4b3a46" stroke-width="7" fill="none" stroke-linejoin="round"/><path d="M310 505 L490 440 L490 650 L310 690 Z" stroke="#4b3a46" stroke-width="7" fill="none" stroke-linejoin="round"/><path d="M710 440 L895 505 L895 690 L710 650 Z" stroke="#4b3a46" stroke-width="7" fill="none" stroke-linejoin="round"/><path d="M500 520 L700 520 L745 650 L455 650 Z" stroke="#4b3a46" stroke-width="7" fill="none" stroke-linejoin="round"/><path d="M430 250 L770 250 L770 425 L430 425 Z" stroke="#4b3a46" stroke-width="7" fill="none" stroke-linejoin="round"/>
+<text x="100" y="815" font-family="Inter,Arial,sans-serif" font-size="14" fill="#9b8793">Life RPG · Drawing Studio Practice Reference</text>
+</svg>

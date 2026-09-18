@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "0.31.4ch";
+  const VERSION = "0.31.4ci";
   const DB_NAME = "life-rpg-drawing-studio-v2";
   const STORE = "drawings";
   const META_KEY = "lifeRpgDrawingStudioMetaV2";
@@ -809,98 +809,164 @@
   const LOCAL_REFERENCES = {
     "gesture-30s-five": [
       { src: "assets/drawing/references/dynamic-running-reach.svg", title: "Running Reach", note: "Find the long action curve before thinking about anatomy." },
-      { src: "assets/drawing/references/dynamic-twist-turn.svg", title: "Twist & Turn", note: "Track how shoulders and pelvis oppose each other." }
+      { src: "assets/drawing/references/dynamic-crouch-launch.svg", title: "Crouch Launch", note: "Compress the pose, then follow the forward burst." },
+      { src: "assets/drawing/references/dynamic-jump-landing.svg", title: "Jump Landing", note: "Use bent joints and a low center of gravity to show impact." },
+      { src: "assets/drawing/references/dynamic-turn-back.svg", title: "Sudden Turn", note: "Track the main curve through the torso before limbs." },
+      { src: "assets/drawing/references/dynamic-pull-reach.svg", title: "Pull & Reach", note: "One side anchors while the other side extends." }
     ],
     "gesture-2m-three": [
       { src: "assets/drawing/references/dynamic-running-reach.svg", title: "Running Reach", note: "Build ribcage and pelvis on top of the gesture." },
-      { src: "assets/drawing/references/dynamic-twist-turn.svg", title: "Twist & Turn", note: "Use simple masses to preserve the action." }
+      { src: "assets/drawing/references/dynamic-twist-turn.svg", title: "Twist & Turn", note: "Use simple masses to preserve the action." },
+      { src: "assets/drawing/references/dynamic-crouch-launch.svg", title: "Crouch Launch", note: "Keep the loaded leg and forward intent clear." },
+      { src: "assets/drawing/references/dynamic-jump-landing.svg", title: "Jump Landing", note: "Show weight before you refine anatomy." }
     ],
     "push-the-pose": [
-      { src: "assets/drawing/references/dynamic-running-reach.svg", title: "Push the Reach", note: "Compare the main curve, counterbalance and support leg." },
-      { src: "assets/drawing/references/dynamic-twist-turn.svg", title: "Push the Twist", note: "Exaggerate opposing axes without losing balance." }
+      { src: "assets/drawing/references/dynamic-running-reach.svg", title: "Push the Reach", note: "Exaggerate the curve and counterbalance without breaking the pose." },
+      { src: "assets/drawing/references/dynamic-turn-back.svg", title: "Push the Turn", note: "Increase shoulder/hip opposition to make the action clearer." },
+      { src: "assets/drawing/references/dynamic-pull-reach.svg", title: "Push the Pull", note: "Stretch the reaching side and compress the anchoring side." }
     ],
     "ribcage-pelvis-twist": [
-      { src: "assets/drawing/references/dynamic-twist-turn.svg", title: "Torso Twist", note: "Study the relationship between ribcage and pelvis rather than the outline." }
+      { src: "assets/drawing/references/dynamic-twist-turn.svg", title: "Torso Twist", note: "Study the relationship between ribcage and pelvis rather than the outline." },
+      { src: "assets/drawing/references/dynamic-turn-back.svg", title: "Opposing Axes", note: "Shoulders and hips can point in different directions." },
+      { src: "assets/drawing/references/dynamic-crouch-launch.svg", title: "Compressed Torso", note: "Notice how one side compresses while the other opens." }
     ],
     "action-mannequin": [
-      { src: "assets/drawing/references/dynamic-running-reach.svg", title: "Action Mannequin Reference", note: "Reduce this pose to spheres, boxes and cylinders." },
-      { src: "assets/drawing/references/dynamic-twist-turn.svg", title: "Twisting Mannequin Reference", note: "Keep each major mass readable in 3D." }
+      { src: "assets/drawing/references/dynamic-running-reach.svg", title: "Running Mannequin", note: "Reduce the pose to spheres, boxes and cylinders." },
+      { src: "assets/drawing/references/dynamic-jump-landing.svg", title: "Landing Mannequin", note: "Keep each major mass readable in 3D." },
+      { src: "assets/drawing/references/dynamic-pull-reach.svg", title: "Reach Mannequin", note: "Construct first; contour comes later." }
     ],
     "hand-open-fist-point": [
-      { src: "assets/drawing/references/hand-open-construction.svg", title: "Open Palm Construction", note: "Palm wedge first, then knuckle arc, then grouped fingers." }
+      { src: "assets/drawing/references/hand-open-construction.svg", title: "Open Palm", note: "Palm wedge first, then knuckle arc, then grouped fingers." },
+      { src: "assets/drawing/references/hand-fist-construction.svg", title: "Fist", note: "Treat folded fingers as one block before separating them." },
+      { src: "assets/drawing/references/hand-pointing-construction.svg", title: "Pointing", note: "The pointing finger extends the hand's overall direction." },
+      { src: "assets/drawing/references/hand-foreshortened-palm.svg", title: "Foreshortened Palm", note: "Near forms grow larger and overlap the finger groups behind them." }
     ],
     "hands-doing-something": [
-      { src: "assets/drawing/references/hand-mug-grip.svg", title: "Grip & Contact", note: "Construct the object first and wrap the hand around it." }
+      { src: "assets/drawing/references/hand-mug-grip.svg", title: "Mug Grip", note: "Construct the object first and wrap the hand around it." },
+      { src: "assets/drawing/references/hand-phone-grip.svg", title: "Phone Grip", note: "Let the prop determine finger placement and pressure." },
+      { src: "assets/drawing/references/hand-sleeve-pinch.svg", title: "Pinching Fabric", note: "Use opposing thumb/index shapes and show the fabric reaction." },
+      { src: "assets/drawing/references/hand-pointing-construction.svg", title: "Pointing Gesture", note: "Use the hand to direct attention inside a scene." }
     ],
     "balance-check-pose": [
-      { src: "assets/drawing/references/dynamic-twist-turn.svg", title: "Balance + Counter-Tilt", note: "Look for the support leg and the counterweight of the torso." }
+      { src: "assets/drawing/references/dynamic-twist-turn.svg", title: "Balance + Counter-Tilt", note: "Look for the support leg and counterweight of the torso." },
+      { src: "assets/drawing/references/dynamic-crouch-launch.svg", title: "Loaded Balance", note: "The body can be dynamic while the support still feels believable." },
+      { src: "assets/drawing/references/dynamic-jump-landing.svg", title: "Landing Balance", note: "Place the center of gravity inside the support area." }
     ],
     "two-character-reaction": [
-      { src: "assets/drawing/references/story-shared-action.svg", title: "Shared Action", note: "One figure initiates; the other must visibly react." }
+      { src: "assets/drawing/references/story-shared-action.svg", title: "Shared Action", note: "One figure initiates; the other must visibly react." },
+      { src: "assets/drawing/references/story-catch-fall.svg", title: "Catch Reaction", note: "The reaction should travel through both poses, not just the hands." },
+      { src: "assets/drawing/references/story-argument-aisle.svg", title: "Argument Reaction", note: "Opposing torso angles can communicate tension before facial detail." }
     ],
     "body-proportion-debug": [
-      { src: "assets/drawing/references/dynamic-running-reach.svg", title: "Proportion Check in Motion", note: "Compare major lengths before polishing the contour." }
+      { src: "assets/drawing/references/dynamic-running-reach.svg", title: "Proportion Check in Motion", note: "Compare major lengths before polishing the contour." },
+      { src: "assets/drawing/references/dynamic-turn-back.svg", title: "Twisted Proportion Check", note: "Measure landmarks through the twist rather than against the page edge." },
+      { src: "assets/drawing/references/perspective-character-scale.svg", title: "Scale in Space", note: "Use eye level and floor contact to catch size inconsistencies." }
     ],
     "head-turn-sheet": [
-      { src: "assets/drawing/references/head-turn-three-quarter.svg", title: "3/4 Head Construction", note: "Wrap feature guides around the skull volume." }
+      { src: "assets/drawing/references/head-front-construction.svg", title: "Front", note: "Keep the skull volume stable and centerline straight around the form." },
+      { src: "assets/drawing/references/head-turn-three-quarter.svg", title: "Three-Quarter", note: "Wrap feature guides around the skull volume." },
+      { src: "assets/drawing/references/head-profile-construction.svg", title: "Profile", note: "Remember the skull mass behind the face plane." },
+      { src: "assets/drawing/references/head-looking-up.svg", title: "Looking Up", note: "Feature lines curve upward and the underside becomes visible." },
+      { src: "assets/drawing/references/head-looking-down.svg", title: "Looking Down", note: "The brow dominates and lower-face spacing compresses." }
     ],
     "expression-quartet": [
-      { src: "assets/drawing/references/head-turn-three-quarter.svg", title: "Stable Head Base", note: "Keep the underlying head construction stable while changing expression." }
+      { src: "assets/drawing/references/head-front-construction.svg", title: "Stable Front Base", note: "Keep the same construction while changing brows, lids and mouth." },
+      { src: "assets/drawing/references/head-turn-three-quarter.svg", title: "Stable 3/4 Base", note: "Preserve identity and head angle while pushing expression." },
+      { src: "assets/drawing/references/head-profile-construction.svg", title: "Profile Expression Base", note: "Expression still changes the silhouette of brow, lips and jaw." }
     ],
     "hair-big-shapes": [
-      { src: "assets/drawing/references/head-turn-three-quarter.svg", title: "Hair on a Head Volume", note: "Treat hair as masses that sit over the skull, not as a flat sticker." }
+      { src: "assets/drawing/references/head-front-construction.svg", title: "Skull First", note: "Place the skull before adding hair volume." },
+      { src: "assets/drawing/references/head-turn-three-quarter.svg", title: "Hair on 3/4 Head", note: "Treat hair as masses that sit over the skull, not a flat sticker." },
+      { src: "assets/drawing/references/hair-fall-forward.svg", title: "Falling Masses", note: "Separate a few large directional groups before strands." }
     ],
     "hair-flow-study": [
-      { src: "assets/drawing/references/hair-flow-turn.svg", title: "Hair Flow in Motion", note: "Start with big directional ribbons; strands come later." }
+      { src: "assets/drawing/references/hair-flow-turn.svg", title: "Turning Flow", note: "Start with big directional ribbons; strands come later." },
+      { src: "assets/drawing/references/hair-wind-side.svg", title: "Side Wind", note: "Let the wind direction affect every major mass consistently." },
+      { src: "assets/drawing/references/hair-fall-forward.svg", title: "Falling Forward", note: "Gravity can dominate even when the head is tilted." },
+      { src: "assets/drawing/references/hair-spin-back.svg", title: "Spin Back", note: "Hair can lag behind the head and create a delayed arc." }
     ],
     "hair-in-action": [
-      { src: "assets/drawing/references/hair-flow-turn.svg", title: "Hair Lag + Direction", note: "Let movement and gravity decide the overall flow." }
+      { src: "assets/drawing/references/hair-spin-back.svg", title: "Spin Back", note: "Use lag to make the turn feel faster." },
+      { src: "assets/drawing/references/hair-wind-side.svg", title: "Wind + Motion", note: "Combine body movement with a consistent secondary flow." },
+      { src: "assets/drawing/references/hair-fall-forward.svg", title: "Forward Drop", note: "Let gravity and momentum compete instead of drawing random strands." }
     ],
     "one-point-room": [
-      { src: "assets/drawing/references/perspective-one-point-room.svg", title: "One-Point Room", note: "Horizon first, then one vanishing point, then furniture volumes." }
+      { src: "assets/drawing/references/perspective-one-point-room.svg", title: "One-Point Room", note: "Horizon first, then one vanishing point, then furniture volumes." },
+      { src: "assets/drawing/references/perspective-hallway.svg", title: "Hallway", note: "Use repeated frames to check consistent depth spacing." },
+      { src: "assets/drawing/references/perspective-cafe-booth.svg", title: "Café Booth", note: "Furniture still obeys the same room space." }
     ],
     "two-point-street": [
-      { src: "assets/drawing/references/perspective-two-point-street.svg", title: "Two-Point Corner", note: "Verticals stay vertical; left and right edges travel to different vanishing points." }
+      { src: "assets/drawing/references/perspective-two-point-street.svg", title: "Two-Point Corner", note: "Verticals stay vertical; left and right edges travel to different vanishing points." },
+      { src: "assets/drawing/references/perspective-bedroom-corner.svg", title: "Interior Corner", note: "Two-point perspective is useful indoors too." },
+      { src: "assets/drawing/references/perspective-low-angle-room.svg", title: "Low Camera Angle", note: "Changing horizon height changes the feeling of the whole scene." }
     ],
     "cafe-corner": [
-      { src: "assets/drawing/references/perspective-one-point-room.svg", title: "Interior Box", note: "Use the room box as scaffolding, then design furniture inside it." }
+      { src: "assets/drawing/references/perspective-cafe-booth.svg", title: "Café Booth", note: "Build the room shell first, then furniture as boxes." },
+      { src: "assets/drawing/references/perspective-one-point-room.svg", title: "Interior Box", note: "Use the room box as scaffolding before design details." },
+      { src: "assets/drawing/references/perspective-bedroom-corner.svg", title: "Corner Variation", note: "Reuse the same perspective logic with a different interior layout." }
     ],
     "character-in-space": [
-      { src: "assets/drawing/references/perspective-one-point-room.svg", title: "Room Scale Reference", note: "Use eye level and floor contact to keep the character inside the scene." }
+      { src: "assets/drawing/references/perspective-character-scale.svg", title: "Character Scale", note: "Anchor feet to the floor grid and compare eye level." },
+      { src: "assets/drawing/references/perspective-one-point-room.svg", title: "Room Scale", note: "Use floor contact and horizon to keep the figure inside the scene." },
+      { src: "assets/drawing/references/perspective-low-angle-room.svg", title: "Low-Angle Placement", note: "Camera height changes how much of the character you see from below." }
     ],
     "depth-layering": [
-      { src: "assets/drawing/references/perspective-one-point-room.svg", title: "Depth Through Space", note: "Use overlap and scale change to separate foreground, middle and background." }
+      { src: "assets/drawing/references/perspective-hallway.svg", title: "Depth Through Repetition", note: "Repetition and scale change reinforce distance." },
+      { src: "assets/drawing/references/perspective-cafe-booth.svg", title: "Interior Depth", note: "Overlap furniture to create clear foreground, middle and background." },
+      { src: "assets/drawing/references/story-door-surprise.svg", title: "Story Depth", note: "Use a doorway or frame element to separate planes and direct attention." }
     ],
     "three-value-study": [
-      { src: "assets/drawing/references/rendering-three-value-head.svg", title: "Three-Value Head", note: "Compress the image into light, midtone and dark families before rendering." }
+      { src: "assets/drawing/references/rendering-three-value-head.svg", title: "Three-Value Head", note: "Compress the image into light, midtone and dark families before rendering." },
+      { src: "assets/drawing/references/rendering-side-light-bust.svg", title: "Side-Light Grouping", note: "Keep all shadow planes related instead of chasing tiny gradients." },
+      { src: "assets/drawing/references/rendering-backlight-bust.svg", title: "Backlight Grouping", note: "Protect the silhouette and simplify the interior values." }
     ],
     "single-light-source": [
-      { src: "assets/drawing/references/rendering-three-value-head.svg", title: "Single Light Value Plan", note: "Keep the shadow family grouped instead of chasing tiny gradients." }
+      { src: "assets/drawing/references/rendering-side-light-bust.svg", title: "Side Light", note: "One clear source creates a readable light/shadow split." },
+      { src: "assets/drawing/references/rendering-three-value-head.svg", title: "Value Plan", note: "Group the shadow family before blending edges." },
+      { src: "assets/drawing/references/rendering-backlight-bust.svg", title: "Backlight", note: "Rim light works best when the rest stays controlled." }
     ],
     "warm-light-cool-shadow": [
-      { src: "assets/drawing/references/rendering-warm-cool-bust.svg", title: "Warm / Cool Split", note: "Value readability comes first; temperature creates the mood on top." }
+      { src: "assets/drawing/references/rendering-warm-cool-bust.svg", title: "Warm / Cool Split", note: "Value readability comes first; temperature creates mood on top." },
+      { src: "assets/drawing/references/mood-cozy.svg", title: "Cozy Temperature", note: "Use warm light with quieter cool counter-colors." },
+      { src: "assets/drawing/references/mood-tense.svg", title: "Tense Temperature", note: "A narrow warm accent can feel stronger against a cooler/darker field." }
     ],
     "limited-palette": [
-      { src: "assets/drawing/references/rendering-warm-cool-bust.svg", title: "Temperature-Led Palette", note: "Choose a small family of hues and reuse them intentionally." }
+      { src: "assets/drawing/references/rendering-limited-palette.svg", title: "Five-Color Palette", note: "Give each color a job instead of picking hues randomly." },
+      { src: "assets/drawing/references/rendering-warm-cool-bust.svg", title: "Temperature-Led Palette", note: "Reuse a small family of hues intentionally." },
+      { src: "assets/drawing/references/mood-melancholic.svg", title: "Quiet Palette", note: "Limited saturation can be part of the storytelling choice." }
     ],
     "same-sketch-three-moods": [
-      { src: "assets/drawing/references/rendering-warm-cool-bust.svg", title: "Mood Through Temperature", note: "Change light color and value grouping before adding detail." }
+      { src: "assets/drawing/references/mood-cozy.svg", title: "Cozy", note: "Warm light and softer contrast." },
+      { src: "assets/drawing/references/mood-tense.svg", title: "Tense", note: "Focused contrast and sharper accents." },
+      { src: "assets/drawing/references/mood-melancholic.svg", title: "Melancholic", note: "Cooler relationships and quieter contrast." }
     ],
     "moment-before": [
-      { src: "assets/drawing/references/story-moment-before.svg", title: "Moment Before", note: "Use body language, props and exits to imply what is about to happen." }
+      { src: "assets/drawing/references/story-moment-before.svg", title: "Moment Before", note: "Use body language, props and exits to imply what is about to happen." },
+      { src: "assets/drawing/references/story-door-surprise.svg", title: "Door Surprise", note: "A doorway can frame both the reveal and the reaction." },
+      { src: "assets/drawing/references/story-letter-discovery.svg", title: "Letter Discovery", note: "Let gaze and hand placement tell the viewer what matters." }
     ],
     "composition-thumbnails": [
-      { src: "assets/drawing/references/story-moment-before.svg", title: "Story Staging Seed", note: "Reduce this idea into several tiny arrangements before committing." }
+      { src: "assets/drawing/references/story-door-surprise.svg", title: "Door Reveal Seed", note: "Try changing camera distance and figure placement in thumbnails." },
+      { src: "assets/drawing/references/story-argument-aisle.svg", title: "Conflict Seed", note: "Use negative space and opposing poses to control tension." },
+      { src: "assets/drawing/references/story-letter-discovery.svg", title: "Quiet Discovery Seed", note: "A small prop can still become the focal point through staging." }
     ],
     "moment-after": [
-      { src: "assets/drawing/references/story-moment-before.svg", title: "Scene Clue Placement", note: "Let the environment carry evidence of what just happened." }
+      { src: "assets/drawing/references/story-moment-before.svg", title: "Environmental Clue", note: "Let the environment carry evidence of what just happened." },
+      { src: "assets/drawing/references/story-letter-discovery.svg", title: "Discovery Aftermath", note: "The character's posture should show the emotional consequence." },
+      { src: "assets/drawing/references/story-door-surprise.svg", title: "Reveal Aftermath", note: "Use open doors, dropped objects or disrupted staging as clues." }
     ],
     "two-characters-one-action": [
-      { src: "assets/drawing/references/story-shared-action.svg", title: "Shared Contact Point", note: "The shared object/contact point should anchor both poses." }
+      { src: "assets/drawing/references/story-shared-action.svg", title: "Shared Contact Point", note: "The shared object/contact point should anchor both poses." },
+      { src: "assets/drawing/references/story-catch-fall.svg", title: "Catch", note: "Both figures need to respond physically to the same force." },
+      { src: "assets/drawing/references/story-shared-carry.svg", title: "Shared Weight", note: "Both bodies should react to the object's weight." },
+      { src: "assets/drawing/references/story-argument-aisle.svg", title: "Argument", note: "Interaction can be carried by gesture and spacing without touch." }
     ],
     "mini-story-illustration": [
-      { src: "assets/drawing/references/story-moment-before.svg", title: "Story Composition", note: "Stage the room, character relationship and focal point before rendering." },
-      { src: "assets/drawing/references/story-shared-action.svg", title: "Character Interaction", note: "Make both figures participate in the same action." }
+      { src: "assets/drawing/references/story-door-surprise.svg", title: "Reveal Scene", note: "Stage room, focal point and reaction before rendering." },
+      { src: "assets/drawing/references/story-letter-discovery.svg", title: "Quiet Story Beat", note: "Use a prop and gaze to carry the narrative." },
+      { src: "assets/drawing/references/story-catch-fall.svg", title: "Action Story Beat", note: "Make the shared action readable before costume details." },
+      { src: "assets/drawing/references/story-shared-carry.svg", title: "Cooperative Story Beat", note: "Shared weight can create natural body interaction." },
+      { src: "assets/drawing/references/story-argument-aisle.svg", title: "Conflict Story Beat", note: "Use environment and spacing to amplify character tension." }
     ]
   };
 
@@ -998,6 +1064,9 @@
       referenceImage: document.getElementById("referenceImage"),
       referenceAssetTitle: document.getElementById("referenceAssetTitle"),
       referenceAssetNote: document.getElementById("referenceAssetNote"),
+      referenceThumbs: document.getElementById("referenceThumbs"),
+      referencePackLabel: document.getElementById("referencePackLabel"),
+      referenceRandom: document.getElementById("referenceRandom"),
       referencePrev: document.getElementById("referencePrev"),
       referenceNext: document.getElementById("referenceNext"),
       referenceOpen: document.getElementById("referenceOpen"),
@@ -1068,6 +1137,7 @@
     els.mobileTools.addEventListener("click", () => els.toolsPanel.scrollIntoView({ behavior: "smooth", block: "start" }));
     els.referencePrev.addEventListener("click", () => stepReference(-1));
     els.referenceNext.addEventListener("click", () => stepReference(1));
+    els.referenceRandom.addEventListener("click", () => randomReference());
     els.referenceOpen.addEventListener("click", openReferenceDialog);
     els.referenceImage.addEventListener("click", openReferenceDialog);
     els.closeReferenceDialog.addEventListener("click", () => els.referenceDialog.close());
@@ -1212,7 +1282,7 @@
       return `
       <button class="challenge-card${next ? " is-next" : ""}" type="button" data-challenge="${challenge.id}">
         <div class="challenge-card-top"><span class="challenge-icon">${challenge.icon}</span><span class="path-step">${pathIndex}/${siblings.length}${next ? " · NEXT" : ""}</span></div>
-        <small>${esc(challenge.type)}${(LOCAL_REFERENCES[challenge.id] || []).length ? ' · BUILT-IN REF' : ''}</small>
+        <small>${esc(challenge.type)}${(LOCAL_REFERENCES[challenge.id] || []).length ? ` · REF PACK ${(LOCAL_REFERENCES[challenge.id] || []).length}` : ''}</small>
         <strong>${esc(challenge.title)}</strong>
         <p>${esc(challenge.summary)}</p>
         <footer><span>${challenge.minutes} min · ${esc(challenge.difficulty)}</span><span>${completedIds.has(challenge.id) ? '<b class="done-badge">✓ practiced</b>' : rewardLabel(challenge.rewardClass)}</span></footer>
@@ -1275,7 +1345,7 @@
     const siblings = CHALLENGES.filter(c => c.track === challenge.track);
     const pathIndex = siblings.findIndex(c => c.id === challenge.id) + 1;
     const builtIns = LOCAL_REFERENCES[challenge.id] || [];
-    const preview = builtIns.length ? `<div class="brief-reference-preview"><img src="${builtIns[0].src}" alt="${esc(builtIns[0].title)}"><div><small>BUILT-IN PRACTICE REFERENCE</small><strong>${esc(builtIns[0].title)}</strong><p>${esc(builtIns[0].note || "")}</p></div></div>` : "";
+    const preview = builtIns.length ? `<div class="brief-reference-preview"><img src="${builtIns[0].src}" alt="${esc(builtIns[0].title)}"><div><small>PRACTICE PACK · ${builtIns.length} REFERENCES</small><strong>${esc(builtIns[0].title)}</strong><p>${esc(builtIns[0].note || "")}</p></div></div>` : "";
     els.referenceBrief.innerHTML = `<strong>${esc(challenge.referenceTitle || "Reference")}</strong><p>${esc(challenge.referenceText || "Use a reference that supports the exercise goal.")}</p>${preview}<div class="path-note">Practice path · ${pathIndex}/${siblings.length} in ${esc(TRACKS.find(t => t.id === challenge.track)?.title || challenge.track)}</div>${links.length ? `<div class="learning-links">${links.map(link => `<a href="${link.url}" target="_blank" rel="noopener">${esc(link.label)} ↗</a>`).join("")}</div>` : ""}`;
     updateRightPanel(challenge);
   }
@@ -1350,8 +1420,18 @@
     els.referenceAssetTitle.textContent = item.title || "Practice reference";
     els.referenceAssetNote.textContent = item.note || "Use this as a study reference, not as a tracing requirement.";
     els.referenceCounter.textContent = `${referenceIndex + 1}/${assets.length}`;
+    els.referencePackLabel.textContent = assets.length > 1 ? `Practice pack · ${assets.length} refs` : "Practice reference";
     els.referencePrev.disabled = assets.length <= 1;
     els.referenceNext.disabled = assets.length <= 1;
+    els.referenceThumbs.innerHTML = assets.map((asset, index) => {
+      const activeClass = index === referenceIndex ? " is-active" : "";
+      const thumbTitle = esc(asset.title || ("Reference " + (index + 1)));
+      return `<button type="button" class="reference-thumb${activeClass}" data-reference-index="${index}" title="${thumbTitle}"><img src="${asset.src}" alt=""></button>`;
+    }).join("");
+    els.referenceThumbs.querySelectorAll("[data-reference-index]").forEach(button => button.addEventListener("click", () => {
+      referenceIndex = Number(button.dataset.referenceIndex) || 0;
+      renderReferenceAsset();
+    }));
     els.referenceAssetViewer.classList.remove("is-hidden");
   }
 
@@ -1359,6 +1439,15 @@
     const assets = getReferenceAssets();
     if (!assets.length) return;
     referenceIndex = (referenceIndex + delta + assets.length) % assets.length;
+    renderReferenceAsset();
+  }
+
+  function randomReference() {
+    const assets = getReferenceAssets();
+    if (assets.length <= 1) return;
+    let next = referenceIndex;
+    while (next === referenceIndex) next = Math.floor(Math.random() * assets.length);
+    referenceIndex = next;
     renderReferenceAsset();
   }
 

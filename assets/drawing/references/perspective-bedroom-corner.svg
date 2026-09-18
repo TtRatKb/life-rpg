@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" viewBox="0 0 1200 900">
+<defs><filter id="s"><feDropShadow dx="0" dy="10" stdDeviation="18" flood-color="#4d3040" flood-opacity=".10"/></filter></defs>
+<rect width="1200" height="900" fill="#fffaf7"/><circle cx="1080" cy="60" r="190" fill="#f8edf2" opacity=".7"/>
+<rect x="56" y="50" width="1088" height="800" rx="36" fill="#ffffff" stroke="#eadce4" stroke-width="2" filter="url(#s)"/>
+<rect x="90" y="90" width="8" height="74" rx="4" fill="#7f9fc3"/>
+<text x="118" y="119" font-family="Inter,Arial,sans-serif" font-size="25" font-weight="800" fill="#7c4665">Perspective · Bedroom Corner</text>
+<text x="118" y="154" font-family="Inter,Arial,sans-serif" font-size="16" fill="#8b7482">Keep furniture boxes aligned to the same space before adding design details.</text>
+<line x1="130" y1="390" x2="1070" y2="390" stroke="#d8759e" stroke-width="5" opacity=".6"/><circle cx="190" cy="380" r="9" fill="#d8759e"/><text x="204" y="368" font-family="Inter,Arial" font-size="15" fill="#7c4665">VP</text><circle cx="1010" cy="380" r="9" fill="#d8759e"/><text x="1024" y="368" font-family="Inter,Arial" font-size="15" fill="#7c4665">VP</text><path d="M600 720 L190 380 M600 720 L1010 380" stroke="#7f9fc3" stroke-width="4" fill="none" opacity=".65"/><path d="M600 180 L190 380 M600 180 L1010 380" stroke="#7f9fc3" stroke-width="4" fill="none" opacity=".65"/><path d="M600 520 L190 380 M600 520 L1010 380" stroke="#7f9fc3" stroke-width="4" fill="none" opacity=".65"/><path d="M365 520 L560 600 L560 735 L365 660 Z" stroke="#4b3a46" stroke-width="7" fill="none" stroke-linejoin="round"/><path d="M560 600 L730 535 L730 665 L560 735 Z" stroke="#4b3a46" stroke-width="7" fill="none" stroke-linejoin="round"/><path d="M770 430 L930 395 L930 610 L770 655 Z" stroke="#4b3a46" stroke-width="7" fill="none" stroke-linejoin="round"/><path d="M265 315 L430 345 L430 515 L265 470 Z" stroke="#4b3a46" stroke-width="7" fill="none" stroke-linejoin="round"/>
+<text x="100" y="815" font-family="Inter,Arial,sans-serif" font-size="14" fill="#9b8793">Life RPG · Drawing Studio Practice Reference</text>
+</svg>

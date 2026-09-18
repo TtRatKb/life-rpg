@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <title>Drawing Studio · Life RPG</title>
-  <link rel="stylesheet" href="drawing-studio.css?v=0.31.4ch" />
+  <link rel="stylesheet" href="drawing-studio.css?v=0.31.4ci" />
 </head>
 <body>
   <main class="drawing-app">
@@ -122,6 +122,8 @@
           <div id="referenceAssetViewer" class="reference-asset-viewer is-hidden">
             <button id="referenceOpen" class="reference-image-button" type="button" aria-label="Open reference full size"><img id="referenceImage" alt="Practice reference" /></button>
             <div class="reference-asset-copy"><strong id="referenceAssetTitle">Practice reference</strong><p id="referenceAssetNote"></p></div>
+            <div id="referenceThumbs" class="reference-thumbs" aria-label="Reference pack thumbnails"></div>
+            <div class="reference-pack-meta"><span id="referencePackLabel">Practice pack</span><button id="referenceRandom" type="button">↻ Random</button></div>
             <div class="reference-nav"><button id="referencePrev" type="button">←</button><span id="referenceCounter">1/1</span><button id="referenceNext" type="button">→</button></div>
           </div>
           <div class="tool-row two">
@@ -239,6 +241,6 @@
     <img id="referenceDialogImage" alt="Practice reference enlarged" />
   </dialog>
 
-  <script src="drawing-studio.js?v=0.31.4ch"></script>
+  <script src="drawing-studio.js?v=0.31.4ci"></script>
 </body>
 </html>
