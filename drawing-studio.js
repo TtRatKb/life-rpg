@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "0.31.4ci";
+  const VERSION = "0.31.4cj";
   const DB_NAME = "life-rpg-drawing-studio-v2";
   const STORE = "drawings";
   const META_KEY = "lifeRpgDrawingStudioMetaV2";
@@ -799,6 +799,66 @@
     }
   ];
 
+
+
+  const commonsImage = fileName => `https://commons.wikimedia.org/wiki/Special:Redirect/file/${encodeURIComponent(fileName)}`;
+  const commonsPage = fileName => `https://commons.wikimedia.org/wiki/File:${encodeURIComponent(fileName).replace(/%20/g, "_")}`;
+  const WEB_REFERENCES = {
+    "gesture-30s-five": [
+      { src: commonsImage("Paralympic Runner.jpg"), title: "Runner · full action", note: "Use the whole silhouette and weight shift first; ignore clothing detail.", sourceUrl: commonsPage("Paralympic Runner.jpg"), sourceLabel: "Wikimedia Commons", credit: "Pixabay via Wikimedia Commons", license: "CC0", web: true },
+      { src: commonsImage("Ballet Dancer.jpg"), title: "Ballet balance", note: "Track the long gesture through torso, support leg and lifted limbs.", sourceUrl: commonsPage("Ballet Dancer.jpg"), sourceLabel: "Wikimedia Commons", credit: "Picture2025", license: "CC0", web: true },
+      { src: commonsImage("Woman yoga pose.jpg"), title: "Standing yoga pose", note: "Use this for balance, line of action and counter-tilt rather than anatomy detail.", sourceUrl: commonsPage("Woman yoga pose.jpg"), sourceLabel: "Wikimedia Commons", credit: "BodyBendYoga / Nappy.co", license: "CC0", web: true }
+    ],
+    "gesture-2m-three": [
+      { src: commonsImage("Paralympic Runner.jpg"), title: "Runner · structure pass", note: "After gesture, add ribcage, pelvis and limb cylinders without losing speed.", sourceUrl: commonsPage("Paralympic Runner.jpg"), sourceLabel: "Wikimedia Commons", credit: "Pixabay via Wikimedia Commons", license: "CC0", web: true },
+      { src: commonsImage("Ballet Dancer.jpg"), title: "Ballet · balance & extension", note: "Keep the support leg believable while preserving the long directional flow.", sourceUrl: commonsPage("Ballet Dancer.jpg"), sourceLabel: "Wikimedia Commons", credit: "Picture2025", license: "CC0", web: true },
+      { src: commonsImage("Woman yoga pose.jpg"), title: "Yoga · torso tilt", note: "Block the torso masses and compare their angle to the support leg.", sourceUrl: commonsPage("Woman yoga pose.jpg"), sourceLabel: "Wikimedia Commons", credit: "BodyBendYoga / Nappy.co", license: "CC0", web: true }
+    ],
+    "push-the-pose": [
+      { src: commonsImage("Paralympic Runner.jpg"), title: "Push the run", note: "Redraw once accurately, then exaggerate stride, lean and arm swing while keeping balance.", sourceUrl: commonsPage("Paralympic Runner.jpg"), sourceLabel: "Wikimedia Commons", credit: "Pixabay via Wikimedia Commons", license: "CC0", web: true },
+      { src: commonsImage("Ballet Dancer.jpg"), title: "Push the extension", note: "Amplify the long curve and negative spaces rather than adding detail.", sourceUrl: commonsPage("Ballet Dancer.jpg"), sourceLabel: "Wikimedia Commons", credit: "Picture2025", license: "CC0", web: true }
+    ],
+    "action-mannequin": [
+      { src: commonsImage("Paralympic Runner.jpg"), title: "Runner mannequin", note: "Reduce the photo to head, ribcage, pelvis and limb cylinders before contour.", sourceUrl: commonsPage("Paralympic Runner.jpg"), sourceLabel: "Wikimedia Commons", credit: "Pixabay via Wikimedia Commons", license: "CC0", web: true },
+      { src: commonsImage("Ballet Dancer.jpg"), title: "Ballet mannequin", note: "Build the orientation of every major mass in 3D before anatomy.", sourceUrl: commonsPage("Ballet Dancer.jpg"), sourceLabel: "Wikimedia Commons", credit: "Picture2025", license: "CC0", web: true }
+    ],
+    "balance-check-pose": [
+      { src: commonsImage("Woman yoga pose.jpg"), title: "Single-leg balance", note: "Drop an imaginary plumb line and identify the actual support area under the body.", sourceUrl: commonsPage("Woman yoga pose.jpg"), sourceLabel: "Wikimedia Commons", credit: "BodyBendYoga / Nappy.co", license: "CC0", web: true },
+      { src: commonsImage("Ballet Dancer.jpg"), title: "Dance balance", note: "Compare center of mass, support foot and counterweight of arms/torso.", sourceUrl: commonsPage("Ballet Dancer.jpg"), sourceLabel: "Wikimedia Commons", credit: "Picture2025", license: "CC0", web: true }
+    ],
+    "hand-open-fist-point": [
+      { src: commonsImage("Pointing Hand.png"), title: "Pointing hand", note: "Study palm direction first, then the extended finger and grouped remaining digits.", sourceUrl: commonsPage("Pointing Hand.png"), sourceLabel: "Wikimedia Commons", credit: "Kserkez", license: "CC BY-SA 4.0", web: true },
+      { src: commonsImage("Hand photography.jpg"), title: "Hand + sphere", note: "Notice how the fingers wrap around a rounded object and overlap each other.", sourceUrl: commonsPage("Hand photography.jpg"), sourceLabel: "Wikimedia Commons", credit: "WP IN PrinceVikrant01", license: "CC0", web: true },
+      { src: commonsImage("SZ Shenzhen man in white shirt long sleeve May 2024 R12S human hand holding smartphone.jpg"), title: "Phone grip", note: "Use the phone as a rigid box and study how thumb and fingers oppose each other.", sourceUrl: commonsPage("SZ Shenzhen man in white shirt long sleeve May 2024 R12S human hand holding smartphone.jpg"), sourceLabel: "Wikimedia Commons", credit: "TANNMY NAISZE Wanguo", license: "CC0", web: true }
+    ],
+    "hands-doing-something": [
+      { src: commonsImage("SZ Shenzhen man in white shirt long sleeve May 2024 R12S human hand holding smartphone.jpg"), title: "Holding a phone", note: "Draw the phone first, then wrap the hand around the object rather than inventing fingers independently.", sourceUrl: commonsPage("SZ Shenzhen man in white shirt long sleeve May 2024 R12S human hand holding smartphone.jpg"), sourceLabel: "Wikimedia Commons", credit: "TANNMY NAISZE Wanguo", license: "CC0", web: true },
+      { src: commonsImage("Cuphand.jpg"), title: "Holding a cup", note: "Study contact, finger pressure and the way the hand changes around a cylindrical object.", sourceUrl: commonsPage("Cuphand.jpg"), sourceLabel: "Wikimedia Commons", credit: "Rsander81", license: "CC BY-SA 4.0", web: true },
+      { src: commonsImage("Hand photography.jpg"), title: "Holding a sphere", note: "Look for overlap and finger curvature around volume.", sourceUrl: commonsPage("Hand photography.jpg"), sourceLabel: "Wikimedia Commons", credit: "WP IN PrinceVikrant01", license: "CC0", web: true }
+    ],
+    "one-point-room": [
+      { src: commonsImage("Long hallway.jpg"), title: "Long hallway", note: "Find the horizon and convergence first; simplify doors, floor and ceiling into big directional lines.", sourceUrl: commonsPage("Long hallway.jpg"), sourceLabel: "Wikimedia Commons", credit: "Kris De Graaf", license: "CC0", web: true },
+      { src: commonsImage("Apartment hallway.jpg"), title: "Apartment hallway", note: "Use repeated door frames and floor edges to judge depth spacing.", sourceUrl: commonsPage("Apartment hallway.jpg"), sourceLabel: "Wikimedia Commons", credit: "Kurtkaiser", license: "CC0", web: true },
+      { src: commonsImage("Cafe Interior with Coffee.jpg"), title: "Café interior", note: "Ignore décor at first and reduce the scene to room box, floor plane and large furniture masses.", sourceUrl: commonsPage("Cafe Interior with Coffee.jpg"), sourceLabel: "Wikimedia Commons", credit: "Kavig624", license: "CC0", web: true }
+    ],
+    "two-point-street": [
+      { src: commonsImage("City Street.jpg"), title: "City side street", note: "Pick a building corner and follow left/right edge families toward their vanishing directions.", sourceUrl: commonsPage("City Street.jpg"), sourceLabel: "Wikimedia Commons", credit: "Teacher McKinley", license: "CC0", web: true },
+      { src: commonsImage("Street city.jpg"), title: "Urban street", note: "Study verticals, building planes and how scale shrinks into distance.", sourceUrl: commonsPage("Street city.jpg"), sourceLabel: "Wikimedia Commons", credit: "Omina006", license: "CC0", web: true }
+    ],
+    "cafe-corner": [
+      { src: commonsImage("Cafe Interior with Coffee.jpg"), title: "Café interior", note: "Block the shell of the room and furniture boxes before lamps, cups or décor.", sourceUrl: commonsPage("Cafe Interior with Coffee.jpg"), sourceLabel: "Wikimedia Commons", credit: "Kavig624", license: "CC0", web: true },
+      { src: commonsImage("Image of a bedroom at golden tower.jpg"), title: "Bedroom interior", note: "Use it as a second interior study: same perspective logic, different furniture arrangement.", sourceUrl: commonsPage("Image of a bedroom at golden tower.jpg"), sourceLabel: "Wikimedia Commons", credit: "Deishini Mariam", license: "CC0", web: true }
+    ],
+    "character-in-space": [
+      { src: commonsImage("Long hallway.jpg"), title: "People in hallway", note: "Use the visible people to compare scale, floor contact and eye level in depth.", sourceUrl: commonsPage("Long hallway.jpg"), sourceLabel: "Wikimedia Commons", credit: "Kris De Graaf", license: "CC0", web: true },
+      { src: commonsImage("Cafe Interior with Coffee.jpg"), title: "Café placement", note: "Choose one chair or table as a scale anchor before placing your character.", sourceUrl: commonsPage("Cafe Interior with Coffee.jpg"), sourceLabel: "Wikimedia Commons", credit: "Kavig624", license: "CC0", web: true }
+    ],
+    "depth-layering": [
+      { src: commonsImage("City Street.jpg"), title: "Street depth", note: "Separate foreground, midground and distance with overlap, scale and contrast.", sourceUrl: commonsPage("City Street.jpg"), sourceLabel: "Wikimedia Commons", credit: "Teacher McKinley", license: "CC0", web: true },
+      { src: commonsImage("Long hallway.jpg"), title: "Hallway depth", note: "Use repetition and shrinking intervals to make depth readable before detail.", sourceUrl: commonsPage("Long hallway.jpg"), sourceLabel: "Wikimedia Commons", credit: "Kris De Graaf", license: "CC0", web: true }
+    ]
+  };
+
   const PROBLEM_TAGS = ["Proportions", "Pose", "Hands", "Hair", "Perspective", "Composition", "Color", "Rendering"];
   const QUICK_COLORS = ["#352e33", "#6c5f68", "#a85f7f", "#d8759e", "#f3b7ca", "#ead7c7", "#d7a14f", "#8b5148", "#4e6d61", "#7896b4", "#75658f", "#ffffff"];
 
@@ -971,6 +1031,10 @@
   };
 
   let referenceIndex = 0;
+  let referenceUnderlayVisible = false;
+  let referenceUnderlayOpacity = .28;
+  let floatingReferenceVisible = false;
+  let floatingDrag = null;
   let ctx = null;
   let guideCtx = null;
   let actions = [];
@@ -1064,6 +1128,7 @@
       referenceImage: document.getElementById("referenceImage"),
       referenceAssetTitle: document.getElementById("referenceAssetTitle"),
       referenceAssetNote: document.getElementById("referenceAssetNote"),
+      referenceSourceLine: document.getElementById("referenceSourceLine"),
       referenceThumbs: document.getElementById("referenceThumbs"),
       referencePackLabel: document.getElementById("referencePackLabel"),
       referenceRandom: document.getElementById("referenceRandom"),
@@ -1071,6 +1136,21 @@
       referenceNext: document.getElementById("referenceNext"),
       referenceOpen: document.getElementById("referenceOpen"),
       referenceCounter: document.getElementById("referenceCounter"),
+      referenceFloatToggle: document.getElementById("referenceFloatToggle"),
+      referenceUnderlayToggle: document.getElementById("referenceUnderlayToggle"),
+      referenceUnderlay: document.getElementById("referenceUnderlay"),
+      referenceUnderlayOpacityRow: document.getElementById("referenceUnderlayOpacityRow"),
+      referenceUnderlayOpacity: document.getElementById("referenceUnderlayOpacity"),
+      referenceUnderlayOpacityLabel: document.getElementById("referenceUnderlayOpacityLabel"),
+      floatingReference: document.getElementById("floatingReference"),
+      floatingReferenceHandle: document.getElementById("floatingReferenceHandle"),
+      floatingReferenceClose: document.getElementById("floatingReferenceClose"),
+      floatingReferenceImage: document.getElementById("floatingReferenceImage"),
+      floatingReferenceTitle: document.getElementById("floatingReferenceTitle"),
+      floatingReferenceNote: document.getElementById("floatingReferenceNote"),
+      floatingReferencePrev: document.getElementById("floatingReferencePrev"),
+      floatingReferenceNext: document.getElementById("floatingReferenceNext"),
+      floatingReferenceCounter: document.getElementById("floatingReferenceCounter"),
       referenceDialog: document.getElementById("referenceDialog"),
       referenceDialogImage: document.getElementById("referenceDialogImage"),
       closeReferenceDialog: document.getElementById("closeReferenceDialog"),
@@ -1140,6 +1220,19 @@
     els.referenceRandom.addEventListener("click", () => randomReference());
     els.referenceOpen.addEventListener("click", openReferenceDialog);
     els.referenceImage.addEventListener("click", openReferenceDialog);
+    els.referenceFloatToggle.addEventListener("click", toggleFloatingReference);
+    els.referenceUnderlayToggle.addEventListener("click", toggleReferenceUnderlay);
+    els.referenceUnderlayOpacity.addEventListener("input", () => {
+      referenceUnderlayOpacity = clamp(Number(els.referenceUnderlayOpacity.value) / 100, .05, .8);
+      syncReferenceDisplays();
+    });
+    els.floatingReferenceClose.addEventListener("click", () => setFloatingReference(false));
+    els.floatingReferencePrev.addEventListener("click", () => stepReference(-1));
+    els.floatingReferenceNext.addEventListener("click", () => stepReference(1));
+    els.floatingReferenceImage.addEventListener("click", openReferenceDialog);
+    els.floatingReferenceHandle.addEventListener("pointerdown", startFloatingDrag);
+    window.addEventListener("pointermove", moveFloatingDrag);
+    window.addEventListener("pointerup", endFloatingDrag);
     els.closeReferenceDialog.addEventListener("click", () => els.referenceDialog.close());
     els.referenceDialog.addEventListener("click", event => { if (event.target === els.referenceDialog) els.referenceDialog.close(); });
 
@@ -1282,7 +1375,7 @@
       return `
       <button class="challenge-card${next ? " is-next" : ""}" type="button" data-challenge="${challenge.id}">
         <div class="challenge-card-top"><span class="challenge-icon">${challenge.icon}</span><span class="path-step">${pathIndex}/${siblings.length}${next ? " · NEXT" : ""}</span></div>
-        <small>${esc(challenge.type)}${(LOCAL_REFERENCES[challenge.id] || []).length ? ` · REF PACK ${(LOCAL_REFERENCES[challenge.id] || []).length}` : ''}</small>
+        <small>${esc(challenge.type)}${getReferenceAssets(challenge).length ? ` · REF PACK ${getReferenceAssets(challenge).length}` : ''}</small>
         <strong>${esc(challenge.title)}</strong>
         <p>${esc(challenge.summary)}</p>
         <footer><span>${challenge.minutes} min · ${esc(challenge.difficulty)}</span><span>${completedIds.has(challenge.id) ? '<b class="done-badge">✓ practiced</b>' : rewardLabel(challenge.rewardClass)}</span></footer>
@@ -1344,7 +1437,7 @@
     ].filter((item, index, all) => all.findIndex(other => other.url === item.url) === index);
     const siblings = CHALLENGES.filter(c => c.track === challenge.track);
     const pathIndex = siblings.findIndex(c => c.id === challenge.id) + 1;
-    const builtIns = LOCAL_REFERENCES[challenge.id] || [];
+    const builtIns = getReferenceAssets(challenge);
     const preview = builtIns.length ? `<div class="brief-reference-preview"><img src="${builtIns[0].src}" alt="${esc(builtIns[0].title)}"><div><small>PRACTICE PACK · ${builtIns.length} REFERENCES</small><strong>${esc(builtIns[0].title)}</strong><p>${esc(builtIns[0].note || "")}</p></div></div>` : "";
     els.referenceBrief.innerHTML = `<strong>${esc(challenge.referenceTitle || "Reference")}</strong><p>${esc(challenge.referenceText || "Use a reference that supports the exercise goal.")}</p>${preview}<div class="path-note">Practice path · ${pathIndex}/${siblings.length} in ${esc(TRACKS.find(t => t.id === challenge.track)?.title || challenge.track)}</div>${links.length ? `<div class="learning-links">${links.map(link => `<a href="${link.url}" target="_blank" rel="noopener">${esc(link.label)} ↗</a>`).join("")}</div>` : ""}`;
     updateRightPanel(challenge);
@@ -1388,6 +1481,8 @@
     els.referenceText.textContent = "Open a challenge to see its built-in guide and practice reference.";
     els.referenceLink.classList.add("is-hidden");
     els.referenceAssetViewer.classList.add("is-hidden");
+    setFloatingReference(false);
+    setReferenceUnderlay(false);
   }
 
   function updateRightPanel(challenge) {
@@ -1404,7 +1499,8 @@
   }
 
   function getReferenceAssets(challenge = activeChallenge) {
-    return challenge ? (LOCAL_REFERENCES[challenge.id] || []) : [];
+    if (!challenge) return [];
+    return WEB_REFERENCES[challenge.id] || LOCAL_REFERENCES[challenge.id] || [];
   }
 
   function renderReferenceAsset(challenge = activeChallenge) {
@@ -1419,6 +1515,8 @@
     els.referenceImage.alt = item.title || "Practice reference";
     els.referenceAssetTitle.textContent = item.title || "Practice reference";
     els.referenceAssetNote.textContent = item.note || "Use this as a study reference, not as a tracing requirement.";
+    els.referenceSourceLine.innerHTML = item.web ? `<span>${esc(item.credit || item.sourceLabel || "Internet reference")}</span><span class="license-pill">${esc(item.license || "Source")}</span>${item.sourceUrl ? `<a href="${item.sourceUrl}" target="_blank" rel="noopener">source ↗</a>` : ""}` : "";
+    els.referenceAssetViewer.classList.toggle("is-web-reference", !!item.web);
     els.referenceCounter.textContent = `${referenceIndex + 1}/${assets.length}`;
     els.referencePackLabel.textContent = assets.length > 1 ? `Practice pack · ${assets.length} refs` : "Practice reference";
     els.referencePrev.disabled = assets.length <= 1;
@@ -1433,6 +1531,7 @@
       renderReferenceAsset();
     }));
     els.referenceAssetViewer.classList.remove("is-hidden");
+    syncReferenceDisplays();
   }
 
   function stepReference(delta) {
@@ -1458,6 +1557,74 @@
     els.referenceDialogImage.src = item.src;
     els.referenceDialogImage.alt = item.title || "Practice reference";
     els.referenceDialog.showModal();
+  }
+
+
+  function syncReferenceDisplays() {
+    const assets = getReferenceAssets();
+    const item = assets[referenceIndex];
+    const hasRef = !!item;
+    els.referenceFloatToggle.disabled = !hasRef;
+    els.referenceUnderlayToggle.disabled = !hasRef;
+    els.referenceFloatToggle.classList.toggle("is-active", floatingReferenceVisible && hasRef);
+    els.referenceUnderlayToggle.classList.toggle("is-active", referenceUnderlayVisible && hasRef);
+    els.referenceUnderlayOpacityRow.classList.toggle("is-hidden", !referenceUnderlayVisible || !hasRef);
+    els.referenceUnderlayOpacityLabel.textContent = `${Math.round(referenceUnderlayOpacity * 100)}%`;
+    els.referenceUnderlay.style.opacity = String(referenceUnderlayOpacity);
+    if (!hasRef) {
+      els.referenceUnderlay.classList.add("is-hidden");
+      els.floatingReference.classList.add("is-hidden");
+      return;
+    }
+    els.referenceUnderlay.src = item.src;
+    els.referenceUnderlay.alt = item.title || "Practice reference underlay";
+    els.referenceUnderlay.classList.toggle("is-hidden", !referenceUnderlayVisible);
+    els.floatingReferenceImage.src = item.src;
+    els.floatingReferenceImage.alt = item.title || "Practice reference";
+    els.floatingReferenceTitle.textContent = item.title || "Practice reference";
+    els.floatingReferenceNote.textContent = item.note || "";
+    els.floatingReferenceCounter.textContent = `${referenceIndex + 1}/${assets.length}`;
+    els.floatingReferencePrev.disabled = assets.length <= 1;
+    els.floatingReferenceNext.disabled = assets.length <= 1;
+    els.floatingReference.classList.toggle("is-hidden", !floatingReferenceVisible);
+  }
+
+  function setFloatingReference(visible) {
+    floatingReferenceVisible = !!visible && !!getReferenceAssets().length;
+    syncReferenceDisplays();
+  }
+
+  function toggleFloatingReference() {
+    setFloatingReference(!floatingReferenceVisible);
+  }
+
+  function setReferenceUnderlay(visible) {
+    referenceUnderlayVisible = !!visible && !!getReferenceAssets().length;
+    syncReferenceDisplays();
+  }
+
+  function toggleReferenceUnderlay() {
+    setReferenceUnderlay(!referenceUnderlayVisible);
+  }
+
+  function startFloatingDrag(event) {
+    if (event.target.closest("button")) return;
+    const rect = els.floatingReference.getBoundingClientRect();
+    floatingDrag = { x: event.clientX, y: event.clientY, left: rect.left, top: rect.top };
+    els.floatingReferenceHandle.setPointerCapture?.(event.pointerId);
+  }
+
+  function moveFloatingDrag(event) {
+    if (!floatingDrag) return;
+    const left = clamp(floatingDrag.left + event.clientX - floatingDrag.x, 8, Math.max(8, window.innerWidth - els.floatingReference.offsetWidth - 8));
+    const top = clamp(floatingDrag.top + event.clientY - floatingDrag.y, 82, Math.max(82, window.innerHeight - 110));
+    els.floatingReference.style.left = `${left}px`;
+    els.floatingReference.style.top = `${top}px`;
+    els.floatingReference.style.right = "auto";
+  }
+
+  function endFloatingDrag() {
+    floatingDrag = null;
   }
 
   function drawActiveGuide() {
