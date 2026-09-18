@@ -1,8 +1,8 @@
 (() => {
   "use strict";
 
-  if (window.__lifeRpgTalentRewardStudiosV314ca) return;
-  window.__lifeRpgTalentRewardStudiosV314ca = true;
+  if (window.__lifeRpgTalentRewardStudiosV314ce) return;
+  window.__lifeRpgTalentRewardStudiosV314ce = true;
 
   const app = window.LifeRPGApp;
   const graph = window.LifeRPGTalentTreeGraph;
@@ -11,8 +11,10 @@
     return;
   }
 
-  const VERSION = "0.31.4ca";
+  const VERSION = "0.31.4ce";
   const SCHEMA = 2;
+  const DRAWING_REWARD_QUEUE_KEY = "lifeRpgDrawingStudioRewardQueueV1";
+  let processingDrawingRewards = false;
 
   const JAPANESE_CARDS = [
     {
@@ -228,10 +230,13 @@
     ensureState();
     ensureDialog();
     bind();
-    syncColoringLauncher();
-    window.addEventListener("life-rpg:talent-content-v2-change", syncColoringLauncher);
-    window.addEventListener("life-rpg:state-saved", syncColoringLauncher);
-    window.addEventListener("life-rpg:render", syncColoringLauncher);
+    syncStudioLaunchers();
+    processDrawingRewardQueue();
+    window.addEventListener("life-rpg:talent-content-v2-change", syncStudioLaunchers);
+    window.addEventListener("life-rpg:state-saved", syncStudioLaunchers);
+    window.addEventListener("life-rpg:render", syncStudioLaunchers);
+    window.addEventListener("focus", processDrawingRewardQueue);
+    document.addEventListener("visibilitychange", () => { if (!document.hidden) processDrawingRewardQueue(); });
   }
 
   function defaults() {
@@ -285,6 +290,34 @@
     document.body.appendChild(dialog);
   }
 
+  function syncStudioLaunchers() {
+    syncColoringLauncher();
+    syncDrawingLauncher();
+  }
+
+  function syncDrawingLauncher() {
+    const nav = document.querySelector(".bottom-nav");
+    if (!nav) return;
+    // Drawing Studio is a free companion unlock to Coloring Studio. No second Hobbies point required.
+    const unlocked = isUnlocked("Hobbies", "coloring-studio");
+    let button = nav.querySelector("[data-drawing-studio-launcher]");
+    if (!unlocked) {
+      button?.remove();
+      return;
+    }
+    if (button) return;
+    button = document.createElement("button");
+    button.className = "nav-button";
+    button.type = "button";
+    button.dataset.drawingStudioLauncher = "true";
+    button.innerHTML = `<span>✏️</span><small>Drawing</small>`;
+    const coloring = nav.querySelector("[data-coloring-studio-launcher]");
+    const games = nav.querySelector('.nav-button[data-view="games"]');
+    if (coloring) coloring.insertAdjacentElement("afterend", button);
+    else if (games) games.insertAdjacentElement("afterend", button);
+    else nav.appendChild(button);
+  }
+
   function syncColoringLauncher() {
     const nav = document.querySelector(".bottom-nav");
     if (!nav) return;
@@ -318,6 +351,13 @@
       if (coloringLauncher) {
         event.preventDefault();
         open("coloring-studio");
+        return;
+      }
+
+      const drawingLauncher = event.target.closest?.("[data-drawing-studio-launcher]");
+      if (drawingLauncher) {
+        event.preventDefault();
+        open("drawing-studio");
         return;
       }
 
@@ -529,6 +569,11 @@
       if (!isUnlocked("Hobbies", "coloring-studio")) return focusLocked("Hobbies");
       finishColoringSession();
       window.location.assign("coloring-studio.html");
+      return true;
+    } else if (kind === "drawing-studio") {
+      if (!isUnlocked("Hobbies", "coloring-studio")) return focusLocked("Hobbies");
+      finishColoringSession();
+      window.location.assign("drawing-studio.html");
       return true;
     } else return false;
     showDialog();
@@ -1354,6 +1399,69 @@
     },"image/png");
   }
 
+  async function processDrawingRewardQueue() {
+    if (processingDrawingRewards) return;
+    processingDrawingRewards = true;
+    try {
+      let queue = [];
+      try { queue = JSON.parse(localStorage.getItem(DRAWING_REWARD_QUEUE_KEY) || "[]"); } catch {}
+      if (!Array.isArray(queue) || !queue.length) return;
+
+      const root = app.getState();
+      const ledgerEvents = Array.isArray(root?.rewardLedger?.events) ? root.rewardLedger.events : [];
+      const existing = new Set(ledgerEvents.filter(event => event?.source === "drawing-studio").map(event => String(event.sourceId || "")));
+      const remaining = [];
+      const collected = [];
+
+      for (const item of queue) {
+        if (!item?.sourceId || !item?.challengeId || !item?.reward) continue;
+        if (existing.has(String(item.sourceId))) continue;
+        try {
+          const spec = item.reward || {};
+          const reward = app.awardActivity?.({
+            source: "drawing-studio",
+            sourceId: String(item.sourceId),
+            label: `Drawing Challenge · ${item.title || item.challengeId}`,
+            realm: "Hobbies",
+            capability: "creativity",
+            xp: Math.max(0, Number(spec.xp || 0)),
+            realmXP: Math.max(0, Number(spec.realmXP || 0)),
+            statXP: Math.max(0, Number(spec.statXP || 0)),
+            coins: Math.max(0, Number(spec.coins || 0)),
+            storyEnergyBase: Math.max(0, Number(spec.storyEnergyBase || 0)),
+            progressionRelevant: true,
+            metadata: {
+              drawingStudio: true,
+              challengeId: item.challengeId,
+              challengeVersion: item.version || null,
+              skillXP: Math.max(0, Number(spec.skillXP || spec.statXP || 0)),
+              reflectionFeel: item.reflection?.feel || null,
+              reflectionNote: item.reflection?.note || null
+            }
+          });
+          existing.add(String(item.sourceId));
+          collected.push({ item, reward });
+        } catch (error) {
+          console.warn("Drawing Studio reward could not be collected yet", error);
+          remaining.push(item);
+        }
+      }
+
+      localStorage.setItem(DRAWING_REWARD_QUEUE_KEY, JSON.stringify(remaining));
+      if (collected.length) {
+        app.saveState({ source: "drawing-studio-rewards" });
+        if (collected.length === 1) {
+          const entry = collected[0];
+          app.showToast?.(`✏️ ${entry.item.title} complete · drawing practice rewarded.`);
+        } else {
+          app.showToast?.(`✏️ Drawing Studio · ${collected.length} challenge rewards collected.`);
+        }
+      }
+    } finally {
+      processingDrawingRewards = false;
+    }
+  }
+
   function loadImage(src) {
     return new Promise((resolve,reject)=>{ const img=new Image(); img.onload=()=>resolve(img); img.onerror=reject; img.src=src; });
   }
@@ -1370,6 +1478,7 @@
     version: VERSION,
     open,
     cards: JAPANESE_CARDS,
-    coloringPages: COLORING_PAGES
+    coloringPages: COLORING_PAGES,
+    collectDrawingRewards: processDrawingRewardQueue
   };
 })();

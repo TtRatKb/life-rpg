@@ -7,7 +7,7 @@
     return;
   }
 
-  const VERSION = "0.31.4ap";
+  const VERSION = "0.31.4ce";
   const SCHEMA = 1;
   const MAX_EVENTS = 6000;
   const HABIT_XP = { tiny: 3, low: 5, normal: 8, high: 12, boss: 18 };
@@ -513,6 +513,7 @@
     if (source === "number-sense-daily-replay") return nativeSkill("quantitative-reasoning", 8, "number-sense-replay");
     if (source === "memory-garden-complete") return nativeSkill("memory-recall", 10, "memory-garden");
     if (source === "memory-garden-daily-replay") return nativeSkill("memory-recall", 8, "memory-garden-replay");
+    if (source === "drawing-studio") return nativeSkill("creative-expression", Math.max(0, Number(reward.metadata?.skillXP || 8)), "drawing-studio");
     if (source === "lexicon-calibration") return nativeSkill("language-expression", 5, "lexicon-calibration");
     if (source === "lexicon-daily-word") return nativeSkill("language-expression", 4, "lexicon-daily-word");
     if (source === "lexicon-lab-complete") return nativeSkill("language-expression", 10, "lexicon-crossword");

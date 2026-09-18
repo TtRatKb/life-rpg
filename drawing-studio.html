@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#321d34" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <title>Drawing Studio · Life RPG</title>
+  <link rel="stylesheet" href="drawing-studio.css?v=0.31.4ce" />
+</head>
+<body>
+  <main class="drawing-app">
+    <header class="studio-topbar">
+      <button class="back-button" id="backToLifeRpg" type="button">← <span>Life RPG</span></button>
+      <div class="studio-title">
+        <small>HOBBIES · DRAWING STUDIO</small>
+        <strong>Drawing Challenges</strong>
+      </div>
+      <div class="today-pill" id="todayProgress">0 / 3 today</div>
+    </header>
+
+    <section class="studio-layout">
+      <aside class="challenge-panel">
+        <div class="panel-heading">
+          <small>STARTER QUESTS</small>
+          <strong>Practice Deck</strong>
+          <p>Short guided exercises. Finish them for Hobbies practice rewards; repeat them whenever you want without pressure.</p>
+        </div>
+        <div id="challengeList" class="challenge-list"></div>
+      </aside>
+
+      <section class="workspace-panel">
+        <div class="challenge-head">
+          <div>
+            <div class="challenge-kicker" id="challengeKicker">TRACE CHALLENGE</div>
+            <h1 id="challengeTitle">Confident Eyes</h1>
+            <p id="challengeDescription"></p>
+          </div>
+          <div class="challenge-meta">
+            <span id="challengeTime">7 min</span>
+            <span id="challengeDifficulty">★ Starter</span>
+          </div>
+        </div>
+
+        <div class="quest-callout" id="questCallout"></div>
+
+        <div class="canvas-wrap">
+          <div class="canvas-paper" id="canvasPaper">
+            <canvas id="guideCanvas" width="1200" height="900"></canvas>
+            <canvas id="drawCanvas" width="1200" height="900" aria-label="Drawing challenge canvas"></canvas>
+          </div>
+        </div>
+
+        <div class="mobile-tools-toggle">
+          <button id="mobileToolsButton" type="button">✏️ Drawing tools</button>
+        </div>
+      </section>
+
+      <aside class="tools-panel" id="toolsPanel">
+        <div class="panel-heading">
+          <small>TOOLS</small>
+          <strong>Sketch Kit</strong>
+        </div>
+
+        <div class="tool-row two">
+          <button id="penButton" type="button" class="is-active">✏️ Pencil</button>
+          <button id="eraserButton" type="button">⌫ Eraser</button>
+        </div>
+
+        <label class="range-field">
+          <span>Line size <b id="brushSizeLabel">7px</b></span>
+          <input id="brushSize" type="range" min="2" max="36" value="7" />
+        </label>
+
+        <label class="range-field">
+          <span>Guide opacity <b id="guideOpacityLabel">34%</b></span>
+          <input id="guideOpacity" type="range" min="0" max="100" value="34" />
+        </label>
+
+        <div class="tool-row two">
+          <button id="undoButton" type="button">↶ Undo</button>
+          <button id="redoButton" type="button">↷ Redo</button>
+        </div>
+        <div class="tool-row two">
+          <button id="clearButton" type="button">Clear</button>
+          <button id="exportButton" type="button">Export PNG</button>
+        </div>
+
+        <div class="tool-divider"></div>
+
+        <div class="timer-card">
+          <div>
+            <small>OPTIONAL TIMER</small>
+            <strong id="timerDisplay">07:00</strong>
+          </div>
+          <div class="tool-row two compact">
+            <button id="timerToggle" type="button">Start</button>
+            <button id="timerReset" type="button">Reset</button>
+          </div>
+        </div>
+
+        <button id="completeButton" class="complete-button" type="button">✓ Complete challenge</button>
+        <p id="saveStatus" class="save-status">Drawing progress autosaves on this device.</p>
+      </aside>
+    </section>
+  </main>
+
+  <dialog id="completeDialog" class="complete-dialog">
+    <form method="dialog" id="completeForm">
+      <div class="dialog-kicker">QUEST COMPLETE</div>
+      <h2 id="completeTitle">How did that feel?</h2>
+      <p>There is no score. This is just a tiny checkpoint so Life RPG can track practice without judging the drawing.</p>
+      <div class="feel-grid" id="feelGrid">
+        <button type="button" data-feel="easy">🌱 Easier than expected</button>
+        <button type="button" data-feel="okay" class="is-selected">✦ About right</button>
+        <button type="button" data-feel="hard">🔥 Challenging</button>
+      </div>
+      <label class="reflection-field">
+        <span>Optional note for next time</span>
+        <textarea id="reflectionNote" maxlength="240" placeholder="e.g. Eyes were fine, but I want cleaner symmetry next time."></textarea>
+      </label>
+      <div class="dialog-actions">
+        <button type="button" id="cancelComplete">Not yet</button>
+        <button type="submit" class="primary">Save completion</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="drawing-studio.js?v=0.31.4ce"></script>
+</body>
+</html>

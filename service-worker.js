@@ -1,4 +1,4 @@
-const CACHE_NAME = "life-rpg-v0314ca-shell";
+const CACHE_NAME = "life-rpg-v0314ce-shell";
 const ASSET_CACHE_NAME = "life-rpg-assets-v3";
 const MAX_RUNTIME_ASSETS = 96;
 const CORE = [
@@ -14,21 +14,24 @@ const CORE = [
   "./talent-content-v2.css?v=0.31.4ar",
   "./logic-expansion.css?v=0.31.4ar",
   "./dreamscape.css?v=0.31.4ax",
-  "./skills.js?v=0.31.4ap",
+  "./skills.js?v=0.31.4ce",
   "./talent-v2.js?v=0.31.4bz",
-  "./talent-tree-v2-graph.js?v=0.31.4bz",
+  "./talent-tree-v2-graph.js?v=0.31.4ce",
   "./talent-reward-studios.css?v=0.31.4as",
-  "./talent-reward-studios.js?v=0.31.4ca",
+  "./talent-reward-studios.js?v=0.31.4ce",
   "./coloring-studio.html",
-  "./coloring-studio.css?v=0.31.4ca",
-  "./coloring-studio.js?v=0.31.4ca",
+  "./coloring-studio.css?v=0.31.4cd",
+  "./coloring-studio.js?v=0.31.4cd",
+  "./drawing-studio.html",
+  "./drawing-studio.css?v=0.31.4ce",
+  "./drawing-studio.js?v=0.31.4ce",
   "./talent-content-v2.js?v=0.31.4ar",
   "./dreamscape.js?v=0.31.4ax",
   "./journal-rewards.js?v=0.31.4ag",
   "./weekly-review.css?v=0.31.4ag",
   "./weekly-review.js?v=0.31.4ag",
   "./manifest.webmanifest?v=0.30.3a",
-  "./pwa.js?v=0.31.4ca",
+  "./pwa.js?v=0.31.4ce",
   "./visual-performance.js?v=0.31.4bu",
   "./modal-manager.js?v=0.31.4d",
   "./training-focus.js?v=0.31.4o",

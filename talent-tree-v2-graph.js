@@ -1,8 +1,8 @@
 (() => {
   "use strict";
 
-  if (window.__lifeRpgTalentTreeGraphV314bz) return;
-  window.__lifeRpgTalentTreeGraphV314bz = true;
+  if (window.__lifeRpgTalentTreeGraphV314ce) return;
+  window.__lifeRpgTalentTreeGraphV314ce = true;
 
   const app = window.LifeRPGApp;
   const skills = window.LifeRPGSkills;
@@ -12,7 +12,7 @@
     return;
   }
 
-  const VERSION = "0.31.4bz";
+  const VERSION = "0.31.4ce";
   const SCHEMA = 5;
   const REALMS = ["Work", "Knowledge", "Japanese", "Health", "Recovery", "Home", "Hobbies"];
 
@@ -107,11 +107,11 @@
     Hobbies: {
       icon: "🎨",
       special: { id: "joy-spark", icon: "♡", title: "Joy Spark", max: 3 },
-      subtitle: "Your first point can unlock something genuinely fun to use; future coloring pages expand the library without asking for another Talent rank.",
+      subtitle: "Your first point unlocks two creative studios: collectible coloring cards plus guided drawing challenges. New pages and challenge packs expand the library without another Talent rank.",
       dream: { title: "Play After Dark", copy: "games, music, playful competition, and moments that feel suspiciously like dates" },
       content: [
         rankedContent("coloring-studio", "🖍️", "Coloring Studio", 1,
-          "Rank I permanently unlocks Coloring Studio and its collectible-card coloring library. New coloring pages are library additions, not extra Talent ranks.",
+          "Rank I permanently unlocks Coloring Studio plus the companion Drawing Studio with guided practice quests. New coloring pages and Drawing Challenge packs are library additions, not extra Talent ranks.",
           {}, "Open Coloring Studio", () => window.LifeRPGTalentRewardStudios?.open?.("coloring-studio")),
         planned("moodboard-mixer", "▣", "Moodboard Mixer · Later",
           "A future focused board tool for outfits, makeup, DIY and Adventure inspiration. Visible as a possible Hobbies expansion, but it cannot cost points until the tool actually exists.",
