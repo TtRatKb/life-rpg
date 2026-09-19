@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "0.31.4cj";
+  const VERSION = "0.31.4ck";
   const DB_NAME = "life-rpg-drawing-studio-v2";
   const STORE = "drawings";
   const META_KEY = "lifeRpgDrawingStudioMetaV2";
@@ -1064,6 +1064,8 @@
   let stagePanY = 0;
   let panning = false;
   let panStart = null;
+  const touchPointers = new Map();
+  let touchGesture = null;
 
   document.addEventListener("DOMContentLoaded", init);
 
@@ -1116,6 +1118,7 @@
       workspaceTimer: document.getElementById("workspaceTimer"),
       canvasViewport: document.getElementById("canvasViewport"),
       canvasStage: document.getElementById("canvasStage"),
+      canvasZoomPill: document.getElementById("canvasZoomPill"),
       canvasStack: document.getElementById("canvasStack"),
       guideCanvas: document.getElementById("guideCanvas"),
       drawCanvas: document.getElementById("drawCanvas"),
@@ -1419,6 +1422,7 @@
 
   function showBriefing(challenge) {
     if (!challenge) return;
+    document.body.classList.remove("drawing-workspace-mode");
     stopTimer();
     els.challengeGrid.classList.add("is-hidden");
     els.briefingView.classList.remove("is-hidden");
@@ -1444,6 +1448,7 @@
   }
 
   function showBrowser(resetTitles = true) {
+    document.body.classList.remove("drawing-workspace-mode");
     stopTimer();
     els.challengeGrid.classList.remove("is-hidden");
     els.briefingView.classList.add("is-hidden");
@@ -1458,6 +1463,7 @@
 
   async function startActiveChallenge(resume) {
     if (!activeChallenge) return;
+    document.body.classList.add("drawing-workspace-mode");
     els.challengeGrid.classList.add("is-hidden");
     els.briefingView.classList.add("is-hidden");
     els.workspaceView.classList.remove("is-hidden");
@@ -1681,6 +1687,8 @@
   }
 
   function pointerDown(event) {
+    // Finger input is navigation-only. Pencil/pen and mouse are drawing inputs.
+    if (event.pointerType === "touch") return;
     if (!activeChallenge || pointerId !== null || tool === "pan" || event.button === 1 || event.altKey) return;
     event.preventDefault();
     const point = pointFromEvent(event);
@@ -1696,6 +1704,7 @@
   }
 
   function pointerMove(event) {
+    if (event.pointerType === "touch") return;
     if (event.pointerId !== pointerId || !currentAction) return;
     event.preventDefault();
     const p = pointFromEvent(event);
@@ -1707,6 +1716,7 @@
   }
 
   function pointerUp(event) {
+    if (event.pointerType === "touch") return;
     if (event.pointerId !== pointerId || !currentAction) return;
     event.preventDefault();
     try { els.drawCanvas.releasePointerCapture(pointerId); } catch {}
@@ -1881,6 +1891,7 @@
 
   function applyStageTransform() {
     els.canvasStage.style.transform = `translate(${stagePanX}px, ${stagePanY}px) scale(${stageZoom})`;
+    if (els.canvasZoomPill) els.canvasZoomPill.textContent = `${Math.round(stageZoom * 100)}%`;
   }
 
   function zoomWheel(event) {
@@ -1900,19 +1911,80 @@
   }
 
   function viewportPanStart(event) {
+    if (event.pointerType === "touch") {
+      event.preventDefault();
+      touchPointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+      try { els.canvasViewport.setPointerCapture(event.pointerId); } catch {}
+      if (touchPointers.size === 2) beginTouchGesture();
+      return;
+    }
     if (!(event.button === 1 || event.altKey || tool === "pan")) return;
     event.preventDefault();
     panning = true;
     panStart = { x: event.clientX, y: event.clientY, panX: stagePanX, panY: stagePanY };
     try { els.canvasViewport.setPointerCapture(event.pointerId); } catch {}
   }
+
   function viewportPanMove(event) {
+    if (event.pointerType === "touch") {
+      if (!touchPointers.has(event.pointerId)) return;
+      event.preventDefault();
+      touchPointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+      if (touchPointers.size === 2) {
+        if (!touchGesture) beginTouchGesture();
+        updateTouchGesture();
+      }
+      return;
+    }
     if (!panning || !panStart) return;
     stagePanX = panStart.panX + (event.clientX - panStart.x);
     stagePanY = panStart.panY + (event.clientY - panStart.y);
     applyStageTransform();
   }
-  function viewportPanEnd() { panning = false; panStart = null; }
+
+  function viewportPanEnd(event) {
+    if (event?.pointerType === "touch") {
+      touchPointers.delete(event.pointerId);
+      if (touchPointers.size < 2) touchGesture = null;
+      return;
+    }
+    panning = false;
+    panStart = null;
+  }
+
+  function touchMetrics() {
+    const points = [...touchPointers.values()];
+    if (points.length < 2) return null;
+    const a = points[0], b = points[1];
+    return {
+      cx: (a.x + b.x) / 2,
+      cy: (a.y + b.y) / 2,
+      distance: Math.max(1, Math.hypot(b.x - a.x, b.y - a.y))
+    };
+  }
+
+  function beginTouchGesture() {
+    const metrics = touchMetrics();
+    if (!metrics) return;
+    const rect = els.canvasViewport.getBoundingClientRect();
+    touchGesture = {
+      startDistance: metrics.distance,
+      startZoom: stageZoom,
+      worldX: (metrics.cx - rect.left - stagePanX) / stageZoom,
+      worldY: (metrics.cy - rect.top - stagePanY) / stageZoom
+    };
+  }
+
+  function updateTouchGesture() {
+    const metrics = touchMetrics();
+    if (!metrics || !touchGesture) return;
+    const rect = els.canvasViewport.getBoundingClientRect();
+    const nextZoom = clamp(touchGesture.startZoom * (metrics.distance / touchGesture.startDistance), .18, 4);
+    stageZoom = nextZoom;
+    stagePanX = metrics.cx - rect.left - touchGesture.worldX * nextZoom;
+    stagePanY = metrics.cy - rect.top - touchGesture.worldY * nextZoom;
+    applyStageTransform();
+  }
 
   function resetTimer() {
     stopTimer();

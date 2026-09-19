@@ -1,5 +1,5 @@
 (() => {
-  const VERSION = '0.31.4cd';
+  const VERSION = '0.31.4ck';
   const STORAGE_PREFIX = 'lifeRpgColoringStudio';
   const CANVAS_WIDTH = 1122;
   const CANVAS_HEIGHT = 1402;
@@ -37,6 +37,8 @@
     panX: 0,
     panY: 0,
     hasManualView: false,
+    touchPointers: new Map(),
+    touchGesture: null,
     saveTimer: null,
     pendingSave: false,
     isLineArtReady: false,
@@ -411,6 +413,13 @@
 
   function onPointerDown(event) {
     if (!state.isLineArtReady) return;
+    if (event.pointerType === 'touch') {
+      event.preventDefault();
+      state.touchPointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+      els.canvasViewport.setPointerCapture?.(event.pointerId);
+      if (state.touchPointers.size === 2) beginTouchGesture();
+      return;
+    }
     const point = screenToCanvas(event.clientX, event.clientY);
     if (!point) return;
     els.canvasViewport.setPointerCapture?.(event.pointerId);
@@ -439,6 +448,16 @@
   }
 
   function onPointerMove(event) {
+    if (event.pointerType === 'touch') {
+      if (!state.touchPointers.has(event.pointerId)) return;
+      event.preventDefault();
+      state.touchPointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+      if (state.touchPointers.size === 2) {
+        if (!state.touchGesture) beginTouchGesture();
+        updateTouchGesture();
+      }
+      return;
+    }
     if (state.panning && state.lastPoint) {
       const dx = event.clientX - state.lastPoint.x;
       const dy = event.clientY - state.lastPoint.y;
@@ -453,12 +472,46 @@
     state.lastPoint = point;
   }
 
-  function onPointerUp() {
+  function onPointerUp(event) {
+    if (event?.pointerType === 'touch') {
+      state.touchPointers.delete(event.pointerId);
+      if (state.touchPointers.size < 2) state.touchGesture = null;
+      return;
+    }
     if (state.drawing) scheduleSave();
     state.drawing = false;
     state.panning = false;
     state.lastPoint = null;
     state.currentPointerId = null;
+  }
+
+  function touchMetrics() {
+    const points = [...state.touchPointers.values()];
+    if (points.length < 2) return null;
+    const a = points[0], b = points[1];
+    return { cx: (a.x + b.x) / 2, cy: (a.y + b.y) / 2, distance: Math.max(1, Math.hypot(b.x - a.x, b.y - a.y)) };
+  }
+
+  function beginTouchGesture() {
+    const metrics = touchMetrics();
+    if (!metrics) return;
+    const rect = els.canvasViewport.getBoundingClientRect();
+    state.touchGesture = {
+      startDistance: metrics.distance,
+      startZoom: state.zoom,
+      worldX: (metrics.cx - rect.left - state.panX) / state.zoom,
+      worldY: (metrics.cy - rect.top - state.panY) / state.zoom
+    };
+  }
+
+  function updateTouchGesture() {
+    const metrics = touchMetrics();
+    if (!metrics || !state.touchGesture) return;
+    const rect = els.canvasViewport.getBoundingClientRect();
+    const nextZoom = clamp(state.touchGesture.startZoom * (metrics.distance / state.touchGesture.startDistance), state.minZoom, state.maxZoom);
+    const panX = metrics.cx - rect.left - state.touchGesture.worldX * nextZoom;
+    const panY = metrics.cy - rect.top - state.touchGesture.worldY * nextZoom;
+    applyTransform(nextZoom, panX, panY, true);
   }
 
   function onWheel(event) {

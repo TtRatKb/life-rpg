@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <title>Drawing Studio · Life RPG</title>
-  <link rel="stylesheet" href="drawing-studio.css?v=0.31.4cj" />
+  <link rel="stylesheet" href="drawing-studio.css?v=0.31.4ck" />
 </head>
 <body>
   <main class="drawing-app">
@@ -98,6 +98,8 @@
           </div>
 
           <div class="workspace-canvas-wrap" id="canvasViewport">
+            <div class="canvas-gesture-hint">✎ Pencil / mouse draws · two fingers move &amp; zoom</div>
+            <div class="canvas-zoom-pill" id="canvasZoomPill">100%</div>
             <div class="canvas-stage" id="canvasStage">
               <div class="canvas-stack" id="canvasStack">
                 <img id="referenceUnderlay" class="reference-underlay is-hidden" alt="Reference underlay" draggable="false" />
@@ -264,6 +266,6 @@
     <img id="referenceDialogImage" alt="Practice reference enlarged" />
   </dialog>
 
-  <script src="drawing-studio.js?v=0.31.4cj"></script>
+  <script src="drawing-studio.js?v=0.31.4ck"></script>
 </body>
 </html>

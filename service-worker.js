@@ -1,4 +1,4 @@
-const CACHE_NAME = "life-rpg-v0314cj-shell";
+const CACHE_NAME = "life-rpg-v0314ck-shell";
 const ASSET_CACHE_NAME = "life-rpg-assets-v4";
 const MAX_RUNTIME_ASSETS = 96;
 const CORE = [
@@ -20,11 +20,11 @@ const CORE = [
   "./talent-reward-studios.css?v=0.31.4as",
   "./talent-reward-studios.js?v=0.31.4ce",
   "./coloring-studio.html",
-  "./coloring-studio.css?v=0.31.4cd",
-  "./coloring-studio.js?v=0.31.4cd",
+  "./coloring-studio.css?v=0.31.4ck",
+  "./coloring-studio.js?v=0.31.4ck",
   "./drawing-studio.html",
-  "./drawing-studio.css?v=0.31.4cj",
-  "./drawing-studio.js?v=0.31.4cj",
+  "./drawing-studio.css?v=0.31.4ck",
+  "./drawing-studio.js?v=0.31.4ck",
   "./assets/drawing/references/dynamic-crouch-launch.svg",
   "./assets/drawing/references/dynamic-jump-landing.svg",
   "./assets/drawing/references/dynamic-pull-reach.svg",
@@ -75,7 +75,7 @@ const CORE = [
   "./weekly-review.css?v=0.31.4ag",
   "./weekly-review.js?v=0.31.4ag",
   "./manifest.webmanifest?v=0.30.3a",
-  "./pwa.js?v=0.31.4cj",
+  "./pwa.js?v=0.31.4ck",
   "./visual-performance.js?v=0.31.4bu",
   "./modal-manager.js?v=0.31.4d",
   "./training-focus.js?v=0.31.4o",
