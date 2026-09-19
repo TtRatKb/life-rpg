@@ -1,0 +1,164 @@
+/* Life RPG V0.31.4cp — reference workspace refinement */
+#canvasViewport { position: relative; overflow: hidden; }
+#canvasStack { position: relative; }
+#referenceUnderlay.reference-underlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
+  z-index: 0;
+  opacity: .20;
+}
+#guideCanvas { position: absolute; inset: 0; z-index: 1; }
+#drawCanvas { position: absolute; inset: 0; z-index: 2; }
+
+.reference-mode-wrap {
+  margin-top: 10px;
+  padding: 10px;
+  border: 1px solid rgba(90, 45, 74, .12);
+  border-radius: 14px;
+  background: rgba(255,255,255,.58);
+}
+.reference-mode-wrap > small {
+  display: block;
+  margin-bottom: 7px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  color: #9a5577;
+}
+.reference-mode-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0,1fr));
+  gap: 6px;
+}
+.reference-mode-grid button {
+  min-width: 0;
+  padding: 8px 6px;
+  font-size: 11px;
+  border: 1px solid rgba(90,45,74,.14);
+  border-radius: 10px;
+  background: rgba(255,255,255,.82);
+  color: #5d4050;
+}
+.reference-mode-grid button.is-active {
+  color: #fff;
+  background: #733653;
+  border-color: #733653;
+}
+.reference-mode-help {
+  margin: 7px 0 0;
+  font-size: 10px;
+  line-height: 1.35;
+  color: #8a7280;
+}
+
+/* The floating reference now lives INSIDE the drawing viewport. */
+#floatingReference.reference-float-in-canvas {
+  position: absolute !important;
+  top: 70px;
+  right: 18px;
+  left: auto;
+  bottom: auto;
+  width: 280px;
+  height: 330px;
+  min-width: 180px;
+  min-height: 170px;
+  max-width: min(62%, 620px);
+  max-height: 78%;
+  z-index: 70;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 16px;
+  border: 1px solid rgba(63, 29, 49, .24);
+  background: rgba(255, 251, 253, .96);
+  box-shadow: 0 16px 44px rgba(61,31,49,.24);
+  backdrop-filter: blur(8px);
+  touch-action: none;
+}
+#floatingReference.reference-float-in-canvas.is-hidden { display: none !important; }
+#floatingReference.reference-float-in-canvas header {
+  flex: 0 0 auto;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+}
+#floatingReference.reference-float-in-canvas header:active { cursor: grabbing; }
+#floatingReference.reference-float-in-canvas > img {
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 0;
+  object-fit: contain;
+  background: #f7f0f4;
+  user-select: none;
+  -webkit-user-drag: none;
+  pointer-events: none;
+}
+#floatingReference.reference-float-in-canvas > p {
+  flex: 0 0 auto;
+  max-height: 46px;
+  overflow: auto;
+  margin: 5px 10px;
+  font-size: 10px;
+  line-height: 1.25;
+}
+#floatingReference.reference-float-in-canvas .floating-reference-footer { flex: 0 0 auto; }
+.reference-float-resize {
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  width: 24px;
+  height: 24px;
+  cursor: nwse-resize;
+  touch-action: none;
+  z-index: 5;
+}
+.reference-float-resize::after {
+  content: '';
+  position: absolute;
+  right: 5px;
+  bottom: 5px;
+  width: 9px;
+  height: 9px;
+  border-right: 2px solid rgba(94,52,76,.55);
+  border-bottom: 2px solid rgba(94,52,76,.55);
+}
+
+.reference-load-failed {
+  position: relative;
+  min-height: 120px;
+  background: #f7f0f4;
+}
+.reference-load-failed::after {
+  content: 'Reference could not be loaded. Try another image in this set.';
+  position: absolute;
+  inset: 12px;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: 12px;
+  border: 1px dashed rgba(112,55,86,.25);
+  border-radius: 10px;
+  color: #8b6c7d;
+  font-size: 11px;
+  background: rgba(255,255,255,.7);
+}
+
+#referenceUnderlayOpacityRow.is-hidden { display: none !important; }
+
+@media (max-width: 780px) {
+  #floatingReference.reference-float-in-canvas {
+    width: 220px;
+    height: 260px;
+    top: 54px;
+    right: 10px;
+    max-width: 70%;
+    max-height: 70%;
+  }
+}

@@ -1,7 +1,21 @@
 (() => {
   'use strict';
 
-  const COMMONS = (filename, width = 1280) =>
+  const DIRECT_COMMONS = {
+    'Character Hand Drawing Reference Umangzart.jpg': 'https://upload.wikimedia.org/wikipedia/commons/8/82/Character_Hand_Drawing_Reference_Umangzart.jpg',
+    'Hand pose illustration.jpg': 'https://upload.wikimedia.org/wikipedia/commons/a/a3/Hand_pose_illustration.jpg',
+    'P. 151, 24 hand gestures, from Chirologia... Wellcome L0071892.jpg': 'https://upload.wikimedia.org/wikipedia/commons/b/b0/P._151,_24_hand_gestures,_from_Chirologia..._Wellcome_L0071892.jpg',
+    'Jookpub pose reference - Conversation 002.jpg': 'https://upload.wikimedia.org/wikipedia/commons/3/38/Jookpub_pose_reference_-_Conversation_002.jpg',
+    'Jookpub pose reference - Conversation 003.jpg': 'https://upload.wikimedia.org/wikipedia/commons/7/75/Jookpub_pose_reference_-_Conversation_003.jpg',
+    'Jookpub pose reference - Conversation 005.jpg': 'https://upload.wikimedia.org/wikipedia/commons/c/cb/Jookpub_pose_reference_-_Conversation_005.jpg',
+    'Jookpub pose reference - Conversation 006.png': 'https://upload.wikimedia.org/wikipedia/commons/3/3d/Jookpub_pose_reference_-_Conversation_006.png',
+    'Jookpub pose reference - Conversation 007.jpg': 'https://upload.wikimedia.org/wikipedia/commons/b/ba/Jookpub_pose_reference_-_Conversation_007.jpg',
+    'Jookpub pose reference - Conversation 008.jpg': 'https://upload.wikimedia.org/wikipedia/commons/3/34/Jookpub_pose_reference_-_Conversation_008.jpg',
+    'Jookpub pose reference - Conversation 009.png': 'https://upload.wikimedia.org/wikipedia/commons/1/16/Jookpub_pose_reference_-_Conversation_009.png',
+    'Jookpub pose reference - Conversation 010.jpg': 'https://upload.wikimedia.org/wikipedia/commons/6/6d/Jookpub_pose_reference_-_Conversation_010.jpg',
+    'Jookpub pose reference - Conversation 011.jpg': 'https://upload.wikimedia.org/wikipedia/commons/a/aa/Jookpub_pose_reference_-_Conversation_011.jpg'
+  };
+  const COMMONS = (filename, width = 1280) => DIRECT_COMMONS[filename] ||
     `https://commons.wikimedia.org/wiki/Special:Redirect/file/${encodeURIComponent(filename)}?width=${width}`;
 
   const PACKS = {
@@ -76,6 +90,39 @@
 
   const el = (id) => document.getElementById(id);
 
+  function referenceCandidates(ref) {
+    const list = [];
+    if (ref?.src) list.push(ref.src);
+    if (ref?.src && ref.src.includes('?width=')) list.push(ref.src.replace(/\?width=\d+.*$/, ''));
+    return [...new Set(list.filter(Boolean))];
+  }
+
+  function setReferenceImage(img, ref) {
+    if (!img || !ref) return;
+    img.removeAttribute('crossorigin');
+    img.referrerPolicy = 'no-referrer';
+    const candidates = referenceCandidates(ref);
+    let index = 0;
+    img.dataset.referenceFailed = '0';
+    const tryNext = () => {
+      if (index >= candidates.length) {
+        img.dataset.referenceFailed = '1';
+        img.removeAttribute('src');
+        img.alt = `${ref.title} — image could not be loaded`;
+        img.closest('.reference-image-button, .co-pack-preview, .floating-reference')?.classList.add('reference-load-failed');
+        return;
+      }
+      const candidate = candidates[index++];
+      img.onerror = tryNext;
+      img.onload = () => {
+        img.dataset.referenceFailed = '0';
+        img.closest('.reference-image-button, .co-pack-preview, .floating-reference')?.classList.remove('reference-load-failed');
+      };
+      img.src = candidate;
+    };
+    tryNext();
+  }
+
   function textContext() {
     return [
       el('briefingTitle')?.textContent,
@@ -112,7 +159,7 @@
       img.alt = '';
       img.loading = 'lazy';
       img.referrerPolicy = 'no-referrer';
-      img.src = ref.src;
+      setReferenceImage(img, ref);
       b.appendChild(img);
       b.addEventListener('click', (e) => {
         e.preventDefault();
@@ -128,9 +175,9 @@
     const floating = el('floatingReferenceImage');
     const underlay = el('referenceUnderlay');
     const dialog = el('referenceDialogImage');
-    if (floating && !el('floatingReference')?.classList.contains('is-hidden')) floating.src = ref.src;
-    if (underlay && !underlay.classList.contains('is-hidden')) underlay.src = ref.src;
-    if (dialog && el('referenceDialog')?.open) dialog.src = ref.src;
+    if (floating && !el('floatingReference')?.classList.contains('is-hidden')) setReferenceImage(floating, ref);
+    if (underlay && !underlay.classList.contains('is-hidden')) setReferenceImage(underlay, ref);
+    if (dialog && el('referenceDialog')?.open) setReferenceImage(dialog, ref);
     if (el('floatingReferenceTitle')) el('floatingReferenceTitle').textContent = ref.title;
     if (el('floatingReferenceNote')) el('floatingReferenceNote').textContent = ref.note;
     if (el('floatingReferenceCounter')) el('floatingReferenceCounter').textContent = `${activeIndex + 1}/${activePack.refs.length}`;
@@ -155,8 +202,7 @@
     const img = el('referenceImage');
     if (img) {
       img.referrerPolicy = 'no-referrer';
-      img.crossOrigin = 'anonymous';
-      img.src = ref.src;
+      setReferenceImage(img, ref);
       img.alt = ref.title;
     }
     if (el('referenceAssetTitle')) el('referenceAssetTitle').textContent = ref.title;
@@ -176,8 +222,9 @@
       const wrap = document.createElement('div');
       wrap.className = 'co-pack-preview';
       wrap.style.cssText = 'display:grid;grid-template-columns:minmax(110px,180px) 1fr;gap:12px;align-items:center;margin-top:10px;padding:10px;border:1px solid rgba(95,48,77,.12);border-radius:14px;background:rgba(255,255,255,.72)';
-      wrap.innerHTML = `<img src="${ref.src}" alt="${ref.title}" referrerpolicy="no-referrer" style="width:100%;max-height:160px;object-fit:contain;border-radius:10px;background:#f7f0f4"><div><small style="font-weight:800;letter-spacing:.06em;color:#9a5577">${pack.label}</small><strong style="display:block;margin:4px 0">${ref.title}</strong><p style="margin:0;color:#77636f;font-size:12px;line-height:1.45">${ref.note}</p></div>`;
+      wrap.innerHTML = `<img alt="${ref.title}" referrerpolicy="no-referrer" style="width:100%;max-height:160px;object-fit:contain;border-radius:10px;background:#f7f0f4"><div><small style="font-weight:800;letter-spacing:.06em;color:#9a5577">${pack.label}</small><strong style="display:block;margin:4px 0">${ref.title}</strong><p style="margin:0;color:#77636f;font-size:12px;line-height:1.45">${ref.note}</p></div>`;
       brief.appendChild(wrap);
+      setReferenceImage(wrap.querySelector('img'), ref);
     }
 
     applying = false;
@@ -224,7 +271,7 @@
         e.preventDefault();
         e.stopImmediatePropagation();
         const ref = activePack.refs[activeIndex];
-        if (el('referenceDialogImage')) el('referenceDialogImage').src = ref.src;
+        if (el('referenceDialogImage')) setReferenceImage(el('referenceDialogImage'), ref);
         el('referenceDialog')?.showModal?.();
       }, true);
     }
