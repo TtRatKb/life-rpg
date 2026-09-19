@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "0.31.4ck";
+  const VERSION = "0.31.4cl";
   const DB_NAME = "life-rpg-drawing-studio-v2";
   const STORE = "drawings";
   const META_KEY = "lifeRpgDrawingStudioMetaV2";
@@ -803,6 +803,53 @@
 
   const commonsImage = fileName => `https://commons.wikimedia.org/wiki/Special:Redirect/file/${encodeURIComponent(fileName)}`;
   const commonsPage = fileName => `https://commons.wikimedia.org/wiki/File:${encodeURIComponent(fileName).replace(/%20/g, "_")}`;
+
+  // V0.31.4cl · curated multi-image pose packs.
+  // AdorkaStock public pose photos are displayed directly from their site and remain attributed in-app.
+  const REFERENCE_PACKS = {
+    "adorka-action": {
+      title: "AdorkaStock · Dynamic Action",
+      sourceLabel: "AdorkaStock",
+      assets: [
+        { src: "https://www.adorkastock.com/wp-content/uploads/2024/06/DSC_0393.jpg", title: "Leap & Reach", note: "Read the long reach, bent support leg and airborne rhythm before anatomy.", sourceUrl: "https://www.adorkastock.com/pose/jumping-leaping-action-pose-with-arm-flung-out-to-the-side/", sourceLabel: "AdorkaStock", credit: "AdorkaStock", license: "CC BY 3.0", web: true },
+        { src: "https://www.adorkastock.com/wp-content/uploads/2024/11/DSC_0076.jpg", title: "Dynamic Turn", note: "Track the torso twist and counter-swing of the arms. Great for gesture and hair-motion studies.", sourceUrl: "https://www.adorkastock.com/pose/dynamic-turning-action-pose/", sourceLabel: "AdorkaStock", credit: "AdorkaStock", license: "CC BY 3.0", web: true },
+        { src: "https://www.adorkastock.com/wp-content/uploads/2024/11/DSC_0208.jpg", title: "High-Angle Turn", note: "Use the staircase and body overlap to understand a figure seen from above.", sourceUrl: "https://www.adorkastock.com/pose/turned-away-high-angle-foreshortening-pose-reference/", sourceLabel: "AdorkaStock", credit: "AdorkaStock", license: "CC BY 3.0", web: true },
+        { src: "https://www.adorkastock.com/wp-content/uploads/2023/12/twitter-2022-08-1.jpg", title: "Low-Angle Reach", note: "The near hand becomes large while the torso and legs compress in depth—perfect for foreshortening practice.", sourceUrl: "https://www.adorkastock.com/pose/low-angle-sitting-pose-reference-with-foreshortened-arm-reaching-forward/", sourceLabel: "AdorkaStock", credit: "AdorkaStock", license: "CC BY 3.0", web: true },
+        { src: "https://www.adorkastock.com/wp-content/uploads/2018/06/bring_it___male_pose_reference_forshortening_by_adorkastock_dc9rgrt-scaled.jpg", title: "Bring It", note: "Study the forward hand, torso lean and size changes created by camera depth.", sourceUrl: "https://www.adorkastock.com/pose/bring-it-male-pose-reference-foreshortening/", sourceLabel: "AdorkaStock", credit: "AdorkaStock", license: "CC BY 3.0", web: true }
+      ]
+    },
+    "adorka-foreshortening": {
+      title: "AdorkaStock · Foreshortening",
+      sourceLabel: "AdorkaStock",
+      assets: [
+        { src: "https://www.adorkastock.com/wp-content/uploads/2023/12/twitter-2022-08-1.jpg", title: "Low-Angle Reach", note: "Compare the large near hand with the compressed forearm and torso behind it.", sourceUrl: "https://www.adorkastock.com/pose/low-angle-sitting-pose-reference-with-foreshortened-arm-reaching-forward/", sourceLabel: "AdorkaStock", credit: "AdorkaStock", license: "CC BY 3.0", web: true },
+        { src: "https://www.adorkastock.com/wp-content/uploads/2024/11/DSC_0208.jpg", title: "High-Angle Turn", note: "Notice how the shoulders, hips and legs stack vertically from the camera's high viewpoint.", sourceUrl: "https://www.adorkastock.com/pose/turned-away-high-angle-foreshortening-pose-reference/", sourceLabel: "AdorkaStock", credit: "AdorkaStock", license: "CC BY 3.0", web: true },
+        { src: "https://www.adorkastock.com/wp-content/uploads/2018/06/bring_it___male_pose_reference_forshortening_by_adorkastock_dc9rgrt-scaled.jpg", title: "Forward Hand", note: "Use simple boxes/cylinders first so the close hand feels connected to the rest of the body.", sourceUrl: "https://www.adorkastock.com/pose/bring-it-male-pose-reference-foreshortening/", sourceLabel: "AdorkaStock", credit: "AdorkaStock", license: "CC BY 3.0", web: true }
+      ]
+    },
+    "adorka-interaction": {
+      title: "AdorkaStock · Interaction & Story",
+      sourceLabel: "AdorkaStock",
+      assets: [
+        { src: "https://www.adorkastock.com/wp-content/uploads/2023/12/IMG_0615.jpg", title: "Pulling Against Each Other", note: "Three bodies create a clear push-pull story. Follow the force through arms, shoulders and planted feet.", sourceUrl: "https://www.adorkastock.com/pose/come-with-us/", sourceLabel: "AdorkaStock", credit: "AdorkaStock", license: "CC BY 3.0", web: true },
+        { src: "https://www.adorkastock.com/wp-content/uploads/2021/05/topdown_standing-3.jpg", title: "Back-to-Back Pair", note: "Great for two figures sharing space while seen from a difficult high angle.", sourceUrl: "https://www.adorkastock.com/pose/were-in-this-together/", sourceLabel: "AdorkaStock", credit: "AdorkaStock", license: "CC BY 3.0", web: true },
+        { src: "https://www.adorkastock.com/wp-content/uploads/2018/06/wake_up__couple_pose_reference__by_adorkastock_db4yh8z.jpg", title: "Supporting Another Person", note: "Study weight transfer, contact points and how one figure physically supports the other.", sourceUrl: "https://www.adorkastock.com/pose/wake-up-couple-pose-reference/", sourceLabel: "AdorkaStock", credit: "AdorkaStock", license: "CC BY 3.0", web: true }
+      ]
+    }
+  };
+
+  const CHALLENGE_REFERENCE_PACKS = {
+    "gesture-30s-five": "adorka-action",
+    "gesture-2m-three": "adorka-action",
+    "push-the-pose": "adorka-action",
+    "action-mannequin": "adorka-action",
+    "body-proportion-debug": "adorka-foreshortening",
+    "two-character-reaction": "adorka-interaction",
+    "two-characters-one-action": "adorka-interaction",
+    "moment-before": "adorka-interaction",
+    "moment-after": "adorka-interaction"
+  };
+
   const WEB_REFERENCES = {
     "gesture-30s-five": [
       { src: commonsImage("Paralympic Runner.jpg"), title: "Runner · full action", note: "Use the whole silhouette and weight shift first; ignore clothing detail.", sourceUrl: commonsPage("Paralympic Runner.jpg"), sourceLabel: "Wikimedia Commons", credit: "Pixabay via Wikimedia Commons", license: "CC0", web: true },
@@ -1442,7 +1489,9 @@
     const siblings = CHALLENGES.filter(c => c.track === challenge.track);
     const pathIndex = siblings.findIndex(c => c.id === challenge.id) + 1;
     const builtIns = getReferenceAssets(challenge);
-    const preview = builtIns.length ? `<div class="brief-reference-preview"><img src="${builtIns[0].src}" alt="${esc(builtIns[0].title)}"><div><small>PRACTICE PACK · ${builtIns.length} REFERENCES</small><strong>${esc(builtIns[0].title)}</strong><p>${esc(builtIns[0].note || "")}</p></div></div>` : "";
+    const curatedPack = getReferencePack(challenge);
+    const packName = curatedPack?.title || "Practice pack";
+    const preview = builtIns.length ? `<div class="brief-reference-preview"><img src="${builtIns[0].src}" alt="${esc(builtIns[0].title)}"><div><small>${esc(packName.toUpperCase())} · ${builtIns.length} REFERENCES</small><strong>${esc(builtIns[0].title)}</strong><p>${esc(builtIns[0].note || "")}</p></div></div>` : "";
     els.referenceBrief.innerHTML = `<strong>${esc(challenge.referenceTitle || "Reference")}</strong><p>${esc(challenge.referenceText || "Use a reference that supports the exercise goal.")}</p>${preview}<div class="path-note">Practice path · ${pathIndex}/${siblings.length} in ${esc(TRACKS.find(t => t.id === challenge.track)?.title || challenge.track)}</div>${links.length ? `<div class="learning-links">${links.map(link => `<a href="${link.url}" target="_blank" rel="noopener">${esc(link.label)} ↗</a>`).join("")}</div>` : ""}`;
     updateRightPanel(challenge);
   }
@@ -1504,8 +1553,16 @@
     renderReferenceAsset(challenge);
   }
 
+  function getReferencePack(challenge = activeChallenge) {
+    if (!challenge) return null;
+    const packId = CHALLENGE_REFERENCE_PACKS[challenge.id];
+    return packId ? REFERENCE_PACKS[packId] || null : null;
+  }
+
   function getReferenceAssets(challenge = activeChallenge) {
     if (!challenge) return [];
+    const curatedPack = getReferencePack(challenge);
+    if (curatedPack?.assets?.length) return curatedPack.assets;
     return WEB_REFERENCES[challenge.id] || LOCAL_REFERENCES[challenge.id] || [];
   }
 
@@ -1524,7 +1581,10 @@
     els.referenceSourceLine.innerHTML = item.web ? `<span>${esc(item.credit || item.sourceLabel || "Internet reference")}</span><span class="license-pill">${esc(item.license || "Source")}</span>${item.sourceUrl ? `<a href="${item.sourceUrl}" target="_blank" rel="noopener">source ↗</a>` : ""}` : "";
     els.referenceAssetViewer.classList.toggle("is-web-reference", !!item.web);
     els.referenceCounter.textContent = `${referenceIndex + 1}/${assets.length}`;
-    els.referencePackLabel.textContent = assets.length > 1 ? `Practice pack · ${assets.length} refs` : "Practice reference";
+    const curatedPack = getReferencePack(challenge);
+    els.referencePackLabel.textContent = curatedPack?.title
+      ? `${curatedPack.title} · ${assets.length} refs`
+      : (assets.length > 1 ? `Practice pack · ${assets.length} refs` : "Practice reference");
     els.referencePrev.disabled = assets.length <= 1;
     els.referenceNext.disabled = assets.length <= 1;
     els.referenceThumbs.innerHTML = assets.map((asset, index) => {
