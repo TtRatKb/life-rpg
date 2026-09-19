@@ -1,4 +1,4 @@
-const CACHE_NAME = "life-rpg-v0314cm-reference-hotfix";
+const CACHE_NAME = "life-rpg-v0314cn-commons-pose-packs";
 const ASSET_CACHE_NAME = "life-rpg-assets-v5";
 const MAX_RUNTIME_ASSETS = 96;
 const CORE = [
@@ -20,11 +20,11 @@ const CORE = [
   "./talent-reward-studios.css?v=0.31.4as",
   "./talent-reward-studios.js?v=0.31.4ce",
   "./coloring-studio.html",
-  "./coloring-studio.css?v=0.31.4cm",
-  "./coloring-studio.js?v=0.31.4cm",
+  "./coloring-studio.css?v=0.31.4cn",
+  "./coloring-studio.js?v=0.31.4cn",
   "./drawing-studio.html",
-  "./drawing-studio.css?v=0.31.4cm",
-  "./drawing-studio.js?v=0.31.4cm",
+  "./drawing-studio.css?v=0.31.4cn",
+  "./drawing-studio.js?v=0.31.4cn",
   "./assets/drawing/references/dynamic-crouch-launch.svg",
   "./assets/drawing/references/dynamic-jump-landing.svg",
   "./assets/drawing/references/dynamic-pull-reach.svg",
@@ -75,7 +75,7 @@ const CORE = [
   "./weekly-review.css?v=0.31.4ag",
   "./weekly-review.js?v=0.31.4ag",
   "./manifest.webmanifest?v=0.30.3a",
-  "./pwa.js?v=0.31.4cm",
+  "./pwa.js?v=0.31.4cn",
   "./visual-performance.js?v=0.31.4bu",
   "./modal-manager.js?v=0.31.4d",
   "./training-focus.js?v=0.31.4o",

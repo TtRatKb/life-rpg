@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "0.31.4cm";
+  const VERSION = "0.31.4cn";
   const DB_NAME = "life-rpg-drawing-studio-v2";
   const STORE = "drawings";
   const META_KEY = "lifeRpgDrawingStudioMetaV2";
@@ -804,50 +804,93 @@
   const commonsImage = fileName => `https://commons.wikimedia.org/wiki/Special:Redirect/file/${encodeURIComponent(fileName)}`;
   const commonsPage = fileName => `https://commons.wikimedia.org/wiki/File:${encodeURIComponent(fileName).replace(/%20/g, "_")}`;
 
-  // V0.31.4cm · curated multi-image pose packs.
-  // AdorkaStock public pose photos are displayed directly from their site and remain attributed in-app.
+  // V0.31.4cn · reliable curated pose packs hosted on Wikimedia Commons.
+  // JookpubStock's reference-pose library is mirrored on Commons under CC BY 3.0.
+  // Using Commons avoids AdorkaStock hotlink blocking while keeping cohesive pose sets.
+  const makeJookpubRef = (fileName, title, note) => ({
+    src: `${commonsImage(fileName)}?width=1200`,
+    title,
+    note,
+    sourceUrl: commonsPage(fileName),
+    sourceLabel: "Wikimedia Commons",
+    credit: "JookpubStock via Wikimedia Commons",
+    license: "CC BY 3.0",
+    web: true
+  });
+
   const REFERENCE_PACKS = {
-    "adorka-action": {
-      title: "AdorkaStock · Dynamic Action",
-      sourceLabel: "AdorkaStock",
+    "jookpub-action": {
+      title: "JookpubStock · Jump / Run / Fall",
+      sourceLabel: "JookpubStock via Wikimedia Commons",
       assets: [
-        { src: "https://www.adorkastock.com/wp-content/uploads/2024/06/DSC_0393.jpg", title: "Leap & Reach", note: "Read the long reach, bent support leg and airborne rhythm before anatomy.", sourceUrl: "https://www.adorkastock.com/pose/jumping-leaping-action-pose-with-arm-flung-out-to-the-side/", sourceLabel: "AdorkaStock", credit: "AdorkaStock", license: "CC BY 3.0", web: true },
-        { src: "https://www.adorkastock.com/wp-content/uploads/2024/11/DSC_0076.jpg", title: "Dynamic Turn", note: "Track the torso twist and counter-swing of the arms. Great for gesture and hair-motion studies.", sourceUrl: "https://www.adorkastock.com/pose/dynamic-turning-action-pose/", sourceLabel: "AdorkaStock", credit: "AdorkaStock", license: "CC BY 3.0", web: true },
-        { src: "https://www.adorkastock.com/wp-content/uploads/2024/11/DSC_0208.jpg", title: "High-Angle Turn", note: "Use the staircase and body overlap to understand a figure seen from above.", sourceUrl: "https://www.adorkastock.com/pose/turned-away-high-angle-foreshortening-pose-reference/", sourceLabel: "AdorkaStock", credit: "AdorkaStock", license: "CC BY 3.0", web: true },
-        { src: "https://www.adorkastock.com/wp-content/uploads/2023/12/twitter-2022-08-1.jpg", title: "Low-Angle Reach", note: "The near hand becomes large while the torso and legs compress in depth—perfect for foreshortening practice.", sourceUrl: "https://www.adorkastock.com/pose/low-angle-sitting-pose-reference-with-foreshortened-arm-reaching-forward/", sourceLabel: "AdorkaStock", credit: "AdorkaStock", license: "CC BY 3.0", web: true },
-        { src: "https://www.adorkastock.com/wp-content/uploads/2018/06/bring_it___male_pose_reference_forshortening_by_adorkastock_dc9rgrt-scaled.jpg", title: "Bring It", note: "Study the forward hand, torso lean and size changes created by camera depth.", sourceUrl: "https://www.adorkastock.com/pose/bring-it-male-pose-reference-foreshortening/", sourceLabel: "AdorkaStock", credit: "AdorkaStock", license: "CC BY 3.0", web: true }
+        makeJookpubRef("Jookpub pose reference - Jumping 001.jpg", "Jumping 001", "Capture the line of action and airborne weight before anatomy."),
+        makeJookpubRef("Jookpub pose reference - Jumping 002.jpg", "Jumping 002", "Look for the main curve, compression and extension."),
+        makeJookpubRef("Jookpub pose reference - Jumping 003.jpg", "Jumping 003", "Block the ribcage and pelvis after the gesture, not before."),
+        makeJookpubRef("Jookpub pose reference - Jumping 004.jpg", "Jumping 004", "Use the negative spaces between limbs to check the pose."),
+        makeJookpubRef("Jookpub pose reference - Jumping 005.jpg", "Jumping 005", "Push the directional flow while keeping the support logic believable."),
+        makeJookpubRef("Jookpub pose reference - Jumping 006.jpg", "Jumping 006", "Notice how the limbs create a readable silhouette."),
+        makeJookpubRef("Jookpub pose reference - Running 001.jpg", "Running 001", "Find the lean, stride and counter-swing of the arms."),
+        makeJookpubRef("Jookpub pose reference - Running 002.jpg", "Running 002", "Track the center of mass through the stride."),
+        makeJookpubRef("Jookpub pose reference - Running 003.jpg", "Running 003", "Simplify the pose into large directional masses first."),
+        makeJookpubRef("Jookpub pose reference - Falling 001.jpg", "Falling 001", "Use this to study off-balance motion and a pose without a stable support base.")
       ]
     },
-    "adorka-foreshortening": {
-      title: "AdorkaStock · Foreshortening",
-      sourceLabel: "AdorkaStock",
+    "jookpub-foreshortening": {
+      title: "JookpubStock · Camera Angle & Foreshortening",
+      sourceLabel: "JookpubStock via Wikimedia Commons",
       assets: [
-        { src: "https://www.adorkastock.com/wp-content/uploads/2023/12/twitter-2022-08-1.jpg", title: "Low-Angle Reach", note: "Compare the large near hand with the compressed forearm and torso behind it.", sourceUrl: "https://www.adorkastock.com/pose/low-angle-sitting-pose-reference-with-foreshortened-arm-reaching-forward/", sourceLabel: "AdorkaStock", credit: "AdorkaStock", license: "CC BY 3.0", web: true },
-        { src: "https://www.adorkastock.com/wp-content/uploads/2024/11/DSC_0208.jpg", title: "High-Angle Turn", note: "Notice how the shoulders, hips and legs stack vertically from the camera's high viewpoint.", sourceUrl: "https://www.adorkastock.com/pose/turned-away-high-angle-foreshortening-pose-reference/", sourceLabel: "AdorkaStock", credit: "AdorkaStock", license: "CC BY 3.0", web: true },
-        { src: "https://www.adorkastock.com/wp-content/uploads/2018/06/bring_it___male_pose_reference_forshortening_by_adorkastock_dc9rgrt-scaled.jpg", title: "Forward Hand", note: "Use simple boxes/cylinders first so the close hand feels connected to the rest of the body.", sourceUrl: "https://www.adorkastock.com/pose/bring-it-male-pose-reference-foreshortening/", sourceLabel: "AdorkaStock", credit: "AdorkaStock", license: "CC BY 3.0", web: true }
+        makeJookpubRef("Jookpub pose reference - From above 001.jpg", "From Above 001", "Compare head, torso and limb size changes from the high camera angle."),
+        makeJookpubRef("Jookpub pose reference - From above 002.jpg", "From Above 002", "Build the pose as boxes and cylinders receding away from the camera."),
+        makeJookpubRef("Jookpub pose reference - From above 003.jpg", "From Above 003", "Watch overlap: nearer forms hide farther forms."),
+        makeJookpubRef("Jookpub pose reference - Freebie Forsho.jpg", "Foreshortening Study", "Treat near forms as genuinely larger instead of merely shortening the limb."),
+        makeJookpubRef("Jookpub pose reference - Falling 008.png", "Falling · Depth", "Use overlap and scale changes to make the depth readable."),
+        makeJookpubRef("Jookpub pose reference - Falling 009.png", "Falling · Foreshortening", "Keep the torso orientation clear before adding contour detail.")
       ]
     },
-    "adorka-interaction": {
-      title: "AdorkaStock · Interaction & Story",
-      sourceLabel: "AdorkaStock",
+    "jookpub-interaction": {
+      title: "JookpubStock · Conversation / Two-Person Staging",
+      sourceLabel: "JookpubStock via Wikimedia Commons",
       assets: [
-        { src: "https://www.adorkastock.com/wp-content/uploads/2021/05/pair-fighting-14.jpg", title: "Two-Person Confrontation", note: "Read the contact point, opposing weight shifts and the space between both bodies before adding anatomy detail.", sourceUrl: "https://www.adorkastock.com/pose/two-men-fighting/", sourceLabel: "AdorkaStock", credit: "AdorkaStock", license: "CC BY 3.0", web: true },
-        { src: "https://www.adorkastock.com/wp-content/uploads/2021/05/topdown_standing-3.jpg", title: "Back-to-Back Pair", note: "Great for two figures sharing space while seen from a difficult high angle.", sourceUrl: "https://www.adorkastock.com/pose/were-in-this-together/", sourceLabel: "AdorkaStock", credit: "AdorkaStock", license: "CC BY 3.0", web: true },
-        { src: "https://www.adorkastock.com/wp-content/uploads/2023/09/AdorkaStock_SmolTolTransCuddlePack-42sm.jpg", title: "Seated Cuddle / Shared Weight", note: "Study overlap, contact, compression and how two figures share the same furniture and floor space.", sourceUrl: "https://www.adorkastock.com/pose/a-nice-moment-together-cuddle-pose-reference/", sourceLabel: "AdorkaStock", credit: "AdorkaStock", license: "CC BY 3.0", web: true }
+        makeJookpubRef("Jookpub pose reference - Conversation 002.jpg", "Conversation 002", "Read the spacing, eye lines and body direction between both people."),
+        makeJookpubRef("Jookpub pose reference - Conversation 003.jpg", "Conversation 003", "Block both figures together so the interaction feels shared."),
+        makeJookpubRef("Jookpub pose reference - Conversation 005.jpg", "Conversation 005", "Use gesture and negative space to show the relationship between the figures."),
+        makeJookpubRef("Jookpub pose reference - Conversation 006.png", "Conversation 006", "Treat both people as one composition before drawing details."),
+        makeJookpubRef("Jookpub pose reference - Conversation 007.jpg", "Conversation 007", "Compare weight shifts and how each figure reacts to the other."),
+        makeJookpubRef("Jookpub pose reference - Conversation 008.jpg", "Conversation 008", "Use head turns and shoulder direction to strengthen the story beat."),
+        makeJookpubRef("Jookpub pose reference - Conversation 009.png", "Conversation 009", "Focus on silhouette clarity where the two figures overlap."),
+        makeJookpubRef("Jookpub pose reference - Conversation 010.jpg", "Conversation 010", "Make the interaction readable even if facial detail is removed."),
+        makeJookpubRef("Jookpub pose reference - Conversation 011.jpg", "Conversation 011", "Stage both figures as a single visual unit rather than two separate portraits.")
+      ]
+    },
+    "jookpub-story": {
+      title: "JookpubStock · Story Props & Quiet Beats",
+      sourceLabel: "JookpubStock via Wikimedia Commons",
+      assets: [
+        makeJookpubRef("Jookpub pose reference - Letter 001.jpg", "Letter 001", "Use gaze, hands and the prop to create a clear focal point."),
+        makeJookpubRef("Jookpub pose reference - Letter 002.jpg", "Letter 002", "Study how a small prop can drive the entire story beat."),
+        makeJookpubRef("Jookpub pose reference - Letter 003.jpg", "Letter 003", "Notice how posture can imply anticipation or reaction."),
+        makeJookpubRef("Jookpub pose reference - Letter 004.jpg", "Letter 004", "Keep the prop, hands and face connected in one action."),
+        makeJookpubRef("Jookpub pose reference - Letter 005.jpg", "Letter 005", "Try a thumbnail that emphasizes the story clue rather than the whole figure."),
+        makeJookpubRef("Jookpub pose reference - Letter 006.jpg", "Letter 006", "Use this as a seed for a moment-before or moment-after illustration."),
+        makeJookpubRef("Jookpub pose reference - Books 009.jpg", "Books 009", "Practice a figure interacting naturally with an everyday object."),
+        makeJookpubRef("Jookpub pose reference - Books 010.jpg", "Books 010", "Let the object affect the pose instead of feeling pasted into the hands."),
+        makeJookpubRef("Jookpub pose reference - Cardboard box 001.jpg", "Box 001", "Study shared weight between torso, arms and the object."),
+        makeJookpubRef("Jookpub pose reference - Cardboard box 002.jpg", "Box 002", "Use the box as a perspective anchor for the body."),
+        makeJookpubRef("Jookpub pose reference - Cardboard box 003.jpg", "Box 003", "Check contact points and how carrying weight changes posture.")
       ]
     }
   };
 
   const CHALLENGE_REFERENCE_PACKS = {
-    "gesture-30s-five": "adorka-action",
-    "gesture-2m-three": "adorka-action",
-    "push-the-pose": "adorka-action",
-    "action-mannequin": "adorka-action",
-    "body-proportion-debug": "adorka-foreshortening",
-    "two-character-reaction": "adorka-interaction",
-    "two-characters-one-action": "adorka-interaction",
-    "moment-before": "adorka-interaction",
-    "moment-after": "adorka-interaction"
+    "gesture-30s-five": "jookpub-action",
+    "gesture-2m-three": "jookpub-action",
+    "push-the-pose": "jookpub-action",
+    "action-mannequin": "jookpub-action",
+    "body-proportion-debug": "jookpub-foreshortening",
+    "two-character-reaction": "jookpub-interaction",
+    "two-characters-one-action": "jookpub-interaction",
+    "moment-before": "jookpub-story",
+    "moment-after": "jookpub-story"
   };
 
   const WEB_REFERENCES = {
