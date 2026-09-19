@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "0.31.4cl";
+  const VERSION = "0.31.4cm";
   const DB_NAME = "life-rpg-drawing-studio-v2";
   const STORE = "drawings";
   const META_KEY = "lifeRpgDrawingStudioMetaV2";
@@ -804,7 +804,7 @@
   const commonsImage = fileName => `https://commons.wikimedia.org/wiki/Special:Redirect/file/${encodeURIComponent(fileName)}`;
   const commonsPage = fileName => `https://commons.wikimedia.org/wiki/File:${encodeURIComponent(fileName).replace(/%20/g, "_")}`;
 
-  // V0.31.4cl · curated multi-image pose packs.
+  // V0.31.4cm · curated multi-image pose packs.
   // AdorkaStock public pose photos are displayed directly from their site and remain attributed in-app.
   const REFERENCE_PACKS = {
     "adorka-action": {
@@ -831,9 +831,9 @@
       title: "AdorkaStock · Interaction & Story",
       sourceLabel: "AdorkaStock",
       assets: [
-        { src: "https://www.adorkastock.com/wp-content/uploads/2023/12/IMG_0615.jpg", title: "Pulling Against Each Other", note: "Three bodies create a clear push-pull story. Follow the force through arms, shoulders and planted feet.", sourceUrl: "https://www.adorkastock.com/pose/come-with-us/", sourceLabel: "AdorkaStock", credit: "AdorkaStock", license: "CC BY 3.0", web: true },
+        { src: "https://www.adorkastock.com/wp-content/uploads/2021/05/pair-fighting-14.jpg", title: "Two-Person Confrontation", note: "Read the contact point, opposing weight shifts and the space between both bodies before adding anatomy detail.", sourceUrl: "https://www.adorkastock.com/pose/two-men-fighting/", sourceLabel: "AdorkaStock", credit: "AdorkaStock", license: "CC BY 3.0", web: true },
         { src: "https://www.adorkastock.com/wp-content/uploads/2021/05/topdown_standing-3.jpg", title: "Back-to-Back Pair", note: "Great for two figures sharing space while seen from a difficult high angle.", sourceUrl: "https://www.adorkastock.com/pose/were-in-this-together/", sourceLabel: "AdorkaStock", credit: "AdorkaStock", license: "CC BY 3.0", web: true },
-        { src: "https://www.adorkastock.com/wp-content/uploads/2018/06/wake_up__couple_pose_reference__by_adorkastock_db4yh8z.jpg", title: "Supporting Another Person", note: "Study weight transfer, contact points and how one figure physically supports the other.", sourceUrl: "https://www.adorkastock.com/pose/wake-up-couple-pose-reference/", sourceLabel: "AdorkaStock", credit: "AdorkaStock", license: "CC BY 3.0", web: true }
+        { src: "https://www.adorkastock.com/wp-content/uploads/2023/09/AdorkaStock_SmolTolTransCuddlePack-42sm.jpg", title: "Seated Cuddle / Shared Weight", note: "Study overlap, contact, compression and how two figures share the same furniture and floor space.", sourceUrl: "https://www.adorkastock.com/pose/a-nice-moment-together-cuddle-pose-reference/", sourceLabel: "AdorkaStock", credit: "AdorkaStock", license: "CC BY 3.0", web: true }
       ]
     }
   };
@@ -1566,6 +1566,38 @@
     return WEB_REFERENCES[challenge.id] || LOCAL_REFERENCES[challenge.id] || [];
   }
 
+  function isRemoteReference(src) {
+    return /^https?:\/\//i.test(String(src || ""));
+  }
+
+  function referenceProxyUrl(src) {
+    return `https://images.weserv.nl/?url=${encodeURIComponent(src)}`;
+  }
+
+  function setReferenceImageSource(img, item) {
+    if (!img || !item?.src) return;
+    const original = item.src;
+    img.referrerPolicy = "no-referrer";
+    img.removeAttribute("crossorigin");
+    img.dataset.referenceOriginal = original;
+    img.dataset.referenceFallbackTried = "0";
+    img.classList.remove("reference-load-failed");
+    img.onload = () => {
+      img.classList.remove("reference-load-failed");
+    };
+    img.onerror = () => {
+      if (isRemoteReference(original) && img.dataset.referenceFallbackTried !== "1") {
+        img.dataset.referenceFallbackTried = "1";
+        img.src = referenceProxyUrl(original);
+        return;
+      }
+      img.onerror = null;
+      img.classList.add("reference-load-failed");
+      img.alt = `${item.title || "Practice reference"} · image could not be loaded`;
+    };
+    img.src = original;
+  }
+
   function renderReferenceAsset(challenge = activeChallenge) {
     const assets = getReferenceAssets(challenge);
     if (!assets.length) {
@@ -1574,7 +1606,7 @@
     }
     referenceIndex = Math.max(0, Math.min(referenceIndex, assets.length - 1));
     const item = assets[referenceIndex];
-    els.referenceImage.src = item.src;
+    setReferenceImageSource(els.referenceImage, item);
     els.referenceImage.alt = item.title || "Practice reference";
     els.referenceAssetTitle.textContent = item.title || "Practice reference";
     els.referenceAssetNote.textContent = item.note || "Use this as a study reference, not as a tracing requirement.";
@@ -1590,8 +1622,12 @@
     els.referenceThumbs.innerHTML = assets.map((asset, index) => {
       const activeClass = index === referenceIndex ? " is-active" : "";
       const thumbTitle = esc(asset.title || ("Reference " + (index + 1)));
-      return `<button type="button" class="reference-thumb${activeClass}" data-reference-index="${index}" title="${thumbTitle}"><img src="${asset.src}" alt=""></button>`;
+      return `<button type="button" class="reference-thumb${activeClass}" data-reference-index="${index}" title="${thumbTitle}"><img data-reference-thumb="${index}" referrerpolicy="no-referrer" alt=""></button>`;
     }).join("");
+    els.referenceThumbs.querySelectorAll("img[data-reference-thumb]").forEach(img => {
+      const asset = assets[Number(img.dataset.referenceThumb) || 0];
+      if (asset) setReferenceImageSource(img, asset);
+    });
     els.referenceThumbs.querySelectorAll("[data-reference-index]").forEach(button => button.addEventListener("click", () => {
       referenceIndex = Number(button.dataset.referenceIndex) || 0;
       renderReferenceAsset();
@@ -1620,7 +1656,7 @@
     const assets = getReferenceAssets();
     if (!assets.length) return;
     const item = assets[referenceIndex];
-    els.referenceDialogImage.src = item.src;
+    setReferenceImageSource(els.referenceDialogImage, item);
     els.referenceDialogImage.alt = item.title || "Practice reference";
     els.referenceDialog.showModal();
   }
@@ -1642,10 +1678,10 @@
       els.floatingReference.classList.add("is-hidden");
       return;
     }
-    els.referenceUnderlay.src = item.src;
+    setReferenceImageSource(els.referenceUnderlay, item);
     els.referenceUnderlay.alt = item.title || "Practice reference underlay";
     els.referenceUnderlay.classList.toggle("is-hidden", !referenceUnderlayVisible);
-    els.floatingReferenceImage.src = item.src;
+    setReferenceImageSource(els.floatingReferenceImage, item);
     els.floatingReferenceImage.alt = item.title || "Practice reference";
     els.floatingReferenceTitle.textContent = item.title || "Practice reference";
     els.floatingReferenceNote.textContent = item.note || "";

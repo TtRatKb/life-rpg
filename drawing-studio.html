@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <title>Drawing Studio · Life RPG</title>
-  <link rel="stylesheet" href="drawing-studio.css?v=0.31.4cl" />
+  <link rel="stylesheet" href="drawing-studio.css?v=0.31.4cm" />
 </head>
 <body>
   <main class="drawing-app">
@@ -102,7 +102,7 @@
             <div class="canvas-zoom-pill" id="canvasZoomPill">100%</div>
             <div class="canvas-stage" id="canvasStage">
               <div class="canvas-stack" id="canvasStack">
-                <img id="referenceUnderlay" class="reference-underlay is-hidden" alt="Reference underlay" draggable="false" />
+                <img id="referenceUnderlay" referrerpolicy="no-referrer" class="reference-underlay is-hidden" alt="Reference underlay" draggable="false" />
                 <canvas id="guideCanvas" width="1200" height="900"></canvas>
                 <canvas id="drawCanvas" width="1200" height="900" aria-label="Drawing challenge canvas"></canvas>
               </div>
@@ -123,7 +123,7 @@
           <p id="referenceText">Open a challenge to see its practice guide.</p>
           <a id="referenceLink" class="external-reference is-hidden" href="#" target="_blank" rel="noopener">Open external practice source ↗</a>
           <div id="referenceAssetViewer" class="reference-asset-viewer is-hidden">
-            <button id="referenceOpen" class="reference-image-button" type="button" aria-label="Open reference full size"><img id="referenceImage" alt="Practice reference" /></button>
+            <button id="referenceOpen" class="reference-image-button" type="button" aria-label="Open reference full size"><img id="referenceImage" alt="Practice reference" referrerpolicy="no-referrer" /></button>
             <div class="reference-asset-copy"><strong id="referenceAssetTitle">Practice reference</strong><p id="referenceAssetNote"></p><div id="referenceSourceLine" class="reference-source-line"></div></div>
             <div id="referenceThumbs" class="reference-thumbs" aria-label="Reference pack thumbnails"></div>
             <div class="reference-pack-meta"><span id="referencePackLabel">Practice pack</span><button id="referenceRandom" type="button">↻ Random</button></div>
@@ -220,7 +220,7 @@
       <div><small>PINNED REFERENCE</small><strong id="floatingReferenceTitle">Practice reference</strong></div>
       <button id="floatingReferenceClose" type="button" aria-label="Close floating reference">×</button>
     </header>
-    <img id="floatingReferenceImage" alt="Floating practice reference" draggable="false" />
+    <img id="floatingReferenceImage" alt="Floating practice reference" draggable="false" referrerpolicy="no-referrer" />
     <p id="floatingReferenceNote"></p>
     <div class="floating-reference-footer">
       <button id="floatingReferencePrev" type="button">←</button>
@@ -263,9 +263,9 @@
 
   <dialog id="referenceDialog" class="reference-dialog">
     <button id="closeReferenceDialog" class="reference-dialog-close" type="button" aria-label="Close reference">×</button>
-    <img id="referenceDialogImage" alt="Practice reference enlarged" />
+    <img id="referenceDialogImage" alt="Practice reference enlarged" referrerpolicy="no-referrer" />
   </dialog>
 
-  <script src="drawing-studio.js?v=0.31.4cl"></script>
+  <script src="drawing-studio.js?v=0.31.4cm"></script>
 </body>
 </html>
