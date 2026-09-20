@@ -598,7 +598,7 @@
         notify(active.mode === "break" ? "Break finished" : "Focus timer finished", active.mode === "break" ? "Ready when you are." : `${target} minutes complete. Your time is ready to log.`);
       }
     }
-    renderActive();
+    updateActiveTimerDisplay();
   }
 
   function playTone(double = true) {
@@ -668,11 +668,50 @@
     const mainClock = targetSeconds > 0 ? (reached ? `+${formatClock(elapsedSeconds - targetSeconds)}` : formatClock(remaining)) : formatClock(elapsedSeconds);
     const meta = `${category.icon} ${category.label}${active.subcategory ? ` · ${active.subcategory}` : ""}`;
     els.activeCard.innerHTML = `
-      <article class="rhythm-running-v304 ${reached ? "is-finished" : ""}">
+      <article class="rhythm-running-v304 ${reached ? "is-finished" : ""}" data-time-active-id="${escAttr(active.id || "active")}">
         <div class="rhythm-running-copy-v304"><small>${active.mode === "break" ? "BREAK TIMER" : active.mode === "focus" ? "FOCUS SESSION" : active.mode === "action" ? "DAILY ACTION" : "CLOCKED IN"}</small><h2>${esc(active.label)}</h2><p>${esc(meta)}</p></div>
-        <div class="rhythm-clock-v304"><strong>${mainClock}</strong><span>${targetSeconds > 0 ? (reached ? (active.mode === "action" ? `${active.targetMinutes}m minimum reached · overtime counts` : `${active.targetMinutes}m target complete`) : `${formatDuration(Math.floor(elapsedSeconds / 60))} elapsed`) : `${formatDuration(Math.floor(elapsedSeconds / 60))} logged so far`}</span></div>
-        <div class="rhythm-running-actions-v304"><button class="primary-button" data-time-stop type="button">${active.mode === "break" ? "Finish break & log" : active.mode === "action" ? (reached ? "Finish & complete" : "Stop & log time") : reached ? "Finish & log" : "Stop & log"}</button><button class="secondary-button" data-time-cancel type="button">Cancel</button></div>
+        <div class="rhythm-clock-v304"><strong data-time-live-clock>${mainClock}</strong><span data-time-live-status>${targetSeconds > 0 ? (reached ? (active.mode === "action" ? `${active.targetMinutes}m minimum reached · overtime counts` : `${active.targetMinutes}m target complete`) : `${formatDuration(Math.floor(elapsedSeconds / 60))} elapsed`) : `${formatDuration(Math.floor(elapsedSeconds / 60))} logged so far`}</span></div>
+        <div class="rhythm-running-actions-v304"><button class="primary-button" data-time-stop data-time-live-stop type="button">${active.mode === "break" ? "Finish break & log" : active.mode === "action" ? (reached ? "Finish & complete" : "Stop & log time") : reached ? "Finish & log" : "Stop & log"}</button><button class="secondary-button" data-time-cancel type="button">Cancel</button></div>
       </article>`;
+  }
+
+  function updateActiveTimerDisplay() {
+    if (document.visibilityState === "hidden" || !els.page?.classList.contains("active") || !els.activeCard) return;
+    const active = state().active;
+    if (!active) return;
+
+    const article = els.activeCard.querySelector(".rhythm-running-v304");
+    if (!article || article.dataset.timeActiveId !== String(active.id || "active")) {
+      renderActive();
+      return;
+    }
+
+    const started = new Date(active.startedAt).getTime();
+    if (!Number.isFinite(started)) return;
+    const elapsedSeconds = Math.max(0, Math.floor((Date.now() - started) / 1000));
+    const targetSeconds = Number(active.targetMinutes || 0) * 60;
+    const remaining = targetSeconds > 0 ? Math.max(0, targetSeconds - elapsedSeconds) : null;
+    const reached = targetSeconds > 0 && elapsedSeconds >= targetSeconds;
+    const mainClock = targetSeconds > 0 ? (reached ? `+${formatClock(elapsedSeconds - targetSeconds)}` : formatClock(remaining)) : formatClock(elapsedSeconds);
+    const statusText = targetSeconds > 0
+      ? (reached
+          ? (active.mode === "action" ? `${active.targetMinutes}m minimum reached · overtime counts` : `${active.targetMinutes}m target complete`)
+          : `${formatDuration(Math.floor(elapsedSeconds / 60))} elapsed`)
+      : `${formatDuration(Math.floor(elapsedSeconds / 60))} logged so far`;
+    const stopText = active.mode === "break"
+      ? "Finish break & log"
+      : active.mode === "action"
+        ? (reached ? "Finish & complete" : "Stop & log time")
+        : reached ? "Finish & log" : "Stop & log";
+
+    article.classList.toggle("is-finished", reached);
+    setTextIfChanged(article.querySelector("[data-time-live-clock]"), mainClock);
+    setTextIfChanged(article.querySelector("[data-time-live-status]"), statusText);
+    setTextIfChanged(article.querySelector("[data-time-live-stop]"), stopText);
+  }
+
+  function setTextIfChanged(node, value) {
+    if (node && node.textContent !== String(value)) node.textContent = String(value);
   }
 
   function renderQuestOptions() {

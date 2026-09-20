@@ -1,5 +1,5 @@
 (() => {
-  const VERSION = '0.31.4ck';
+  const VERSION = '0.31.4cr';
   const STORAGE_PREFIX = 'lifeRpgColoringStudio';
   const CANVAS_WIDTH = 1122;
   const CANVAS_HEIGHT = 1402;
@@ -9,10 +9,7 @@
       id: 'bakugo-trading-card-level-1',
       title: 'Bakugo · Level 1',
       assetCandidates: [
-        'assets/coloring/bakugo-trading-card-line-transparent.png',
-        'assets/coloring/bakugo-trading-card-line.png',
-        'bakugo-trading-card-line-transparent.png',
-        'bakugo-trading-card-line.png'
+        'assets/coloring/bakugo-trading-card-line.png'
       ]
     }
   ];

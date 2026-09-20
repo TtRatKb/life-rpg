@@ -73,6 +73,7 @@
   }
 
   function updateLiveTimers() {
+    if (document.visibilityState === "hidden") return;
     const active = window.LifeRPGTime?.getActive?.();
     const key = activeKey(active);
     if (!active || !key) return;
@@ -84,19 +85,27 @@
     const kind = active.linkedAdventureId ? "Adventure step" : "Quest";
 
     document.querySelectorAll("[data-universal-timer-live]").forEach(panel => {
-      if (panel.dataset.universalTimerLive !== key) return;
+      if (panel.dataset.universalTimerLive !== key || !elementIsVisible(panel)) return;
       panel.classList.toggle("minimum-reached", reached);
       const kicker = panel.querySelector("[data-universal-timer-kicker]");
       const clock = panel.querySelector("[data-universal-timer-clock]");
       const status = panel.querySelector("[data-universal-timer-status]");
       const button = panel.querySelector("[data-universal-timer-finish]");
-      if (kicker) kicker.textContent = reached ? "MINIMUM REACHED" : "MINIMUM REMAINING";
-      if (clock) clock.textContent = clockText;
-      if (status) status.textContent = reached
+      setLiveText(kicker, reached ? "MINIMUM REACHED" : "MINIMUM REMAINING");
+      setLiveText(clock, clockText);
+      setLiveText(status, reached
         ? `Overtime counts too — stop whenever you want. The actual time will be logged.`
-        : `${formatNumber(active.targetMinutes)} minutes completes this ${kind}.`;
-      if (button) button.textContent = reached ? "Finish & complete" : "Stop & log time";
+        : `${formatNumber(active.targetMinutes)} minutes completes this ${kind}.`);
+      setLiveText(button, reached ? "Finish & complete" : "Stop & log time");
     });
+  }
+
+  function elementIsVisible(node) {
+    return Boolean(node?.isConnected && node.getClientRects?.().length);
+  }
+
+  function setLiveText(node, value) {
+    if (node && node.textContent !== String(value)) node.textContent = String(value);
   }
 
   function formatClock(seconds) {

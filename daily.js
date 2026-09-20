@@ -1274,10 +1274,11 @@
   }
 
   function updateLiveActionTimers() {
-    if (!initialized) return;
+    if (!initialized || document.visibilityState === "hidden") return;
     const active = window.LifeRPGTime?.getActive?.();
+    if (!active || !["action", "focus"].includes(active.mode)) return;
     document.querySelectorAll("[data-daily-action-live]").forEach(panel => {
-      if (!active || !["action", "focus"].includes(active.mode) || active.linkedQuestId !== panel.dataset.dailyActionLive) return;
+      if (active.linkedQuestId !== panel.dataset.dailyActionLive || !elementIsVisible(panel)) return;
       const elapsedSeconds = Math.max(0, Number(window.LifeRPGTime?.getElapsedSeconds?.() || 0));
       const targetSeconds = Math.max(60, Number(active.targetMinutes || 1) * 60);
       const reached = elapsedSeconds >= targetSeconds;
@@ -1286,11 +1287,19 @@
       const status = panel.querySelector("[data-daily-action-status]");
       const button = panel.querySelector("[data-daily-timer-finish]");
       const kicker = panel.querySelector("small");
-      if (clock) clock.textContent = reached ? `+${formatTimerClock(elapsedSeconds - targetSeconds)}` : formatTimerClock(targetSeconds - elapsedSeconds);
-      if (status) status.textContent = reached ? "Overtime counts too — stop whenever you want." : `${formatNumber(active.targetMinutes)} minutes completes this Daily Action.`;
-      if (button) button.textContent = reached ? "Finish & complete" : "Stop & log time";
-      if (kicker) kicker.textContent = reached ? "MINIMUM REACHED" : "MINIMUM REMAINING";
+      setLiveText(clock, reached ? `+${formatTimerClock(elapsedSeconds - targetSeconds)}` : formatTimerClock(targetSeconds - elapsedSeconds));
+      setLiveText(status, reached ? "Overtime counts too — stop whenever you want." : `${formatNumber(active.targetMinutes)} minutes completes this Daily Action.`);
+      setLiveText(button, reached ? "Finish & complete" : "Stop & log time");
+      setLiveText(kicker, reached ? "MINIMUM REACHED" : "MINIMUM REMAINING");
     });
+  }
+
+  function elementIsVisible(node) {
+    return Boolean(node?.isConnected && node.getClientRects?.().length);
+  }
+
+  function setLiveText(node, value) {
+    if (node && node.textContent !== String(value)) node.textContent = String(value);
   }
 
   function formatTimerClock(seconds) {

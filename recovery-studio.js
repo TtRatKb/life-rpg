@@ -575,7 +575,7 @@
     els.visual.dataset.phase = phase.key || "rest";
     if (!breathing) {
       els.visual.style.setProperty("--recovery-breath-scale", reached ? "1" : "0.92");
-      els.visual.innerHTML = `<span>${reached ? "✓" : def.icon}</span>`;
+      setRecoveryVisualLabel(reached ? "✓" : def.icon);
       return;
     }
     const progress = Math.max(0, Math.min(1, Number(phase.progress || 0)));
@@ -585,7 +585,17 @@
     else if (phase.key === "hold-in") scale = 1.02;
     else if (phase.key === "hold-out") scale = 0.78;
     els.visual.style.setProperty("--recovery-breath-scale", scale.toFixed(3));
-    els.visual.innerHTML = `<span>${escapeHtml(phase.label)}</span>`;
+    setRecoveryVisualLabel(phase.label);
+  }
+
+  function setRecoveryVisualLabel(value) {
+    if (!els.visual) return;
+    let label = els.visual.querySelector(":scope > span");
+    if (!label) {
+      label = document.createElement("span");
+      els.visual.replaceChildren(label);
+    }
+    if (label.textContent !== String(value ?? "")) label.textContent = String(value ?? "");
   }
 
   function currentPhase(def, elapsedSeconds) {
