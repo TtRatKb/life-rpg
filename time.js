@@ -522,6 +522,42 @@
     app.showToast?.(`${formatDuration(minutes)} logged${entry.reward ? ` · +${entry.reward.storyEnergy || 0} 🔥 · +${entry.reward.xp || 0} XP · +${entry.reward.coins || 0} 🪙` : ""}.`);
   }
 
+  // Calendar/weekly planner uses the same canonical time ledger and reward
+  // recalculation as a manual Time entry. Never reward a future appointment.
+  function logInterval(options = {}) {
+    const start = new Date(options.startAt || "");
+    const end = new Date(options.endAt || "");
+    if (!Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime()) || end <= start)
+      return { ok: false, reason: "Please choose a valid start and end." };
+    if (end.getTime() > Date.now() + 60000)
+      return { ok: false, reason: "Future plans cannot be marked as completed work." };
+    const minutes = Math.round((end - start) / 60000);
+    if (minutes < 1 || minutes > MAX_ACTIVE_HOURS * 60)
+      return { ok: false, reason: "A block must last between 1 minute and 18 hours." };
+    const sourceRef = clean(options.sourceRef);
+    if (sourceRef) {
+      const prior = state().entries.find(entry => entry.weekPlannerRef === sourceRef);
+      if (prior) return { ok: true, alreadyLogged: true, entry: { ...prior } };
+    }
+    const overlap = findOverlap(start, end);
+    if (overlap) return { ok: false, reason: `This overlaps an existing log: ${overlap.label}.`, overlap: { ...overlap } };
+    const entry = makeEntry({
+      startAt: start.toISOString(), endAt: end.toISOString(), minutes,
+      categoryId: options.categoryId || "school", subcategory: options.subcategory || "Teaching",
+      label: options.label || "Work block", mode: "manual"
+    });
+    if (sourceRef) entry.weekPlannerRef = sourceRef;
+    state().entries.push(entry);
+    state().entries.sort((a, b) => new Date(a.startAt || 0) - new Date(b.startAt || 0));
+    if (state().entries.length > MAX_ENTRIES) state().entries = state().entries.slice(-MAX_ENTRIES);
+    recalculateRewardsForDate(dateKey(end));
+    app.saveState({ source: "week-work-log" });
+    app.renderAll?.();
+    render();
+    dispatchChange();
+    return { ok: true, entry: { ...entry } };
+  }
+
   function editEntry(id) {
     const entry = state().entries.find(item => item.id === id);
     if (!entry) return;
@@ -916,6 +952,7 @@
     getTodaySummary: () => ({ ...todaySummary() }),
     getWeekSummary: () => ({ ...weekSummary() }),
     getEntries: () => state().entries.map(entry => ({ ...entry })),
+    logInterval,
     getActive: () => state().active ? { ...state().active } : null,
     getElapsedSeconds: () => {
       const active = state().active;
