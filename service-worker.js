@@ -1,4 +1,4 @@
-const CACHE_NAME = "life-rpg-v0314cw-skill-foundation";
+const CACHE_NAME = "life-rpg-v0314cx-dreamscape-v2";
 const ASSET_CACHE_NAME = "life-rpg-assets-v6";
 const MAX_RUNTIME_ASSETS = 96;
 const CORE = [
@@ -15,7 +15,7 @@ const CORE = [
   "./talent-tree-v2-graph.css?v=0.31.4cw",
   "./talent-content-v2.css?v=0.31.4ar",
   "./logic-expansion.css?v=0.31.4ar",
-  "./dreamscape.css?v=0.31.4cw",
+  "./dreamscape.css?v=0.31.4cx",
   "./skills.js?v=0.31.4ce",
   "./talent-v2.js?v=0.31.4bz",
   "./talent-tree-v2-graph.js?v=0.31.4cw",
@@ -75,7 +75,8 @@ const CORE = [
   "./assets/drawing/references/story-shared-action.svg",
   "./assets/drawing/references/story-shared-carry.svg",
   "./talent-content-v2.js?v=0.31.4cw",
-  "./dreamscape.js?v=0.31.4cw",
+  "./dreamscape-v2-scenes.js?v=0.31.4cx",
+  "./dreamscape.js?v=0.31.4cx",
   "./journal-rewards.js?v=0.31.4ag",
   "./weekly-review.css?v=0.31.4ag",
   "./weekly-review.js?v=0.31.4ag",
