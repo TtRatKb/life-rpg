@@ -26,3 +26,52 @@
 .week-dashboard-timer.hidden{display:none!important}
 .week-dashboard-timer-copy{display:flex;align-items:center;gap:9px}.week-dashboard-timer-copy>span{font-size:17px}.week-dashboard-timer-copy>div{display:grid;gap:1px}.week-dashboard-timer-copy small{color:#83596f;font-size:11px}
 @media(max-width:730px){.my-week-timer,.week-dashboard-timer{flex-wrap:wrap}.my-week-timer .week-timer-actions,.week-dashboard-timer .week-timer-actions{width:100%;justify-content:stretch}.my-week-timer .week-timer-actions button,.week-dashboard-timer .week-timer-actions button{flex:1 1 145px}}
+
+/* V0.31.4cu · My Week V2 calendar editor; scoped to avoid repainting other tabs */
+.my-week-view .week-body{grid-template-columns:minmax(0,1fr) minmax(305px,360px)}
+.my-week-view .week-sidebar{display:grid;grid-template-columns:1fr;gap:14px}
+.my-week-view .week-sidebar>.panel{padding:17px!important;min-width:0}
+.my-week-view .week-day-head{appearance:none;cursor:pointer;display:grid;place-content:center;gap:1px;width:100%;border-radius:0;border-top:0;border-right:0;background:transparent;min-height:52px;line-height:1.15}
+.my-week-view .week-day-head:hover,.my-week-view .week-day-head:focus-visible{background:#f5deeb;outline:2px solid #b977a0;outline-offset:-2px}
+.my-week-view .week-day-head small{font-size:9px;color:#98617f}
+.my-week-view .week-calendar-scroll{max-height:770px}
+.my-week-view .week-day-col{cursor:crosshair;user-select:none;-webkit-user-select:none;touch-action:pan-y}
+.my-week-view .week-event{cursor:pointer;touch-action:manipulation;user-select:none}
+.my-week-view .week-event:focus-visible{outline:3px solid #ad678e;outline-offset:1px;z-index:9}
+.my-week-view .week-drag-preview{box-sizing:border-box;position:absolute;left:3px;right:3px;min-height:8px;z-index:8;pointer-events:none;border:2px solid #9c5681;border-radius:7px;background:rgba(231,173,211,.64);color:#58314d;font-size:11px;font-weight:750;padding:4px;box-shadow:0 2px 14px rgba(91,42,74,.17)}
+.my-week-view .week-drag-preview[hidden]{display:none}
+.my-week-view .week-day-col.is-dragging{background-color:#fff0f8}
+.my-week-view .week-palette-panel{background:linear-gradient(145deg,#fffafd,#fcf0f7)!important;border:1px solid #e9cede!important}
+.my-week-view .week-palette-panel h2{font-size:18px}
+.my-week-view .week-mode-tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:12px 0}
+.my-week-view .week-mode-tabs button{border-radius:12px;border:1px solid #e7cede;background:#fff;padding:11px 8px;color:#6f5265;font-size:13px;font-weight:650;cursor:pointer}
+.my-week-view .week-mode-tabs button.is-active{border-color:#ce8fb3;background:#f6dbe9;color:#713454;box-shadow:inset 0 0 0 1px #e5b6ce}
+.my-week-view .week-palette{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin:11px 0}
+.my-week-view .week-palette-button{display:flex;flex-direction:column;gap:3px;position:relative;min-height:61px;text-align:left;justify-content:center;padding:10px 9px 9px 15px;border-radius:12px;border:1px solid #e9dce5;background:#fff;color:#5a4457;font-size:11px;font-weight:700;line-height:1.2}
+.my-week-view .week-palette-button i{position:absolute;left:0;top:9px;bottom:9px;width:5px;border-radius:0 4px 4px 0;background:#efbfd4}
+.my-week-view .week-palette-button i.supervision{background:#afd5de}.my-week-view .week-palette-button i.morning{background:#ead47f}.my-week-view .week-palette-button i.lunch{background:#efbca2}.my-week-view .week-palette-button i.conference{background:#bea9e5}.my-week-view .week-palette-button i.planning{background:#a6c6ee}.my-week-view .week-palette-button i.admin{background:#bfc2e5}.my-week-view .week-palette-button i.other{background:#d5c4db}
+.my-week-view .week-palette-button small{font-size:10px;color:#8c7584;font-weight:400}
+.my-week-view .week-palette-button.is-active{background:#f9e7f0;border-color:#c88db0;box-shadow:0 0 0 1px #ddb2cc;color:#67374e}
+.my-week-view .week-draft{margin-top:14px;padding:13px;border:1px solid #e2b4cf;border-radius:15px;background:#fffdfd;box-shadow:0 4px 18px rgba(123,61,104,.07)}
+.my-week-view .week-draft-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.my-week-view .week-draft-head h3{margin:0;font-size:15px;color:#673e5c}
+.my-week-view .week-draft-head button{border:1px solid #ead7e4;border-radius:8px;background:#fff;color:#78586b;font-size:21px;width:31px;height:31px;cursor:pointer}
+.my-week-view .week-draft-interval{border:1px solid #e3c9dc;background:#faf0f6;border-radius:10px;padding:9px 11px;color:#70445f;font-size:12px;font-weight:650;margin:0}
+.my-week-view .week-suggestion{display:block;color:#956a83;background:#fff3f9;border-radius:9px;padding:8px 9px;font-size:11px;line-height:1.35}
+.my-week-view .week-form label:has(input:focus),.my-week-view .week-form label:has(select:focus){color:#8e456f}
+.my-week-view .week-form input:focus-visible,.my-week-view .week-form select:focus-visible{outline:2px solid #b96f9a;outline-offset:0;border-color:#b96f9a}
+.my-week-view .week-auto-toggle{display:flex;gap:9px;align-items:flex-start;margin:12px 0;font-size:13px;color:#61465a;font-weight:650;line-height:1.4}
+.my-week-view .week-auto-toggle input{accent-color:#9e537b;width:17px;height:17px;flex-shrink:0}
+.my-week-view #weekAutoState,.my-week-view #weekDayOffStatus{font-size:11px;color:#8b6881}
+.my-week-view .week-absence{background:linear-gradient(145deg,#fffafd,#f4edf7)!important}
+.my-week-view .week-absence .week-form{margin-top:14px}
+.my-week-view .week-calendar-tip{font-size:12px}
+.my-week-view .week-detail-actions button:disabled{opacity:.45;cursor:not-allowed}
+.my-week-view .week-dashboard-today em{white-space:nowrap}
+@media(max-width:1160px){.my-week-view .week-body{grid-template-columns:1fr}.my-week-view .week-sidebar{grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}.my-week-view .week-palette-panel{grid-column:1}.my-week-view .week-selected{grid-column:2;grid-row:1}.my-week-view .week-manager,.my-week-view .week-absence{grid-column:span 1}}
+@media(max-width:760px){.my-week-view .week-sidebar{grid-template-columns:1fr}.my-week-view .week-palette-panel,.my-week-view .week-selected,.my-week-view .week-manager,.my-week-view .week-absence{grid-column:1;grid-row:auto}.my-week-view .week-calendar-scroll{max-height:670px}.my-week-view .week-palette-button{min-height:58px}}
+@media(prefers-reduced-motion:reduce){.my-week-view .week-live-dot{animation:none}}
+
+/* Timestamp-only events (quick logs/quests): correct position without inventing a duration. */
+.my-week-view .week-quick-log{position:absolute;inset:0;pointer-events:none;z-index:1;display:block}
+.my-week-view .week-quick-log .week-quick-chip{position:absolute;left:3px;right:3px;padding:3px 4px;border-radius:6px;border:1px solid #d5c3df;border-left:3px solid #9877b0;background:#f9f2ff;color:#705978;font-size:9px;line-height:1.2;overflow-wrap:anywhere;box-shadow:0 1px 3px rgba(70,40,65,.08)}

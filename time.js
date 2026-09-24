@@ -255,6 +255,13 @@
       app.showToast?.("That session ran for more than 18 hours. Add the correct time manually instead.");
       return;
     }
+    const collision = findOverlap(start, end);
+    if (collision) {
+      // Leave the active session available: a stopped timer must never silently
+      // add a second paid interval on top of an automatic school block.
+      app.showToast?.(`This timer overlaps an existing log (${collision.label}). Review that log or cancel the timer without logging.`);
+      return;
+    }
     const entry = makeEntry({
       startAt: start.toISOString(),
       endAt: end.toISOString(),
@@ -489,10 +496,11 @@
       return;
     }
 
-    let oldDate = null;
+    let oldDate = null, priorWeekRef = null;
     if (existingId) {
       const old = state().entries.find(item => item.id === existingId);
       oldDate = old ? dateKey(new Date(old.endAt || old.startAt || 0)) : null;
+      priorWeekRef = old?.weekPlannerRef || null;
       removeEntry(existingId, { silent: true, recalculate: false });
     }
     const entry = makeEntry({
@@ -506,6 +514,9 @@
       label: els.manualLabel?.value || "",
       mode: "manual"
     });
+    // Preserve the planned occurrence association after a user corrects its time.
+    // The correction becomes an explicit/manual entry and is not retracted as an automatic log.
+    if (priorWeekRef) { entry.weekPlannerRef = priorWeekRef; entry.weekPlannerAuto = false; }
     state().entries.push(entry);
     state().entries.sort((a, b) => new Date(a.startAt || 0) - new Date(b.startAt || 0));
     const newDate = dateKey(end);
@@ -550,12 +561,71 @@
     state().entries.push(entry);
     state().entries.sort((a, b) => new Date(a.startAt || 0) - new Date(b.startAt || 0));
     if (state().entries.length > MAX_ENTRIES) state().entries = state().entries.slice(-MAX_ENTRIES);
-    recalculateRewardsForDate(dateKey(end));
+    // Award the new confirmed interval against the already-paid day total.
+    // Do not revoke/reissue existing events or repeat their talent/gift hooks.
+    awardEntry(entry);
     app.saveState({ source: "week-work-log" });
     app.renderAll?.();
     render();
     dispatchChange();
     return { ok: true, entry: { ...entry } };
+  }
+
+  // Week V2 batch API: canonical time ledger + one reward recalculation/save per day.
+  // Never grants rewards for plans or for a duplicate / overlapping time block.
+  function logWeekBatch(specs = []) {
+    const tracker = state(), results = [], added = [];
+    if (!Array.isArray(specs)) return { added: 0, results };
+    for (const spec of specs) {
+      const start = new Date(spec.startAt || ""), end = new Date(spec.endAt || "");
+      const ref = clean(spec.sourceRef);
+      if (!ref.startsWith("slot:") || !Number.isFinite(+start) || !Number.isFinite(+end) || end <= start || +end > Date.now() + 60000) { results.push({ ref, status: "invalid" }); continue; }
+      const minutes = Math.round((end - start) / 60000);
+      if (minutes < 1 || minutes > MAX_ACTIVE_HOURS * 60) { results.push({ ref, status: "invalid" }); continue; }
+      if (tracker.entries.some(e => e.weekPlannerRef === ref)) { results.push({ ref, status: "exists" }); continue; }
+      if (findOverlap(start, end)) { results.push({ ref, status: "overlap" }); continue; }
+      const entry = makeEntry({ startAt: start.toISOString(), endAt: end.toISOString(), minutes,
+        categoryId: spec.categoryId || "school", subcategory: spec.subcategory || "Teaching", label: spec.label || "School block", mode: "manual" });
+      entry.weekPlannerRef = ref;
+      entry.weekPlannerAuto = true;
+      tracker.entries.push(entry);
+      added.push(entry);
+      results.push({ ref, status: "added", id: entry.id });
+    }
+    if (added.length) {
+      tracker.entries.sort((a, b) => new Date(a.startAt || 0) - new Date(b.startAt || 0));
+      if (tracker.entries.length > MAX_ENTRIES) tracker.entries = tracker.entries.slice(-MAX_ENTRIES);
+      // Each automatic row is awarded only once; repricing older rows could
+      // replay non-refundable talent/gift post-hooks and alter saved event IDs.
+      added.sort((a, b) => new Date(a.startAt || 0) - new Date(b.startAt || 0)).forEach(awardEntry);
+      app.saveState({ source: "week-auto-log" });
+      app.renderAll?.();
+      render();
+      dispatchChange();
+    }
+    return { added: results.filter(r => r.status === "added").length, results };
+  }
+
+  // Used for a sick day, day-off, or an explicitly canceled planned block.
+  // Only week-owned logs are touched, never independent manual time entries.
+  function removeWeekEntries({ refs = null, date = null, autoOnly = true } = {}) {
+    const selected = Array.isArray(refs) ? new Set(refs.map(clean)) : null;
+    const tracker = state(), removed = [];
+    tracker.entries = tracker.entries.filter(entry => {
+      if (!entry.weekPlannerRef || !/^(slot|appointment):/.test(entry.weekPlannerRef)) return true;
+      if (autoOnly && entry.weekPlannerAuto !== true) return true;
+      if (selected && !selected.has(entry.weekPlannerRef)) return true;
+      if (date && dateKey(new Date(entry.startAt)) !== date) return true;
+      if (entry.rewardEventId) app.revokeActivityReward?.(entry.rewardEventId);
+      removed.push(entry.id);
+      return false;
+    });
+    if (removed.length) {
+      // Only revoke removed rewards. Surviving auto/manual events are immutable.
+      app.saveState({ source: "week-auto-log-retraction" });
+      app.renderAll?.(); render(); dispatchChange();
+    }
+    return removed.length;
   }
 
   function editEntry(id) {
@@ -613,7 +683,7 @@
       if (!entry || entry.id === excludeId) return false;
       const a = new Date(entry.startAt).getTime();
       const b = new Date(entry.endAt).getTime();
-      return Number.isFinite(a) && Number.isFinite(b) && Math.min(end.getTime(), b) - Math.max(start.getTime(), a) > 5 * 60000;
+      return Number.isFinite(a) && Number.isFinite(b) && Math.min(end.getTime(), b) - Math.max(start.getTime(), a) > 0;
     }) || null;
   }
 
@@ -953,6 +1023,8 @@
     getWeekSummary: () => ({ ...weekSummary() }),
     getEntries: () => state().entries.map(entry => ({ ...entry })),
     logInterval,
+    logWeekBatch,
+    removeWeekEntries,
     getActive: () => state().active ? { ...state().active } : null,
     getElapsedSeconds: () => {
       const active = state().active;
