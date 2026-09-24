@@ -1,4 +1,4 @@
-const CACHE_NAME = "life-rpg-v0314da-companion-moments";
+const CACHE_NAME = "life-rpg-v0314db-living-world-v3";
 const ASSET_CACHE_NAME = "life-rpg-assets-v6";
 const MAX_RUNTIME_ASSETS = 96;
 const CORE = [
@@ -24,6 +24,8 @@ const CORE = [
   "./talent-v3-experiences.js?v=0.31.4da",
   "./companion-moments.css?v=0.31.4da",
   "./companion-moments.js?v=0.31.4da",
+  "./living-world-v3.js?v=0.31.4db",
+  "./living-world-v3.css?v=0.31.4db",
   "./talent-reward-studios.js?v=0.31.4cz",
   "./coloring-studio.html",
   "./coloring-studio.css?v=0.31.4ck",
