@@ -5049,8 +5049,30 @@
     return String(value || "").replace(/[^a-z0-9_-]/gi, "");
   }
 
+  // Read-only notice candidate: only genuinely unseen, context-reactive and reachable Talks.
+  // Notifications do not create or complete a Talk; normal Story gates still apply.
+  function contextualTalkNotice() {
+    if (!pack) return null;
+    for (const person of knownPeople()) {
+      const talk=nextTalkForPerson(person.id);
+      if (talk && reactivityScore(talk)>0 && !array(app.getState().story?.social?.seenTalkIds).includes(talk.id)) {
+        return {id:talk.id,personId:person.id};
+      }
+    }
+    return null;
+  }
+  function openContextualTalk(talkId) {
+    const talk=talkById(talkId);
+    if (!talk || reactivityScore(talk)<=0 || array(app.getState().story?.social?.seenTalkIds).includes(talk.id)) return false;
+    const status=personScheduleStatus(talk.personId);
+    if (!status.talkReachable || status.working || status.locationKey!==inferWorldLocation(talk)) return false;
+    if (status.locationKey==="sharedApartment" && status.roomId && status.roomId!==inferHomeRoom(talk)) return false;
+    return openTalk(talk.id);
+  }
   window.LifeRPGStoryUI = {
     beginOrContinue: handleStoryAction,
+    contextualTalkNotice,
+    openContextualTalk,
     openTalk: openNextTalk,
     openPhone,
     getWorldLocationStatus,

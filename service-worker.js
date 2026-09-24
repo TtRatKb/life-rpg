@@ -1,4 +1,4 @@
-const CACHE_NAME = "life-rpg-v0314db-living-world-v3";
+const CACHE_NAME = "life-rpg-v0314dc-social-delivery";
 const ASSET_CACHE_NAME = "life-rpg-assets-v6";
 const MAX_RUNTIME_ASSETS = 96;
 const CORE = [
@@ -24,7 +24,9 @@ const CORE = [
   "./talent-v3-experiences.js?v=0.31.4da",
   "./companion-moments.css?v=0.31.4da",
   "./companion-moments.js?v=0.31.4da",
-  "./living-world-v3.js?v=0.31.4db",
+  "./living-world-v3.js?v=0.31.4dc",
+  "./social-delivery.js?v=0.31.4dc",
+  "./social-delivery.css?v=0.31.4dc",
   "./living-world-v3.css?v=0.31.4db",
   "./talent-reward-studios.js?v=0.31.4cz",
   "./coloring-studio.html",
@@ -87,7 +89,7 @@ const CORE = [
   "./weekly-review.css?v=0.31.4ag",
   "./weekly-review.js?v=0.31.4ag",
   "./manifest.webmanifest?v=0.30.3a",
-  "./pwa.js?v=0.31.4da",
+  "./pwa.js?v=0.31.4dc",
   "./visual-performance.js?v=0.31.4bu",
   "./modal-manager.js?v=0.31.4d",
   "./training-focus.js?v=0.31.4o",
@@ -123,7 +125,7 @@ const CORE = [
   "./data/year-journal-questions.js?v=0.31.4ar",
   "./journal.js?v=0.31.4cz",
   "./story-engine.js?v=0.31.4cy",
-  "./story-ui.js?v=0.31.4cy",
+  "./story-ui.js?v=0.31.4dc",
   "./relationship-memory.js?v=0.31.4cy",
   "./relationship-memory.css?v=0.31.4ba",
   "./talks-v2.css?v=0.31.4cy",
@@ -218,4 +220,16 @@ self.addEventListener("fetch", event => {
   }
 
   event.respondWith(networkFirst(request));
+});
+
+// A user-initiated notification opt-in may use registration.showNotification on
+// browsers that disallow new Notification() inside a PWA. This is NOT push.
+self.addEventListener("notificationclick", event => {
+  event.notification.close();
+  event.waitUntil((async () => {
+    const existing=await clients.matchAll({type:"window",includeUncontrolled:true});
+    const page=existing.find(client => new URL(client.url).origin===self.location.origin);
+    if(page) return page.focus();
+    return clients.openWindow("./");
+  })());
 });
