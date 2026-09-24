@@ -185,6 +185,13 @@
       selectPeoplePerson(button.dataset.peopleSelect);
     });
 
+    els.peopleProfileDetails?.addEventListener("click", event => {
+      const button = event.target.closest("[data-replay-talk]");
+      if (!button) return;
+      event.preventDefault();
+      openTalk(button.dataset.replayTalk, { replay: true });
+    });
+
     els.peopleProfileActions?.addEventListener("click", event => {
       const talkButton = event.target.closest("[data-talk-person]");
       if (talkButton) { openNextTalk(talkButton.dataset.talkPerson); return; }
@@ -1354,7 +1361,7 @@
         ? `<span class="story-person-avatar"><img src="${escapeHtml(uiThumb(person.cardAsset))}" alt="" loading="lazy" decoding="async" /></span>`
         : `<span class="story-person-initial">${escapeHtml(person.name?.charAt(0) || "✦")}</span>`;
       const dailyBondDone = talkBondEarnedToday(person.id);
-      const talkLabel = talk ? (dailyBondDone ? "Talk · ✓ today" : "Talk") : "Talk";
+      const talkLabel = talk ? (dailyBondDone ? "New Talk · ✓ today" : "New Talk ✦") : "Talk · caught up";
 
       return `
         <article class="story-person-card ${escapeClass(person.tone || "default")}">
@@ -1468,6 +1475,7 @@
     }).join("");
 
     const label = relationshipLabel(selected);
+    const schedule = personScheduleStatus(selected.id);
     els.peopleProfileHero.innerHTML = `
       <div class="people-profile-art ${escapeClass(selected.tone || "default")}">
         ${selected.cardAsset ? `<img src="${escapeHtml(uiThumb(selected.cardAsset))}" alt="${escapeHtml(selected.name)}" loading="lazy" decoding="async" />` : `<span>${escapeHtml(selected.name?.charAt(0) || "✦")}</span>`}
@@ -1480,7 +1488,6 @@
         <div class="people-profile-now-v314bf"><span>◷</span><strong>${escapeHtml(schedule.label)}</strong><small>${schedule.talkReachable ? "You can talk if there is a fitting conversation here." : schedule.working ? "They have their own workday. Messages can still wait for them." : "Not every moment is available on demand."}</small></div>
       </div>`;
 
-    const schedule = personScheduleStatus(selected.id);
     const talk = nextTalkForPerson(selected.id);
     const hangout = nextHangoutForPerson(selected.id);
     const hangoutUnlocked = !selected.hangoutUnlockFlag || Boolean(state.flags?.[selected.hangoutUnlockFlag]);
@@ -1489,7 +1496,7 @@
     const pending = messagesUnlocked ? pendingReplyCount(selected.id) : 0;
     els.peopleProfileActions.innerHTML = `
       <button class="social-action-card" type="button" data-talk-person="${escapeHtml(selected.id)}" ${talk ? "" : "disabled"}>
-        <span class="social-action-icon">💬</span><span><strong>Talk</strong><small>${talk ? (reactivityScore(talk) > 0 ? "Conversation can pick up on what you’ve been doing lately · free" : talkBondEarnedToday(selected.id) ? "Today’s relationship gain is already earned · keep chatting for fun" : "First completed chat today grows familiarity · extra chats are just for fun") : schedule.working ? "Not available right now · they are working" : schedule.locationKey && !schedule.unlocked ? "They are out somewhere you cannot visit yet" : "No fitting Talk is available at their current location"}</small></span><b>${talk ? (talkBondEarnedToday(selected.id) ? "✓ TODAY" : "FREE") : "LATER"}</b>
+        <span class="social-action-icon">💬</span><span><strong>New Talk</strong><small>${talk ? (reactivityScore(talk) > 0 ? "Conversation can pick up on what you’ve been doing lately · free" : talkBondEarnedToday(selected.id) ? "Today’s relationship gain is already earned · keep chatting for fun" : "First completed chat today grows familiarity · extra chats are just for fun") : schedule.working ? "Not available right now · they are working" : schedule.locationKey && !schedule.unlocked ? "They are out somewhere you cannot visit yet" : "No new Talk here right now · previous conversations are in the Archive below"}</small></span><b>${talk ? (talkBondEarnedToday(selected.id) ? "✓ TODAY" : "NEW") : "LATER"}</b>
       </button>
       <button class="social-action-card" type="button" data-profile-message-person="${escapeHtml(selected.id)}" data-view-target="phone" ${messagesUnlocked ? "" : "disabled"}>
         <span class="social-action-icon">${messagesUnlocked ? "✉" : "🔒"}</span><span><strong>Messages</strong><small>${messagesUnlocked ? (unread ? `${unread} unread conversation${unread === 1 ? "" : "s"}` : pending ? `${pending} ${pending === 1 ? "reply is" : "replies are"} still open whenever you want` : "Story-linked threads · no expiry") : "Contact details have not been exchanged."}</small></span>${messagesUnlocked && unread ? `<b class="message-count">${unread} NEW</b>` : messagesUnlocked && pending ? `<b class="message-count reply-waiting">REPLY</b>` : ""}
@@ -1499,6 +1506,15 @@
       </button>`;
 
     const details = knownDetailsForPerson(selected);
+    const readTalks = array(state.story.social.seenTalkIds)
+      .map(talkById).filter(item => item?.personId === selected.id).reverse();
+    const talkArchiveMarkup = `<details class="talk-archive-v314cy">
+      <summary>✿ Talk Archive <span>${readTalks.length} remembered · replay any time</span></summary>
+      <p>Only conversations you have already finished appear here. Replay choices are just for fun and never overwrite what Luca actually said.</p>
+      <div class="talk-archive-list-v314cy">${readTalks.length
+        ? readTalks.map(talk => `<button type="button" data-replay-talk="${escapeHtml(talk.id)}"><span>${escapeHtml(talk.title || "A conversation")}</span><small>Revisit · no rewards</small></button>`).join("")
+        : "<p>Your conversations will collect here after you read them.</p>"}</div>
+    </details>`;
     els.peopleProfileDetails.innerHTML = `
       <div class="people-known-summary">
         <strong>${escapeHtml(selected.name)}</strong>
@@ -1507,6 +1523,7 @@
       <div class="people-social-rhythm"><small>CURRENT RHYTHM</small><p>${escapeHtml(socialRhythmForPerson(selected))}</p></div>
       <div class="people-known-list">${details.map(item => `<div><span>✿</span><p>${escapeHtml(item)}</p></div>`).join("")}</div>
       ${window.LifeRPGRelationshipMemory?.sharedThreadMarkup?.(selected.id) || ""}
+      ${talkArchiveMarkup}
       <div class="people-known-footnote">No meter. No optimization math. Shared history shows up through what people remember and how they behave.</div>`;
   }
 
@@ -2570,15 +2587,10 @@
       return weightedPick(timely, talk => 1 + reactivityScore(talk) * 4);
     }
 
-    const repeatable = eligible.filter(talk => !talk.once);
-    if (!repeatable.length) return null;
-    const neverRead = repeatable.filter(talk => !social.seenTalkIds.includes(talk.id));
-    if (neverRead.length) return weightedPick(neverRead, talk => 1 + reactivityScore(talk) * 5);
-    const recent = new Set(array(social.recentTalkIdsByPerson?.[personId]));
-    const fresh = repeatable.filter(talk => !recent.has(talk.id));
-    const notLast = repeatable.filter(talk => talk.id !== social.lastTalkId);
-    const pool = fresh.length ? fresh : notLast.length ? notLast : repeatable;
-    return weightedPick(pool, talk => 1 + reactivityScore(talk) * 5);
+    // Talks 2.0: repeatables are *unread conversations* here, not an automatic
+    // fallback loop. A previously seen Talk remains available from the archive.
+    const neverRead = eligible.filter(talk => !talk.once && !social.seenTalkIds.includes(talk.id));
+    return neverRead.length ? weightedPick(neverRead, talk => 1 + reactivityScore(talk) * 5) : null;
   }
 
   function talkLocationWeight(personId, talk) {
@@ -2634,17 +2646,10 @@
     }
 
     const unseenOnce = eligible.filter(talk => talk.once && !social.seenTalkIds.includes(talk.id));
-    let pool = unseenOnce.length ? unseenOnce : eligible.filter(talk => !talk.once);
-    if (!pool.length) return selectTalkFromEligible(personId, eligible);
-
-    if (!unseenOnce.length) {
-      const neverRead = pool.filter(talk => !social.seenTalkIds.includes(talk.id));
-      if (neverRead.length) pool = neverRead;
-      const recent = new Set(array(social.recentTalkIdsByPerson?.[personId]));
-      const fresh = pool.filter(talk => !recent.has(talk.id));
-      const notLast = pool.filter(talk => talk.id !== social.lastTalkId);
-      pool = fresh.length ? fresh : notLast.length ? notLast : pool;
-    }
+    let pool = unseenOnce.length ? unseenOnce : eligible.filter(talk => !talk.once && !social.seenTalkIds.includes(talk.id));
+    if (!pool.length) return null;
+    // A fresh one-off or as-yet-unread repeatable beats a familiar filler Talk.
+    // Re-reading remains an explicit, reward-free decision in the Talk Archive.
 
     // Keep authored priority meaningful, but allow place and time to matter.
     const maxPriority = Math.max(...pool.map(talk => Number(talk.priority || 0)));
@@ -3215,19 +3220,24 @@
     return openTalk(talk.id);
   }
 
-  function openTalk(talkId) {
+  function openTalk(talkId, { replay = false } = {}) {
     const talk = talkById(talkId);
-    if (!talk || !conditionMatches(talk)) return false;
+    if (!talk) return false;
     const state = app.getState();
     ensureStoryState();
+    if (replay) {
+      // A replay is allowed only after the original conversation was finished.
+      // No location, cooldown, energy, affinity, trait or memory changes.
+      if (!state.story.social.seenTalkIds.includes(talk.id)) return false;
+    } else if (!conditionMatches(talk)) return false;
 
     runtime = {
       kind: "talk",
       sceneId: talk.id,
-      replay: false,
+      replay: Boolean(replay),
       scene: talk,
       replaySelections: {},
-      progressionSnapshot: getSocialProgressionSnapshot("talk", talk.id, { create: true }),
+      progressionSnapshot: replay ? null : getSocialProgressionSnapshot("talk", talk.id, { create: true }),
       step: 0,
       sequence: [],
       finished: false
@@ -3235,13 +3245,15 @@
     runtime.sequence = buildSequence(runtime);
     resetVisualRenderState();
     scheduleRuntimeVisualPrefetch();
-    const savedStep = state.story.social.activeTalkId === talk.id
+    const savedStep = !replay && state.story.social.activeTalkId === talk.id
       ? Math.max(0, Number(state.story.social.talkStep || 0))
       : 0;
     runtime.step = Math.min(savedStep, Math.max(0, runtime.sequence.length - 1));
-    state.story.social.activeTalkId = talk.id;
-    state.story.social.talkStep = runtime.step;
-    app.saveState({ source: "social-talk-open" });
+    if (!replay) {
+      state.story.social.activeTalkId = talk.id;
+      state.story.social.talkStep = runtime.step;
+      app.saveState({ source: "social-talk-open" });
+    }
 
     els.readerPage.classList.remove("hidden");
     document.body.classList.add("story-mode-open");
@@ -4149,7 +4161,7 @@
     els.choices.classList.add("hidden");
     els.choices.innerHTML = "";
     els.advance.classList.remove("hidden");
-    els.advance.innerHTML = `${replay ? "Return to Memories" : "Return to Story Hub"} <span>›</span>`;
+    els.advance.innerHTML = `${replay ? (isTalk ? "Return to People" : "Return to Memories") : "Return to Story Hub"} <span>›</span>`;
     els.beatLabel.textContent = "Complete";
     els.progressReaderBar.style.width = "100%";
     els.saveStatus.textContent = replay ? "Replay only · canon unchanged" : isTalk ? "Social history saved" : isHangout ? "Hangout saved" : isEvent ? "World moment saved" : "Saved";

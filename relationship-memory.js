@@ -1,15 +1,15 @@
 (() => {
   "use strict";
 
-  if (window.__lifeRpgRelationshipMemoryV314bb) return;
-  window.__lifeRpgRelationshipMemoryV314bb = true;
+  if (window.__lifeRpgRelationshipMemoryV314cy) return;
+  window.__lifeRpgRelationshipMemoryV314cy = true;
 
   const app = window.LifeRPGApp;
   if (!app?.getState || !app?.saveState) return;
 
-  const VERSION = "0.31.4bc";
+  const VERSION = "0.31.4cy";
   const SCHEMA = 1;
-  const PEOPLE = ["mina", "bakugo", "kirishima"];
+  const PEOPLE = ["mina", "bakugo", "kirishima", "izuku"];
   let syncing = false;
   let timer = null;
 
@@ -93,7 +93,7 @@
   ];
 
   function defaults() {
-    return { schemaVersion:SCHEMA, version:VERSION, people:{ mina:{memories:{}}, bakugo:{memories:{}}, kirishima:{memories:{}} }, callbackHistory:[], migrations:{} };
+    return { schemaVersion:SCHEMA, version:VERSION, people:{ mina:{memories:{}}, bakugo:{memories:{}}, kirishima:{memories:{}}, izuku:{memories:{}} }, callbackHistory:[], migrations:{} };
   }
 
   function ensureState() {
