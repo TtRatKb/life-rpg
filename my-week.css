@@ -17,3 +17,12 @@
 @media(max-width:720px){.my-week-hero{display:block;padding:18px}.my-week-hero-actions{justify-content:flex-start;max-width:none;margin-top:12px}.my-week-toolbar{flex-wrap:wrap}.week-legend{width:100%;justify-content:center}.week-summary{gap:7px}.week-summary article{padding:10px}.week-summary strong{font-size:16px}.week-sidebar{grid-template-columns:1fr}.week-dashboard-intro{align-items:flex-start;flex-direction:column}.week-dashboard-card{padding:16px!important}}
 
 .week-dashboard-today button{border:1px solid #d8abc4;background:#fae1ec;border-radius:8px;font-size:11px;color:#713e61;padding:4px 8px}.week-plan-select-label{display:grid;gap:6px;font-size:12px;color:#745a70}.week-plan-select-label select{border:1px solid #decbd9;border-radius:10px;background:#fff;padding:10px;max-width:100%}
+
+/* V0.31.4ct: independent save/discard actions for every active session. */
+.my-week-timer .week-timer-actions,.week-dashboard-timer .week-timer-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.my-week-timer .week-timer-actions button,.week-dashboard-timer .week-timer-actions button{font-size:12px;min-height:39px;padding:9px 11px;white-space:normal;line-height:1.25}
+.my-week-timer #weekLiveClock,.week-dashboard-timer #weekDashboardClock{font-size:22px;letter-spacing:.025em;font-variant-numeric:tabular-nums;font-feature-settings:'tnum';color:#603651}
+.week-dashboard-timer{display:flex;align-items:center;gap:12px;justify-content:space-between;margin-top:13px;padding:12px 14px;border:1px solid #e4c9db;border-radius:13px;background:#fff9fd}
+.week-dashboard-timer.hidden{display:none!important}
+.week-dashboard-timer-copy{display:flex;align-items:center;gap:9px}.week-dashboard-timer-copy>span{font-size:17px}.week-dashboard-timer-copy>div{display:grid;gap:1px}.week-dashboard-timer-copy small{color:#83596f;font-size:11px}
+@media(max-width:730px){.my-week-timer,.week-dashboard-timer{flex-wrap:wrap}.my-week-timer .week-timer-actions,.week-dashboard-timer .week-timer-actions{width:100%;justify-content:stretch}.my-week-timer .week-timer-actions button,.week-dashboard-timer .week-timer-actions button{flex:1 1 145px}}

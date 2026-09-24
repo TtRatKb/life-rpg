@@ -962,6 +962,7 @@
     },
     finishActive,
     cancelActive,
+    startClock: options => startActive({ mode: "clock", categoryId: options?.categoryId || "school", subcategory: options?.subcategory || "Other school", label: options?.label || "Work session", targetMinutes: null, breakMinutes: 0, linkedQuestId: null }),
     startFocus: options => startActive({ mode: "focus", categoryId: options?.categoryId || "focus", subcategory: options?.subcategory || "Deep work", label: options?.label || "Focus session", targetMinutes: options?.minutes || 50, breakMinutes: options?.breakMinutes || 10, linkedQuestId: options?.linkedQuestId || null }),
     startAction: options => startActive({ mode: "action", categoryId: options?.categoryId || "life_admin", subcategory: options?.subcategory || "Other admin", label: options?.label || "Action", targetMinutes: options?.minutes || 15, breakMinutes: 0, linkedQuestId: options?.linkedQuestId || null, linkedAdventureId: options?.linkedAdventureId || null, linkedRoadmapStepId: options?.linkedRoadmapStepId || null }),
     startQuest: startQuestTimer,
