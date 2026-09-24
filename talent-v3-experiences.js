@@ -4,7 +4,7 @@
   const app = window.LifeRPGApp;
   const graph = window.LifeRPGTalentTreeGraph;
   if (!app?.getState || !app?.saveState || !graph?.isContentUnlocked) return;
-  const VERSION = "0.31.4cz";
+  const VERSION = "0.31.4da";
   const safe = value => app.escapeHtml?.(String(value ?? "")) ?? String(value ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   const dayKey = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
   const datePlus = days => { const d = new Date(); d.setHours(12,0,0,0); d.setDate(d.getDate()+days); return dayKey(d); };
@@ -210,7 +210,14 @@
     ["Home", "home-oracle", "⌂", "Home Oracle", "Your home activity wheels"],
     ["Home", "cozy-kitchen", "◉", "Cozy Kitchen", "Pantry-based meal ideas"],
     ["Hobbies", "coloring-studio", "✧", "Coloring Studio", "Your existing coloring work"],
-    ["Hobbies", "palette-atelier", "◈", "Palette Atelier", "Daily and practice color play"]
+    ["Hobbies", "palette-atelier", "◈", "Palette Atelier", "Daily and practice color play"],
+    ["Work", "work-moments", "✧", "After the Bell", "Three story-linked side moments with Katsuki and Eijiro"], 
+    ["Knowledge", "knowledge-moments", "◇", "Puzzle Table", "Three story-linked side moments with Katsuki and Eijiro"], 
+    ["Japanese", "japanese-moments", "あ", "Everyday Japanese", "Three story-linked side moments with Katsuki and Eijiro"], 
+    ["Health", "health-moments", "✿", "A Gentler Pace", "Three story-linked side moments with Katsuki and Eijiro"], 
+    ["Recovery", "recovery-moments", "☾", "Quiet Company", "Three story-linked side moments with Katsuki and Eijiro"], 
+    ["Home", "home-moments", "⌂", "Apartment Hours", "Three story-linked side moments with Katsuki and Eijiro"], 
+    ["Hobbies", "hobbies-moments", "♫", "Off-Duty Club", "Three story-linked side moments with Katsuki and Eijiro"]
   ];
   let libraryHtml = "";
   function renderLibrary() {
@@ -239,7 +246,14 @@
     "home-oracle":()=>window.LifeRPGTalentRewardStudios?.open?.("home-oracle"),
     "cozy-kitchen":()=>open("cozy-kitchen"),
     "coloring-studio":()=>window.LifeRPGTalentRewardStudios?.open?.("coloring-studio"),
-    "palette-atelier":()=>open("palette-atelier")
+    "palette-atelier":()=>open("palette-atelier"),
+    "work-moments":()=>window.LifeRPGCompanionMoments?.open?.("Work"), 
+    "knowledge-moments":()=>window.LifeRPGCompanionMoments?.open?.("Knowledge"), 
+    "japanese-moments":()=>window.LifeRPGCompanionMoments?.open?.("Japanese"), 
+    "health-moments":()=>window.LifeRPGCompanionMoments?.open?.("Health"), 
+    "recovery-moments":()=>window.LifeRPGCompanionMoments?.open?.("Recovery"), 
+    "home-moments":()=>window.LifeRPGCompanionMoments?.open?.("Home"), 
+    "hobbies-moments":()=>window.LifeRPGCompanionMoments?.open?.("Hobbies")
   };
   document.addEventListener("click", event => {
     const btn = event.target.closest?.("[data-v3-library]");

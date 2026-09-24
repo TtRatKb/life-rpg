@@ -12,8 +12,8 @@
     return;
   }
 
-  const VERSION = "0.31.4cz";
-  const SCHEMA = 6;
+  const VERSION = "0.31.4da";
+  const SCHEMA = 7;
   const REALMS = ["Work", "Knowledge", "Japanese", "Health", "Recovery", "Home", "Hobbies"];
 
   const META = {
@@ -31,7 +31,10 @@
           { content: "work-debrief" }, "Open School Moments", () => window.LifeRPGTalentV3?.open?.("school-moments")),
         planned("lesson-spark", "💡", "Lesson Spark Deck · Redesign",
           "Parked for now. Your existing Pinterest/books/resources already cover inspiration, so this needs a more genuinely rewarding concept before it can cost points.",
-          { content: "work-debrief" })
+          { content: "work-debrief" }),
+        linkedContent("work-moments", "✧", "After the Bell · Companion Moments", 1,
+          "Three story-linked home moments with Katsuki and Eijiro about teacher-life boundaries and being seen as more than work. The scene is the reward; never purchases affection or Main Story progress.",
+          { content: "school-moments", story: "SC_011" }, "Open After the Bell", () => window.LifeRPGCompanionMoments?.open?.("Work"))
       ]
     },
     Knowledge: {
@@ -51,7 +54,10 @@
           { content: "nurikabe" }, "Open Kakuro", () => window.LifeRPGLogicExpansion?.open?.("kakuro")),
         linkedContent("takuzu", "01", "Takuzu · Binary Logic", 1,
           "A fourth real puzzle game: eight unique 6×6 grids, a daily challenge, saved progress and optional practice. All grids have unique solutions.",
-          { content: "kakuro" }, "Open Takuzu", () => window.LifeRPGTalentV3?.open?.("takuzu"))
+          { content: "kakuro" }, "Open Takuzu", () => window.LifeRPGTalentV3?.open?.("takuzu")),
+        linkedContent("knowledge-moments", "◇", "Puzzle Table · Companion Moments", 1,
+          "Three optional VN moments around puzzles, shared curiosity and different ways of thinking. The scene is the reward; never purchases affection or Main Story progress.",
+          { content: "takuzu", story: "SC_011" }, "Open Puzzle Table", () => window.LifeRPGCompanionMoments?.open?.("Knowledge"))
       ]
     },
     Japanese: {
@@ -65,7 +71,10 @@
           {}, "Open DynaRiot Extras", () => window.LifeRPGTalentRewardStudios?.open?.("dynariot-japanese")),
         planned("shadowing-sprint", "🎙️", "Guided Shadowing · Redesign",
           "The old bring-your-own-audio timer was retired. A replacement must include playable Japanese audio, short clips, a transcript and actual echo/shadowing steps before it can cost a point.",
-          { content: "dynariot-japanese", contentRank: 1 })
+          { content: "dynariot-japanese", contentRank: 1 }),
+        linkedContent("japanese-moments", "あ", "Everyday Japanese · Companion Moments", 1,
+          "Three character-driven household conversations about speaking naturally and asking for help, not an empty shadowing timer. The scene is the reward; never purchases affection or Main Story progress.",
+          { content: "dynariot-japanese", story: "SC_011" }, "Open Everyday Japanese", () => window.LifeRPGCompanionMoments?.open?.("Japanese"))
       ]
     },
     Health: {
@@ -79,7 +88,10 @@
           {}, "Open Journal", () => app.showView?.("journal")),
         linkedContent("future-letter", "✉", "Future Me · Sealed Letters", 1,
           "Write a sealed letter for yourself to open after 7, 30 or 90 days. Save it in the normal cloud-save state and revisit it when the date arrives; no forced daily task.",
-          { content: "year-question" }, "Open Future Me", () => window.LifeRPGTalentV3?.open?.("future-letter"))
+          { content: "year-question" }, "Open Future Me", () => window.LifeRPGTalentV3?.open?.("future-letter")),
+        linkedContent("health-moments", "✿", "A Gentler Pace · Companion Moments", 1,
+          "Three small moments about movement, choice and pacing without forced fitness or guilt. The scene is the reward; never purchases affection or Main Story progress.",
+          { content: "future-letter", story: "SC_011" }, "Open A Gentler Pace", () => window.LifeRPGCompanionMoments?.open?.("Health"))
       ]
     },
     Recovery: {
@@ -94,9 +106,9 @@
         content("recovery-toolkit", "✦", "Recovery Toolkit", 1,
           "Second content step · a rotating set of short regulation prompts with a real Recovery timer and its own completion reward.",
           { content: "grounding-54321" }),
-        planned("recovery-expansion", "☁", "Distinct Recovery Experience · Later",
-          "Future content must be meaningfully different from the existing Grounding, Recovery Toolkit and Body Scan. No point can be spent yet.",
-          { content: "recovery-toolkit" })
+        linkedContent("recovery-moments", "☾", "Quiet Company · Companion Moments", 1,
+          "Three quiet VN moments that offer company, space and rest, not another body-scan timer. The scene is the reward; never purchases affection or Main Story progress.",
+          { content: "recovery-toolkit", story: "SC_011" }, "Open Quiet Company", () => window.LifeRPGCompanionMoments?.open?.("Recovery"))
       ]
     },
     Home: {
@@ -110,7 +122,10 @@
           {}, "Open Home Oracle", () => window.LifeRPGTalentRewardStudios?.open?.("home-oracle")),
         linkedContent("cozy-kitchen", "🍳", "Cozy Kitchen · Pantry Deck", 1,
           "Sixteen practical meal ideas with actual ingredients and steps. Filter by what you have and time available; save favorites and tried dishes, without inventing a Quest.",
-          { content: "home-oracle", contentRank: 1 }, "Open Cozy Kitchen", () => window.LifeRPGTalentV3?.open?.("cozy-kitchen"))
+          { content: "home-oracle", contentRank: 1 }, "Open Cozy Kitchen", () => window.LifeRPGTalentV3?.open?.("cozy-kitchen")),
+        linkedContent("home-moments", "⌂", "Apartment Hours · Companion Moments", 1,
+          "Three shared-apartment side moments with ordinary household choices and room to belong. The scene is the reward; never purchases affection or Main Story progress.",
+          { content: "cozy-kitchen", story: "SC_011" }, "Open Apartment Hours", () => window.LifeRPGCompanionMoments?.open?.("Home"))
       ]
     },
     Hobbies: {
@@ -127,7 +142,10 @@
           { content: "coloring-studio" }, "Open Palette Atelier", () => window.LifeRPGTalentV3?.open?.("palette-atelier")),
         planned("moodboard-mixer", "▣", "Moodboard Mixer · Later",
           "A future focused board tool for outfits, makeup, DIY and Adventure inspiration. Visible as a possible Hobbies expansion, but it cannot cost points until the tool actually exists.",
-          { content: "palette-atelier" })
+          { content: "palette-atelier" }),
+        linkedContent("hobbies-moments", "♫", "Off-Duty Club · Companion Moments", 1,
+          "Three VN scenes about games and fandom: two conversations plus a shared game-night extra. The scene is the reward; never purchases affection or Main Story progress.",
+          { content: "palette-atelier", story: "SC_011" }, "Open Off-Duty Club", () => window.LifeRPGCompanionMoments?.open?.("Hobbies"))
       ]
     }
   };
@@ -367,6 +385,12 @@
       if (!parent || getContentRank(realm, parent) < neededRank) {
         return { ok: false, label: `${parent?.title || "previous content unlock"}${neededRank > 1 ? ` ${roman(neededRank)}` : ""}` };
       }
+    }
+    if (req.story && !Array.isArray(app.getState().story?.completedSceneIds)) {
+      return { ok: false, label: "Continue Main Story to the shared-apartment chapter" };
+    }
+    if (req.story && !app.getState().story.completedSceneIds.includes(req.story)) {
+      return { ok: false, label: "Continue Main Story to the shared-apartment chapter" };
     }
     return { ok: true, label: "" };
   }
@@ -677,6 +701,7 @@
     const bits = [];
     if (req.special) bits.push(`${META[realm].special.title} ${roman(req.special)}`);
     if (req.content) bits.push(`${contentTitle(realm, req.content)}${Number(req.contentRank || 1) > 1 ? ` ${roman(req.contentRank)}` : ""}`);
+    if (req.story) bits.push("Shared-apartment chapter completed");
     return bits.join(" + ") || "Available immediately";
   }
 
