@@ -12,8 +12,8 @@
     return;
   }
 
-  const VERSION = "0.31.4cw";
-  const SCHEMA = 5;
+  const VERSION = "0.31.4cz";
+  const SCHEMA = 6;
   const REALMS = ["Work", "Knowledge", "Japanese", "Health", "Recovery", "Home", "Hobbies"];
 
   const META = {
@@ -26,9 +26,9 @@
         content("work-debrief", "🧾", "Work Deep Brief", 1,
           "Starter unlock · spend 1 Work point and use it immediately. A deeper Work reflection for closing the loop after a demanding day, with voice dictation or typing.",
           {}),
-        planned("work-focus-challenges", "◆", "Work content expansion · Redesign",
-          "The old Focus Challenge Deck was retired. A genuinely distinct Work unlock will be built before another point is charged.",
-          { content: "work-debrief" }),
+        linkedContent("school-moments", "✎", "School Moments · Choice Stories", 1,
+          "Ten interactive teaching-life situations. Pick a response, explore its trade-offs and keep a personal reflection; the story itself is the reward.",
+          { content: "work-debrief" }, "Open School Moments", () => window.LifeRPGTalentV3?.open?.("school-moments")),
         planned("lesson-spark", "💡", "Lesson Spark Deck · Redesign",
           "Parked for now. Your existing Pinterest/books/resources already cover inspiration, so this needs a more genuinely rewarding concept before it can cost points.",
           { content: "work-debrief" })
@@ -48,7 +48,10 @@
           { content: "slitherlink" }, "Open Nurikabe", () => window.LifeRPGLogicExpansion?.open?.("nurikabe")),
         linkedContent("kakuro", "＋", "Kakuro", 1,
           "Add a third real logic game: Daily + Practice Kakuro.",
-          { content: "nurikabe" }, "Open Kakuro", () => window.LifeRPGLogicExpansion?.open?.("kakuro"))
+          { content: "nurikabe" }, "Open Kakuro", () => window.LifeRPGLogicExpansion?.open?.("kakuro")),
+        linkedContent("takuzu", "01", "Takuzu · Binary Logic", 1,
+          "A fourth real puzzle game: eight unique 6×6 grids, a daily challenge, saved progress and optional practice. All grids have unique solutions.",
+          { content: "kakuro" }, "Open Takuzu", () => window.LifeRPGTalentV3?.open?.("takuzu"))
       ]
     },
     Japanese: {
@@ -57,8 +60,8 @@
       subtitle: "Open character-driven Japanese content immediately, then expand the pool or branch into speaking practice.",
       dream: { title: "Between Words", copy: "language, repeated phrases, and things that become easier to say softly" },
       content: [
-        rankedContent("dynariot-japanese", "🌸", "DynaRiot Japanese Extras", 2,
-          "Rank I: 8 spoiler-free, non-canon Bakugo/Kirishima media cards enter the daily pool. Rank II: expand to all 16 current cards. Japanese is the medium; no vocabulary/SRS layer.",
+        rankedContent("dynariot-japanese", "🌸", "DynaRiot Japanese Extras", 3,
+          "Rank I: 8 character cards. Rank II: 16. Rank III: 24 fully written Japanese cards with comprehension and archive. One real new pool per rank; non-canon and spoiler-safe.",
           {}, "Open DynaRiot Extras", () => window.LifeRPGTalentRewardStudios?.open?.("dynariot-japanese")),
         planned("shadowing-sprint", "🎙️", "Guided Shadowing · Redesign",
           "The old bring-your-own-audio timer was retired. A replacement must include playable Japanese audio, short clips, a transcript and actual echo/shadowing steps before it can cost a point.",
@@ -74,9 +77,9 @@
         nativeContent("year-question", "📅", "365 Question Journal", 1,
           "Starter unlock · one different reflection question for every date of the year, recurring annually, with spoken or typed answers.",
           {}, "Open Journal", () => app.showView?.("journal")),
-        planned("health-reflection-2", "◌", "Second Reflection Form · Redesign",
-          "Reserved for a future reflection form that feels meaningfully different from the normal Journal instead of another generic prompt box.",
-          { content: "year-question" })
+        linkedContent("future-letter", "✉", "Future Me · Sealed Letters", 1,
+          "Write a sealed letter for yourself to open after 7, 30 or 90 days. Save it in the normal cloud-save state and revisit it when the date arrives; no forced daily task.",
+          { content: "year-question" }, "Open Future Me", () => window.LifeRPGTalentV3?.open?.("future-letter"))
       ]
     },
     Recovery: {
@@ -90,7 +93,10 @@
           {}, "Open Recovery Studio", () => window.LifeRPGRecoveryStudio?.open?.()),
         content("recovery-toolkit", "✦", "Recovery Toolkit", 1,
           "Second content step · a rotating set of short regulation prompts with a real Recovery timer and its own completion reward.",
-          { content: "grounding-54321" })
+          { content: "grounding-54321" }),
+        planned("recovery-expansion", "☁", "Distinct Recovery Experience · Later",
+          "Future content must be meaningfully different from the existing Grounding, Recovery Toolkit and Body Scan. No point can be spent yet.",
+          { content: "recovery-toolkit" })
       ]
     },
     Home: {
@@ -101,7 +107,10 @@
       content: [
         rankedContent("home-oracle", "🔮", "Home Oracle", 2,
           "Rank I: create and use one weighted decision wheel. Rank II: remove the wheel limit and keep as many saved wheels as you actually use.",
-          {}, "Open Home Oracle", () => window.LifeRPGTalentRewardStudios?.open?.("home-oracle"))
+          {}, "Open Home Oracle", () => window.LifeRPGTalentRewardStudios?.open?.("home-oracle")),
+        linkedContent("cozy-kitchen", "🍳", "Cozy Kitchen · Pantry Deck", 1,
+          "Sixteen practical meal ideas with actual ingredients and steps. Filter by what you have and time available; save favorites and tried dishes, without inventing a Quest.",
+          { content: "home-oracle", contentRank: 1 }, "Open Cozy Kitchen", () => window.LifeRPGTalentV3?.open?.("cozy-kitchen"))
       ]
     },
     Hobbies: {
@@ -113,9 +122,12 @@
         rankedContent("coloring-studio", "🖍️", "Coloring Studio", 1,
           "Rank I permanently unlocks Coloring Studio plus the companion Drawing Studio with guided practice quests. New coloring pages and Drawing Challenge packs are library additions, not extra Talent ranks.",
           {}, "Open Coloring Studio", () => window.LifeRPGTalentRewardStudios?.open?.("coloring-studio")),
+        linkedContent("palette-atelier", "◈", "Palette Atelier", 1,
+          "An interactive color-matching game with three rounds, visible feedback, eight curated palettes, and daily or practice play. New Coloring cards remain free library additions.",
+          { content: "coloring-studio" }, "Open Palette Atelier", () => window.LifeRPGTalentV3?.open?.("palette-atelier")),
         planned("moodboard-mixer", "▣", "Moodboard Mixer · Later",
           "A future focused board tool for outfits, makeup, DIY and Adventure inspiration. Visible as a possible Hobbies expansion, but it cannot cost points until the tool actually exists.",
-          { content: "coloring-studio", contentRank: 1 })
+          { content: "palette-atelier" })
       ]
     }
   };

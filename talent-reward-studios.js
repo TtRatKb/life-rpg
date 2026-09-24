@@ -11,7 +11,7 @@
     return;
   }
 
-  const VERSION = "0.31.4cw";
+  const VERSION = "0.31.4cz";
   const SCHEMA = 2;
   const DRAWING_REWARD_QUEUE_KEY = "lifeRpgDrawingStudioRewardQueueV1";
   let processingDrawingRewards = false;
@@ -209,6 +209,15 @@
       meaning: "The message asks staff who remain late to make sure they tell someone before going home, and says they don't need to force themselves to finish everything alone.",
       note: "無理に means forcing something / pushing beyond what is reasonable."
     }
+,
+    { id: 'chat-stationery', type: 'AGENCY CHAT', icon: "🌸", title: 'The missing pen', jp: '切島：俺の赤いペン知らねぇ？\n爆豪：胸ポケット。\n切島：……あった。\n爆豪：探す前に見ろ。', question: 'Where was Kirishima’s pen?', options: ["In his chest pocket", "In the kitchen", "Under a notebook"], correct: 0, meaning: 'Kirishima cannot find his red pen. Bakugo points out that it is in his chest pocket.', note: '胸ポケット means chest pocket.' },
+    { id: 'memo-window', type: 'AGENCY MEMO', icon: "🌸", title: 'A quiet reminder', jp: '換気のため、昼休みに窓を開けてください。\n雨の日は無理に開けなくて大丈夫です。', question: 'When should the windows be opened?', options: ["Every evening", "During lunch break, unless it rains", "Only on rainy days"], correct: 1, meaning: 'The note asks staff to open windows at lunch for ventilation but says they do not have to do so on rainy days.', note: '換気 means ventilation; 無理に means unnecessarily forcing it.' },
+    { id: 'qa-books', type: 'QUICK Q&A', icon: "🌸", title: 'Whose bookmark?', jp: 'Q：最近読んでいる本は？\n切島：料理の本！作りたいものが多くてさ。\n爆豪：作る前に材料を確認しろ。', question: 'What is Kirishima reading?', options: ["A cookbook", "A travel guide", "A biography"], correct: 0, meaning: 'Kirishima is reading a cookbook and finds lots he wants to make. Bakugo tells him to check ingredients first.', note: '〜前に means before doing something.' },
+    { id: 'chat-train', type: 'AGENCY CHAT', icon: "🌸", title: 'One stop too far', jp: '切島：やべ、電車で一駅乗り過ごした！\n爆豪：反対方向に戻れ。\n切島：分かってるって！', question: 'What happened to Kirishima?', options: ["He missed the train", "He rode one stop too far", "He lost his ticket"], correct: 1, meaning: 'He went one train station past his stop. Bakugo tells him to go back in the opposite direction.', note: '乗り過ごす means to miss your stop / ride past it.' },
+    { id: 'social-break', type: 'DYNARIOT POST', icon: "🌸", title: 'An ordinary break', jp: '今日は二人とも事務所で昼食。\n切島はおにぎり二個、爆豪は作り置きの弁当。\n午後の仕事に戻る前に、少し休みます。', question: 'What is Bakugo eating?', options: ["Two rice balls", "A prepared bento", "Restaurant ramen"], correct: 1, meaning: 'Both eat at the agency. Kirishima has two rice balls while Bakugo has a meal-prepped bento.', note: '作り置き means making food in advance.' },
+    { id: 'memo-copies', type: 'AGENCY MEMO', icon: "🌸", title: 'Print once, check twice', jp: '会議用の資料は人数分だけ印刷してください。\n古い版と間違えないよう、日付も確認しましょう。', question: 'What should be checked before printing?', options: ["The paper color", "The date and correct version", "Everyone’s lunch order"], correct: 1, meaning: 'Print only enough copies for the meeting and check the date to avoid using an old version.', note: '人数分 means enough for the number of people.' },
+    { id: 'qa-holidays', type: 'QUICK Q&A', icon: "🌸", title: 'A completely free day', jp: 'Q：予定が何もない日は何をしますか？\n切島：朝はゆっくりして、昼から散歩かな。\n爆豪：先に寝る。あとは起きてから決める。', question: 'What does Bakugo decide in advance?', options: ["A long walk", "To sleep first", "A restaurant"], correct: 1, meaning: 'Kirishima would take a slow morning and walk in the afternoon. Bakugo first plans to sleep, then decide the rest after waking.', note: '起きてから means after waking up.' },
+    { id: 'chat-lunchbox', type: 'AGENCY CHAT', icon: "🌸", title: 'The spare lunchbox', jp: '切島：弁当箱、洗って返したぞ。ありがとな。\n爆豪：蓋が違う。\n切島：あっ、俺のと逆だ！', question: 'What is wrong with the lunchbox?', options: ["The lid is mixed up", "It was not washed", "The food is missing"], correct: 0, meaning: 'Kirishima washed and returned the lunchbox, but put the wrong lid on it.', note: '蓋 is a lid; 逆 means reversed or mixed up.' },
   ];
 
   const COLORING_PAGES = [
@@ -606,7 +615,7 @@
 
   function japaneseCardPool() {
     const rank = contentRank("Japanese", "dynariot-japanese");
-    return JAPANESE_CARDS.slice(0, rank >= 2 ? JAPANESE_CARDS.length : 8);
+    return JAPANESE_CARDS.slice(0, rank >= 3 ? JAPANESE_CARDS.length : rank >= 2 ? 16 : 8);
   }
 
   function homeWheelLimit() {
@@ -685,7 +694,7 @@
 
     content.innerHTML = `
       <header class="reward-studio-head-v314as japanese">
-        <div><p class="eyebrow">JAPANESE TALENT CONTENT · RANK ${roman(contentRank("Japanese", "dynariot-japanese"))}/II · NON-CANON BONUS</p><h2>DynaRiot Japanese Extras</h2><p>Character content first; Japanese is the medium. No vocabulary rating, no SRS, no Story flags. ${contentRank("Japanese", "dynariot-japanese") < 2 ? "Rank II expands the daily pool from 8 to 16 cards." : "All 16 current cards are in the daily pool."}</p></div>
+        <div><p class="eyebrow">JAPANESE TALENT CONTENT · RANK ${roman(contentRank("Japanese", "dynariot-japanese"))}/III · NON-CANON BONUS</p><h2>DynaRiot Japanese Extras</h2><p>Character content first; Japanese is the medium. No vocabulary rating, no SRS, no Story flags. ${contentRank("Japanese", "dynariot-japanese") < 2 ? "Rank II expands the pool to 16 cards." : contentRank("Japanese", "dynariot-japanese") < 3 ? "Rank III adds eight new cards (24 total)." : "All 24 cards are available."}</p></div>
         <div class="reward-studio-tabs-v314as"><button type="button" class="${archiveMode ? "" : "is-active"}" data-jp-tab="daily">Today's extra</button><button type="button" class="${archiveMode ? "is-active" : ""}" data-jp-tab="archive">Archive ${Object.keys(state().japanese.collected).length}/${japaneseCardPool().length} available</button></div>
       </header>
       <article class="jp-extra-card-v314as">

@@ -42,6 +42,43 @@
     yearQuestion: { icon: "📅", label: "365 Question Journal", talentRealm: "Health", talentId: "year-question" }
   };
 
+  // Alternative authored prompts for the existing 365 Question unlock. These are a
+  // free usability improvement, never a second Talent purchase or a reward source.
+  const YEAR_QUESTION_ALTERNATIVES = [
+    "Which fictional world would you borrow a tiny ordinary thing from, and where would you put it?",
+    "Which game, song, book or scene has been living rent-free in your head lately?",
+    "If today had a soundtrack, what would play during its last five minutes?",
+    "What tiny luxury feels ridiculously good even though it costs almost nothing?",
+    "Which outfit, makeup look or hair idea do you want to try just for yourself?",
+    "What is one thing your younger self would love about your current room or belongings?",
+    "Which fictional character would you trust to cook dinner, and what could go wrong?",
+    "Describe a place you'd like to sit for an hour with absolutely no agenda.",
+    "What small thing would make tomorrow feel more like your own day?",
+    "What are you looking forward to that has nothing to do with being productive?",
+    "What is a niche interest you could happily talk about for twenty minutes?",
+    "Which ordinary part of your life would look unexpectedly beautiful in a movie still?",
+    "What book or game would you love to rediscover without remembering the plot?",
+    "Which smell, texture or sound makes a room feel safe and familiar to you?",
+    "What opinion about a hobby have you changed since you first got into it?",
+    "What have you made, customized, collected or arranged that feels unmistakably yours?",
+    "What harmlessly dramatic title would you give today's chapter?",
+    "What kind of day-off plan is actually a day off for you?",
+    "If you had a secret little café, what would be on its menu and playlist?",
+    "What did you notice today that another person might have walked straight past?",
+    "What is something you used to enjoy and could invite back in a smaller way?",
+    "What real-life skill would you like to learn purely because it sounds fun?",
+    "What are three things you would put in a time capsule of this exact season?",
+    "Which small domestic ritual would you like to make more pleasant?",
+    "What would be an absurdly specific achievement for your real-life character today?",
+    "What makes a conversation feel genuinely comfortable to you?",
+    "If your current mood were a palette, which three colors would it use?",
+    "What's one detail in your surroundings you would change for a cozier evening?",
+    "What's a scene from something you've watched that you remember mostly for the atmosphere?",
+    "What is one thing you wish people asked you about more often?",
+    "What would you name a cozy side quest for tomorrow?",
+    "Which everyday errand would be more fun with a friend, and why?",
+  ];
+
   const JOURNAL_FIELD_REWARD_TIERS = [
     { threshold: 50, xp: 5, coins: 5, storyEnergyBase: 0 },
     { threshold: 150, xp: 5, coins: 5, storyEnergyBase: 0.10 },
@@ -295,6 +332,30 @@
     els.reflectionSave?.addEventListener("click", saveReflectionField);
     els.reflectionDictate?.addEventListener("click", toggleReflectionDictation);
     els.reflectionTextarea?.addEventListener("input", renderReflectionRewardMeter);
+    document.addEventListener("change", event => {
+      const picker = event.target.closest?.("[data-journal-question-picker]");
+      if (!picker) return;
+      const mode = picker.dataset.journalQuestionPicker;
+      const date = mode === "day" ? editingDate : reflectionDate;
+      if (!date || (mode === "reflection" && reflectionField !== "yearQuestion")) return;
+      const entry = entryFor(date, true);
+      if (cleanText(entry.yearQuestion)) {
+        app.showToast?.("This day's answered question is preserved. Your original answer is safe.");
+        showQuestionPicker(mode, entry);
+        return;
+      }
+      const idx = Number(picker.value);
+      entry.yearQuestionPrompt = idx >= 0 && idx < YEAR_QUESTION_ALTERNATIVES.length ? YEAR_QUESTION_ALTERNATIVES[idx] : "";
+      entry.updatedAt = Date.now();
+      app.saveState({source:"journal-question-choice",suppressUiRefresh:true});
+      if (mode === "day") syncYearQuestionDayField(entry);
+      else {
+        const prompt = yearQuestionForDate(date);
+        if (els.reflectionPrompt) els.reflectionPrompt.textContent = prompt;
+        renderReflectionCompanion(reflectionCompanion,prompt);
+        showQuestionPicker(mode,entry);
+      }
+    });
     [els.dayGratitude, els.daySmallWin, els.dayHardThing, els.dayYearQuestion].forEach(input => input?.addEventListener("input", renderDayRewardMeter));
     els.reflectionChoiceStep?.addEventListener("click", event => {
       const choice = event.target.closest?.("[data-reflection-field]");
@@ -519,6 +580,7 @@
     els.reflectionWriteStep?.classList.remove("hidden");
     const prompt = field === "yearQuestion" ? yearQuestionForDate(reflectionDate) : reflectionCompanion.prompts[field];
     if (els.reflectionPrompt) els.reflectionPrompt.textContent = prompt;
+    showQuestionPicker("reflection", entry);
     if (els.reflectionTextarea) {
       els.reflectionTextarea.value = entry[field] || "";
       els.reflectionTextarea.placeholder = field === "gratitude" ? "Tiny things count…" : field === "smallWin" ? "What deserves credit?" : field === "yearQuestion" ? "Type it — or tap Speak answer and just talk…" : "You don't have to solve it here…";
@@ -575,6 +637,7 @@
     if (els.dayYearQuestionPrompt && editingDate) {
       els.dayYearQuestionPrompt.textContent = unlocked ? yearQuestionForDate(editingDate) : "Locked · Health Talent Tree";
     }
+    showQuestionPicker("day", entry);
     renderDayRewardMeter();
   }
 
@@ -1046,8 +1109,34 @@
 
   function yearQuestionForDate(dateKeyValue = todayKey()) {
     const date = typeof dateKeyValue === "string" ? dateFromKey(dateKeyValue) : dateKeyValue;
-    return window.LifeRPGYearJournalQuestions?.questionForDate?.(date)
+    const key = typeof dateKeyValue === "string" ? dateKeyValue : localDateKey(date);
+    const saved = entryFor(key, false)?.yearQuestionPrompt;
+    return (typeof saved === "string" && saved.trim()) || window.LifeRPGYearJournalQuestions?.questionForDate?.(date)
       || "What feels worth noticing about today?";
+  }
+
+  function showQuestionPicker(mode, entry = {}) {
+    const reflection = mode === "reflection";
+    const anchor = reflection ? els.reflectionPrompt : els.dayYearQuestionPrompt;
+    if (!anchor) return;
+    const id = `journalQuestionPickerCZ-${mode}`;
+    let select = document.getElementById(id);
+    const visible = reflection ? reflectionField === "yearQuestion" && reflectionFieldUnlocked("yearQuestion") : reflectionFieldUnlocked("yearQuestion") && Boolean(editingDate);
+    if (!visible) { if(select) select.hidden = true; return; }
+    if (!select) {
+      select = document.createElement("select");
+      select.id = id;
+      select.dataset.journalQuestionPicker = mode;
+      select.className = "journal-question-picker-v314cz";
+      select.setAttribute("aria-label","Choose an alternative journal question");
+      select.innerHTML = `<option value="-1">Original dated question</option>` + YEAR_QUESTION_ALTERNATIVES.map((question,i) => `<option value="${i}">${esc(question)}</option>`).join("");
+      anchor.insertAdjacentElement("afterend",select);
+    }
+    const index = YEAR_QUESTION_ALTERNATIVES.indexOf(entry.yearQuestionPrompt || "");
+    select.value = String(index);
+    select.hidden = Boolean(cleanText(entry.yearQuestion));
+    select.disabled = Boolean(cleanText(entry.yearQuestion));
+    select.title = "Choose a question before writing. A completed entry keeps its exact question.";
   }
 
   function toggleReflectionDictation() {

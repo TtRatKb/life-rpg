@@ -513,6 +513,9 @@
     if (source === "number-sense-daily-replay") return nativeSkill("quantitative-reasoning", 8, "number-sense-replay");
     if (source === "memory-garden-complete") return nativeSkill("memory-recall", 10, "memory-garden");
     if (source === "memory-garden-daily-replay") return nativeSkill("memory-recall", 8, "memory-garden-replay");
+    if (source === "talent-v3-school-moment") return nativeSkill("teaching-facilitation", Math.max(0, Number(reward.metadata?.skillXP ?? 5)), "school-moments");
+    if (source === "talent-v3-takuzu") return nativeSkill("logical-pattern-reasoning", Math.max(0, Number(reward.metadata?.skillXP ?? 10)), "takuzu");
+    if (source === "talent-v3-palette") return nativeSkill("style-visual-design", Math.max(0, Number(reward.metadata?.skillXP ?? 9)), "palette-atelier");
     if (source === "drawing-studio") return nativeSkill("creative-expression", Math.max(0, Number(reward.metadata?.skillXP || 8)), "drawing-studio");
     if (source === "lexicon-calibration") return nativeSkill("language-expression", 5, "lexicon-calibration");
     if (source === "lexicon-daily-word") return nativeSkill("language-expression", 4, "lexicon-daily-word");

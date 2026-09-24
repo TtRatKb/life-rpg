@@ -42,6 +42,10 @@
       const status = window.LifeRPGLogicExpansion?.getStatus?.(id);
       if (status?.unlocked) add(id,label,status.dailySolved,"growth",id,"Daily puzzle, practice remains available");
     }
+    for (const [id,label] of [["takuzu","Takuzu"],["palette-atelier","Palette Atelier"]]) {
+      const status = window.LifeRPGTalentV3?.getStatus?.(id);
+      if (status?.unlocked) add(id,label,status.dailySolved,"growth",id,"Daily puzzle · practice remains available");
+    }
     return rows;
   }
   function renderChecklist() {
@@ -61,6 +65,7 @@
       case "dynariot":window.LifeRPGTalentRewardStudios?.open?.("dynariot-japanese");break;
       case "yearQuestion":app.showView("journal");window.LifeRPGJournal?.openReflection?.(localDay());break;
       case "slitherlink":case "nurikabe":case "kakuro":window.LifeRPGLogicExpansion?.open?.(action);break;
+      case "takuzu":case "palette-atelier":window.LifeRPGTalentV3?.open?.(action);break;
       default:app.showView("growth");
     }
   }
@@ -154,7 +159,7 @@
   window.addEventListener("focus",scheduleRender);
   document.addEventListener("visibilitychange",()=>{if(!document.hidden)scheduleRender();});
   // No 1-second DOM rebuilding; static rewards are updated only after save/render events.
-  window.LifeRPGDailyLife={version:"0.31.4cw",render,getChecklist,objective};
+  window.LifeRPGDailyLife={version:"0.31.4cz",render,getChecklist,objective};
   render();
   window.LifeRPGStoryEngine?.loadPack?.().then(value=>{pack=value;scheduleRender();}).catch(()=>{/* Story UI handles pack errors itself; do not invent costs. */});
 })();
