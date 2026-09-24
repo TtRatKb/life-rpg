@@ -12,8 +12,8 @@
     return;
   }
 
-  const VERSION = "0.31.4ax";
-  const SCHEMA = 1;
+  const VERSION = "0.31.4cw";
+  const SCHEMA = 2;
   const DAY_MS = 24 * 60 * 60 * 1000;
   const REALMS = ["Work","Knowledge","Japanese","Health","Recovery","Home","Hobbies"];
   const BASE_DREAMS = [
@@ -1204,6 +1204,7 @@
   let renderTimer = null;
   let archiveFilter = "all";
   let archiveRealm = "all";
+  let reader = null;
 
   init();
 
@@ -1231,6 +1232,7 @@
       lastReadAt: null,
       pendingDreamId: null,
       pendingFocus: null,
+      pendingStep: 0,
       archive: []
     };
   }
@@ -1245,6 +1247,7 @@
     s.version = VERSION;
     if (!["surprise","bakugo","kirishima","both"].includes(s.preference)) s.preference = "surprise";
     s.archive = Array.isArray(s.archive) ? s.archive.filter(item => item?.dreamId) : [];
+    s.pendingStep = Math.max(0, Math.floor(Number(s.pendingStep || 0)));
     return s;
   }
 
@@ -1368,6 +1371,10 @@
       if (close) { event.preventDefault(); document.getElementById("dreamscapeDialog")?.close?.(); return; }
 
 
+      const advance = event.target.closest?.("[data-dreamscape-next]");
+      if (advance) { event.preventDefault(); moveDream(1); return; }
+      const backStep = event.target.closest?.("[data-dreamscape-prev]");
+      if (backStep) { event.preventDefault(); moveDream(-1); return; }
       const wake = event.target.closest?.("[data-dreamscape-wake]");
       if (wake) { event.preventDefault(); finishDream(); return; }
 
@@ -1428,6 +1435,7 @@
     const selected = weightedDreamPick(candidates, seen, recentIds) || eligible[0];
     state().pendingDreamId = selected.id;
     state().pendingFocus = focus;
+    state().pendingStep = 0;
     app.saveState({ source: "dreamscape-dream-chosen" });
     showDream(selected.id, false);
     renderCard();
@@ -1452,24 +1460,65 @@
     return weighted[weighted.length - 1]?.dream || null;
   }
 
+  // Existing dream content, IDs, archive, and cooldown remain authoritative.
+  const DREAM_STAGES = {
+    Work: "assets/story/backgrounds/time/shared_apartment_night.webp",
+    Knowledge: "assets/story/backgrounds/koharu_cafe.webp",
+    Japanese: "assets/story/backgrounds/time/city_night.webp",
+    Health: "assets/story/backgrounds/time/shared_apartment_day.webp",
+    Recovery: "assets/story/backgrounds/time/shared_apartment_night.webp",
+    Home: "assets/story/backgrounds/shared_apartment_kitchen.webp",
+    Hobbies: "assets/story/backgrounds/time/shared_apartment_night.webp"
+  };
+  const DREAM_SPRITES = {
+    bakugo: ["assets/story/characters/bakugo-neutral.png", "assets/story/characters/bakugo-soft.png"],
+    kirishima: ["assets/story/characters/kirishima-neutral.png", "assets/story/characters/kirishima-happy.png"]
+  };
   function showDream(id, replay = false) {
     const dream = dreamById(id);
+    if (!dream) return false;
+    const retained = !replay && state().pendingDreamId === id ? state().pendingStep : 0;
+    reader = {id, replay, step: Math.min(Math.max(0, Number(retained || 0)), dream.body.length - 1)};
+    return renderDreamBeat();
+  }
+  function renderDreamBeat() {
+    const dream = dreamById(reader?.id);
     const body = document.getElementById("dreamscapeDialogBody");
-    if (!dream || !body) return false;
+    if (!dream || !body || !reader) return false;
+    const step = reader.step, last = step === dream.body.length - 1;
+    const background = DREAM_STAGES[dream.realm] || DREAM_STAGES.Home;
+    const sprites = dream.focus === "both" ? ["bakugo", "kirishima"] : [dream.focus];
+    const line = String(dream.body[step] || "");
+    const focusLabel = FOCUS_LABEL[dream.focus] || "Dream";
+    const visual = sprites.map(who => {
+      const bank = DREAM_SPRITES[who];
+      return bank ? `<img class="dream-vn-sprite dream-vn-${who}" src="${escAttr(bank[step === 0 ? 0 : 1])}" alt="${esc(who === "bakugo" ? "Bakugo" : "Kirishima")}" draggable="false" loading="eager">` : "";
+    }).join("");
+    // Never attribute ambiguous dialogue in a two-character scene to one speaker.
+    const spoken = dream.focus !== "both" ? [...line.matchAll(/[“"]([^”"]{1,160})[”"]/g)] : [];
+    const hasDialogue = spoken.length === 1;
+    const narration = hasDialogue ? line.replace(spoken[0][0], "").replace(/\s{2,}/g, " ").trim() : line;
     body.innerHTML = `
-      <article class="dreamscape-reader-v314ap">
-        <header>
-          <p class="eyebrow">🌙 DREAMSCAPE · ${esc(dream.realm.toUpperCase())} · ${dream.tier === 2 ? "DEEPER DREAM" : "DREAM THREAD"}</p>
-          <h2>${esc(dream.title)}</h2>
-          <span>${esc(FOCUS_LABEL[dream.focus] || dream.focus)} · non-canon</span>
-        </header>
-        <div class="dreamscape-prose-v314ap">${dream.body.map(paragraph => `<p>${esc(paragraph)}</p>`).join("")}</div>
-        <footer>
-          <small>${replay ? "Archive replay · does not change the Dreamscape timer." : "Finishing this dream starts the next cooldown."}</small>
-          <button class="primary-button" type="button" ${replay ? "data-dreamscape-back" : "data-dreamscape-wake"}>${replay ? "Back to Archive" : "Wake up"}</button>
-        </footer>
+      <article class="dream-vn" aria-label="Dreamscape visual novel reader">
+        <header class="dream-vn-heading"><div><p class="eyebrow">☾ DREAMSCAPE · ${esc(dream.realm.toUpperCase())} · ${dream.tier === 2 ? "DEEPER DREAM" : "DREAM THREAD"}</p><h2>${esc(dream.title)}</h2></div><span>${esc(focusLabel)} · non-canon</span></header>
+        <div class="dream-vn-stage" style="background-image:linear-gradient(0deg,rgba(35,24,45,.66),rgba(35,24,45,.05) 60%),url('${escAttr(background)}')">${visual}<div class="dream-vn-stars" aria-hidden="true">✦</div></div>
+        <section class="dream-vn-dialogue" aria-live="polite"><div class="dream-vn-speaker">${hasDialogue ? esc(focusLabel) : "Luca · Dream"}</div><p>${esc(hasDialogue ? spoken[0][1] : narration)}</p>${hasDialogue && narration ? `<small>${esc(narration)}</small>` : ""}</section>
+        <footer class="dream-vn-actions"><small>${step+1} / ${dream.body.length} · ${reader.replay ? "Archive replay · no cooldown change" : "Progress saved · cooldown starts only after waking"}</small><div><button class="secondary-button" type="button" data-dreamscape-prev ${step===0 ? "disabled" : ""}>← Back</button>${last ? `<button class="primary-button" type="button" ${reader.replay ? "data-dreamscape-back" : "data-dreamscape-wake"}>${reader.replay ? "Return to archive" : "Wake up"}</button>` : `<button class="primary-button" type="button" data-dreamscape-next>Continue →</button>`}</div></footer>
       </article>`;
     return true;
+  }
+  function moveDream(delta) {
+    if (!reader) return false;
+    const dream = dreamById(reader.id);
+    if (!dream) return false;
+    const next = Math.max(0, Math.min(dream.body.length - 1, reader.step + delta));
+    if (next === reader.step) return false;
+    reader.step = next;
+    if (!reader.replay && state().pendingDreamId === reader.id) {
+      state().pendingStep = next;
+      app.saveState({source:"dreamscape-reader-progress",suppressUiRefresh:true});
+    }
+    return renderDreamBeat();
   }
 
   function finishDream() {
@@ -1483,6 +1532,8 @@
     state().lastReadAt = now;
     state().pendingDreamId = null;
     state().pendingFocus = null;
+    state().pendingStep = 0;
+    reader = null;
     app.saveState({ source: "dreamscape-dream-finished" });
     renderCard();
     renderStatusDialog(true);

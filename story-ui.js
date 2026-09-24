@@ -2572,6 +2572,8 @@
 
     const repeatable = eligible.filter(talk => !talk.once);
     if (!repeatable.length) return null;
+    const neverRead = repeatable.filter(talk => !social.seenTalkIds.includes(talk.id));
+    if (neverRead.length) return weightedPick(neverRead, talk => 1 + reactivityScore(talk) * 5);
     const recent = new Set(array(social.recentTalkIdsByPerson?.[personId]));
     const fresh = repeatable.filter(talk => !recent.has(talk.id));
     const notLast = repeatable.filter(talk => talk.id !== social.lastTalkId);
@@ -2636,6 +2638,8 @@
     if (!pool.length) return selectTalkFromEligible(personId, eligible);
 
     if (!unseenOnce.length) {
+      const neverRead = pool.filter(talk => !social.seenTalkIds.includes(talk.id));
+      if (neverRead.length) pool = neverRead;
       const recent = new Set(array(social.recentTalkIdsByPerson?.[personId]));
       const fresh = pool.filter(talk => !recent.has(talk.id));
       const notLast = pool.filter(talk => talk.id !== social.lastTalkId);

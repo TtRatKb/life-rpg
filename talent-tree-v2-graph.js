@@ -12,7 +12,7 @@
     return;
   }
 
-  const VERSION = "0.31.4ce";
+  const VERSION = "0.31.4cw";
   const SCHEMA = 5;
   const REALMS = ["Work", "Knowledge", "Japanese", "Health", "Recovery", "Home", "Hobbies"];
 
@@ -26,12 +26,12 @@
         content("work-debrief", "🧾", "Work Deep Brief", 1,
           "Starter unlock · spend 1 Work point and use it immediately. A deeper Work reflection for closing the loop after a demanding day, with voice dictation or typing.",
           {}),
-        content("work-focus-challenges", "◆", "Focus Challenge Deck", 1,
-          "Second content step · rotating optional 35-minute focus challenges. The normal Focus system stays free.",
+        planned("work-focus-challenges", "◆", "Work content expansion · Redesign",
+          "The old Focus Challenge Deck was retired. A genuinely distinct Work unlock will be built before another point is charged.",
           { content: "work-debrief" }),
         planned("lesson-spark", "💡", "Lesson Spark Deck · Redesign",
           "Parked for now. Your existing Pinterest/books/resources already cover inspiration, so this needs a more genuinely rewarding concept before it can cost points.",
-          { content: "work-focus-challenges" })
+          { content: "work-debrief" })
       ]
     },
     Knowledge: {
@@ -60,8 +60,8 @@
         rankedContent("dynariot-japanese", "🌸", "DynaRiot Japanese Extras", 2,
           "Rank I: 8 spoiler-free, non-canon Bakugo/Kirishima media cards enter the daily pool. Rank II: expand to all 16 current cards. Japanese is the medium; no vocabulary/SRS layer.",
           {}, "Open DynaRiot Extras", () => window.LifeRPGTalentRewardStudios?.open?.("dynariot-japanese")),
-        content("shadowing-sprint", "🎙️", "Shadowing Sprint", 1,
-          "Optional second tool · a five-minute bring-your-own-audio shadowing sprint with a real countdown and Japanese completion reward.",
+        planned("shadowing-sprint", "🎙️", "Guided Shadowing · Redesign",
+          "The old bring-your-own-audio timer was retired. A replacement must include playable Japanese audio, short clips, a transcript and actual echo/shadowing steps before it can cost a point.",
           { content: "dynariot-japanese", contentRank: 1 })
       ]
     },
@@ -212,6 +212,19 @@
       state.migrations.starterContentRanksAT = { at: Date.now() };
       migratedNow = true;
     }
+    if (!state.migrations.cwRetiredContentRefund) {
+      const retired = {};
+      for (const [realm,id] of [["Work","work-focus-challenges"],["Japanese","shadowing-sprint"]]) {
+        if (state.unlocks[realm]?.[id]) {
+          retired[realm] = {...(retired[realm]||{}),[id]:state.unlocks[realm][id]};
+          delete state.unlocks[realm][id];
+        }
+      }
+      // External content spending is derived dynamically: removing only these
+      // purchases restores their points without changing the canonical ledger.
+      state.migrations.cwRetiredContentRefund = {at:Date.now(),retired};
+      migratedNow = true;
+    }
     if (!state.migrations.coloringStudioSingleRankBZ) {
       const raw = Math.max(0, Math.floor(Number(state.unlocks?.Hobbies?.["coloring-studio"] || 0)));
       if (raw > 1) state.unlocks.Hobbies["coloring-studio"] = 1;
@@ -286,12 +299,8 @@
     if (current < 1) return { ok: false, label: "Dream Thread I" };
     const special = Number(v2.getRank(realm, meta.special.id) || 0);
     if (special < 3) return { ok: false, label: `${meta.special.title} III` };
-    const second = secondRealContent(realm);
-    if (second) {
-      const real = (META[realm]?.content || []).filter(item => !item.planned);
-      const neededRank = real.length === 1 && second.rankable ? Number(second.maxRank || 1) : 1;
-      if (getContentRank(realm, second) < neededRank) return { ok: false, label: `${second.title}${neededRank > 1 ? ` ${roman(neededRank)}` : ""}` };
-    }
+    const first = firstRealContent(realm);
+    if (first && !isOwned(realm, first)) return { ok: false, label: first.title };
     return { ok: true, label: "" };
   }
 
@@ -569,6 +578,16 @@
     const cadence = dreamCadenceDays();
     const firstReq = dreamPrereqStatus(realm, 1);
     const secondReq = dreamPrereqStatus(realm, 2);
+    const gateList = target => {
+      const special = Number(v2.getRank(realm, meta.special.id) || 0);
+      const first = firstRealContent(realm);
+      const needs = target === 1 ? 2 : 3;
+      const steps = [{done:special>=needs,text:`${meta.special.title} ${roman(needs)} (${special}/${needs})`}];
+      if (target === 2) steps.unshift({done:rank>=1,text:"Own Dream Thread I"});
+      if (first) steps.push({done:isOwned(realm,first),text:`${target===1?"Unlock":"Keep"} ${first.title} unlocked`});
+      steps.push({done:Number(points.available||0)>=2,text:`Have 2 unspent ${realm} points (${Number(points.available||0)}/2)`});
+      return `<ul class="dream-prereqs-v314cw">${steps.map(x=>`<li class="${x.done?"is-met":"is-missing"}">${x.done?"✓":"○"} ${esc(x.text)}</li>`).join("")}</ul>`;
+    };
 
     const make = (target, prereq, copy) => {
       const owned = rank >= target;
@@ -585,14 +604,15 @@
           <div><small>DREAM THREAD ${roman(target)} · 2 POINTS · PERMANENT</small><h3>${target === 1 ? `${esc(meta.dream.title)} Pool` : `${esc(meta.dream.title)} · Deeper Dreams`}</h3></div>
         </div>
         <p>${esc(copy)}</p>
+        ${gateList(target)}
         <div class="talent-v3-node-foot"><em>${owned
           ? `Owned · Dreamscape cadence currently every ${cadence} day${cadence === 1 ? "" : "s"}`
-          : `Path: ${esc(target === 1 ? `${meta.special.title} II + ${firstRealContent(realm)?.title || "first content unlock"}` : `${meta.special.title} III + ${secondRealContent(realm)?.title || "content path"} + Thread I`)}`}</em>${action}</div>
+          : `Path: ${esc(target === 1 ? `${meta.special.title} II + first content unlock` : `Thread I + ${meta.special.title} III + first content unlock`)}`}</em>${action}</div>
       </article>`;
     };
 
     return make(1, firstReq, `Unlock this Realm's ${meta.dream.title} dream pool. The very first Dream Thread anywhere also makes one dream available immediately.`)
-      + treeLink("Thread I + deeper Realm investment")
+      + treeLink("Thread I + Realm Special III + first content unlock + 2 unspent points")
       + make(2, secondReq, `Adds more intimate variants to the ${meta.dream.title} pool and contributes another step toward the global 1-day Dreamscape cadence.`);
   }
 

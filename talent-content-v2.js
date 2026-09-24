@@ -234,8 +234,8 @@
       panel = document.createElement("section");
       panel.id = "talentJournalToolsV314ar";
       panel.className = "panel talent-journal-tools-v314ao";
-      const firstDialog = page.querySelector("dialog");
-      if (firstDialog) page.insertBefore(panel, firstDialog);
+      const firstSection = page.querySelector(".journal-spread-grid-v302, .journal-reflection-grid-v302, .journal-bottom-grid-v302");
+      if (firstSection) page.insertBefore(panel, firstSection);
       else page.appendChild(panel);
     }
 

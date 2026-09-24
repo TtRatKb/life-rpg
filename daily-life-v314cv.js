@@ -30,6 +30,10 @@
     add("dailyWord", "Lexicon Daily Word", daily("lexiconDailyWord"), "growth", "lexicon", "First daily word reward");
     const lexicon = window.LifeRPGLexiconLab?.getDailyStatus?.();
     if (lexicon?.ready) add("crossword", "Daily Crossword", lexicon.completed, "growth", "crossword");
+    if (window.LifeRPGTalentTreeGraph?.isContentUnlocked?.("Japanese", "dynariot-japanese")) {
+      const jp = state.talentRewardStudios?.japanese?.daily || {};
+      add("dynariot", "DynaRiot Japanese Extras", jp.dateKey===today && Boolean(jp.completedAt), "growth", "dynariot", "Your unlocked Japanese character card");
+    }
     if (window.LifeRPGTalentV2?.isContentUnlocked?.("Health", "year-question")) {
       const entry = state.journal?.entries?.[today];
       add("yearQuestion", "365 Question Journal", Boolean(String(entry?.yearQuestion || "").trim()), "journal", "yearQuestion", "Today's dated question");
@@ -54,6 +58,7 @@
       case "numberSense":window.LifeRPGNumberSense?.open?.();break;
       case "memoryGarden":window.LifeRPGMemoryGarden?.open?.();break;
       case "lexicon":case "crossword":window.LifeRPGLexiconLab?.open?.();break;
+      case "dynariot":window.LifeRPGTalentRewardStudios?.open?.("dynariot-japanese");break;
       case "yearQuestion":app.showView("journal");window.LifeRPGJournal?.openReflection?.(localDay());break;
       case "slitherlink":case "nurikabe":case "kakuro":window.LifeRPGLogicExpansion?.open?.(action);break;
       default:app.showView("growth");
@@ -149,7 +154,7 @@
   window.addEventListener("focus",scheduleRender);
   document.addEventListener("visibilitychange",()=>{if(!document.hidden)scheduleRender();});
   // No 1-second DOM rebuilding; static rewards are updated only after save/render events.
-  window.LifeRPGDailyLife={version:"0.31.4cv",render,getChecklist,objective};
+  window.LifeRPGDailyLife={version:"0.31.4cw",render,getChecklist,objective};
   render();
   window.LifeRPGStoryEngine?.loadPack?.().then(value=>{pack=value;scheduleRender();}).catch(()=>{/* Story UI handles pack errors itself; do not invent costs. */});
 })();

@@ -531,3 +531,6 @@
     margin:0;
   }
 }
+
+/* CW · transparent, testable Dream Thread gates. */
+.dream-prereqs-v314cw{display:grid;gap:5px;padding:10px 12px;margin:7px 0 13px;list-style:none;border-radius:12px;background:rgba(255,255,255,.38)}.dream-prereqs-v314cw li{font-size:.73rem;line-height:1.4}.dream-prereqs-v314cw .is-met{color:#497c68}.dream-prereqs-v314cw .is-missing{color:#7c657a}

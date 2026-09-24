@@ -11,7 +11,7 @@
     return;
   }
 
-  const VERSION = "0.31.4ce";
+  const VERSION = "0.31.4cw";
   const SCHEMA = 2;
   const DRAWING_REWARD_QUEUE_KEY = "lifeRpgDrawingStudioRewardQueueV1";
   let processingDrawingRewards = false;
@@ -269,9 +269,8 @@
     s.home.selectedDeckId ||= s.home.decks[0]?.id || "dinner";
     s.coloring ||= { lastPageId: null, finished: {} };
     s.coloring.finished ||= {};
-    const validColoringIds = new Set(COLORING_PAGES.map(page => page.id));
-    Object.keys(s.coloring.finished).forEach(id => { if (!validColoringIds.has(id)) delete s.coloring.finished[id]; });
-    if (s.coloring.lastPageId && !validColoringIds.has(s.coloring.lastPageId)) s.coloring.lastPageId = null;
+    // Preserve historical card IDs even if a card is not currently in the gallery.
+    // The actual strokes remain in this origin's IndexedDB until explicitly deleted.
     return s;
   }
 
@@ -469,6 +468,10 @@
         return;
       }
 
+      const backup = event.target.closest?.("[data-coloring-backup]");
+      if (backup) { event.preventDefault(); exportColoringBackup(); return; }
+      const restore = event.target.closest?.("[data-coloring-restore]");
+      if (restore) { event.preventDefault(); document.getElementById("coloringRestoreInputV314cw")?.click(); return; }
       const coloringPage = event.target.closest?.("[data-coloring-page]");
       if (coloringPage) {
         event.preventDefault();
@@ -533,6 +536,13 @@
       if (exportButton) {
         event.preventDefault();
         exportColoringPng();
+      }
+    });
+
+    document.addEventListener("change", event => {
+      if (event.target?.id === "coloringRestoreInputV314cw" && event.target.files?.[0]) {
+        importColoringBackup(event.target.files[0]);
+        event.target.value = "";
       }
     });
 
@@ -975,7 +985,8 @@
     content.innerHTML = `
       <header class="reward-studio-head-v314as hobbies"><div><p class="eyebrow">HOBBIES TALENT CONTENT · UNLOCKED</p><h2>Coloring Studio</h2><p>Your collectible-card coloring library lives here permanently once unlocked. New pages can be added to the library without buying another Talent rank.</p></div></header>
       <div class="coloring-gallery-v314as">${COLORING_PAGES.map(page => `<button type="button" data-coloring-page="${escAttr(page.id)}"><div class="coloring-thumb-v314as"><img src="${escAttr(page.src)}" alt="${escAttr(page.title)} coloring page"></div><div><small>${meta.finished[page.id] ? "FINISHED ✓" : meta.lastPageId === page.id ? "LAST OPENED" : "COLLECTIBLE COLORING CARD"}</small><strong>${esc(page.title)}</strong><span>${esc(page.subtitle)}</span></div><b>Open ›</b></button>`).join("")}</div>
-      <div class="coloring-storage-note-v314as"><span>✦</span><p><strong>Canvas progress stays on this device.</strong> The large stroke data is stored in IndexedDB instead of the main Life RPG save so Coloring Studio cannot cause another localStorage quota problem. Finished status remains in the normal save; you can export any page as PNG.</p></div>`;
+      <div class="coloring-storage-note-v314as"><span>✦</span><p><strong>Canvas progress stays on this device.</strong> Stroke data is not in the main cloud save. Back up all local drawings before changing browsers or devices.</p></div>
+      <div class="coloring-backup-v314cw"><button type="button" class="secondary-button" data-coloring-backup>↓ Back up all drawings (.json)</button><button type="button" class="secondary-button" data-coloring-restore>↑ Restore drawing backup</button><input id="coloringRestoreInputV314cw" type="file" accept=".json,application/json" hidden><p>Restore merges pages and never overwrites existing drawings.</p><span id="coloringBackupStatusV314cw" role="status"></span></div>`;
     showDialog();
   }
 
@@ -1360,6 +1371,43 @@
     return idbPromise;
   }
 
+  function coloringBackupStatus(message) {
+    const node = document.getElementById("coloringBackupStatusV314cw");
+    if (node) node.textContent = message;
+    app.showToast?.(message);
+  }
+  async function exportColoringBackup() {
+    try {
+      if (coloring?.dirty) await persistColoringNow();
+      const db = await openColoringDb();
+      const pages = await new Promise((resolve,reject) => {
+        const req = db.transaction("pages","readonly").objectStore("pages").getAll();
+        req.onsuccess = () => resolve(req.result || []);
+        req.onerror = () => reject(req.error);
+      });
+      const blob = new Blob([JSON.stringify({format:"life-rpg-coloring-backup",version:1,exportedAt:new Date().toISOString(),pages},null,2)],{type:"application/json"});
+      const link = document.createElement("a"), url = URL.createObjectURL(blob);
+      link.href=url; link.download=`life-rpg-coloring-backup-${dateKey()}.json`;
+      document.body.appendChild(link); link.click(); link.remove();
+      window.setTimeout(()=>URL.revokeObjectURL(url),1000);
+      coloringBackupStatus(`Drawing backup exported · ${pages.length} page${pages.length===1?"":"s"}.`);
+    } catch(error) { console.error("Coloring backup",error); coloringBackupStatus("Could not export drawings; no data was changed."); }
+  }
+  async function importColoringBackup(file) {
+    try {
+      if (Number(file.size || 0) > 80*1024*1024) throw new Error("Backup too large");
+      const payload=JSON.parse(await file.text());
+      if (payload?.format !== "life-rpg-coloring-backup" || payload.version !== 1 || !Array.isArray(payload.pages) || payload.pages.length > 500) throw new Error("Invalid backup");
+      if (coloring?.dirty) await persistColoringNow();
+      let restored=0,skipped=0;
+      for (const page of payload.pages) {
+        if (!page || typeof page.pageId !== "string" || page.pageId.length > 180 || !Array.isArray(page.strokes) || page.strokes.length > 200000) {skipped++;continue;}
+        if (await loadColoringRecord(page.pageId)) {skipped++;continue;}
+        await saveColoringRecord(page);restored++;
+      }
+      coloringBackupStatus(`Restored ${restored} drawings; kept ${skipped} existing/unsupported entries. Reopen a card to view its restored canvas.`);
+    } catch(error) {console.error("Coloring restore",error); coloringBackupStatus("Could not read this backup; existing work remains untouched.");}
+  }
   async function loadColoringRecord(pageId) {
     const db=await openColoringDb();
     return new Promise((resolve,reject) => {
