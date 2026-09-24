@@ -7,7 +7,7 @@
     return;
   }
 
-  const SCHEMA = 1;
+  const SCHEMA = 2;
   const FILTERS = new Set(["wishlist", "redeemed", "purchased", "all"]);
   const NOTION_SEED = [
     { name: "New tea / matcha / fancy drink item", coinCost: 180, mode: "repeatable" },
@@ -74,11 +74,17 @@
     mode: byId("shopItemMode"),
     status: byId("shopItemStatus"),
     fetch: byId("shopFetchMetadata"),
-    metadataStatus: byId("shopMetadataStatus")
+    metadataStatus: byId("shopMetadataStatus"),
+    priceDialog: byId("shopPriceDialog"), priceForm: byId("shopPriceForm"),
+    priceTitle: byId("shopPriceTitle"), priceOriginal: byId("shopPriceOriginal"),
+    priceCurrent: byId("shopPriceCurrent"), priceActual: byId("shopPriceActual"),
+    priceBalance: byId("shopPriceBalance"), priceError: byId("shopPriceError"),
+    priceSubmit: byId("shopPriceSubmit"), priceCancel: byId("shopPriceCancel")
   };
 
   let activeFilter = "wishlist";
   let metadataBusy = false;
+  let pendingPriceAction = null;
 
   init();
 
@@ -148,6 +154,10 @@
       status: ["wishlist", "available", "redeemed", "purchased", "archived"].includes(item.status) ? item.status : "wishlist",
       source: clean(item.source) || "manual",
       redemptionCoins: finiteOrNull(item.redemptionCoins),
+      initialPriceCents: finiteOrNull(item.initialPriceCents) ?? (realPriceCents ?? cost),
+      priceHistory: Array.isArray(item.priceHistory) ? item.priceHistory.filter(Boolean).slice(-30) : [],
+      purchasePriceCents: finiteOrNull(item.purchasePriceCents),
+      purchaseCoins: finiteOrNull(item.purchaseCoins),
       createdAt: item.createdAt || new Date().toISOString(),
       updatedAt: item.updatedAt || new Date().toISOString(),
       redeemedAt: item.redeemedAt || null,
@@ -169,6 +179,10 @@
     els.currentWish?.addEventListener("click", handleActionClick);
     els.history?.addEventListener("click", handleActionClick);
     els.form?.addEventListener("submit", saveEditor);
+    els.priceForm?.addEventListener("submit", confirmPriceAction);
+    els.priceCancel?.addEventListener("click", () => els.priceDialog?.close());
+    els.priceDialog?.addEventListener("close", () => { pendingPriceAction = null; });
+    els.priceActual?.addEventListener("input", refreshPricePreview);
     els.fetch?.addEventListener("click", fetchMetadata);
     els.realPrice?.addEventListener("change", () => {
       if (!els.coinCost?.value) {
@@ -185,9 +199,9 @@
     switch (button.dataset.shopAction) {
       case "edit": openEditor(itemId); break;
       case "pin": setCurrentWish(itemId); break;
-      case "redeem": redeem(itemId); break;
+      case "redeem": openPriceReview(itemId, "redeem"); break;
       case "refund": refund(itemId); break;
-      case "bought": markBought(itemId); break;
+      case "bought": openPriceReview(itemId, "purchase"); break;
       case "delete": removeItem(itemId); break;
       case "open": openLink(itemId); break;
       case "restore": restorePurchased(itemId); break;
@@ -278,28 +292,93 @@
     app.showToast?.(shop.currentWishId ? `✦ Current Wish: ${item.name}` : "Current Wish unpinned.");
   }
 
-  function redeem(itemId) {
-    const root = app.getState();
-    const shop = state();
+  // A price review is mandatory at redemption AND at the final real-world purchase.
+  // It cannot issue rewards: the wallet changes only inside confirmPriceAction.
+  function openPriceReview(itemId, action) {
+    const item = state().items.find(entry => entry.id === itemId);
+    if (!item || (action === "redeem" && !["wishlist", "available"].includes(item.status)) ||
+        (action === "purchase" && item.status !== "redeemed")) return;
+    pendingPriceAction = { itemId, action };
+    const reference = action === "purchase" ? Number(item.redemptionCoins ?? item.coinCost) : Number(item.coinCost);
+    els.priceTitle.textContent = action === "purchase" ? `Bought ${item.name}?` : `Redeem ${item.name}`;
+    els.priceOriginal.textContent = money(item.initialPriceCents ?? item.realPriceCents ?? item.coinCost);
+    els.priceCurrent.textContent = money(reference);
+    els.priceActual.value = (Number(item.realPriceCents ?? reference) / 100).toFixed(2).replace(".", ",");
+    els.priceError.textContent = "";
+    els.priceSubmit.textContent = action === "purchase" ? "Confirm purchase & reconcile" : "Confirm price & redeem";
+    refreshPricePreview();
+    els.priceDialog.showModal();
+  }
+
+  function refreshPricePreview() {
+    if (!pendingPriceAction) return;
+    const item = state().items.find(entry => entry.id === pendingPriceAction.itemId);
+    if (!item) return;
+    const price = parseStrictPrice(els.priceActual?.value);
+    const existingSpend = pendingPriceAction.action === "purchase" ? Number(item.redemptionCoins ?? item.coinCost) : 0;
+    const extra = price == null ? 0 : price - existingSpend;
+    const wallet = Math.max(0, Number(app.getState().coins || 0));
+    els.priceBalance.textContent = price == null ? "Enter a valid price, e.g. 59,99" :
+      `Wallet: ${money(wallet)} · ${extra > 0 ? `Need ${money(extra)}` : extra < 0 ? `Return ${money(-extra)} to wallet` : "No adjustment"}`;
+    els.priceError.textContent = price != null && extra > wallet ? `Still need ${money(extra - wallet)}. The wish will stay open until you have enough.` : "";
+    els.priceSubmit.disabled = price == null || extra > wallet || (pendingPriceAction.action === "redeem" && price === 0);
+  }
+
+  function parseStrictPrice(value) {
+    const raw = clean(value).replace(/\s/g, "");
+    if (!/^(?:\d{1,3}(?:\.\d{3})+|\d+)(?:[,.]\d{1,2})?$/.test(raw)) return null;
+    const norm = raw.includes(",") ? raw.replace(/\./g, "").replace(",", ".") : raw;
+    const n = Number(norm);
+    return Number.isFinite(n) && n >= 0 && n <= 1000000 ? Math.round(n * 100) : null;
+  }
+
+  function confirmPriceAction(event) {
+    event.preventDefault();
+    if (!pendingPriceAction) return;
+    const { itemId, action } = pendingPriceAction;
+    const root = app.getState(), shop = state();
     const item = shop.items.find(entry => entry.id === itemId);
-    if (!item || item.status === "redeemed" || item.status === "purchased") return;
-    const cost = Math.max(0, Number(item.coinCost || 0));
-    if (cost <= 0) { app.showToast?.("This reward needs a Coin cost first."); return; }
-    if (Number(root.coins || 0) < cost) {
-      const missing = cost - Number(root.coins || 0);
-      app.showToast?.(`Not quite yet · ${coinLabel(missing)} left to earn.`);
-      return;
+    const price = parseStrictPrice(els.priceActual.value);
+    if (!item || price == null || (action === "redeem" && price <= 0)) { refreshPricePreview(); return; }
+    if ((action === "redeem" && !["wishlist", "available"].includes(item.status)) ||
+        (action === "purchase" && item.status !== "redeemed")) return;
+    const now = new Date().toISOString();
+    const previousPrice = Number(item.realPriceCents ?? item.coinCost);
+    const originallySpent = action === "purchase" ? Number(item.redemptionCoins ?? item.coinCost) : 0;
+    const walletDelta = action === "purchase" ? originallySpent - price : -price;
+    if (Math.max(0, Number(root.coins || 0)) + walletDelta < 0) {
+      refreshPricePreview(); return;
     }
-    if (!window.confirm(`Redeem ${item.name} for ${coinLabel(cost)}?`)) return;
-    root.coins = Math.max(0, Number(root.coins || 0) - cost);
-    item.status = "redeemed";
-    item.redeemedAt = new Date().toISOString();
-    item.redemptionCoins = cost;
-    item.updatedAt = item.redeemedAt;
-    shop.transactions.push({ id: id("shop-tx"), itemId: item.id, itemName: item.name, type: "redeem", coins: -cost, at: item.redeemedAt });
-    if (shop.currentWishId === item.id) shop.currentWishId = null;
-    persist("shop-redeem");
-    app.showToast?.(`✨ You earned this. ${coinLabel(cost)} redeemed.`);
+    root.coins = Math.max(0, Number(root.coins || 0) + walletDelta);
+    item.realPriceCents = price;
+    item.coinCost = price;
+    item.updatedAt = now;
+    item.priceHistory ||= [];
+    if (price !== previousPrice) item.priceHistory.push({ at: now, fromCents: previousPrice, toCents: price, stage: action });
+    item.priceHistory = item.priceHistory.slice(-30);
+    if (action === "redeem") {
+      item.status = "redeemed";
+      item.redeemedAt = now;
+      item.redemptionCoins = price;
+      shop.transactions.push({ id: id("shop-tx"), itemId: item.id, itemName: item.name,
+        type: "redeem", coins: walletDelta, actualPriceCents: price, originalTargetCents: item.initialPriceCents, at: now });
+      if (shop.currentWishId === item.id) shop.currentWishId = null;
+    } else {
+      item.purchasePriceCents = price;
+      item.purchaseCoins = price;
+      item.purchasedAt = now;
+      item.redeemedAt = null;
+      item.redemptionCoins = null;
+      item.status = item.mode === "repeatable" ? "wishlist" : "purchased";
+      if (walletDelta) shop.transactions.push({ id: id("shop-tx"), itemId: item.id, itemName: item.name,
+        type: "price-adjustment", coins: walletDelta, actualPriceCents: price, at: now });
+      shop.transactions.push({ id: id("shop-tx"), itemId: item.id, itemName: item.name,
+        type: "purchase", coins: 0, actualPriceCents: price, at: now });
+    }
+    els.priceDialog.close();
+    persist(action === "redeem" ? "shop-redeem-reviewed" : "shop-purchased-reviewed");
+    app.showToast?.(action === "redeem" ? `✨ ${money(price)} redeemed at the confirmed price.` :
+      `🛍️ Purchase logged at ${money(price)}${walletDelta > 0 ? ` · ${money(walletDelta)} returned` : walletDelta < 0 ? ` · ${money(-walletDelta)} extra` : ""}.`);
   }
 
   function refund(itemId) {
@@ -317,21 +396,6 @@
     shop.transactions.push({ id: id("shop-tx"), itemId: item.id, itemName: item.name, type: "refund", coins, at: item.updatedAt });
     persist("shop-refund");
     app.showToast?.(`↻ ${coinLabel(coins)} returned to your wallet.`);
-  }
-
-  function markBought(itemId) {
-    const shop = state();
-    const item = shop.items.find(entry => entry.id === itemId);
-    if (!item || item.status !== "redeemed") return;
-    const now = new Date().toISOString();
-    shop.transactions.push({ id: id("shop-tx"), itemId: item.id, itemName: item.name, type: "purchase", coins: 0, at: now });
-    item.purchasedAt = now;
-    item.updatedAt = now;
-    item.redeemedAt = null;
-    item.redemptionCoins = null;
-    item.status = item.mode === "repeatable" ? "wishlist" : "purchased";
-    persist("shop-purchased");
-    app.showToast?.(item.mode === "repeatable" ? `🛍️ Logged · ${item.name} is available again whenever you want to earn it.` : `🛍️ ${item.name} added to your earned purchases.`);
   }
 
   function restorePurchased(itemId) {
@@ -402,7 +466,7 @@
           <div class="shop-price-pair-v306"><strong>${coinLabel(item.coinCost)}</strong>${item.realPriceCents != null ? `<span>Real price ${money(item.realPriceCents)}</span>` : ""}</div>
           <div class="shop-wish-progress-v306"><div><span>${Math.round(percent)}% earned</span><strong>${missing > 0 ? `${coinLabel(missing)} to go` : "Ready to redeem ✨"}</strong></div><div class="progress large"><span style="width:${percent}%"></span></div></div>
           <div class="shop-card-actions-v306">
-            <button class="primary-button" data-shop-action="redeem" data-shop-item="${attr(item.id)}" type="button" ${coins < cost ? "disabled" : ""}>${coins >= cost ? "Redeem reward" : "Keep earning"}</button>
+            <button class="primary-button" data-shop-action="redeem" data-shop-item="${attr(item.id)}" type="button">${coins >= cost ? "Review price & redeem" : "Check current price"}</button>
             ${item.url ? `<button class="secondary-button" data-shop-action="open" data-shop-item="${attr(item.id)}" type="button">Open product</button>` : ""}
             <button class="ghost-button" data-shop-action="pin" data-shop-item="${attr(item.id)}" type="button">Unpin</button>
           </div>
@@ -472,7 +536,7 @@
           <div class="shop-price-pair-v306"><strong>${coinLabel(item.coinCost)}</strong>${item.realPriceCents != null ? `<span>${money(item.realPriceCents)}</span>` : `<span>Reward value</span>`}</div>
           <div class="shop-item-progress-v306"><div class="progress"><span style="width:${Math.min(100, Number(item.coinCost || 1) ? coins / Number(item.coinCost || 1) * 100 : 100)}%"></span></div><small>${affordable ? "You can afford this reward." : `${coinLabel(Math.max(0, Number(item.coinCost || 0) - coins))} left`}</small></div>
           <div class="shop-card-actions-v306">
-            ${!redeemed && !purchased ? `<button class="${affordable ? "primary-button" : "secondary-button"}" data-shop-action="redeem" data-shop-item="${attr(item.id)}" type="button" ${affordable ? "" : "disabled"}>${affordable ? "Redeem" : "Not yet"}</button>` : ""}
+            ${!redeemed && !purchased ? `<button class="${affordable ? "primary-button" : "secondary-button"}" data-shop-action="redeem" data-shop-item="${attr(item.id)}" type="button">${affordable ? "Review & redeem" : "Check price"}</button>` : ""}
             ${redeemed ? `<button class="primary-button" data-shop-action="bought" data-shop-item="${attr(item.id)}" type="button">Mark bought</button><button class="secondary-button" data-shop-action="refund" data-shop-item="${attr(item.id)}" type="button">Cancel & refund</button>` : ""}
             ${purchased ? `<button class="secondary-button" data-shop-action="restore" data-shop-item="${attr(item.id)}" type="button">Back to wishlist</button>` : ""}
             ${!redeemed && !purchased ? `<button class="ghost-button ${current ? "active" : ""}" data-shop-action="pin" data-shop-item="${attr(item.id)}" type="button">${current ? "Current Wish ✓" : "Pin wish"}</button>` : ""}
@@ -492,9 +556,9 @@
       return;
     }
     els.history.innerHTML = transactions.map(tx => {
-      const verb = tx.type === "redeem" ? "Redeemed" : tx.type === "refund" ? "Refunded" : "Bought";
+      const verb = tx.type === "redeem" ? "Redeemed" : tx.type === "refund" ? "Refunded" : tx.type === "price-adjustment" ? "Price corrected" : "Bought";
       const coinText = tx.coins ? `${tx.coins > 0 ? "+" : ""}${formatInt(tx.coins)} 🪙` : "";
-      return `<div class="shop-history-row-v306"><span>${tx.type === "redeem" ? "✨" : tx.type === "refund" ? "↻" : "🛍️"}</span><div><strong>${esc(tx.itemName || "Reward")}</strong><small>${verb} · ${shortDate(tx.at)}</small></div><b>${coinText}</b></div>`;
+      return `<div class="shop-history-row-v306"><span>${tx.type === "redeem" ? "✨" : tx.type === "refund" ? "↻" : "🛍️"}</span><div><strong>${esc(tx.itemName || "Reward")}</strong><small>${verb}${tx.actualPriceCents != null ? ` · ${money(tx.actualPriceCents)}` : ""} · ${shortDate(tx.at)}</small></div><b>${coinText}</b></div>`;
     }).join("");
   }
 

@@ -1869,6 +1869,9 @@
     const currentKey = previous ? sourceKey(previous.sourceType || "quest", previous.sourceId) : "";
     const currentId = previous?.sourceId || "";
     const seed = `${todayKey()}|${slot}|${Object.values(checkIn).join("|")}|${[...excluded].join(",")}`;
+    // On low-capacity days joy is allowed to mean a book, game or small hobby, not
+    // yet another regulation exercise. If none are available, Recovery remains valid.
+    const lowBattery = checkIn.gentle || ["fumes", "low"].includes(checkIn.energy) || healthRecoveryNeed(checkIn) >= 1.5;
 
     const buildPool = relaxed => {
       const candidates = [];
@@ -1882,7 +1885,7 @@
       const push = (sourceType, item, baseScore) => {
         if (!allowed(sourceType, item) || !sourceAllowedForSlot(sourceType, item, slot)) return;
         const group = plannerGroup(sourceType, item);
-        if (group && usedGroups.includes(group)) return;
+        if (group && usedGroups.includes(group)) return; // never duplicate a recovery/activity family within a pick set
         const key = sourceKey(sourceType, item.id);
         const memory = plannerMemoryAdjustment(key, sourceType, sourceRealm(sourceType, item), slot);
         const diversity = diversityAdjustment(sourceType, sourceRealm(sourceType, item), usedTypes, usedRealms, slot);
@@ -1897,7 +1900,14 @@
       adventures.forEach(item => push("adventure", item, scoreAdventure(item, slot, checkIn)));
       books.forEach(book => push("book", book, scoreBook(book, slot, checkIn)));
       games.forEach(game => push("game", game, scoreGame(game, slot, checkIn)));
-      return candidates;
+      // Exclude duplicate Recovery care ONLY while a genuinely eligible leisure
+      // alternative survives the current reroll/exclusion set. Otherwise a small
+      // calming exercise remains a legitimate fallback.
+      const hasRealLeisure = slot === "joy" && lowBattery && candidates.some(c =>
+        (c.sourceType === "book" && (c.item.role || "fun") === "fun") ||
+        (c.sourceType === "game" && ["fun", "social"].includes(c.item.role || "fun")) ||
+        (c.sourceType === "quest" && c.item.realm === "Hobbies"));
+      return hasRealLeisure ? candidates.filter(c => !(c.sourceType === "quest" && c.item.realm === "Recovery")) : candidates;
     };
 
     let pool = buildPool(0);
@@ -1947,7 +1957,17 @@
 
   function plannerGroup(type, item) {
     if (type !== "quest") return "";
-    return String(item?.plannerGroup || "").trim();
+    const explicit = String(item?.activityFamily || item?.plannerGroup || "").trim();
+    if (explicit) return explicit;
+    const role = String(item?.systemRole || "").toLowerCase();
+    const label = String(item?.name || "").toLowerCase();
+    // Existing custom quests have no metadata yet. Infer ONLY clear duplicate families;
+    // do not silently rewrite their original quest definitions or rewards.
+    if (/recovery-(meditation|body-scan|breathing|lie-down|grounding)/.test(role) ||
+        /meditation|body[ -]?scan|breathing|grounding|atemübung|meditieren|lie down|guided relaxation/.test(label)) return "calming-practice";
+    if (/recovery-(stretch|yoga)|mobility-break|gentle-walk/.test(role) ||
+        /stretch|mobility|gentle yoga|dehnen/.test(label)) return "movement-reset";
+    return "";
   }
 
   function diversityAdjustment(type, realm, usedTypes, usedRealms, slot) {
@@ -1955,7 +1975,7 @@
     const sameRealm = realm ? usedRealms.filter(value => value === realm).length : 0;
     let penalty = sameType * 0.95 + sameRealm * 0.55;
     if (slot === "joy" && ["book", "game", "adventure"].includes(type)) penalty *= 0.72;
-    if (slot === "gentle" && realm === "Recovery") penalty *= 0.6;
+    if (slot === "gentle" && realm === "Recovery") penalty *= 0.9;
     return -penalty;
   }
 
@@ -2098,9 +2118,9 @@
 
     if (slot === "joy") {
       if (realm === "Hobbies") score += 4;
-      if (realm === "Recovery") score += 3;
-      if (["high", "overload"].includes(checkIn.stress) && realm === "Recovery") score += 2.2;
-      if (checkIn.energy === "fumes" && realm === "Recovery") score += 1.1;
+      if (realm === "Recovery") score += 0.9;
+      if (["high", "overload"].includes(checkIn.stress) && realm === "Recovery") score += 0.65;
+      if (checkIn.energy === "fumes" && realm === "Recovery") score += 0.4;
       if (checkIn.energy === "fumes" && realm === "Health") score -= 0.6;
       if (priority === "Optional" || priority === "Bonus") score += 1.2;
       if (realm === "Work") score -= 4;
@@ -2109,17 +2129,17 @@
 
     const recoveryNeed = healthRecoveryNeed(checkIn);
     if (recoveryNeed > 0) {
-      if (realm === "Recovery") score += recoveryNeed * 2.25;
-      if (isPassiveRecoveryQuest(quest)) score += recoveryNeed * 1.6;
+      if (realm === "Recovery") score += recoveryNeed * (slot === "gentle" ? 1.2 : 0.35);
+      if (isPassiveRecoveryQuest(quest)) score += recoveryNeed * (slot === "gentle" ? 0.8 : 0.15);
       if (isMovementRecoveryQuest(quest) && recoveryNeed >= 2.5) score -= 3.2;
       if (realm === "Health" && !isPassiveRecoveryQuest(quest) && demand > 0.9) score -= recoveryNeed * 1.1;
       if (["Work", "Home"].includes(realm) && recoveryNeed >= 2.5) score -= 2.8;
     }
 
     if (slot === "gentle") {
-      if (realm === "Recovery") score += 4.5;
+      if (realm === "Recovery") score += 2.7;
       if (priority === "Low Energy") score += 3;
-      if (realm === "Hobbies") score += 1.4;
+      if (realm === "Hobbies") score += 2.8;
       if (demand <= 0.9) score += 2;
       if (duration && duration <= 20) score += 1.4;
       if (realm === "Work") score -= 3;
@@ -2270,14 +2290,14 @@
     }
 
     if (slot === "joy") {
-      if (role === "fun") score += 5.6;
+      if (role === "fun") score += 5.6 + Math.min(2, healthRecoveryNeed(checkIn) * 0.45) + ((checkIn.gentle || ["fumes", "low"].includes(checkIn.energy)) ? 3.5 : 0);
       if (role === "growth") score += 0.4;
       if (role === "work") score -= 4.5;
       if (role === "knowledge") score -= 1.1;
     }
 
     if (slot === "gentle") {
-      if (role === "fun") score += 3.6;
+      if (role === "fun") score += 3.6 + Math.min(2, healthRecoveryNeed(checkIn) * 0.55);
       if (role === "growth") score += 1.1;
       if (book.source === "audio") score += 1.2;
       if (duration <= 20) score += 2;
@@ -2325,8 +2345,8 @@
     }
 
     if (slot === "joy") {
-      score += 5.1;
-      if (role === "fun") score += 1;
+      score += 5.1 + Math.min(1.8, healthRecoveryNeed(checkIn) * 0.5);
+      if (role === "fun") score += 1 + ((checkIn.gentle || ["fumes", "low"].includes(checkIn.energy)) ? 3.5 : 0);
       if (role === "social") score += 0.8;
       if (role === "japanese") score += 0.4;
       if (openGoals.length) score += 0.5;
@@ -2726,7 +2746,8 @@
       new Set(day.rerollHistory[slotId]),
       current,
       usedTypes,
-      usedRealms
+      usedRealms,
+      otherPicks.map(p => plannerGroup(p.sourceType || "quest", p.sourceType === "quest" ? findQuest(p.sourceId) : null)).filter(Boolean)
     );
 
     if (!candidate) return;

@@ -7,7 +7,7 @@
     return;
   }
 
-  const HABIT_SCHEMA = 3;
+  const HABIT_SCHEMA = 4;
   const SHADOW_KEY = "life-rpg-habits-shadow-v1";
   const STREAK_GROWTH = 1.03;
   const STREAK_CAP = 2;
@@ -40,6 +40,9 @@
     dashboardTitle: byId("dashboardHabitsTitle"),
     dashboardToday: byId("dashboardHabitToday"),
     dashboardYesterday: byId("dashboardHabitYesterday"),
+    reminderDialog: byId("habitReminderDialog"), reminderForm: byId("habitReminderForm"),
+    reminderTitle: byId("habitReminderTitle"), reminderTime: byId("habitReminderTime"),
+    reminderId: byId("habitReminderId"), reminderCancel: byId("habitReminderCancel"),
     activeSummary: byId("habitSummaryActive"),
     dueSummary: byId("habitSummaryDue"),
     dueSummaryLabel: byId("habitSummaryDueLabel"),
@@ -78,6 +81,10 @@
 
   function init() {
     bindEvents();
+    // In-app reminders only: no fake push notification or background execution.
+    window.setInterval(() => { if (initialized) refreshDueReminders(); }, 60000);
+    window.addEventListener("focus", refreshDueReminders);
+    document.addEventListener("visibilitychange", () => { if (!document.hidden) refreshDueReminders(); });
     const changed = ensureHabitsState();
     const coinRepaired = repairRecentHabitCoinRewards();
     initialized = true;
@@ -141,6 +148,8 @@
     els.cancel?.addEventListener("click", closeHabitDialog);
     els.deleteButton?.addEventListener("click", deleteHabitFromDialog);
     els.form?.addEventListener("submit", saveHabitFromDialog);
+    els.reminderForm?.addEventListener("submit", saveHabitReminder);
+    els.reminderCancel?.addEventListener("click", () => els.reminderDialog?.close());
     els.scheduleType?.addEventListener("change", updateScheduleControls);
     els.scheduleCount?.addEventListener("input", renderHabitRewardPreview);
     els.effort?.addEventListener("change", renderHabitRewardPreview);
@@ -167,6 +176,11 @@
         return;
       }
 
+      const remind = event.target.closest?.("[data-habit-remind]");
+      if (remind) {
+        openHabitReminder(remind.dataset.habitRemind);
+        return;
+      }
       const edit = event.target.closest?.("[data-habit-edit]");
       if (edit) {
         openHabitDialog(edit.dataset.habitEdit);
@@ -219,6 +233,10 @@
       state.habits.completions = [];
       changed = true;
     }
+    if (!state.habits.reminders || typeof state.habits.reminders !== "object" || Array.isArray(state.habits.reminders)) {
+      state.habits.reminders = {};
+      changed = true;
+    }
 
     state.habits.items.forEach(habit => {
       if (habit.active === undefined) { habit.active = true; changed = true; }
@@ -238,7 +256,8 @@
     return {
       schemaVersion: HABIT_SCHEMA,
       items: [],
-      completions: []
+      completions: [],
+      reminders: {}
     };
   }
 
@@ -409,56 +428,92 @@
     els.board.innerHTML = groups + archivedHtml;
   }
 
+  function reminderKey(id, date = todayKey()) { return `${date}|${id}`; }
+
+  function refreshDueReminders() {
+    if (!els.dashboard || document.hidden) return;
+    const reminders = habitState().reminders || {};
+    const now = Date.now();
+    const key = todayKey();
+    const due = habitState().items.find(habit => habit.active !== false &&
+      Number(reminders[reminderKey(habit.id, key)]?.until || 0) > 0 &&
+      Number(reminders[reminderKey(habit.id, key)]?.until || 0) <= now &&
+      !reminders[reminderKey(habit.id, key)]?.notified && snapshotForHabit(habit, key).canComplete);
+    if (due) {
+      reminders[reminderKey(due.id, key)].notified = true;
+      persist("habits-reminder-due", { render: false });
+      app.showToast?.(`❀ Reminder: ${due.name} is still open.`);
+    }
+    renderDashboard(habitState().items.filter(h=>h.active!==false && isTrackableOnDate(h,key)).map(h=>snapshotForHabit(h,key)),key);
+  }
+
+  function openHabitReminder(id) {
+    const habit = habitState().items.find(h => h.id === id && h.active !== false);
+    if (!habit || !els.reminderDialog) return;
+    els.reminderId.value = habit.id;
+    els.reminderTitle.textContent = `Remind me: ${habit.name}`;
+    const date = new Date(Date.now() + 60*60*1000);
+    // A day-scoped reminder must never prefill tomorrow as if it were later today.
+    if (date.toDateString() !== new Date().toDateString()) date.setHours(23, 59, 0, 0);
+    els.reminderTime.value = `${String(date.getHours()).padStart(2,"0")}:${String(date.getMinutes()).padStart(2,"0")}`;
+    els.reminderDialog.showModal();
+  }
+
+  function saveHabitReminder(event) {
+    event.preventDefault();
+    const id = els.reminderId.value;
+    if (!habitState().items.some(h=>h.id===id && h.active!==false)) return;
+    els.reminderTime.setCustomValidity("");
+    const match = /^(\d{2}):(\d{2})$/.exec(els.reminderTime.value);
+    if (!match || +match[1]>23 || +match[2]>59) return;
+    const now = new Date();
+    const until = new Date(now.getFullYear(), now.getMonth(), now.getDate(), +match[1], +match[2]).getTime();
+    if (until <= Date.now()) { els.reminderTime.setCustomValidity("Please pick a time later today."); els.reminderTime.reportValidity(); return; }
+    els.reminderTime.setCustomValidity("");
+    habitState().reminders[reminderKey(id)] = { until, notified: false };
+    els.reminderDialog.close();
+    persist("habits-reminder-set");
+    app.showToast?.(`❀ Reminder set for ${els.reminderTime.value} while the app is open.`);
+  }
+
   function renderDashboard(activeSnapshots, dateKey = todayKey()) {
     if (!els.dashboard) return;
-
     const historical = dateKey !== todayKey();
-    if (els.dashboardTitle) els.dashboardTitle.textContent = historical ? "Yesterday's Habits" : "Today's Habits";
+    if (els.dashboardTitle) els.dashboardTitle.textContent = historical ? "Yesterday's Habits" : "Today's Essentials";
     els.dashboardToday?.classList.toggle("active", !historical);
     els.dashboardYesterday?.classList.toggle("active", historical);
     els.dashboardToday?.setAttribute("aria-pressed", String(!historical));
     els.dashboardYesterday?.setAttribute("aria-pressed", String(historical));
-
     if (!activeSnapshots.length) {
-      els.dashboard.innerHTML = `
-        <div class="dashboard-habit-empty-v1 dashboard-habit-empty-v314au">
-          <span>${historical ? "🕰️" : "🌱"}</span>
-          <div><strong>${historical ? "Nothing to backfill yesterday." : "No habits yet."}</strong><small>${historical ? "Only habits that already existed yesterday can be logged here." : "Add the things you want a little extra support to remember."}</small></div>
-          ${historical ? "" : '<button class="secondary-button" type="button" data-view-target="habits">Create habits</button>'}
-        </div>`;
+      els.dashboard.innerHTML = `<div class="dashboard-habit-empty-v1 dashboard-habit-empty-v314au"><span>🌱</span><div><strong>${historical?"Nothing to backfill yesterday.":"Nothing to remember today."}</strong><small>Your existing habits appear here on their scheduled days.</small></div></div>`;
       return;
     }
-
-    const sorted = [...activeSnapshots].sort(compareHabitSnapshots);
-    const readyCount = sorted.filter(s => s.canComplete).length;
-    const doneCount = sorted.filter(s => s.completedToday || s.periodComplete).length;
-    const bestStreak = Math.max(...sorted.map(s => s.streak), 0);
-
+    const reminders = habitState().reminders || {};
+    const sorted = [...activeSnapshots].sort((a,b) => Number(b.canComplete)-Number(a.canComplete) ||
+      Number(Boolean(reminders[reminderKey(a.habit.id,dateKey)]?.until))-Number(Boolean(reminders[reminderKey(b.habit.id,dateKey)]?.until)) || compareHabitSnapshots(a,b));
+    const readyCount = sorted.filter(s=>s.canComplete).length;
+    const doneCount = sorted.filter(s=>s.completedToday || s.periodComplete).length;
     els.dashboard.innerHTML = `
-      <div class="dashboard-habit-summary-v314au">
-        <strong>${readyCount ? `${readyCount} ${historical ? "still loggable" : "ready"}` : historical ? "Yesterday is caught up" : "Habit rhythm is clear"}</strong>
-        <span>${doneCount}/${sorted.length} done${bestStreak ? ` · best streak ${bestStreak}` : ""}</span>
-      </div>
-      <div class="dashboard-habit-compact-grid-v314au">${sorted.map(snapshot => renderDashboardHabit(snapshot, dateKey)).join("")}</div>`;
+      <div class="dashboard-habit-summary-v314au"><strong>${readyCount ? `${readyCount} open · ${historical?"yesterday":"keep in sight"}` : "All clear for this date ♡"}</strong><span>${doneCount}/${sorted.length} complete</span></div>
+      <div class="dashboard-habit-compact-grid-v314au">${sorted.map(snapshot=>renderDashboardHabit(snapshot,dateKey)).join("")}</div>`;
   }
 
   function renderDashboardHabit(snapshot, dateKey = todayKey()) {
-    const { habit, canComplete, reward, streak, timingText, completedToday, periodComplete } = snapshot;
+    const { habit, canComplete, reward, timingText, completedToday, periodComplete } = snapshot;
     const historical = dateKey !== todayKey();
     const daypart = DAYPARTS[normalizedDaypart(habit)];
     const done = completedToday || periodComplete;
-    return `
-      <article class="dashboard-habit-compact-row-v314au ${canComplete ? "ready" : ""} ${done ? "done" : ""}">
-        <span class="habit-realm-dot-v1 realm-${cssToken(habit.realm)}"></span>
-        <div class="dashboard-habit-compact-copy-v314au">
-          <strong>${escapeHtml(habit.name)}</strong>
-          <small><span title="${escapeHtml(daypart.label)}">${daypart.icon}</span> ${escapeHtml(timingText)}${streak ? ` · ✦ ${streak}` : ""}</small>
-        </div>
-        <span class="dashboard-habit-reward-v314au">🔥 ${formatEnergy(reward)}</span>
-        ${canComplete
-          ? `<button class="habit-quick-complete-v1" type="button" data-habit-complete="${escapeHtml(habit.id)}" data-habit-date="${escapeHtml(dateKey)}">${historical ? "Log" : "Done"}</button>`
-          : `<span class="dashboard-habit-state-v1">${done ? "✓" : "—"}</span>`}
-      </article>`;
+    const reminder = !historical && canComplete ? habitState().reminders?.[reminderKey(habit.id,dateKey)] : null;
+    const snoozed = Number(reminder?.until || 0) > Date.now();
+    const due = Number(reminder?.until || 0) > 0 && !snoozed;
+    const scheduledTime = reminder?.until ? new Date(reminder.until).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit",hour12:false}) : "";
+    return `<article class="dashboard-habit-compact-row-v314au essentials-row-v314cv ${canComplete?"ready":""} ${done?"done":""} ${due?"reminder-due-v314cv":""} ${snoozed?"reminder-later-v314cv":""}">
+      <span class="habit-realm-dot-v1 realm-${cssToken(habit.realm)}"></span>
+      <div class="dashboard-habit-compact-copy-v314au"><strong>${escapeHtml(habit.name)}</strong>
+        <small>${daypart.icon} ${escapeHtml(timingText)}${snoozed?` · Reminder ${escapeHtml(scheduledTime)}`:due?" · Reminder is due": ""}</small></div>
+      <span class="dashboard-habit-reward-v314au">🔥 ${formatEnergy(reward)}</span>
+      ${canComplete ? `<div class="essentials-actions-v314cv"><button class="habit-quick-complete-v1" type="button" data-habit-complete="${escapeHtml(habit.id)}" data-habit-date="${escapeHtml(dateKey)}">${historical?"Log":"Done"}</button>${historical?"":`<button class="essentials-later-v314cv" type="button" data-habit-remind="${escapeHtml(habit.id)}">${snoozed?"Change time":"Later…"}</button>`}</div>`
+       : `<span class="dashboard-habit-state-v1">${done?"✓":"—"}</span>`}</article>`;
   }
 
   function compareHabitSnapshots(a, b) {

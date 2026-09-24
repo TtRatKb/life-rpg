@@ -3147,6 +3147,12 @@
     getQuestById,
     migrateQuestId: migrateLegacyQuestId,
     getQuestAvailability,
+    previewQuestReward: (questId, units) => {
+      const quest = getQuestById(questId);
+      if (!quest || !getQuestAvailability(quest).available) return null;
+      const n = Number(units ?? questTarget(quest));
+      return Number.isFinite(n) && n > 0 ? calculateQuestReward(quest, n) : null;
+    },
     getCapabilityInfo: key => statLevelInfo(state.stats?.[key] || 0),
     getRealmRankInfo: realm => realmRankInfo(state.realms?.[realm] || 0),
     getProgressionSnapshot,

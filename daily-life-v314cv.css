@@ -1,0 +1,48 @@
+/* Life RPG · 0.31.4cv · Daily Life & Motivation; CU calendar remains untouched. */
+.daily-life-priority-v314cv{display:grid;grid-template-columns:1.08fr .92fr;gap:1rem;margin-bottom:1rem;align-items:stretch}
+.daily-life-priority-v314cv>.panel{min-width:0;margin:0;box-shadow:0 10px 30px rgba(49,24,50,.06)}
+.daily-life-priority-v314cv .dashboard-habits-preview{border:1px solid #e9c9d4;background:linear-gradient(145deg,#fffdf9,#fff2f4)}
+.daily-life-priority-v314cv .dashboard-habit-compact-grid-v314au{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.55rem}
+.daily-life-priority-v314cv .dashboard-habit-compact-row-v314au{min-width:0;border-radius:14px}
+.daily-life-priority-v314cv .dashboard-habit-compact-row-v314au.ready{border-color:#dca5bb;background:#fffafa}
+.essentials-row-v314cv.reminder-due-v314cv{border-color:#bb7193!important;box-shadow:inset 3px 0 #af5a83;background:#fff1f5!important}
+.essentials-actions-v314cv{display:flex;gap:.3rem;flex-wrap:wrap;justify-content:flex-end}
+.essentials-later-v314cv{border:1px solid #dbbfca;background:#fff7f9;border-radius:11px;font-size:.73rem;color:#693e61;padding:.3rem .55rem;cursor:pointer}
+.essentials-row-v314cv .dashboard-habit-compact-copy-v314au{min-width:0}
+.daily-rewards-v314cv{background:linear-gradient(145deg,#fffdfb,#faf1fb)}
+.daily-rewards-count-v314cv{font-weight:800;color:#644262;white-space:nowrap;border-radius:99px;background:#f8e6ed;padding:.4rem .75rem}
+.daily-rewards-list-v314cv{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.45rem;margin-top:.75rem}
+.daily-reward-row-v314cv{display:flex;align-items:center;text-align:left;gap:.55rem;padding:.7rem;background:#fff;border:1px solid #e9dce5;border-radius:13px;cursor:pointer;min-width:0;color:#3d2d42}
+.daily-reward-row-v314cv:hover,.milestone-suggestion-v314cv:hover{border-color:#b989ab;background:#fff7fa}
+.daily-reward-row-v314cv>span:nth-child(2){flex:1;min-width:0}
+.daily-reward-row-v314cv strong,.daily-reward-row-v314cv small{display:block;line-height:1.35}
+.daily-reward-row-v314cv small{color:#886f87;font-size:.72rem;margin-top:.15rem}
+.daily-reward-row-v314cv>b{white-space:nowrap;font-size:.68rem;color:#765273}
+.daily-reward-state-v314cv{flex-shrink:0;display:grid;place-items:center;width:1.55rem;height:1.55rem;border:1px solid #d9acbd;border-radius:50%;font-size:1rem;color:#9b6683}
+.daily-reward-row-v314cv.is-done{background:#f6f7f1;opacity:.8}
+.daily-reward-row-v314cv.is-done .daily-reward-state-v314cv{background:#dcebdc;color:#386b4b;border-color:#c5ddc9}
+.milestone-panel-v314cv{margin-bottom:1rem;background:linear-gradient(110deg,#fffaf8,#fbf3fa)}
+.milestone-panel-v314cv>.panel-heading{display:flex;align-items:start;justify-content:space-between;gap:1rem}
+.milestone-target-control-v314cv,.milestone-skill-select-v314cv{display:flex;flex-direction:column;gap:.25rem;color:#72546e;font-size:.75rem}
+.milestone-target-control-v314cv select,.milestone-skill-select-v314cv select{border-radius:10px;min-height:2.3rem;padding:.4rem .6rem;background:#fff;color:#4d354b;border:1px solid #e5ccd9}
+.milestone-progress-v314cv{margin:.8rem 0;border:1px solid #ead9e2;background:rgba(255,255,255,.75);border-radius:14px;padding:.85rem 1rem}
+.milestone-progress-v314cv>div:first-child{display:flex;gap:.8rem;justify-content:space-between;align-items:center;flex-wrap:wrap}
+.milestone-progress-v314cv>div:first-child b{font-size:1.05rem;color:#815271}
+.milestone-progress-v314cv p,.milestone-suggestions-v314cv>p{margin:.35rem 0 0;font-size:.78rem;color:#846c80}
+.milestone-suggestions-v314cv{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.5rem}
+.milestone-suggestions-v314cv>small,.milestone-suggestions-v314cv>p{grid-column:1/-1}
+.milestone-suggestion-v314cv{display:flex;justify-content:space-between;align-items:center;gap:1rem;text-align:left;border:1px solid #ead8e3;border-radius:12px;background:#fff;padding:.7rem .8rem;color:#4f3651;cursor:pointer}
+.milestone-suggestion-v314cv strong,.milestone-suggestion-v314cv small{display:block}
+.milestone-suggestion-v314cv small{font-size:.68rem;color:#8b768b;margin-top:.15rem}
+.milestone-suggestion-v314cv b{font-size:.75rem;white-space:nowrap;color:#875d7b}
+.milestone-skill-tip-v314cv{margin:.7rem 0;color:#735d70;font-size:.85rem}
+.milestone-open-v314cv{margin-top:.7rem}
+.price-review-grid-v314cv{display:grid;grid-template-columns:1fr auto;gap:.5rem;background:#fff5f8;border:1px solid #edd4df;padding:.85rem;border-radius:12px}
+.price-review-field-v314cv{display:grid;gap:.4rem;margin-top:1rem}
+.price-review-field-v314cv input{width:100%;font-size:1.15rem;min-height:2.7rem;border-radius:10px}
+.price-review-error-v314cv{color:#9e3859;min-height:1.3em}
+.habit-reminder-dialog-v314cv input[type=time]{width:100%;min-height:2.7rem;border-radius:10px}
+@media(max-width:1070px){.daily-life-priority-v314cv{grid-template-columns:1fr}.daily-life-priority-v314cv .dashboard-habit-compact-grid-v314au{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:680px){.daily-life-priority-v314cv .dashboard-habit-compact-grid-v314au,.daily-rewards-list-v314cv,.milestone-suggestions-v314cv{grid-template-columns:1fr}.milestone-suggestion-v314cv b{white-space:normal}.milestone-panel-v314cv>.panel-heading{flex-wrap:wrap}}
+
+.milestone-focus-v314cv{display:flex;flex-wrap:wrap;gap:.3rem;align-items:center;margin:.7rem 0;border:1px solid #e7d6e0;background:#fffbfc;color:#654761;text-align:left;padding:.7rem .85rem;border-radius:12px;cursor:pointer}.milestone-focus-v314cv small{display:block;font-size:.7rem;color:#8b7485;width:100%}.milestone-suggestions-v314cv+.milestone-suggestions-v314cv{margin-top:.8rem}
