@@ -1,0 +1,9 @@
+/* V0.31.4dg: fullscreen puzzle surfaces, mouse shortcuts and helpful Kakuro. */
+.logic-expansion-dialog-v314ar{position:fixed;inset:0;width:100vw;width:100dvw;height:100vh;height:100dvh;max-width:none;max-height:none;margin:0;border-radius:0;overflow:hidden;background:#fffaf7;color:#54394e}
+.logic-expansion-shell-v314ar{box-sizing:border-box;min-height:100%;height:100%;max-height:none;overflow:auto;border:0;border-radius:0;box-shadow:none;padding:clamp(16px,3vw,36px) max(16px,calc((100vw - 1060px)/2));padding-bottom:calc(38px + env(safe-area-inset-bottom,0px))}
+.logic-expansion-close-v314ar{position:sticky;top:0;float:right;z-index:5;background:#fff1f7;box-shadow:0 2px 12px #55304e19}
+.logic-board-wrap-v314ar{min-height:min(51vh,600px);padding:clamp(12px,2vw,28px)}
+.logic-v3-toolbox{display:grid;gap:7px;margin-top:13px}.logic-v3-toolbox>div{display:flex;gap:8px;flex-wrap:wrap}.logic-v3-toolbox button{border:1px solid #ddbacc;border-radius:11px;background:#fff;padding:10px 14px;color:#70445e;cursor:pointer;font:inherit}.logic-v3-toolbox button.selected{background:#713f60;color:#fff;border-color:#713f60}.logic-v3-toolbox small{color:#806779;line-height:1.5}
+.logic-expansion-dialog-v314ar [data-slither-edge],.logic-expansion-dialog-v314ar [data-nuri-cell]{touch-action:manipulation;cursor:pointer}
+.logic-v3-kakuro-help{display:grid;gap:10px;padding:14px 16px;margin:12px 0;border:1px solid #e5cbd9;border-radius:15px;background:#fff7fa;color:#634057;line-height:1.5}.logic-v3-kakuro-help>div{display:flex;gap:8px;flex-wrap:wrap}.logic-v3-kakuro-help strong{font-size:1rem}.logic-v3-kakuro-help p{margin:0;min-height:2em}.logic-v3-kakuro-help small{color:#856b7a}
+@media(max-width:540px){.logic-expansion-shell-v314ar{padding:12px 12px calc(24px + env(safe-area-inset-bottom,0px))}.logic-board-wrap-v314ar{min-height:260px}.logic-v3-toolbox button{flex:1}.logic-v3-kakuro-help>div button{flex:1}}

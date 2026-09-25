@@ -1,6 +1,6 @@
 (() => {
   "use strict";
-  const VERSION = "0.31.4df";
+  const VERSION = "0.31.4dg";
   const FOCUS_VERSION = "0.31.4de";
   const standalone = window.matchMedia?.("(display-mode: standalone)")?.matches || window.navigator.standalone === true;
   if (standalone) document.body.classList.add("is-standalone-v251");
@@ -36,6 +36,23 @@
     homeScript.src="./shared-apartment-v2.js?v=0.31.4df";homeScript.async=false;
     homeScript.onerror=()=>console.warn("Life RPG could not load Shared Apartment V2");
     document.body.appendChild(homeScript);
+  }
+
+  // DG: an additive game layer avoids replacing a much newer index.html with an
+  // older snapshot. It augments the existing logic runtime instead of double-loading it.
+  addCss("./logic-v3-enhancements.css?v=0.31.4dg", "lifeRpgLogicV3Css");
+  if (!window.LifeRPGLogicV3Enhancements && !document.getElementById("lifeRpgLogicV3Js")) {
+    const script=document.createElement("script");script.id="lifeRpgLogicV3Js";
+    script.src="./logic-v3-enhancements.js?v=0.31.4dg";script.async=false;
+    script.onerror=()=>console.warn("Life RPG could not load logic enhancements");
+    document.body.appendChild(script);
+  }
+  addCss("./lexicon-arcade.css?v=0.31.4dg", "lifeRpgLexiconArcadeCss");
+  if (!window.LifeRPGLexiconArcade && !document.getElementById("lifeRpgLexiconArcadeJs")) {
+    const script=document.createElement("script");script.id="lifeRpgLexiconArcadeJs";
+    script.src="./lexicon-arcade.js?v=0.31.4dg";script.async=false;
+    script.onerror=()=>console.warn("Life RPG could not load Lexicon Arcade");
+    document.body.appendChild(script);
   }
 
   if (!("serviceWorker" in navigator)) return;
