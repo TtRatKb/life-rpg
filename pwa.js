@@ -1,6 +1,6 @@
 (() => {
   "use strict";
-  const VERSION = "0.31.4dd";
+  const VERSION = "0.31.4de";
   const standalone = window.matchMedia?.("(display-mode: standalone)")?.matches || window.navigator.standalone === true;
   if (standalone) document.body.classList.add("is-standalone-v251");
 
@@ -14,8 +14,18 @@
     if (document.getElementById(id) || window.LifeRPGCompanionMomentsV2) return;
     const script=document.createElement("script");script.id=id;script.src=src;script.async=false;script.onerror=()=>console.warn("Life RPG could not load Companion Moments V2");document.body.appendChild(script);
   };
-  addCss(`./companion-moments-v2.css?v=${VERSION}`,"lifeRpgCompanionV2Css");
-  addScript(`./companion-moments-v2.js?v=${VERSION}`,"lifeRpgCompanionV2Js");
+  addCss(`./companion-moments-v2.css?v=0.31.4dd`,"lifeRpgCompanionV2Css");
+  addScript(`./companion-moments-v2.js?v=0.31.4dd`,"lifeRpgCompanionV2Js");
+
+  // The canonical Time engine is loaded by index.html. Only the persistent UI is
+  // additive; do not load a second copy of time.js or create a competing clock.
+  addCss(`./focus-dock.css?v=${VERSION}`,"lifeRpgFocusDockCss");
+  if (!document.getElementById("lifeRpgFocusDockJs") && !window.LifeRPGFocusDock) {
+    const timerScript=document.createElement("script");timerScript.id="lifeRpgFocusDockJs";
+    timerScript.src=`./focus-dock.js?v=${VERSION}`;timerScript.async=false;
+    timerScript.onerror=()=>console.warn("Life RPG could not load the persistent focus dock");
+    document.body.appendChild(timerScript);
+  }
 
   if (!("serviceWorker" in navigator)) return;
   window.addEventListener("load", () => {

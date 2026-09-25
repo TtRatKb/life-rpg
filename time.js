@@ -133,6 +133,10 @@
       if (stop) return finishActive();
       const cancel = event.target.closest("[data-time-cancel]");
       if (cancel) return cancelActive();
+      const pause = event.target.closest("[data-time-pause]");
+      if (pause) return pauseActive();
+      const resume = event.target.closest("[data-time-resume]");
+      if (resume) return resumeActive();
       const breakButton = event.target.closest("[data-time-break]");
       if (breakButton) return startBreak(Number(breakButton.dataset.timeBreak || lastBreakOffer || 10));
     });
@@ -217,6 +221,9 @@
       linkedAdventureId: spec.linkedAdventureId || null,
       linkedRoadmapStepId: spec.linkedRoadmapStepId || null,
       startedAt: new Date(now).toISOString(),
+      segmentStartedAt: new Date(now).toISOString(),
+      workIntervals: [],
+      pausedAt: null,
       targetMinutes: spec.targetMinutes == null ? null : Math.max(1, Number(spec.targetMinutes)),
       breakMinutes: Math.max(0, Number(spec.breakMinutes || 0)),
       alarmFired: false
@@ -235,68 +242,118 @@
     lastBreakOffer = 0;
   }
 
-  function finishActive() {
+  // Old running timers are migrated lazily: an absent segmentStartedAt means
+  // they have been running since their original startedAt. Never reset a clock.
+  function liveIntervals(active, now = Date.now()) {
+    if (!active) return [];
+    const closed = Array.isArray(active.workIntervals) ? active.workIntervals.map(row => ({ startAt: row.startAt, endAt: row.endAt })) : [];
+    if (!active.pausedAt) {
+      const start = Date.parse(active.segmentStartedAt || active.startedAt || "");
+      if (Number.isFinite(start) && now > start) closed.push({ startAt: new Date(start).toISOString(), endAt: new Date(now).toISOString() });
+    }
+    return closed.filter(row => Number.isFinite(Date.parse(row.startAt)) && Number.isFinite(Date.parse(row.endAt)) && Date.parse(row.endAt) > Date.parse(row.startAt));
+  }
+
+  function intervalSeconds(intervals) {
+    return intervals.reduce((total, row) => total + Math.max(0, Date.parse(row.endAt) - Date.parse(row.startAt)), 0) / 1000;
+  }
+
+  function elapsedSeconds(active, now = Date.now()) {
+    if (!active) return 0;
+    return Math.max(0, Math.floor(intervalSeconds(liveIntervals(active, now))));
+  }
+
+  function pauseActive() {
+    const active = state().active;
+    if (!active || active.pausedAt) return false;
+    const now = Date.now();
+    active.workIntervals = liveIntervals(active, now);
+    active.pausedAt = new Date(now).toISOString();
+    active.segmentStartedAt = null;
+    app.saveState({source:"time-pause",suppressUiRefresh:true});
+    renderActive();
+    dispatchChange();
+    return true;
+  }
+
+  function resumeActive() {
+    const active = state().active;
+    if (!active || !active.pausedAt) return false;
+    active.pausedAt = null;
+    active.segmentStartedAt = new Date().toISOString();
+    app.saveState({source:"time-resume",suppressUiRefresh:true});
+    renderActive();
+    dispatchChange();
+    return true;
+  }
+
+  function trimIntervals(intervals, cutoff) {
+    return intervals.map(row => {
+      const a=Date.parse(row.startAt), b=Math.min(Date.parse(row.endAt), cutoff);
+      return b>a ? {startAt:new Date(a).toISOString(),endAt:new Date(b).toISOString()} : null;
+    }).filter(Boolean);
+  }
+
+  function sessionPreview(options={}) {
+    const active=state().active;
+    if (!active) return null;
+    const now = active.pausedAt ? Date.parse(active.pausedAt) : Date.now();
+    const endBackSeconds=Math.max(0,Math.floor(Number(options.endBackMinutes||0)*60));
+    const deductionSeconds=Math.max(0,Math.floor(Number(options.deductionMinutes||0)*60));
+    const intervals=trimIntervals(liveIntervals(active, now), now-endBackSeconds*1000);
+    const rawSeconds=Math.floor(intervalSeconds(intervals));
+    return { active:{...active}, intervals, rawSeconds, deductionSeconds,
+      durationSeconds:Math.max(0,rawSeconds-deductionSeconds),
+      endAt:intervals.at(-1)?.endAt||null,
+      firstAt:intervals[0]?.startAt||null };
+  }
+
+  function finishActive(options = {}) {
     const tracker = state();
     const active = tracker.active;
-    if (!active) return;
-    const end = new Date();
-    const start = new Date(active.startedAt);
-    if (!Number.isFinite(start.getTime())) {
-      tracker.active = null;
-      app.saveState({ source: "time-broken-active-clear" });
-      render();
-      return;
+    if (!active) return {ok:false,reason:"No timer running."};
+    if (options.endBackMinutes!=null && (!Number.isFinite(Number(options.endBackMinutes)) || Number(options.endBackMinutes)<0)) return {ok:false,reason:"Invalid stop adjustment."};
+    if (options.deductionMinutes!=null && (!Number.isFinite(Number(options.deductionMinutes)) || Number(options.deductionMinutes)<0)) return {ok:false,reason:"Invalid break deduction."};
+    const preview = sessionPreview(options);
+    const elapsedSeconds=preview.durationSeconds;
+    const elapsed=elapsedSeconds/60;
+    if (!preview.firstAt || !preview.endAt || elapsedSeconds < 1) {
+      app.showToast?.("There is no working time left to record. Continue or cancel this session.");
+      return {ok:false,reason:"No working time left."};
     }
-    const elapsedMs = Math.max(0, end - start);
-    const elapsed = Math.max(1, Math.round(elapsedMs / 60000));
+    if (elapsed > MAX_ACTIVE_HOURS*60) {
+      app.showToast?.("That session exceeds 18 hours of work. Please review the recorded time.");
+      return {ok:false,reason:"Session exceeds 18 hours."};
+    }
+    // Check actual working pieces, not the paused span in between them.
+    for (const piece of preview.intervals) {
+      const collision=findOverlap(new Date(piece.startAt),new Date(piece.endAt));
+      if (collision) {
+        app.showToast?.(`This timer overlaps an existing log (${collision.label}). Please review that entry; the timer is still saved.`);
+        return {ok:false,reason:"Overlapping log",overlap:collision};
+      }
+    }
     const targetMinutes = Math.max(0, Number(active.targetMinutes || 0));
-    const minimumReached = targetMinutes <= 0 || elapsedMs >= targetMinutes * 60000;
-    if (elapsed > MAX_ACTIVE_HOURS * 60) {
-      app.showToast?.("That session ran for more than 18 hours. Add the correct time manually instead.");
-      return;
-    }
-    const collision = findOverlap(start, end);
-    if (collision) {
-      // Leave the active session available: a stopped timer must never silently
-      // add a second paid interval on top of an automatic school block.
-      app.showToast?.(`This timer overlaps an existing log (${collision.label}). Review that log or cancel the timer without logging.`);
-      return;
-    }
-    const entry = makeEntry({
-      startAt: start.toISOString(),
-      endAt: end.toISOString(),
-      minutes: elapsed,
-      categoryId: active.categoryId,
-      subcategory: active.subcategory,
-      label: active.label,
-      mode: active.mode,
-      linkedQuestId: active.linkedQuestId,
-      linkedAdventureId: active.linkedAdventureId,
-      linkedRoadmapStepId: active.linkedRoadmapStepId,
-      durationSeconds: Math.max(1, Math.floor(elapsedMs / 1000)),
-      targetMinutes: active.targetMinutes
+    const minimumReached = targetMinutes <= 0 || elapsedSeconds >= targetMinutes*60;
+    const entry=makeEntry({
+      startAt:preview.firstAt,endAt:preview.endAt,minutes:elapsed,
+      precise:true,workIntervals:preview.intervals,
+      durationSeconds:elapsedSeconds,manualDeductionSeconds:preview.deductionSeconds,
+      correctionNote:preview.deductionSeconds ? "Unlocated forgotten break deducted by user" : "",
+      categoryId:active.categoryId,subcategory:active.subcategory,label:active.label,
+      mode:active.mode,linkedQuestId:active.linkedQuestId,linkedAdventureId:active.linkedAdventureId,
+      linkedRoadmapStepId:active.linkedRoadmapStepId,targetMinutes:active.targetMinutes
     });
-    tracker.active = null;
-    addEntry(entry, { reward: true });
-    if (active.mode === "focus" && Number(active.breakMinutes || 0) > 0 && elapsed >= Math.max(1, Number(active.targetMinutes || 0) - 1)) {
-      lastBreakOffer = Number(active.breakMinutes || 0);
-    }
+    tracker.active=null;
+    addEntry(entry,{reward:true});
+    if (active.mode === "focus" && Number(active.breakMinutes || 0)>0 && elapsed>=Math.max(1,Number(active.targetMinutes || 0)-1))lastBreakOffer=Number(active.breakMinutes||0);
     if (active.mode === "focus" && active.linkedQuestId) maybeLogLinkedQuest(active.linkedQuestId, elapsed);
-    if (active.mode === "action" && active.linkedQuestId && minimumReached) {
-      maybeLogLinkedQuest(active.linkedQuestId, elapsed);
-    }
-    if (active.mode === "action" && active.linkedAdventureId && minimumReached) {
-      maybeLogLinkedAdventure(active.linkedAdventureId, active.linkedRoadmapStepId, elapsed);
-    }
-    app.saveState({ source: `time-${active.mode}-finish` });
-    app.renderAll?.();
-    render();
-    dispatchChange();
-    if (active.mode === "action") {
-      const linkedLabel = active.linkedAdventureId ? "Adventure step" : active.linkedQuestId ? "Quest" : "action";
-      if (minimumReached) app.showToast?.(`${active.label} · ${elapsed} min logged and ${linkedLabel} completed.`);
-      else app.showToast?.(`${elapsed} min logged. The ${targetMinutes} min minimum was not reached, so the ${linkedLabel} stays open.`);
-    }
+    if (active.mode === "action" && active.linkedQuestId && minimumReached) maybeLogLinkedQuest(active.linkedQuestId,elapsed);
+    if (active.mode === "action" && active.linkedAdventureId && minimumReached) maybeLogLinkedAdventure(active.linkedAdventureId,active.linkedRoadmapStepId,elapsed);
+    app.saveState({source:`time-${active.mode}-finish`});
+    app.renderAll?.();render();dispatchChange();
+    if (active.mode === "action") app.showToast?.(minimumReached?`${formatClock(elapsedSeconds)} logged. Linked action completed.`:`${formatClock(elapsedSeconds)} logged. The linked action stays open.`);
+    return {ok:true,entry:{...entry}};
   }
 
   function cancelActive() {
@@ -314,7 +371,7 @@
       id: data.id || `time-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       startAt: data.startAt,
       endAt: data.endAt,
-      minutes: Math.max(1, Math.round(Number(data.minutes || 0))),
+      minutes: data.precise ? Math.max(1/60, Number(data.minutes||0)) : Math.max(1, Math.round(Number(data.minutes || 0))),
       categoryId: CATEGORIES[data.categoryId] ? data.categoryId : "other",
       subcategory: clean(data.subcategory),
       label: clean(data.label) || CATEGORIES[data.categoryId]?.label || "Time log",
@@ -323,6 +380,7 @@
       linkedAdventureId: data.linkedAdventureId || null,
       linkedRoadmapStepId: data.linkedRoadmapStepId || null,
       durationSeconds: Math.max(1, Math.round(Number(data.durationSeconds || (Number(data.minutes || 0) * 60) || 60))),
+      ...(data.precise ? { precise: true, workIntervals: data.workIntervals.map(row=>({...row})), manualDeductionSeconds:Math.max(0,Number(data.manualDeductionSeconds||0)), correctionNote:clean(data.correctionNote) } : {}),
       targetMinutes: data.targetMinutes == null ? null : Number(data.targetMinutes),
       rewardEventId: data.rewardEventId || null,
       reward: data.reward && typeof data.reward === "object" ? { ...data.reward } : null,
@@ -631,6 +689,7 @@
   function editEntry(id) {
     const entry = state().entries.find(item => item.id === id);
     if (!entry) return;
+    if(entry.precise && !window.confirm("Dieser Eintrag enthält sekundengenaue Arbeitsabschnitte und Pausen. Eine manuelle Änderung ersetzt die Abschnittshistorie durch einen durchgehenden Zeitraum. Fortfahren?"))return;
     editingId = id;
     els.manualStart.value = toLocalInput(new Date(entry.startAt));
     els.manualEnd.value = toLocalInput(new Date(entry.endAt));
@@ -683,6 +742,10 @@
       if (!entry || entry.id === excludeId) return false;
       const a = new Date(entry.startAt).getTime();
       const b = new Date(entry.endAt).getTime();
+      if (Array.isArray(entry.workIntervals) && entry.workIntervals.length) return entry.workIntervals.some(piece=>{
+        const x=Date.parse(piece.startAt),y=Date.parse(piece.endAt);
+        return Number.isFinite(x)&&Number.isFinite(y)&&Math.min(end.getTime(),y)-Math.max(start.getTime(),x)>0;
+      });
       return Number.isFinite(a) && Number.isFinite(b) && Math.min(end.getTime(), b) - Math.max(start.getTime(), a) > 0;
     }) || null;
   }
@@ -695,8 +758,8 @@
     if (!Number.isFinite(started)) return;
     const target = Number(active.targetMinutes || 0);
     if (target > 0 && active.mode !== "action") {
-      const due = started + target * 60000;
-      if (Date.now() >= due && !active.alarmFired && alarmLocalFiredFor !== active.id) {
+      const dueReached = elapsedSeconds(active) >= target * 60;
+      if (dueReached && !active.alarmFired && alarmLocalFiredFor !== active.id) {
         active.alarmFired = true;
         alarmLocalFiredFor = active.id;
         app.saveState({ source: "time-alarm-fired" });
@@ -754,6 +817,8 @@
     [...els.focusPresets.querySelectorAll("[data-focus-preset]")].forEach(button => button.classList.toggle("active", button.dataset.focusPreset === selected));
   }
 
+  function elapsedSecondsForDisplay(active){return elapsedSeconds(active);}
+
   function renderActive() {
     if (!els.activeCard) return;
     const active = state().active;
@@ -767,7 +832,7 @@
     }
     const category = CATEGORIES[active.categoryId] || CATEGORIES.other;
     const started = new Date(active.startedAt).getTime();
-    const elapsedSeconds = Math.max(0, Math.floor((Date.now() - started) / 1000));
+    const elapsedSeconds = elapsedSecondsForDisplay(active);
     const targetSeconds = Number(active.targetMinutes || 0) * 60;
     const remaining = targetSeconds > 0 ? Math.max(0, targetSeconds - elapsedSeconds) : null;
     const reached = targetSeconds > 0 && elapsedSeconds >= targetSeconds;
@@ -775,9 +840,9 @@
     const meta = `${category.icon} ${category.label}${active.subcategory ? ` · ${active.subcategory}` : ""}`;
     els.activeCard.innerHTML = `
       <article class="rhythm-running-v304 ${reached ? "is-finished" : ""}" data-time-active-id="${escAttr(active.id || "active")}">
-        <div class="rhythm-running-copy-v304"><small>${active.mode === "break" ? "BREAK TIMER" : active.mode === "focus" ? "FOCUS SESSION" : active.mode === "action" ? "DAILY ACTION" : "CLOCKED IN"}</small><h2>${esc(active.label)}</h2><p>${esc(meta)}</p></div>
+        <div class="rhythm-running-copy-v304"><small>${active.pausedAt ? "PAUSED · NOT COUNTING" : active.mode === "break" ? "BREAK TIMER" : active.mode === "focus" ? "FOCUS SESSION" : active.mode === "action" ? "DAILY ACTION" : "CLOCKED IN"}</small><h2>${esc(active.label)}</h2><p>${esc(meta)}</p></div>
         <div class="rhythm-clock-v304"><strong data-time-live-clock>${mainClock}</strong><span data-time-live-status>${targetSeconds > 0 ? (reached ? (active.mode === "action" ? `${active.targetMinutes}m minimum reached · overtime counts` : `${active.targetMinutes}m target complete`) : `${formatDuration(Math.floor(elapsedSeconds / 60))} elapsed`) : `${formatDuration(Math.floor(elapsedSeconds / 60))} logged so far`}</span></div>
-        <div class="rhythm-running-actions-v304"><button class="primary-button" data-time-stop data-time-live-stop type="button">${active.mode === "break" ? "Finish break & log" : active.mode === "action" ? (reached ? "Finish & complete" : "Stop & log time") : reached ? "Finish & log" : "Stop & log"}</button><button class="secondary-button" data-time-cancel type="button">Cancel</button></div>
+        <div class="rhythm-running-actions-v304"><button class="secondary-button" ${active.pausedAt?"data-time-resume":"data-time-pause"} type="button">${active.pausedAt ? "▶ Resume" : "Ⅱ Pause"}</button><button class="primary-button" data-time-stop data-time-live-stop type="button">${active.mode === "break" ? "Finish break & log" : active.mode === "action" ? (reached ? "Finish & complete" : "Stop & log time") : reached ? "Finish & log" : "Stop & log"}</button><button class="secondary-button" data-time-cancel type="button">Cancel</button></div>
       </article>`;
   }
 
@@ -794,7 +859,7 @@
 
     const started = new Date(active.startedAt).getTime();
     if (!Number.isFinite(started)) return;
-    const elapsedSeconds = Math.max(0, Math.floor((Date.now() - started) / 1000));
+    const elapsedSeconds = elapsedSecondsForDisplay(active);
     const targetSeconds = Number(active.targetMinutes || 0) * 60;
     const remaining = targetSeconds > 0 ? Math.max(0, targetSeconds - elapsedSeconds) : null;
     const reached = targetSeconds > 0 && elapsedSeconds >= targetSeconds;
@@ -875,7 +940,7 @@
   function summaryCards(summary, label) {
     return `
       <div class="rhythm-summary-card-v304"><small>${esc(label.toUpperCase())}</small><strong>${formatDuration(summary.totalMinutes)}</strong><span>Total tracked</span></div>
-      <div class="rhythm-summary-card-v304 work"><small>WORK</small><strong>${formatDuration(summary.workMinutes)}</strong><span>School + work + focus</span></div>
+      <div class="rhythm-summary-card-v304 work"><small>WORK</small><strong>${formatClock(Math.round(summary.workMinutes*60))}</strong><span>School + work + focus · HH:MM:SS</span></div>
       <div class="rhythm-summary-card-v304"><small>FOCUS</small><strong>${formatDuration(summary.focusMinutes)}</strong><span>Intentional focus</span></div>
       <div class="rhythm-summary-card-v304"><small>OFF-DUTY</small><strong>${formatDuration(summary.personalMinutes + summary.recoveryMinutes)}</strong><span>Hobbies + recovery</span></div>`;
   }
@@ -896,16 +961,31 @@
     els.recent.innerHTML = rows.length ? rows.map(entry => {
       const category = CATEGORIES[entry.categoryId] || CATEGORIES.other;
       const reward = entry.reward ? ` · +${entry.reward.storyEnergy || 0} 🔥 · +${entry.reward.xp || 0} XP · +${entry.reward.coins || 0} 🪙` : "";
-      return `<article class="rhythm-log-row-v304"><div class="rhythm-log-icon-v304">${category.icon}</div><div><strong>${esc(entry.label || category.label)}</strong><p>${formatEntryDate(entry)} · ${esc(category.label)}${entry.subcategory ? ` · ${esc(entry.subcategory)}` : ""}${reward}</p></div><b>${formatDuration(entry.minutes)}</b><div class="rhythm-log-actions-v304"><button class="mini-nav-button" data-time-edit="${escAttr(entry.id)}" type="button">Edit</button><button class="mini-nav-button danger" data-time-delete="${escAttr(entry.id)}" type="button">Delete</button></div></article>`;
+      return `<article class="rhythm-log-row-v304"><div class="rhythm-log-icon-v304">${category.icon}</div><div><strong>${esc(entry.label || category.label)}</strong><p>${formatEntryDate(entry)} · ${esc(category.label)}${entry.subcategory ? ` · ${esc(entry.subcategory)}` : ""}${entry.precise?` · ${entry.workIntervals.length} Arbeitsabschnitt(e)${entry.manualDeductionSeconds?` · ${Math.round(entry.manualDeductionSeconds/60)} min Pausenabzug`:""}`:""}${reward}</p></div><b>${entry.precise?formatClock(entry.durationSeconds):formatDuration(entry.minutes)}</b><div class="rhythm-log-actions-v304"><button class="mini-nav-button" data-time-edit="${escAttr(entry.id)}" type="button">Edit</button><button class="mini-nav-button danger" data-time-delete="${escAttr(entry.id)}" type="button">Delete</button></div></article>`;
     }).join("") : `<p class="empty-state-copy">Nothing logged yet. Your first school block, focus session or off-duty activity will appear here.</p>`;
   }
 
+  function secondsInsideEntry(entry,start,end){
+    if(Array.isArray(entry.workIntervals) && entry.workIntervals.length){
+      const within=entry.workIntervals.reduce((sum,piece)=>{
+        const a=Date.parse(piece.startAt),b=Date.parse(piece.endAt);
+        return sum+(Number.isFinite(a)&&Number.isFinite(b)?Math.max(0,Math.min(b,end.getTime())-Math.max(a,start.getTime())):0);
+      },0)/1000;
+      const deduction=Number(entry.manualDeductionSeconds||0);
+      // A deduction without known interval position is applied on the original session's end date.
+      const t=Date.parse(entry.endAt);
+      return Math.max(0,within-(t>=start.getTime()&&t<end.getTime()?deduction:0));
+    }
+    const t=Date.parse(entry.startAt);
+    return t>=start.getTime()&&t<end.getTime()?Math.max(0,Number(entry.minutes||0))*60:0;
+  }
   function summarizeRange(start, end) {
     const summary = { totalMinutes: 0, workMinutes: 0, focusMinutes: 0, personalMinutes: 0, recoveryMinutes: 0, byCategory: {} };
     state().entries.forEach(entry => {
       const at = new Date(entry.startAt || 0);
-      if (!Number.isFinite(at.getTime()) || at < start || at >= end) return;
-      const minutes = Math.max(0, Number(entry.minutes || 0));
+      if (!Number.isFinite(at.getTime())) return;
+      const minutes = secondsInsideEntry(entry,start,end)/60;
+      if(minutes<=0)return;
       const category = CATEGORIES[entry.categoryId] || CATEGORIES.other;
       summary.totalMinutes += minutes;
       summary.byCategory[entry.categoryId] = Number(summary.byCategory[entry.categoryId] || 0) + minutes;
@@ -1026,12 +1106,10 @@
     logWeekBatch,
     removeWeekEntries,
     getActive: () => state().active ? { ...state().active } : null,
-    getElapsedSeconds: () => {
-      const active = state().active;
-      if (!active) return 0;
-      const started = new Date(active.startedAt).getTime();
-      return Number.isFinite(started) ? Math.max(0, Math.floor((Date.now() - started) / 1000)) : 0;
-    },
+    getElapsedSeconds: () => elapsedSeconds(state().active),
+    getSessionPreview: sessionPreview,
+    pauseActive,
+    resumeActive,
     finishActive,
     cancelActive,
     startClock: options => startActive({ mode: "clock", categoryId: options?.categoryId || "school", subcategory: options?.subcategory || "Other school", label: options?.label || "Work session", targetMinutes: null, breakMinutes: 0, linkedQuestId: null }),
