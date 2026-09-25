@@ -1,6 +1,7 @@
 (() => {
   "use strict";
-  const VERSION = "0.31.4de";
+  const VERSION = "0.31.4df";
+  const FOCUS_VERSION = "0.31.4de";
   const standalone = window.matchMedia?.("(display-mode: standalone)")?.matches || window.navigator.standalone === true;
   if (standalone) document.body.classList.add("is-standalone-v251");
 
@@ -19,12 +20,22 @@
 
   // The canonical Time engine is loaded by index.html. Only the persistent UI is
   // additive; do not load a second copy of time.js or create a competing clock.
-  addCss(`./focus-dock.css?v=${VERSION}`,"lifeRpgFocusDockCss");
+  addCss(`./focus-dock.css?v=${FOCUS_VERSION}`,"lifeRpgFocusDockCss");
   if (!document.getElementById("lifeRpgFocusDockJs") && !window.LifeRPGFocusDock) {
     const timerScript=document.createElement("script");timerScript.id="lifeRpgFocusDockJs";
-    timerScript.src=`./focus-dock.js?v=${VERSION}`;timerScript.async=false;
+    timerScript.src=`./focus-dock.js?v=${FOCUS_VERSION}`;timerScript.async=false;
     timerScript.onerror=()=>console.warn("Life RPG could not load the persistent focus dock");
     document.body.appendChild(timerScript);
+  }
+
+  // Shared Apartment V2 is an additive home layer. Preserve the complete DE timer
+  // loader and the earlier DD Companion loader; do not replace index.html or SW.
+  addCss("./shared-apartment-v2.css?v=0.31.4df", "lifeRpgSharedApartmentV2Css");
+  if (!document.getElementById("lifeRpgSharedApartmentV2Js") && !window.LifeRPGSharedApartmentV2) {
+    const homeScript=document.createElement("script");homeScript.id="lifeRpgSharedApartmentV2Js";
+    homeScript.src="./shared-apartment-v2.js?v=0.31.4df";homeScript.async=false;
+    homeScript.onerror=()=>console.warn("Life RPG could not load Shared Apartment V2");
+    document.body.appendChild(homeScript);
   }
 
   if (!("serviceWorker" in navigator)) return;
