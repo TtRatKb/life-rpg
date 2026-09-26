@@ -1,6 +1,6 @@
 (() => {
   "use strict";
-  const VERSION = "0.31.4dh";
+  const VERSION = "0.31.4di";
   const FOCUS_VERSION = "0.31.4de";
   const standalone = window.matchMedia?.("(display-mode: standalone)")?.matches || window.navigator.standalone === true;
   if (standalone) document.body.classList.add("is-standalone-v251");
@@ -55,12 +55,35 @@
     document.body.appendChild(script);
   }
 
+  // DI: guaranteed visible training entry, regardless of optional reward-bridge readiness.
+  // The Training Grounds panel is a static DOM surface, unlike the hidden
+  // integration detail panel used by DH. Never replace the current index.html.
+  function addDungeonTrainingEntry() {
+    const grid=document.querySelector('#trainingGroundsPanel .training-grounds-grid-v314k');
+    if(!grid || document.getElementById('lifeRpgDungeonTrainingLink'))return;
+    const a=document.createElement('a');
+    a.id='lifeRpgDungeonTrainingLink';a.className='training-card-v314k is-live';
+    a.target='_blank';a.rel='noopener';
+    const url=new URL('https://ttratkb.github.io/kotoba-quest/dungeon.html');
+    url.searchParams.set('lifeOrigin',location.origin);a.href=url.href;
+    a.innerHTML='<span class="training-card-icon-v314k">⚔</span><div><small>JAPANESE · REPEATABLE</small><strong>Little Dungeon</strong><p>Japanisch üben, Monster besiegen und Siege in Life RPG einlösen.</p><em>Dungeon öffnen ↗</em></div><b>↗</b>';
+    grid.appendChild(a);
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',addDungeonTrainingEntry,{once:true});
+  else addDungeonTrainingEntry();
+  window.addEventListener('life-rpg:render',addDungeonTrainingEntry);
+
   // DH: independent local Dungeon receipt bridge. The existing capped Kotoba SRS
   // bridge remains untouched and continues handling real reviews on its own.
   if (!window.LifeRPGKotobaDungeonBridge && !document.getElementById("lifeRpgDungeonBridgeJs")) {
     const dungeonScript=document.createElement("script");dungeonScript.id="lifeRpgDungeonBridgeJs";
-    dungeonScript.src="./kotoba-dungeon-bridge.js?v=0.31.4dh";dungeonScript.async=false;
-    dungeonScript.onerror=()=>console.warn("Life RPG could not load Dungeon reward bridge");
+    dungeonScript.src="./kotoba-dungeon-bridge.js?v=0.31.4di";dungeonScript.async=false;
+    dungeonScript.onerror=()=>{
+      console.warn("Life RPG could not load Dungeon reward bridge");
+      addDungeonTrainingEntry();
+      const card=document.getElementById('lifeRpgDungeonTrainingLink');
+      if(card){const label=card.querySelector('em');if(label)label.textContent='Dungeon öffnen · Reward-Bridge-Datei prüfen';}
+    };
     document.body.appendChild(dungeonScript);
   }
 

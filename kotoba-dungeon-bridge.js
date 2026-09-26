@@ -1,4 +1,4 @@
-/* Life RPG V0.31.4dh — optional Dungeon receipt intake, alongside original Kotoba SRS bridge.
+/* Life RPG V0.31.4di — optional Dungeon receipt intake, alongside original Kotoba SRS bridge.
  * Own event namespace, first-install baseline, no modification of existing Kotoba daily caps. */
 (() => {
   'use strict';
@@ -47,21 +47,29 @@
     }finally{busy=false;render();}
   }
   function link(){const url=new URL(DUNGEON);url.searchParams.set('lifeOrigin',location.origin);return url.href;}
-  function inject(){const panel=document.getElementById('kotobaIntegrationPanel');if(!panel)return;
+  function inject(){const panel=document.getElementById('trainingGroundsPanel')||document.getElementById('kotobaIntegrationPanel');if(!panel)return;
     if(!document.getElementById('lifeRpgDungeonPanel')){
       const box=document.createElement('section');box.id='lifeRpgDungeonPanel';box.style.cssText='display:grid;gap:10px;padding:17px;margin:15px 0 0;background:linear-gradient(125deg,#f8edf9,#fff6f0);border:1px solid #e4cbdf;border-radius:17px';
-      box.innerHTML='<div><p class="eyebrow">JAPANESE · LITTLE DUNGEON</p><h3 style="margin:4px 0">⚔ Learn. Fight. Repeat.</h3><p style="margin:5px 0">Normale Gegner und Bosse bringen eigene Dungeon-Belohnungen in Life RPG. Kein hartes Dungeon-Tagescap, sondern sanft sinkende Erträge.</p></div><div style="display:flex;gap:8px;flex-wrap:wrap"><a id="lifeRpgDungeonOpen" class="primary-button" target="_blank" rel="noopener" href="#">Dungeon öffnen ↗</a><button id="lifeRpgDungeonSync" type="button" class="secondary-button">Siege synchronisieren</button></div><label style="display:flex;align-items:center;gap:7px"><input id="lifeRpgDungeonEnabled" type="checkbox" checked><span>Dungeon-Belohnungen aktiv</span></label><label style="display:grid;gap:4px"><span>Falls die beiden Apps verschiedene Domains haben: Siegesbelege importieren</span><input id="lifeRpgDungeonImport" type="file" accept=".json,application/json" aria-label="Dungeon-Siegesbelege importieren"></label><small id="lifeRpgDungeonStatus" aria-live="polite"></small>';
-      panel.appendChild(box);
+      box.innerHTML='<div><p class="eyebrow">JAPANESE · LITTLE DUNGEON</p><h3 style="margin:4px 0">⚔ Dungeon-Belohnungen</h3><p style="margin:5px 0">Normale Gegner und Bosse bringen eigene Dungeon-Belohnungen in Life RPG. Kein hartes Dungeon-Tagescap, sondern sanft sinkende Erträge.</p></div><div style="display:flex;gap:8px;flex-wrap:wrap"><a id="lifeRpgDungeonOpen" class="primary-button" target="_blank" rel="noopener" href="#">Dungeon öffnen ↗</a><button id="lifeRpgDungeonSync" type="button" class="secondary-button">Siege synchronisieren</button></div><label style="display:flex;align-items:center;gap:7px"><input id="lifeRpgDungeonEnabled" type="checkbox" checked><span>Dungeon-Belohnungen aktiv</span></label><label style="display:grid;gap:4px"><span id="lifeRpgDungeonImportHint">Siegesbelege als JSON importieren (optional, wenn beide Apps dieselbe Domain verwenden).</span><input id="lifeRpgDungeonImport" type="file" accept=".json,application/json" aria-label="Dungeon-Siegesbelege importieren"></label><small id="lifeRpgDungeonStatus" aria-live="polite"></small>';
+      const entranceGrid=panel.querySelector?.('.training-grounds-grid-v314k');
+      if(entranceGrid)entranceGrid.insertAdjacentElement('afterend',box);
+      else panel.appendChild(box);
       document.getElementById('lifeRpgDungeonOpen').href=link();
       document.getElementById('lifeRpgDungeonSync').addEventListener('click',()=>importEvents(readOutbox()));
       document.getElementById('lifeRpgDungeonEnabled').addEventListener('change',e=>{state().enabled=e.target.checked;save('setting');if(e.target.checked)importEvents(readOutbox());else render();});
       document.getElementById('lifeRpgDungeonImport').addEventListener('change',async e=>{const file=e.target.files?.[0];if(!file)return;try{if(file.size>1200000)throw Error('Zu große Datei.');const obj=JSON.parse(await file.text());if(obj?.type!=='kotoba-dungeon-receipts-v1'||obj.schemaVersion!==1||!Array.isArray(obj.events))throw Error('Kein gültiger Dungeon-Siegesexport.');const r=importEvents(obj.events,{manual:true});app.showToast?.(`${r.imported} neue Dungeon-Siege übernommen.`);}catch(err){app.showToast?.(String(err.message||err));}finally{e.target.value='';}});
     }
-    const spot=document.querySelector('.training-card-v314k[href="#kotobaIntegrationPanel"]');if(spot&&!document.getElementById('lifeRpgDungeonTrainingLink')){
-      const a=document.createElement('a');a.id='lifeRpgDungeonTrainingLink';a.className='training-card-v314k is-live';a.target='_blank';a.rel='noopener';a.href=link();a.innerHTML='<span class="training-card-icon-v314k">⚔</span><div><small>JAPANESE · REPEATABLE</small><strong>Little Dungeon</strong><p>Fight with your Kotoba vocabulary, earn Japanese progress.</p><em>Open dungeon ↗</em></div><b>↗</b>';spot.insertAdjacentElement('afterend',a);
+    const grid=document.querySelector('#trainingGroundsPanel .training-grounds-grid-v314k');
+    if(grid&&!document.getElementById('lifeRpgDungeonTrainingLink')){
+      const a=document.createElement('a');a.id='lifeRpgDungeonTrainingLink';a.className='training-card-v314k is-live';a.target='_blank';a.rel='noopener';a.href=link();a.innerHTML='<span class="training-card-icon-v314k">⚔</span><div><small>JAPANESE · REPEATABLE</small><strong>Little Dungeon</strong><p>Japanisch üben, Monster besiegen und Siege in Life RPG einlösen.</p><em>Dungeon öffnen ↗</em></div><b>↗</b>';grid.appendChild(a);
+    }
+    const linkEl=document.getElementById('lifeRpgDungeonTrainingLink');if(linkEl)linkEl.href=link();
+    const japanese=document.getElementById('kotobaIntegrationPanel');
+    if(japanese&&!document.getElementById('lifeRpgDungeonJapaneseEntry')){
+      const a=document.createElement('a');a.id='lifeRpgDungeonJapaneseEntry';a.href=link();a.target='_blank';a.rel='noopener';a.className='primary-button';a.style.cssText='display:inline-flex;align-items:center;justify-content:center;margin:10px 0;padding:11px 15px;text-decoration:none';a.textContent='⚔ Little Dungeon öffnen ↗';japanese.appendChild(a);
     }
   }
-  function render(){inject();const el=document.getElementById('lifeRpgDungeonStatus');if(!el)return;const s=state();const pending=readOutbox().filter(x=>valid(x)&&Date.parse(x.at)>=s.baselineAt&&!s.processed[x.id]).length;const crossOrigin=new URL(DUNGEON).origin!==location.origin;el.textContent=`${s.imported||0} Siege belohnt · ${pending} wartend · ${s.enabled?'Aktiv':'Pausiert'}${crossOrigin?' · Verschiedene Domains: Siegesexport importieren':''}${s.lastError?' · '+s.lastError:''}. Die normalen Kotoba-Review-Grenzen bleiben separat.`;const checkbox=document.getElementById('lifeRpgDungeonEnabled');if(checkbox)checkbox.checked=Boolean(s.enabled);}
+  function render(){inject();const el=document.getElementById('lifeRpgDungeonStatus');if(!el)return;const s=state();const pending=readOutbox().filter(x=>valid(x)&&Date.parse(x.at)>=s.baselineAt&&!s.processed[x.id]).length;const crossOrigin=new URL(DUNGEON).origin!==location.origin;const hint=document.getElementById('lifeRpgDungeonImportHint');if(hint)hint.textContent=crossOrigin?'Verschiedene Domains: Im Dungeon-Camp Siegesbelege als JSON exportieren und hier importieren. Du darfst denselben Export mehrfach einlesen; jeder Sieg wird nur einmal belohnt.':'Gleiche Domain: Siege werden automatisch übergeben. Ein JSON-Export ist nur als zusätzliche Sicherung nötig.';el.textContent=`${s.imported||0} Siege belohnt · ${pending} wartend · ${s.enabled?'Aktiv':'Pausiert'}${crossOrigin?' · Verschiedene Domains: Siegesexport importieren':''}${s.lastError?' · '+s.lastError:''}. Die normalen Kotoba-Review-Grenzen bleiben separat.`;const checkbox=document.getElementById('lifeRpgDungeonEnabled');if(checkbox)checkbox.checked=Boolean(s.enabled);}
   function sync(){const s=state();if(s.enabled)importEvents(readOutbox(),{notify:true});else render();}
   let queued=false;function schedule(){if(queued)return;queued=true;setTimeout(()=>{queued=false;sync();},240);}
   window.addEventListener('storage',e=>{if(e.key===KEY)schedule();});
@@ -70,5 +78,7 @@
   window.addEventListener('life-rpg:render',render);
   window.addEventListener('message',e=>{if(e.origin!==new URL(DUNGEON).origin||e.data?.type!=='kotoba-dungeon-receipt-v1')return;importEvents([e.data.event]);});
   state();inject();sync();
-  window.LifeRPGKotobaDungeonBridge={version:1,importEvents,sync,state,amount,valid,link};
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',inject,{once:true});
+  window.addEventListener('load',inject,{once:true});
+  window.LifeRPGKotobaDungeonBridge={version:2,importEvents,sync,state,amount,valid,link};
 })();
