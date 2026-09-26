@@ -221,7 +221,13 @@
   ];
 
   const COLORING_PAGES = [
-    { id: "bakugo-trading-card", title: "Bakugo Trading Card", subtitle: "Collectible-card coloring page · spoiler-free bonus art", src: "assets/coloring/bakugo-trading-card-line.png?v=0.31.4ca" }
+    { id: "bakugo-trading-card", title: "Bakugo Trading Card", subtitle: "Collectible-card coloring page · spoiler-free bonus art", src: "assets/coloring/bakugo-trading-card-line.png?v=0.31.4dm" },
+    { id: "bakugo-hero-classic", title: "Bakugo Hero Classic", subtitle: "Collectible coloring card · iconic pro-hero stance", src: "assets/coloring/bakugo-hero-classic-line.png?v=0.31.4dm" },
+    { id: "bakugo-battle-heat", title: "Bakugo Battle Heat", subtitle: "Collectible coloring card · sweaty battle close-up", src: "assets/coloring/bakugo-battle-heat-line.png?v=0.31.4dm" },
+    { id: "bakugo-alley-strut", title: "Bakugo Alley Strut", subtitle: "Collectible coloring card · off-duty city walk", src: "assets/coloring/bakugo-alley-strut-line.png?v=0.31.4dm" },
+    { id: "bakugo-rooftop-break", title: "Bakugo Rooftop Break", subtitle: "Collectible coloring card · rooftop recharge", src: "assets/coloring/bakugo-rooftop-break-line.png?v=0.31.4dm" },
+    { id: "bakugo-chair-taunt", title: "Bakugo Chair Taunt", subtitle: "Collectible coloring card · teasing lounge pose", src: "assets/coloring/bakugo-chair-taunt-line.png?v=0.31.4dm" },
+    { id: "bakugo-post-training", title: "Bakugo Post-Training", subtitle: "Collectible coloring card · post-workout intensity", src: "assets/coloring/bakugo-post-training-line.png?v=0.31.4dm" }
   ];
 
   const PALETTE = ["#2d2130", "#5c294b", "#9a486d", "#d8759e", "#f2a7bf", "#efcfbc", "#f4d35e", "#e88945", "#bc3c38", "#7c2f34", "#4a6658", "#79a879", "#6c8dc6", "#8a72bc", "#d6c4ef", "#ffffff"];
@@ -299,11 +305,6 @@
   }
 
   function syncStudioLaunchers() {
-    const nav=document.querySelector(".bottom-nav");
-    if(nav?.classList.contains("life-hub-nav") || window.LifeRPGLifeHub?.openStudio){
-      nav?.querySelectorAll("[data-coloring-studio-launcher], [data-drawing-studio-launcher]").forEach(b=>b.remove());
-      return;
-    }
     syncColoringLauncher();
     syncDrawingLauncher();
   }
@@ -592,14 +593,12 @@
     } else if (kind === "coloring-studio") {
       if (!isUnlocked("Hobbies", "coloring-studio")) return focusLocked("Hobbies");
       finishColoringSession();
-      if(window.LifeRPGLifeHub?.openStudio) window.LifeRPGLifeHub.openStudio("coloring-studio");
-      else window.location.assign("coloring-studio.html");
+      window.location.assign("coloring-studio.html");
       return true;
     } else if (kind === "drawing-studio") {
       if (!isUnlocked("Hobbies", "coloring-studio")) return focusLocked("Hobbies");
       finishColoringSession();
-      if(window.LifeRPGLifeHub?.openStudio) window.LifeRPGLifeHub.openStudio("drawing-studio");
-      else window.location.assign("drawing-studio.html");
+      window.location.assign("drawing-studio.html");
       return true;
     } else return false;
     showDialog();
