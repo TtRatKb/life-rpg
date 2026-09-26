@@ -12,7 +12,7 @@
     return;
   }
 
-  const VERSION = "0.31.4dn";
+  const VERSION = "0.31.4dp";
   const SCHEMA = 7;
   const REALMS = ["Work", "Knowledge", "Japanese", "Health", "Recovery", "Home", "Hobbies"];
 
@@ -154,6 +154,33 @@
           { content: "coloring-studio" }, "View in Coloring Studio", () => window.LifeRPGCreativeHub?.enter?.("coloring")),
         linkedContent("color-card-bakugo-post-training", "🃏", "Bakugo · Post-Training", 1,
           "Collectible coloring card · After training · jacket in motion. View the locked preview in Coloring Studio; buy this card permanently with 1 Hobbies point.",
+          { content: "coloring-studio" }, "View in Coloring Studio", () => window.LifeRPGCreativeHub?.enter?.("coloring")),
+        linkedContent("color-card-kirishima-hero-grin", "🃏", "Kirishima · Hero Grin", 1,
+          "Collectible coloring card · Adult pro hero · confident, sharp-toothed grin. Preview in Coloring Studio; permanently unlock for 1 Hobbies point.",
+          { content: "coloring-studio" }, "View in Coloring Studio", () => window.LifeRPGCreativeHub?.enter?.("coloring")),
+        linkedContent("color-card-kirishima-sunshine-break", "🃏", "Kirishima · Sunshine Break", 1,
+          "Collectible coloring card · A relaxed off-duty smile. Preview in Coloring Studio; permanently unlock for 1 Hobbies point.",
+          { content: "coloring-studio" }, "View in Coloring Studio", () => window.LifeRPGCreativeHub?.enter?.("coloring")),
+        linkedContent("color-card-kirishima-training-glow", "🃏", "Kirishima · Training Glow", 1,
+          "Collectible coloring card · Sweaty post-workout break. Preview in Coloring Studio; permanently unlock for 1 Hobbies point.",
+          { content: "coloring-studio" }, "View in Coloring Studio", () => window.LifeRPGCreativeHub?.enter?.("coloring")),
+        linkedContent("color-card-kirishima-red-riot-edge", "🃏", "Kirishima · Red Riot Edge", 1,
+          "Collectible coloring card · A closer look at the adult hero guard. Preview in Coloring Studio; permanently unlock for 1 Hobbies point.",
+          { content: "coloring-studio" }, "View in Coloring Studio", () => window.LifeRPGCreativeHub?.enter?.("coloring")),
+        linkedContent("color-card-kirishima-casual-charm", "🃏", "Kirishima · Casual Charm", 1,
+          "Collectible coloring card · Off-duty hoodie and that familiar grin. Preview in Coloring Studio; permanently unlock for 1 Hobbies point.",
+          { content: "coloring-studio" }, "View in Coloring Studio", () => window.LifeRPGCreativeHub?.enter?.("coloring")),
+        linkedContent("color-card-kirishima-chair-sideways", "🃏", "Kirishima · Chair Sideways", 1,
+          "Collectible coloring card · A laid-back chair pose. Preview in Coloring Studio; permanently unlock for 1 Hobbies point.",
+          { content: "coloring-studio" }, "View in Coloring Studio", () => window.LifeRPGCreativeHub?.enter?.("coloring")),
+        linkedContent("color-card-kirishima-stretch-break", "🃏", "Kirishima · Stretch Break", 1,
+          "Collectible coloring card · Post-training stretch, all smiles. Preview in Coloring Studio; permanently unlock for 1 Hobbies point.",
+          { content: "coloring-studio" }, "View in Coloring Studio", () => window.LifeRPGCreativeHub?.enter?.("coloring")),
+        linkedContent("color-card-kirishima-come-at-me", "🃏", "Kirishima · Come At Me", 1,
+          "Collectible coloring card · Pro-hero challenge · reaching out. Preview in Coloring Studio; permanently unlock for 1 Hobbies point.",
+          { content: "coloring-studio" }, "View in Coloring Studio", () => window.LifeRPGCreativeHub?.enter?.("coloring")),
+        linkedContent("color-card-kirishima-lean-in", "🃏", "Kirishima · Lean In", 1,
+          "Collectible coloring card · A gentle grin from across the table. Preview in Coloring Studio; permanently unlock for 1 Hobbies point.",
           { content: "coloring-studio" }, "View in Coloring Studio", () => window.LifeRPGCreativeHub?.enter?.("coloring")),
         linkedContent("palette-atelier", "◈", "Palette Atelier", 1,
           "An interactive color-matching game with three rounds, visible feedback, eight curated palettes, and daily or practice play. The coloring collection below is a separate optional content branch.",
@@ -699,7 +726,7 @@
     const action = complete ? openButton : `<span class="talent-v3-content-actions">${openButton}${buyButton}</span>`;
 
     const cardArt = realm === "Hobbies" && item.id.startsWith("color-card-") ?
-      `assets/coloring/${item.id.slice("color-card-".length)}-line.png?v=0.31.4dn` : "";
+      `assets/coloring/${item.id.slice("color-card-".length)}-line.png?v=0.31.4dp` : "";
     const art = cardArt ? `<div class="talent-card-art-v314dn ${owned ? "is-owned" : "is-locked"}"><img src="${escAttr(cardArt)}" alt="Preview of ${escAttr(item.title)}" loading="lazy">${owned ? "" : `<span aria-hidden="true">🔒</span>`}</div>` : "";
     return `${index ? treeLink(item.requires?.content ? `Previous unlock: ${contentTitle(realm, item.requires.content)}${item.requires.contentRank > 1 ? ` ${roman(item.requires.contentRank)}` : ""}` : `Content expansion`) : ""}
       <article id="talent-v3-content-${escAttr(realm)}-${escAttr(item.id)}" class="talent-v3-node talent-v3-content-node ${stateClass} ${cardArt ? "is-coloring-card" : ""}">

@@ -6,10 +6,11 @@
   if (!app?.showView) return;
   const E=value=>app.escapeHtml(String(value??""));
   const ID={coloring:"LifeRPGColoringStudioBridge",drawing:"LifeRPGDrawingStudioBridge"};
-  const FRAMES={coloring:"coloring-studio.html?embedded=1&v=0.31.4dn",drawing:"drawing-studio.html?embedded=1&v=0.31.4dl"};
+  const FRAMES={coloring:"coloring-studio.html?embedded=1&v=0.31.4dp",drawing:"drawing-studio.html?embedded=1&v=0.31.4dl"};
   const modes={coloring:"gallery",drawing:"gallery"};
   const selected={coloring:null,drawing:null};
   let drawingFilter="all";
+  let coloringFilter="all";
   function unlocked(){const graph=window.LifeRPGTalentTreeGraph;return Boolean(graph?.isContentUnlocked?.("Hobbies","coloring-studio")||Number(graph?.getContentRank?.("Hobbies","coloring-studio")||0)>0);}
   function cardOwned(card){if(!unlocked())return false;return card.unlockId==="coloring-studio" || Boolean(window.LifeRPGTalentTreeGraph?.isContentUnlocked?.("Hobbies",card.unlockId));}
   function view(kind){return document.getElementById(`view-${kind}`);}
@@ -36,7 +37,8 @@
     if(kind!=="coloring"&&!unlocked()){gallery.innerHTML='<div class="creative-locked"><span>🔒</span><strong>Creative Studios</strong><p>Unlock Coloring Studio in the Hobbies Talent Tree to open Coloring and Drawing. Your previous artworks stay saved.</p><button class="primary-button" type="button" data-creative-skills>Hobbies Talent Tree →</button></div>';return;}
     if(kind==="coloring"){
       const cards=b.catalog();const count=cards.filter(cardOwned).length;
-      gallery.innerHTML=`<div class="creative-gallery-intro"><strong>Collectible Coloring Cards</strong><span>${count}/${cards.length} unlocked · choose the cards you want</span></div>${!unlocked()?`<div class="creative-locked creative-locked-studio"><span>🔒</span><strong>Coloring Studio</strong><p>Unlock the Studio in the Hobbies Skill Tree to color the first card and purchase the others.</p><button class="primary-button" type="button" data-creative-skills>Unlock Coloring Studio →</button></div>`:""}<div class="creative-gallery-grid">${cards.map(c=>{const owned=cardOwned(c),m=owned?coloringMeta(c.id):null;return `<div class="creative-card ${owned?"is-unlocked":"is-locked"}" data-card-preview="${E(c.id)}"><div class="creative-card-image"><img src="${E(c.src)}" alt="${E(c.title)} line art" loading="lazy">${owned&&m.painting?`<img class="creative-paint-preview" src="${m.painting}" alt="Your saved coloring" loading="lazy">`:""}${!owned?`<span class="creative-card-lock" aria-label="Locked">🔒</span>`:""}</div><div class="creative-card-info"><small>${owned?(m.finished?"FINISHED ✓":m.started?"IN PROGRESS":"UNLOCKED"):"LOCKED · HOBBIES TALENT"}</small><strong>${E(c.title)}</strong><span>${owned?(m.finished?"View / continue":m.started?"Continue coloring":"Start coloring"):"Preview · unlock in Skill Tree"}</span><button type="button" class="${owned?"primary-button":"secondary-button"} creative-card-action" ${owned?`data-creative-item="${E(c.id)}"`:`data-creative-unlock="${E(c.id)}"`}>${owned?"Open card →":"🔒 Unlock card →"}</button></div></div>`;}).join("")}</div><p class="creative-storage-note">All collectible designs are visible. Locked previews cannot be opened in the coloring editor. Your existing local paintings remain saved; back them up before changing browser or device.</p>`;
+      const shown=cards.filter(c=>coloringFilter==="all"||c.series?.toLowerCase()===coloringFilter);
+      gallery.innerHTML=`<div class="creative-gallery-intro"><strong>Collectible Coloring Cards</strong><span>${count}/${cards.length} unlocked · choose the cards you want</span></div><div class="creative-gallery-filters" role="group" aria-label="Filter coloring cards">${[["all","All cards"],["bakugo","Bakugo"],["kirishima","Kirishima"]].map(([filter,label])=>`<button type="button" data-creative-color-filter="${filter}" aria-pressed="${String(coloringFilter===filter)}">${label} · ${filter==="all"?cards.length:cards.filter(c=>c.series?.toLowerCase()===filter).length}</button>`).join("")}</div>${!unlocked()?`<div class="creative-locked creative-locked-studio"><span>🔒</span><strong>Coloring Studio</strong><p>Unlock the Studio in the Hobbies Skill Tree to color the first card and purchase the others.</p><button class="primary-button" type="button" data-creative-skills>Unlock Coloring Studio →</button></div>`:""}<div class="creative-gallery-grid">${shown.map(c=>{const owned=cardOwned(c),m=owned?coloringMeta(c.id):null;return `<div class="creative-card ${owned?"is-unlocked":"is-locked"}" data-card-preview="${E(c.id)}"><div class="creative-card-image"><img src="${E(c.src)}" alt="${E(c.title)} line art" loading="lazy">${owned&&m.painting?`<img class="creative-paint-preview" src="${m.painting}" alt="Your saved coloring" loading="lazy">`:""}${!owned?`<span class="creative-card-lock" aria-label="Locked">🔒</span>`:""}</div><div class="creative-card-info"><small>${owned?(m.finished?"FINISHED ✓":m.started?"IN PROGRESS":"UNLOCKED"):"LOCKED · HOBBIES TALENT"}</small><strong>${E(c.title)}</strong><span>${owned?(m.finished?"View / continue":m.started?"Continue coloring":"Start coloring"):"Preview · unlock in Skill Tree"}</span><button type="button" class="${owned?"primary-button":"secondary-button"} creative-card-action" ${owned?`data-creative-item="${E(c.id)}"`:`data-creative-unlock="${E(c.id)}"`}>${owned?"Open card →":"🔒 Unlock card →"}</button></div></div>`;}).join("")}</div><p class="creative-storage-note">All collectible designs are visible. Locked previews cannot be opened in the coloring editor. Your existing local paintings remain saved; back them up before changing browser or device.</p>`;
     }else{
       const list=b.catalog(),meta=completedDrawing(),tracks=["all",...new Set(list.map(c=>c.track))];
       const cards=list.filter(c=>drawingFilter==="all"||c.track===drawingFilter);
@@ -60,6 +62,7 @@
     const back=event.target.closest("[data-creative-back]");if(back){gallery(back.closest(".creative-hub-view")?.id?.replace("view-",""));return;}
     const talents=event.target.closest("[data-creative-skills]");if(talents){window.LifeRPGTalentTreeGraph?.focusContent?.("Hobbies","coloring-studio");return;}
     const unlock=event.target.closest("[data-creative-unlock]");if(unlock){window.LifeRPGTalentTreeGraph?.focusContent?.("Hobbies",`color-card-${unlock.dataset.creativeUnlock}`);return;}
+    const colorFilter=event.target.closest("[data-creative-color-filter]");if(colorFilter){coloringFilter=colorFilter.dataset.creativeColorFilter;render("coloring");return;}
     const filter=event.target.closest("[data-creative-filter]");if(filter){drawingFilter=filter.dataset.creativeFilter;render("drawing");return;}
     const item=event.target.closest("[data-creative-item]");if(item){const kind=item.closest(".creative-hub-view")?.id?.replace("view-","");if(kind)openItem(kind,item.dataset.creativeItem);}
   });
@@ -70,5 +73,5 @@
   window.addEventListener("pagehide",()=>{for(const kind of Object.keys(ID))suspend(kind);});
   function init(){build();for(const kind of Object.keys(ID))if(document.getElementById(`view-${kind}`)?.classList.contains("active"))load(kind);}
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init,{once:true});else init();
-  window.LifeRPGCreativeHub={version:"0.31.4dn",enter,gallery,render,openItem,_test:{unlocked,cardOwned,coloringMeta,completedDrawing,modes}};
+  window.LifeRPGCreativeHub={version:"0.31.4dp",enter,gallery,render,openItem,_test:{unlocked,cardOwned,coloringMeta,completedDrawing,modes}};
 })();

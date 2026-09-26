@@ -1,5 +1,5 @@
 (() => {
-  const VERSION = '0.31.4dn';
+  const VERSION = '0.31.4dp';
   const STORAGE_PREFIX = 'lifeRpgColoringStudio';
   const EMBEDDED = window.parent !== window && new URLSearchParams(location.search).get('embedded') === '1';
   const CANVAS_WIDTH = 1122;
@@ -17,7 +17,16 @@
     { id: 'bakugo-alley-strut', title: 'Bakugo · Alley Strut', unlockId: 'color-card-bakugo-alley-strut', assetCandidates: ['assets/coloring/bakugo-alley-strut-line.png?v=0.31.4dn'] },
     { id: 'bakugo-rooftop-break', title: 'Bakugo · Rooftop Break', unlockId: 'color-card-bakugo-rooftop-break', assetCandidates: ['assets/coloring/bakugo-rooftop-break-line.png?v=0.31.4dn'] },
     { id: 'bakugo-chair-taunt', title: 'Bakugo · Chair Taunt', unlockId: 'color-card-bakugo-chair-taunt', assetCandidates: ['assets/coloring/bakugo-chair-taunt-line.png?v=0.31.4dn'] },
-    { id: 'bakugo-post-training', title: 'Bakugo · Post-Training', unlockId: 'color-card-bakugo-post-training', assetCandidates: ['assets/coloring/bakugo-post-training-line.png?v=0.31.4dn'] }
+    { id: 'bakugo-post-training', title: 'Bakugo · Post-Training', unlockId: 'color-card-bakugo-post-training', assetCandidates: ['assets/coloring/bakugo-post-training-line.png?v=0.31.4dn'] },
+    { id: 'kirishima-hero-grin', title: 'Kirishima · Hero Grin', unlockId: 'color-card-kirishima-hero-grin', assetCandidates: ['assets/coloring/kirishima-hero-grin-line.png?v=0.31.4dp'] } ,
+    { id: 'kirishima-sunshine-break', title: 'Kirishima · Sunshine Break', unlockId: 'color-card-kirishima-sunshine-break', assetCandidates: ['assets/coloring/kirishima-sunshine-break-line.png?v=0.31.4dp'] } ,
+    { id: 'kirishima-training-glow', title: 'Kirishima · Training Glow', unlockId: 'color-card-kirishima-training-glow', assetCandidates: ['assets/coloring/kirishima-training-glow-line.png?v=0.31.4dp'] } ,
+    { id: 'kirishima-red-riot-edge', title: 'Kirishima · Red Riot Edge', unlockId: 'color-card-kirishima-red-riot-edge', assetCandidates: ['assets/coloring/kirishima-red-riot-edge-line.png?v=0.31.4dp'] } ,
+    { id: 'kirishima-casual-charm', title: 'Kirishima · Casual Charm', unlockId: 'color-card-kirishima-casual-charm', assetCandidates: ['assets/coloring/kirishima-casual-charm-line.png?v=0.31.4dp'] } ,
+    { id: 'kirishima-chair-sideways', title: 'Kirishima · Chair Sideways', unlockId: 'color-card-kirishima-chair-sideways', assetCandidates: ['assets/coloring/kirishima-chair-sideways-line.png?v=0.31.4dp'] } ,
+    { id: 'kirishima-stretch-break', title: 'Kirishima · Stretch Break', unlockId: 'color-card-kirishima-stretch-break', assetCandidates: ['assets/coloring/kirishima-stretch-break-line.png?v=0.31.4dp'] } ,
+    { id: 'kirishima-come-at-me', title: 'Kirishima · Come At Me', unlockId: 'color-card-kirishima-come-at-me', assetCandidates: ['assets/coloring/kirishima-come-at-me-line.png?v=0.31.4dp'] } ,
+    { id: 'kirishima-lean-in', title: 'Kirishima · Lean In', unlockId: 'color-card-kirishima-lean-in', assetCandidates: ['assets/coloring/kirishima-lean-in-line.png?v=0.31.4dp'] }
   ];
 
   const state = {
@@ -812,7 +821,7 @@
   }
 
   window.LifeRPGColoringStudioBridge = {
-    catalog: () => CARD_LIBRARY.map(card => ({id:card.id,title:card.title,src:card.assetCandidates[0],unlockId:card.unlockId})),
+    catalog: () => CARD_LIBRARY.map(card => ({id:card.id,title:card.title,src:card.assetCandidates[0],unlockId:card.unlockId,series:card.id.startsWith('kirishima-')?'Kirishima':'Bakugo'})),
     openCard: async id => {
       const card = CARD_LIBRARY.find(item => item.id === id);
       if (!card || !cardUnlocked(card)) return false;
