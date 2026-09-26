@@ -392,7 +392,7 @@
     // native activity already represents the real action, the quest is only a completion wrapper.
     const linkedTimesByQuest = groupTimeEntriesByQuest(timeEntries);
     (root.completionLog || []).forEach(log => {
-      if (!log?.questId) return;
+      if (!log?.questId || log.nativeSource === "home-quick-action") return;
       if (log.rewardEventId && claimedRewardIds.has(log.rewardEventId)) return;
       const quest = app.getQuestById?.(log.questId);
       if (!quest) return;
@@ -505,6 +505,7 @@
   function skillForRewardEvent(reward) {
     const source = String(reward.source || "");
     const label = String(reward.label || "");
+    if (source === "home-quick-action") return nativeSkill("life-management", Math.max(0, Number(reward.statXP ?? 1)), "home-quick-action");
     if (source === "sudoku-complete") return nativeSkill("logical-pattern-reasoning", 10, "sudoku");
     if (source === "sudoku-daily-replay") return nativeSkill("logical-pattern-reasoning", 8, "sudoku-replay");
     if (source === "nonogram-complete") return nativeSkill("logical-pattern-reasoning", 10, "nonogram");

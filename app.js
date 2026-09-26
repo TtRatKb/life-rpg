@@ -832,7 +832,7 @@
   function awardActivity(spec = {}) {
     let effectiveSpec = spec;
     try {
-      effectiveSpec = window.LifeRPGTalentV2?.modifyRewardSpec?.(spec) || spec;
+      effectiveSpec = spec.skipAddOnRewards ? spec : (window.LifeRPGTalentV2?.modifyRewardSpec?.(spec) || spec);
     } catch (error) {
       console.error("Talent V2 reward pre-hook failed", error);
       effectiveSpec = spec;
@@ -841,7 +841,7 @@
     const reward = calculateActivityReward(effectiveSpec, { mutate: true });
 
     try {
-      const talent = window.LifeRPGTalentV2?.afterActivityReward?.(effectiveSpec, reward);
+      const talent = spec.skipAddOnRewards ? null : window.LifeRPGTalentV2?.afterActivityReward?.(effectiveSpec, reward);
       if (talent?.messages?.length) {
         reward.talentBonuses = [...talent.messages];
         window.setTimeout(() => showToast(talent.messages.join(" · ")), 650);
@@ -854,7 +854,7 @@
     }
 
     try {
-      const giftFind = window.LifeRPGGifts?.afterActivityReward?.(effectiveSpec, reward);
+      const giftFind = spec.skipAddOnRewards ? null : window.LifeRPGGifts?.afterActivityReward?.(effectiveSpec, reward);
       if (giftFind?.item) reward.giftFind = { ...giftFind.item };
     } catch (error) {
       console.error("Gift reward post-hook failed", error);
@@ -1484,6 +1484,7 @@
 
     byId(`view-${viewName}`)?.classList.add("active");
     document.querySelector(`.nav-button[data-view="${viewName}"]`)?.classList.add("active");
+    window.dispatchEvent(new CustomEvent("life-rpg:view-changed", {detail:{view:viewName}}));
 
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -2284,7 +2285,16 @@
       return { pending: true, quest: { ...quest }, units: normalizedUnits };
     }
     const baseReward = calculateQuestReward(quest, normalizedUnits);
-    const shouldAward = !options.suppressReward && (!isBatchQuest(quest) || Number(baseReward.batchProgress?.earnedBatches || 0) > 0);
+    // A just-logged household quick action may describe this exact existing
+    // cleaning Quest. Keep the Quest completion but never pay twice for one job.
+    const recentHomeQuick = quest.realm === "Home" && /10-minute clean/i.test(String(quest.name || ""))
+      ? (state.homeQuickActionsV1?.entries || []).slice().reverse().find(entry =>
+          entry && !entry.undone && entry.rewardEventId &&
+          ["clear-kitchen", "vacuum"].includes(entry.actionId) &&
+          Math.abs(Date.now() - new Date(entry.at || 0).getTime()) < 10 * 60 * 1000
+        ) || null
+      : null;
+    const shouldAward = !options.suppressReward && !recentHomeQuick && (!isBatchQuest(quest) || Number(baseReward.batchProgress?.earnedBatches || 0) > 0);
     const reward = shouldAward ? awardActivity({
       source: "quest",
       sourceId: quest.id,
@@ -2318,10 +2328,10 @@
       deduped: reward.deduped,
       batchCount: Number(reward.batchProgress?.earnedBatches || 0),
       batchRemainder: Number(reward.batchProgress?.remainder || 0),
-      nativeActionKey: options.nativeActionKey || null,
-      nativeRewardEventId: options.nativeRewardEventId || null,
-      nativeSource: options.nativeSource || null,
-      rewardSuppressed: Boolean(options.suppressReward),
+      nativeActionKey: options.nativeActionKey || (recentHomeQuick ? `home-quick:${recentHomeQuick.actionId}` : null),
+      nativeRewardEventId: options.nativeRewardEventId || recentHomeQuick?.rewardEventId || null,
+      nativeSource: options.nativeSource || (recentHomeQuick ? "home-quick-action" : null),
+      rewardSuppressed: Boolean(options.suppressReward || recentHomeQuick),
       at: new Date().toISOString()
     });
 

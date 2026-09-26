@@ -21,6 +21,7 @@
     ["time", "Time"],
     ["habit", "Habits"],
     ["quest", "Quests"],
+    ["home", "Home · Quick Actions"],
     ["journal", "Journal"],
     ["library", "Books & Games"],
     ["adventure", "Adventures"],
@@ -387,6 +388,20 @@
       });
     });
 
+    // On-demand Home actions are always auditable, even when a linked native/Quest
+    // activity already paid the reward, or when a prior direct ledger event was pruned.
+    (root.homeQuickActionsV1?.entries || []).filter(log => !log?.undone && dateKey(new Date(log.at || 0)) === key).forEach(log => {
+      const event = takeEvent(log.rewardEventId, "home-quick-action", log.id);
+      const linked = Boolean(log.linkedRewardEventId);
+      rows.push({
+        id: `home-quick-${log.id}`, at: log.at, category: "home", icon: "🏠", source: "home-quick-action", sourceLabel: "Haushalt · Schnell loggen",
+        title: log.label || "Haushaltsaufgabe", detail: linked ? "Erledigt · bereits über Quest/Timer belohnt" : "Erledigt · nach Bedarf · keine geschätzten Minuten",
+        reward: event ? rewardFromEvent(event) : (linked ? emptyReward() : rewardFromLog(log.reward || {})),
+        rewardKnown: true, realm: "Home", capability: "wellbeing", duplicate: linked || Boolean(event?.duplicate), migrated: false,
+        why: linked ? `<p>Diese Tätigkeit wurde erfasst, aber der direkte Reward war bereits durch den zugehörigen Quest-/Timer-Eintrag gutgeschrieben. Kein zweiter Payout.</p>` : `<p>Haushaltsaktion nach Bedarf. Die ersten vier Home-Quick-Actions des Tages erhalten 2 Character/Home XP; weitere echte Aktionen je 1 XP. Dazu kommen 1 Skill XP, 1 Coin und eine kleine, durch die allgemeine Story-Energy-Kurve begrenzte Energy-Basis. Es werden keine Arbeitsminuten angenommen. Die tatsächlichen Auszahlungen stehen im Reward Ledger.</p>`
+      });
+    });
+
     // Every remaining reward transaction still gets a row: stewardship, check-in,
     // achievements, game goals, Sudoku, finish bonuses, etc.
     events.filter(event => !consumed.has(event.id)).forEach(event => rows.push(genericRewardRow(event)));
@@ -639,6 +654,7 @@
       "sudoku-solved": ["🧩", "Sudoku"],
       "kotoba-quest": ["🌸", "Kotoba Quest"],
       "kotoba-dungeon": ["⚔", "Kotoba Dungeon"],
+      "home-quick-action": ["🏠", "Haushalt · Schnell loggen"],
       "memory-garden-complete": ["🧠", "Memory Garden"],
       "word-lab-complete": ["🔤", "Word Lab · Legacy"],
       "lexicon-lab-complete": ["⌗", "Lexicon Lab"],
@@ -673,6 +689,7 @@
 
   function categoryForSource(source) {
     const value = String(source || "");
+    if (value === "home-quick-action") return "home";
     if (value === "time") return "time";
     if (value.startsWith("habit")) return "habit";
     if (["quest", "external", "manual-external", "quick", "daily-batch-clear"].includes(value)) return "quest";
