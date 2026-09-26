@@ -1,18 +1,23 @@
 (() => {
-  const VERSION = '0.31.4cr';
+  const VERSION = '0.31.4dn';
   const STORAGE_PREFIX = 'lifeRpgColoringStudio';
   const EMBEDDED = window.parent !== window && new URLSearchParams(location.search).get('embedded') === '1';
   const CANVAS_WIDTH = 1122;
   const CANVAS_HEIGHT = 1402;
   const QUICK_COLORS = ['#111111', '#ffffff', '#d8759e', '#f2b7cf', '#a64673', '#f4d35e', '#7cc6fe', '#70c1b3', '#f08a5d', '#7b7fda'];
   const CARD_LIBRARY = [
-    {
+      {
       id: 'bakugo-trading-card-level-1',
       title: 'Bakugo · Level 1',
-      assetCandidates: [
-        'assets/coloring/bakugo-trading-card-line.png'
-      ]
-    }
+      unlockId: 'coloring-studio',
+      assetCandidates: ['assets/coloring/bakugo-trading-card-line.png?v=0.31.4dn']
+    },
+    { id: 'bakugo-hero-classic', title: 'Bakugo · Hero Classic', unlockId: 'color-card-bakugo-hero-classic', assetCandidates: ['assets/coloring/bakugo-hero-classic-line.png?v=0.31.4dn'] },
+    { id: 'bakugo-battle-heat', title: 'Bakugo · Battle Heat', unlockId: 'color-card-bakugo-battle-heat', assetCandidates: ['assets/coloring/bakugo-battle-heat-line.png?v=0.31.4dn'] },
+    { id: 'bakugo-alley-strut', title: 'Bakugo · Alley Strut', unlockId: 'color-card-bakugo-alley-strut', assetCandidates: ['assets/coloring/bakugo-alley-strut-line.png?v=0.31.4dn'] },
+    { id: 'bakugo-rooftop-break', title: 'Bakugo · Rooftop Break', unlockId: 'color-card-bakugo-rooftop-break', assetCandidates: ['assets/coloring/bakugo-rooftop-break-line.png?v=0.31.4dn'] },
+    { id: 'bakugo-chair-taunt', title: 'Bakugo · Chair Taunt', unlockId: 'color-card-bakugo-chair-taunt', assetCandidates: ['assets/coloring/bakugo-chair-taunt-line.png?v=0.31.4dn'] },
+    { id: 'bakugo-post-training', title: 'Bakugo · Post-Training', unlockId: 'color-card-bakugo-post-training', assetCandidates: ['assets/coloring/bakugo-post-training-line.png?v=0.31.4dn'] }
   ];
 
   const state = {
@@ -185,18 +190,29 @@
     els.softnessValue.textContent = `${Math.round(state.softness * 100)}%`;
   }
 
+  function cardUnlocked(card) {
+    const graph = EMBEDDED ? window.parent?.LifeRPGTalentTreeGraph : window.LifeRPGTalentTreeGraph;
+    // Old standalone entry has no main-save graph; keep the original Level 1
+    // accessible for recovery, but never expose a newly locked card there.
+    if (!graph?.isContentUnlocked) return card.id === 'bakugo-trading-card-level-1';
+    if (card.id === 'bakugo-trading-card-level-1') return graph.isContentUnlocked('Hobbies', 'coloring-studio');
+    return Boolean(graph.isContentUnlocked('Hobbies', card.unlockId));
+  }
+
   function renderLibrary() {
     els.cardLibrary.innerHTML = '';
     CARD_LIBRARY.forEach((card) => {
       const button = document.createElement('button');
       button.type = 'button';
       button.className = 'card-button';
+      const owned = cardUnlocked(card);
+      if (!owned) { button.classList.add('is-locked'); button.setAttribute('aria-disabled', 'true'); }
       if (state.currentCard && state.currentCard.id === card.id) button.classList.add('is-active');
       button.innerHTML = `
         <img class="card-thumb" alt="${card.title}" />
         <div class="card-meta">
           <strong>${card.title}</strong>
-          <span class="card-pill">Level 1</span>
+          <span class="card-pill">${owned ? 'Owned' : '🔒 Locked'}</span>
         </div>
       `;
       const thumb = button.querySelector('.card-thumb');
@@ -209,6 +225,7 @@
         button.querySelector('.card-meta').appendChild(done);
       }
       button.addEventListener('click', () => {
+        if (!cardUnlocked(card)) return;
         flushPainting();
         loadCard(card);
       });
@@ -217,6 +234,7 @@
   }
 
   async function loadCard(card) {
+    if (!cardUnlocked(card)) return false;
     flushPainting();
     const token = ++cardLoadToken;
     state.currentCard = card;
@@ -794,10 +812,10 @@
   }
 
   window.LifeRPGColoringStudioBridge = {
-    catalog: () => CARD_LIBRARY.map(card => ({id:card.id,title:card.title,src:card.assetCandidates[0]})),
+    catalog: () => CARD_LIBRARY.map(card => ({id:card.id,title:card.title,src:card.assetCandidates[0],unlockId:card.unlockId})),
     openCard: async id => {
       const card = CARD_LIBRARY.find(item => item.id === id);
-      if (!card) return false;
+      if (!card || !cardUnlocked(card)) return false;
       flushPainting();
       await loadCard(card);
       return true;

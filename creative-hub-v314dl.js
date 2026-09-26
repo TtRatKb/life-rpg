@@ -6,11 +6,12 @@
   if (!app?.showView) return;
   const E=value=>app.escapeHtml(String(value??""));
   const ID={coloring:"LifeRPGColoringStudioBridge",drawing:"LifeRPGDrawingStudioBridge"};
-  const FRAMES={coloring:"coloring-studio.html?embedded=1&v=0.31.4dl",drawing:"drawing-studio.html?embedded=1&v=0.31.4dl"};
+  const FRAMES={coloring:"coloring-studio.html?embedded=1&v=0.31.4dn",drawing:"drawing-studio.html?embedded=1&v=0.31.4dl"};
   const modes={coloring:"gallery",drawing:"gallery"};
   const selected={coloring:null,drawing:null};
   let drawingFilter="all";
   function unlocked(){const graph=window.LifeRPGTalentTreeGraph;return Boolean(graph?.isContentUnlocked?.("Hobbies","coloring-studio")||Number(graph?.getContentRank?.("Hobbies","coloring-studio")||0)>0);}
+  function cardOwned(card){if(!unlocked())return false;return card.unlockId==="coloring-studio" || Boolean(window.LifeRPGTalentTreeGraph?.isContentUnlocked?.("Hobbies",card.unlockId));}
   function view(kind){return document.getElementById(`view-${kind}`);}
   function frame(kind){return view(kind)?.querySelector("iframe[data-creative-frame]")||null;}
   function bridge(kind){try{return frame(kind)?.contentWindow?.[ID[kind]]||null;}catch{return null;}}
@@ -32,9 +33,10 @@
   const completedDrawing=()=>{try{const meta=JSON.parse(localStorage.getItem("lifeRpgDrawingStudioMetaV2")||"{}");return {completed:new Set((meta.history||[]).map(x=>x.challengeId)),continueId:meta.continueChallengeId||null,history:meta.history||[]};}catch{return{completed:new Set(),continueId:null,history:[]};}};
   function coloringMeta(id){try{const s=JSON.parse(localStorage.getItem(`lifeRpgColoringStudio:${id}`)||"null");return{finished:!!s?.finished,started:!!s?.painting,painting:typeof s?.painting==="string"&&s.painting.startsWith("data:image/png;base64,")?s.painting:null};}catch{return{finished:false,started:false,painting:null};}}
   function render(kind){const root=view(kind),b=bridge(kind),gallery=root?.querySelector("[data-creative-gallery]");if(!gallery||!b)return;
-    if(!unlocked()){gallery.innerHTML='<div class="creative-locked"><span>🔒</span><strong>Creative Studios</strong><p>Unlock Coloring Studio in the Hobbies Talent Tree to open Coloring and Drawing. Your previous artworks stay saved.</p><button class="primary-button" type="button" data-creative-skills>Hobbies Talent Tree →</button></div>';return;}
+    if(kind!=="coloring"&&!unlocked()){gallery.innerHTML='<div class="creative-locked"><span>🔒</span><strong>Creative Studios</strong><p>Unlock Coloring Studio in the Hobbies Talent Tree to open Coloring and Drawing. Your previous artworks stay saved.</p><button class="primary-button" type="button" data-creative-skills>Hobbies Talent Tree →</button></div>';return;}
     if(kind==="coloring"){
-      const cards=b.catalog();gallery.innerHTML=`<div class="creative-gallery-intro"><strong>Your Coloring Cards</strong><span>${cards.length} unlocked · stored on this device</span></div><div class="creative-gallery-grid">${cards.map(c=>{const m=coloringMeta(c.id);return `<button type="button" class="creative-card" data-creative-item="${E(c.id)}"><div class="creative-card-image"><img src="${E(c.src)}" alt="${E(c.title)} line art" loading="lazy">${m.painting?`<img class="creative-paint-preview" src="${m.painting}" alt="Your saved coloring" loading="lazy">`:""}</div><div class="creative-card-info"><small>${m.finished?"FINISHED ✓":m.started?"IN PROGRESS":"READY TO COLOR"}</small><strong>${E(c.title)}</strong><span>${m.finished?"View / continue":m.started?"Continue coloring":"Start coloring"} →</span></div></button>`;}).join("")}</div><p class="creative-storage-note">Coloring progress remains in the existing local Studio storage. Back up your drawings before changing browser or device. Nothing is cleared by this gallery.</p>`;
+      const cards=b.catalog();const count=cards.filter(cardOwned).length;
+      gallery.innerHTML=`<div class="creative-gallery-intro"><strong>Collectible Coloring Cards</strong><span>${count}/${cards.length} unlocked · choose the cards you want</span></div>${!unlocked()?`<div class="creative-locked creative-locked-studio"><span>🔒</span><strong>Coloring Studio</strong><p>Unlock the Studio in the Hobbies Skill Tree to color the first card and purchase the others.</p><button class="primary-button" type="button" data-creative-skills>Unlock Coloring Studio →</button></div>`:""}<div class="creative-gallery-grid">${cards.map(c=>{const owned=cardOwned(c),m=owned?coloringMeta(c.id):null;return `<div class="creative-card ${owned?"is-unlocked":"is-locked"}" data-card-preview="${E(c.id)}"><div class="creative-card-image"><img src="${E(c.src)}" alt="${E(c.title)} line art" loading="lazy">${owned&&m.painting?`<img class="creative-paint-preview" src="${m.painting}" alt="Your saved coloring" loading="lazy">`:""}${!owned?`<span class="creative-card-lock" aria-label="Locked">🔒</span>`:""}</div><div class="creative-card-info"><small>${owned?(m.finished?"FINISHED ✓":m.started?"IN PROGRESS":"UNLOCKED"):"LOCKED · HOBBIES TALENT"}</small><strong>${E(c.title)}</strong><span>${owned?(m.finished?"View / continue":m.started?"Continue coloring":"Start coloring"):"Preview · unlock in Skill Tree"}</span><button type="button" class="${owned?"primary-button":"secondary-button"} creative-card-action" ${owned?`data-creative-item="${E(c.id)}"`:`data-creative-unlock="${E(c.id)}"`}>${owned?"Open card →":"🔒 Unlock card →"}</button></div></div>`;}).join("")}</div><p class="creative-storage-note">All collectible designs are visible. Locked previews cannot be opened in the coloring editor. Your existing local paintings remain saved; back them up before changing browser or device.</p>`;
     }else{
       const list=b.catalog(),meta=completedDrawing(),tracks=["all",...new Set(list.map(c=>c.track))];
       const cards=list.filter(c=>drawingFilter==="all"||c.track===drawingFilter);
@@ -44,6 +46,7 @@
   function mode(kind,next){const root=view(kind);if(!root)return;modes[kind]=next;root.querySelector("[data-creative-gallery]").hidden=next==="editor";root.querySelector("[data-creative-editor]").hidden=next!=="editor";const f=frame(kind);if(f)f.hidden=next!=="editor";}
   function openItem(kind,id,fromLoad=false){const b=bridge(kind);if(!b){selected[kind]=id;load(kind);return;}if(!unlocked())return;
     const card=b.catalog().find(x=>x.id===id);if(!card)return;
+    if(kind==="coloring"&&!cardOwned(card)){window.LifeRPGTalentTreeGraph?.focusContent?.("Hobbies",card.unlockId);return false;}
     selected[kind]=id;mode(kind,"editor");view(kind)?.querySelector("[data-creative-title]").replaceChildren(document.createTextNode(card.title));
     if(kind==="coloring")b.openCard(id);else{const meta=completedDrawing();b.openChallenge(id,meta.continueId===id);}
     if(!fromLoad)requestAnimationFrame(()=>{try{frame(kind)?.contentWindow?.dispatchEvent(new Event("resize"));}catch{}});
@@ -55,14 +58,17 @@
   document.addEventListener("click",event=>{
     const home=event.target.closest("[data-creative-to-play]");if(home){app.showView("hub-play");return;}
     const back=event.target.closest("[data-creative-back]");if(back){gallery(back.closest(".creative-hub-view")?.id?.replace("view-",""));return;}
-    const talents=event.target.closest("[data-creative-skills]");if(talents){window.LifeRPGLifeHub?.openStudio?.("skills");return;}
+    const talents=event.target.closest("[data-creative-skills]");if(talents){window.LifeRPGTalentTreeGraph?.focusContent?.("Hobbies","coloring-studio");return;}
+    const unlock=event.target.closest("[data-creative-unlock]");if(unlock){window.LifeRPGTalentTreeGraph?.focusContent?.("Hobbies",`color-card-${unlock.dataset.creativeUnlock}`);return;}
     const filter=event.target.closest("[data-creative-filter]");if(filter){drawingFilter=filter.dataset.creativeFilter;render("drawing");return;}
     const item=event.target.closest("[data-creative-item]");if(item){const kind=item.closest(".creative-hub-view")?.id?.replace("view-","");if(kind)openItem(kind,item.dataset.creativeItem);}
   });
   window.addEventListener("life-rpg:view-changed",e=>{const id=e.detail?.view;if(ID[id]){if(!frame(id)?.dataset.creativeLoading)load(id);if(modes[id]==="gallery")render(id);}else{for(const kind of Object.keys(ID))if(modes[kind]==="editor")suspend(kind);}});
   window.addEventListener("focus",()=>{for(const kind of Object.keys(ID))if(modes[kind]==="gallery")render(kind);});
+  window.addEventListener("life-rpg:talent-content-v2-change",()=>{if(modes.coloring==="gallery")render("coloring");});
+  window.addEventListener("life-rpg:state-saved",()=>{if(modes.coloring==="gallery")render("coloring");});
   window.addEventListener("pagehide",()=>{for(const kind of Object.keys(ID))suspend(kind);});
   function init(){build();for(const kind of Object.keys(ID))if(document.getElementById(`view-${kind}`)?.classList.contains("active"))load(kind);}
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init,{once:true});else init();
-  window.LifeRPGCreativeHub={version:"0.31.4dl",enter,gallery,render,openItem,_test:{unlocked,coloringMeta,completedDrawing,modes}};
+  window.LifeRPGCreativeHub={version:"0.31.4dn",enter,gallery,render,openItem,_test:{unlocked,cardOwned,coloringMeta,completedDrawing,modes}};
 })();

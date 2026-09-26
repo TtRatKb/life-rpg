@@ -12,7 +12,7 @@
     return;
   }
 
-  const VERSION = "0.31.4da";
+  const VERSION = "0.31.4dn";
   const SCHEMA = 7;
   const REALMS = ["Work", "Knowledge", "Japanese", "Health", "Recovery", "Home", "Hobbies"];
 
@@ -131,14 +131,32 @@
     Hobbies: {
       icon: "🎨",
       special: { id: "joy-spark", icon: "♡", title: "Joy Spark", max: 3 },
-      subtitle: "Your first point unlocks two creative studios: collectible coloring cards plus guided drawing challenges. New pages and challenge packs expand the library without another Talent rank.",
+      subtitle: "Unlock the creative studios once, then choose individual collectible coloring cards for your gallery. Drawing challenges remain included with the studio.",
       dream: { title: "Play After Dark", copy: "games, music, playful competition, and moments that feel suspiciously like dates" },
       content: [
         rankedContent("coloring-studio", "🖍️", "Coloring Studio", 1,
-          "Rank I permanently unlocks Coloring Studio plus the companion Drawing Studio with guided practice quests. New coloring pages and Drawing Challenge packs are library additions, not extra Talent ranks.",
-          {}, "Open Coloring Studio", () => window.LifeRPGTalentRewardStudios?.open?.("coloring-studio")),
+          "Unlocks the Coloring Studio, its original Bakugo · Level 1 card and Drawing Studio. Additional collectible cards can be purchased individually below for 1 Hobbies point each.",
+          {}, "Open Coloring Studio", () => window.LifeRPGCreativeHub?.enter?.("coloring") || window.LifeRPGTalentRewardStudios?.open?.("coloring-studio")),
+        linkedContent("color-card-bakugo-hero-classic", "🃏", "Bakugo · Hero Classic", 1,
+          "Collectible coloring card · Hero costume · a confident stance. View the locked preview in Coloring Studio; buy this card permanently with 1 Hobbies point.",
+          { content: "coloring-studio" }, "View in Coloring Studio", () => window.LifeRPGCreativeHub?.enter?.("coloring")),
+        linkedContent("color-card-bakugo-battle-heat", "🃏", "Bakugo · Battle Heat", 1,
+          "Collectible coloring card · Adult hero · intense post-battle close-up. View the locked preview in Coloring Studio; buy this card permanently with 1 Hobbies point.",
+          { content: "coloring-studio" }, "View in Coloring Studio", () => window.LifeRPGCreativeHub?.enter?.("coloring")),
+        linkedContent("color-card-bakugo-alley-strut", "🃏", "Bakugo · Alley Strut", 1,
+          "Collectible coloring card · Off duty · an ordinary city walk. View the locked preview in Coloring Studio; buy this card permanently with 1 Hobbies point.",
+          { content: "coloring-studio" }, "View in Coloring Studio", () => window.LifeRPGCreativeHub?.enter?.("coloring")),
+        linkedContent("color-card-bakugo-rooftop-break", "🃏", "Bakugo · Rooftop Break", 1,
+          "Collectible coloring card · Rooftop downtime · a quiet pause. View the locked preview in Coloring Studio; buy this card permanently with 1 Hobbies point.",
+          { content: "coloring-studio" }, "View in Coloring Studio", () => window.LifeRPGCreativeHub?.enter?.("coloring")),
+        linkedContent("color-card-bakugo-chair-taunt", "🃏", "Bakugo · Chair Taunt", 1,
+          "Collectible coloring card · Off duty · a cocky seated pose. View the locked preview in Coloring Studio; buy this card permanently with 1 Hobbies point.",
+          { content: "coloring-studio" }, "View in Coloring Studio", () => window.LifeRPGCreativeHub?.enter?.("coloring")),
+        linkedContent("color-card-bakugo-post-training", "🃏", "Bakugo · Post-Training", 1,
+          "Collectible coloring card · After training · jacket in motion. View the locked preview in Coloring Studio; buy this card permanently with 1 Hobbies point.",
+          { content: "coloring-studio" }, "View in Coloring Studio", () => window.LifeRPGCreativeHub?.enter?.("coloring")),
         linkedContent("palette-atelier", "◈", "Palette Atelier", 1,
-          "An interactive color-matching game with three rounds, visible feedback, eight curated palettes, and daily or practice play. New Coloring cards remain free library additions.",
+          "An interactive color-matching game with three rounds, visible feedback, eight curated palettes, and daily or practice play. The coloring collection below is a separate optional content branch.",
           { content: "coloring-studio" }, "Open Palette Atelier", () => window.LifeRPGTalentV3?.open?.("palette-atelier")),
         planned("moodboard-mixer", "▣", "Moodboard Mixer · Later",
           "A future focused board tool for outfits, makeup, DIY and Adventure inspiration. Visible as a possible Hobbies expansion, but it cannot cost points until the tool actually exists.",
@@ -680,13 +698,17 @@
     const buyButton = complete ? "" : `<button class="${canBuy ? "primary-button" : "secondary-button"}" type="button" data-talent-v3-content="${escAttr(realm)}|${escAttr(item.id)}" ${!prereq.ok ? "disabled" : ""}>${!prereq.ok ? `Requires ${esc(prereq.label)}` : item.rankable ? `Unlock Rank ${roman(rank + 1)} · ${cost} point` : `Unlock for ${cost} point${cost === 1 ? "" : "s"}`}</button>`;
     const action = complete ? openButton : `<span class="talent-v3-content-actions">${openButton}${buyButton}</span>`;
 
+    const cardArt = realm === "Hobbies" && item.id.startsWith("color-card-") ?
+      `assets/coloring/${item.id.slice("color-card-".length)}-line.png?v=0.31.4dn` : "";
+    const art = cardArt ? `<div class="talent-card-art-v314dn ${owned ? "is-owned" : "is-locked"}"><img src="${escAttr(cardArt)}" alt="Preview of ${escAttr(item.title)}" loading="lazy">${owned ? "" : `<span aria-hidden="true">🔒</span>`}</div>` : "";
     return `${index ? treeLink(item.requires?.content ? `Previous unlock: ${contentTitle(realm, item.requires.content)}${item.requires.contentRank > 1 ? ` ${roman(item.requires.contentRank)}` : ""}` : `Content expansion`) : ""}
-      <article class="talent-v3-node talent-v3-content-node ${stateClass}">
+      <article id="talent-v3-content-${escAttr(realm)}-${escAttr(item.id)}" class="talent-v3-node talent-v3-content-node ${stateClass} ${cardArt ? "is-coloring-card" : ""}">
         <div class="talent-v3-node-top">
           <span class="talent-v3-node-icon">${item.icon}</span>
           <div><small>CONTENT ${item.rankable ? `RANK · 1 POINT / RANK` : `UNLOCK · ${cost} POINT${cost === 1 ? "" : "S"}`} · PERMANENT</small><h3>${esc(item.title)}</h3></div>
         </div>
         ${item.rankable ? `<div class="talent-v3-ranks" aria-label="${rank} of ${maxRank} ranks">${Array.from({ length: maxRank }, (_, i) => `<i class="${i < rank ? "filled" : ""}"></i>`).join("")}</div>` : ""}
+        ${art}
         <p>${esc(item.copy)}</p>
         <div class="talent-v3-node-foot"><em>${owned ? item.rankable ? `Rank ${roman(rank)}/${roman(maxRank)} unlocked` : "Permanently unlocked" : `Path: ${esc(requirementLabel(realm, item))}`}</em>${action}</div>
       </article>`;
@@ -778,6 +800,16 @@
     }, 120);
   }
 
+  function focusContent(realm, id) {
+    if (!META[realm] || !(META[realm].content || []).some(item => item.id === id)) return false;
+    focusRealm(realm);
+    window.setTimeout(() => {
+      const target = document.getElementById(`talent-v3-content-${realm}-${id}`);
+      target?.scrollIntoView?.({behavior:"smooth",block:"center"});
+    }, 250);
+    return true;
+  }
+
   function roman(value) {
     return ["", "I", "II", "III", "IV", "V"][Number(value || 0)] || String(value || "");
   }
@@ -804,6 +836,7 @@
     getDreamTheme: realm => META[realm]?.dream ? { ...META[realm].dream } : null,
     purchaseDreamThread,
     focusRealm,
+    focusContent,
     refresh: renderAll
   };
 })();
