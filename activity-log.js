@@ -200,19 +200,21 @@
     const hasMainReward = reward.xp || reward.storyEnergy || reward.coins;
     const rawReduced = reward.rawStoryEnergy > reward.storyEnergy + 0.001;
     const growth = [];
-    if (reward.realmXP) growth.push(`+${trim(reward.realmXP)} ${row.realm || "Realm"} XP`);
-    if (reward.statXP) growth.push(`+${trim(reward.statXP)} ${capabilityLabel(row.capability)} XP`);
+    if (reward.realmXP) growth.push(`+${trim(reward.realmXP)} ${row.realm || "Realm"}${row.source === "kotoba-dungeon" ? " Realm" : ""} XP`);
+    if (reward.statXP) growth.push(`+${trim(reward.statXP)} ${capabilityLabel(row.capability)}${row.source === "kotoba-dungeon" ? " Skill" : ""} XP`);
     const rewardMarkup = row.rewardKnown === false
       ? `<span class="activity-reward-pill-v314 muted">Reward unavailable</span>`
       : row.giftReward
         ? `<span class="activity-reward-pill-v314 gift">${esc(row.giftReward.icon || "🎁")} ${esc(row.giftReward.name || "Gift Find")}</span>`
         : hasMainReward
-          ? `${reward.xp ? `<span class="activity-reward-pill-v314 xp">+${trim(reward.xp)} XP</span>` : ""}${reward.storyEnergy ? `<span class="activity-reward-pill-v314 energy">+${app.formatEnergy?.(reward.storyEnergy) ?? trim(reward.storyEnergy)} 🔥</span>` : ""}${reward.coins ? `<span class="activity-reward-pill-v314 coins">+${trim(reward.coins)} 🪙</span>` : ""}`
+          ? `${reward.xp ? `<span class="activity-reward-pill-v314 xp">+${trim(reward.xp)} ${row.source === "kotoba-dungeon" ? "Character XP" : "XP"}</span>` : ""}${reward.storyEnergy ? `<span class="activity-reward-pill-v314 energy">+${app.formatEnergy?.(reward.storyEnergy) ?? trim(reward.storyEnergy)} 🔥</span>` : ""}${reward.coins ? `<span class="activity-reward-pill-v314 coins">+${trim(reward.coins)} 🪙</span>` : ""}`
           : `<span class="activity-reward-pill-v314 muted">No direct reward</span>`;
     const flags = [];
     if (row.duplicate) flags.push("Already counted elsewhere");
     if (row.migrated) flags.push("Migrated history");
-    if (rawReduced) flags.push(`${app.formatEnergy?.(reward.rawStoryEnergy) ?? trim(reward.rawStoryEnergy)} 🔥 base before diminishing returns`);
+    if (rawReduced && row.source !== "kotoba-dungeon") flags.push(`${app.formatEnergy?.(reward.rawStoryEnergy) ?? trim(reward.rawStoryEnergy)} 🔥 base before diminishing returns`);
+    if (row.source === "kotoba-dungeon" && !reward.rawStoryEnergy) flags.push("Story Energy: Rest gesammelt");
+    if (row.source === "kotoba-dungeon" && rawReduced) flags.push(`Story Energy: ${reward.rawStoryEnergy.toFixed(2)} Basis → ${reward.storyEnergy.toFixed(2)} erhalten`);
 
     return `<article class="activity-ledger-row-v314 ${row.duplicate ? "is-deduped" : ""}">
       <div class="activity-ledger-time-v314"><strong>${esc(formatTime(row.at))}</strong><small>${esc(row.sourceLabel || categoryLabel(row.category))}</small></div>
@@ -221,7 +223,7 @@
         <div class="activity-ledger-title-v314"><div><strong>${esc(row.title)}</strong>${row.detail ? `<p>${esc(row.detail)}</p>` : ""}</div><div class="activity-reward-pills-v314">${rewardMarkup}</div></div>
         ${growth.length ? `<div class="activity-growth-line-v314">Growth · ${growth.map(esc).join(" · ")}</div>` : ""}
         ${flags.length ? `<div class="activity-ledger-flags-v314">${flags.map(flag => `<span>${esc(flag)}</span>`).join("")}</div>` : ""}
-        ${row.why ? `<details class="activity-why-v314"><summary>Why this amount?</summary><div>${row.why}</div></details>` : ""}
+        ${row.why ? `<details class="activity-why-v314"><summary>${row.source === "kotoba-dungeon" ? "Warum diese Belohnung?" : "Why this amount?"}</summary><div>${row.why}</div></details>` : ""}
       </div>
     </article>`;
   }
@@ -428,7 +430,7 @@
     return {
       id: event.id, at: event.at, category, icon: meta.icon, sourceLabel: meta.label,
       title: event.label || meta.label, detail: details,
-      reward: rewardFromEvent(event), rewardKnown: true, realm: event.realm || null, capability: event.capability || null,
+      reward: rewardFromEvent(event), rewardKnown: true, realm: event.realm || null, capability: event.capability || null, source: event.source,
       giftReward: event.source === "gift-find" ? { name: event.metadata?.giftName || "Gift Find", icon: event.metadata?.giftIcon || "🎁" } : null,
       duplicate: Boolean(event.duplicate), migrated: Boolean(event.migrated), why: genericWhy(event)
     };
@@ -473,6 +475,7 @@
       const overtime = seconds && number(m.sessionMinutes) ? Math.max(0, seconds - number(m.sessionMinutes) * 60) : 0;
       return `${minutes ? `${minutes} min` : "Recovery session"}${overtime >= 30 ? ` · +${Math.floor(overtime / 60)}m ${Math.round(overtime % 60)}s overtime` : ""} · Wellbeing`;
     }
+    if (event.source === "kotoba-dungeon") return `Floor ${number(m.dungeonFloor) || "?"} · ${number(m.dungeonHits)}/${number(m.dungeonAttempts)} Treffer · ${({starter:"Starter-Pool",known:"Bekannte Wörter",guru:"Guru-Wörter"})[m.dungeonDeck] || "Dungeon"}`;
     if (event.source === "kotoba-quest") {
       const bits = [humanize(m.kotobaType || "Japanese study")];
       if (m.skill) bits.push(humanize(m.skill));
@@ -488,9 +491,50 @@
     return humanize(event.source || "activity");
   }
 
+  // Explanations reflect already-credited ledger values; NEVER recalculate rewards here.
+  // Previous DI entries lack detailed carry metadata and must stay explicitly marked.
+  function dungeonRewardWhy(event) {
+    if (event.duplicate) return dedupeWhy(event);
+    const m=event.metadata || {}, r=rewardFromEvent(event);
+    const boss=number(m.dungeonFloor)===4 || /Boss/i.test(String(event.label || ""));
+    const baseXP=boss?16:6, baseCoins=boss?10:4, baseEnergy=boss?0.16:0.055;
+    const index=number(m.dungeonDailyIndex);
+    const hits=number(m.dungeonHits), attempts=number(m.dungeonAttempts);
+    const factor=Number(m.dungeonTaper);
+    const factorKnown=Number.isFinite(factor) && factor>0;
+    const hasCarry=Number.isFinite(Number(m.dungeonEnergyGenerated)) && m.dungeonEnergyGenerated!==undefined &&
+      m.dungeonEnergyCarryBefore!==undefined && m.dungeonEnergyCarryAfter!==undefined;
+    const energyFmt=n=>number(n).toFixed(2).replace(".",",");
+    const fineFmt=n=>number(n).toFixed(4).replace(".",",");
+    const parts=[`<p><strong>${boss?"Boss":"Normaler Gegner"} · Siegevent ${index || "?"} heute.</strong> ${hits && attempts ? `${hits}/${attempts} richtige Treffer` : "Trefferquote nicht gespeichert"}${m.dungeonMode==="timed" ? " · Zeit-Challenge" : ""}.</p>`];
+    if (factorKnown) {
+      parts.push(`<p>Basis: <strong>${baseXP} Character/Realm XP</strong>, <strong>${baseCoins} Coins</strong> und ca. <strong>${fineFmt(baseEnergy)} Story Energy</strong>. Der kombinierte Faktor aus Trefferquote, Wortschatz${index?", weiteren Siegen am selben Tag":""}${boss&&m.dungeonMode==="timed"?" und Zeit-Challenge":""} war <strong>×${trim(factor)}</strong>. Die XP-/Coin-Werte werden anschließend auf ganze Punkte gerundet (mindestens 1 je Sieg).</p>`);
+      if(index && hits && attempts) {
+        const dailyFactor=1/Math.sqrt(1+(index-1)/5);
+        const accuracyFactor=.4+.6*(hits/attempts);
+        parts.push(`<p>Davon entfallen <strong>×${dailyFactor.toFixed(3).replace(".",",")}</strong> auf die bisherigen Dungeon-Siege und <strong>×${accuracyFactor.toFixed(3).replace(".",",")}</strong> auf die Trefferquote${m.dungeonDeck==="starter"?", zusätzlich ×0,25 für den Starter-Wortschatz":""}${boss&&m.dungeonMode==="timed"?", mit ×1,22 Boss-Zeitbonus":""}. Bereits der nächste Sieg kann durch die Rundung einen XP weniger ergeben.</p>`);
+      }
+      if(m.dungeonDeck==="starter")parts.push(`<p>Der Starter-Pool verwendet <strong>25 % des normalen Wortschatzfaktors</strong>. Gelernte Kotoba-Wörter zählen stärker. Das ist kein gekauftes Talent.</p>`);
+    } else parts.push(`<p>Die genaue Berechnungsaufschlüsselung wurde bei diesem älteren Ereignis nicht vollständig gespeichert. Die tatsächlichen Auszahlungen im Ledger bleiben verbindlich.</p>`);
+    parts.push(`<p><strong>Tatsächlich gutgeschrieben:</strong> +${trim(r.xp)} Character XP · +${trim(r.realmXP)} Japanese Realm XP · +${trim(r.statXP)} Japanese Skill XP · +${trim(r.coins)} Coins. Realm und Skill sind zwei getrennte Fortschrittswerte; Skill XP wird aus dem Character-XP-Wert abgeleitet (ca. 70 %, mindestens 1).</p>`);
+    if (hasCarry) {
+      parts.push(`<p><strong>Story Energy:</strong> Dieser Sieg erzeugte rechnerisch ${fineFmt(m.dungeonEnergyGenerated)}. Vorheriger Rest: ${fineFmt(m.dungeonEnergyCarryBefore)}. Davon wurden <strong>${energyFmt(r.rawStoryEnergy)}</strong> als Ausgangsbetrag an Life RPG übergeben; danach verblieben ${fineFmt(m.dungeonEnergyCarryAfter)} für spätere Siege.</p>`);
+    } else {
+      parts.push(`<p><strong>Story Energy:</strong> Ein normaler Sieg erzeugt vor den Faktoren ca. ${fineFmt(baseEnergy)}. Kleine Teilbeträge werden gesammelt; der exakte Restbetrag vor/nach diesem älteren Sieg wurde damals nicht im Ereignis gespeichert.</p>`);
+    }
+    if (r.rawStoryEnergy>0) {
+      parts.push(`<p>Life RPG erhielt ${energyFmt(r.rawStoryEnergy)} als <strong>Ausgangsbetrag vor der täglichen Story-Energy-Abschwächung</strong> und zahlte tatsächlich <strong>+${energyFmt(r.storyEnergy)}</strong> aus.${r.rawStoryEnergy>r.storyEnergy+0.001?" Deine übrigen heutigen Aktivitäten haben den Auszahlungsfaktor bereits reduziert.":""} Das ist keine zweite Auszahlung.</p>`);
+    } else {
+      parts.push(`<p>Für diesen Sieg wurden <strong>+0,00 Story Energy</strong> ausbezahlt: Der Betrag war noch zu klein für die nächste auszahlbare Hundertstel-Einheit und blieb als Rest für weitere Dungeon-Siege erhalten.</p>`);
+    }
+    parts.push(`<p>Dungeon-Siege haben <strong>kein hartes Tagescap</strong>: Spätere Siege lohnen sich weiterhin, mit sanft sinkendem Ertrag. Der normale Kotoba-Review-Cap bleibt ein separates System.</p>`);
+    return parts.join("");
+  }
+
   function genericWhy(event) {
     const reward = rewardFromEvent(event);
     const bits = [];
+    if (event.source === "kotoba-dungeon") return dungeonRewardWhy(event);
     if (event.duplicate) bits.push(dedupeWhy(event));
     const streak = number(event.metadata?.dailyStreak);
     const streakMultiplier = number(event.metadata?.dailyStreakMultiplier);
@@ -594,6 +638,7 @@
       "sudoku-complete": ["🧩", "Sudoku"],
       "sudoku-solved": ["🧩", "Sudoku"],
       "kotoba-quest": ["🌸", "Kotoba Quest"],
+      "kotoba-dungeon": ["⚔", "Kotoba Dungeon"],
       "memory-garden-complete": ["🧠", "Memory Garden"],
       "word-lab-complete": ["🔤", "Word Lab · Legacy"],
       "lexicon-lab-complete": ["⌗", "Lexicon Lab"],
@@ -634,7 +679,7 @@
     if (value.startsWith("journal") || value.startsWith("daily-checkin")) return "journal";
     if (value.startsWith("book") || value === "library" || value.startsWith("game") || value === "steam-achievement" || value === "stewardship" || value.startsWith("sudoku") || value.startsWith("nonogram") || value.startsWith("number-sense") || value.startsWith("memory-garden")) return "library";
     if (value.startsWith("adventure")) return "adventure";
-    if (value === "kotoba-quest") return "japanese";
+    if (value === "kotoba-quest" || value === "kotoba-dungeon") return "japanese";
     if (value === "word-lab-complete" || value === "lexicon-lab-complete") return "language";
     if (value === "recovery-studio") return "recovery";
     if (value.startsWith("achievement")) return "achievement";

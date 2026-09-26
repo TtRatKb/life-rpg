@@ -1,4 +1,4 @@
-/* Life RPG V0.31.4di — optional Dungeon receipt intake, alongside original Kotoba SRS bridge.
+/* Life RPG V0.31.4dj — optional Dungeon receipt intake, alongside original Kotoba SRS bridge.
  * Own event namespace, first-install baseline, no modification of existing Kotoba daily caps. */
 (() => {
   'use strict';
@@ -29,7 +29,8 @@
         if(!manual&&at<Number(s.baselineAt||Date.now())){skipped++;continue;}
         if(s.processed[r.id]||events().some(e=>e.source===SOURCE&&e.sourceId===r.id&&!e.duplicate)){s.processed[r.id]||=r.at;continue;}
         const amountData=amount(r,dailyCount(r.at));
-        const raw=amountData.energy+s.energyCarry;
+        const carryBefore=s.energyCarry;
+        const raw=amountData.energy+carryBefore;
         // Life RPG has its own existing story-energy taper (minimum factor 0.12).
         // Accumulate raw fractional energy until it can actually yield at least 0.01.
         const existingEnergy=events().filter(e=>dateKey(e.at)===dateKey(r.at)).reduce((n,e)=>n+Math.max(0,Number(e.storyEnergy)||0),0);
@@ -37,7 +38,7 @@
         const minimumRaw=Math.ceil(1/globalFactor)/100;
         const energy=raw+1e-8>=minimumRaw?Math.floor((raw+1e-8)*100)/100:0;
         const carry=Math.max(0,raw-energy);
-        const result=app.awardActivity({source:SOURCE,sourceId:r.id,label:r.kind==='boss'?'Kotoba Dungeon · Boss besiegt':'Kotoba Dungeon · Monster besiegt',realm:'Japanese',capability:'japanese',xp:amountData.xp,realmXP:amountData.xp,statXP:Math.max(1,Math.round(amountData.xp*.7)),coins:amountData.coins,storyEnergyBase:round2(energy),progressionRelevant:true,at:r.at,metadata:{dungeonRunId:r.runId,dungeonFloor:r.floor,dungeonMode:r.mode,dungeonDeck:r.source,dungeonHits:r.hits,dungeonAttempts:r.attempts,dungeonTaper:Number(amountData.multiplier.toFixed(4)),dungeonDailyIndex:amountData.dayIndex}});
+        const result=app.awardActivity({source:SOURCE,sourceId:r.id,label:r.kind==='boss'?'Kotoba Dungeon · Boss besiegt':'Kotoba Dungeon · Monster besiegt',realm:'Japanese',capability:'japanese',xp:amountData.xp,realmXP:amountData.xp,statXP:Math.max(1,Math.round(amountData.xp*.7)),coins:amountData.coins,storyEnergyBase:round2(energy),progressionRelevant:true,at:r.at,metadata:{dungeonRunId:r.runId,dungeonFloor:r.floor,dungeonMode:r.mode,dungeonDeck:r.source,dungeonHits:r.hits,dungeonAttempts:r.attempts,dungeonTaper:Number(amountData.multiplier.toFixed(4)),dungeonDailyIndex:amountData.dayIndex,dungeonEnergyGenerated:amountData.energy,dungeonEnergyCarryBefore:carryBefore,dungeonEnergyCarryAfter:carry,dungeonEnergyForwarded:round2(energy),dungeonEnergyDailyBefore:existingEnergy,dungeonEnergyTierFactor:globalFactor}});
         if(result?.eventId){s.energyCarry=carry;s.processed[r.id]=r.at;s.imported=(Number(s.imported)||0)+1;awarded++;if(!save('reward')){s.lastError='Die Belohnung wurde im Speicher nicht gesichert. Bitte Save exportieren und die Seite nicht neu laden.';break;}}
       }
       // Keep stable fingerprints even after the standard 3,000-ledger-event compaction.
@@ -80,5 +81,5 @@
   state();inject();sync();
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',inject,{once:true});
   window.addEventListener('load',inject,{once:true});
-  window.LifeRPGKotobaDungeonBridge={version:2,importEvents,sync,state,amount,valid,link};
+  window.LifeRPGKotobaDungeonBridge={version:3,importEvents,sync,state,amount,valid,link};
 })();

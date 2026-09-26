@@ -1,6 +1,6 @@
 (() => {
   "use strict";
-  const VERSION = "0.31.4di";
+  const VERSION = "0.31.4dj";
   const FOCUS_VERSION = "0.31.4de";
   const standalone = window.matchMedia?.("(display-mode: standalone)")?.matches || window.navigator.standalone === true;
   if (standalone) document.body.classList.add("is-standalone-v251");
@@ -77,7 +77,7 @@
   // bridge remains untouched and continues handling real reviews on its own.
   if (!window.LifeRPGKotobaDungeonBridge && !document.getElementById("lifeRpgDungeonBridgeJs")) {
     const dungeonScript=document.createElement("script");dungeonScript.id="lifeRpgDungeonBridgeJs";
-    dungeonScript.src="./kotoba-dungeon-bridge.js?v=0.31.4di";dungeonScript.async=false;
+    dungeonScript.src="./kotoba-dungeon-bridge.js?v=0.31.4dj";dungeonScript.async=false;
     dungeonScript.onerror=()=>{
       console.warn("Life RPG could not load Dungeon reward bridge");
       addDungeonTrainingEntry();
