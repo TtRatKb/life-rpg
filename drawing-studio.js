@@ -4,6 +4,7 @@
   const VERSION = "0.31.4cn";
   const DB_NAME = "life-rpg-drawing-studio-v2";
   const STORE = "drawings";
+  const EMBEDDED = window.parent !== window && new URLSearchParams(location.search).get("embedded") === "1";
   const META_KEY = "lifeRpgDrawingStudioMetaV2";
   const LEGACY_META_KEY = "lifeRpgDrawingStudioMetaV1";
   const REWARD_QUEUE_KEY = "lifeRpgDrawingStudioRewardQueueV1";
@@ -1290,11 +1291,13 @@
   function bind() {
     els.back.addEventListener("click", async () => {
       if (dirty) await persistNow();
-      location.href = "index.html";
+      stopTimer();
+      if(EMBEDDED && window.parent.LifeRPGLifeHub?.showStudioGallery) window.parent.LifeRPGLifeHub.showStudioGallery("drawing");
+      else location.href = "index.html";
     });
     els.showAll.addEventListener("click", () => selectTrack("all"));
     els.recommended.addEventListener("click", showRecommended);
-    els.backToChallenges.addEventListener("click", showBrowser);
+    els.backToChallenges.addEventListener("click", () => {if(EMBEDDED && window.parent.LifeRPGLifeHub?.showStudioGallery) window.parent.LifeRPGLifeHub.showStudioGallery("drawing"); else showBrowser();});
     els.workspaceBack.addEventListener("click", async () => {
       if (dirty) await persistNow();
       stopTimer();
@@ -1501,6 +1504,13 @@
     renderChallenges(list.slice(0,6));
     showBrowser(false);
   }
+
+  window.LifeRPGDrawingStudioBridge = {
+    catalog: () => CHALLENGES.map(c=>({id:c.id,title:c.title,track:c.track,icon:c.icon,summary:c.summary,minutes:c.minutes,difficulty:c.difficulty,referenceTitle:c.referenceTitle})),
+    openChallenge: (id,resume=false) => openChallenge(id,resume),
+    gallery: async () => {if(dirty)await persistNow();stopTimer();showBrowser();},
+    flush: async () => {if(dirty)await persistNow();stopTimer();}
+  };
 
   function openChallenge(id, resume = false) {
     const challenge = CHALLENGES.find(c => c.id === id);

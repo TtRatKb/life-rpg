@@ -1,6 +1,7 @@
 (() => {
   const VERSION = '0.31.4cr';
   const STORAGE_PREFIX = 'lifeRpgColoringStudio';
+  const EMBEDDED = window.parent !== window && new URLSearchParams(location.search).get('embedded') === '1';
   const CANVAS_WIDTH = 1122;
   const CANVAS_HEIGHT = 1402;
   const QUICK_COLORS = ['#111111', '#ffffff', '#d8759e', '#f2b7cf', '#a64673', '#f4d35e', '#7cc6fe', '#70c1b3', '#f08a5d', '#7b7fda'];
@@ -47,6 +48,7 @@
 
   const els = {};
   let ctx;
+  let cardLoadToken = 0;
 
   document.addEventListener('DOMContentLoaded', init);
 
@@ -67,8 +69,9 @@
     setCurrentColor(state.currentColor);
     updateToolButtons();
     updateSavePill('ready', 'Ready');
-    loadCard(state.currentCard);
+    if (!EMBEDDED) loadCard(state.currentCard);
     window.addEventListener('resize', handleResize);
+    window.addEventListener('pagehide', flushPainting);
   }
 
   function bindElements() {
@@ -116,7 +119,9 @@
 
   function setupControls() {
     els.backToLifeRpg.addEventListener('click', () => {
-      window.location.href = 'index.html';
+      flushPainting();
+      if (EMBEDDED && window.parent.LifeRPGLifeHub?.showStudioGallery) window.parent.LifeRPGLifeHub.showStudioGallery('coloring');
+      else window.location.href = 'index.html';
     });
     els.toggleTools?.addEventListener('click', () => {
       els.toolsPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -204,8 +209,7 @@
         button.querySelector('.card-meta').appendChild(done);
       }
       button.addEventListener('click', () => {
-        state.currentCard = card;
-        renderLibrary();
+        flushPainting();
         loadCard(card);
       });
       els.cardLibrary.appendChild(button);
@@ -213,23 +217,28 @@
   }
 
   async function loadCard(card) {
+    flushPainting();
+    const token = ++cardLoadToken;
     state.currentCard = card;
     updateSavePill('saving', 'Loading');
     state.isLineArtReady = false;
 
     const src = await loadFirstAvailableAsset(card.assetCandidates);
+    if(token !== cardLoadToken) return;
     if (!src) {
       updateSavePill('error', 'Asset missing');
       return;
     }
 
     await loadImageElement(els.lineArt, src);
+    if(token !== cardLoadToken) return;
     buildLineMask();
     clearCanvas();
     const save = readCardSave(card.id);
     if (save?.painting) {
       await loadPainting(save.painting);
     }
+    if(token !== cardLoadToken) return;
     applyTransform(1, 0, 0, false);
     fitToViewport(false);
     updateFinishButton();
@@ -763,7 +772,16 @@
     state.saveTimer = setTimeout(saveCurrentPainting, 250);
   }
 
+  function flushPainting() {
+    if (!state.saveTimer || !state.isLineArtReady) return;
+    clearTimeout(state.saveTimer);
+    state.saveTimer = null;
+    saveCurrentPainting();
+  }
+
   function saveCurrentPainting() {
+    state.saveTimer = null;
+    if (!state.isLineArtReady) return;
     try {
       const save = readCardSave(state.currentCard.id) || {};
       save.painting = els.paintCanvas.toDataURL('image/png');
@@ -774,6 +792,18 @@
       updateSavePill('error', 'Save error');
     }
   }
+
+  window.LifeRPGColoringStudioBridge = {
+    catalog: () => CARD_LIBRARY.map(card => ({id:card.id,title:card.title,src:card.assetCandidates[0]})),
+    openCard: async id => {
+      const card = CARD_LIBRARY.find(item => item.id === id);
+      if (!card) return false;
+      flushPainting();
+      await loadCard(card);
+      return true;
+    },
+    flush: flushPainting
+  };
 
   function readCardSave(cardId) {
     try {

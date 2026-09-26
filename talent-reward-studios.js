@@ -299,6 +299,11 @@
   }
 
   function syncStudioLaunchers() {
+    const nav=document.querySelector(".bottom-nav");
+    if(nav?.classList.contains("life-hub-nav") || window.LifeRPGLifeHub?.openStudio){
+      nav?.querySelectorAll("[data-coloring-studio-launcher], [data-drawing-studio-launcher]").forEach(b=>b.remove());
+      return;
+    }
     syncColoringLauncher();
     syncDrawingLauncher();
   }
@@ -587,12 +592,14 @@
     } else if (kind === "coloring-studio") {
       if (!isUnlocked("Hobbies", "coloring-studio")) return focusLocked("Hobbies");
       finishColoringSession();
-      window.location.assign("coloring-studio.html");
+      if(window.LifeRPGLifeHub?.openStudio) window.LifeRPGLifeHub.openStudio("coloring-studio");
+      else window.location.assign("coloring-studio.html");
       return true;
     } else if (kind === "drawing-studio") {
       if (!isUnlocked("Hobbies", "coloring-studio")) return focusLocked("Hobbies");
       finishColoringSession();
-      window.location.assign("drawing-studio.html");
+      if(window.LifeRPGLifeHub?.openStudio) window.LifeRPGLifeHub.openStudio("drawing-studio");
+      else window.location.assign("drawing-studio.html");
       return true;
     } else return false;
     showDialog();

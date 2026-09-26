@@ -9,6 +9,8 @@
   <title>Drawing Studio · Life RPG</title>
   <link rel="stylesheet" href="drawing-studio.css?v=0.31.4cp" />
   <link rel="stylesheet" href="drawing-reference-workspace-v2.css?v=0.31.4cp" />
+  <style>body.life-studio-embedded .studio-topbar{display:none}body.life-studio-embedded .studio-workspace,body.life-studio-embedded .studio-shell{min-height:100dvh}body.life-studio-embedded.drawing-workspace-mode .studio-shell{height:100dvh;min-height:100dvh}body.life-studio-embedded.drawing-workspace-mode .right-panel{top:8px;height:calc(100dvh - 16px)}body.life-studio-embedded .floating-reference{max-width:calc(100vw - 25px)}</style>
+  <script>if(window.parent!==window && new URLSearchParams(location.search).get('embedded')==='1')document.addEventListener('DOMContentLoaded',()=>document.body.classList.add('life-studio-embedded'));</script>
 </head>
 <body>
   <main class="drawing-app">
@@ -267,7 +269,7 @@
     <img id="referenceDialogImage" alt="Practice reference enlarged" referrerpolicy="no-referrer" />
   </dialog>
 
-  <script src="drawing-studio.js?v=0.31.4cp"></script>
+  <script src="drawing-studio.js?v=0.31.4dl"></script>
   <script src="drawing-reference-packs-v3.js?v=0.31.4cp"></script>
   <script src="drawing-reference-workspace-v2.js?v=0.31.4cp"></script>
 </body>
