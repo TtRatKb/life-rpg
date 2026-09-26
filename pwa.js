@@ -1,6 +1,6 @@
 (() => {
   "use strict";
-  const VERSION = "0.31.4dg";
+  const VERSION = "0.31.4dh";
   const FOCUS_VERSION = "0.31.4de";
   const standalone = window.matchMedia?.("(display-mode: standalone)")?.matches || window.navigator.standalone === true;
   if (standalone) document.body.classList.add("is-standalone-v251");
@@ -53,6 +53,15 @@
     script.src="./lexicon-arcade.js?v=0.31.4dg";script.async=false;
     script.onerror=()=>console.warn("Life RPG could not load Lexicon Arcade");
     document.body.appendChild(script);
+  }
+
+  // DH: independent local Dungeon receipt bridge. The existing capped Kotoba SRS
+  // bridge remains untouched and continues handling real reviews on its own.
+  if (!window.LifeRPGKotobaDungeonBridge && !document.getElementById("lifeRpgDungeonBridgeJs")) {
+    const dungeonScript=document.createElement("script");dungeonScript.id="lifeRpgDungeonBridgeJs";
+    dungeonScript.src="./kotoba-dungeon-bridge.js?v=0.31.4dh";dungeonScript.async=false;
+    dungeonScript.onerror=()=>console.warn("Life RPG could not load Dungeon reward bridge");
+    document.body.appendChild(dungeonScript);
   }
 
   if (!("serviceWorker" in navigator)) return;
