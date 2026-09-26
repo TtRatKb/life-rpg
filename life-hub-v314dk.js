@@ -22,7 +22,7 @@
   const GROUPS=[
     {id:"everyday",icon:"❀",title:"Alltag",subtitle:"Erledigen & festhalten",items:[["quick","Schnell loggen"],["habits","Habits"],["quests","Quests"],["adventures","Adventures"],["journal","Journal"]]},
     {id:"planning",icon:"◷",title:"Zeit & Planung",subtitle:"Woche, Termine & genaue Zeit",items:[["week","Meine Woche"],["rhythm","Focus & Time"]]},
-    {id:"play",icon:"◇",title:"Spielen & Lernen",subtitle:"Rätsel, Bücher & Kreativität",items:[["training","Training Grounds"],["kotoba","Kotoba Quest"],["library","Library"],["games","Games"],["coloring","Coloring Studio"],["drawing","Drawing Studio"]]},
+    {id:"play",icon:"◇",title:"Spielen & Lernen",subtitle:"Rätsel, Bücher & Kreativität",items:[["training","Training Grounds"],["kotoba","Kotoba Quest"],["library","Library"],["knowledge-workshop","Knowledge Workshop"],["games","Games"],["coloring","Coloring Studio"],["drawing","Drawing Studio"]]},
     {id:"progress",icon:"✦",title:"Fortschritt",subtitle:"Deine Entwicklung",items:[["growth","Growth & Realms"],["skills","Skill Trees"],["achievements","Achievements"],["shop","Reward Shop"]]},
     {id:"story",icon:"♡",title:"Story & Welt",subtitle:"Luca & gemeinsames Leben",items:[["story","Story"],["world","World & Apartment"],["people","People"],["phone","Phone"],["memories","Memories"]]},
     {id:"review",icon:"≡",title:"Rückblick",subtitle:"Alles nachvollziehen",items:[["activity","Activity & Rewards"],["home-stats","Haushalt · Statistik"],["week","Arbeitszeit · Meine Woche"]]}

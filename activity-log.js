@@ -24,6 +24,7 @@
     ["home", "Home · Quick Actions"],
     ["journal", "Journal"],
     ["library", "Books & Games"],
+    ["knowledge", "Knowledge Workshop"],
     ["adventure", "Adventures"],
     ["japanese", "Japanese"],
     ["language", "Lexicon Lab"],
@@ -402,6 +403,22 @@
       });
     });
 
+    // Knowledge Workshop time is real, explicitly recorded active-editor time.
+    // This aggregate row is informational: its 5/10/20-minute bonuses are
+    // independent canonical reward transactions shown immediately below it.
+    (root.knowledgeWorkshopV1?.documents || []).forEach(doc => {
+      const info = doc?.timeByDay?.[key], secs = number(info?.seconds);
+      if (secs < 1) return;
+      rows.push({
+        id: `knowledge-session-${doc.id}-${key}`, at: info.lastAt || `${key}T00:00:00`,
+        category: "knowledge", source: "knowledge-workshop-session", icon: "✎",
+        sourceLabel: "Knowledge Workshop · bearbeitet", title: doc.title || "Unbenannte Wissensnotiz",
+        detail: `${Math.floor(secs / 60)} Min. ${Math.floor(secs % 60)} Sek. aktive Workshop-Zeit · ${number(info.readingSeconds) ? "inkl. Lesemodus" : "Schreibmodus"} · Tageszusammenfassung`,
+        reward: emptyReward(), rewardKnown: true, realm: "Knowledge", capability: "knowledge", duplicate: false,
+        why: `<p>Die Zeit entstand beim Schreiben oder im ausdrücklich gestarteten Lesemodus. Ein verborgenes Fenster und eine längere Schreibpause zählen nicht weiter. Die eigentlichen XP-/Coin-Auszahlungen sind als getrennte, eindeutig identifizierte Knowledge-Workshop-Ereignisse sichtbar. Läuft der normale Focus Dock bereits, vergütet er die Zeit und der Workshop zahlt dafür nicht noch einmal Zeit-XP.</p>`
+      });
+    });
+
     // Every remaining reward transaction still gets a row: stewardship, check-in,
     // achievements, game goals, Sudoku, finish bonuses, etc.
     events.filter(event => !consumed.has(event.id)).forEach(event => rows.push(genericRewardRow(event)));
@@ -500,6 +517,7 @@
     if (event.source === "achievement" || event.source === "achievements-unlock") return "Achievement reward";
     if (event.source === "adventure-output") return `${number(m.characters) ? `${number(m.characters)} characters · ` : ""}Project memory enriched`;
     if (event.source === "habit-daypart-clear") return "Habit daypart bonus";
+    if (String(event.source || "").startsWith("knowledge-workshop-")) return event.metadata?.characters ? `${number(event.metadata.characters)} Zeichen im Dokument · einmaliger Meilenstein` : event.metadata?.activeSeconds ? `${formatDuration(event.metadata.activeSeconds / 60)} aktive Workshop-Zeit` : "Einmalige Verknüpfung im Wissensnetz";
     if (event.source === "daily-batch-clear") return "Daily Plan batch bonus";
     if (event.source?.endsWith("-finish")) return "Completion bonus";
     if (event.source === "habit-coin-repair" || event.source?.includes("repair")) return "Reward repair / migration";
@@ -556,6 +574,7 @@
     if (streak && streakMultiplier >= 1) bits.push(`<p>This was the first qualifying Daily completion for <strong>${esc(event.metadata?.dailyStreakLabel || "this activity")}</strong> today. A <strong>${streak}-day consistency streak</strong> applied a positive <strong>×${trim(streakMultiplier)}</strong> multiplier to the listed base reward. Missing a day never removes XP, Coins or Story Energy; the next completion simply starts again from the normal base.</p>`);
     if (reward.rawStoryEnergy > reward.storyEnergy + 0.001) bits.push(`<p>This action generated ${app.formatEnergy?.(reward.rawStoryEnergy) ?? trim(reward.rawStoryEnergy)} 🔥 base, but daily Story Energy diminishing returns credited <strong>${app.formatEnergy?.(reward.storyEnergy) ?? trim(reward.storyEnergy)} 🔥</strong>.</p>`);
     if (String(event.source || "").startsWith("talent-v2-")) bits.push(`<p><strong>Talent Tree bonus.</strong> This event never grants Character XP or Skill XP. It exists separately so the exact Coins / Story Energy paid by a purchased Talent stays visible in the Activity Log.</p>`);
+    if (String(event.source || "").startsWith("knowledge-workshop-") && event.metadata?.why) bits.push(`<p>${esc(event.metadata.why)}</p>`);
     if (event.source === "stewardship") bits.push(`<p>Library/system stewardship uses a small daily cap, so adding many Books, Games, Habits or Adventure details in one day cannot become the dominant progression source.</p>`);
     if (event.source === "game-goal") bits.push(`<p>This reward comes from completing a tracked Game Goal. Merely importing a goal and actually completing it are intentionally separate actions.</p>`);
     if (event.source === "steam-achievement") {
@@ -605,7 +624,7 @@
       const reward = rewardFromEvent(event);
       return `<li><strong>${esc(event.label || humanize(event.source))}</strong> — ${rewardInline(reward)}</li>`;
     }).join("");
-    return `<p>${chars} characters were saved across Gratitude, Small Win and Hard Thing. Each reflection field now has its own visible depth rewards up to 1000 characters; the daily base and every earned field tier are summed here.</p><ul>${lines}</ul>`;
+    return `<p>${chars} characters were saved across Gratitude, Small Win and Hard Thing. Each reflection field has independent writing-depth rewards. Beyond 1000 characters, additional 500-character milestones keep paying smaller positive increments; the daily base and every earned field tier are summed here.</p><ul>${lines}</ul>`;
   }
 
   function steamPlaytimeWhy(event, log, game) {
@@ -655,6 +674,9 @@
       "kotoba-quest": ["🌸", "Kotoba Quest"],
       "kotoba-dungeon": ["⚔", "Kotoba Dungeon"],
       "home-quick-action": ["🏠", "Haushalt · Schnell loggen"],
+      "knowledge-workshop-writing": ["✦", "Knowledge · Schreiben"],
+      "knowledge-workshop-time": ["◷", "Knowledge · aktive Zeit"],
+      "knowledge-workshop-connection": ["✧", "Knowledge · Verknüpfung"],
       "memory-garden-complete": ["🧠", "Memory Garden"],
       "word-lab-complete": ["🔤", "Word Lab · Legacy"],
       "lexicon-lab-complete": ["⌗", "Lexicon Lab"],
@@ -690,6 +712,7 @@
   function categoryForSource(source) {
     const value = String(source || "");
     if (value === "home-quick-action") return "home";
+    if (value.startsWith("knowledge-workshop-")) return "knowledge";
     if (value === "time") return "time";
     if (value.startsWith("habit")) return "habit";
     if (["quest", "external", "manual-external", "quick", "daily-batch-clear"].includes(value)) return "quest";

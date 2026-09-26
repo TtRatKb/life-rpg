@@ -87,6 +87,26 @@
     { threshold: 1000, xp: 10, coins: 10, storyEnergyBase: 0.15 }
   ];
 
+  // Beyond the existing five historical milestones, every additional 500
+  // characters still counts. Diminishing increments, never a hard writing cap.
+  function journalWritingTier(index) {
+    if (index < JOURNAL_FIELD_REWARD_TIERS.length) return JOURNAL_FIELD_REWARD_TIERS[index];
+    const extra = index - JOURNAL_FIELD_REWARD_TIERS.length + 1;
+    const amount = Math.max(1, Math.round(6 / (1 + (extra - 1) / 4)));
+    return { threshold: 1000 + extra * 500, xp: amount, coins: amount, storyEnergyBase: 0 };
+  }
+  function journalReachedTiers(chars) {
+    return JOURNAL_FIELD_REWARD_TIERS.filter(tier => chars >= tier.threshold).length + Math.max(0, Math.floor((chars - 1000) / 500));
+  }
+  function initializeJournalWritingBaseline() {
+    const journal = app.getState().journal;
+    if (journal.migrations?.writingBeyond1000V0314do) return false;
+    const day = todayKey(), entry = journal.entries?.[day] || {};
+    const current = Object.fromEntries(Object.keys(REFLECTION_META).map(field => [field, reflectionFieldCharacterCount(entry, field)]));
+    journal.migrations.writingBeyond1000V0314do = { day, current };
+    return true;
+  }
+
   const COMPANIONS = {
     luca: {
       id: "luca",
@@ -232,11 +252,12 @@
 
   function init() {
     const changed = ensureState();
+    const depthMigration = initializeJournalWritingBaseline();
     const todayEntry = app.getState().journal?.entries?.[todayKey()] || null;
     const repairedRewards = todayEntry ? repairMissedIndependentRewards(todayKey(), todayEntry) : emptyRewardTotal();
     bindEvents();
     initialized = true;
-    if (changed || rewardTotalHasValue(repairedRewards)) app.saveState({ source: rewardTotalHasValue(repairedRewards) ? "journal-v0314ag-reward-repair" : "journal-v0302-init" });
+    if (changed || depthMigration || rewardTotalHasValue(repairedRewards)) app.saveState({ source: rewardTotalHasValue(repairedRewards) ? "journal-v0314ag-reward-repair" : "journal-v0302-init" });
     render();
   }
 
@@ -972,8 +993,13 @@
     Object.keys(REFLECTION_META).forEach(field => {
       if (!reflectionFieldUnlocked(field)) return;
       const chars = reflectionFieldCharacterCount(entry, field);
-      JOURNAL_FIELD_REWARD_TIERS.forEach((tier, index) => {
-        if (chars < tier.threshold || independentTierAlreadyAwarded(dateKeyValue, field, index, tier.threshold)) return;
+      const baseline = root.journal?.migrations?.writingBeyond1000V0314do;
+      const oldChars = baseline?.day === dateKeyValue ? Number(baseline.current?.[field] || 0) : 0;
+      const count = journalReachedTiers(chars);
+      for (let index = 0; index < count; index++) {
+        const tier = journalWritingTier(index);
+        if (tier.threshold > 1000 && tier.threshold <= oldChars) continue;
+        if (independentTierAlreadyAwarded(dateKeyValue, field, index, tier.threshold)) continue;
         const reward = app.awardActivity?.({
           source: "journal-reflection-field-effort",
           sourceId: `${dateKeyValue}:${field}:tier-${index + 1}:v0314ab`,
@@ -997,7 +1023,7 @@
           }
         });
         addRewardTotal(total, reward);
-      });
+      }
     });
 
     return total;
@@ -1052,16 +1078,14 @@
   }
 
   function rewardMeterMarkup(chars, dateKeyValue = todayKey(), field = null) {
-    const reached = JOURNAL_FIELD_REWARD_TIERS.filter(tier => chars >= tier.threshold).length;
-    const next = JOURNAL_FIELD_REWARD_TIERS.find(tier => chars < tier.threshold);
-    const nextIndex = next ? JOURNAL_FIELD_REWARD_TIERS.indexOf(next) : -1;
+    const reached = journalReachedTiers(chars);
+    const next = journalWritingTier(reached);
+    const previous = reached ? journalWritingTier(reached - 1).threshold : 0;
     const historical = dateKeyValue !== todayKey();
     const label = field && REFLECTION_META[field] ? REFLECTION_META[field].label : "Reflection";
-    const nextText = next
-      ? `<strong>${next.threshold - chars} character${next.threshold - chars === 1 ? "" : "s"} to the next reward</strong><span>Next: +${next.xp} XP · +${next.coins} 🪙${next.storyEnergyBase ? ` · +${next.storyEnergyBase} 🔥 base` : ""}</span>`
-      : `<strong>Maximum writing bonus reached ✨</strong><span>Keep writing only if you want to — rewards stop scaling after ${JOURNAL_FIELD_REWARD_TIERS.at(-1).threshold} characters in this reflection.</span>`;
-    const width = next ? Math.min(100, Math.round((chars / next.threshold) * 100)) : 100;
-    return `<div class="journal-effort-meter-v310 ${historical ? "historical" : ""}"><div class="journal-effort-meter-top-v310"><span><b>${chars}</b> characters in this reflection</span><em>${reached}/${JOURNAL_FIELD_REWARD_TIERS.length} depth bonuses</em></div><i><b style="width:${width}%"></b></i><div>${historical ? `<strong>Saved ${esc(label).toLowerCase()} depth</strong><span>Older entries stay editable without creating backdated reward farming.</span>` : nextText}</div></div>`;
+    const width = Math.min(100, Math.round((chars - previous) / (next.threshold - previous) * 100));
+    const nextText = `<strong>${next.threshold - chars} character${next.threshold - chars === 1 ? "" : "s"} to the next bonus</strong><span>Next: +${next.xp} XP · +${next.coins} 🪙${next.storyEnergyBase ? ` · +${next.storyEnergyBase} 🔥 base` : ""}. The bonus gets smaller, but never disappears.</span>`;
+    return `<div class="journal-effort-meter-v310 ${historical ? "historical" : ""}"><div class="journal-effort-meter-top-v310"><span><b>${chars}</b> characters in this reflection</span><em>${reached} depth bonuses earned</em></div><i><b style="width:${Math.max(0,width)}%"></b></i><div>${historical ? `<strong>Saved ${esc(label).toLowerCase()} depth</strong><span>Older entries stay editable without creating backdated reward farming.</span>` : nextText}</div></div>`;
   }
 
   function renderReflectionRewardMeter() {
