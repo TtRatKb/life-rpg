@@ -1,5 +1,5 @@
 (() => {
-  const VERSION = '0.31.4dr';
+  const VERSION = '0.31.4ds';
   const STORAGE_PREFIX = 'lifeRpgColoringStudio';
   const EMBEDDED = window.parent !== window && new URLSearchParams(location.search).get('embedded') === '1';
   const CANVAS_WIDTH = 1122;
@@ -38,7 +38,11 @@
     { id: 'luca-witchy-bloom', title: 'Luca · Witchy Bloom', unlockId: 'color-card-luca-witchy-bloom', assetCandidates: ['assets/coloring/luca-witchy-bloom-line.png?v=0.31.4dr'] } ,
     { id: 'luca-guitar-session', title: 'Luca · Guitar Session', unlockId: 'color-card-luca-guitar-session', assetCandidates: ['assets/coloring/luca-guitar-session-line.png?v=0.31.4dr'] } ,
     { id: 'luca-stairwell-daydream', title: 'Luca · Stairwell Daydream', unlockId: 'color-card-luca-stairwell-daydream', assetCandidates: ['assets/coloring/luca-stairwell-daydream-line.png?v=0.31.4dr'] } ,
-    { id: 'luca-cozy-punk-night', title: 'Luca · Cozy Punk Night', unlockId: 'color-card-luca-cozy-punk-night', assetCandidates: ['assets/coloring/luca-cozy-punk-night-line.png?v=0.31.4dr'] }
+    { id: 'luca-cozy-punk-night', title: 'Luca · Cozy Punk Night', unlockId: 'color-card-luca-cozy-punk-night', assetCandidates: ['assets/coloring/luca-cozy-punk-night-line.png?v=0.31.4dr'] } ,
+    { id: 'luca-bakugo-moonlit-puppy', title: 'Luca & Katsuki · Moonlit Puppy', unlockId: 'color-card-luca-bakugo-moonlit-puppy', assetCandidates: ['assets/coloring/luca-bakugo-moonlit-puppy-line.png?v=0.31.4ds'] } ,
+    { id: 'luca-bakugo-city-walk', title: 'Luca & Katsuki · City Walk', unlockId: 'color-card-luca-bakugo-city-walk', assetCandidates: ['assets/coloring/luca-bakugo-city-walk-line.png?v=0.31.4ds'] } ,
+    { id: 'luca-bakugo-cafe-study', title: 'Luca & Katsuki · Café Study Date', unlockId: 'color-card-luca-bakugo-cafe-study', assetCandidates: ['assets/coloring/luca-bakugo-cafe-study-line.png?v=0.31.4ds'] } ,
+    { id: 'luca-bakugo-music-night', title: 'Luca & Katsuki · Music Night', unlockId: 'color-card-luca-bakugo-music-night', assetCandidates: ['assets/coloring/luca-bakugo-music-night-line.png?v=0.31.4ds'] }
   ];
 
   const state = {
@@ -833,7 +837,7 @@
   }
 
   window.LifeRPGColoringStudioBridge = {
-    catalog: () => CARD_LIBRARY.map(card => ({id:card.id,title:card.title,src:card.assetCandidates[0],unlockId:card.unlockId,series:card.id.startsWith('luca-')?'Luca':(card.id.startsWith('kirishima-')?'Kirishima':(card.id.startsWith('bakugo-kirishima-')?'Duo':'Bakugo'))})),
+    catalog: () => CARD_LIBRARY.map(card => ({id:card.id,title:card.title,src:card.assetCandidates[0],unlockId:card.unlockId,series:card.id.startsWith('luca-bakugo-')?'Luca & Katsuki':(card.id.startsWith('luca-')?'Luca':(card.id.startsWith('kirishima-')?'Kirishima':(card.id.startsWith('bakugo-kirishima-')?'Duo':'Bakugo')))})),
     openCard: async id => {
       const card = CARD_LIBRARY.find(item => item.id === id);
       if (!card || !cardUnlocked(card)) return false;

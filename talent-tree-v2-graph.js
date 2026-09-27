@@ -12,7 +12,7 @@
     return;
   }
 
-  const VERSION = "0.31.4dp";
+  const VERSION = "0.31.4ds";
   const SCHEMA = 7;
   const REALMS = ["Work", "Knowledge", "Japanese", "Health", "Recovery", "Home", "Hobbies"];
 
@@ -217,6 +217,18 @@
           { content: "coloring-studio" }, "View in Coloring Studio", () => window.LifeRPGCreativeHub?.enter?.("coloring")),
         linkedContent("color-card-luca-cozy-punk-night", "🃏", "Luca · Cozy Punk Night", 1,
           "Collectible coloring card · Flirty cozy-punk bedroom pose with layered cardigan styling. Preview in Coloring Studio; permanently unlock for 1 Hobbies point.",
+          { content: "coloring-studio" }, "View in Coloring Studio", () => window.LifeRPGCreativeHub?.enter?.("coloring")),
+        linkedContent("color-card-luca-bakugo-moonlit-puppy", "🃏", "Luca & Katsuki · Moonlit Puppy", 1,
+          "Collectible coloring card · Cozy moonlit apartment, a sleepy puppy and a quiet moment on the couch. Visible as locked preview; permanently unlock for 1 Hobbies point.",
+          { content: "coloring-studio" }, "View in Coloring Studio", () => window.LifeRPGCreativeHub?.enter?.("coloring")),
+        linkedContent("color-card-luca-bakugo-city-walk", "🃏", "Luca & Katsuki · City Walk", 1,
+          "Collectible coloring card · Arm in arm through the city, in coordinating casual streetwear. Visible as locked preview; permanently unlock for 1 Hobbies point.",
+          { content: "coloring-studio" }, "View in Coloring Studio", () => window.LifeRPGCreativeHub?.enter?.("coloring")),
+        linkedContent("color-card-luca-bakugo-cafe-study", "🃏", "Luca & Katsuki · Café Study Date", 1,
+          "Collectible coloring card · A warm café, books, shared notes and a rather obvious mutual crush. Visible as locked preview; permanently unlock for 1 Hobbies point.",
+          { content: "coloring-studio" }, "View in Coloring Studio", () => window.LifeRPGCreativeHub?.enter?.("coloring")),
+        linkedContent("color-card-luca-bakugo-music-night", "🃏", "Luca & Katsuki · Music Night", 1,
+          "Collectible coloring card · Cozy music-room scene: Luca with her headphones, Katsuki with drumsticks, and their puppy nearby. Visible as locked preview; permanently unlock for 1 Hobbies point.",
           { content: "coloring-studio" }, "View in Coloring Studio", () => window.LifeRPGCreativeHub?.enter?.("coloring")),
         linkedContent("palette-atelier", "◈", "Palette Atelier", 1,
           "An interactive color-matching game with three rounds, visible feedback, eight curated palettes, and daily or practice play. The coloring collection below is a separate optional content branch.",
@@ -762,7 +774,7 @@
     const action = complete ? openButton : `<span class="talent-v3-content-actions">${openButton}${buyButton}</span>`;
 
     const cardArt = realm === "Hobbies" && item.id.startsWith("color-card-") ?
-      `assets/coloring/${item.id.slice("color-card-".length)}-line.png?v=0.31.4dr` : "";
+      `assets/coloring/${item.id.slice("color-card-".length)}-line.png?v=0.31.4ds` : "";
     const art = cardArt ? `<div class="talent-card-art-v314dn ${owned ? "is-owned" : "is-locked"}"><img src="${escAttr(cardArt)}" alt="Preview of ${escAttr(item.title)}" loading="lazy">${owned ? "" : `<span aria-hidden="true">🔒</span>`}</div>` : "";
     return `${index ? treeLink(item.requires?.content ? `Previous unlock: ${contentTitle(realm, item.requires.content)}${item.requires.contentRank > 1 ? ` ${roman(item.requires.contentRank)}` : ""}` : `Content expansion`) : ""}
       <article id="talent-v3-content-${escAttr(realm)}-${escAttr(item.id)}" class="talent-v3-node talent-v3-content-node ${stateClass} ${cardArt ? "is-coloring-card" : ""}">

@@ -107,6 +107,7 @@ button.is-active { background: #f7d9e8; border-color: rgba(166, 70, 115, 0.38); 
   touch-action: none;
 }
 .canvas-stage {
+  background: #ffffff;
   position: absolute;
   left: 0;
   top: 0;
