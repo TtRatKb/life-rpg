@@ -194,6 +194,30 @@
         linkedContent("color-card-bakugo-kirishima-dynamic-duo", "🃏", "Bakugo & Kirishima · Dynamic Duo", 1,
           "Collectible coloring card · Action-forward duo composition with adult styling. Preview in Coloring Studio; permanently unlock for 1 Hobbies point.",
           { content: "coloring-studio" }, "View in Coloring Studio", () => window.LifeRPGCreativeHub?.enter?.("coloring")),
+        linkedContent("color-card-luca-tea-and-blankets", "🃏", "Luca · Tea & Blankets", 1,
+          "Collectible coloring card · Cozy witchy bedroom mood with tea, blankets and layered jewelry. Preview in Coloring Studio; permanently unlock for 1 Hobbies point.",
+          { content: "coloring-studio" }, "View in Coloring Studio", () => window.LifeRPGCreativeHub?.enter?.("coloring")),
+        linkedContent("color-card-luca-moonlit-reading", "🃏", "Luca · Moonlit Reading", 1,
+          "Collectible coloring card · Soft fairycore reading nook energy with cardigan, wide pants and moonlit décor. Preview in Coloring Studio; permanently unlock for 1 Hobbies point.",
+          { content: "coloring-studio" }, "View in Coloring Studio", () => window.LifeRPGCreativeHub?.enter?.("coloring")),
+        linkedContent("color-card-luca-space-buns-cat-nook", "🃏", "Luca · Space Buns Cat Nook", 1,
+          "Collectible coloring card · Space buns, sketchbooks and a sleepy cat in a cozy bedroom. Preview in Coloring Studio; permanently unlock for 1 Hobbies point.",
+          { content: "coloring-studio" }, "View in Coloring Studio", () => window.LifeRPGCreativeHub?.enter?.("coloring")),
+        linkedContent("color-card-luca-cargo-lounge", "🃏", "Luca · Cargo Lounge", 1,
+          "Collectible coloring card · Loose cargo pants with a fitted top and chunky boots. Preview in Coloring Studio; permanently unlock for 1 Hobbies point.",
+          { content: "coloring-studio" }, "View in Coloring Studio", () => window.LifeRPGCreativeHub?.enter?.("coloring")),
+        linkedContent("color-card-luca-witchy-bloom", "🃏", "Luca · Witchy Bloom", 1,
+          "Collectible coloring card · Witchy-core lounge pose with floral and celestial details. Preview in Coloring Studio; permanently unlock for 1 Hobbies point.",
+          { content: "coloring-studio" }, "View in Coloring Studio", () => window.LifeRPGCreativeHub?.enter?.("coloring")),
+        linkedContent("color-card-luca-guitar-session", "🃏", "Luca · Guitar Session", 1,
+          "Collectible coloring card · Music session with guitar, oversized cardigan and cargo styling. Preview in Coloring Studio; permanently unlock for 1 Hobbies point.",
+          { content: "coloring-studio" }, "View in Coloring Studio", () => window.LifeRPGCreativeHub?.enter?.("coloring")),
+        linkedContent("color-card-luca-stairwell-daydream", "🃏", "Luca · Stairwell Daydream", 1,
+          "Collectible coloring card · Moody stairwell pose with hoodie, cargos and chunky boots. Preview in Coloring Studio; permanently unlock for 1 Hobbies point.",
+          { content: "coloring-studio" }, "View in Coloring Studio", () => window.LifeRPGCreativeHub?.enter?.("coloring")),
+        linkedContent("color-card-luca-cozy-punk-night", "🃏", "Luca · Cozy Punk Night", 1,
+          "Collectible coloring card · Flirty cozy-punk bedroom pose with layered cardigan styling. Preview in Coloring Studio; permanently unlock for 1 Hobbies point.",
+          { content: "coloring-studio" }, "View in Coloring Studio", () => window.LifeRPGCreativeHub?.enter?.("coloring")),
         linkedContent("palette-atelier", "◈", "Palette Atelier", 1,
           "An interactive color-matching game with three rounds, visible feedback, eight curated palettes, and daily or practice play. The coloring collection below is a separate optional content branch.",
           { content: "coloring-studio" }, "Open Palette Atelier", () => window.LifeRPGTalentV3?.open?.("palette-atelier")),
@@ -738,7 +762,7 @@
     const action = complete ? openButton : `<span class="talent-v3-content-actions">${openButton}${buyButton}</span>`;
 
     const cardArt = realm === "Hobbies" && item.id.startsWith("color-card-") ?
-      `assets/coloring/${item.id.slice("color-card-".length)}-line.png?v=0.31.4dq` : "";
+      `assets/coloring/${item.id.slice("color-card-".length)}-line.png?v=0.31.4dr` : "";
     const art = cardArt ? `<div class="talent-card-art-v314dn ${owned ? "is-owned" : "is-locked"}"><img src="${escAttr(cardArt)}" alt="Preview of ${escAttr(item.title)}" loading="lazy">${owned ? "" : `<span aria-hidden="true">🔒</span>`}</div>` : "";
     return `${index ? treeLink(item.requires?.content ? `Previous unlock: ${contentTitle(realm, item.requires.content)}${item.requires.contentRank > 1 ? ` ${roman(item.requires.contentRank)}` : ""}` : `Content expansion`) : ""}
       <article id="talent-v3-content-${escAttr(realm)}-${escAttr(item.id)}" class="talent-v3-node talent-v3-content-node ${stateClass} ${cardArt ? "is-coloring-card" : ""}">

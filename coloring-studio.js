@@ -1,5 +1,5 @@
 (() => {
-  const VERSION = '0.31.4dq';
+  const VERSION = '0.31.4dr';
   const STORAGE_PREFIX = 'lifeRpgColoringStudio';
   const EMBEDDED = window.parent !== window && new URLSearchParams(location.search).get('embedded') === '1';
   const CANVAS_WIDTH = 1122;
@@ -29,8 +29,16 @@
     { id: 'kirishima-lean-in', title: 'Kirishima · Lean In', unlockId: 'color-card-kirishima-lean-in', assetCandidates: ['assets/coloring/kirishima-lean-in-line.png?v=0.31.4dp'] } ,
     { id: 'bakugo-kirishima-cozy-bond', title: 'Bakugo & Kirishima · Cozy Bond', unlockId: 'color-card-bakugo-kirishima-cozy-bond', assetCandidates: ['assets/coloring/bakugo-kirishima-cozy-bond-line.png?v=0.31.4dq'] } ,
     { id: 'bakugo-kirishima-back-to-back-pros', title: 'Bakugo & Kirishima · Back-to-Back Pros', unlockId: 'color-card-bakugo-kirishima-back-to-back-pros', assetCandidates: ['assets/coloring/bakugo-kirishima-back-to-back-pros-line.png?v=0.31.4dq'] } ,
-    { id: 'bakugo-kirishima-adult-rivalry', title: 'Bakugo & Kirishima · Adult Rivalry', unlockId: 'color-card-bakugo-kirishima-adult-rivalry', assetCandidates: ['assets/coloring/bakugo-kirishima-adult-rivalry-line.png?v=0.31.4dq'] } ,
-    { id: 'bakugo-kirishima-dynamic-duo', title: 'Bakugo & Kirishima · Dynamic Duo', unlockId: 'color-card-bakugo-kirishima-dynamic-duo', assetCandidates: ['assets/coloring/bakugo-kirishima-dynamic-duo-line.png?v=0.31.4dq'] }
+    { id: 'bakugo-kirishima-adult-rivalry', title: 'Bakugo & Kirishima · Adult Rivalry', unlockId: 'color-card-bakugo-kirishima-adult-rivalry', assetCandidates: ['assets/coloring/bakugo-kirishima-adult-rivalry-line.png?v=0.31.4dr'] } ,
+    { id: 'bakugo-kirishima-dynamic-duo', title: 'Bakugo & Kirishima · Dynamic Duo', unlockId: 'color-card-bakugo-kirishima-dynamic-duo', assetCandidates: ['assets/coloring/bakugo-kirishima-dynamic-duo-line.png?v=0.31.4dr'] } ,
+    { id: 'luca-tea-and-blankets', title: 'Luca · Tea & Blankets', unlockId: 'color-card-luca-tea-and-blankets', assetCandidates: ['assets/coloring/luca-tea-and-blankets-line.png?v=0.31.4dr'] } ,
+    { id: 'luca-moonlit-reading', title: 'Luca · Moonlit Reading', unlockId: 'color-card-luca-moonlit-reading', assetCandidates: ['assets/coloring/luca-moonlit-reading-line.png?v=0.31.4dr'] } ,
+    { id: 'luca-space-buns-cat-nook', title: 'Luca · Space Buns Cat Nook', unlockId: 'color-card-luca-space-buns-cat-nook', assetCandidates: ['assets/coloring/luca-space-buns-cat-nook-line.png?v=0.31.4dr'] } ,
+    { id: 'luca-cargo-lounge', title: 'Luca · Cargo Lounge', unlockId: 'color-card-luca-cargo-lounge', assetCandidates: ['assets/coloring/luca-cargo-lounge-line.png?v=0.31.4dr'] } ,
+    { id: 'luca-witchy-bloom', title: 'Luca · Witchy Bloom', unlockId: 'color-card-luca-witchy-bloom', assetCandidates: ['assets/coloring/luca-witchy-bloom-line.png?v=0.31.4dr'] } ,
+    { id: 'luca-guitar-session', title: 'Luca · Guitar Session', unlockId: 'color-card-luca-guitar-session', assetCandidates: ['assets/coloring/luca-guitar-session-line.png?v=0.31.4dr'] } ,
+    { id: 'luca-stairwell-daydream', title: 'Luca · Stairwell Daydream', unlockId: 'color-card-luca-stairwell-daydream', assetCandidates: ['assets/coloring/luca-stairwell-daydream-line.png?v=0.31.4dr'] } ,
+    { id: 'luca-cozy-punk-night', title: 'Luca · Cozy Punk Night', unlockId: 'color-card-luca-cozy-punk-night', assetCandidates: ['assets/coloring/luca-cozy-punk-night-line.png?v=0.31.4dr'] }
   ];
 
   const state = {
@@ -825,7 +833,7 @@
   }
 
   window.LifeRPGColoringStudioBridge = {
-    catalog: () => CARD_LIBRARY.map(card => ({id:card.id,title:card.title,src:card.assetCandidates[0],unlockId:card.unlockId,series:card.id.startsWith('kirishima-')?'Kirishima':(card.id.startsWith('bakugo-kirishima-')?'Duo':'Bakugo')})),
+    catalog: () => CARD_LIBRARY.map(card => ({id:card.id,title:card.title,src:card.assetCandidates[0],unlockId:card.unlockId,series:card.id.startsWith('luca-')?'Luca':(card.id.startsWith('kirishima-')?'Kirishima':(card.id.startsWith('bakugo-kirishima-')?'Duo':'Bakugo'))})),
     openCard: async id => {
       const card = CARD_LIBRARY.find(item => item.id === id);
       if (!card || !cardUnlocked(card)) return false;
