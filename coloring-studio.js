@@ -1,5 +1,5 @@
 (() => {
-  const VERSION = '0.31.4ds';
+  const VERSION = '0.31.4dt';
   const STORAGE_PREFIX = 'lifeRpgColoringStudio';
   const EMBEDDED = window.parent !== window && new URLSearchParams(location.search).get('embedded') === '1';
   const CANVAS_WIDTH = 1122;
@@ -40,9 +40,17 @@
     { id: 'luca-stairwell-daydream', title: 'Luca · Stairwell Daydream', unlockId: 'color-card-luca-stairwell-daydream', assetCandidates: ['assets/coloring/luca-stairwell-daydream-line.png?v=0.31.4dr'] } ,
     { id: 'luca-cozy-punk-night', title: 'Luca · Cozy Punk Night', unlockId: 'color-card-luca-cozy-punk-night', assetCandidates: ['assets/coloring/luca-cozy-punk-night-line.png?v=0.31.4dr'] } ,
     { id: 'luca-bakugo-moonlit-puppy', title: 'Luca & Katsuki · Moonlit Puppy', unlockId: 'color-card-luca-bakugo-moonlit-puppy', assetCandidates: ['assets/coloring/luca-bakugo-moonlit-puppy-line.png?v=0.31.4ds'] } ,
-    { id: 'luca-bakugo-city-walk', title: 'Luca & Katsuki · City Walk', unlockId: 'color-card-luca-bakugo-city-walk', assetCandidates: ['assets/coloring/luca-bakugo-city-walk-line.png?v=0.31.4ds'] } ,
-    { id: 'luca-bakugo-cafe-study', title: 'Luca & Katsuki · Café Study Date', unlockId: 'color-card-luca-bakugo-cafe-study', assetCandidates: ['assets/coloring/luca-bakugo-cafe-study-line.png?v=0.31.4ds'] } ,
-    { id: 'luca-bakugo-music-night', title: 'Luca & Katsuki · Music Night', unlockId: 'color-card-luca-bakugo-music-night', assetCandidates: ['assets/coloring/luca-bakugo-music-night-line.png?v=0.31.4ds'] }
+    { id: 'luca-bakugo-city-walk', title: 'Luca & Katsuki · City Walk', unlockId: 'color-card-luca-bakugo-city-walk', assetCandidates: ['assets/coloring/luca-bakugo-city-walk-line.png?v=0.31.4dt'] } ,
+    { id: 'luca-bakugo-cafe-study', title: 'Luca & Katsuki · Café Study Date', unlockId: 'color-card-luca-bakugo-cafe-study', assetCandidates: ['assets/coloring/luca-bakugo-cafe-study-line.png?v=0.31.4dt'] } ,
+    { id: 'luca-bakugo-music-night', title: 'Luca & Katsuki · Music Night', unlockId: 'color-card-luca-bakugo-music-night', assetCandidates: ['assets/coloring/luca-bakugo-music-night-line.png?v=0.31.4dt'] } ,
+    { id: 'luca-eijirou-starry-portrait', title: 'Luca & Eijirou · Starry Portrait', unlockId: 'color-card-luca-eijirou-starry-portrait', assetCandidates: ['assets/coloring/luca-eijirou-starry-portrait-line.png?v=0.31.4dt'] } ,
+    { id: 'luca-eijirou-city-walk', title: 'Luca & Eijirou · City Walk', unlockId: 'color-card-luca-eijirou-city-walk', assetCandidates: ['assets/coloring/luca-eijirou-city-walk-line.png?v=0.31.4dt'] } ,
+    { id: 'luca-eijirou-reading-nook', title: 'Luca & Eijirou · Reading Nook', unlockId: 'color-card-luca-eijirou-reading-nook', assetCandidates: ['assets/coloring/luca-eijirou-reading-nook-line.png?v=0.31.4dt'] } ,
+    { id: 'luca-eijirou-cafe-study', title: 'Luca & Eijirou · Café Study Date', unlockId: 'color-card-luca-eijirou-cafe-study', assetCandidates: ['assets/coloring/luca-eijirou-cafe-study-line.png?v=0.31.4dt'] } ,
+    { id: 'luca-eijirou-umbrella-date', title: 'Luca & Eijirou · Umbrella Date', unlockId: 'color-card-luca-eijirou-umbrella-date', assetCandidates: ['assets/coloring/luca-eijirou-umbrella-date-line.png?v=0.31.4dt'] } ,
+    { id: 'luca-eijirou-rooftop-picnic', title: 'Luca & Eijirou · Rooftop Picnic', unlockId: 'color-card-luca-eijirou-rooftop-picnic', assetCandidates: ['assets/coloring/luca-eijirou-rooftop-picnic-line.png?v=0.31.4dt'] } ,
+    { id: 'luca-eijirou-snack-night', title: 'Luca & Eijirou · Snack Night', unlockId: 'color-card-luca-eijirou-snack-night', assetCandidates: ['assets/coloring/luca-eijirou-snack-night-line.png?v=0.31.4dt'] } ,
+    { id: 'luca-eijirou-library-window-seat', title: 'Luca & Eijirou · Library Window Seat', unlockId: 'color-card-luca-eijirou-library-window-seat', assetCandidates: ['assets/coloring/luca-eijirou-library-window-seat-line.png?v=0.31.4dt'] }
   ];
 
   const state = {
@@ -837,7 +845,7 @@
   }
 
   window.LifeRPGColoringStudioBridge = {
-    catalog: () => CARD_LIBRARY.map(card => ({id:card.id,title:card.title,src:card.assetCandidates[0],unlockId:card.unlockId,series:card.id.startsWith('luca-bakugo-')?'Luca & Katsuki':(card.id.startsWith('luca-')?'Luca':(card.id.startsWith('kirishima-')?'Kirishima':(card.id.startsWith('bakugo-kirishima-')?'Duo':'Bakugo')))})),
+    catalog: () => CARD_LIBRARY.map(card => ({id:card.id,title:card.title,src:card.assetCandidates[0],unlockId:card.unlockId,series:card.id.startsWith('luca-eijirou-')?'Luca & Eijirou':(card.id.startsWith('luca-bakugo-')?'Luca & Katsuki':(card.id.startsWith('luca-')?'Luca':(card.id.startsWith('kirishima-')?'Kirishima':(card.id.startsWith('bakugo-kirishima-')?'Duo':'Bakugo'))))})),
     openCard: async id => {
       const card = CARD_LIBRARY.find(item => item.id === id);
       if (!card || !cardUnlocked(card)) return false;

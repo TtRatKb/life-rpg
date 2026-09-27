@@ -12,7 +12,7 @@
     return;
   }
 
-  const VERSION = "0.31.4ds";
+  const VERSION = "0.31.4dt";
   const SCHEMA = 7;
   const REALMS = ["Work", "Knowledge", "Japanese", "Health", "Recovery", "Home", "Hobbies"];
 
@@ -229,6 +229,30 @@
           { content: "coloring-studio" }, "View in Coloring Studio", () => window.LifeRPGCreativeHub?.enter?.("coloring")),
         linkedContent("color-card-luca-bakugo-music-night", "🃏", "Luca & Katsuki · Music Night", 1,
           "Collectible coloring card · Cozy music-room scene: Luca with her headphones, Katsuki with drumsticks, and their puppy nearby. Visible as locked preview; permanently unlock for 1 Hobbies point.",
+          { content: "coloring-studio" }, "View in Coloring Studio", () => window.LifeRPGCreativeHub?.enter?.("coloring")),
+        linkedContent("color-card-luca-eijirou-starry-portrait", "🃏", "Luca & Eijirou · Starry Portrait", 1,
+          "Collectible coloring card · Cozy celestial portrait with matching simplified coloring-card linework. Preview in Coloring Studio; permanently unlock for 1 Hobbies point.",
+          { content: "coloring-studio" }, "View in Coloring Studio", () => window.LifeRPGCreativeHub?.enter?.("coloring")),
+        linkedContent("color-card-luca-eijirou-city-walk", "🃏", "Luca & Eijirou · City Walk", 1,
+          "Collectible coloring card · Night walk together with a softer romantic vibe. Preview in Coloring Studio; permanently unlock for 1 Hobbies point.",
+          { content: "coloring-studio" }, "View in Coloring Studio", () => window.LifeRPGCreativeHub?.enter?.("coloring")),
+        linkedContent("color-card-luca-eijirou-reading-nook", "🃏", "Luca & Eijirou · Reading Nook", 1,
+          "Collectible coloring card · Cozy reading nook scene with simplified line art and gentle body language. Preview in Coloring Studio; permanently unlock for 1 Hobbies point.",
+          { content: "coloring-studio" }, "View in Coloring Studio", () => window.LifeRPGCreativeHub?.enter?.("coloring")),
+        linkedContent("color-card-luca-eijirou-cafe-study", "🃏", "Luca & Eijirou · Café Study Date", 1,
+          "Collectible coloring card · Casual café/study vibe with Luca and Eijirou together. Preview in Coloring Studio; permanently unlock for 1 Hobbies point.",
+          { content: "coloring-studio" }, "View in Coloring Studio", () => window.LifeRPGCreativeHub?.enter?.("coloring")),
+        linkedContent("color-card-luca-eijirou-umbrella-date", "🃏", "Luca & Eijirou · Umbrella Date", 1,
+          "Collectible coloring card · Rainy street umbrella moment with a distinct Eijirou expression. Preview in Coloring Studio; permanently unlock for 1 Hobbies point.",
+          { content: "coloring-studio" }, "View in Coloring Studio", () => window.LifeRPGCreativeHub?.enter?.("coloring")),
+        linkedContent("color-card-luca-eijirou-rooftop-picnic", "🃏", "Luca & Eijirou · Rooftop Picnic", 1,
+          "Collectible coloring card · Laughing rooftop picnic pose with a brighter, more playful expression. Preview in Coloring Studio; permanently unlock for 1 Hobbies point.",
+          { content: "coloring-studio" }, "View in Coloring Studio", () => window.LifeRPGCreativeHub?.enter?.("coloring")),
+        linkedContent("color-card-luca-eijirou-snack-night", "🃏", "Luca & Eijirou · Snack Night", 1,
+          "Collectible coloring card · Cozy snack-night pose with different face/expression energy for Eijirou. Preview in Coloring Studio; permanently unlock for 1 Hobbies point.",
+          { content: "coloring-studio" }, "View in Coloring Studio", () => window.LifeRPGCreativeHub?.enter?.("coloring")),
+        linkedContent("color-card-luca-eijirou-library-window-seat", "🃏", "Luca & Eijirou · Library Window Seat", 1,
+          "Collectible coloring card · Quiet library window-seat scene with a calmer, softer expression. Preview in Coloring Studio; permanently unlock for 1 Hobbies point.",
           { content: "coloring-studio" }, "View in Coloring Studio", () => window.LifeRPGCreativeHub?.enter?.("coloring")),
         linkedContent("palette-atelier", "◈", "Palette Atelier", 1,
           "An interactive color-matching game with three rounds, visible feedback, eight curated palettes, and daily or practice play. The coloring collection below is a separate optional content branch.",
@@ -774,7 +798,7 @@
     const action = complete ? openButton : `<span class="talent-v3-content-actions">${openButton}${buyButton}</span>`;
 
     const cardArt = realm === "Hobbies" && item.id.startsWith("color-card-") ?
-      `assets/coloring/${item.id.slice("color-card-".length)}-line.png?v=0.31.4ds` : "";
+      `assets/coloring/${item.id.slice("color-card-".length)}-line.png?v=0.31.4dt` : "";
     const art = cardArt ? `<div class="talent-card-art-v314dn ${owned ? "is-owned" : "is-locked"}"><img src="${escAttr(cardArt)}" alt="Preview of ${escAttr(item.title)}" loading="lazy">${owned ? "" : `<span aria-hidden="true">🔒</span>`}</div>` : "";
     return `${index ? treeLink(item.requires?.content ? `Previous unlock: ${contentTitle(realm, item.requires.content)}${item.requires.contentRank > 1 ? ` ${roman(item.requires.contentRank)}` : ""}` : `Content expansion`) : ""}
       <article id="talent-v3-content-${escAttr(realm)}-${escAttr(item.id)}" class="talent-v3-node talent-v3-content-node ${stateClass} ${cardArt ? "is-coloring-card" : ""}">
