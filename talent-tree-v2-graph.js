@@ -182,6 +182,18 @@
         linkedContent("color-card-kirishima-lean-in", "🃏", "Kirishima · Lean In", 1,
           "Collectible coloring card · A gentle grin from across the table. Preview in Coloring Studio; permanently unlock for 1 Hobbies point.",
           { content: "coloring-studio" }, "View in Coloring Studio", () => window.LifeRPGCreativeHub?.enter?.("coloring")),
+        linkedContent("color-card-bakugo-kirishima-cozy-bond", "🃏", "Bakugo & Kirishima · Cozy Bond", 1,
+          "Collectible coloring card · Adult duo · affectionate casual pose with Bakugo's scars and a relaxed, warm Kirishima. Preview in Coloring Studio; permanently unlock for 1 Hobbies point.",
+          { content: "coloring-studio" }, "View in Coloring Studio", () => window.LifeRPGCreativeHub?.enter?.("coloring")),
+        linkedContent("color-card-bakugo-kirishima-back-to-back-pros", "🃏", "Bakugo & Kirishima · Back-to-Back Pros", 1,
+          "Collectible coloring card · Adult pro-hero duo · back-to-back resolve. Preview in Coloring Studio; permanently unlock for 1 Hobbies point.",
+          { content: "coloring-studio" }, "View in Coloring Studio", () => window.LifeRPGCreativeHub?.enter?.("coloring")),
+        linkedContent("color-card-bakugo-kirishima-adult-rivalry", "🃏", "Bakugo & Kirishima · Adult Rivalry", 1,
+          "Collectible coloring card · Adult duo tension with a more mature rivalry vibe. Preview in Coloring Studio; permanently unlock for 1 Hobbies point.",
+          { content: "coloring-studio" }, "View in Coloring Studio", () => window.LifeRPGCreativeHub?.enter?.("coloring")),
+        linkedContent("color-card-bakugo-kirishima-dynamic-duo", "🃏", "Bakugo & Kirishima · Dynamic Duo", 1,
+          "Collectible coloring card · Action-forward duo composition with adult styling. Preview in Coloring Studio; permanently unlock for 1 Hobbies point.",
+          { content: "coloring-studio" }, "View in Coloring Studio", () => window.LifeRPGCreativeHub?.enter?.("coloring")),
         linkedContent("palette-atelier", "◈", "Palette Atelier", 1,
           "An interactive color-matching game with three rounds, visible feedback, eight curated palettes, and daily or practice play. The coloring collection below is a separate optional content branch.",
           { content: "coloring-studio" }, "Open Palette Atelier", () => window.LifeRPGTalentV3?.open?.("palette-atelier")),
@@ -726,7 +738,7 @@
     const action = complete ? openButton : `<span class="talent-v3-content-actions">${openButton}${buyButton}</span>`;
 
     const cardArt = realm === "Hobbies" && item.id.startsWith("color-card-") ?
-      `assets/coloring/${item.id.slice("color-card-".length)}-line.png?v=0.31.4dp` : "";
+      `assets/coloring/${item.id.slice("color-card-".length)}-line.png?v=0.31.4dq` : "";
     const art = cardArt ? `<div class="talent-card-art-v314dn ${owned ? "is-owned" : "is-locked"}"><img src="${escAttr(cardArt)}" alt="Preview of ${escAttr(item.title)}" loading="lazy">${owned ? "" : `<span aria-hidden="true">🔒</span>`}</div>` : "";
     return `${index ? treeLink(item.requires?.content ? `Previous unlock: ${contentTitle(realm, item.requires.content)}${item.requires.contentRank > 1 ? ` ${roman(item.requires.contentRank)}` : ""}` : `Content expansion`) : ""}
       <article id="talent-v3-content-${escAttr(realm)}-${escAttr(item.id)}" class="talent-v3-node talent-v3-content-node ${stateClass} ${cardArt ? "is-coloring-card" : ""}">

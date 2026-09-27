@@ -1,5 +1,5 @@
 (() => {
-  const VERSION = '0.31.4dp';
+  const VERSION = '0.31.4dq';
   const STORAGE_PREFIX = 'lifeRpgColoringStudio';
   const EMBEDDED = window.parent !== window && new URLSearchParams(location.search).get('embedded') === '1';
   const CANVAS_WIDTH = 1122;
@@ -26,7 +26,11 @@
     { id: 'kirishima-chair-sideways', title: 'Kirishima · Chair Sideways', unlockId: 'color-card-kirishima-chair-sideways', assetCandidates: ['assets/coloring/kirishima-chair-sideways-line.png?v=0.31.4dp'] } ,
     { id: 'kirishima-stretch-break', title: 'Kirishima · Stretch Break', unlockId: 'color-card-kirishima-stretch-break', assetCandidates: ['assets/coloring/kirishima-stretch-break-line.png?v=0.31.4dp'] } ,
     { id: 'kirishima-come-at-me', title: 'Kirishima · Come At Me', unlockId: 'color-card-kirishima-come-at-me', assetCandidates: ['assets/coloring/kirishima-come-at-me-line.png?v=0.31.4dp'] } ,
-    { id: 'kirishima-lean-in', title: 'Kirishima · Lean In', unlockId: 'color-card-kirishima-lean-in', assetCandidates: ['assets/coloring/kirishima-lean-in-line.png?v=0.31.4dp'] }
+    { id: 'kirishima-lean-in', title: 'Kirishima · Lean In', unlockId: 'color-card-kirishima-lean-in', assetCandidates: ['assets/coloring/kirishima-lean-in-line.png?v=0.31.4dp'] } ,
+    { id: 'bakugo-kirishima-cozy-bond', title: 'Bakugo & Kirishima · Cozy Bond', unlockId: 'color-card-bakugo-kirishima-cozy-bond', assetCandidates: ['assets/coloring/bakugo-kirishima-cozy-bond-line.png?v=0.31.4dq'] } ,
+    { id: 'bakugo-kirishima-back-to-back-pros', title: 'Bakugo & Kirishima · Back-to-Back Pros', unlockId: 'color-card-bakugo-kirishima-back-to-back-pros', assetCandidates: ['assets/coloring/bakugo-kirishima-back-to-back-pros-line.png?v=0.31.4dq'] } ,
+    { id: 'bakugo-kirishima-adult-rivalry', title: 'Bakugo & Kirishima · Adult Rivalry', unlockId: 'color-card-bakugo-kirishima-adult-rivalry', assetCandidates: ['assets/coloring/bakugo-kirishima-adult-rivalry-line.png?v=0.31.4dq'] } ,
+    { id: 'bakugo-kirishima-dynamic-duo', title: 'Bakugo & Kirishima · Dynamic Duo', unlockId: 'color-card-bakugo-kirishima-dynamic-duo', assetCandidates: ['assets/coloring/bakugo-kirishima-dynamic-duo-line.png?v=0.31.4dq'] }
   ];
 
   const state = {
@@ -821,7 +825,7 @@
   }
 
   window.LifeRPGColoringStudioBridge = {
-    catalog: () => CARD_LIBRARY.map(card => ({id:card.id,title:card.title,src:card.assetCandidates[0],unlockId:card.unlockId,series:card.id.startsWith('kirishima-')?'Kirishima':'Bakugo'})),
+    catalog: () => CARD_LIBRARY.map(card => ({id:card.id,title:card.title,src:card.assetCandidates[0],unlockId:card.unlockId,series:card.id.startsWith('kirishima-')?'Kirishima':(card.id.startsWith('bakugo-kirishima-')?'Duo':'Bakugo')})),
     openCard: async id => {
       const card = CARD_LIBRARY.find(item => item.id === id);
       if (!card || !cardUnlocked(card)) return false;
