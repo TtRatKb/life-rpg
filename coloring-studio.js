@@ -1,5 +1,5 @@
 (() => {
-  const VERSION = '0.31.4dt';
+  const VERSION = '0.31.4du';
   const STORAGE_PREFIX = 'lifeRpgColoringStudio';
   const EMBEDDED = window.parent !== window && new URLSearchParams(location.search).get('embedded') === '1';
   const CANVAS_WIDTH = 1122;
@@ -51,6 +51,10 @@
     { id: 'luca-eijirou-rooftop-picnic', title: 'Luca & Eijirou · Rooftop Picnic', unlockId: 'color-card-luca-eijirou-rooftop-picnic', assetCandidates: ['assets/coloring/luca-eijirou-rooftop-picnic-line.png?v=0.31.4dt'] } ,
     { id: 'luca-eijirou-snack-night', title: 'Luca & Eijirou · Snack Night', unlockId: 'color-card-luca-eijirou-snack-night', assetCandidates: ['assets/coloring/luca-eijirou-snack-night-line.png?v=0.31.4dt'] } ,
     { id: 'luca-eijirou-library-window-seat', title: 'Luca & Eijirou · Library Window Seat', unlockId: 'color-card-luca-eijirou-library-window-seat', assetCandidates: ['assets/coloring/luca-eijirou-library-window-seat-line.png?v=0.31.4dt'] }
+    ,{ id: 'luca-bakugo-kirishima-trio-cozy-night-in', title: 'Luca, Katsuki & Eijirou · Cozy Night In', unlockId: 'color-card-luca-bakugo-kirishima-trio-cozy-night-in', assetCandidates: ['assets/coloring/luca-bakugo-kirishima-trio-cozy-night-in-line.png?v=0.31.4du'] }
+    ,{ id: 'luca-bakugo-kirishima-trio-midnight-city', title: 'Luca, Katsuki & Eijirou · Midnight City', unlockId: 'color-card-luca-bakugo-kirishima-trio-midnight-city', assetCandidates: ['assets/coloring/luca-bakugo-kirishima-trio-midnight-city-line.png?v=0.31.4du'] }
+    ,{ id: 'luca-bakugo-kirishima-trio-cafe-together', title: 'Luca, Katsuki & Eijirou · Café Together', unlockId: 'color-card-luca-bakugo-kirishima-trio-cafe-together', assetCandidates: ['assets/coloring/luca-bakugo-kirishima-trio-cafe-together-line.png?v=0.31.4du'] }
+    ,{ id: 'luca-bakugo-kirishima-trio-music-game-night', title: 'Luca, Katsuki & Eijirou · Music & Game Night', unlockId: 'color-card-luca-bakugo-kirishima-trio-music-game-night', assetCandidates: ['assets/coloring/luca-bakugo-kirishima-trio-music-game-night-line.png?v=0.31.4du'] }
   ];
 
   const state = {
@@ -845,7 +849,7 @@
   }
 
   window.LifeRPGColoringStudioBridge = {
-    catalog: () => CARD_LIBRARY.map(card => ({id:card.id,title:card.title,src:card.assetCandidates[0],unlockId:card.unlockId,series:card.id.startsWith('luca-eijirou-')?'Luca & Eijirou':(card.id.startsWith('luca-bakugo-')?'Luca & Katsuki':(card.id.startsWith('luca-')?'Luca':(card.id.startsWith('kirishima-')?'Kirishima':(card.id.startsWith('bakugo-kirishima-')?'Duo':'Bakugo'))))})),
+    catalog: () => CARD_LIBRARY.map(card => ({id:card.id,title:card.title,src:card.assetCandidates[0],unlockId:card.unlockId,series:card.id.startsWith('luca-bakugo-kirishima-')?'Trio':(card.id.startsWith('luca-eijirou-')?'Luca & Eijirou':(card.id.startsWith('luca-bakugo-')?'Luca & Katsuki':(card.id.startsWith('luca-')?'Luca':(card.id.startsWith('kirishima-')?'Kirishima':(card.id.startsWith('bakugo-kirishima-')?'Duo':'Bakugo')))))})),
     openCard: async id => {
       const card = CARD_LIBRARY.find(item => item.id === id);
       if (!card || !cardUnlocked(card)) return false;

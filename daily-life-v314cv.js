@@ -21,6 +21,7 @@
     const add = (id, label, complete, view, action, description = "Daily first reward") => rows.push({id, label, complete:Boolean(complete), view, action, description});
     const checkIn = window.LifeRPGDaily?.getToday?.();
     add("checkin", "Daily Check-in", Boolean(checkIn?.checkIn), "basecamp", "checkin", "A real check-in, not another checkbox");
+    add("soundGarden", "♫ Discover a Song", Boolean(window.LifeRPGSoundGarden?.summary?.().completedToday), "basecamp", "soundGarden", "A new song from your Artist Pool · classify it to complete the daily");
     const streaks = window.LifeRPGDailyStreaks;
     const daily = (id) => Boolean(streaks?.summary?.(id)?.completedToday);
     add("sudoku", "Sudoku", daily("sudoku") || Boolean(window.LifeRPGSudoku?.getStats?.()?.dailyDone), "growth", "sudoku");
@@ -57,6 +58,7 @@
   function openDaily(action) {
     switch(action) {
       case "checkin": app.showView("basecamp");window.LifeRPGDaily?.openBriefing?.();break;
+      case "soundGarden":window.LifeRPGSoundGarden?.open?.();break;
       case "sudoku": window.LifeRPGSudoku?.open?.();break;
       case "nonogram":window.LifeRPGNonogram?.open?.();break;
       case "numberSense":window.LifeRPGNumberSense?.open?.();break;
@@ -159,7 +161,7 @@
   window.addEventListener("focus",scheduleRender);
   document.addEventListener("visibilitychange",()=>{if(!document.hidden)scheduleRender();});
   // No 1-second DOM rebuilding; static rewards are updated only after save/render events.
-  window.LifeRPGDailyLife={version:"0.31.4cz",render,getChecklist,objective};
+  window.LifeRPGDailyLife={version:"0.31.4dv",render,getChecklist,objective};
   render();
   window.LifeRPGStoryEngine?.loadPack?.().then(value=>{pack=value;scheduleRender();}).catch(()=>{/* Story UI handles pack errors itself; do not invent costs. */});
 })();
