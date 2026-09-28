@@ -8,3 +8,23 @@
 
 /* DX: identity choices use separate selection and external catalogue links. */
 .sg-identity-choice{background:#fff;border:1px solid #e7cbd9;border-radius:10px;margin:.45rem 0;overflow:hidden}.sg-identity-choice button{border:0;border-radius:0;margin:0}.sg-identity-choice>a{display:inline-block;padding:0 .8rem .7rem;color:#805177;font-size:.78rem;text-decoration:underline}.sg-id-tag[title]{cursor:help}
+
+/* DY · first-party Spotify connection and official in-page playback */
+.sg-spotify-state{margin:.6rem 0 .85rem;border:1px solid #d8c4da;border-radius:11px;padding:.65rem .75rem;background:#f9f0f7;color:#603b5b;font-size:.83rem;line-height:1.4}
+.sg-settings a,.sg-credit a{color:#744571;text-decoration:underline}
+.sg-settings code{display:inline-block;overflow-wrap:anywhere;padding:.16rem .35rem;background:#f8e9f2;border-radius:5px;color:#513951}
+.sg-spotify-actions{display:flex;gap:.5rem;flex-wrap:wrap;margin:.5rem 0}
+.sg-spotify-actions button{min-height:2.3rem}
+.sg-direct-artist{display:flex;align-items:end;gap:.5rem;flex-wrap:wrap;background:#fff8fb;border:1px dashed #d8b5c9;border-radius:12px;padding:.8rem;margin-top:.85rem}
+.sg-direct-artist[hidden]{display:none}
+.sg-direct-artist label{display:grid;gap:.25rem;font-size:.8rem;color:#67445d;font-weight:700;flex:1 1 170px}
+.sg-direct-artist select{padding:.6rem;border:1px solid #dec8d4;border-radius:9px;color:#513951;background:#fff}
+.sg-direct-artist small{width:100%;color:#87697c;font-size:.73rem}
+.sg-embed{margin:-.75rem 0 .9rem;padding:0 1.2rem .5rem;background:#fff;border:1px solid #ecd8df;border-radius:0 0 16px 16px}
+.sg-embed[hidden]{display:none}
+.sg-embed iframe{display:block;width:100%;min-height:152px}
+.sg-mini-player{position:fixed;bottom:1rem;right:1rem;z-index:22000;max-width:min(410px,calc(100vw - 2rem));display:flex;align-items:center;gap:.5rem;padding:.5rem;border-radius:15px;background:#fffaf7;border:1px solid #dec0d3;box-shadow:0 9px 34px #2c133655;color:#513451}
+.sg-mini-player[hidden]{display:none}
+.sg-mini-player button{border:1px solid #e5cadb;background:#f9ebf3;color:#653e5c;border-radius:9px;padding:.52rem .7rem;cursor:pointer}
+.sg-mini-player button:first-child{min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;font-weight:700}
+@media(max-width:600px){.sg-mini-player{bottom:.55rem;right:.55rem;left:.55rem;max-width:none}.sg-direct-artist>*{width:100%}}

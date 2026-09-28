@@ -1,13 +1,14 @@
-/* Life RPG · Sound Garden V0.31.4dx
-   Independent music-discovery journal. No Spotify API or playback SDK is used.
-   Track suggestions: Apple iTunes Search API (catalog metadata only).
-   Spotify URLs are ordinary outbound search/playlist links, not an API integration.
+/* Life RPG · Sound Garden V0.31.4dy
+   Artist-aware discovery; optional Spotify Premium PKCE + in-app Web Playback SDK.
+   Existing DV–DX data and reward ledgers remain stable; no reward for Spotify plays.
 */
 (() => {
   'use strict';
   const app = window.LifeRPGApp;
   if (!app?.getState || !app?.saveState || !app?.awardActivity) return;
-  const VERSION = '0.31.4dx';
+  const VERSION = '0.31.4dy';
+  const Spotify = window.LifeRPGSpotifyBridge;
+  const ALIASES = {'hanabie':['HANABIE.','花冷え。','花冷え','HANABIE']};
   const PLAYLIST = 'https://open.spotify.com/playlist/6aD4oA94t1SpI10OpTrsVl';
   const $ = id => document.getElementById(id);
   const esc = x => app.escapeHtml?.(String(x ?? '')) ?? String(x ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -18,7 +19,10 @@
   const keyFor = (artist,title) => `${norm(artist)}::${baseSong(title)}`;
   const sourceLink = track => /^https:\/\/(?:music\.apple\.com|itunes\.apple\.com)\//.test(track?.storeUrl || '') ? track.storeUrl : '';
   const spotifySearch = track => `https://open.spotify.com/search/${encodeURIComponent(`${track.artist} ${track.title}`)}`;
-  let busy = false, status = '', preview = null, dialog = null;
+  let busy = false, status = '', preview = null, dialog = null, embeddedId = '';
+  const spotifyActive = () => Boolean(Spotify?.state().connected);
+  const variants = a => [a.name, ...(ALIASES[a.key] || [])];
+  const aliasMatch = (name, a) => variants(a).some(v => (norm(v) && norm(name) && norm(v) === norm(name)) || (v === name));
 
   function data() {
     const root = app.getState();
@@ -32,6 +36,7 @@
     if (!m.days || typeof m.days !== 'object') m.days = {};
     if (!Array.isArray(m.history)) m.history = [];
     if (!Array.isArray(m.recentArtists)) m.recentArtists = [];
+    if (!m.savedToPlaylist || typeof m.savedToPlaylist !== 'object') m.savedToPlaylist = {};
     if (!m.playlistUrl || !/^https:\/\/open\.spotify\.com\/playlist\/[\w-]+/.test(m.playlistUrl)) m.playlistUrl = PLAYLIST;
     // DV migration: old song candidates had no stable artist identity; never reuse them.
     if (Number(m.version || 0) < 2) {
@@ -99,7 +104,7 @@
       const cb=`__lifeRpgSg_${Date.now()}_${Math.random().toString(36).slice(2)}`;
       const script=document.createElement('script');
       const url=new URL(`https://itunes.apple.com/${endpoint}`);
-      Object.entries({...params,country:'DE',callback:cb}).forEach(([k,v])=>url.searchParams.set(k,v));
+      Object.entries({country:'DE',...params,callback:cb}).forEach(([k,v])=>url.searchParams.set(k,v));
       let finished=false;
       const finish=(error,value)=>{if(finished)return;finished=true;clearTimeout(timeout);delete window[cb];script.remove();error?reject(error):resolve(value);};
       const timeout=setTimeout(()=>finish(new Error('Der Musikkatalog antwortet gerade nicht.')),14000);
@@ -120,12 +125,21 @@
     }
   }
   async function artistOptions(a) {
-    const response=await itunesJSONP('search',{term:a.name,media:'music',entity:'musicArtist',attribute:'artistTerm',limit:30});
-    let found=rowsOf(response).filter(r=>r.wrapperType==='artist'&&Number.isSafeInteger(Number(r.artistId))&&norm(r.artistName)===a.key);
-    // Some regional stores omit artist entries even when matching tracks exist.
+    let found=[];
+    for(const name of variants(a)) {
+      for(const country of (a.key==='hanabie'?['DE','JP','US']:['DE'])) {
+        const response=await itunesJSONP('search',{term:name,media:'music',entity:'musicArtist',attribute:'artistTerm',limit:30,country});
+        found.push(...rowsOf(response).filter(r=>r.wrapperType==='artist'&&Number.isSafeInteger(Number(r.artistId))&&aliasMatch(r.artistName,a)));
+      }
+      if(found.length)break;
+    }
+    // The Japanese act HANABIE. is also catalogued as 花冷え。 in some storefronts.
     if(!found.length) {
-      const fallback=await itunesJSONP('search',{term:a.name,media:'music',entity:'song',attribute:'artistTerm',limit:200});
-      found=rowsOf(fallback).filter(r=>r.kind==='song'&&Number.isSafeInteger(Number(r.artistId))&&norm(r.artistName)===a.key);
+      for(const name of variants(a)) {
+        const fallback=await itunesJSONP('search',{term:name,media:'music',entity:'song',attribute:'artistTerm',limit:200,country:'JP'});
+        found.push(...rowsOf(fallback).filter(r=>r.kind==='song'&&Number.isSafeInteger(Number(r.artistId))&&aliasMatch(r.artistName,a)));
+        if(found.length)break;
+      }
     }
     const ids=new Map();
     for (const row of found) {
@@ -153,22 +167,93 @@
     }
     return options;
   }
+
+  async function spotifyArtistOptions(a) {
+    const raw=await Spotify.findArtists(a.name, ALIASES[a.key] || []);
+    const exact=raw.filter(row=>aliasMatch(row.name,a));
+    return exact.map(row=>({id:row.id,source:'spotify',name:row.name,
+      genre:(row.genres||[]).slice(0,3).join(' · '),album:'',examples:[],
+      image:row.images?.[1]?.url || row.images?.[0]?.url || '',
+      url:row.external_urls?.spotify || ''}));
+  }
+  function linkSpotifyArtist(key, link) {
+    const m=data(), a=m.artists.find(x=>x.key===key), id=Spotify?.officialId(link);
+    if(!a || !id) return tell('Bitte einen gültigen Spotify-Artist-Link oder eine Artist-URI einfügen.');
+    if(!spotifyActive()) return tell('Bitte zuerst Spotify verbinden.');
+    busy=true;status='Überprüfe Spotify-Artist-Link …';render();
+    Spotify.artistById(id).then(row=>{
+      if(!row?.id||!row.name)throw new Error('Dieser Link verweist auf keinen Spotify-Artist.');
+      a.spotifyArtistId=row.id;a.spotifyArtistName=row.name;
+      delete m.catalog[a.key];if(m.current?.artistKey===a.key)m.current=null;
+      m.pendingIdentity=null;save('spotify-artist-link');status=`✓ ${a.name} mit ${row.name} auf Spotify verknüpft.`;
+    }).catch(e=>{status=`Spotify-Link: ${e.message}`;}).finally(()=>{busy=false;render();});
+  }
+  async function spotifyCatalogFor(a,refresh=false) {
+    const m=data();
+    if(!a.spotifyArtistId) {
+      if(!await resolveArtist(a))return [];
+    }
+    if(!refresh && Array.isArray(m.catalog[a.key]) && m.catalog[a.key].length &&
+      m.catalog[a.key].every(t=>t.spotifyArtistId===a.spotifyArtistId && t.spotifyTrackId))return m.catalog[a.key];
+    const picked=new Map();
+    const add=(t,album)=>{
+      if(!t?.id || !/^[a-zA-Z0-9]{22}$/.test(t.id) || !t.name ||
+        !Array.isArray(t.artists) || !t.artists.some(artist=>artist.id===a.spotifyArtistId))return;
+      const key=keyFor(a.name,t.name);
+      if(!baseSong(t.name)||picked.has(key))return;
+      picked.set(key,{key,title:t.name,artist:a.name,artistKey:a.key,
+        spotifyArtistId:a.spotifyArtistId,spotifyTrackId:t.id,
+        album:album?.name||t.album?.name||'',cover:album?.images?.[0]?.url||t.album?.images?.[0]?.url||'',
+        storeUrl:t.external_urls?.spotify||`https://open.spotify.com/track/${t.id}`});
+    };
+    let failures=[];
+    // Use artist ID, not matching song title. Top-tracks is unavailable in 2026 dev mode.
+    try {
+      const albums=await Spotify.api(`/artists/${encodeURIComponent(a.spotifyArtistId)}/albums?${new URLSearchParams({include_groups:'album,single',market:'DE',limit:'10'})}`);
+      const unique=[...new Map((albums.items||[]).filter(x=>x.id).map(x=>[x.id,x])).values()];
+      // Three distinct releases per first load; refresh allows more variety.
+      const selections=(refresh?unique.slice(3,8):unique.slice(0,5));
+      const outputs=await Promise.allSettled(selections.map(async album=>{
+        const page=await Spotify.api(`/albums/${encodeURIComponent(album.id)}/tracks?${new URLSearchParams({market:'DE',limit:'50'})}`);
+        return {album,items:page.items||[]};
+      }));
+      for(const res of outputs) {
+        if(res.status==='fulfilled') {
+          for(const track of res.value.items) add(track,res.value.album);
+        } else failures.push(res.reason?.message||'Albumtitel nicht verfügbar');
+      }
+    } catch(e) {failures.push(e.message);}
+    // Search fallback only accepts tracks whose artist ID exactly matches this artist.
+    if(picked.size<8) {
+      for(const query of variants(a).slice(0,2)) {
+        try {
+          const result=await Spotify.api(`/search?${new URLSearchParams({q:`artist:"${query.replace(/"/g,'')}"`,type:'track',market:'DE',limit:'10'})}`);
+          for(const track of result.tracks?.items||[])add(track,null);
+        } catch(e){failures.push(e.message);}
+      }
+    }
+    if(!picked.size) throw new Error(failures[0]||`Spotify hat für ${a.name} keine passenden Songs geliefert. Prüfe die Artist-Zuordnung.`);
+    m.catalog[a.key]=[...picked.values()].slice(0,160);
+    save('spotify-catalog-cache');return m.catalog[a.key];
+  }
   async function resolveArtist(a,forceChoice=false) {
     const m=data();
-    if(!forceChoice && Number.isSafeInteger(a.artistId)&&a.artistId>0)return true;
-    const options=await artistOptions(a);
-    if(!options.length){status=`Kein passender Katalog-Artist für „${a.name}“ gefunden. Es wird kein gleichnamiger Song als Ersatz verwendet.`;return false;}
+    if(!forceChoice && (spotifyActive()?Boolean(a.spotifyArtistId):(Number.isSafeInteger(a.artistId)&&a.artistId>0)))return true;
+    const useSpotify=spotifyActive();
+    const options=useSpotify?await spotifyArtistOptions(a):await artistOptions(a);
+    if(!options.length){status=`Kein passender ${useSpotify?'Spotify':'Katalog'}-Artist für „${a.name}“ gefunden. ${useSpotify?'Du kannst stattdessen seinen Spotify-Artist-Link eintragen.':'Verbinde Spotify oder verwende eine alternative Schreibweise (z. B. 花冷え。).'} Es wird kein gleichnamiger Song als Ersatz verwendet.`;return false;}
     if(options.length===1) {
-      // A single exact artist match needs no dialog and no sample songs to confirm its ID.
-      a.artistId=options[0].id;
+      const o=options[0];
+      if(useSpotify){a.spotifyArtistId=o.id;a.spotifyArtistName=o.name;}
+      else a.artistId=o.id;
       delete m.catalog[a.key];
-      if(m.current?.artistKey===a.key && m.current.artistId!==a.artistId)m.current=null;
+      if(m.current?.artistKey===a.key)m.current=null;
       m.pendingIdentity=null;
       save('artist-identity');
-      status=`✓ ${a.name} eindeutig zugeordnet (Katalog-ID ${a.artistId}).`;
+      status=`✓ ${a.name} eindeutig auf ${useSpotify?'Spotify':'Apple Music'} zugeordnet.`;
       return true;
     }
-    m.pendingIdentity={artistKey:a.key,options,at:Date.now(),resumeDiscovery:!forceChoice};
+    m.pendingIdentity={artistKey:a.key,source:useSpotify?'spotify':'apple',options,at:Date.now(),resumeDiscovery:!forceChoice};
     save('artist-identity-options');
     status=`Mehrere Artists heißen „${a.name}“. Bitte wähle den richtigen Katalogeintrag.`;
     return false;
@@ -184,18 +269,21 @@
   }
   function chooseArtist(key,id) {
     const m=data(),pending=m.pendingIdentity,a=m.artists.find(x=>x.key===key);
-    const option=pending?.artistKey===key&&pending.options.find(x=>x.id===Number(id));
+    const option=pending?.artistKey===key&&pending.options.find(x=>String(x.id)===String(id));
     if(!a||!option)return;
-    a.artistId=option.id;delete m.catalog[a.key];
+    if(pending.source==='spotify'){a.spotifyArtistId=option.id;a.spotifyArtistName=option.name;}
+    else a.artistId=option.id;
+    delete m.catalog[a.key];
     if(m.current?.artistKey===a.key)m.current=null;
     const resumeDiscovery=Boolean(pending.resumeDiscovery);
     m.pendingIdentity=null;
-    save('artist-identity-selected');status=`✓ ${a.name} zugeordnet · Katalog-ID ${option.id}.`;
+    save('artist-identity-selected');status=`✓ ${a.name} zugeordnet · ${pending.source==='spotify'?'Spotify':'Katalog'}-ID ${option.id}.`;
     render();
     if(resumeDiscovery)next(true,key);
   }
   async function catalogFor(a,refresh=false) {
     const m=data();
+    if(spotifyActive())return spotifyCatalogFor(a,refresh);
     if(!Number.isSafeInteger(a.artistId)||a.artistId<=0) {
       if(!await resolveArtist(a))return [];
     }
@@ -233,6 +321,7 @@
         const results=await catalogFor(a);
         if(m.pendingIdentity){render();return;}
         options=candidates(results,m);
+        if(spotifyActive())options=options.filter(x=>x.spotifyTrackId);
         if (options.length) {
           const track=options[Math.floor(Math.random()*options.length)];
           m.current={...track,assignedAt:Date.now()};
@@ -287,6 +376,32 @@
     if (!save('known-import')) return tell('Import nicht dauerhaft gesichert – exportiere den Spielstand.');
     $('sgKnownPaste').value='';tell(`${added} bekannte Songs gespeichert · ohne rückwirkende Rewards.`);
   }
+
+  async function importSpotifyPlaylistKnown() {
+    if(!spotifyActive())return tell('Bitte erst Spotify verbinden.');
+    const m=data(),match=m.playlistUrl.match(/\/playlist\/([a-zA-Z0-9]+)/);
+    if(!match)return tell('Bitte zuerst den Playlist-Link überprüfen.');
+    const button=$('sgImportPlaylist');button.disabled=true;
+    let imported=0,scanned=0;
+    try {
+      for(let offset=0;offset<1000;offset+=50){
+        const result=await Spotify.api(`/playlists/${match[1]}/items?${new URLSearchParams({limit:'50',offset:String(offset)})}`);
+        for(const item of result.items||[]){
+          const track=item.item||item.track;
+          if(!track?.name||!track.artists?.length)continue;
+          scanned++;
+          for(const artist of track.artists){
+            const key=keyFor(artist.name,track.name);
+            if(!m.tracks[key]){m.tracks[key]={status:'known',title:track.name,artist:artist.name,at:Date.now(),imported:true,spotifyTrackId:track.id};imported++;}
+          }
+        }
+        if(!result.next)break;
+      }
+      save('spotify-playlist-known-import');
+      tell(`✓ ${imported} Titel-/Artist-Kombinationen als bekannt übernommen (${scanned} Playlist-Einträge geprüft, maximal 1000). Keine rückwirkenden Rewards.`);
+    } catch(e){status=`Playlist-Import: ${e.message}. Bisher geprüfte Songs wurden nicht gelöscht.`;if(imported)save('spotify-playlist-known-import-partial');render();}
+    finally{button.disabled=false;}
+  }
   function rememberSettings(value) {
     let u;
     try {u=new URL(value);} catch {return tell('Bitte einen gültigen Spotify-Playlist-Link eintragen.');}
@@ -294,26 +409,82 @@
     data().playlistUrl=u.origin+u.pathname.replace(/\/$/,'');save('playlist-setting');tell('Playlist-Link gespeichert.');
   }
   function openLink(href) { if (/^https:\/\/(?:open\.spotify\.com|music\.apple\.com|itunes\.apple\.com)\//.test(href)) window.open(href,'_blank','noopener,noreferrer'); }
+
+  async function addCurrentToPlaylist() {
+    const m=data(),song=m.current;
+    if(!song?.spotifyTrackId || !spotifyActive())return tell('Bitte zuerst einen Spotify-Song laden und Spotify verbinden.');
+    if(m.savedToPlaylist[song.spotifyTrackId])return tell('Dieser Song wurde bereits über Sound Garden in die Playlist übernommen.');
+    const button=$('sgPlaylistAdd');if(button)button.disabled=true;
+    try {
+      await Spotify.addToPlaylist(m.playlistUrl,song);
+      m.savedToPlaylist[song.spotifyTrackId]=Date.now();
+      save('spotify-playlist-add');tell('✓ Song direkt zu deiner Spotify-Playlist hinzugefügt.');
+    } catch(e){tell(`Playlist: ${e.message}`);} finally {if(button)button.disabled=false;}
+  }
+  async function playCurrent() {
+    const t=data().current;
+    if(!t?.spotifyTrackId||!spotifyActive())return tell('Bitte Spotify verbinden und einen neuen Song vorschlagen.');
+    const button=$('sgPlayInside');if(button)button.disabled=true;
+    try {await Spotify.play(t);status='♫ Spotify spielt jetzt innerhalb von Life RPG.';}
+    catch(e){status=`Spotify-Player: ${e.message} Der eingebettete Player darunter bleibt als Alternative verfügbar.`;}
+    finally {if(button)button.disabled=false;render();}
+  }
+  function updateEmbed(t) {
+    const el=$('sgEmbed');if(!el)return;
+    const id=spotifyActive()?t?.spotifyTrackId||'':'';
+    if(embeddedId===id)return;
+    embeddedId=id;
+    el.replaceChildren();el.hidden=!id;
+    if(!id)return;
+    const frame=document.createElement('iframe');
+    frame.src=Spotify.embedUrl(t);frame.title=`Spotify · ${t.title} – ${t.artist}`;
+    frame.loading='eager';frame.setAttribute('allow','autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture');
+    frame.setAttribute('referrerpolicy','strict-origin-when-cross-origin');
+    frame.width='100%';frame.height='152';frame.style.border='0';frame.style.borderRadius='12px';
+    el.appendChild(frame);
+  }
+  function updateMiniPlayer() {
+    const mini=$('sgMiniPlayer');if(!mini)return;
+    const live=Spotify?.state();
+    const t=live?.activeTrack;
+    mini.hidden=!live?.connected || !t;
+    if(!t)return;
+    $('sgMiniTitle').textContent=`♫ ${t.artist} — ${t.title}`;
+    $('sgMiniPause').textContent=live.lastPlayback?.paused?'▶ Fortsetzen':'⏯ Pause / Weiter';
+  }
   function mount() {
     if ($('sgDialog')) {dialog=$('sgDialog');return;}
     document.body.insertAdjacentHTML('beforeend',`<dialog class="sg-dialog" id="sgDialog" aria-label="Sound Garden">
       <div class="sg-shell"><header class="sg-head"><div><small>✿ HOBBIES · MUSICAL DISCOVERY</small><h2>♫ Sound Garden</h2><p>Ein Song. Ein kleiner Moment. Neue Lieblingsmusik.</p></div><button class="sg-close" id="sgClose" type="button" aria-label="Schließen">×</button></header>
-      <div class="sg-content"><div class="sg-note" id="sgStatus" aria-live="polite"></div><div id="sgDaily"></div>
+      <div class="sg-content"><div class="sg-note" id="sgStatus" aria-live="polite"></div><div id="sgDaily"></div><section id="sgEmbed" class="sg-embed" aria-label="Spotify Embed" hidden></section>
       <section class="sg-panel"><div class="sg-section-heading"><h3>✧ Your Artist Pool</h3><span id="sgArtistCount"></span></div>
         <form id="sgArtistForm" class="sg-artist-form"><textarea id="sgArtistName" rows="3" maxlength="12000" placeholder="Nirvana, David Bowie, Ghost Town …" aria-label="Artists und Bands – mehrere durch Komma, Semikolon oder Zeilenumbruch trennen" required></textarea><button type="submit" class="primary-button">+ Artists hinzufügen</button></form>
-        <p class="sg-hint">Mehrere Namen mit Komma, Semikolon oder Zeilenumbruch trennen. Namen mit Komma in Anführungszeichen setzen (z. B. „Earth, Wind &amp; Fire“). Für jeden neuen Artist gibt es den bisherigen einmaligen Reward; Wiederholungen zählen nicht doppelt. Beim ersten Songvorschlag wird der passende Artist identifiziert. Nur bei mehreren gleichnamigen Treffern ist eine Auswahl nötig.</p><div class="sg-artists" id="sgArtists"></div><div id="sgIdentity" aria-live="polite"></div>
+        <p class="sg-hint">Mehrere Namen mit Komma, Semikolon oder Zeilenumbruch trennen. Namen mit Komma in Anführungszeichen setzen (z. B. „Earth, Wind &amp; Fire“). Für jeden neuen Artist gibt es den bisherigen einmaligen Reward; Wiederholungen zählen nicht doppelt. Beim ersten Songvorschlag wird der passende Artist identifiziert. Nur bei mehreren gleichnamigen Treffern ist eine Auswahl nötig.</p><div class="sg-artists" id="sgArtists"></div><div id="sgIdentity" aria-live="polite"></div><div class="sg-direct-artist" id="sgDirectArtist"><label>Band im Pool <select id="sgLinkArtistChoice" aria-label="Band für Spotify-Link auswählen"></select></label><label>Spotify-Artist-Link<input id="sgArtistLink" type="text" placeholder="https://open.spotify.com/artist/…" spellcheck="false"></label><button type="button" class="secondary-button" data-sg="link-artist">Artist direkt verknüpfen</button><small>Für HANABIE. oder andere Artists, die die Namenssuche nicht findet. Der Link muss zu einem Spotify-Artist führen.</small></div>
       </section>
-      <section class="sg-panel sg-settings"><h3>♡ Deine Musik</h3><p>Spotify wird hier lediglich über normale Links geöffnet. Keine Anmeldung, kein Passwort, keine API-Übertragung und keine automatische Playlist-Bearbeitung.</p>
-        <label>Meine Zielplaylist<input id="sgPlaylistUrl" type="url" value="${PLAYLIST}" placeholder="https://open.spotify.com/playlist/…"></label><button type="button" class="secondary-button" id="sgSavePlaylist">Playlist-Link speichern</button>
+      <section class="sg-panel sg-settings"><h3>♫ Spotify Premium · In-App-Player</h3><p>Verbinde dein eigenes Spotify-Konto einmalig per PKCE. Dann kommen Artist-Auswahl, Songdaten, der offizielle Spotify-Player und das optionale Playlist-Hinzufügen direkt aus Spotify. Keine Client Secrets und keine Spotify-Passwörter in Life RPG.</p>
+        <div id="sgSpotifyState" class="sg-spotify-state" role="status"></div>
+        <label>Spotify Client ID (aus deinem Developer Dashboard)<input id="sgClientId" type="text" maxlength="32" autocomplete="off" spellcheck="false" placeholder="32-stellige Client ID"></label>
+        <div class="sg-spotify-actions"><button type="button" class="secondary-button" id="sgSaveClient">Client ID speichern</button><button type="button" class="primary-button" id="sgConnect">Spotify verbinden</button><button type="button" class="secondary-button" id="sgDisconnect">Trennen</button></div>
+        <p class="sg-hint">Einmalige Einrichtung: Erstelle eine App auf <a href="https://developer.spotify.com/dashboard" target="_blank" rel="noopener noreferrer">Spotify for Developers ↗</a>, trage unter Redirect URIs exakt <code id="sgCallbackUrl"></code> ein und kopiere nur die Client ID hierher. Der Spotify-Login führt kurz zur offiziellen Spotify-Seite und anschließend zurück in Life RPG. Die Wiedergabe bleibt danach hier. Spotify Premium erforderlich.</p>
+        <label>Meine Zielplaylist<input id="sgPlaylistUrl" type="url" value="${PLAYLIST}" placeholder="https://open.spotify.com/playlist/…"></label><button type="button" class="secondary-button" id="sgSavePlaylist">Playlist-Link speichern</button><button type="button" class="secondary-button" id="sgImportPlaylist" disabled>Playlist-Songs als bekannt übernehmen</button>
         <details><summary>Bereits bekannte Songs gesammelt übernehmen</summary><p>Falls du eine Songliste exportierst oder kopierst: <strong>Artist — Songtitel</strong>, eine Zeile pro Titel. Das ist kein automatischer Spotify-Import.</p><textarea id="sgKnownPaste" rows="4" placeholder="Nirvana — Come As You Are\nDavid Bowie — Heroes"></textarea><button type="button" class="secondary-button" id="sgImportKnown">Als bekannt markieren</button></details>
       </section><section class="sg-panel"><div class="sg-section-heading"><h3>Recent discoveries</h3><span id="sgHistoryCount"></span></div><div id="sgHistory" class="sg-history"></div></section>
-      <p class="sg-credit">Artist- und Song-Metadaten aus dem <a href="https://www.apple.com/itunes/" target="_blank" rel="noopener noreferrer">Apple iTunes Store</a>-Katalog; Spotify öffnet nur eine Titelsuche und deine Playlist. Verfügbarkeit und Songversion können abweichen. Keine Wiedergabe wird ausgelesen oder vergütet.</p></div></div></dialog>`);
+      <p class="sg-credit">Musik und Wiedergabe: Spotify (bei verbundener Sitzung); sonst Apple-iTunes-Katalogdaten. Spotify-Inhalte werden mit ihrem offiziellen Player und Link zu Spotify angezeigt. Der Life-RPG-Reward bezieht sich nur auf das bewusste Einordnen eines neuen Songs, niemals auf Spotify-Streams oder Wiedergabezahlen.</p></div></div></dialog>`);
     dialog=$('sgDialog');
+    document.body.insertAdjacentHTML('beforeend',`<aside id="sgMiniPlayer" class="sg-mini-player" hidden><button type="button" id="sgMiniOpen" aria-label="Sound Garden öffnen"><span id="sgMiniTitle">♫ Sound Garden</span></button><button type="button" id="sgMiniPause">⏯ Pause / Weiter</button></aside>`);
+    $('sgMiniOpen').addEventListener('click',open);
+    $('sgMiniPause').addEventListener('click',()=>Spotify?.toggle().catch(e=>tell(e.message)));
+    $('sgCallbackUrl').textContent=Spotify?.redirect()||'https://ttratkb.github.io/life-rpg/';
+    $('sgClientId').value=Spotify?.clientId()||'';
+    $('sgSaveClient').addEventListener('click',()=>{try{Spotify.configure($('sgClientId').value);tell('Client ID lokal gespeichert. Jetzt Spotify verbinden.');}catch(e){tell(e.message);}});
+    $('sgConnect').addEventListener('click',()=>Spotify?.grant().catch(e=>tell(e.message)));
+    $('sgDisconnect').addEventListener('click',()=>{Spotify?.disconnect();embeddedId='';data().current=null;save('spotify-disconnect');render();});
     $('sgClose').addEventListener('click',()=>dialog.close());
     dialog.addEventListener('click',e=>{if(e.target===dialog)dialog.close();});
     $('sgArtistForm').addEventListener('submit',e=>{e.preventDefault();addArtists($('sgArtistName').value);});
     $('sgSavePlaylist').addEventListener('click',()=>rememberSettings($('sgPlaylistUrl').value));
     $('sgImportKnown').addEventListener('click',()=>importKnown($('sgKnownPaste').value));
+    $('sgImportPlaylist').addEventListener('click',importSpotifyPlaylistKnown);
     dialog.addEventListener('click',e=>{
       const b=e.target.closest('button[data-sg]');if(!b)return;
       const action=b.dataset.sg;
@@ -324,7 +495,10 @@
       else if(action==='remove') removeArtist(b.dataset.key);
       else if(action==='verify') verifyArtist(b.dataset.key);
       else if(action==='pick-artist') chooseArtist(b.dataset.key,b.dataset.id);
-      else if(action==='spotify' && data().current)openLink(spotifySearch(data().current));
+      else if(action==='spotify' && data().current)openLink(data().current.storeUrl?.startsWith('https://open.spotify.com/track/')?data().current.storeUrl:spotifySearch(data().current));
+      else if(action==='play')playCurrent();
+      else if(action==='addplaylist')addCurrentToPlaylist();
+      else if(action==='link-artist')linkSpotifyArtist(b.dataset.key||$('sgLinkArtistChoice')?.value,$('sgArtistLink')?.value);
       else if(action==='playlist')openLink(data().playlistUrl);
       else if(action==='apple' && data().current)openLink(sourceLink(data().current));
     });
@@ -334,12 +508,25 @@
     const m=data(), complete=isDone(), t=m.current;
     $('sgStatus').textContent=status;$('sgStatus').hidden=!status;
     $('sgPlaylistUrl').value=m.playlistUrl;
+    const state=Spotify?.state();
+    $('sgSpotifyState').textContent=state?.connected?(state.error?`Spotify verbunden · ${state.error}`:'✓ Spotify verbunden · bereit für Songvorschläge und den In-App-Player')
+      :state?.error||'Spotify noch nicht verbunden · Apple-Katalog als eingeschränkte Alternative.';
+    $('sgConnect').disabled=Boolean(state?.busy);
+    $('sgDisconnect').hidden=!state?.connected;
+    $('sgImportPlaylist').disabled=!state?.connected;
+    updateMiniPlayer();
     $('sgArtistCount').textContent=`${m.artists.length} Artists`;
-    $('sgArtists').innerHTML=m.artists.length?m.artists.map(a=>`<span class="sg-pill">${esc(a.name)} <span class="sg-id-tag" title="${a.artistId?'Katalog-ID '+a.artistId:'Noch nicht geprüft'}">${a.artistId?'✓':'?'}</span><button type="button" data-sg="verify" data-key="${esc(a.key)}" title="Artist-Identität erneut überprüfen">${a.artistId?'Neu prüfen':'Prüfen'}</button><button type="button" data-sg="remove" data-key="${esc(a.key)}" aria-label="${esc(a.name)} entfernen">×</button></span>`).join(''):'<p class="sg-empty">Trage deine ersten Artists ein – zum Beispiel Nirvana oder David Bowie.</p>';
+    const selector=$('sgLinkArtistChoice'), previously=selector.value;
+    selector.innerHTML=m.artists.map(a=>`<option value="${esc(a.key)}">${esc(a.name)}</option>`).join('');
+    if(m.artists.some(a=>a.key===previously))selector.value=previously;
+    $('sgDirectArtist').hidden=!spotifyActive()||!m.artists.length;
+    $('sgArtists').innerHTML=m.artists.length?m.artists.map(a=>`<span class="sg-pill">${esc(a.name)} <span class="sg-id-tag" title="${a.spotifyArtistId?'Spotify ID '+a.spotifyArtistId:a.artistId?'Apple-Katalog-ID '+a.artistId:'Noch nicht geprüft'}">${spotifyActive()?a.spotifyArtistId?'✓':'?':a.artistId?'✓':'?'}</span><button type="button" data-sg="verify" data-key="${esc(a.key)}" title="Artist-Identität erneut überprüfen">${(spotifyActive()?a.spotifyArtistId:a.artistId)?'Neu prüfen':'Prüfen'}</button><button type="button" data-sg="remove" data-key="${esc(a.key)}" aria-label="${esc(a.name)} entfernen">×</button></span>`).join(''):'<p class="sg-empty">Trage deine ersten Artists ein – zum Beispiel Nirvana oder David Bowie.</p>';
     const pending=m.pendingIdentity;
-    $('sgIdentity').innerHTML=pending?`<div class="sg-identity"><strong>Welcher Artist ist gemeint?</strong><p>Es wurden mehrere gleichnamige Artists gefunden. Wähle einen Katalogeintrag. Beispielsongs erscheinen, wenn der Katalog sie liefert; sie sind keine Voraussetzung für die Zuordnung.</p>${pending.options.map(o=>`<div class="sg-identity-choice"><button type="button" data-sg="pick-artist" data-key="${esc(pending.artistKey)}" data-id="${o.id}"><b>${esc(o.name)}</b><small>${esc(o.genre||'Genre nicht angegeben')} · Katalog-ID ${o.id}</small><span>${o.examples.length?`Songs: ${esc(o.examples.join(' · '))}`:esc(o.album?`Album: ${o.album} · Keine Songtitel im Katalog geliefert.`:'Der Katalog liefert derzeit keine Songtitel für diesen Eintrag.')}</span></button>${o.url?`<a href="${esc(o.url)}" target="_blank" rel="noopener noreferrer" aria-label="Katalogeintrag für ${esc(o.name)} öffnen">Artist im Katalog ansehen ↗</a>`:''}</div>`).join('')}</div>`:'';
-    const current=t?`<div class="sg-song"><small>${complete?'EXTRA DISCOVERY':'TODAY’S DISCOVERY'} · ${esc(t.album||'Song')}</small><h3>${esc(t.title)}</h3><p>${esc(t.artist)}</p><div class="sg-song-links"><button type="button" class="primary-button" data-sg="spotify">♫ In Spotify suchen ↗</button><button type="button" class="secondary-button" data-sg="playlist">Meine Playlist ↗</button>${sourceLink(t)?'<button type="button" class="sg-text-button" data-sg="apple">Katalogeintrag ↗</button>':''}</div><p class="sg-hint">Höre den Titel in Spotify, kehre zurück und ordne ihn ein. Playlist-Zufügen erfolgt direkt in Spotify.</p><div class="sg-choices"><button type="button" data-sg="rate" data-value="liked">♡ Gefällt mir</button><button type="button" data-sg="rate" data-value="maybe">☆ Vielleicht</button><button type="button" data-sg="rate" data-value="disliked">✕ Nicht meins</button><button type="button" data-sg="rate" data-value="known">✓ Kenne ich schon</button></div><button type="button" class="sg-text-button" data-sg="rate" data-value="skip">Anderen Song zeigen ↻</button></div>`:'';
+    $('sgIdentity').innerHTML=pending?`<div class="sg-identity"><strong>Welcher Artist ist gemeint?</strong><p>Es wurden mehrere gleichnamige Artists gefunden. Wähle einen Katalogeintrag. Beispielsongs erscheinen, wenn der Katalog sie liefert; sie sind keine Voraussetzung für die Zuordnung.</p>${pending.options.map(o=>`<div class="sg-identity-choice"><button type="button" data-sg="pick-artist" data-key="${esc(pending.artistKey)}" data-id="${o.id}"><b>${esc(o.name)}</b><small>${esc(o.genre||'Genre nicht angegeben')} · ${o.source==='spotify'?'Spotify':'Katalog'}-ID ${esc(o.id)}</small><span>${o.examples.length?`Songs: ${esc(o.examples.join(' · '))}`:esc(o.album?`Album: ${o.album} · Keine Songtitel im Katalog geliefert.`:o.source==='spotify'?'Artist auf Spotify ansehen, um die Identität zu prüfen.':'Der Katalog liefert derzeit keine Songtitel für diesen Eintrag.')}</span></button>${o.url?`<a href="${esc(o.url)}" target="_blank" rel="noopener noreferrer" aria-label="Katalogeintrag für ${esc(o.name)} öffnen">Artist im Katalog ansehen ↗</a>`:''}</div>`).join('')}</div>`:'';
+    const playable=Boolean(spotifyActive() && t?.spotifyTrackId);
+    const current=t?`<div class="sg-song"><small>${complete?'EXTRA DISCOVERY':'TODAY’S DISCOVERY'} · ${esc(t.album||'Song')}</small><h3>${esc(t.title)}</h3><p>${esc(t.artist)}</p>${playable?`<div class="sg-song-links"><button type="button" class="primary-button" data-sg="play" id="sgPlayInside">▶ Hier im Life RPG abspielen</button><button type="button" class="secondary-button" data-sg="addplaylist" id="sgPlaylistAdd" ${m.savedToPlaylist[t.spotifyTrackId]?'disabled':''}>${m.savedToPlaylist[t.spotifyTrackId]?'✓ In Playlist übernommen':'♡ Zur Playlist hinzufügen'}</button><button type="button" class="sg-text-button" data-sg="spotify">Bei Spotify ansehen ↗</button></div><p class="sg-hint">Offizieller Spotify-Player unten. Du kannst die Wiedergabe hier oder über das kleine Sound-Garden-Dock steuern. Falls der Browser den Premium-Player blockiert, nutze den eingebetteten Player.</p>`:`<div class="sg-song-links"><button type="button" class="primary-button" data-sg="spotify">♫ In Spotify suchen ↗</button><button type="button" class="secondary-button" data-sg="playlist">Meine Playlist ↗</button>${sourceLink(t)?'<button type="button" class="sg-text-button" data-sg="apple">Katalogeintrag ↗</button>':''}</div><p class="sg-hint">${spotifyActive()?'Dieser ältere Vorschlag hat noch keine Spotify-Track-ID. Bitte einen neuen Spotify-Song vorschlagen.':'Verbinde Spotify für das direkte Anhören in Life RPG. Ohne Verbindung nur externe Song-Suche.'}</p>`}<div class="sg-choices"><button type="button" data-sg="rate" data-value="liked">♡ Gefällt mir</button><button type="button" data-sg="rate" data-value="maybe">☆ Vielleicht</button><button type="button" data-sg="rate" data-value="disliked">✕ Nicht meins</button><button type="button" data-sg="rate" data-value="known">✓ Kenne ich schon</button></div><button type="button" class="sg-text-button" data-sg="rate" data-value="skip">Anderen Song zeigen ↻</button></div>`:'';
     $('sgDaily').innerHTML=`<section class="sg-panel sg-discovery"><div class="sg-section-heading"><h3>♫ Discover a Song</h3><span class="sg-badge ${complete?'done':''}">${complete?'✓ Daily geschafft':'Optional Daily'}</span></div>${current||`<div class="sg-idle"><p>${complete?'Deine heutige Song-Entdeckung ist abgeschlossen. Du kannst trotzdem weiterstöbern.':'Ein neuer Song aus deinem Artist-Pool wartet auf dich.'}</p><button class="primary-button" data-sg="new" type="button" ${busy?'disabled':''}>${busy?'Suche läuft …':complete?'Weitere Entdeckung →':'Song vorschlagen ✦'}</button></div>`}<p class="sg-hint">Nur deine bewusste Bewertung wird in Life RPG erfasst – keine Spotify-Wiedergabe oder Streamzahl. „Kenne ich schon“ ersetzt den Titel, ohne die Daily abzuhaken.</p></section>`;
+    updateEmbed(t);
     $('sgHistoryCount').textContent=`${m.history.length} bewertet`;
     $('sgHistory').innerHTML=m.history.length?m.history.slice(0,14).map(h=>`<div><span><b>${esc(h.title)}</b><small>${esc(h.artist)}</small></span><em>${esc({liked:'♡ Gefällt mir',maybe:'☆ Vielleicht',disliked:'✕ Nicht meins',known:'✓ Bekannt',skip:'Übersprungen'}[h.status]||h.status)}</em></div>`).join(''):'<p class="sg-empty">Hier erscheinen deine bewerteten Entdeckungen.</p>';
   }
@@ -348,4 +535,6 @@
   // Late init: DailyLife renders before this script by design.
   window.LifeRPGDailyLife?.render?.();
   window.addEventListener('life-rpg:state-saved',()=>{if(dialog?.open)render();});
+  window.addEventListener('life-rpg:spotify-change',()=>{if(dialog)render();});
+  Spotify?.ready?.then(()=>{const m=data(); if(spotifyActive() && m.current && !m.current.spotifyTrackId){m.current=null;save('spotify-source-change');status='Spotify verbunden. Bitte einen neuen Song direkt aus Spotify vorschlagen.';} if(dialog)render();});
 })();
