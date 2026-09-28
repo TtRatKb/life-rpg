@@ -28,3 +28,17 @@
 .sg-mini-player button{border:1px solid #e5cadb;background:#f9ebf3;color:#653e5c;border-radius:9px;padding:.52rem .7rem;cursor:pointer}
 .sg-mini-player button:first-child{min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;font-weight:700}
 @media(max-width:600px){.sg-mini-player{bottom:.55rem;right:.55rem;left:.55rem;max-width:none}.sg-direct-artist>*{width:100%}}
+
+/* DZ: Spotify-artist identity with ID-verified release/song evidence */
+.sg-identity-overview{display:flex;gap:.85rem;align-items:flex-start;padding:.85rem .85rem .35rem}
+.sg-identity-art{width:82px;height:82px;border-radius:10px;object-fit:contain;flex-shrink:0;background:#fff8fb;border:1px solid #efdae6}
+.sg-identity-copy{display:grid;gap:.24rem;min-width:0;color:#573b51}
+.sg-identity-copy>b{font-size:1.04rem}.sg-identity-copy>small{font-size:.71rem;color:#8b6d80;overflow-wrap:anywhere}
+.sg-identity-copy>span{font-size:.81rem;line-height:1.5}.sg-identity-songlabel{font-size:.78rem;color:#6a4867;margin-top:.15rem}
+.sg-identity-actions{display:flex;flex-wrap:wrap;gap:.45rem;align-items:center;padding:.3rem .85rem .85rem}
+.sg-identity-choice .sg-identity-actions button{width:auto;display:inline-flex;align-items:center;justify-content:center;gap:.2rem;padding:.55rem .75rem;border:1px solid #dfc6d5;border-radius:9px;margin:0;font-size:.8rem}
+.sg-identity-choice .sg-identity-actions button.primary-button{background:#6c4066;color:#fff;border-color:#6c4066}
+.sg-identity-choice .sg-identity-actions button.secondary-button{background:#fff7fb;color:#684661}
+.sg-identity-actions>a{color:#815477;font-size:.78rem;text-decoration:underline}
+.sg-identity-choice>iframe{display:block;border:0;border-top:1px solid #ecd4e1;width:100%}
+@media(max-width:520px){.sg-identity-overview{gap:.55rem}.sg-identity-art{width:62px;height:62px}.sg-identity-actions{align-items:stretch}.sg-identity-actions button{flex:1 1 auto}}

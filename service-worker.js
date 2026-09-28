@@ -1,4 +1,4 @@
-const CACHE_NAME = "life-rpg-v0314dy-sound-garden-spotify-player";
+const CACHE_NAME = "life-rpg-v0314dz-sound-garden-identity-evidence";
 const ASSET_CACHE_NAME = "life-rpg-assets-v6";
 const MAX_RUNTIME_ASSETS = 96;
 const CORE = [
@@ -13,8 +13,8 @@ const CORE = [
   "./daily-life-v314cv.css?v=0.31.4cv",
   "./daily-life-v314cv.js?v=0.31.4dv",
   "./sound-garden-spotify.js?v=0.31.4dy",
-  "./sound-garden.js?v=0.31.4dy",
-  "./sound-garden.css?v=0.31.4dy",
+  "./sound-garden.js?v=0.31.4dz",
+  "./sound-garden.css?v=0.31.4dz",
   "./data/quests.js?v=0.31.4cv",
   "./styles.css?v=0.31.4cr",
   "./gifts.css?v=0.31.4ba",
