@@ -1,4 +1,4 @@
-const CACHE_NAME = "life-rpg-v0314dw-sound-garden-identity-fix";
+const CACHE_NAME = "life-rpg-v0314dx-sound-garden-artist-options-fix";
 const ASSET_CACHE_NAME = "life-rpg-assets-v6";
 const MAX_RUNTIME_ASSETS = 96;
 const CORE = [
@@ -12,8 +12,8 @@ const CORE = [
   "./life-hub-v314dk.css?v=0.31.4dl",
   "./daily-life-v314cv.css?v=0.31.4cv",
   "./daily-life-v314cv.js?v=0.31.4dv",
-  "./sound-garden.js?v=0.31.4dw",
-  "./sound-garden.css?v=0.31.4dw",
+  "./sound-garden.js?v=0.31.4dx",
+  "./sound-garden.css?v=0.31.4dx",
   "./data/quests.js?v=0.31.4cv",
   "./styles.css?v=0.31.4cr",
   "./gifts.css?v=0.31.4ba",

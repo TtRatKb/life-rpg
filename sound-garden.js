@@ -1,4 +1,4 @@
-/* Life RPG · Sound Garden V0.31.4dw
+/* Life RPG · Sound Garden V0.31.4dx
    Independent music-discovery journal. No Spotify API or playback SDK is used.
    Track suggestions: Apple iTunes Search API (catalog metadata only).
    Spotify URLs are ordinary outbound search/playlist links, not an API integration.
@@ -7,7 +7,7 @@
   'use strict';
   const app = window.LifeRPGApp;
   if (!app?.getState || !app?.saveState || !app?.awardActivity) return;
-  const VERSION = '0.31.4dw';
+  const VERSION = '0.31.4dx';
   const PLAYLIST = 'https://open.spotify.com/playlist/6aD4oA94t1SpI10OpTrsVl';
   const $ = id => document.getElementById(id);
   const esc = x => app.escapeHtml?.(String(x ?? '')) ?? String(x ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -39,6 +39,11 @@
       if (m.current && !Number.isSafeInteger(m.current.artistId)) m.current = null;
       m.pendingIdentity = null;
       m.version = 2;
+    }
+    // DX: old forced-selection dialogs carried incomplete sample data. Rebuild on request.
+    if (Number(m.version || 0) < 3) {
+      m.pendingIdentity = null;
+      m.version = 3;
     }
     return m;
   }
@@ -104,6 +109,16 @@
     });
   }
   const rowsOf = response => Array.isArray(response?.results)?response.results:[];
+  function addExamples(option, rows) {
+    if (!option) return;
+    for (const r of rows) {
+      if (r.kind !== 'song' || Number(r.artistId) !== option.id) continue;
+      const title=clean(r.trackName);
+      if (title && !option.examples.some(other=>norm(other)===norm(title)) && option.examples.length < 4) option.examples.push(title);
+      if (!option.genre && r.primaryGenreName) option.genre=clean(r.primaryGenreName);
+      if (!option.album && r.collectionName) option.album=clean(r.collectionName);
+    }
+  }
   async function artistOptions(a) {
     const response=await itunesJSONP('search',{term:a.name,media:'music',entity:'musicArtist',attribute:'artistTerm',limit:30});
     let found=rowsOf(response).filter(r=>r.wrapperType==='artist'&&Number.isSafeInteger(Number(r.artistId))&&norm(r.artistName)===a.key);
@@ -115,30 +130,47 @@
     const ids=new Map();
     for (const row of found) {
       const id=Number(row.artistId);
-      if (!ids.has(id)) ids.set(id,{id,name:clean(row.artistName),genre:clean(row.primaryGenreName||''),examples:[],url:/^https:\/\/(?:music\.apple\.com|itunes\.apple\.com)\//.test(row.artistLinkUrl||row.artistViewUrl||'')?String(row.artistLinkUrl||row.artistViewUrl):''});
+      if (!ids.has(id)) ids.set(id,{id,name:clean(row.artistName),genre:clean(row.primaryGenreName||''),album:'',examples:[],url:/^https:\/\/(?:music\.apple\.com|itunes\.apple\.com)\//.test(row.artistLinkUrl||row.artistViewUrl||'')?String(row.artistLinkUrl||row.artistViewUrl):''});
+      addExamples(ids.get(id),[row]);
     }
     const options=[...ids.values()].slice(0,12);
-    // When there are homonyms, display real songs per ID before asking which artist is intended.
-    if(options.length>1) await Promise.all(options.map(async option=>{
+    if(options.length>1) {
+      // Fetch song search once and group it by artistId (never by matching song title).
+      // Artist search returns no tracks, which was why older dialogs commonly had no examples.
       try {
-        const response=await itunesJSONP('lookup',{id:option.id,entity:'song',limit:12});
-        option.examples=rowsOf(response).filter(r=>r.kind==='song'&&Number(r.artistId)===option.id).map(r=>clean(r.trackName)).filter(Boolean).slice(0,4);
-      } catch { /* Still show the ID and genre; never invent a match. */ }
-    }));
+        const sampleSearch=await itunesJSONP('search',{term:a.name,media:'music',entity:'song',attribute:'artistTerm',limit:200});
+        const rows=rowsOf(sampleSearch);
+        for (const option of options) addExamples(option,rows);
+      } catch { /* The options remain usable without sample titles. */ }
+      // Some less common artists are absent in general search results; request their own IDs.
+      const missing=options.filter(option=>!option.examples.length).slice(0,5);
+      await Promise.all(missing.map(async option=>{
+        try {
+          const detail=await itunesJSONP('lookup',{id:option.id,entity:'song',limit:25});
+          addExamples(option,rowsOf(detail));
+        } catch { /* No false examples or unrelated songs. */ }
+      }));
+    }
     return options;
   }
   async function resolveArtist(a,forceChoice=false) {
     const m=data();
     if(!forceChoice && Number.isSafeInteger(a.artistId)&&a.artistId>0)return true;
     const options=await artistOptions(a);
-    if(!options.length){status=`Kein eindeutiger Katalog-Artist für „${a.name}“ gefunden. Die Band wird nicht durch einen gleichnamigen Song ersetzt.`;return false;}
-    if(options.length===1&&!forceChoice) {
+    if(!options.length){status=`Kein passender Katalog-Artist für „${a.name}“ gefunden. Es wird kein gleichnamiger Song als Ersatz verwendet.`;return false;}
+    if(options.length===1) {
+      // A single exact artist match needs no dialog and no sample songs to confirm its ID.
       a.artistId=options[0].id;
-      delete m.catalog[a.key];save('artist-identity');return true;
+      delete m.catalog[a.key];
+      if(m.current?.artistKey===a.key && m.current.artistId!==a.artistId)m.current=null;
+      m.pendingIdentity=null;
+      save('artist-identity');
+      status=`✓ ${a.name} eindeutig zugeordnet (Katalog-ID ${a.artistId}).`;
+      return true;
     }
-    m.pendingIdentity={artistKey:a.key,options,at:Date.now()};
+    m.pendingIdentity={artistKey:a.key,options,at:Date.now(),resumeDiscovery:!forceChoice};
     save('artist-identity-options');
-    status=`Bitte „${a.name}“ anhand der Beispielsongs eindeutig zuordnen.`;
+    status=`Mehrere Artists heißen „${a.name}“. Bitte wähle den richtigen Katalogeintrag.`;
     return false;
   }
   async function verifyArtist(key) {
@@ -156,9 +188,11 @@
     if(!a||!option)return;
     a.artistId=option.id;delete m.catalog[a.key];
     if(m.current?.artistKey===a.key)m.current=null;
+    const resumeDiscovery=Boolean(pending.resumeDiscovery);
     m.pendingIdentity=null;
-    save('artist-identity-selected');status=`${a.name} zugeordnet · ${option.examples.join(', ')||`Artist-ID ${option.id}`}`;
-    render();next(true,key);
+    save('artist-identity-selected');status=`✓ ${a.name} zugeordnet · Katalog-ID ${option.id}.`;
+    render();
+    if(resumeDiscovery)next(true,key);
   }
   async function catalogFor(a,refresh=false) {
     const m=data();
@@ -267,7 +301,7 @@
       <div class="sg-content"><div class="sg-note" id="sgStatus" aria-live="polite"></div><div id="sgDaily"></div>
       <section class="sg-panel"><div class="sg-section-heading"><h3>✧ Your Artist Pool</h3><span id="sgArtistCount"></span></div>
         <form id="sgArtistForm" class="sg-artist-form"><textarea id="sgArtistName" rows="3" maxlength="12000" placeholder="Nirvana, David Bowie, Ghost Town …" aria-label="Artists und Bands – mehrere durch Komma, Semikolon oder Zeilenumbruch trennen" required></textarea><button type="submit" class="primary-button">+ Artists hinzufügen</button></form>
-        <p class="sg-hint">Mehrere Namen mit Komma, Semikolon oder Zeilenumbruch trennen. Namen mit Komma in Anführungszeichen setzen (z. B. „Earth, Wind &amp; Fire“). Für jeden neuen Artist gibt es den bisherigen einmaligen Reward; Wiederholungen zählen nicht doppelt. Vor der Songauswahl wird die Artist-ID überprüft.</p><div class="sg-artists" id="sgArtists"></div><div id="sgIdentity" aria-live="polite"></div>
+        <p class="sg-hint">Mehrere Namen mit Komma, Semikolon oder Zeilenumbruch trennen. Namen mit Komma in Anführungszeichen setzen (z. B. „Earth, Wind &amp; Fire“). Für jeden neuen Artist gibt es den bisherigen einmaligen Reward; Wiederholungen zählen nicht doppelt. Beim ersten Songvorschlag wird der passende Artist identifiziert. Nur bei mehreren gleichnamigen Treffern ist eine Auswahl nötig.</p><div class="sg-artists" id="sgArtists"></div><div id="sgIdentity" aria-live="polite"></div>
       </section>
       <section class="sg-panel sg-settings"><h3>♡ Deine Musik</h3><p>Spotify wird hier lediglich über normale Links geöffnet. Keine Anmeldung, kein Passwort, keine API-Übertragung und keine automatische Playlist-Bearbeitung.</p>
         <label>Meine Zielplaylist<input id="sgPlaylistUrl" type="url" value="${PLAYLIST}" placeholder="https://open.spotify.com/playlist/…"></label><button type="button" class="secondary-button" id="sgSavePlaylist">Playlist-Link speichern</button>
@@ -301,9 +335,9 @@
     $('sgStatus').textContent=status;$('sgStatus').hidden=!status;
     $('sgPlaylistUrl').value=m.playlistUrl;
     $('sgArtistCount').textContent=`${m.artists.length} Artists`;
-    $('sgArtists').innerHTML=m.artists.length?m.artists.map(a=>`<span class="sg-pill">${esc(a.name)} <span class="sg-id-tag" title="${a.artistId?'Katalog-ID '+a.artistId:'Noch nicht geprüft'}">${a.artistId?'✓':'?'}</span><button type="button" data-sg="verify" data-key="${esc(a.key)}" title="Artist-Identität überprüfen">Prüfen</button><button type="button" data-sg="remove" data-key="${esc(a.key)}" aria-label="${esc(a.name)} entfernen">×</button></span>`).join(''):'<p class="sg-empty">Trage deine ersten Artists ein – zum Beispiel Nirvana oder David Bowie.</p>';
+    $('sgArtists').innerHTML=m.artists.length?m.artists.map(a=>`<span class="sg-pill">${esc(a.name)} <span class="sg-id-tag" title="${a.artistId?'Katalog-ID '+a.artistId:'Noch nicht geprüft'}">${a.artistId?'✓':'?'}</span><button type="button" data-sg="verify" data-key="${esc(a.key)}" title="Artist-Identität erneut überprüfen">${a.artistId?'Neu prüfen':'Prüfen'}</button><button type="button" data-sg="remove" data-key="${esc(a.key)}" aria-label="${esc(a.name)} entfernen">×</button></span>`).join(''):'<p class="sg-empty">Trage deine ersten Artists ein – zum Beispiel Nirvana oder David Bowie.</p>';
     const pending=m.pendingIdentity;
-    $('sgIdentity').innerHTML=pending?`<div class="sg-identity"><strong>Welche Band ist gemeint?</strong><p>Bitte den passenden Katalogeintrag auswählen. Gleichnamige Artists haben unterschiedliche IDs. Wenn du unsicher bist, wähle anhand der Beispielsongs.</p>${pending.options.map(o=>`<button type="button" data-sg="pick-artist" data-key="${esc(pending.artistKey)}" data-id="${o.id}"><b>${esc(o.name)}</b><small>${esc(o.genre||'Genre unbekannt')} · ID ${o.id}</small><span>${esc(o.examples.join(' · ')||'Keine Beispielsongs verfügbar')}</span></button>`).join('')}</div>`:'';
+    $('sgIdentity').innerHTML=pending?`<div class="sg-identity"><strong>Welcher Artist ist gemeint?</strong><p>Es wurden mehrere gleichnamige Artists gefunden. Wähle einen Katalogeintrag. Beispielsongs erscheinen, wenn der Katalog sie liefert; sie sind keine Voraussetzung für die Zuordnung.</p>${pending.options.map(o=>`<div class="sg-identity-choice"><button type="button" data-sg="pick-artist" data-key="${esc(pending.artistKey)}" data-id="${o.id}"><b>${esc(o.name)}</b><small>${esc(o.genre||'Genre nicht angegeben')} · Katalog-ID ${o.id}</small><span>${o.examples.length?`Songs: ${esc(o.examples.join(' · '))}`:esc(o.album?`Album: ${o.album} · Keine Songtitel im Katalog geliefert.`:'Der Katalog liefert derzeit keine Songtitel für diesen Eintrag.')}</span></button>${o.url?`<a href="${esc(o.url)}" target="_blank" rel="noopener noreferrer" aria-label="Katalogeintrag für ${esc(o.name)} öffnen">Artist im Katalog ansehen ↗</a>`:''}</div>`).join('')}</div>`:'';
     const current=t?`<div class="sg-song"><small>${complete?'EXTRA DISCOVERY':'TODAY’S DISCOVERY'} · ${esc(t.album||'Song')}</small><h3>${esc(t.title)}</h3><p>${esc(t.artist)}</p><div class="sg-song-links"><button type="button" class="primary-button" data-sg="spotify">♫ In Spotify suchen ↗</button><button type="button" class="secondary-button" data-sg="playlist">Meine Playlist ↗</button>${sourceLink(t)?'<button type="button" class="sg-text-button" data-sg="apple">Katalogeintrag ↗</button>':''}</div><p class="sg-hint">Höre den Titel in Spotify, kehre zurück und ordne ihn ein. Playlist-Zufügen erfolgt direkt in Spotify.</p><div class="sg-choices"><button type="button" data-sg="rate" data-value="liked">♡ Gefällt mir</button><button type="button" data-sg="rate" data-value="maybe">☆ Vielleicht</button><button type="button" data-sg="rate" data-value="disliked">✕ Nicht meins</button><button type="button" data-sg="rate" data-value="known">✓ Kenne ich schon</button></div><button type="button" class="sg-text-button" data-sg="rate" data-value="skip">Anderen Song zeigen ↻</button></div>`:'';
     $('sgDaily').innerHTML=`<section class="sg-panel sg-discovery"><div class="sg-section-heading"><h3>♫ Discover a Song</h3><span class="sg-badge ${complete?'done':''}">${complete?'✓ Daily geschafft':'Optional Daily'}</span></div>${current||`<div class="sg-idle"><p>${complete?'Deine heutige Song-Entdeckung ist abgeschlossen. Du kannst trotzdem weiterstöbern.':'Ein neuer Song aus deinem Artist-Pool wartet auf dich.'}</p><button class="primary-button" data-sg="new" type="button" ${busy?'disabled':''}>${busy?'Suche läuft …':complete?'Weitere Entdeckung →':'Song vorschlagen ✦'}</button></div>`}<p class="sg-hint">Nur deine bewusste Bewertung wird in Life RPG erfasst – keine Spotify-Wiedergabe oder Streamzahl. „Kenne ich schon“ ersetzt den Titel, ohne die Daily abzuhaken.</p></section>`;
     $('sgHistoryCount').textContent=`${m.history.length} bewertet`;
