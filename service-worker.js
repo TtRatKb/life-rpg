@@ -1,4 +1,4 @@
-const CACHE_NAME = "life-rpg-v0314dz2-coloring-storage-rescue";
+const CACHE_NAME = "life-rpg-v0314dz3-local-save-compaction";
 const ASSET_CACHE_NAME = "life-rpg-assets-v6";
 const MAX_RUNTIME_ASSETS = 96;
 const CORE = [
@@ -142,7 +142,7 @@ const CORE = [
   "./visual-performance.js?v=0.31.4bu",
   "./modal-manager.js?v=0.31.4d",
   "./training-focus.js?v=0.31.4o",
-  "./app.js?v=0.31.4dk",
+  "./app.js?v=0.31.4dz3",
   "./daily-streaks.js?v=0.31.4z",
   "./stewardship.js?v=0.31.3a",
   "./habits.js?v=0.31.4cv",

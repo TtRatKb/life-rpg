@@ -14,7 +14,32 @@
   const OPTIONAL_CACHE_KEYS = [
     "life-rpg-book-lookup-cache-v2"
   ];
-  const LOCAL_SAVE_COMPACTION_SCHEMA = 1;
+  const LOCAL_SAVE_COMPACTION_SCHEMA = 2;
+  const LOCAL_SAVE_FORMAT = "life-rpg-local-compact-v2";
+  const LOCAL_KEY_DICTIONARY_LIMIT = 768;
+  let localSaveKeyDictionaryCache = null;
+  let localSaveMigratedFromLegacy = false;
+
+  const LOCAL_REWARD_EVENT_FIELDS = [
+    "id", "source", "sourceId", "label", "realm", "capability", "xp", "realmXP", "statXP", "coins",
+    "rawStoryEnergy", "storyEnergy", "dedupeFamily", "duplicate", "duplicateOf", "progressionRelevant", "at", "metadata", "migrated"
+  ];
+  const LOCAL_GAME_GOAL_FIELDS = [
+    "id", "text", "description", "done", "createdAt", "completedAt", "source", "steamApiName", "globalPercent", "steamGroup",
+    "steamHidden", "importedAlreadyUnlocked", "rewardEventId", "steamAutoImported", "smartKey"
+  ];
+  const LOCAL_STEAM_ACHIEVEMENT_FIELDS = ["achieved", "unlockTime", "historical", "rewardEventId", "hidden", "globalPercent"];
+  const LOCAL_HABIT_COMPLETION_FIELDS = [
+    "rewardEventId", "stat", "deduped", "effort", "id", "realmXP", "timestamp", "multiplier", "baseReward", "reward", "streakAfter",
+    "date", "habitId", "rawReward", "xp", "statXP", "periodKey", "rewardStreakAfter", "backfilled", "loggedAt", "coins", "coinRepairEventId"
+  ];
+  const LOCAL_TIME_ENTRY_FIELDS = [
+    "id", "startAt", "endAt", "minutes", "categoryId", "subcategory", "label", "mode", "linkedQuestId", "targetMinutes", "rewardEventId",
+    "reward", "rewardProcessed", "createdAt", "linkedAdventureId", "linkedRoadmapStepId", "durationSeconds", "weekPlannerRef", "weekPlannerAuto",
+    "precise", "workIntervals", "manualDeductionSeconds", "correctionNote"
+  ];
+  const LOCAL_STEWARDSHIP_FINGERPRINT_FIELDS = ["type", "label", "firstSeenAt", "rewardedXP", "rewardedRawStoryEnergy", "rewardedDate"];
+  const LOCAL_SOUND_GARDEN_TRACK_FIELDS = ["key", "title", "artist", "artistKey", "spotifyArtistId", "spotifyTrackId", "album", "cover", "storeUrl"];
 
   const STAT_META = {
     strength: { label: "Strength", icon: "💪" },
@@ -1093,8 +1118,9 @@
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return defaultState();
-      return mergeState(defaultState(), JSON.parse(raw));
-    } catch {
+      return mergeState(defaultState(), deserializeLocalState(raw));
+    } catch (error) {
+      console.error("Life RPG local save could not be decoded", error);
       return defaultState();
     }
   }
@@ -1152,6 +1178,221 @@
       globalPercent: Number.isFinite(Number(record.globalPercent)) ? Number(record.globalPercent) : null
     };
     return out;
+  }
+
+  function packLocalRecord(record, fields, knownFields = null) {
+    if (!record || typeof record !== "object" || Array.isArray(record)) return [-1, record];
+    let mask = 0;
+    const row = [0];
+    const known = knownFields || new Set(fields);
+    fields.forEach((field, index) => {
+      if (!Object.prototype.hasOwnProperty.call(record, field)) return;
+      mask |= (1 << index);
+      row.push(record[field]);
+    });
+    row[0] = mask;
+    const extras = {};
+    Object.entries(record).forEach(([key, value]) => {
+      if (!known.has(key)) extras[key] = value;
+    });
+    if (Object.keys(extras).length) row.push({ $extra: extras });
+    return row;
+  }
+
+  function unpackLocalRecord(row, fields) {
+    if (!Array.isArray(row)) return row;
+    if (row[0] === -1) return row[1];
+    const mask = Number(row[0] || 0);
+    const out = {};
+    let cursor = 1;
+    fields.forEach((field, index) => {
+      if (!(mask & (1 << index))) return;
+      out[field] = row[cursor];
+      cursor += 1;
+    });
+    const extraWrapper = row[cursor];
+    if (extraWrapper?.$extra && typeof extraWrapper.$extra === "object" && !Array.isArray(extraWrapper.$extra)) {
+      Object.assign(out, extraWrapper.$extra);
+    }
+    return out;
+  }
+
+  function packLocalRecordArray(records, fields, kind) {
+    if (!Array.isArray(records)) return records;
+    const known = new Set(fields);
+    return { $packed: kind, $rows: records.map(record => packLocalRecord(record, fields, known)) };
+  }
+
+  function unpackLocalRecordArray(value, fields, kind) {
+    if (!value || value.$packed !== kind || !Array.isArray(value.$rows)) return value;
+    return value.$rows.map(row => unpackLocalRecord(row, fields));
+  }
+
+  function packLocalRecordMap(records, fields, kind) {
+    if (!records || typeof records !== "object" || Array.isArray(records)) return records;
+    const known = new Set(fields);
+    return {
+      $packed: kind,
+      $rows: Object.entries(records).map(([key, record]) => [key, ...packLocalRecord(record, fields, known)])
+    };
+  }
+
+  function unpackLocalRecordMap(value, fields, kind) {
+    if (!value || value.$packed !== kind || !Array.isArray(value.$rows)) return value;
+    const out = {};
+    value.$rows.forEach(row => {
+      if (!Array.isArray(row) || !row.length) return;
+      const [key, ...packedRecord] = row;
+      out[key] = unpackLocalRecord(packedRecord, fields);
+    });
+    return out;
+  }
+
+  function packLocalPersistenceSections(snapshot) {
+    if (!snapshot || typeof snapshot !== "object") return snapshot;
+
+    if (Array.isArray(snapshot.rewardLedger?.events)) {
+      snapshot.rewardLedger.events = packLocalRecordArray(snapshot.rewardLedger.events, LOCAL_REWARD_EVENT_FIELDS, "reward-events-v1");
+    }
+
+    (snapshot.gameLibrary?.items || []).forEach(game => {
+      if (Array.isArray(game?.goals)) game.goals = packLocalRecordArray(game.goals, LOCAL_GAME_GOAL_FIELDS, "game-goals-v1");
+      const achievements = game?.steamAchievementSync?.achievements;
+      if (achievements && typeof achievements === "object" && !Array.isArray(achievements)) {
+        game.steamAchievementSync.achievements = packLocalRecordMap(achievements, LOCAL_STEAM_ACHIEVEMENT_FIELDS, "steam-achievements-v1");
+      }
+    });
+
+    if (Array.isArray(snapshot.habits?.completions)) {
+      snapshot.habits.completions = packLocalRecordArray(snapshot.habits.completions, LOCAL_HABIT_COMPLETION_FIELDS, "habit-completions-v1");
+    }
+    if (Array.isArray(snapshot.timeTracking?.entries)) {
+      snapshot.timeTracking.entries = packLocalRecordArray(snapshot.timeTracking.entries, LOCAL_TIME_ENTRY_FIELDS, "time-entries-v1");
+    }
+    if (snapshot.stewardship?.fingerprints && typeof snapshot.stewardship.fingerprints === "object" && !Array.isArray(snapshot.stewardship.fingerprints)) {
+      snapshot.stewardship.fingerprints = packLocalRecordMap(snapshot.stewardship.fingerprints, LOCAL_STEWARDSHIP_FINGERPRINT_FIELDS, "stewardship-fingerprints-v1");
+    }
+    if (snapshot.soundGarden?.catalog && typeof snapshot.soundGarden.catalog === "object" && !Array.isArray(snapshot.soundGarden.catalog)) {
+      Object.keys(snapshot.soundGarden.catalog).forEach(artistKey => {
+        const tracks = snapshot.soundGarden.catalog[artistKey];
+        if (Array.isArray(tracks)) snapshot.soundGarden.catalog[artistKey] = packLocalRecordArray(tracks, LOCAL_SOUND_GARDEN_TRACK_FIELDS, "sound-garden-tracks-v1");
+      });
+    }
+    return snapshot;
+  }
+
+  function unpackLocalPersistenceSections(snapshot) {
+    if (!snapshot || typeof snapshot !== "object") return snapshot;
+
+    if (snapshot.rewardLedger?.events) {
+      snapshot.rewardLedger.events = unpackLocalRecordArray(snapshot.rewardLedger.events, LOCAL_REWARD_EVENT_FIELDS, "reward-events-v1");
+    }
+
+    (snapshot.gameLibrary?.items || []).forEach(game => {
+      if (game?.goals) game.goals = unpackLocalRecordArray(game.goals, LOCAL_GAME_GOAL_FIELDS, "game-goals-v1");
+      if (game?.steamAchievementSync?.achievements) {
+        game.steamAchievementSync.achievements = unpackLocalRecordMap(game.steamAchievementSync.achievements, LOCAL_STEAM_ACHIEVEMENT_FIELDS, "steam-achievements-v1");
+      }
+    });
+
+    if (snapshot.habits?.completions) {
+      snapshot.habits.completions = unpackLocalRecordArray(snapshot.habits.completions, LOCAL_HABIT_COMPLETION_FIELDS, "habit-completions-v1");
+    }
+    if (snapshot.timeTracking?.entries) {
+      snapshot.timeTracking.entries = unpackLocalRecordArray(snapshot.timeTracking.entries, LOCAL_TIME_ENTRY_FIELDS, "time-entries-v1");
+    }
+    if (snapshot.stewardship?.fingerprints) {
+      snapshot.stewardship.fingerprints = unpackLocalRecordMap(snapshot.stewardship.fingerprints, LOCAL_STEWARDSHIP_FINGERPRINT_FIELDS, "stewardship-fingerprints-v1");
+    }
+    if (snapshot.soundGarden?.catalog && typeof snapshot.soundGarden.catalog === "object" && !Array.isArray(snapshot.soundGarden.catalog)) {
+      Object.keys(snapshot.soundGarden.catalog).forEach(artistKey => {
+        snapshot.soundGarden.catalog[artistKey] = unpackLocalRecordArray(snapshot.soundGarden.catalog[artistKey], LOCAL_SOUND_GARDEN_TRACK_FIELDS, "sound-garden-tracks-v1");
+      });
+    }
+    return snapshot;
+  }
+
+  function buildLocalKeyDictionary(value) {
+    const counts = new Map();
+    const stack = [value];
+    while (stack.length) {
+      const current = stack.pop();
+      if (Array.isArray(current)) {
+        for (let index = 0; index < current.length; index += 1) stack.push(current[index]);
+        continue;
+      }
+      if (!current || typeof current !== "object") continue;
+      Object.keys(current).forEach(key => {
+        counts.set(key, (counts.get(key) || 0) + 1);
+        stack.push(current[key]);
+      });
+    }
+    return [...counts.entries()]
+      .filter(([key, count]) => count >= 2 && key.length >= 4)
+      .map(([key, count]) => ({ key, score: count * Math.max(1, key.length - 2) }))
+      .sort((a, b) => b.score - a.score)
+      .slice(0, LOCAL_KEY_DICTIONARY_LIMIT)
+      .map(item => item.key);
+  }
+
+  function localKeyAlias(index) {
+    return `~${Number(index).toString(36)}`;
+  }
+
+  function encodeLocalKeys(value, keyToIndex) {
+    if (Array.isArray(value)) return value.map(item => encodeLocalKeys(item, keyToIndex));
+    if (!value || typeof value !== "object") return value;
+    const out = {};
+    Object.entries(value).forEach(([key, child]) => {
+      const knownIndex = keyToIndex.get(key);
+      const encodedKey = knownIndex === undefined
+        ? (key.startsWith("~") ? `~${key}` : key)
+        : localKeyAlias(knownIndex);
+      out[encodedKey] = encodeLocalKeys(child, keyToIndex);
+    });
+    return out;
+  }
+
+  function decodeLocalKeys(value, keys) {
+    if (Array.isArray(value)) return value.map(item => decodeLocalKeys(item, keys));
+    if (!value || typeof value !== "object") return value;
+    const out = {};
+    Object.entries(value).forEach(([key, child]) => {
+      let decodedKey = key;
+      if (key.startsWith("~~")) {
+        decodedKey = key.slice(1);
+      } else if (/^~[0-9a-z]+$/i.test(key)) {
+        const index = Number.parseInt(key.slice(1), 36);
+        if (Number.isInteger(index) && index >= 0 && index < keys.length) decodedKey = keys[index];
+      }
+      out[decodedKey] = decodeLocalKeys(child, keys);
+    });
+    return out;
+  }
+
+  function serializeLocalState(snapshot) {
+    const packed = packLocalPersistenceSections(snapshot);
+    const keys = Array.isArray(localSaveKeyDictionaryCache) && localSaveKeyDictionaryCache.length
+      ? localSaveKeyDictionaryCache
+      : buildLocalKeyDictionary(packed);
+    localSaveKeyDictionaryCache = keys.slice();
+    const keyToIndex = new Map(keys.map((key, index) => [key, index]));
+    return JSON.stringify({
+      __lifeRpgLocalSaveFormat: LOCAL_SAVE_FORMAT,
+      keys,
+      state: encodeLocalKeys(packed, keyToIndex)
+    });
+  }
+
+  function deserializeLocalState(raw) {
+    const parsed = JSON.parse(raw);
+    if (!parsed || parsed.__lifeRpgLocalSaveFormat !== LOCAL_SAVE_FORMAT || !Array.isArray(parsed.keys) || !parsed.state) {
+      if (parsed && typeof parsed === "object") localSaveMigratedFromLegacy = true;
+      return parsed;
+    }
+    localSaveKeyDictionaryCache = parsed.keys.slice(0, LOCAL_KEY_DICTIONARY_LIMIT);
+    const decoded = decodeLocalKeys(parsed.state, parsed.keys);
+    return unpackLocalPersistenceSections(decoded);
   }
 
   function persistenceStateSnapshot() {
@@ -1384,7 +1625,7 @@
     const attempt = aggressive => {
       try {
         reclaimStorage({ aggressive });
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(persistenceStateSnapshot()));
+        localStorage.setItem(STORAGE_KEY, serializeLocalState(persistenceStateSnapshot()));
         persisted = true;
         return true;
       } catch (error) {
@@ -1405,6 +1646,13 @@
     }
 
     renderDevOutput();
+
+    if (localSaveMigratedFromLegacy) {
+      localSaveMigratedFromLegacy = false;
+      setTimeout(() => {
+        if (typeof showToast === "function") showToast("Local save storage upgraded · your data is preserved in the new compact format.");
+      }, 0);
+    }
 
     if (!options.suppressCloud) {
       const detail = { source, background: Boolean(options.suppressUiRefresh) };
