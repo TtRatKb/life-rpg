@@ -1,4 +1,4 @@
-/* Life RPG · Sound Garden V0.31.4dz
+/* Life RPG · Sound Garden V0.31.4dz1
    Artist-aware discovery; optional Spotify Premium PKCE + in-app Web Playback SDK.
    Existing DV–DX data and reward ledgers remain stable; no reward for Spotify plays.
 */
@@ -6,7 +6,7 @@
   'use strict';
   const app = window.LifeRPGApp;
   if (!app?.getState || !app?.saveState || !app?.awardActivity) return;
-  const VERSION = '0.31.4dz';
+  const VERSION = '0.31.4dz1';
   const Spotify = window.LifeRPGSpotifyBridge;
   const ALIASES = {'hanabie':['HANABIE.','花冷え。','花冷え','HANABIE']};
   const PLAYLIST = 'https://open.spotify.com/playlist/6aD4oA94t1SpI10OpTrsVl';
@@ -364,7 +364,22 @@ async function spotifyArtistOptions(a) {
     m.catalog[a.key]=[...picked.values()].slice(0,160);
     save('catalog-cache');return m.catalog[a.key];
   }
-  function candidates(list,m) { return list.filter(t=>!m.tracks[t.key] && !m.history.some(h=>h.key===t.key)); }
+  function spotifyTrackIdsAlreadySeen(m) {
+    const ids = new Set();
+    for (const entry of Object.values(m.tracks || {})) {
+      if (validSpotifyId(entry?.spotifyTrackId)) ids.add(entry.spotifyTrackId);
+    }
+    for (const entry of m.history || []) {
+      if (validSpotifyId(entry?.spotifyTrackId)) ids.add(entry.spotifyTrackId);
+    }
+    return ids;
+  }
+  function candidates(list,m) {
+    const seenSpotifyIds = spotifyTrackIdsAlreadySeen(m);
+    return list.filter(t => !m.tracks[t.key]
+      && !m.history.some(h=>h.key===t.key)
+      && (!validSpotifyId(t.spotifyTrackId) || !seenSpotifyIds.has(t.spotifyTrackId)));
+  }
   async function next(force=false,preferredKey=null) {
     if (busy) return;
     const m=data();
@@ -398,22 +413,33 @@ async function spotifyArtistOptions(a) {
   function rate(value) {
     const m=data(), song=m.current;
     if (!song || !['liked','maybe','disliked','known','skip'].includes(value)) return;
-    if (m.tracks[song.key]) {m.current=null;save('already-recorded');render();return;}
+    const spotifyId = validSpotifyId(song.spotifyTrackId) ? song.spotifyTrackId : '';
+    const alreadySeenBySpotifyId = spotifyId && spotifyTrackIdsAlreadySeen(m).has(spotifyId);
+    if (m.tracks[song.key] || alreadySeenBySpotifyId) {m.current=null;save('already-recorded');render();return;}
     const today=day(), first=!m.days[today]?.completedKey;
+    const stableRewardKey = spotifyId ? `spotify:${spotifyId}` : song.key;
+    const alreadyRewarded = Boolean(m.rewardedSongs[stableRewardKey] || m.rewardedSongs[song.key]);
     let reward=null;
-    if (value!=='known' && value!=='skip' && !m.rewardedSongs[song.key]) {
+    if (value!=='known' && value!=='skip' && !alreadyRewarded) {
       // Rewards the user's own classification/reflection, not playback, clicks or stream count.
       const extraToday=Number(m.days[today]?.extraCount||0);
       const amount=first?{xp:7,realmXP:9,statXP:2,coins:4,energy:.12}
         :extraToday<3?{xp:3,realmXP:4,statXP:1,coins:2,energy:.04}
         :{xp:1,realmXP:2,statXP:1,coins:1,energy:.01};
-      reward=award({source:'sound-garden-reflection',id:`reflection:${song.key}`,label:`Sound Garden · Song eingeordnet: ${song.artist} — ${song.title}`, ...amount});
-      m.rewardedSongs[song.key]=reward?.eventId||'recorded';
+      reward=award({source:'sound-garden-reflection',id:`reflection:${stableRewardKey}`,label:`Sound Garden · Song eingeordnet: ${song.artist} — ${song.title}`, ...amount});
+      const rewardMarker=reward?.eventId||'recorded';
+      m.rewardedSongs[stableRewardKey]=rewardMarker;
+      // Keep the historical title/artist key populated as a compatibility index for older saves.
+      if (stableRewardKey!==song.key) m.rewardedSongs[song.key]=rewardMarker;
       if (first) m.days[today]={...(m.days[today]||{}),completedKey:song.key,completedAt:Date.now(),extraCount:0};
       else m.days[today].extraCount=extraToday+1;
     }
-    m.tracks[song.key]={status:value,at:Date.now(),title:song.title,artist:song.artist};
-    m.history.unshift({key:song.key,title:song.title,artist:song.artist,status:value,at:Date.now(),rewardEventId:reward?.eventId||null});
+    m.tracks[song.key]={status:value,at:Date.now(),title:song.title,artist:song.artist,
+      ...(spotifyId?{spotifyTrackId:spotifyId}:{}),
+      ...(validSpotifyId(song.spotifyArtistId)?{spotifyArtistId:song.spotifyArtistId}:{})};
+    m.history.unshift({key:song.key,title:song.title,artist:song.artist,status:value,at:Date.now(),rewardEventId:reward?.eventId||null,
+      ...(spotifyId?{spotifyTrackId:spotifyId}:{}),
+      ...(validSpotifyId(song.spotifyArtistId)?{spotifyArtistId:song.spotifyArtistId}:{})});
     m.history=m.history.slice(0,450);
     m.current=null;
     if (!save('rate-song')) return tell('Bewertung nur im Arbeitsspeicher – exportiere bitte deinen Spielstand.');

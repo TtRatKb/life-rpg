@@ -477,6 +477,8 @@
     if (event.source === "stewardship") return `${humanize(m.type || "library upkeep")} · system stewardship`;
     if (event.source === "game-goal") return "Tracked Game Goal completed";
     if (event.source === "gift-find") return `${m.giftSourceLabel || "Gift reward"} · added to the Gift Shelf · no Coins spent`;
+    if (event.source === "sound-garden-artist") return "New Artist added to the Discovery Pool · one-time Artist reward";
+    if (event.source === "sound-garden-reflection") return "New song deliberately classified · Spotify playback itself is not rewarded";
     if (event.source === "steam-playtime") {
       const imported = number(m.importedMinutes);
       const covered = number(m.manualCoveredMinutes);
@@ -577,6 +579,8 @@
     if (String(event.source || "").startsWith("knowledge-workshop-") && event.metadata?.why) bits.push(`<p>${esc(event.metadata.why)}</p>`);
     if (event.source === "stewardship") bits.push(`<p>Library/system stewardship uses a small daily cap, so adding many Books, Games, Habits or Adventure details in one day cannot become the dominant progression source.</p>`);
     if (event.source === "game-goal") bits.push(`<p>This reward comes from completing a tracked Game Goal. Merely importing a goal and actually completing it are intentionally separate actions.</p>`);
+    if (event.source === "sound-garden-artist") bits.push(`<p>This is the one-time Sound Garden reward for adding a genuinely new Artist name to the Discovery Pool. Removing and re-adding that same saved Artist key does not create another reward. Spotify playback, stream count and listening duration are not reward inputs.</p>`);
+    if (event.source === "sound-garden-reflection") bits.push(`<p>This reward comes from deliberately classifying a genuinely new Sound Garden song as <strong>Gefällt mir</strong>, <strong>Vielleicht</strong> or <strong>Nicht meins</strong>. <strong>Kenne ich schon</strong> and skipping do not create this reward, and Spotify playback/stream duration never increases it.</p>`);
     if (event.source === "steam-achievement") {
       const m = event.metadata || {};
       const hasPercent = m.steamGlobalPercent !== null && m.steamGlobalPercent !== undefined && m.steamGlobalPercent !== "" && Number.isFinite(Number(m.steamGlobalPercent));
@@ -690,7 +694,9 @@
       "journal-reflection-effort": ["🌸", "Journal"],
       "journal-reflection-field-effort": ["🌸", "Journal"],
       "habit-coin-repair": ["↺", "Reward repair"],
-      "gift-find": ["🎁", "Gift Find"]
+      "gift-find": ["🎁", "Gift Find"],
+      "sound-garden-artist": ["♫", "Sound Garden · Artist"],
+      "sound-garden-reflection": ["♫", "Sound Garden · Discovery"]
     };
     const found = map[source];
     if (found) return { icon: found[0], label: found[1] };
