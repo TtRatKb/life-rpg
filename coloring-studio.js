@@ -1,6 +1,7 @@
 (() => {
-  const VERSION = '0.31.4du';
+  const VERSION = '0.31.4dz2';
   const STORAGE_PREFIX = 'lifeRpgColoringStudio';
+  const PaintingStore = window.LifeRPGColoringStorage || null;
   const EMBEDDED = window.parent !== window && new URLSearchParams(location.search).get('embedded') === '1';
   const CANVAS_WIDTH = 1122;
   const CANVAS_HEIGHT = 1402;
@@ -94,8 +95,9 @@
 
   document.addEventListener('DOMContentLoaded', init);
 
-  function init() {
+  async function init() {
     bindElements();
+    try { await PaintingStore?.migrateLegacy?.(); } catch (error) { console.warn('Coloring storage migration unavailable', error); }
     state.lineMaskCanvas.width = CANVAS_WIDTH;
     state.lineMaskCanvas.height = CANVAS_HEIGHT;
     state.lineMaskCtx = state.lineMaskCanvas.getContext('2d', { willReadFrequently: true });
@@ -111,9 +113,9 @@
     setCurrentColor(state.currentColor);
     updateToolButtons();
     updateSavePill('ready', 'Ready');
-    if (!EMBEDDED) loadCard(state.currentCard);
+    if (!EMBEDDED) await loadCard(state.currentCard);
     window.addEventListener('resize', handleResize);
-    window.addEventListener('pagehide', flushPainting);
+    window.addEventListener('pagehide', () => { flushPainting(); });
   }
 
   function bindElements() {
@@ -160,8 +162,8 @@
   }
 
   function setupControls() {
-    els.backToLifeRpg.addEventListener('click', () => {
-      flushPainting();
+    els.backToLifeRpg.addEventListener('click', async () => {
+      await flushPainting();
       if (EMBEDDED && window.parent.LifeRPGLifeHub?.showStudioGallery) window.parent.LifeRPGLifeHub.showStudioGallery('coloring');
       else window.location.href = 'index.html';
     });
@@ -261,10 +263,10 @@
         done.textContent = 'Finished';
         button.querySelector('.card-meta').appendChild(done);
       }
-      button.addEventListener('click', () => {
+      button.addEventListener('click', async () => {
         if (!cardUnlocked(card)) return;
-        flushPainting();
-        loadCard(card);
+        await flushPainting();
+        await loadCard(card);
       });
       els.cardLibrary.appendChild(button);
     });
@@ -272,7 +274,7 @@
 
   async function loadCard(card) {
     if (!cardUnlocked(card)) return false;
-    flushPainting();
+    await flushPainting();
     const token = ++cardLoadToken;
     state.currentCard = card;
     updateSavePill('saving', 'Loading');
@@ -289,9 +291,9 @@
     if(token !== cardLoadToken) return;
     buildLineMask();
     clearCanvas();
-    const save = readCardSave(card.id);
-    if (save?.painting) {
-      await loadPainting(save.painting);
+    const painting = PaintingStore?.getPainting ? await PaintingStore.getPainting(card.id).catch(() => null) : readCardSave(card.id)?.painting;
+    if (painting) {
+      await loadPainting(painting);
     }
     if(token !== cardLoadToken) return;
     applyTransform(1, 0, 0, false);
@@ -333,16 +335,21 @@
     state.isLineArtReady = true;
   }
 
-  function loadPainting(dataUrl) {
+  function loadPainting(source) {
     return new Promise((resolve) => {
       const img = new Image();
+      const objectUrl = source instanceof Blob ? URL.createObjectURL(source) : null;
+      const done = () => {
+        if (objectUrl) URL.revokeObjectURL(objectUrl);
+        resolve();
+      };
       img.onload = () => {
         clearCanvas();
         ctx.drawImage(img, 0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-        resolve();
+        done();
       };
-      img.onerror = () => resolve();
-      img.src = dataUrl;
+      img.onerror = done;
+      img.src = objectUrl || String(source || '');
     });
   }
 
@@ -813,10 +820,15 @@
     els.finishButton.classList.toggle('is-active', finished);
   }
 
-  function toggleFinished() {
+  async function toggleFinished() {
     const save = readCardSave(state.currentCard.id) || {};
-    save.finished = !save.finished;
-    writeCardSave(state.currentCard.id, save);
+    const finished = !save.finished;
+    if (PaintingStore?.setFinished) {
+      await PaintingStore.setFinished(state.currentCard.id, finished);
+    } else {
+      save.finished = finished;
+      writeCardSave(state.currentCard.id, save);
+    }
     updateFinishButton();
     renderLibrary();
   }
@@ -824,36 +836,67 @@
   function scheduleSave() {
     updateSavePill('saving', 'Saving');
     clearTimeout(state.saveTimer);
-    state.saveTimer = setTimeout(saveCurrentPainting, 250);
+    state.saveTimer = setTimeout(() => { saveCurrentPainting(); }, 250);
   }
 
-  function flushPainting() {
-    if (!state.saveTimer || !state.isLineArtReady) return;
-    clearTimeout(state.saveTimer);
-    state.saveTimer = null;
-    saveCurrentPainting();
-  }
-
-  function saveCurrentPainting() {
-    state.saveTimer = null;
-    if (!state.isLineArtReady) return;
-    try {
-      const save = readCardSave(state.currentCard.id) || {};
-      save.painting = els.paintCanvas.toDataURL('image/png');
-      writeCardSave(state.currentCard.id, save);
-      updateSavePill('ready', 'Saved');
-    } catch (error) {
-      console.error(error);
-      updateSavePill('error', 'Save error');
+  async function flushPainting() {
+    if (state.saveTimer && state.isLineArtReady) {
+      clearTimeout(state.saveTimer);
+      state.saveTimer = null;
+      await saveCurrentPainting();
+    }
+    if (state.pendingSave && typeof state.pendingSave.then === 'function') {
+      try { await state.pendingSave; } catch { /* status already updated */ }
     }
   }
 
+  function canvasPngBlob() {
+    return new Promise((resolve, reject) => {
+      els.paintCanvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('Canvas PNG export failed')), 'image/png');
+    });
+  }
+
+  async function saveCurrentPainting() {
+    state.saveTimer = null;
+    if (!state.isLineArtReady) return false;
+    const cardId = state.currentCard.id;
+    const finished = Boolean(readCardSave(cardId)?.finished);
+    // Capture this canvas state immediately, then serialize IndexedDB writes so an
+    // older PNG can never finish after and overwrite a newer stroke.
+    const snapshot = PaintingStore?.savePainting ? canvasPngBlob() : Promise.resolve(null);
+    const previous = state.pendingSave && typeof state.pendingSave.then === 'function' ? state.pendingSave.catch(() => false) : Promise.resolve(true);
+    const operation = previous.then(async () => {
+      try {
+        if (PaintingStore?.savePainting) {
+          const blob = await snapshot;
+          await PaintingStore.savePainting(cardId, blob, { finished });
+        } else {
+          // Compatibility fallback only. Current Life RPG loads coloring-storage-v2.js,
+          // which keeps large PNGs out of localStorage.
+          const save = readCardSave(cardId) || {};
+          save.painting = els.paintCanvas.toDataURL('image/png');
+          writeCardSave(cardId, save);
+        }
+        updateSavePill('ready', 'Saved');
+        return true;
+      } catch (error) {
+        console.error(error);
+        updateSavePill('error', 'Save error');
+        return false;
+      }
+    });
+    state.pendingSave = operation;
+    try { return await operation; }
+    finally { if (state.pendingSave === operation) state.pendingSave = null; }
+  }
+
   window.LifeRPGColoringStudioBridge = {
+    version: VERSION,
     catalog: () => CARD_LIBRARY.map(card => ({id:card.id,title:card.title,src:card.assetCandidates[0],unlockId:card.unlockId,series:card.id.startsWith('luca-bakugo-kirishima-')?'Trio':(card.id.startsWith('luca-eijirou-')?'Luca & Eijirou':(card.id.startsWith('luca-bakugo-')?'Luca & Katsuki':(card.id.startsWith('luca-')?'Luca':(card.id.startsWith('kirishima-')?'Kirishima':(card.id.startsWith('bakugo-kirishima-')?'Duo':'Bakugo')))))})),
     openCard: async id => {
       const card = CARD_LIBRARY.find(item => item.id === id);
       if (!card || !cardUnlocked(card)) return false;
-      flushPainting();
+      await flushPainting();
       await loadCard(card);
       return true;
     },
@@ -861,6 +904,7 @@
   };
 
   function readCardSave(cardId) {
+    if (PaintingStore?.readMetaSync) return PaintingStore.readMetaSync(cardId);
     try {
       return JSON.parse(localStorage.getItem(`${STORAGE_PREFIX}:${cardId}`) || 'null');
     } catch {

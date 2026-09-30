@@ -1,11 +1,11 @@
-const CACHE_NAME = "life-rpg-v0314dz1-sound-garden-track-idempotency";
+const CACHE_NAME = "life-rpg-v0314dz2-coloring-storage-rescue";
 const ASSET_CACHE_NAME = "life-rpg-assets-v6";
 const MAX_RUNTIME_ASSETS = 96;
 const CORE = [
   "./",
   "./index.html",
   "./life-hub-v314dk.js?v=0.31.4do",
-  "./creative-hub-v314dl.js?v=0.31.4du",
+  "./creative-hub-v314dl.js?v=0.31.4dz2",
   "./creative-hub-v314dl.css?v=0.31.4dn",
   "./knowledge-workshop.js?v=0.31.4do",
   "./knowledge-workshop.css?v=0.31.4do",
@@ -38,10 +38,11 @@ const CORE = [
   "./social-delivery.css?v=0.31.4dc",
   "./living-world-v3.css?v=0.31.4db",
   "./talent-reward-studios.js?v=0.31.4dn",
-  "./coloring-studio.html?v=0.31.4du",
-  "./coloring-studio.html?embedded=1&v=0.31.4du",
+  "./coloring-studio.html?v=0.31.4dz2",
+  "./coloring-studio.html?embedded=1&v=0.31.4dz2",
   "./coloring-studio.css?v=0.31.4dt",
-  "./coloring-studio.js?v=0.31.4du",
+  "./coloring-storage-v2.js?v=0.31.4dz2",
+  "./coloring-studio.js?v=0.31.4dz2",
   "./assets/coloring/kirishima-hero-grin-line.png?v=0.31.4dr",
   "./assets/coloring/kirishima-sunshine-break-line.png?v=0.31.4dr",
   "./assets/coloring/kirishima-training-glow-line.png?v=0.31.4dr",
