@@ -4,7 +4,7 @@
   const app = window.LifeRPGApp;
   if (!app?.getState || !app?.getQuestCatalog || !app?.logQuestProgress || !app?.awardActivity) return;
 
-  const VERSION = "0.31.4s";
+  const VERSION = "0.31.4dz4";
   const SCHEMA = 1;
   const HISTORY_LIMIT = 500;
 
@@ -35,6 +35,24 @@
       completionLabel: "15-Minute Lie-Down Reset",
       launcher: () => window.LifeRPGRecoveryStudio?.start?.("lieDown15"),
       match: spec => spec?.source === "recovery-studio" && spec?.metadata?.sessionId === "lieDown15"
+    },
+    "recovery-stretch": {
+      key: "recovery:stretch10",
+      type: "guided",
+      badge: "GUIDED IN-APP",
+      label: "Start guided 10-minute stretch",
+      completionLabel: "10-Minute Guided Stretch",
+      launcher: () => window.LifeRPGRecoveryStudio?.start?.("stretch10"),
+      match: spec => spec?.source === "recovery-studio" && spec?.metadata?.sessionId === "stretch10"
+    },
+    "mobility-break": {
+      key: "recovery:neckShoulders7",
+      type: "guided",
+      badge: "GUIDED IN-APP",
+      label: "Start guided mobility reset",
+      completionLabel: "Gentle Neck & Shoulder Release",
+      launcher: () => window.LifeRPGRecoveryStudio?.start?.("neckShoulders7"),
+      match: spec => spec?.source === "recovery-studio" && spec?.metadata?.sessionId === "neckShoulders7"
     },
     "sudoku": {
       key: "training:sudoku",

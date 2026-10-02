@@ -7,7 +7,7 @@
     return;
   }
 
-  const SCHEMA = 9;
+  const SCHEMA = 10;
   const STEAM_SYNC_SCHEMA = 4;
   const STEAM_PLAYTIME_SYNC_SCHEMA = 1;
   const STEAM_AUTO_SYNC_STALE_MS = 6 * 60 * 60 * 1000;
@@ -29,6 +29,14 @@
     social: { icon: "♡", label: "Social", realm: "Hobbies" },
     japanese: { icon: "あ", label: "Japanese", realm: "Japanese" },
     challenge: { icon: "✦", label: "Challenge / Goals", realm: "Hobbies" }
+  };
+
+  const MOTIVATIONS = {
+    very_high: { icon: "🔥", label: "Very high", score: 5 },
+    high: { icon: "✨", label: "High", score: 3 },
+    medium: { icon: "🙂", label: "Okay", score: 0.7 },
+    low: { icon: "😐", label: "Later", score: -2.5 },
+    someday: { icon: "🧊", label: "Someday", score: -6 }
   };
 
   const GAME_TYPES = {
@@ -106,6 +114,7 @@
     platform: byId("gamePlatform"),
     statusField: byId("gameStatus"),
     role: byId("gameRole"),
+    motivation: byId("gameMotivation"),
     trackingMode: byId("gameTrackingMode"),
     sessionAmount: byId("gameSessionAmount"),
     sessionAmountWrap: byId("gameSessionAmountWrap"),
@@ -149,6 +158,7 @@
     bulkText: byId("gameBulkText"),
     bulkStatus: byId("gameBulkStatus"),
     bulkRole: byId("gameBulkRole"),
+    bulkMotivation: byId("gameBulkMotivation"),
     bulkMinutes: byId("gameBulkMinutes"),
     bulkPreview: byId("gameBulkPreview"),
 
@@ -386,10 +396,21 @@
       }
     });
 
+    document.addEventListener("change", event => {
+      const select = event.target.closest?.("[data-game-motivation]");
+      if (!select) return;
+      const game = findGame(select.dataset.gameMotivation);
+      if (!game || !MOTIVATIONS[select.value]) return;
+      game.motivation = select.value;
+      game.updatedAt = Date.now();
+      persist("game-motivation");
+      window.dispatchEvent(new CustomEvent("life-rpg:game-motivation-change", { detail: { gameId: game.id, motivation: game.motivation } }));
+    });
+
     els.bulkClose?.addEventListener("click", closeBulkDialog);
     els.bulkCancel?.addEventListener("click", closeBulkDialog);
     els.bulkForm?.addEventListener("submit", saveBulkGames);
-    [els.bulkText, els.bulkStatus, els.bulkRole, els.bulkMinutes].forEach(input => {
+    [els.bulkText, els.bulkStatus, els.bulkRole, els.bulkMotivation, els.bulkMinutes].forEach(input => {
       input?.addEventListener("input", renderBulkPreview);
       input?.addEventListener("change", renderBulkPreview);
     });
@@ -452,6 +473,7 @@
       if (!game.title) { game.title = "Untitled game"; changed = true; }
       if (!STATUSES[game.status]) { game.status = "backlog"; changed = true; }
       if (!ROLES[game.role]) { game.role = "fun"; changed = true; }
+      if (!MOTIVATIONS[game.motivation]) { game.motivation = "medium"; changed = true; }
       if (!Number.isFinite(Number(game.sessionMinutes)) || Number(game.sessionMinutes) <= 0) { game.sessionMinutes = 45; changed = true; }
       if (!game.progressMode || !["none", "percent"].includes(game.progressMode)) { game.progressMode = "none"; changed = true; }
       game.progress = clamp(Number(game.progress || 0), 0, 100);
@@ -823,6 +845,8 @@
     const aOrder = statusOrder[a.status] ?? 9;
     const bOrder = statusOrder[b.status] ?? 9;
     if (aOrder !== bOrder) return aOrder - bOrder;
+    const motivationDelta = motivationScore(b) - motivationScore(a);
+    if (motivationDelta) return motivationDelta;
     const aLast = effectiveGameLastPlayedAt(a);
     const bLast = effectiveGameLastPlayedAt(b);
     if (aLast !== bLast) return aLast - bLast;
@@ -844,6 +868,7 @@
   function gameCardMarkup(game) {
     const status = STATUSES[game.status] || STATUSES.backlog;
     const role = ROLES[game.role] || ROLES.fun;
+    const motivation = MOTIVATIONS[game.motivation] || MOTIVATIONS.medium;
     const openGoals = game.goals.filter(goal => !goal.done);
     const doneGoals = game.goals.filter(goal => goal.done);
     const effectiveLastPlayed = effectiveGameLastPlayedAt(game);
@@ -878,6 +903,7 @@
               <div class="game-chip-row-v17">
                 <span class="game-status-chip-v17">${status.icon} ${esc(status.label)}</span>
                 <span class="game-role-chip-v17">${role.icon} ${esc(role.label)}</span>
+                <span class="game-motivation-chip-v314dz4">${motivation.icon} ${esc(motivation.label)}</span>
                 <span class="game-type-chip-v305">${typeMeta.icon} ${esc(typeMeta.label)}</span>
                 <span class="game-tracking-chip-v312">${tracking.icon} ${esc(tracking.label)}</span>
                 ${game.steamAppId ? `<span class="game-steam-chip-v312">Steam · ${esc(game.steamAppId)}</span>` : ""}
@@ -895,6 +921,13 @@
             ${steamPlaytime ? `<span>☁ ${esc(steamPlaytime)}</span>` : ""}
             <span>✦ ${formatNumber(game.sessions || 0)} Life RPG session${Number(game.sessions || 0) === 1 ? "" : "s"}</span>
             <span>${tracking.icon} ${esc(trackingSummary)}</span>
+          </div>
+
+          <div class="game-card-motivation-v314dz4">
+            <label>Current motivation
+              <select data-game-motivation="${escAttr(game.id)}" aria-label="Current motivation for ${escAttr(game.title)}">${motivationOptions(game.motivation)}</select>
+            </label>
+            <small>Daily Plan uses this heavily when choosing what to play.</small>
           </div>
 
           ${game.steamAppId ? steamSyncMarkup(game) : ""}
@@ -966,6 +999,7 @@
     if (els.platform) els.platform.value = game?.platform || "";
     if (els.statusField) els.statusField.value = game?.status || "playing";
     if (els.role) els.role.value = game?.role || "fun";
+    if (els.motivation) els.motivation.value = MOTIVATIONS[game?.motivation] ? game.motivation : "medium";
     if (els.trackingMode) els.trackingMode.value = TRACKING_MODES[game?.trackingMode] ? game.trackingMode : "auto";
     if (els.customUnit) els.customUnit.value = game?.customUnit || "";
     if (els.minutes) els.minutes.value = String(game?.sessionMinutes || 45);
@@ -1202,6 +1236,7 @@
       platform: String(els.platform?.value || "").trim(),
       status,
       role: els.role?.value || "fun",
+      motivation: MOTIVATIONS[els.motivation?.value] ? els.motivation.value : "medium",
       trackingMode: TRACKING_MODES[els.trackingMode?.value] ? els.trackingMode.value : "auto",
       customUnit: String(els.customUnit?.value || "").trim().slice(0, 30),
       sessionAmount: Math.max(0.25, Number(els.sessionAmount?.value || 1)),
@@ -1274,7 +1309,7 @@
       : "";
     showToast(existing ? "Game updated" : "Game added", [`${game.title} is ready for the planner.`, manualPlaytimeText, goalText, upkeepText].filter(Boolean).join(" · "));
     if (addAnother) {
-      resetGameDialogForAnother({ status: game.status === "finished" ? "playing" : status, role: game.role, sessionMinutes: game.sessionMinutes });
+      resetGameDialogForAnother({ status: game.status === "finished" ? "playing" : status, role: game.role, motivation: game.motivation, sessionMinutes: game.sessionMinutes });
     } else {
       closeGameDialog();
     }
@@ -1292,6 +1327,7 @@
     els.saveAnother?.classList.remove("hidden");
     if (els.statusField) els.statusField.value = defaults.status || "playing";
     if (els.role) els.role.value = defaults.role || "fun";
+    if (els.motivation) els.motivation.value = MOTIVATIONS[defaults.motivation] ? defaults.motivation : "medium";
     if (els.trackingMode) els.trackingMode.value = "auto";
     if (els.customUnit) els.customUnit.value = "";
     if (els.sessionAmount) els.sessionAmount.value = "1";
@@ -1319,6 +1355,7 @@
     els.bulkForm.reset();
     if (els.bulkStatus) els.bulkStatus.value = "backlog";
     if (els.bulkRole) els.bulkRole.value = "fun";
+    if (els.bulkMotivation) els.bulkMotivation.value = "medium";
     if (els.bulkMinutes) els.bulkMinutes.value = "45";
     renderBulkPreview();
     els.bulkDialog.showModal();
@@ -1342,9 +1379,10 @@
     const entries = parseBulkGames();
     const status = STATUSES[els.bulkStatus?.value] || STATUSES.backlog;
     const role = ROLES[els.bulkRole?.value] || ROLES.fun;
+    const motivation = MOTIVATIONS[els.bulkMotivation?.value] || MOTIVATIONS.medium;
     const minutes = Math.max(5, Number(els.bulkMinutes?.value || 45));
     els.bulkPreview.innerHTML = entries.length
-      ? `<strong>${entries.length} game${entries.length === 1 ? "" : "s"} ready</strong><span>${status.icon} ${esc(status.label)} · ${role.icon} ${esc(role.label)} · ${minutes}m default session</span><small>Tip: “Title — Platform”, “Title | Platform”, or just one title per line.</small>`
+      ? `<strong>${entries.length} game${entries.length === 1 ? "" : "s"} ready</strong><span>${status.icon} ${esc(status.label)} · ${role.icon} ${esc(role.label)} · ${motivation.icon} ${esc(motivation.label)} · ${minutes}m default session</span><small>Tip: “Title — Platform”, “Title | Platform”, or just one title per line.</small>`
       : `<strong>Paste one game per line.</strong><span>Great for moving an existing backlog into Life RPG without opening the add dialog over and over.</span>`;
   }
 
@@ -1355,6 +1393,7 @@
     const current = model();
     const status = STATUSES[els.bulkStatus?.value] ? els.bulkStatus.value : "backlog";
     const role = ROLES[els.bulkRole?.value] ? els.bulkRole.value : "fun";
+    const motivation = MOTIVATIONS[els.bulkMotivation?.value] ? els.bulkMotivation.value : "medium";
     const sessionMinutes = Math.max(5, Number(els.bulkMinutes?.value || 45));
     const existing = new Set(current.items.map(game => duplicateKey(game.title, game.platform)));
     const addedGames = [];
@@ -1366,7 +1405,7 @@
       if (existing.has(key)) { skipped += 1; return; }
       existing.add(key);
       const game = {
-        id: makeId("game"), title: entry.title, platform: entry.platform, status, role, trackingMode: "auto", customUnit: "", sessionAmount: sessionMinutes, sessionMinutes,
+        id: makeId("game"), title: entry.title, platform: entry.platform, status, role, motivation, trackingMode: "auto", customUnit: "", sessionAmount: sessionMinutes, sessionMinutes,
         progressMode: "none", progress: 0, gameType: "auto", genres: [], platforms: entry.platform ? [entry.platform] : [],
         description: "", developer: "", publisher: "", releaseDate: "", coverUrl: "", catalogProvider: "", catalogId: "", steamAppId: "",
         goals: [], notes: "", totalMinutes: 0, sessions: 0,
@@ -3432,6 +3471,8 @@
       openLog: openLogDialog,
       openGoal: openGoalDialog,
       roleMeta: role => ROLES[role] || ROLES.fun,
+      motivationMeta: value => MOTIVATIONS[value] || MOTIVATIONS.medium,
+      motivationScore,
       statusMeta: status => STATUSES[status] || STATUSES.backlog,
       gameTypeMeta: type => GAME_TYPES[type] || GAME_TYPES.other,
       trackingMeta,
@@ -3447,6 +3488,15 @@
       syncAllSteamGames: (reason = "manual-api") => autoSyncSteamGames(reason),
       render
     };
+  }
+
+  function motivationScore(gameOrValue) {
+    const value = typeof gameOrValue === "string" ? gameOrValue : gameOrValue?.motivation;
+    return Number(MOTIVATIONS[value]?.score ?? MOTIVATIONS.medium.score);
+  }
+
+  function motivationOptions(selected = "medium") {
+    return Object.entries(MOTIVATIONS).map(([key, meta]) => `<option value="${key}" ${selected === key ? "selected" : ""}>${meta.icon} ${esc(meta.label)}</option>`).join("");
   }
 
   function showToast(title, detail) {

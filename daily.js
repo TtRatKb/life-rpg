@@ -7,7 +7,7 @@
     return;
   }
 
-  const SCHEMA = 8;
+  const SCHEMA = 9;
   const SHADOW_KEY = "life-rpg-daily-planner-shadow-v1";
   const MAX_DAY_HISTORY = 120;
   const MAX_COMPANION_HISTORY = 45;
@@ -482,7 +482,14 @@
     conversationCounter: byId("dailyConversationCounter"),
     conversationDots: byId("dailyConversationDots"),
     conversationNext: byId("dailyConversationNext"),
-    conversationBack: byId("dailyConversationBack")
+    conversationBack: byId("dailyConversationBack"),
+    swapDialog: byId("dailySwapDialog"),
+    swapTitle: byId("dailySwapTitle"),
+    swapCurrent: byId("dailySwapCurrent"),
+    swapOptions: byId("dailySwapOptions"),
+    swapClose: byId("dailySwapClose"),
+    swapCancel: byId("dailySwapCancel"),
+    swapSnooze: byId("dailySwapSnooze")
   };
 
   let initialized = false;
@@ -490,6 +497,7 @@
   let conversationStep = 0;
   let conversationEditing = false;
   let actionTimerTicker = null;
+  let swapContext = null;
 
   init();
 
@@ -515,6 +523,9 @@
     els.form?.addEventListener("change", handleConversationAnswer);
     els.form?.addEventListener("submit", saveBriefing);
     els.rebalance?.addEventListener("click", rebalanceForHeavierDay);
+    els.swapClose?.addEventListener("click", closeSwapDialog);
+    els.swapCancel?.addEventListener("click", closeSwapDialog);
+    els.swapSnooze?.addEventListener("click", snoozeSwapSuggestion);
 
     document.addEventListener("click", event => {
       const newBatch = event.target.closest?.("[data-daily-new-batch]");
@@ -523,9 +534,15 @@
         return;
       }
 
-      const reroll = event.target.closest?.("[data-daily-reroll]");
-      if (reroll) {
-        rerollSlot(reroll.dataset.dailyReroll);
+      const swap = event.target.closest?.("[data-daily-swap]");
+      if (swap) {
+        openSwapDialog(swap.dataset.dailySwap);
+        return;
+      }
+
+      const swapOption = event.target.closest?.("[data-daily-swap-option]");
+      if (swapOption) {
+        chooseSwapOption(Number(swapOption.dataset.dailySwapOption || 0));
         return;
       }
 
@@ -614,6 +631,24 @@
         return;
       }
 
+      const kotoba = event.target.closest?.("[data-daily-kotoba]");
+      if (kotoba) {
+        startKotobaDaily(kotoba.dataset.dailyKotoba);
+        return;
+      }
+
+      const japaneseOpen = event.target.closest?.("[data-daily-japanese-open]");
+      if (japaneseOpen) {
+        window.LifeRPGJapanesePractice?.start?.(japaneseOpen.dataset.dailyJapaneseOpen, japaneseOpen.dataset.dailyJapaneseMode || "listening");
+        return;
+      }
+
+      const japaneseLog = event.target.closest?.("[data-daily-japanese-log]");
+      if (japaneseLog) {
+        window.LifeRPGJapanesePractice?.logSession?.(japaneseLog.dataset.dailyJapaneseLog, japaneseLog.dataset.dailyJapaneseMode || "listening", Number(japaneseLog.dataset.dailyJapaneseMinutes || 15), { source: "daily" });
+        return;
+      }
+
       const gameLog = event.target.closest?.("[data-daily-game-log]");
       if (gameLog) {
         window.LifeRPGGames?.openLog?.(
@@ -644,6 +679,16 @@
     });
 
     window.addEventListener("life-rpg:game-change", () => {
+      if (!initialized) return;
+      render();
+    });
+
+    window.addEventListener("life-rpg:japanese-practice-change", () => {
+      if (!initialized) return;
+      render();
+    });
+
+    window.addEventListener("life-rpg:kotoba-quick-change", () => {
       if (!initialized) return;
       render();
     });
@@ -1062,6 +1107,44 @@
   function pickCardMarkup(pick) {
     const slot = SLOTS[pick.slot] || SLOTS.focus;
 
+    if (pick.sourceType === "kotoba") {
+      const completion = pickCompletion(pick);
+      const done = completion.done;
+      const reviews = pick.kotobaKind === "reviews";
+      return `
+        <article class="daily-pick-v14 ${slot.className} daily-kotoba-pick-v314dz4 ${done ? "done" : ""}">
+          <div class="daily-pick-top-v14"><span class="daily-pick-icon-v14">${slot.icon}</span><div><small>${slot.kicker}</small><strong>${slot.title}</strong></div>${done ? '<span class="daily-pick-done-v14">✓ Finish line</span>' : ""}</div>
+          <div class="daily-pick-quest-v14">
+            <div class="daily-adventure-meta-v15"><span class="daily-realm-pill-v14">あ Japanese</span><span class="daily-action-ready-v314dz4">✓ ACTION READY</span><span class="daily-adventure-source-v15">🌸 Kotoba Quest</span><span class="daily-adventure-source-v15">~${formatNumber(pick.minutes || 15)} min</span></div>
+            <h3>${esc(pick.title || (reviews ? "Kotoba Quick Study" : "Kotoba Dungeon · 1 run"))}</h3>
+            <div class="daily-goal-v14"><span>✦</span><div><small>WHAT COUNTS AS DONE</small><strong>${reviews ? `${formatNumber(pick.amount || 5)} real due Kotoba reviews` : "Complete 1 Dungeon run"}</strong></div></div>
+            <p class="daily-pick-reason-v14"><b>Why this today?</b> ${esc(pick.reason || "This is ready to start directly.")}</p>
+          </div>
+          <div class="daily-pick-actions-v14"><button class="primary-button" data-daily-kotoba="${reviews ? "reviews" : "dungeon"}" type="button">${done ? (reviews ? "Review again" : "Run another Dungeon") : reviews ? "🌸 Start in Kotoba" : "⚔ Open Dungeon"}</button><button class="secondary-button" data-daily-swap="${escAttr(pick.slot)}" type="button">↻ Swap</button></div>
+        </article>`;
+    }
+
+    if (pick.sourceType === "japanese-media") {
+      const item = window.LifeRPGJapanesePractice?.getItem?.(pick.sourceId) || (app.getState().japanesePracticeLibrary?.items || []).find(entry => entry.id === pick.sourceId);
+      if (!item) return unavailablePickMarkup(pick, slot, "This Japanese practice item is no longer in your Library. Swap it for another action.");
+      const completion = pickCompletion(pick);
+      const done = completion.done;
+      const mode = pick.japaneseMode || "listening";
+      const modeMeta = window.LifeRPGJapanesePractice?.modeMeta?.(mode) || { icon: mode === "mining" ? "⛏" : "耳", label: mode === "mining" ? "Vocabulary Mining" : "Listening" };
+      const motivation = window.LifeRPGJapanesePractice?.motivationMeta?.(item.motivation) || { icon: "🙂", label: "Okay" };
+      return `
+        <article class="daily-pick-v14 ${slot.className} daily-japanese-media-pick-v314dz4 ${done ? "done" : ""}">
+          <div class="daily-pick-top-v14"><span class="daily-pick-icon-v14">${slot.icon}</span><div><small>${slot.kicker}</small><strong>${slot.title}</strong></div>${done ? '<span class="daily-pick-done-v14">✓ Finish line</span>' : ""}</div>
+          <div class="daily-pick-quest-v14">
+            <div class="daily-adventure-meta-v15"><span class="daily-realm-pill-v14">あ Japanese</span><span class="daily-action-ready-v314dz4">✓ ACTION READY</span><span class="daily-adventure-source-v15">${modeMeta.icon} ${esc(modeMeta.label)}</span><span class="daily-motivation-chip-v314dz4">${motivation.icon} ${esc(motivation.label)}</span></div>
+            <h3>${esc(item.title)}</h3>${item.nextLabel ? `<p class="daily-game-platform-v17">Next: ${esc(item.nextLabel)}</p>` : ""}
+            <div class="daily-goal-v14"><span>✦</span><div><small>WHAT COUNTS AS DONE</small><strong>${formatNumber(pick.japaneseMinutes || 15)} min · ${esc(modeMeta.label)}${item.nextLabel ? ` · ${esc(item.nextLabel)}` : ""}</strong></div></div>
+            <p class="daily-pick-reason-v14"><b>Why this today?</b> ${esc(pick.reason || "Your exact material and link are already saved.")}</p>
+          </div>
+          <div class="daily-pick-actions-v14"><button class="primary-button" data-daily-japanese-open="${escAttr(item.id)}" data-daily-japanese-mode="${escAttr(mode)}" type="button">▶ Open exact material ↗</button><button class="secondary-button" data-daily-japanese-log="${escAttr(item.id)}" data-daily-japanese-mode="${escAttr(mode)}" data-daily-japanese-minutes="${Number(pick.japaneseMinutes || 15)}" type="button">${done ? "Log more" : `✓ Log ${formatNumber(pick.japaneseMinutes || 15)}m`}</button><button class="text-button" data-daily-swap="${escAttr(pick.slot)}" type="button">↻ Swap</button></div>
+        </article>`;
+    }
+
     if (pick.sourceType === "book") {
       const book = findBook(pick.sourceId);
       if (!book) return unavailablePickMarkup(pick, slot, "This book is no longer in the Library. Reroll this card to replace it.");
@@ -1095,7 +1178,7 @@
           </div>
           <div class="daily-pick-actions-v14">
             <button class="primary-button" data-daily-book-log="${escAttr(book.id)}" data-daily-book-goal-type="${escAttr(goal.type)}" data-daily-book-goal-amount="${Number(goal.amount || 0)}" type="button">${done ? "Log more" : "Log this reading"}</button>
-            <button class="secondary-button" data-daily-reroll="${escAttr(pick.slot)}" type="button">↻ Not today</button>
+            <button class="secondary-button" data-daily-swap="${escAttr(pick.slot)}" type="button">↻ Swap</button>
           </div>
         </article>`;
     }
@@ -1107,6 +1190,7 @@
       const done = completion.done;
       if (!["playing", "endless", "backlog"].includes(game.status) && !done) return unavailablePickMarkup(pick, slot, "This game is no longer available for today. Reroll this card to replace it.");
       const role = gameRoleMeta(game.role);
+      const motivation = window.LifeRPGGames?.motivationMeta?.(game.motivation) || { icon: "🙂", label: "Okay" };
       const goal = (pick.gameGoal?.amount ? pick.gameGoal : gameGoal(game, pick.slot, todayRecord()?.checkIn || {}));
       const displayGoalLabel = safeGameGoalLabelForDisplay(game, goal);
       const openGoals = Array.isArray(game.goals) ? game.goals.filter(item => !item.done) : [];
@@ -1125,6 +1209,7 @@
             <div class="daily-adventure-meta-v15 daily-game-meta-v17">
               <span class="daily-realm-pill-v14">${role.icon} ${esc(role.label)}</span>
               <span class="daily-adventure-source-v15">${game.status === "backlog" ? "✦ Backlog trial" : "🎮 Games"}</span>
+              <span class="daily-motivation-chip-v314dz4">${motivation.icon} ${esc(motivation.label)}</span>
               <span class="daily-adventure-source-v15">${esc(sourceEffortLabel("game", game))} · ~${formatNumber(pickEstimatedMinutes(pick, game))} min</span>
               <span class="daily-adventure-progress-v15">${esc(completion.progressText || progressLine)}</span>
             </div>
@@ -1135,7 +1220,7 @@
           </div>
           <div class="daily-pick-actions-v14">
             <button class="primary-button" data-daily-game-log="${escAttr(game.id)}" data-daily-game-amount="${Number(goal.amount || 1)}" data-daily-game-trial="${game.status === "backlog" ? "true" : "false"}" type="button">${done ? "Log more play" : game.status === "backlog" ? gamePlayButtonLabel(game, Number(goal.amount || 1)).replace(/^▶ /, "▶ Try · ") : gamePlayButtonLabel(game, Number(goal.amount || 1))}</button>
-            <button class="secondary-button" data-daily-reroll="${escAttr(pick.slot)}" type="button">↻ Not today</button>
+            <button class="secondary-button" data-daily-swap="${escAttr(pick.slot)}" type="button">↻ Swap</button>
           </div>
         </article>`;
     }
@@ -1170,15 +1255,15 @@
           <div class="daily-pick-actions-v14">
             <button class="primary-button" data-daily-adventure-log="${escAttr(adventure.id)}" type="button">${done ? "Log more" : "Log this step"}</button>
             <button class="secondary-button" data-daily-adventure-workspace="${escAttr(adventure.id)}" type="button">Project memory</button>
-            <button class="secondary-button" data-daily-reroll="${escAttr(pick.slot)}" type="button">↻ Not today</button>
+            <button class="secondary-button" data-daily-swap="${escAttr(pick.slot)}" type="button">↻ Swap</button>
           </div>
         </article>`;
     }
 
     const quest = findQuest(pick.sourceId);
     if (!quest) return unavailablePickMarkup(pick, slot, "This item is no longer in the Quest Board. Reroll this card to replace it.");
-    if ((quest.manualStatus === "Archived" || quest.plannerEligible === false) && !pickCompletion(pick).done) {
-      return unavailablePickMarkup(pick, slot, "This legacy action has been retired from the Living Daily Plan. Reroll this card for a state-aware replacement.");
+    if ((quest.manualStatus === "Archived" || quest.plannerEligible === false || !isQuestRecommendationReady(quest)) && !pickCompletion(pick).done) {
+      return unavailablePickMarkup(pick, slot, "This action is no longer action-ready for the Living Daily Plan. Swap it for something you can start immediately.");
     }
 
     const completion = pickCompletion(pick);
@@ -1213,12 +1298,12 @@
         </div>
         <div class="daily-pick-actions-v14 ${isTimedQuest(quest) && !done ? "has-direct-timer-v306a" : ""}">
           ${!done && nativeAction
-            ? `<button class="primary-button" data-daily-native="${escAttr(quest.id)}" data-daily-native-slot="${escAttr(pick.slot)}" type="button">${esc(nativeAction.label)}</button><button class="text-button" data-daily-log="${escAttr(quest.id)}" data-daily-units="${goal}" type="button">Log manually</button><button class="secondary-button" data-daily-reroll="${escAttr(pick.slot)}" type="button">↻ Not today</button>`
+            ? `<button class="primary-button" data-daily-native="${escAttr(quest.id)}" data-daily-native-slot="${escAttr(pick.slot)}" type="button">${esc(nativeAction.label)}</button><button class="text-button" data-daily-log="${escAttr(quest.id)}" data-daily-units="${goal}" type="button">Log manually</button><button class="secondary-button" data-daily-swap="${escAttr(pick.slot)}" type="button">↻ Swap</button>`
             : !done && ["new-hairstyle", "makeup-look"].includes(quest.systemRole)
-              ? `<button class="primary-button" data-daily-inspiration="${escAttr(quest.id)}" data-daily-inspiration-role="${escAttr(quest.systemRole)}" type="button">Open today's reference</button><button class="secondary-button" data-daily-reroll="${escAttr(pick.slot)}" type="button">↻ Not today</button>`
+              ? `<button class="primary-button" data-daily-inspiration="${escAttr(quest.id)}" data-daily-inspiration-role="${escAttr(quest.systemRole)}" type="button">Open today's reference</button><button class="secondary-button" data-daily-swap="${escAttr(pick.slot)}" type="button">↻ Swap</button>`
               : isTimedQuest(quest) && !done
                 ? timedQuestActionsMarkup(quest, goal, pick.slot, progress)
-                : `<button class="primary-button" data-daily-log="${escAttr(quest.id)}" data-daily-units="${goal}" type="button">${done ? "Log more" : "Log progress"}</button><button class="secondary-button" data-daily-reroll="${escAttr(pick.slot)}" type="button">↻ Not today</button>`}
+                : `<button class="primary-button" data-daily-log="${escAttr(quest.id)}" data-daily-units="${goal}" type="button">${done ? "Log more" : "Log progress"}</button><button class="secondary-button" data-daily-swap="${escAttr(pick.slot)}" type="button">↻ Swap</button>`}
         </div>
       </article>`;
   }
@@ -1245,12 +1330,12 @@
     }
 
     if (active) {
-      return `<button class="primary-button" type="button" disabled>◷ Another timer is running</button><button class="secondary-button" data-daily-log="${escAttr(quest.id)}" data-daily-units="${goal}" type="button">Log manually</button><button class="text-button" data-daily-reroll="${escAttr(slotName)}" type="button">↻ Not today</button>`;
+      return `<button class="primary-button" type="button" disabled>◷ Another timer is running</button><button class="secondary-button" data-daily-log="${escAttr(quest.id)}" data-daily-units="${goal}" type="button">Log manually</button><button class="text-button" data-daily-swap="${escAttr(slotName)}" type="button">↻ Swap</button>`;
     }
 
     const remaining = Math.max(1, Number(goal || 0) - Math.max(0, Number(currentProgress || 0)));
     const startLabel = quest.systemRole === "focus-work" ? `▶ Start Focus ${formatNumber(remaining)}m` : `▶ Start ${formatNumber(remaining)}m`;
-    return `<button class="primary-button" data-daily-timer-start="${escAttr(quest.id)}" data-daily-timer-minutes="${Number(remaining)}" type="button">${startLabel}</button><button class="secondary-button" data-daily-log="${escAttr(quest.id)}" data-daily-units="${remaining}" type="button">Log manually</button><button class="text-button" data-daily-reroll="${escAttr(slotName)}" type="button">↻ Not today</button>`;
+    return `<button class="primary-button" data-daily-timer-start="${escAttr(quest.id)}" data-daily-timer-minutes="${Number(remaining)}" type="button">${startLabel}</button><button class="secondary-button" data-daily-log="${escAttr(quest.id)}" data-daily-units="${remaining}" type="button">Log manually</button><button class="text-button" data-daily-swap="${escAttr(slotName)}" type="button">↻ Swap</button>`;
   }
 
   function dailyTimerContext(quest) {
@@ -1314,7 +1399,7 @@
       <article class="daily-pick-v14 ${slot.className} unavailable">
         <div class="daily-pick-top-v14"><span class="daily-pick-icon-v14">${slot.icon}</span><div><small>${slot.kicker}</small><strong>${slot.title}</strong></div></div>
         <p>${esc(message)}</p>
-        <button class="secondary-button" data-daily-reroll="${escAttr(pick.slot)}" type="button">↻ Another</button>
+        <button class="secondary-button" data-daily-swap="${escAttr(pick.slot)}" type="button">↻ Swap</button>
       </article>`;
   }
 
@@ -1768,7 +1853,9 @@
     const adventures = eligibleAdventures();
     const books = eligibleBooks();
     const games = eligibleGames();
-    if (!quests.length && !adventures.length && !books.length && !games.length) return [];
+    const kotoba = eligibleKotobaActivities();
+    const japaneseMedia = eligibleJapanesePractice();
+    if (!quests.length && !adventures.length && !books.length && !games.length && !kotoba.length && !japaneseMedia.length) return [];
 
     const picked = [];
     const used = new Set();
@@ -1780,7 +1867,7 @@
     for (const slot of slotsForCheckIn(checkIn)) {
       const previous = previousBySlot[slot];
       const excluded = new Set([...(rerollHistory[slot] || []), ...globalExcluded]);
-      const candidate = chooseSourceCandidate(slot, checkIn, quests, adventures, books, games, used, excluded, previous, usedTypes, usedRealms, usedGroups);
+      const candidate = chooseSourceCandidate(slot, checkIn, quests, adventures, books, games, kotoba, japaneseMedia, used, excluded, previous, usedTypes, usedRealms, usedGroups);
       if (!candidate) continue;
       used.add(sourceKey(candidate.sourceType, candidate.item.id));
       usedTypes.push(candidate.sourceType);
@@ -1837,13 +1924,51 @@
     return effort === "low" ? "Low effort" : effort === "high" ? "High effort" : "Medium effort";
   }
 
+  function isQuestRecommendationReady(quest) {
+    if (!quest) return false;
+    if (quest.recommendationReady === false) return false;
+    if (quest.recommendationReady === true) return true;
+    if (window.LifeRPGNativeActions?.actionInfoForQuest?.(quest)) return true;
+    const role = String(quest.systemRole || "").toLowerCase();
+    if (["bunpro-lesson", "bunpro-reviews", "shadowing", "recovery-yoga", "curiosity-dive", "explain-it-back"].includes(role)) return false;
+    if (["new-hairstyle", "makeup-look"].includes(role)) return Boolean(window.LifeRPGSmartQuests?.contextForQuest?.(quest));
+    // Concrete timers, quantities and named actions are still actionable without
+    // a special studio. Vague language/content prompts are intentionally excluded.
+    if (String(quest.realm || "") === "Japanese" && !window.LifeRPGNativeActions?.actionInfoForQuest?.(quest)) return false;
+    return Boolean(String(quest.completionHint || "").trim() && (isTimedQuest(quest) || questTargetValue(quest) > 0));
+  }
+
   function eligibleQuests() {
     const quests = typeof app.getQuestCatalog === "function" ? app.getQuestCatalog() : [];
     return quests.filter(quest => {
       if (!quest || !quest.id || !quest.name || quest.manualStatus === "Archived" || quest.active === false || quest.plannerEligible === false) return false;
+      if (!isQuestRecommendationReady(quest)) return false;
       const availability = app.getQuestAvailability?.(quest);
       return availability ? availability.available : true;
     });
+  }
+
+  function eligibleKotobaActivities() {
+    const root = app.getState();
+    const state = root.integrations?.kotoba || {};
+    if (!state.enabled) return [];
+    const counts = state.dueSnapshot?.counts || {};
+    const total = Math.max(0, Number(counts.vocabularyCore || 0)) + Math.max(0, Number(counts.vocabularyMining || 0)) + Math.max(0, Number(counts.grammar || 0)) + Math.max(0, Number(counts.particles || 0));
+    const active = state.quickSession?.status === "active";
+    const items = [];
+    if (total > 0 || active) {
+      const amount = active ? Math.max(1, Number(state.quickSession?.tasks?.length || 5)) : Math.min(total, total <= 5 ? 5 : 10);
+      items.push({ id: "reviews", kind: "reviews", title: active ? "Resume Kotoba Quick Study" : `Kotoba Quick Study · ${amount} reviews`, realm: "Japanese", due: total, amount, minutes: amount <= 5 ? 8 : 15, effort: "low" });
+    }
+    items.push({ id: "dungeon", kind: "dungeon", title: "Kotoba Dungeon · 1 run", realm: "Japanese", minutes: 15, effort: "medium" });
+    return items;
+  }
+
+  function eligibleJapanesePractice() {
+    const apiItems = window.LifeRPGJapanesePractice?.eligibleItems?.();
+    if (Array.isArray(apiItems)) return apiItems;
+    const items = app.getState().japanesePracticeLibrary?.items;
+    return Array.isArray(items) ? items.filter(item => item?.id && item?.title && item?.url && item.status === "active" && Array.isArray(item.practiceModes) && item.practiceModes.length) : [];
   }
 
   function eligibleAdventures() {
@@ -1865,7 +1990,7 @@
     return eligibleGames().filter(game => ["playing", "endless"].includes(game.status));
   }
 
-  function chooseSourceCandidate(slot, checkIn, quests, adventures, books, games, used, excluded, previous = null, usedTypes = [], usedRealms = [], usedGroups = []) {
+  function chooseSourceCandidate(slot, checkIn, quests, adventures, books, games, kotoba, japaneseMedia, used, excluded, previous = null, usedTypes = [], usedRealms = [], usedGroups = []) {
     const currentKey = previous ? sourceKey(previous.sourceType || "quest", previous.sourceId) : "";
     const currentId = previous?.sourceId || "";
     const seed = `${todayKey()}|${slot}|${Object.values(checkIn).join("|")}|${[...excluded].join(",")}`;
@@ -1877,7 +2002,7 @@
       const candidates = [];
       const allowed = (type, item) => {
         const key = sourceKey(type, item.id);
-        if (used.has(key)) return false;
+        if (used.has(key) || isSuggestionSnoozed(key)) return false;
         if (!relaxed && (excluded.has(key) || excluded.has(item.id) || key === currentKey || item.id === currentId)) return false;
         if (relaxed === 1 && (key === currentKey || item.id === currentId)) return false;
         return true;
@@ -1900,6 +2025,8 @@
       adventures.forEach(item => push("adventure", item, scoreAdventure(item, slot, checkIn)));
       books.forEach(book => push("book", book, scoreBook(book, slot, checkIn)));
       games.forEach(game => push("game", game, scoreGame(game, slot, checkIn)));
+      kotoba.forEach(item => push("kotoba", item, scoreKotoba(item, slot, checkIn)));
+      japaneseMedia.forEach(item => push("japanese-media", item, scoreJapaneseMedia(item, slot, checkIn)));
       // Exclude duplicate Recovery care ONLY while a genuinely eligible leisure
       // alternative survives the current reroll/exclusion set. Otherwise a small
       // calming exercise remains a legitimate fallback.
@@ -1946,12 +2073,23 @@
       if (slot === "gentle") return backlog || ["fun", "social"].includes(gameRole) || gameEstimatedMinutes(item || {}, gameSessionAmount(item || {})) <= 30;
       return true;
     }
+    if (type === "kotoba") {
+      if (item?.kind === "reviews") return slot !== "joy";
+      return slot !== "gentle" || Number(item?.minutes || 15) <= 20;
+    }
+    if (type === "japanese-media") {
+      const modes = Array.isArray(item?.practiceModes) ? item.practiceModes : [];
+      if (slot === "focus") return modes.includes("mining") || modes.includes("listening");
+      if (slot === "joy") return modes.includes("listening") || modes.includes("mining");
+      return modes.includes("listening");
+    }
     return true;
   }
 
   function sourceRealm(type, item) {
     if (type === "book") return bookRoleMeta(item?.role).realm;
     if (type === "game") return gameRoleMeta(item?.role).realm;
+    if (type === "kotoba" || type === "japanese-media") return "Japanese";
     return String(item?.realm || (type === "adventure" ? "Hobbies" : ""));
   }
 
@@ -2000,6 +2138,11 @@
     return score;
   }
 
+  function isSuggestionSnoozed(key) {
+    const until = Number(plannerState().rerollMemory?.[key]?.snoozeUntil || 0);
+    return until > Date.now();
+  }
+
   function recentPickStats(key, sourceType, realm) {
     const days = plannerState().days || {};
     const today = todayKey();
@@ -2033,10 +2176,28 @@
     if (type === "book") return sourceRealm(type, findBook(pick.sourceId));
     if (type === "game") return sourceRealm(type, findGame(pick.sourceId));
     if (type === "adventure") return sourceRealm(type, findAdventure(pick.sourceId));
+    if (type === "kotoba" || type === "japanese-media") return "Japanese";
     return sourceRealm(type, findQuest(pick.sourceId));
   }
 
   function makePickFromCandidate(slot, candidate, checkIn, previous = null) {
+    if (candidate.sourceType === "kotoba") {
+      return {
+        slot, sourceType: "kotoba", sourceId: candidate.item.id, kotobaKind: candidate.item.kind, title: candidate.item.title,
+        minutes: Number(candidate.item.minutes || 15), due: Number(candidate.item.due || 0), amount: Number(candidate.item.amount || 1),
+        reason: reasonForKotoba(candidate.item, slot, checkIn), rerolls: Number(previous?.rerolls || 0),
+        pickedAt: previous?.sourceType === "kotoba" && previous?.sourceId === candidate.item.id ? Number(previous.pickedAt || Date.now()) : Date.now()
+      };
+    }
+    if (candidate.sourceType === "japanese-media") {
+      const mode = window.LifeRPGJapanesePractice?.suggestedMode?.(candidate.item, slot) || (candidate.item.practiceModes?.includes("mining") && slot === "focus" ? "mining" : "listening");
+      const minutes = Number(window.LifeRPGJapanesePractice?.recommendedMinutes?.(candidate.item, mode, slot) || (slot === "gentle" ? 10 : 15));
+      return {
+        slot, sourceType: "japanese-media", sourceId: candidate.item.id, japaneseMode: mode, japaneseMinutes: minutes,
+        reason: reasonForJapaneseMedia(candidate.item, mode, slot, checkIn), rerolls: Number(previous?.rerolls || 0),
+        pickedAt: previous?.sourceType === "japanese-media" && previous?.sourceId === candidate.item.id ? Number(previous.pickedAt || Date.now()) : Date.now()
+      };
+    }
     if (candidate.sourceType === "game") {
       return {
         slot,
@@ -2330,6 +2491,9 @@
     else if (duration <= 20) demand -= 0.18;
 
     let score = matchDemand(capacity, demand) * 2;
+    const motivation = Number(window.LifeRPGGames?.motivationScore?.(game) ?? gameMotivationScore(game));
+    score += motivation;
+    if (["playing", "endless"].includes(game.status)) score += 1.5;
     score += duration <= timeBudget ? 1.7 : -Math.min(3.8, (duration - timeBudget) / 20);
     score += Math.min(3.2, Math.max(0, days - 3) * 0.13);
     if (gameTouchedToday(game.id)) score -= 6;
@@ -2366,10 +2530,41 @@
       if (slot === "focus") score -= 12;
       if (slot === "joy") score += 1.4;
       if (slot === "gentle") score += 0.6;
-      if (eligibleActiveGames().length) score -= 1.25;
+      if (eligibleActiveGames().length) score -= 1.75;
+      if (["low", "someday"].includes(game.motivation)) score -= 1.5;
       if (["none", "little"].includes(checkIn.time)) score -= 1.2;
     }
 
+    return score;
+  }
+
+  function gameMotivationScore(game) {
+    return ({ very_high: 5, high: 3, medium: 0.7, low: -2.5, someday: -6 })[game?.motivation] ?? 0.7;
+  }
+
+  function scoreKotoba(item, slot, checkIn) {
+    const capacity = effectiveCapacity(checkIn);
+    const duration = Number(item?.minutes || 15);
+    const budget = TIME_BUDGET[checkIn.time] || 30;
+    let score = 2.1 + matchDemand(capacity, item?.kind === "dungeon" ? 1.05 : 0.7) * 1.4;
+    score += duration <= budget ? 1.8 : -1.8;
+    if (slot === "focus") score += item?.kind === "reviews" ? 4.8 : 2.6;
+    if (slot === "joy") score += item?.kind === "dungeon" ? 4.1 : 0.2;
+    if (slot === "gentle") score += item?.kind === "reviews" ? 2.1 : 0.8;
+    if (checkIn.gentle && item?.kind === "reviews") score += 1.2;
+    return score;
+  }
+
+  function scoreJapaneseMedia(item, slot, checkIn) {
+    const api = window.LifeRPGJapanesePractice;
+    const motivation = Number(api?.motivationScore?.(item) ?? ({ very_high:5, high:3, medium:1, low:-1.5, someday:-4 })[item?.motivation] ?? 1);
+    const difficulty = Number(api?.difficultyScore?.(item) ?? 0);
+    const mode = api?.suggestedMode?.(item, slot) || (item?.practiceModes?.includes("mining") && slot === "focus" ? "mining" : "listening");
+    let score = 1.3 + motivation + difficulty;
+    if (slot === "focus") score += mode === "mining" ? 3.6 : 1.7;
+    if (slot === "joy") score += mode === "listening" ? 3.2 : 1.2;
+    if (slot === "gentle") score += mode === "listening" ? 2.5 : -0.7;
+    if (checkIn.gentle && mode === "listening") score += 0.9;
     return score;
   }
 
@@ -2717,46 +2912,123 @@
     app.showToast?.("Plan lightened. Your existing day is allowed to count as the main load.");
   }
 
-  function rerollSlot(slotId) {
+  function sourceItemForCandidate(type, id) {
+    if (type === "quest") return findQuest(id);
+    if (type === "game") return findGame(id);
+    if (type === "book") return findBook(id);
+    if (type === "adventure") return findAdventure(id);
+    if (type === "kotoba") return eligibleKotobaActivities().find(item => item.id === id) || null;
+    if (type === "japanese-media") return eligibleJapanesePractice().find(item => item.id === id) || null;
+    return null;
+  }
+
+  function swapOptionLabel(candidate, slotId) {
+    const { sourceType: type, item } = candidate;
+    if (type === "quest") return { icon: realmIcon(item.realm), title: item.name, meta: `${item.realm || "Quest"} · ${sourceEffortLabel(type, item)} · ~${sourceEstimatedMinutes(type, item)} min` };
+    if (type === "game") {
+      const motivation = window.LifeRPGGames?.motivationMeta?.(item.motivation) || { icon: "🙂", label: "Okay" };
+      return { icon: "🎮", title: item.title, meta: `${motivation.icon} ${motivation.label} · ${item.status === "backlog" ? "Want to Play" : "Playing"} · ~${gameEstimatedMinutes(item, gameSessionAmount(item))} min` };
+    }
+    if (type === "book") return { icon: "📚", title: item.title, meta: `${bookRoleMeta(item.role).label} · ~${sourceEstimatedMinutes(type, item)} min` };
+    if (type === "adventure") return { icon: "✧", title: item.name, meta: `${item.realm || "Hobbies"} · ${item.nextAction || "Next action ready"}` };
+    if (type === "kotoba") return { icon: item.kind === "dungeon" ? "⚔" : "🌸", title: item.title, meta: `Japanese · direct Kotoba action · ~${item.minutes || 15} min` };
+    const mode = window.LifeRPGJapanesePractice?.suggestedMode?.(item, slotId) || "listening";
+    const modeMeta = window.LifeRPGJapanesePractice?.modeMeta?.(mode) || { icon: "耳", label: "Listening" };
+    return { icon: modeMeta.icon, title: `${item.title}${item.nextLabel ? ` · ${item.nextLabel}` : ""}`, meta: `${modeMeta.label} · saved direct link` };
+  }
+
+  function openSwapDialog(slotId) {
     if (!SLOTS[slotId]) return;
     const day = todayRecord();
-    if (!day?.checkIn) return;
-    const current = (day.picks || []).find(p => p.slot === slotId);
-    if (!current) return;
-
-    day.rerollHistory ||= { focus: [], joy: [], gentle: [] };
-    day.rerollHistory[slotId] ||= [];
-    const key = sourceKey(current.sourceType || "quest", current.sourceId);
-    if (current.sourceId && !day.rerollHistory[slotId].includes(key)) day.rerollHistory[slotId].push(key);
-    day.rerollHistory[slotId] = day.rerollHistory[slotId].slice(-16);
-    rememberReroll(key, slotId);
-
+    const current = (day?.picks || []).find(p => p.slot === slotId);
+    if (!day?.checkIn || !current || !els.swapDialog) return;
     const otherPicks = (day.picks || []).filter(p => p.slot !== slotId);
     const used = new Set(otherPicks.map(p => sourceKey(p.sourceType || "quest", p.sourceId)));
+    // The current suggestion must never reappear as a relaxed fallback in its own Swap dialog.
+    used.add(sourceKey(current.sourceType || "quest", current.sourceId));
     const usedTypes = otherPicks.map(p => p.sourceType || "quest");
     const usedRealms = otherPicks.map(pickRealm).filter(Boolean);
-    const candidate = chooseSourceCandidate(
-      slotId,
-      day.checkIn,
-      eligibleQuests(),
-      eligibleAdventures(),
-      eligibleBooks(),
-      eligibleGames(),
-      used,
-      new Set(day.rerollHistory[slotId]),
-      current,
-      usedTypes,
-      usedRealms,
-      otherPicks.map(p => plannerGroup(p.sourceType || "quest", p.sourceType === "quest" ? findQuest(p.sourceId) : null)).filter(Boolean)
-    );
+    const usedGroups = otherPicks.map(p => plannerGroup(p.sourceType || "quest", sourceItemForCandidate(p.sourceType || "quest", p.sourceId))).filter(Boolean);
+    const excluded = new Set([...(day.rerollHistory?.[slotId] || []), sourceKey(current.sourceType || "quest", current.sourceId)]);
+    const sources = [eligibleQuests(), eligibleAdventures(), eligibleBooks(), eligibleGames(), eligibleKotobaActivities(), eligibleJapanesePractice()];
+    const candidates = [];
+    for (let i = 0; i < 5; i += 1) {
+      const candidate = chooseSourceCandidate(slotId, day.checkIn, ...sources, used, excluded, current, usedTypes, usedRealms, usedGroups);
+      if (!candidate) break;
+      candidates.push(candidate);
+      excluded.add(sourceKey(candidate.sourceType, candidate.item.id));
+    }
+    swapContext = { slotId, current, candidates };
+    if (els.swapTitle) els.swapTitle.textContent = `Pick a better ${SLOTS[slotId].kicker.toLowerCase()} fit`;
+    if (els.swapCurrent) {
+      const item = sourceItemForCandidate(current.sourceType || "quest", current.sourceId);
+      const currentLabel = item ? swapOptionLabel({ sourceType: current.sourceType || "quest", item }, slotId) : { icon: "·", title: "Current suggestion", meta: "" };
+      els.swapCurrent.innerHTML = `<span>${currentLabel.icon}</span><div><small>CURRENT</small><strong>${esc(currentLabel.title)}</strong></div>`;
+    }
+    if (els.swapOptions) els.swapOptions.innerHTML = candidates.length ? candidates.map((candidate, index) => {
+      const label = swapOptionLabel(candidate, slotId);
+      return `<button class="daily-swap-option-v314dz4" data-daily-swap-option="${index}" type="button"><span>${label.icon}</span><span><strong>${esc(label.title)}</strong><small>${esc(label.meta)}</small></span><em>Choose ›</em></button>`;
+    }).join("") : `<p class="muted">No genuinely better alternative is available right now. You can pause the current suggestion for two weeks instead.</p>`;
+    els.swapDialog.showModal();
+  }
 
-    if (!candidate) return;
+  function closeSwapDialog() {
+    if (els.swapDialog?.open) els.swapDialog.close();
+    swapContext = null;
+  }
+
+  function applySwapCandidate(candidate, { snoozeCurrent = false } = {}) {
+    if (!swapContext || !candidate) return;
+    const { slotId, current } = swapContext;
+    const day = todayRecord();
+    if (!day) return;
+    const currentKey = sourceKey(current.sourceType || "quest", current.sourceId);
+    day.rerollHistory ||= { focus: [], joy: [], gentle: [] };
+    day.rerollHistory[slotId] ||= [];
+    if (!day.rerollHistory[slotId].includes(currentKey)) day.rerollHistory[slotId].push(currentKey);
+    day.rerollHistory[slotId] = day.rerollHistory[slotId].slice(-16);
+    rememberReroll(currentKey, slotId);
+    if (snoozeCurrent) {
+      plannerState().rerollMemory[currentKey].snoozeUntil = Date.now() + 14 * 86400000;
+    }
     const next = makePickFromCandidate(slotId, candidate, day.checkIn, current);
     next.rerolls = Number(current.rerolls || 0) + 1;
     day.picks = (day.picks || []).map(p => p.slot === slotId ? next : p);
     day.updatedAt = Date.now();
-    persist("daily-pick-reroll");
+    closeSwapDialog();
+    persist(snoozeCurrent ? "daily-pick-snooze-swap" : "daily-pick-choice-swap");
   }
+
+  function chooseSwapOption(index) {
+    const candidate = swapContext?.candidates?.[index];
+    if (candidate) applySwapCandidate(candidate);
+  }
+
+  function snoozeSwapSuggestion() {
+    if (!swapContext) return;
+    const candidate = swapContext.candidates?.[0];
+    if (candidate) {
+      applySwapCandidate(candidate, { snoozeCurrent: true });
+      app.showToast?.("Paused for 2 weeks · Life RPG will stop surfacing that suggestion for a while.");
+      return;
+    }
+    const { slotId, current } = swapContext;
+    const key = sourceKey(current.sourceType || "quest", current.sourceId);
+    rememberReroll(key, slotId);
+    plannerState().rerollMemory[key].snoozeUntil = Date.now() + 14 * 86400000;
+    const day = todayRecord();
+    if (day) {
+      // No suitable replacement exists: leave the slot intentionally empty instead of
+      // forcing another low-fit recommendation into today's plan.
+      day.picks = (day.picks || []).filter(p => p.slot !== slotId);
+      day.updatedAt = Date.now();
+    }
+    closeSwapDialog();
+    persist("daily-pick-snooze");
+    app.showToast?.("Paused for 2 weeks · this slot stays open instead of forcing a bad fit.");
+  }
+
+  function rerollSlot(slotId) { openSwapDialog(slotId); }
 
   function rememberReroll(key, slotId) {
     if (!key) return;
@@ -2769,6 +3041,20 @@
     current.slots ||= {};
     current.slots[slotId] = Math.min(12, Number(current.slots[slotId] || 0) + 1);
     planner.rerollMemory[key] = current;
+  }
+
+  function startKotobaDaily(kind) {
+    if (kind === "reviews") {
+      const state = app.getState().integrations?.kotoba || {};
+      const counts = state.dueSnapshot?.counts || {};
+      const total = Math.max(0, Number(counts.vocabularyCore || 0)) + Math.max(0, Number(counts.vocabularyMining || 0)) + Math.max(0, Number(counts.grammar || 0)) + Math.max(0, Number(counts.particles || 0));
+      const active = state.quickSession?.status === "active";
+      if (active || total <= 5) window.LifeRPGKotobaQuickTraining?.startTiny?.();
+      else window.LifeRPGKotobaQuickTraining?.startQuick?.();
+      return;
+    }
+    const url = window.LifeRPGKotobaDungeonBridge?.link?.() || "https://ttratkb.github.io/kotoba-quest/dungeon.html";
+    window.open(url, "_blank", "noopener");
   }
 
   function openQuestLog(questId, suggested) {
@@ -2941,6 +3227,22 @@
     if (!pick?.sourceId) return { done: false, progress: 0, progressText: "Not started" };
     const start = pickStartMs(pick);
     const type = pick.sourceType || "quest";
+
+    if (type === "kotoba") {
+      if (pick.kotobaKind === "reviews") {
+        const session = app.getState().integrations?.kotoba?.quickSession;
+        const completedAt = Number(session?.completedAt || 0);
+        return { done: session?.status === "completed" && completedAt >= start, progress: 0, progressText: session?.status === "completed" && completedAt >= start ? "Kotoba reviews completed ✓" : "Ready in Kotoba Quick Study" };
+      }
+      const event = (app.getState().rewardLedger?.events || []).find(item => item?.source === "kotoba-dungeon" && timeFromValue(item.at) >= start);
+      return { done: Boolean(event), progress: event ? 1 : 0, progressText: event ? "Dungeon run completed ✓" : "1 Dungeon run" };
+    }
+
+    if (type === "japanese-media") {
+      const logs = app.getState().japanesePracticeLibrary?.logs || [];
+      const hit = logs.find(log => log?.itemId === pick.sourceId && (!pick.japaneseMode || log.mode === pick.japaneseMode) && timeFromValue(log.at) >= start);
+      return { done: Boolean(hit), progress: hit ? Number(hit.minutes || pick.japaneseMinutes || 0) : 0, progressText: hit ? `${Number(hit.minutes || pick.japaneseMinutes || 0)} min logged ✓` : `${Number(pick.japaneseMinutes || 15)} min` };
+    }
 
     if (type === "book") {
       const goal = pick.bookGoal || bookGoal(findBook(pick.sourceId) || {}, pick.slot, todayRecord()?.checkIn || {});
@@ -3309,6 +3611,11 @@
     if (type === "game") return gameEstimatedMinutes(item || {}, gameSessionAmount(item || {}));
     if (type === "adventure") return Math.max(10, Number(item?.sessionMinutes || 30));
     if (type === "book") return item?.source === "audio" ? 20 : 25;
+    if (type === "kotoba") return Math.max(5, Number(item?.minutes || 15));
+    if (type === "japanese-media") {
+      const mode = window.LifeRPGJapanesePractice?.suggestedMode?.(item, "focus") || "listening";
+      return Math.max(5, Number(window.LifeRPGJapanesePractice?.recommendedMinutes?.(item, mode, "focus") || 15));
+    }
     return 0;
   }
 
@@ -3325,6 +3632,8 @@
       return Math.max(5, Number(goal.minutesEstimate || gameEstimatedMinutes(item || {}, goal.amount || gameSessionAmount(item || {}))));
     }
     if (type === "adventure") return Math.max(10, Number((pick.adventureGoal || {}).minutes || item?.sessionMinutes || 30));
+    if (type === "kotoba") return Math.max(5, Number(pick.minutes || item?.minutes || 15));
+    if (type === "japanese-media") return Math.max(5, Number(pick.japaneseMinutes || 15));
     return Math.max(1, Math.round(estimatedMinutes(item || {})));
   }
 
@@ -3338,6 +3647,8 @@
       const demand = bookDemand(item || {});
       return demand <= 0.8 ? "Low effort" : demand >= 1.25 ? "High effort" : "Medium effort";
     }
+    if (type === "kotoba") return item?.kind === "dungeon" ? "Medium effort" : "Low effort";
+    if (type === "japanese-media") return item?.difficulty === "hard" ? "Medium effort" : "Low-medium effort";
     if (type === "game") {
       if (item?.status === "backlog") return "Low-medium effort";
       const role = item?.role || "fun";
@@ -3370,11 +3681,15 @@
 
   function reasonForGame(game, slot, checkIn) {
     const days = daysSinceTimestamp(gameLastPlayedAt(game) || game.createdAt);
+    const motivation = window.LifeRPGGames?.motivationMeta?.(game.motivation) || { icon: "🙂", label: "Okay" };
     const openGoals = Array.isArray(game.goals) ? game.goals.filter(goal => !goal.done) : [];
     const progress = game.progressMode === "percent" ? clamp(Number(game.progress || 0), 0, 100) : null;
 
     if (game.status === "backlog") {
-      return `This is already in your Want to Play backlog, so the planner can surface one actual game instead of telling you to “try a backlog game.” One small ${gameTrackingMeta(game).singular} is enough to test it without inventing a time requirement.`;
+      return `${motivation.icon} ${motivation.label} motivation. This is in Want to Play, but the planner now prefers backlog games you actually feel like starting instead of treating every old Steam purchase equally.`;
+    }
+    if (["very_high", "high"].includes(game.motivation)) {
+      return `${motivation.icon} ${motivation.label} motivation. You marked this as something you genuinely want to play now, so it gets priority over lower-interest backlog titles.`;
     }
 
     if (progress !== null && progress >= 70 && days >= 10) {
@@ -3397,6 +3712,17 @@
       return `You marked this game as Japanese / immersion, so a specific play session can count as a concrete language thread rather than another generic study option.`;
     }
     return `This game is already active, and a small defined session gives you something specific to start without deciding from the whole Games shelf.`;
+  }
+
+  function reasonForKotoba(item, slot, checkIn) {
+    if (item?.kind === "reviews") return `Kotoba has real SRS reviews due, so this is a direct study action: open the saved review session and start. No material search first.`;
+    return `The Kotoba Dungeon is already built and playable, so today's Japanese action can be one concrete run instead of an abstract “study Japanese” prompt.`;
+  }
+
+  function reasonForJapaneseMedia(item, mode, slot, checkIn) {
+    const motivation = window.LifeRPGJapanesePractice?.motivationMeta?.(item?.motivation) || { icon: "🙂", label: "Okay" };
+    const modeLabel = mode === "mining" ? "Vocabulary Mining" : "Listening";
+    return `${motivation.icon} ${motivation.label} motivation. You chose this material yourself, and the direct link${item?.nextLabel ? ` is already set to your next step (${item.nextLabel})` : " is already saved"}, so ${modeLabel} can start without searching first.`;
   }
 
   function reasonForBook(book, slot, checkIn) {

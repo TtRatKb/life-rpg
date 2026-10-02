@@ -4,7 +4,7 @@
   const app = window.LifeRPGApp;
   if (!app?.getState || !app?.awardActivity) return;
 
-  const VERSION = "0.31.4s";
+  const VERSION = "0.31.4dz4";
   const SCHEMA = 1;
   const HISTORY_LIMIT = 240;
   const REPEAT_SCALES = [1, 0.7, 0.45, 0.3];
@@ -130,6 +130,29 @@
         ["Finish", 30, "Look around once more. You do not have to feel transformed; being a little more here is enough."]
       ],
       reward: { xp: 13, realmXP: 13, statXP: 9, story: 0.45, coins: 9 }
+    },
+    stretch10: {
+      id: "stretch10",
+      icon: "🤸",
+      title: "10-Minute Guided Stretch",
+      short: "10 min · full-body gentle stretch",
+      minutes: 10,
+      subcategory: "Other recovery",
+      kind: "stages",
+      intensity: "gentle-movement",
+      blurb: "A simple head-to-toe stretch you can follow without choosing exercises first. Keep every position comfortable, breathe normally, and stop any movement that hurts.",
+      stages: [
+        ["Arrive", 30, "Stand or sit comfortably. Let your shoulders drop and keep the whole routine easy."],
+        ["Shoulder rolls", 60, "Roll the shoulders slowly in both directions. Small circles are completely fine."],
+        ["Side reach", 90, "Reach one arm gently overhead and lean a little to the opposite side. Switch halfway."],
+        ["Upper-back stretch", 75, "Reach both hands forward and let the upper back widen. Release before anything feels sharp."],
+        ["Chest opener", 75, "Let the hands move behind you or simply draw the shoulders slightly back. Keep the chest soft, not forced."],
+        ["Hamstrings", 120, "Extend one leg at a time and hinge forward only as far as comfortable. Switch halfway."],
+        ["Calves", 75, "Step one foot back and let the heel settle toward the floor. Switch halfway."],
+        ["Hip flexors", 45, "Take a small split stance and gently shift the hips forward. Keep the range tiny if needed."],
+        ["Finish", 30, "Come back to neutral, shake out the arms and legs, and notice how you feel." ]
+      ],
+      reward: { xp: 16, realmXP: 16, statXP: 11, story: 0.55, coins: 10 }
     },
     neckShoulders7: {
       id: "neckShoulders7",

@@ -5,7 +5,7 @@
   const integration = window.LifeRPGKotobaIntegration;
   if (!app?.getState || !app?.saveState || !integration) return;
 
-  const VERSION = "0.31.4k";
+  const VERSION = "0.31.4dz4";
   const REQUEST_TYPE = "life-rpg:kotoba-request";
   const RESPONSE_TYPE = "kotoba:life-rpg-response";
   const REQUEST_TIMEOUT_MS = 18000;
@@ -106,7 +106,7 @@
 
   function state() { return ensureState(); }
   function session() { return state().quickSession || null; }
-  function save(reason) { app.saveState({ source:reason || "kotoba-quick-training" }); renderEntryButtons(); }
+  function save(reason) { app.saveState({ source:reason || "kotoba-quick-training" }); renderEntryButtons(); try { window.dispatchEvent(new CustomEvent("life-rpg:kotoba-quick-change", { detail: { reason: reason || "kotoba-quick-training" } })); } catch {} }
   function emptyEarned() { return { xp:0, realmXP:0, statXP:0, coins:0, storyEnergy:0, rewardEvents:0 }; }
   function activeSession() { const current=session(); return current && current.status === "active" ? current : null; }
 
