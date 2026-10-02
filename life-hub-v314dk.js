@@ -20,7 +20,7 @@
     {id:"other",icon:"✿",name:"Andere Haushaltsaufgabe"}
   ];
   const GROUPS=[
-    {id:"everyday",icon:"❀",title:"Alltag",subtitle:"Erledigen & festhalten",items:[["quick","Schnell loggen"],["habits","Habits"],["quests","Quests"],["adventures","Adventures"],["journal","Journal"]]},
+    {id:"everyday",icon:"❀",title:"Alltag",subtitle:"Erledigen & festhalten",items:[["quick","Schnell loggen"],["habits","Habits"],["quests","Quests"],["adventures","Adventures"],["journal","Journal"],["meals","Essensplan"]]},
     {id:"planning",icon:"◷",title:"Zeit & Planung",subtitle:"Woche, Termine & genaue Zeit",items:[["week","Meine Woche"],["rhythm","Focus & Time"]]},
     {id:"play",icon:"◇",title:"Spielen & Lernen",subtitle:"Rätsel, Bücher & Kreativität",items:[["training","Training Grounds"],["kotoba","Kotoba Quest"],["library","Library"],["knowledge-workshop","Knowledge Workshop"],["games","Games"],["coloring","Coloring Studio"],["drawing","Drawing Studio"]]},
     {id:"progress",icon:"✦",title:"Fortschritt",subtitle:"Deine Entwicklung",items:[["growth","Growth & Realms"],["skills","Skill Trees"],["achievements","Achievements"],["shop","Reward Shop"]]},
@@ -95,5 +95,5 @@
   }
   function init(){buildViews();buildNav();addDialog();document.addEventListener("click",onClick);window.addEventListener("life-rpg:view-changed",renderNavActive);window.addEventListener("life-rpg:render",()=>{renderViews();const nav=document.querySelector(".bottom-nav");if(nav&&!nav.classList.contains("life-hub-nav"))buildNav();});window.addEventListener("life-rpg:state-saved",renderViews);renderViews();}
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init,{once:true});else init();
-  window.LifeRPGLifeHub={version:"0.31.4dl",logAction,undo,stats,open:()=>route("quick"),openStudio:kind=>route(kind==="coloring-studio"?"coloring":kind==="drawing-studio"?"drawing":kind),showStudioGallery:kind=>window.LifeRPGCreativeHub?.gallery?.(kind),_test:{model,entries,definition,findPriorLinked,periodStats,groups:GROUPS}};
+  window.LifeRPGLifeHub={version:"0.31.4dz8",logAction,undo,stats,open:()=>route("quick"),openStudio:kind=>route(kind==="coloring-studio"?"coloring":kind==="drawing-studio"?"drawing":kind),showStudioGallery:kind=>window.LifeRPGCreativeHub?.gallery?.(kind),_test:{model,entries,definition,findPriorLinked,periodStats,groups:GROUPS}};
 })();
