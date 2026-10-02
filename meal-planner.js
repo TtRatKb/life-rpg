@@ -1,8 +1,8 @@
 (() => {
-  const SCHEMA = 2;
+  const SCHEMA = 3;
   const DAY_MS = 86400000;
   const DEFAULT_TAG_LIMITS = { pasta: 1, potato: 1, rice: 1, tortilla: 1 };
-  const ui = { tab: 'plan', periodStart: '', periodDays: 7, mode: 'main', editingDishId: null, swapBlockId: null };
+  const ui = { tab: 'plan', periodStart: '', periodDays: 7, mode: 'main', editingDishId: null, swapBlockId: null, swapMemory: {} };
 
   function app() { return window.LifeRPGApp; }
   function rootState() { return app()?.getState?.() || null; }
@@ -19,6 +19,7 @@
       dishes: [],
       plans: {},
       restockItems: [],
+      usageHistory: [],
       settings: {
         defaultCooldownWeeks: 1,
         tagLimits: { ...DEFAULT_TAG_LIMITS },
@@ -69,6 +70,13 @@
         need: Boolean(item?.need),
         active: item?.active !== false
       })).filter(item => item.name),
+      usageHistory: (Array.isArray(current.usageHistory) ? current.usageHistory : []).map(entry => ({
+        id: String(entry?.id || uid('meal-log')),
+        dishId: String(entry?.dishId || ''),
+        date: /^\d{4}-\d{2}-\d{2}$/.test(String(entry?.date || '')) ? String(entry.date) : localDateKey(new Date()),
+        days: clamp(entry?.days || 1, 1, 4),
+        createdAt: String(entry?.createdAt || new Date().toISOString())
+      })).filter(entry => entry.dishId),
       settings: {
         ...defaults.settings,
         ...(current.settings || {}),
@@ -190,9 +198,16 @@
       plan.blocks.forEach(block => {
         if (block?.dishId !== dishId) return;
         const dates = blockDates(plan, block);
-        if (dates.end >= target) return;
-        if (!latest || dates.end > latest.end) latest = { ...dates, plan };
+        if (dates.start >= target) return;
+        if (!latest || dates.end > latest.end) latest = { ...dates, plan, source: 'plan' };
       });
+    });
+    (ensureState().usageHistory || []).forEach(entry => {
+      if (entry?.dishId !== dishId || !/^\d{4}-\d{2}-\d{2}$/.test(String(entry?.date || ''))) return;
+      const start = parseLocalDate(entry.date);
+      const end = addDays(start, Math.max(1, Number(entry.days || 1)) - 1);
+      if (start >= target) return;
+      if (!latest || end > latest.end) latest = { start, end, duration: Math.max(1, Number(entry.days || 1)), historyEntry: entry, source: 'history' };
     });
     return latest;
   }
@@ -354,6 +369,7 @@
 
   function generateCurrentPeriod() {
     ensureUiPeriod();
+    ui.swapMemory = {};
     const generated = generatePlan(ui.periodStart, ui.periodDays);
     storePlan(generated);
     save('meal-plan-generate');
@@ -399,6 +415,35 @@
       .sort((a,b) => b.score - a.score)
       .slice(0, 18)
       .map(item => item.dish);
+  }
+
+  function autoSwap(blockId) {
+    const plan = planFor();
+    const block = plan?.blocks?.find(item => item.id === blockId);
+    if (!plan || !block) return;
+    const previousId = block.dishId || null;
+    const remembered = new Set(ui.swapMemory[blockId] || []);
+    if (previousId) remembered.add(previousId);
+    const swaps = compatibleSwaps(blockId).filter(dish => !remembered.has(dish.id));
+    const dish = swaps[0];
+    if (!dish) {
+      const anyCompatible = compatibleSwaps(blockId).length > 0;
+      app()?.showToast?.(anyCompatible
+        ? '↻ Für diesen Slot hast du gerade alle passenden Alternativen gesehen.'
+        : '↻ Gerade gibt es keine kompatible Alternative für diesen Slot.');
+      return;
+    }
+    ui.swapMemory[blockId] ||= [];
+    if (previousId && !ui.swapMemory[blockId].includes(previousId)) ui.swapMemory[blockId].push(previousId);
+    block.dishId = dish.id;
+    block.duration = dish.days;
+    delete block.label;
+    plan.updatedAt = new Date().toISOString();
+    if (plan.status === 'committed') plan.committedAt = new Date().toISOString();
+    storePlan(plan);
+    save('meal-plan-auto-swap');
+    render();
+    app()?.showToast?.(`↻ Vorschlag: ${dish.name} · nochmal Tauschen für die nächste passende Option.`);
   }
 
   function applySwap(dishId) {
@@ -468,9 +513,9 @@
         <div class="meal-planner-page-summary-v314dz7"><span>MEAL PLANNER</span><strong>${esc(ensureState().dishes.length)} Gerichte</strong></div>
       </div>
       <nav class="meal-planner-tabs-v314dz6" aria-label="Meal planner sections">
-        ${tabButton('plan','Plan')} ${tabButton('dishes','Gerichte')} ${tabButton('shopping','Einkauf')} ${tabButton('rules','Regeln')}
+        ${tabButton('plan','Plan')} ${tabButton('dishes','Gerichte')} ${tabButton('history','Vergangen')} ${tabButton('shopping','Einkauf')} ${tabButton('rules','Regeln')}
       </nav>
-      <div class="meal-planner-body-v314dz6">${ui.tab === 'plan' ? renderPlanTab() : ui.tab === 'dishes' ? renderDishesTab() : ui.tab === 'shopping' ? renderShoppingTab() : renderRulesTab()}</div>
+      <div class="meal-planner-body-v314dz6">${ui.tab === 'plan' ? renderPlanTab() : ui.tab === 'dishes' ? renderDishesTab() : ui.tab === 'history' ? renderHistoryTab() : ui.tab === 'shopping' ? renderShoppingTab() : renderRulesTab()}</div>
     </div>`;
   }
 
@@ -492,6 +537,7 @@
       <div class="meal-plan-actions-v314dz6">
         <button class="primary-button" type="button" data-meal-action="generate" ${s.dishes.some(d => d.active !== false) ? '' : 'disabled'}>✦ ${plan ? 'Neu planen' : 'Plan erstellen'}</button>
         ${plan ? `<button class="secondary-button" type="button" data-meal-action="commit">${plan.status === 'committed' ? '✓ Plan aktiv' : 'Diesen Plan verwenden'}</button>` : ''}
+        <button class="secondary-button" type="button" data-meal-tab="history">Vergangenes nachtragen</button>
         <span>${planned} Gericht${planned === 1 ? '' : 'e'} · ${plan ? `${coveredDays(plan)}/${ui.periodDays} Tage` : 'noch nicht geplant'}</span>
       </div>
       ${!s.dishes.length ? `<div class="meal-empty-v314dz6"><span>🍲</span><strong>Starte mit den Gerichten, die ihr wirklich esst.</strong><p>Etwa 15–20 reichen schon für sinnvolle Pläne.</p><button class="primary-button" type="button" data-meal-tab="dishes">Gerichte hinzufügen</button></div>` : renderPeriodGrid(plan, dates)}
@@ -531,6 +577,35 @@
         const cd = cooldownInfo(dish, parseLocalDate(ui.periodStart));
         return `<article class="meal-dish-card-v314dz6 ${dish.active === false ? 'is-inactive' : ''}"><div class="meal-dish-title-v314dz6"><div><strong>${esc(dish.name)}</strong><span>${dish.days} Tag${dish.days === 1 ? '' : 'e'}${dish.weekendSpecial ? ' · ✦ Weekend special' : ''}</span></div><button class="secondary-button" type="button" data-meal-edit="${attr(dish.id)}">Bearbeiten</button></div><div class="meal-tags-v314dz6">${dish.tags.length ? dish.tags.map(tag => `<span>#${esc(displayTag(tag))}</span>`).join('') : '<span class="is-muted">keine Tags</span>'}</div><small>${esc(lastUsedLabel(dish))}${cd.blocked ? ` · für dieses Startdatum im Cooldown` : ''}</small></article>`;
       }).join('')}</div>` : `<div class="meal-empty-v314dz6"><span>🥘</span><strong>Noch keine Gerichte.</strong><p>Trag zuerst die Gerichte ein, die ohnehin zu eurer normalen Rotation gehören.</p></div>`}
+    </section>`;
+  }
+
+  function renderHistoryTab() {
+    const s = ensureState();
+    const today = localDateKey(new Date());
+    const defaultDate = localDateKey(addDays(new Date(), -1));
+    const activeDishes = s.dishes.filter(dish => dish.active !== false).sort((a,b) => a.name.localeCompare(b.name, 'de'));
+    const rows = [...(s.usageHistory || [])]
+      .sort((a,b) => String(b.date).localeCompare(String(a.date)) || String(b.createdAt).localeCompare(String(a.createdAt)))
+      .slice(0, 80);
+    return `<section class="meal-history-v314dz9">
+      <div class="meal-section-heading-v314dz6"><div><small>VERGANGENHEIT</small><h3>Vergangene Mahlzeiten nachtragen</h3><p>Trag einfach ein, was ihr tatsächlich gegessen habt. Diese Einträge zählen sofort für den Cooldown — du musst dafür keinen alten Wochenplan nachbauen.</p></div></div>
+      <div class="meal-history-layout-v314dz9">
+        <form class="meal-history-form-v314dz9" data-meal-history-form>
+          <label><span>Datum</span><input type="date" name="date" max="${attr(today)}" value="${attr(defaultDate)}" required></label>
+          <label><span>Gericht</span><select name="dishId" data-meal-history-dish required><option value="">Gericht wählen…</option>${activeDishes.map(dish => `<option value="${attr(dish.id)}" data-days="${dish.days}">${esc(dish.name)}</option>`).join('')}</select></label>
+          <label><span>Für wie viele Tage?</span><input type="number" name="days" min="1" max="4" step="1" value="1" data-meal-history-days required></label>
+          <button class="primary-button" type="submit" ${activeDishes.length ? '' : 'disabled'}>＋ Nachtragen</button>
+          <small>Bei einem 2-Tage-Gericht reicht ein Eintrag am ersten Tag mit „2 Tage“.</small>
+        </form>
+        <div class="meal-history-list-v314dz9">
+          ${rows.length ? rows.map(entry => {
+            const dish = dishById(entry.dishId);
+            const date = parseLocalDate(entry.date);
+            return `<article><div><small>${esc(date.toLocaleDateString('de-DE',{weekday:'short',day:'2-digit',month:'2-digit',year:'numeric'}))}</small><strong>${esc(dish?.name || 'Gelöschtes Gericht')}</strong><span>${entry.days} Tag${Number(entry.days) === 1 ? '' : 'e'} · zählt für Cooldown</span></div><button type="button" class="text-button danger" data-meal-history-delete="${attr(entry.id)}">Löschen</button></article>`;
+          }).join('') : `<div class="meal-empty-v314dz6"><span>🗓️</span><strong>Noch nichts nachgetragen.</strong><p>Wenn du z. B. die letzte Woche einträgst, greift der 1-Woche-Cooldown sofort bei der nächsten Planung.</p></div>`}
+        </div>
+      </div>
     </section>`;
   }
 
@@ -610,11 +685,17 @@
     }));
     dialog.querySelectorAll('[data-meal-period-start]').forEach(input => input.addEventListener('change', () => {
       if (/^\d{4}-\d{2}-\d{2}$/.test(input.value)) ui.periodStart = input.value;
+      ui.swapMemory = {};
       render();
     }));
     dialog.querySelectorAll('[data-meal-period-days]').forEach(input => input.addEventListener('change', () => {
       ui.periodDays = clamp(input.value, 1, 31);
       render();
+    }));
+    dialog.querySelectorAll('[data-meal-history-dish]').forEach(select => select.addEventListener('change', () => {
+      const option = select.selectedOptions?.[0];
+      const daysInput = select.closest('form')?.querySelector('[data-meal-history-days]');
+      if (daysInput && option?.dataset?.days) daysInput.value = clamp(option.dataset.days, 1, 4);
     }));
   }
 
@@ -623,7 +704,7 @@
     if (!target) return;
     if (target.dataset.mealTab) { ui.tab = target.dataset.mealTab; ui.mode = 'main'; render(); return; }
     if (target.dataset.mealEdit) { ui.mode = 'dish'; ui.editingDishId = target.dataset.mealEdit; render(); return; }
-    if (target.dataset.mealSwap) { ui.mode = 'swap'; ui.swapBlockId = target.dataset.mealSwap; render(); return; }
+    if (target.dataset.mealSwap) { autoSwap(target.dataset.mealSwap); return; }
     if (target.dataset.mealApplySwap) { applySwap(target.dataset.mealApplySwap); return; }
     if (target.dataset.mealOpenUrl) {
       const dish = dishById(target.dataset.mealOpenUrl);
@@ -633,10 +714,11 @@
     if (target.dataset.mealDelete) { deleteDish(target.dataset.mealDelete); return; }
     if (target.dataset.mealRestockDelete) { deleteRestock(target.dataset.mealRestockDelete); return; }
     if (target.dataset.mealTagDelete) { deleteTagRule(target.dataset.mealTagDelete); return; }
+    if (target.dataset.mealHistoryDelete) { deleteHistory(target.dataset.mealHistoryDelete); return; }
     switch (target.dataset.mealAction) {
       case 'close': closePlanner(); break;
-      case 'prev-period': ui.periodStart = localDateKey(addDays(parseLocalDate(ui.periodStart), -ui.periodDays)); render(); break;
-      case 'next-period': ui.periodStart = localDateKey(addDays(parseLocalDate(ui.periodStart), ui.periodDays)); render(); break;
+      case 'prev-period': ui.periodStart = localDateKey(addDays(parseLocalDate(ui.periodStart), -ui.periodDays)); ui.swapMemory = {}; render(); break;
+      case 'next-period': ui.periodStart = localDateKey(addDays(parseLocalDate(ui.periodStart), ui.periodDays)); ui.swapMemory = {}; render(); break;
       case 'generate': generateCurrentPeriod(); break;
       case 'commit': commitCurrentPlan(); break;
       case 'new-dish': ui.mode = 'dish'; ui.editingDishId = null; render(); break;
@@ -650,6 +732,7 @@
   function handleSubmit(event) {
     const form = event.target;
     if (form.matches('[data-meal-dish-form]')) { event.preventDefault(); saveDishForm(form); }
+    else if (form.matches('[data-meal-history-form]')) { event.preventDefault(); addHistoryForm(form); }
     else if (form.matches('[data-meal-restock-form]')) { event.preventDefault(); addRestockForm(form); }
     else if (form.matches('[data-meal-tag-rule-form]')) { event.preventDefault(); addTagRuleForm(form); }
   }
@@ -690,6 +773,28 @@
     s.dishes = s.dishes.filter(item => item.id !== id);
     save('meal-planner-dish-delete');
     ui.mode = 'main'; ui.tab = 'dishes'; ui.editingDishId = null;
+    render();
+  }
+
+  function addHistoryForm(form) {
+    const data = new FormData(form);
+    const dishId = String(data.get('dishId') || '');
+    const date = String(data.get('date') || '');
+    const dish = dishById(dishId);
+    if (!dish || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
+    const today = parseLocalDate(localDateKey(new Date()));
+    if (parseLocalDate(date) > today) { app()?.showToast?.('Vergangene Mahlzeiten können nicht in der Zukunft liegen.'); return; }
+    const days = clamp(data.get('days') || dish.days || 1, 1, 4);
+    ensureState().usageHistory.push({ id: uid('meal-log'), dishId, date, days, createdAt: new Date().toISOString() });
+    save('meal-planner-history-add');
+    render();
+    app()?.showToast?.(`🗓️ ${dish.name} nachgetragen · Cooldown aktualisiert.`);
+  }
+
+  function deleteHistory(id) {
+    const s = ensureState();
+    s.usageHistory = (s.usageHistory || []).filter(entry => entry.id !== id);
+    save('meal-planner-history-delete');
     render();
   }
 
@@ -795,7 +900,8 @@
     compatibleSwaps,
     shoppingText,
     periodKey,
-    periodDates
+    periodDates,
+    autoSwap
   };
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once:true });

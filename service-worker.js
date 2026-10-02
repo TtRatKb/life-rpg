@@ -1,10 +1,10 @@
-const CACHE_NAME = "life-rpg-v0314dz8-meal-planner-flex-period";
+const CACHE_NAME = "life-rpg-v0314dz9-meal-history-auto-swap";
 const ASSET_CACHE_NAME = "life-rpg-assets-v6";
 const MAX_RUNTIME_ASSETS = 96;
 const CORE = [
   "./",
   "./index.html",
-  "./life-hub-v314dk.js?v=0.31.4dz8",
+  "./life-hub-v314dk.js?v=0.31.4dz9",
   "./creative-hub-v314dl.js?v=0.31.4dz2",
   "./creative-hub-v314dl.css?v=0.31.4dn",
   "./knowledge-workshop.js?v=0.31.4do",
@@ -13,7 +13,7 @@ const CORE = [
   "./daily-life-v314cv.css?v=0.31.4cv",
   "./daily-plan-v2.css?v=0.31.4dz4",
   "./japanese-practice-library.css?v=0.31.4dz4",
-  "./meal-planner.css?v=0.31.4dz8",
+  "./meal-planner.css?v=0.31.4dz9",
   "./daily-life-v314cv.js?v=0.31.4dv",
   "./sound-garden-spotify.js?v=0.31.4dy",
   "./sound-garden.js?v=0.31.4dz1",
@@ -146,7 +146,7 @@ const CORE = [
   "./modal-manager.js?v=0.31.4d",
   "./training-focus.js?v=0.31.4o",
   "./app.js?v=0.31.4dz3",
-  "./meal-planner.js?v=0.31.4dz8",
+  "./meal-planner.js?v=0.31.4dz9",
   "./daily-streaks.js?v=0.31.4z",
   "./stewardship.js?v=0.31.3a",
   "./habits.js?v=0.31.4cv",
