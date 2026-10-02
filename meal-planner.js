@@ -1,7 +1,7 @@
 (() => {
-  const SCHEMA = 3;
+  const SCHEMA = 4;
   const DAY_MS = 86400000;
-  const DEFAULT_TAG_LIMITS = { pasta: 1, potato: 1, rice: 1, tortilla: 1 };
+  const DEFAULT_TAG_LIMITS = { nudeln: 1, kartoffeln: 1, reis: 1, tortilla: 1 };
   const ui = { tab: 'plan', periodStart: '', periodDays: 7, mode: 'main', editingDishId: null, swapBlockId: null, swapMemory: {} };
 
   function app() { return window.LifeRPGApp; }
@@ -10,7 +10,17 @@
   function attr(value) { return esc(value).replace(/`/g, '&#096;'); }
   function uid(prefix) { return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,8)}`; }
   function clamp(n, min, max) { return Math.min(max, Math.max(min, Number(n) || 0)); }
-  function normalTag(value) { return String(value || '').trim().toLowerCase().replace(/^#/, '').replace(/\s+/g, '-'); }
+  const TAG_ALIASES = {
+    pasta: 'nudeln', noodle: 'nudeln', noodles: 'nudeln', nudel: 'nudeln', nudeln: 'nudeln',
+    potato: 'kartoffeln', potatoes: 'kartoffeln', kartoffel: 'kartoffeln', kartoffeln: 'kartoffeln',
+    rice: 'reis', reis: 'reis',
+    tortilla: 'tortilla', tortillas: 'tortilla'
+  };
+
+  function normalTag(value) {
+    const clean = String(value || '').trim().toLowerCase().replace(/^#/, '').replace(/\s+/g, '-');
+    return TAG_ALIASES[clean] || clean;
+  }
   function displayTag(value) { return String(value || '').replace(/-/g, ' '); }
 
   function defaultPlanner() {
@@ -635,7 +645,7 @@
       <div class="meal-section-heading-v314dz6"><div><small>PLANUNGSREGELN</small><h3>Abwechslung ohne jedes Mal neu nachzudenken.</h3><p>Tags sind Konfliktgruppen. Wenn Burritos und Enchilada-Lasagne beide #tortilla haben und #tortilla auf 1 steht, landen sie nicht in derselben Kalenderwoche.</p></div></div>
       <div class="meal-rules-grid-v314dz6">
         <section class="meal-rule-card-v314dz6"><label><span>Standard-Cooldown pro Gericht</span><select data-meal-setting="defaultCooldownWeeks">${[0,1,2,3,4].map(n => `<option value="${n}" ${s.settings.defaultCooldownWeeks === n ? 'selected' : ''}>${n === 0 ? 'Kein Cooldown' : `${n} Woche${n === 1 ? '' : 'n'}`}</option>`).join('')}</select><small>1 Woche bedeutet: Zwischen letzter Nutzung und nächster Einplanung müssen mindestens 7 Tage liegen.</small></label><label class="meal-check-row-v314dz6"><input type="checkbox" data-meal-setting="preferWeekendSpecials" ${s.settings.preferWeekendSpecials ? 'checked' : ''}><span>Als „Weekend special“ markierte Gerichte an Samstag/Sonntag bevorzugen.</span></label></section>
-        <section class="meal-rule-card-v314dz6"><div class="meal-shopping-card-head-v314dz6"><div><small>TAG-LIMITS</small><h4>Maximale verschiedene Gerichte pro Kalenderwoche</h4></div></div><form class="meal-tag-rule-add-v314dz6" data-meal-tag-rule-form><input name="tag" maxlength="60" placeholder="z. B. mexican" required><input name="limit" type="number" min="1" max="7" value="1" required><button class="secondary-button" type="submit">Regel hinzufügen</button></form><div class="meal-tag-rules-v314dz6">${limits.map(([tag,limit]) => `<div><span>#${esc(displayTag(tag))}</span><label>max <input type="number" min="1" max="7" value="${Number(limit) || 1}" data-meal-tag-limit="${attr(tag)}"></label><button class="text-button danger" type="button" data-meal-tag-delete="${attr(tag)}">×</button></div>`).join('')}</div></section>
+        <section class="meal-rule-card-v314dz6"><div class="meal-shopping-card-head-v314dz6"><div><small>TAG-LIMITS</small><h4>Maximale verschiedene Gerichte pro Kalenderwoche</h4></div></div><form class="meal-tag-rule-add-v314dz6" data-meal-tag-rule-form><input name="tag" maxlength="60" placeholder="z. B. mexican" required><input name="limit" type="number" min="1" max="7" value="1" required><button class="secondary-button" type="submit">Regel hinzufügen</button></form><small>Kartoffel/Kartoffeln/Potato, Nudel/Nudeln/Pasta, Reis/Rice und Tortilla/Tortillas zählen jeweils automatisch als dieselbe Konfliktgruppe.</small><div class="meal-tag-rules-v314dz6">${limits.map(([tag,limit]) => `<div><span>#${esc(displayTag(tag))}</span><label>max <input type="number" min="1" max="7" value="${Number(limit) || 1}" data-meal-tag-limit="${attr(tag)}"></label><button class="text-button danger" type="button" data-meal-tag-delete="${attr(tag)}">×</button></div>`).join('')}</div></section>
       </div>
     </section>`;
   }
@@ -648,7 +658,7 @@
         <label class="is-wide"><span>Name</span><input name="name" maxlength="140" value="${attr(dish?.name || '')}" placeholder="Burritos" required></label>
         <label><span>Reicht für</span><select name="days">${[1,2,3,4].map(n => `<option value="${n}" ${Number(dish?.days || 2) === n ? 'selected' : ''}>${n} Tag${n === 1 ? '' : 'e'}</option>`).join('')}</select></label>
         <label><span>Cooldown</span><select name="cooldownWeeks"><option value="" ${dish?.cooldownWeeks == null ? 'selected' : ''}>Standard verwenden</option>${[0,1,2,3,4].map(n => `<option value="${n}" ${dish?.cooldownWeeks === n ? 'selected' : ''}>${n === 0 ? 'Keiner' : `${n} Woche${n === 1 ? '' : 'n'}`}</option>`).join('')}</select></label>
-        <label class="is-wide"><span>Tags / Konfliktgruppen</span><input name="tags" maxlength="500" value="${attr((dish?.tags || []).join(', '))}" placeholder="tortilla, mexican, veggie"><small>Kommagetrennt. Ein Tag wird erst begrenzt, wenn du dafür unter Regeln ein Limit hinterlegst.</small></label>
+        <label class="is-wide"><span>Tags / Konfliktgruppen</span><input name="tags" maxlength="500" value="${attr((dish?.tags || []).join(', '))}" placeholder="kartoffeln, nudeln, tortilla"><small>Kommagetrennt. Häufige Grundgruppen werden automatisch zusammengeführt (z. B. Kartoffeln/Potato, Nudeln/Pasta, Reis/Rice, Tortilla/Tortillas). Ein anderer Tag wird erst begrenzt, wenn du dafür unter Regeln ein Limit hinterlegst.</small></label>
         <label class="meal-check-row-v314dz6 is-wide"><input name="weekendSpecial" type="checkbox" ${dish?.weekendSpecial ? 'checked' : ''}><span>Wochenend-/besonderes Essen — Samstag oder Sonntag bevorzugen.</span></label>
         <label class="is-wide"><span>Rezept / Crouton / Quellen-URL <small>optional</small></span><input name="sourceUrl" type="text" inputmode="url" maxlength="1400" value="${attr(dish?.sourceUrl || '')}" placeholder="https://…"></label>
         <label class="is-wide"><span>Zutaten <small>optional · eine pro Zeile</small></span><textarea name="ingredients" rows="9" placeholder="Zutatenliste hier hineinkopieren…">${esc((dish?.ingredients || []).join('\n'))}</textarea><small>Gespeichert wird nur Text — keine Bilder oder Webseiteninhalte.</small></label>
