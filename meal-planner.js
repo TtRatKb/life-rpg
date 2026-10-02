@@ -177,6 +177,68 @@
     ensureState().plans[periodKey(planStartKey(plan), planLength(plan))] = plan;
   }
 
+  function resizeCurrentPlan(newDays) {
+    ensureUiPeriod();
+    const oldDays = ui.periodDays;
+    const nextDays = clamp(newDays, 1, 31);
+    if (nextDays === oldDays) return false;
+
+    const s = ensureState();
+    const oldKey = periodKey(ui.periodStart, oldDays);
+    const plan = planFor(ui.periodStart, oldDays);
+    ui.periodDays = nextDays;
+    ui.swapMemory = {};
+
+    if (!plan) {
+      render();
+      return false;
+    }
+
+    // A range-length edit changes the same plan instead of switching to a
+    // different storage key. Remove the old alias first so committed plans
+    // cannot be counted twice by cooldown/history logic.
+    if (s.plans[oldKey] === plan) delete s.plans[oldKey];
+    if (s.plans[ui.periodStart] === plan) delete s.plans[ui.periodStart];
+
+    plan.periodStart = ui.periodStart;
+    plan.weekStart = ui.periodStart;
+    plan.days = nextDays;
+    plan.updatedAt = new Date().toISOString();
+
+    // Keep every existing meal that begins inside the resized range. If a
+    // multi-day dish continues beyond the visible end, its duration remains
+    // intact: the leftovers still exist even if the shopping horizon ends.
+    plan.blocks = (plan.blocks || []).filter(block => Number(block?.start || 0) < nextDays);
+
+    // When extending, preserve the existing meals and add explicit open slots
+    // only for newly visible, uncovered days. Those slots can be filled with
+    // the existing one-click swap without rebuilding the rest of the plan.
+    if (nextDays > oldDays) {
+      const occupied = new Set();
+      plan.blocks.forEach(block => {
+        const start = Number(block?.start || 0);
+        const duration = Math.max(1, Number(block?.duration || 1));
+        for (let i = 0; i < duration; i += 1) {
+          const index = start + i;
+          if (index >= 0 && index < nextDays) occupied.add(index);
+        }
+      });
+      for (let index = oldDays; index < nextDays; index += 1) {
+        if (occupied.has(index)) continue;
+        plan.blocks.push({ id: uid('flex'), dishId: null, start: index, duration: 1, label: 'Open / leftovers' });
+      }
+      plan.blocks.sort((a,b) => Number(a?.start || 0) - Number(b?.start || 0));
+    }
+
+    storePlan(plan);
+    save('meal-plan-resize');
+    render();
+    app()?.showToast?.(nextDays > oldDays
+      ? `Zeitraum auf ${nextDays} Tage erweitert · bestehende Gerichte bleiben erhalten.`
+      : `Zeitraum auf ${nextDays} Tage verkürzt · bestehende Gerichte bleiben erhalten.`);
+    return true;
+  }
+
   function allPlans() {
     const seen = new Set();
     return Object.values(ensureState().plans || {}).filter(plan => {
@@ -389,7 +451,19 @@
     else app()?.showToast?.('🍲 Meal plan built. Swap anything that does not feel right.');
   }
 
-  function coveredDays(plan) { return (plan?.blocks || []).reduce((sum, block) => sum + Number(block.duration || 0), 0); }
+  function coveredDays(plan) {
+    const limit = planLength(plan);
+    const covered = new Set();
+    (plan?.blocks || []).forEach(block => {
+      const start = Number(block?.start || 0);
+      const duration = Math.max(1, Number(block?.duration || 1));
+      for (let i = 0; i < duration; i += 1) {
+        const index = start + i;
+        if (index >= 0 && index < limit) covered.add(index);
+      }
+    });
+    return covered.size;
+  }
 
   function commitCurrentPlan() {
     const plan = planFor();
@@ -699,8 +773,7 @@
       render();
     }));
     dialog.querySelectorAll('[data-meal-period-days]').forEach(input => input.addEventListener('change', () => {
-      ui.periodDays = clamp(input.value, 1, 31);
-      render();
+      resizeCurrentPlan(input.value);
     }));
     dialog.querySelectorAll('[data-meal-history-dish]').forEach(select => select.addEventListener('change', () => {
       const option = select.selectedOptions?.[0];
@@ -911,7 +984,8 @@
     shoppingText,
     periodKey,
     periodDates,
-    autoSwap
+    autoSwap,
+    resizeCurrentPlan
   };
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once:true });

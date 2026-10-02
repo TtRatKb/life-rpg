@@ -1,4 +1,4 @@
-const CACHE_NAME = "life-rpg-v0314dz10-meal-tag-alias-fix";
+const CACHE_NAME = "life-rpg-v0314dz11-meal-range-resize-preserve-plan";
 const ASSET_CACHE_NAME = "life-rpg-assets-v6";
 const MAX_RUNTIME_ASSETS = 96;
 const CORE = [
@@ -146,7 +146,7 @@ const CORE = [
   "./modal-manager.js?v=0.31.4d",
   "./training-focus.js?v=0.31.4o",
   "./app.js?v=0.31.4dz3",
-  "./meal-planner.js?v=0.31.4dz10",
+  "./meal-planner.js?v=0.31.4dz11",
   "./daily-streaks.js?v=0.31.4z",
   "./stewardship.js?v=0.31.3a",
   "./habits.js?v=0.31.4cv",
