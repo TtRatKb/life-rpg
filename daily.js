@@ -7,7 +7,7 @@
     return;
   }
 
-  const SCHEMA = 9;
+  const SCHEMA = 10;
   const SHADOW_KEY = "life-rpg-daily-planner-shadow-v1";
   const MAX_DAY_HISTORY = 120;
   const MAX_COMPANION_HISTORY = 45;
@@ -506,7 +506,11 @@
     const changed = ensureState();
     const rewardUpgraded = ensureTodayCheckInStoryEnergyReward();
     initialized = true;
-    if (changed || rewardUpgraded) persist(rewardUpgraded ? "daily-checkin-v272-reward-migration" : "daily-planner-init", { render: false });
+    const gameContinuityUpgraded = ensureGameContinuityV314dz5();
+    if (changed || rewardUpgraded || gameContinuityUpgraded) {
+      const source = rewardUpgraded ? "daily-checkin-v272-reward-migration" : gameContinuityUpgraded ? "daily-game-continuity-v314dz5" : "daily-planner-init";
+      persist(source, { render: false });
+    }
     render();
     actionTimerTicker = window.setInterval(updateLiveActionTimers, 1000);
   }
@@ -678,8 +682,10 @@
       render();
     });
 
-    window.addEventListener("life-rpg:game-change", () => {
+    window.addEventListener("life-rpg:game-change", event => {
       if (!initialized) return;
+      const source = String(event?.detail?.source || "");
+      if (["game-motivation", "game-save"].includes(source) && promoteTopVeryHighActiveGame({ persistChange: true })) return;
       render();
     });
 
@@ -1990,6 +1996,45 @@
     return eligibleGames().filter(game => ["playing", "endless"].includes(game.status));
   }
 
+  function ensureGameContinuityV314dz5() {
+    const planner = app.getState().dailyPlanner;
+    if (!planner?.migrations || planner.migrations.gameMotivationContinuityV314dz5) return false;
+    planner.migrations.gameMotivationContinuityV314dz5 = true;
+    // A DZ4 plan may have been generated before the user raised a game's motivation.
+    // Promote one explicit Playing + Very high preference only into an untouched,
+    // unfinished leisure slot; never rewrite completed or manually swapped choices.
+    promoteTopVeryHighActiveGame({ persistChange: false });
+    return true;
+  }
+
+  function promoteTopVeryHighActiveGame({ persistChange = false } = {}) {
+    const planner = app.getState().dailyPlanner;
+    const day = planner?.days?.[todayKey()];
+    if (!day?.checkIn || day.batchReward?.eventId || !Array.isArray(day.picks)) return false;
+
+    const games = eligibleActiveGames()
+      .filter(game => game.motivation === "very_high")
+      .filter(game => !isSuggestionSnoozed(sourceKey("game", game.id)))
+      .filter(game => !Object.values(day.rerollHistory || {}).some(keys => Array.isArray(keys) && keys.includes(sourceKey("game", game.id))))
+      .sort((a, b) => scoreGame(b, "joy", day.checkIn) - scoreGame(a, "joy", day.checkIn));
+    const game = games[0];
+    if (!game || day.picks.some(pick => pick.sourceType === "game" && pick.sourceId === game.id)) return false;
+
+    const target = ["joy", "gentle"]
+      .map(slot => day.picks.find(pick => pick.slot === slot))
+      .find(pick => pick && !pickCompletion(pick).done && Number(pick.rerolls || 0) === 0 && sourceAllowedForSlot("game", game, pick.slot));
+    if (!target) return false;
+
+    const replacement = makePickFromCandidate(target.slot, { sourceType: "game", item: game, score: scoreGame(game, target.slot, day.checkIn) }, day.checkIn, target);
+    day.picks = day.picks.map(pick => pick === target ? replacement : pick);
+    day.updatedAt = Date.now();
+    if (persistChange) {
+      persist("daily-game-very-high-continuity");
+      app.showToast?.(`${game.title} moved into today's plan · Playing + Very high keeps momentum instead of forcing rotation.`);
+    }
+    return true;
+  }
+
   function chooseSourceCandidate(slot, checkIn, quests, adventures, books, games, kotoba, japaneseMedia, used, excluded, previous = null, usedTypes = [], usedRealms = [], usedGroups = []) {
     const currentKey = previous ? sourceKey(previous.sourceType || "quest", previous.sourceId) : "";
     const currentId = previous?.sourceId || "";
@@ -2012,7 +2057,7 @@
         const group = plannerGroup(sourceType, item);
         if (group && usedGroups.includes(group)) return; // never duplicate a recovery/activity family within a pick set
         const key = sourceKey(sourceType, item.id);
-        const memory = plannerMemoryAdjustment(key, sourceType, sourceRealm(sourceType, item), slot);
+        const memory = plannerMemoryAdjustment(key, sourceType, sourceRealm(sourceType, item), slot, item);
         const diversity = diversityAdjustment(sourceType, sourceRealm(sourceType, item), usedTypes, usedRealms, slot);
         candidates.push({
           sourceType,
@@ -2117,17 +2162,33 @@
     return -penalty;
   }
 
-  function plannerMemoryAdjustment(key, sourceType, realm, slot) {
+  function plannerMemoryAdjustment(key, sourceType, realm, slot, item = null) {
     const stats = recentPickStats(key, sourceType, realm);
-    let score = 0;
-    if (stats.daysSinceItem === 1) score -= 2.8;
-    else if (stats.daysSinceItem === 2) score -= 1.8;
-    else if (stats.daysSinceItem === 3) score -= 1.05;
-    else if (stats.daysSinceItem <= 7) score -= 0.5;
-    if (stats.itemCount7 > 1) score -= Math.min(1.8, (stats.itemCount7 - 1) * 0.6);
-    if (stats.typeCount3 >= 2) score -= Math.min(1.25, (stats.typeCount3 - 1) * 0.45);
-    if (realm && stats.realmCount3 >= 2) score -= Math.min(0.9, (stats.realmCount3 - 1) * 0.32);
+    let recencyPenalty = 0;
+    if (stats.daysSinceItem === 1) recencyPenalty = 2.8;
+    else if (stats.daysSinceItem === 2) recencyPenalty = 1.8;
+    else if (stats.daysSinceItem === 3) recencyPenalty = 1.05;
+    else if (stats.daysSinceItem <= 7) recencyPenalty = 0.5;
 
+    let itemFrequencyPenalty = stats.itemCount7 > 1 ? Math.min(1.8, (stats.itemCount7 - 1) * 0.6) : 0;
+    let typePenalty = stats.typeCount3 >= 2 ? Math.min(1.25, (stats.typeCount3 - 1) * 0.45) : 0;
+    let realmPenalty = realm && stats.realmCount3 >= 2 ? Math.min(0.9, (stats.realmCount3 - 1) * 0.32) : 0;
+
+    // V0.31.4dz5: games are not chores in a rotation. A game explicitly marked
+    // Playing + Very high should be allowed to carry momentum across consecutive
+    // days. Lower-interest games still benefit from the normal rotation pressure.
+    if (sourceType === "game") {
+      const profile = gameContinuityProfile(item);
+      recencyPenalty *= profile.itemRecencyFactor;
+      itemFrequencyPenalty *= profile.itemFrequencyFactor;
+      typePenalty *= profile.typeFactor;
+      realmPenalty *= profile.realmFactor;
+    }
+
+    let score = -(recencyPenalty + itemFrequencyPenalty + typePenalty + realmPenalty);
+
+    // Explicit Not Today / Swap feedback remains meaningful even for a favorite.
+    // Motivation softens automatic rotation only; it never cancels an explicit user signal.
     const memory = plannerState().rerollMemory?.[key];
     if (memory) {
       const days = daysSinceDateKey(memory.lastDate);
@@ -2136,6 +2197,27 @@
       if (Number(memory.slots?.[slot] || 0) > 1 && days <= 7) score -= 0.45;
     }
     return score;
+  }
+
+  function gameContinuityProfile(game = {}) {
+    const active = ["playing", "endless"].includes(game?.status);
+    const motivation = String(game?.motivation || "medium");
+    if (!active) {
+      return ({
+        very_high: { itemRecencyFactor: 0.35, itemFrequencyFactor: 0.5, typeFactor: 0.75, realmFactor: 0.8 },
+        high: { itemRecencyFactor: 0.65, itemFrequencyFactor: 0.75, typeFactor: 0.85, realmFactor: 0.9 },
+        medium: { itemRecencyFactor: 1, itemFrequencyFactor: 1, typeFactor: 1, realmFactor: 1 },
+        low: { itemRecencyFactor: 1.15, itemFrequencyFactor: 1.1, typeFactor: 1.05, realmFactor: 1.05 },
+        someday: { itemRecencyFactor: 1.35, itemFrequencyFactor: 1.25, typeFactor: 1.1, realmFactor: 1.1 }
+      })[motivation] || { itemRecencyFactor: 1, itemFrequencyFactor: 1, typeFactor: 1, realmFactor: 1 };
+    }
+    return ({
+      very_high: { itemRecencyFactor: 0.05, itemFrequencyFactor: 0.18, typeFactor: 0.35, realmFactor: 0.4 },
+      high: { itemRecencyFactor: 0.25, itemFrequencyFactor: 0.45, typeFactor: 0.6, realmFactor: 0.65 },
+      medium: { itemRecencyFactor: 0.75, itemFrequencyFactor: 0.85, typeFactor: 0.9, realmFactor: 0.9 },
+      low: { itemRecencyFactor: 1.15, itemFrequencyFactor: 1.1, typeFactor: 1, realmFactor: 1 },
+      someday: { itemRecencyFactor: 1.4, itemFrequencyFactor: 1.3, typeFactor: 1.1, realmFactor: 1.1 }
+    })[motivation] || { itemRecencyFactor: 0.75, itemFrequencyFactor: 0.85, typeFactor: 0.9, realmFactor: 0.9 };
   }
 
   function isSuggestionSnoozed(key) {
@@ -2493,6 +2575,7 @@
     let score = matchDemand(capacity, demand) * 2;
     const motivation = Number(window.LifeRPGGames?.motivationScore?.(game) ?? gameMotivationScore(game));
     score += motivation;
+    score += gameRecentMomentumBoost(game);
     if (["playing", "endless"].includes(game.status)) score += 1.5;
     score += duration <= timeBudget ? 1.7 : -Math.min(3.8, (duration - timeBudget) / 20);
     score += Math.min(3.2, Math.max(0, days - 3) * 0.13);
@@ -2536,6 +2619,28 @@
     }
 
     return score;
+  }
+
+  function gameRecentMomentumBoost(game = {}) {
+    if (!["playing", "endless"].includes(game?.status)) return 0;
+    const days = daysSinceTimestamp(gameLastPlayedAt(game) || game.createdAt);
+    const motivation = String(game?.motivation || "medium");
+    if (motivation === "very_high") {
+      if (days <= 1) return 3.4;
+      if (days === 2) return 2.7;
+      if (days === 3) return 2;
+      if (days <= 7) return 0.8;
+      return 0;
+    }
+    if (motivation === "high") {
+      if (days <= 1) return 2.2;
+      if (days === 2) return 1.6;
+      if (days === 3) return 1;
+      if (days <= 7) return 0.4;
+      return 0;
+    }
+    if (motivation === "medium" && days <= 1) return 0.35;
+    return 0;
   }
 
   function gameMotivationScore(game) {
@@ -3689,6 +3794,9 @@
       return `${motivation.icon} ${motivation.label} motivation. This is in Want to Play, but the planner now prefers backlog games you actually feel like starting instead of treating every old Steam purchase equally.`;
     }
     if (["very_high", "high"].includes(game.motivation)) {
+      if (["playing", "endless"].includes(game.status) && days <= 3) {
+        return `${motivation.icon} ${motivation.label} motivation + active play momentum. You played this recently, so the planner treats that as a reason to continue — not as a cooldown that forces a different game.`;
+      }
       return `${motivation.icon} ${motivation.label} motivation. You marked this as something you genuinely want to play now, so it gets priority over lower-interest backlog titles.`;
     }
 

@@ -1,4 +1,4 @@
-const CACHE_NAME = "life-rpg-v0314dz4-action-ready-daily-plan";
+const CACHE_NAME = "life-rpg-v0314dz5-game-motivation-continuity";
 const ASSET_CACHE_NAME = "life-rpg-assets-v6";
 const MAX_RUNTIME_ASSETS = 96;
 const CORE = [
@@ -173,7 +173,7 @@ const CORE = [
   "./smart-action-router.js?v=0.31.4dz4",
   "./smart-quests.js?v=0.31.0",
   "./japanese-practice-library.js?v=0.31.4dz4",
-  "./daily.js?v=0.31.4dz4",
+  "./daily.js?v=0.31.4dz5",
   "./data/year-journal-questions.js?v=0.31.4ar",
   "./journal.js?v=0.31.4do",
   "./story-engine.js?v=0.31.4cy",
