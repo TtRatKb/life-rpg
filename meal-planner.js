@@ -343,30 +343,28 @@
     ui.editingDishId = null;
     ui.swapBlockId = null;
     render();
-    const dialog = document.getElementById('mealPlannerDialogV314dz6');
-    if (dialog && !dialog.open) dialog.showModal();
+    const nav = document.querySelector('.nav-button[data-view="meals"]');
+    if (nav && !document.getElementById('view-meals')?.classList.contains('active')) nav.click();
   }
 
   function closePlanner() {
-    const dialog = document.getElementById('mealPlannerDialogV314dz6');
-    if (dialog?.open) dialog.close();
+    document.querySelector('.nav-button[data-view="basecamp"]')?.click();
   }
 
   function render() {
-    const dialog = document.getElementById('mealPlannerDialogV314dz6');
-    if (!dialog) return;
-    if (ui.mode === 'dish') renderDishEditor(dialog);
-    else if (ui.mode === 'swap') renderSwap(dialog);
-    else renderMain(dialog);
-    bindRenderedInputs(dialog);
-    renderHomeSummary();
+    const page = document.getElementById('mealPlannerPageV314dz7');
+    if (!page) return;
+    if (ui.mode === 'dish') renderDishEditor(page);
+    else if (ui.mode === 'swap') renderSwap(page);
+    else renderMain(page);
+    bindRenderedInputs(page);
   }
 
-  function renderMain(dialog) {
-    dialog.innerHTML = `<div class="meal-planner-shell-v314dz6">
-      <div class="meal-planner-head-v314dz6">
-        <div><p class="eyebrow">HOME · WEEKLY FOOD RHYTHM</p><h2>Meal Planner</h2><p>Plan what you actually eat — with cooldowns, food-family rules and room to swap.</p></div>
-        <button class="close-button" type="button" data-meal-action="close" aria-label="Close">×</button>
+  function renderMain(page) {
+    page.innerHTML = `<div class="meal-planner-shell-v314dz6 meal-planner-page-shell-v314dz7">
+      <div class="meal-planner-head-v314dz6 meal-planner-page-head-v314dz7">
+        <div><p class="eyebrow">ALLTAG · WEEKLY FOOD RHYTHM</p><h1>Essensplan 🍲</h1><p>Plane eure echte Woche — mit Cooldowns, Essensfamilien, Wochenendgerichten und einer Einkaufsliste, die daraus direkt entsteht.</p></div>
+        <div class="meal-planner-page-summary-v314dz7"><span>WEEKLY UTILITY</span><strong>${esc(ensureState().dishes.length)} Gerichte</strong></div>
       </div>
       <nav class="meal-planner-tabs-v314dz6" aria-label="Meal planner sections">
         ${tabButton('plan','Week')} ${tabButton('dishes','Dishes')} ${tabButton('shopping','Shopping')} ${tabButton('rules','Rules')}
@@ -468,7 +466,7 @@
     const s = ensureState();
     const dish = ui.editingDishId ? s.dishes.find(item => item.id === ui.editingDishId) : null;
     const d = dish || normalizeDish({ name:'', days:2, tags:[], cooldownWeeks:null, ingredients:[] });
-    dialog.innerHTML = `<div class="meal-planner-shell-v314dz6 is-editor"><div class="meal-planner-head-v314dz6"><div><p class="eyebrow">${dish ? 'EDIT DISH' : 'NEW DISH'}</p><h2>${dish ? esc(dish.name) : 'Add a meal'}</h2><p>A recipe is optional. The planner mainly needs duration, tags and cooldown.</p></div><button class="close-button" type="button" data-meal-action="editor-cancel" aria-label="Back">×</button></div>
+    dialog.innerHTML = `<div class="meal-planner-shell-v314dz6 meal-planner-page-shell-v314dz7 is-editor"><div class="meal-planner-head-v314dz6"><div><p class="eyebrow">${dish ? 'EDIT DISH' : 'NEW DISH'}</p><h2>${dish ? esc(dish.name) : 'Add a meal'}</h2><p>A recipe is optional. The planner mainly needs duration, tags and cooldown.</p></div><button class="close-button" type="button" data-meal-action="editor-cancel" aria-label="Back">×</button></div>
       <form class="meal-dish-form-v314dz6" data-meal-dish-form>
         <label class="is-wide"><span>Name</span><input name="name" maxlength="140" value="${attr(dish?.name || '')}" placeholder="Burritos" required></label>
         <label><span>Feeds us for</span><select name="days">${[1,2,3,4].map(n => `<option value="${n}" ${Number(dish?.days || 2) === n ? 'selected' : ''}>${n} day${n === 1 ? '' : 's'}</option>`).join('')}</select></label>
@@ -487,7 +485,7 @@
     const block = plan?.blocks?.find(item => item.id === ui.swapBlockId);
     const current = block?.dishId ? dishById(block.dishId) : null;
     const swaps = compatibleSwaps(ui.swapBlockId);
-    dialog.innerHTML = `<div class="meal-planner-shell-v314dz6 is-editor"><div class="meal-planner-head-v314dz6"><div><p class="eyebrow">SWAP · ${esc(weekLabel())}</p><h2>${current ? esc(current.name) : 'Flexible day'}</h2><p>Only alternatives that still fit the rest of this week are shown.</p></div><button class="close-button" type="button" data-meal-action="swap-cancel" aria-label="Back">×</button></div>
+    dialog.innerHTML = `<div class="meal-planner-shell-v314dz6 meal-planner-page-shell-v314dz7 is-editor"><div class="meal-planner-head-v314dz6"><div><p class="eyebrow">SWAP · ${esc(weekLabel())}</p><h2>${current ? esc(current.name) : 'Flexible day'}</h2><p>Only alternatives that still fit the rest of this week are shown.</p></div><button class="close-button" type="button" data-meal-action="swap-cancel" aria-label="Back">×</button></div>
       <div class="meal-swap-list-v314dz6">${swaps.length ? swaps.map(dish => `<button type="button" data-meal-apply-swap="${attr(dish.id)}"><span><strong>${esc(dish.name)}</strong><small>${dish.days} day${dish.days === 1 ? '' : 's'} · ${esc((dish.tags || []).map(tag => `#${displayTag(tag)}`).join(' · ') || 'no conflict tags')}</small></span><b>Choose</b></button>`).join('') : `<div class="meal-empty-v314dz6"><span>↻</span><strong>No compatible swap right now.</strong><p>For this slot, every same-length dish is either on cooldown, already in the week or would break one of your tag limits.</p></div>`}</div><div class="meal-editor-actions-v314dz6"><button class="secondary-button" type="button" data-meal-action="swap-cancel">Back to week</button></div></div>`;
   }
 
@@ -662,14 +660,12 @@
     host.textContent = `${dishes} dish${dishes === 1 ? '' : 'es'} · ${coveredDays(plan)}/7 days${plan.status === 'committed' ? ' · ready' : ' · draft'}`;
   }
 
-  function injectDialog() {
-    if (document.getElementById('mealPlannerDialogV314dz6')) return;
-    const dialog = document.createElement('dialog');
-    dialog.id = 'mealPlannerDialogV314dz6';
-    dialog.className = 'rpg-dialog meal-planner-dialog-v314dz6';
-    dialog.addEventListener('click', handleClick);
-    dialog.addEventListener('submit', handleSubmit);
-    document.body.appendChild(dialog);
+  function bindPage() {
+    const page = document.getElementById('mealPlannerPageV314dz7');
+    if (!page || page.dataset.mealBound === '1') return;
+    page.dataset.mealBound = '1';
+    page.addEventListener('click', handleClick);
+    page.addEventListener('submit', handleSubmit);
   }
 
   function init() {
@@ -677,12 +673,12 @@
     const root = rootState();
     const existed = Boolean(root?.mealPlanner);
     ensureState();
-    injectDialog();
-    document.getElementById('mealPlannerOpenV314dz6')?.addEventListener('click', () => openPlanner('plan'));
-    document.getElementById('mealPlannerHomeOpenV314dz6')?.addEventListener('click', () => openPlanner('plan'));
-    renderHomeSummary();
+    bindPage();
+    render();
     if (!existed) save('meal-planner-init');
-    window.addEventListener('life-rpg:state-saved', renderHomeSummary);
+    window.addEventListener('life-rpg:view-changed', event => {
+      if (event?.detail?.view === 'meals') render();
+    });
   }
 
   window.LifeRPGMealPlanner = {
@@ -694,9 +690,6 @@
     weekKeyForOffset
   };
 
-  // Inject before DOMContentLoaded so the existing modal manager can discover
-  // and scroll-lock this dialog together with every other Life RPG modal.
-  if (document.body) injectDialog();
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once:true });
   else init();
 })();

@@ -43,7 +43,7 @@
   <link rel="stylesheet" href="daily-life-v314cv.css?v=0.31.4cv" />
   <link rel="stylesheet" href="daily-plan-v2.css?v=0.31.4dz4" />
   <link rel="stylesheet" href="japanese-practice-library.css?v=0.31.4dz4" />
-  <link rel="stylesheet" href="meal-planner.css?v=0.31.4dz6" />
+  <link rel="stylesheet" href="meal-planner.css?v=0.31.4dz7" />
   <link rel="stylesheet" href="sound-garden.css?v=0.31.4dz" />
   <link rel="stylesheet" href="life-hub-v314dk.css?v=0.31.4dl" />
   <link rel="stylesheet" href="creative-hub-v314dl.css?v=0.31.4dn" />
@@ -267,10 +267,6 @@
             <p id="homeDescription" class="muted">Small, familiar, and unfortunately much too far from work.</p>
             <div id="homeHouseholdStatus" class="home-household-status-v314aw hidden"></div>
             <div id="seasonalLifeRoot"></div>
-            <div class="meal-planner-entry-v314dz6">
-              <div><strong>🍲 Meal Planner</strong><span id="mealPlannerHomeSummaryV314dz6">Next week is not planned yet.</span></div>
-              <button class="secondary-button" id="mealPlannerOpenV314dz6" type="button">Plan meals ›</button>
-            </div>
             <div id="roomGrid" class="room-grid"></div>
             <div id="roomMessage" class="soft-callout hidden"></div>
           </section>
@@ -1357,6 +1353,11 @@
         </div>
       </section>
 
+      <!-- MEAL PLANNER · full-page everyday utility -->
+      <section id="view-meals" class="view meal-planner-view-v314dz7">
+        <div id="mealPlannerPageV314dz7"></div>
+      </section>
+
             <!-- FOCUS / TIME / LIFE RHYTHM -->
       <section id="view-rhythm" class="view rhythm-view-v304">
         <section class="rhythm-hero-v304">
@@ -1808,11 +1809,12 @@
     </main>
 
     <nav class="bottom-nav" aria-label="Primary navigation">
-      <div class="nav-section-label">YOUR LIFE</div>
+      <div class="nav-section-label">ALLTAG</div>
       <button class="nav-button active" data-view="basecamp"><span>⌂</span><small>Dashboard</small></button>
       <button class="nav-button" data-view="habits" data-habit-date-mode="today"><span>❀</span><small>Habits</small></button>
       <button class="nav-button" data-view="journal"><span>🌸</span><small>Journal</small></button>
       <button class="nav-button" data-view="week"><span>▦</span><small>Meine Woche</small></button>
+      <button class="nav-button" data-view="meals"><span>🍲</span><small>Essensplan</small></button>
       <button class="nav-button" data-view="rhythm"><span>◷</span><small>Focus & Time</small></button>
       <button class="nav-button" data-view="activity"><span>≡</span><small>Activity</small></button>
       <button class="nav-button" data-view="quests"><span>☷</span><small>Quests</small></button>
@@ -3329,7 +3331,7 @@ League of Legends — PC" required></textarea></label>
   <script src="visual-performance.js?v=0.31.4bu"></script>
   <script src="coloring-storage-v2.js?v=0.31.4dz2"></script>
   <script src="app.js?v=0.31.4dz3"></script>
-  <script src="meal-planner.js?v=0.31.4dz6"></script>
+  <script src="meal-planner.js?v=0.31.4dz7"></script>
   <script src="daily-streaks.js?v=0.31.4z"></script>
   <script src="stewardship.js?v=0.31.3a"></script>
   <script src="habits.js?v=0.31.4cv"></script>
