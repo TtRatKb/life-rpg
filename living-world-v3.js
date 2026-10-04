@@ -7,7 +7,7 @@
   const E=x=>app.escapeHtml?.(String(x??"")) || String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   const KEY=()=>{const d=new Date();return [d.getFullYear(),String(d.getMonth()+1).padStart(2,"0"),String(d.getDate()).padStart(2,"0")].join("-");};
   const at=ms=>{const d=new Date(ms);return Number.isFinite(d.getTime())?[d.getFullYear(),String(d.getMonth()+1).padStart(2,"0"),String(d.getDate()).padStart(2,"0")].join("-"):"";};
-  const homeReady=()=>Boolean(app.getState().flags?.DYNARIOT_MOVE_IN_COMPLETE && app.getState().story?.completedSceneIds?.includes("SC_011"));
+  const homeReady=()=>Boolean(app.getState().flags?.DYNARIOT_MOVE_IN_COMPLETE);
   const cast={bakugo:{name:"Katsuki",neutral:"assets/story/characters/bakugo-neutral.png",soft:"assets/story/characters/bakugo-soft.png"},kirishima:{name:"Eijiro",neutral:"assets/story/characters/kirishima-neutral.png",soft:"assets/story/characters/kirishima-happy.png"}};
   const bg={kitchen:"assets/story/backgrounds/time/shared_apartment_kitchen_day.webp",living:"assets/story/backgrounds/time/shared_apartment_day.webp",night:"assets/story/backgrounds/time/shared_apartment_night.webp"};
   const N=text=>({who:"luca",text}),S=(who,text,mood="neutral")=>({who,text,mood}),Q=(text,options)=>({who:"luca",text,options});

@@ -9,7 +9,7 @@
     return;
   }
 
-  const CURRENT_PACK_ID = "SP_003";
+  const CURRENT_PACK_ID = "SP_004";
   const LEGACY_PACK_IDS = new Set(["SP_001", "SP_002"]);
 
   let pack = null;
@@ -412,6 +412,66 @@
     const oldPackId = state.story?.packId;
     if (!oldPackId || oldPackId === CURRENT_PACK_ID) return;
 
+    // DZ15 · Story Mode V2 continuity migration. SP_003 was not discarded: we
+    // preserve the player's exact old canon snapshot, carry forward all world /
+    // relationship state, and convert already-paid story progress into free
+    // entitlement for the rewritten chapters. The player can reread from Chapter
+    // 01 without paying Story Energy a second time.
+    if (oldPackId === "SP_003") {
+      const oldCompleted = array(state.story.completedSceneIds);
+      const oldUnlocked = array(state.story.unlockedSceneIds);
+      const oldChoices = { ...object(state.story.choiceSelections) };
+      const paidIds = [...new Set([...oldCompleted, ...oldUnlocked])];
+      const legacyOrder = id => {
+        const match = String(id || "").match(/^SC_(\d+)$/);
+        return match ? Number(match[1]) : 0;
+      };
+      const paidThroughOldOrder = paidIds.reduce((max, id) => Math.max(max, legacyOrder(id)), 0);
+
+      state.story.legacyV1 = {
+        packId: oldPackId,
+        completedSceneIds: [...oldCompleted],
+        unlockedSceneIds: [...oldUnlocked],
+        choiceSelections: oldChoices,
+        progressionSnapshots: { ...object(state.story.progressionSnapshots) },
+        momentumGates: { ...object(state.story.momentumGates) },
+        sceneCompletedAt: { ...object(state.story.sceneCompletedAt) },
+        migratedAt: new Date().toISOString(),
+        paidThroughOldOrder
+      };
+
+      const mappedChoices = {};
+      for (const [legacyKey, optionId] of Object.entries(oldChoices)) {
+        const splitAt = legacyKey.indexOf(":");
+        if (splitAt <= 0) continue;
+        const legacySceneId = legacyKey.slice(0, splitAt);
+        const nodeId = legacyKey.slice(splitAt + 1);
+        const rewrittenScene = engine.orderedScenes(pack).find(scene => array(scene.legacySourceSceneIds).includes(legacySceneId));
+        if (rewrittenScene && nodeId) mappedChoices[`${rewrittenScene.id}:${nodeId}`] = optionId;
+      }
+
+      state.story.packId = CURRENT_PACK_ID;
+      state.story.unlockedSceneIds = [];
+      state.story.completedSceneIds = [];
+      state.story.choiceSelections = mappedChoices;
+      state.story.progressionSnapshots = {};
+      state.story.momentumGates = {};
+      state.story.sceneCompletedAt = {};
+      state.story.activeSceneId = null;
+      state.story.readerStep = 0;
+      state.story.storyV2 = {
+        version: 2,
+        migratedAt: new Date().toISOString(),
+        legacyPaidThroughOldOrder: paidThroughOldOrder,
+        legacyCompletedCount: oldCompleted.length,
+        legacyUnlockedCount: oldUnlocked.length
+      };
+      state.flags = object(state.flags);
+      state.flags.STORY_V2_CONTINUITY_MIGRATED = true;
+      app.saveState({ source: "story-v2-continuity-migration" });
+      return;
+    }
+
     if (LEGACY_PACK_IDS.has(oldPackId)) {
       const oldCompleted = array(state.story.completedSceneIds).length;
 
@@ -529,6 +589,9 @@
   }
 
   function repairV024CanonAlignment() {
+    // SP_004 is the Story V2 continuity rewrite. Old SP_003-specific repairs must
+    // never mutate the rewritten chapter state after migration.
+    if (pack?.packId === "SP_004") return;
     const state = app.getState();
     const repairKey = "V024_CANON_ALIGNMENT";
     state.flags = object(state.flags);
@@ -584,6 +647,9 @@
   }
 
   function repairAccidentalFreeSceneUnlock() {
+    // This repair targeted an early SP_003 unlock bug only. Story V2 handles
+    // legacy entitlement through its dedicated migration instead.
+    if (pack?.packId === "SP_004") return;
     const state = app.getState();
     const repairKey = "V0121_SC002_ENERGY_GATE_REPAIR";
 
@@ -610,6 +676,23 @@
     state.flags = object(state.flags);
     state.flags[repairKey] = true;
     app.saveState({ source: "story-v0121-energy-gate-repair" });
+  }
+
+  function legacyPaidThroughOldOrder() {
+    const state = app.getState();
+    return Math.max(0, Number(state.story?.storyV2?.legacyPaidThroughOldOrder || state.story?.legacyV1?.paidThroughOldOrder || 0));
+  }
+
+  function isLegacyCoveredScene(scene) {
+    if (!scene || pack?.packId !== "SP_004") return false;
+    const paidThrough = legacyPaidThroughOldOrder();
+    const startsAt = Math.max(0, Number(scene.legacyStartOldOrder || 0));
+    return paidThrough > 0 && startsAt > 0 && startsAt <= paidThrough;
+  }
+
+  function chapterReadingLabel(scene) {
+    const minutes = Math.max(0, Number(scene?.readingMinutes || 0));
+    return minutes ? `≈ ${minutes} min read` : "";
   }
 
   function renderStoryHub() {
@@ -644,11 +727,14 @@
     els.progressLabel.textContent = story.completedSceneIds.length
       ? `${story.completedSceneIds.length} chapter${story.completedSceneIds.length === 1 ? "" : "s"} completed`
       : "Story beginning";
-    els.progressHint.textContent = "Reading position autosaves. Completed chapters can be replayed from Memories.";
+    const legacyCoveredCount = scenes.filter(scene => isLegacyCoveredScene(scene)).length;
+    els.progressHint.textContent = legacyCoveredCount
+      ? `${legacyCoveredCount} rewritten chapter${legacyCoveredCount === 1 ? " is" : "s are"} already earned from your previous Main Story progress. Reading position autosaves; completed V2 chapters appear in Memories.`
+      : "Reading position autosaves. Completed chapters can be replayed from Memories.";
 
     els.progressDots.innerHTML = scenes.map(scene => {
       const isComplete = completed.has(scene.id);
-      const isUnlocked = story.unlockedSceneIds.includes(scene.id);
+      const isUnlocked = story.unlockedSceneIds.includes(scene.id) || isLegacyCoveredScene(scene);
       const isCurrent = next?.id === scene.id;
       const stateClass = isComplete ? "complete" : isUnlocked ? "unlocked" : isCurrent ? "current" : "locked";
       return `<span class="story-progress-dot ${stateClass}" aria-label="${stateClass}"></span>`;
@@ -790,6 +876,9 @@
   }
 
   function momentumGateDefinition(scene) {
+    if (scene?.momentum && typeof scene.momentum === "object") return scene.momentum;
+    if (pack?.packId === "SP_004") return null;
+
     const order = Number(scene?.order || 0);
 
     // V0.31.3: Story Momentum can now use one or more requirement groups.
@@ -1268,14 +1357,16 @@
     }
 
     const unlocked = story.unlockedSceneIds.includes(scene.id);
+    const legacyCovered = isLegacyCoveredScene(scene);
     const active = story.activeSceneId === scene.id;
     const step = Number(story.readerStep || 0);
-    const cost = effectiveSceneCost(scene);
+    const cost = legacyCovered ? 0 : effectiveSceneCost(scene);
     const enoughEnergy = Number(state.storyEnergy || 0) >= cost;
-    const progression = unlocked ? { required: false, met: true, requirements: [] } : progressionRequirementInfo(scene);
-    const momentum = unlocked ? { required: false, met: true, groups: [] } : momentumGateInfo(scene, { create: true });
-    const temporal = temporalGateInfo(scene, { createFallback: true });
+    const progression = (unlocked || legacyCovered) ? { required: false, met: true, requirements: [] } : progressionRequirementInfo(scene);
+    const momentum = (unlocked || legacyCovered) ? { required: false, met: true, groups: [] } : momentumGateInfo(scene, { create: true });
+    const temporal = legacyCovered ? { required: false, met: true, availableAt: null, label: "" } : temporalGateInfo(scene, { createFallback: true });
     const readyForScene = progression.met && momentum.met && temporal.met;
+    const readingLabel = chapterReadingLabel(scene);
 
     if (unlocked) {
       els.nextTitle.textContent = scene.title;
@@ -1284,12 +1375,24 @@
       els.nextTeaser.textContent = active && step > 0
         ? "Continue exactly where you stopped reading."
         : "This chapter is unlocked and ready to read.";
-      els.energyNeed.innerHTML = `<span class="story-energy-pill ready">✓ Whole chapter unlocked</span>${temporalGateMarkup(temporal)}`;
+      els.energyNeed.innerHTML = `<span class="story-energy-pill ready">✓ Whole chapter unlocked</span>${readingLabel ? `<span class="story-energy-pill">${escapeHtml(readingLabel)}</span>` : ""}${temporalGateMarkup(temporal)}`;
       els.actionButton.disabled = !temporal.met;
       els.actionButton.textContent = temporal.met ? (active && step > 0 ? "Continue chapter" : "Read chapter") : temporal.label;
       els.actionHint.textContent = temporal.met
         ? "Choices change hidden story state. There is no paid 'correct' answer."
         : "The chapter is already yours; it is only waiting for a later-today or next-day story beat.";
+      return;
+    }
+
+    if (legacyCovered) {
+      els.nextTitle.textContent = scene.title;
+      els.nextBadge.textContent = "Already earned";
+      els.nextIcon.textContent = `V2-${String(scene.order || 1).padStart(2, "0")}`;
+      els.nextTeaser.textContent = "This rewritten chapter is covered by Story Energy you already spent in the previous Main Story. Read it freely; old relationship progress will not be paid twice.";
+      els.energyNeed.innerHTML = `<span class="story-energy-pill ready">✓ Previous progress covers this chapter</span>${readingLabel ? `<span class="story-energy-pill">${escapeHtml(readingLabel)}</span>` : ""}`;
+      els.actionButton.disabled = false;
+      els.actionButton.textContent = active && step > 0 ? "Continue rewritten chapter" : "Read rewritten chapter";
+      els.actionHint.textContent = "Your earlier canon choices were carried into the rewrite where the same decision still exists. New material can still remember new details without duplicating relationship rewards.";
       return;
     }
 
@@ -1302,10 +1405,10 @@
       : "The next chapter stays spoiler-free until you unlock it.";
 
     const energyMarkup = cost === 0
-      ? `<span class="story-energy-pill ready">No Story Energy required</span>`
+      ? `<span class="story-energy-pill ready">No Story Energy required</span>${readingLabel ? `<span class="story-energy-pill">${escapeHtml(readingLabel)}</span>` : ""}`
       : enoughEnergy
-        ? `<span class="story-energy-pill ready">${app.formatEnergy?.(state.storyEnergy) ?? state.storyEnergy} 🔥 available</span><span class="story-energy-pill">${cost} 🔥 to unlock chapter</span>`
-        : `<span class="story-energy-pill">${app.formatEnergy?.(state.storyEnergy) ?? state.storyEnergy} 🔥 available</span><span class="story-energy-pill locked">Need ${app.formatEnergy?.(Math.max(0, cost - Number(state.storyEnergy || 0))) ?? Math.max(0, cost - Number(state.storyEnergy || 0))} more</span>`;
+        ? `<span class="story-energy-pill ready">${app.formatEnergy?.(state.storyEnergy) ?? state.storyEnergy} 🔥 available</span><span class="story-energy-pill">${cost} 🔥 to unlock chapter</span>${readingLabel ? `<span class="story-energy-pill">${escapeHtml(readingLabel)}</span>` : ""}`
+        : `<span class="story-energy-pill">${app.formatEnergy?.(state.storyEnergy) ?? state.storyEnergy} 🔥 available</span><span class="story-energy-pill locked">Need ${app.formatEnergy?.(Math.max(0, cost - Number(state.storyEnergy || 0))) ?? Math.max(0, cost - Number(state.storyEnergy || 0))} more</span>${readingLabel ? `<span class="story-energy-pill">${escapeHtml(readingLabel)}</span>` : ""}`;
     const requirementMarkup = `${progressionRequirementMarkup(progression)}${momentumGateMarkup(momentum)}${temporalGateMarkup(temporal)}`;
     els.energyNeed.innerHTML = `${energyMarkup}${requirementMarkup}`;
 
@@ -3551,9 +3654,10 @@
       if (!temporal.met) return;
 
       if (!state.story.unlockedSceneIds.includes(next.id)) {
-        const cost = effectiveSceneCost(next);
-        const momentum = momentumGateInfo(next, { create: true });
-        if (!sceneRequirementsMet(next) || !momentum.met || state.storyEnergy < cost) return;
+        const legacyCovered = isLegacyCoveredScene(next);
+        const cost = legacyCovered ? 0 : effectiveSceneCost(next);
+        const momentum = legacyCovered ? { met: true } : momentumGateInfo(next, { create: true });
+        if (!legacyCovered && (!sceneRequirementsMet(next) || !momentum.met || state.storyEnergy < cost)) return;
 
         state.storyEnergy = Math.max(0, Math.floor((Number(state.storyEnergy || 0) - cost + 1e-9) * 100) / 100);
         state.story.unlockedSceneIds.push(next.id);
@@ -3591,7 +3695,7 @@
 
     const state = app.getState();
     if (!replay && !state.story.unlockedSceneIds.includes(sceneId)) return false;
-    if (!replay && !temporalGateInfo(scene, { createFallback: true }).met) return false;
+    if (!replay && !isLegacyCoveredScene(scene) && !temporalGateInfo(scene, { createFallback: true }).met) return false;
     if (replay && !state.story.completedSceneIds.includes(sceneId)) return false;
     if (!els.readerPage) throw new Error("Story reader markup is missing. Please refresh the updated index.html.");
 
@@ -3832,7 +3936,9 @@
     els.shell.dataset.mood = runtime.scene.mood || "default";
     els.shell.dataset.replay = runtime.replay ? "true" : "false";
     els.shell.dataset.kind = isTalk ? "talk" : isHangout ? "hangout" : isEvent ? "event" : "main";
-    els.chapterLabel.textContent = isTalk ? (runtime.scene.chapterLabel || "TALK") : isHangout ? (runtime.scene.chapterLabel || "HANG OUT") : isEvent ? (runtime.scene.chapterLabel || "WORLD MOMENT") : (runtime.scene.chapterLabel || `Chapter ${String(runtime.scene.order || 1).padStart(2, "0")}`);
+    const mainChapterLabel = runtime.scene.chapterLabel || `Chapter ${String(runtime.scene.order || 1).padStart(2, "0")}`;
+    const readLabel = chapterReadingLabel(runtime.scene);
+    els.chapterLabel.textContent = isTalk ? (runtime.scene.chapterLabel || "TALK") : isHangout ? (runtime.scene.chapterLabel || "HANG OUT") : isEvent ? (runtime.scene.chapterLabel || "WORLD MOMENT") : `${mainChapterLabel}${readLabel ? ` · ${readLabel}` : ""}`;
     els.sceneTitle.textContent = runtime.scene.title || (isTalk ? "Talk" : isHangout ? "Hang Out" : isEvent ? "A little moment" : "Story");
     els.location.textContent = runtime.scene.location || (isTalk ? "Somewhere nearby" : isHangout ? "Out together" : isEvent ? "Everyday life" : "Story");
     els.beatLabel.textContent = runtime.finished ? "Complete" : `${isTalk ? "Talk" : isHangout ? "Hangout" : isEvent ? "Moment" : "Scene"} ${current}`;
@@ -3958,7 +4064,7 @@
     if (selectionStore[key]) return;
 
     selectionStore[key] = option.id;
-    applyEffects(option.effects || []);
+    applyEffects(option.effects || [], { suppressRelationshipProgress: runtime.kind === "main" && isLegacyCoveredScene(runtime.scene) });
     runtime.sequence = buildSequence(runtime);
     scheduleRuntimeVisualPrefetch();
     const newIndex = runtime.sequence.findIndex(item => item.id === node.id);
@@ -4110,7 +4216,7 @@
 
     const alreadyComplete = state.story.completedSceneIds.includes(scene.id);
     if (!alreadyComplete) {
-      applyEffects(scene.onComplete || []);
+      applyEffects(scene.onComplete || [], { suppressRelationshipProgress: isLegacyCoveredScene(scene) });
       state.story.completedSceneIds.push(scene.id);
       state.story.sceneCompletedAt = object(state.story.sceneCompletedAt);
       state.story.sceneCompletedAt[scene.id] = new Date().toISOString();
@@ -4167,16 +4273,17 @@
     els.saveStatus.textContent = replay ? "Replay only · canon unchanged" : isTalk ? "Social history saved" : isHangout ? "Hangout saved" : isEvent ? "World moment saved" : "Saved";
   }
 
-  function applyEffects(effects) {
+  function applyEffects(effects, { suppressRelationshipProgress = false } = {}) {
     const state = app.getState();
     state.story.relationships = object(state.story.relationships);
 
     for (const effect of effects || []) {
       switch (effect.type) {
         case "bond":
-          state.story.bonds[effect.key] = Number(state.story.bonds[effect.key] || 0) + Number(effect.delta || 0);
+          if (!suppressRelationshipProgress) state.story.bonds[effect.key] = Number(state.story.bonds[effect.key] || 0) + Number(effect.delta || 0);
           break;
         case "relationship": {
+          if (suppressRelationshipProgress) break;
           const who = effect.key;
           const stat = effect.stat || "affinity";
           state.story.relationships[who] = object(state.story.relationships[who]);

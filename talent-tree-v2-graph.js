@@ -515,11 +515,14 @@
         return { ok: false, label: `${parent?.title || "previous content unlock"}${neededRank > 1 ? ` ${roman(neededRank)}` : ""}` };
       }
     }
-    if (req.story && !Array.isArray(app.getState().story?.completedSceneIds)) {
-      return { ok: false, label: "Continue Main Story to the shared-apartment chapter" };
-    }
-    if (req.story && !app.getState().story.completedSceneIds.includes(req.story)) {
-      return { ok: false, label: "Continue Main Story to the shared-apartment chapter" };
+    if (req.story) {
+      const state = app.getState();
+      const completed = Array.isArray(state.story?.completedSceneIds) ? state.story.completedSceneIds : [];
+      const legacyCompleted = Array.isArray(state.story?.legacyV1?.completedSceneIds) ? state.story.legacyV1.completedSceneIds : [];
+      const sharedApartmentReady = Boolean(state.flags?.DYNARIOT_MOVE_IN_COMPLETE);
+      if (!sharedApartmentReady && !completed.includes(req.story) && !legacyCompleted.includes(req.story)) {
+        return { ok: false, label: "Continue Main Story to the shared-apartment chapter" };
+      }
     }
     return { ok: true, label: "" };
   }

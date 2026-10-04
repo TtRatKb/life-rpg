@@ -1,8 +1,8 @@
 (() => {
   "use strict";
 
-  const PACK_URL = "content/SP_003.dat?v=0.31.4cy";
-  const KEY = new TextEncoder().encode("LifeRPG-SP3-accidental-spoiler-shield-v3");
+  const PACK_URL = "content/SP_004.dat?v=0.31.4dz15";
+  const KEY = new TextEncoder().encode("LifeRPG-SP4-chapter-continuity-shield-v1");
   let cache = null;
 
   async function loadPack() {
@@ -22,7 +22,7 @@
     }
 
     const parsed = JSON.parse(new TextDecoder().decode(decoded));
-    if (!parsed || parsed.packId !== "SP_003" || Number(parsed.schema || 0) < 3) {
+    if (!parsed || parsed.packId !== "SP_004" || Number(parsed.schema || 0) < 3) {
       throw new Error("Story pack format is not supported.");
     }
 

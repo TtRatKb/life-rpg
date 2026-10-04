@@ -601,7 +601,7 @@
       case "storyCompleted": {
         const id = requirement.key || requirement.sceneId || requirement.storyCompleted;
         if (!id) return true;
-        return Boolean(state.story?.completedSceneIds?.includes?.(id));
+        return Boolean(state.story?.completedSceneIds?.includes?.(id) || state.story?.legacyV1?.completedSceneIds?.includes?.(id));
       }
       default:
         return true;

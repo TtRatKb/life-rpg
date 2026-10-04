@@ -73,7 +73,7 @@
       if (!source.time || source.time > now+MINUTE || now-source.time > 90*MINUTE) continue;
       if (localDay(source.time)!==localDay(now)) continue;
       const root=app.getState();
-      if (!root.flags?.DYNARIOT_MOVE_IN_COMPLETE || !(root.story?.completedSceneIds||[]).includes("SC_011")) continue;
+      if (!root.flags?.DYNARIOT_MOVE_IN_COMPLETE) continue;
       // One spontaneous invitation per day, not a reward-grinding notification for every log.
       if (s.items.some(item=>item.type==="moment" && item.day===localDay(source.time))) continue;
       const delay=(18+hash(source.key)%21)*MINUTE;

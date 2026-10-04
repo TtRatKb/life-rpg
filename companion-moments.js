@@ -295,7 +295,7 @@
     return s;
   }
   function save(event){app.saveState({source:`companion-moments-${event}`,suppressUiRefresh:true});}
-  function storyReady(){return Array.isArray(app.getState().story?.completedSceneIds) && app.getState().story.completedSceneIds.includes("SC_011");}
+  function storyReady(){return Boolean(app.getState().flags?.DYNARIOT_MOVE_IN_COMPLETE);}
   function ready(ep){
     if(!ep || !own(ep.realm) || !storyReady())return false;
     return ep.focus!=="both" || (Boolean(state().completed[ep.realm.toLowerCase()+"-k"])&&Boolean(state().completed[ep.realm.toLowerCase()+"-e"]));
