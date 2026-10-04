@@ -1,4 +1,4 @@
-/* Life RPG · Sound Garden Library V0.31.4dz12
+/* Life RPG · Sound Garden Library V0.31.4dz13
    Full-page artist progress/checklist built on the existing Sound Garden state.
    No playback-based rewards are introduced here.
 */
@@ -150,7 +150,7 @@
         ${selected ? renderArtistDetail(selected) : `<div class="sgl-section-head"><div><small>DEINE ARTISTS</small><h2>Artist Progress</h2><p>„Erkundet“ heißt: gehört, bewertet oder bereits als bekannt markiert. Likes und Playlist-Saves bleiben zusätzlich sichtbar.</p></div></div>${renderCards()}`}
       </section>
       ${selected ? '' : `<section class="sgl-panel"><div class="sgl-section-head"><div><small>ARTIST POOL</small><h2>Artists hinzufügen</h2><p>Die Namen landen direkt im bestehenden Sound-Garden-Pool und können danach mit Spotify verknüpft werden.</p></div></div><form class="sgl-add-form" data-sgl-add><textarea name="artists" rows="3" maxlength="12000" placeholder="Kendrick Lamar, HANABIE., Chappell Roan …" required></textarea><button class="primary-button" type="submit">+ Artists hinzufügen</button></form><p class="sgl-footnote">Mehrere Namen mit Komma, Semikolon oder Zeilenumbruch trennen. Die bestehenden einmaligen Artist-Rewards und Dedupe-Regeln bleiben unverändert.</p></section>`}
-      <section class="sgl-info"><strong>Wie die Core-Liste entsteht</strong><p>Die aktuelle Spotify Development-Mode-API stellt keine offizielle „Artist Top Tracks“-Abfrage mehr bereit. Life RPG nimmt deshalb die von Spotify gerankten Track-Suchergebnisse, filtert strikt auf deine bestätigte Spotify-Artist-ID und ergänzt bei Bedarf Katalogtitel. Das ist eine stabile persönliche „Core Tracks“-Liste, aber nicht die offizielle Spotify-„This Is …“-Reihenfolge.</p></section>
+      <section class="sgl-info"><strong>Wie die Core-Liste entsteht</strong><p>Die aktuelle Spotify Development-Mode-API stellt keine offizielle „Artist Top Tracks“-Abfrage mehr bereit. Life RPG nimmt deshalb die von Spotify gerankten Track-Suchergebnisse, filtert strikt auf deine bestätigte Spotify-Artist-ID, schließt erkannte Live-/Konzertversionen aus und ergänzt bei Bedarf Katalogtitel. Das ist eine stabile persönliche „Core Tracks“-Liste, aber nicht die offizielle Spotify-„This Is …“-Reihenfolge.</p></section>
       <p class="sgl-credit">Spotify-Metadaten, Artist-Bilder und Track-Links führen zurück zu Spotify. Artist-Bilder werden unverändert dargestellt. Life-RPG-Rewards hängen weiterhin ausschließlich an bewussten Discovery-Aktionen — nicht an Streams, Wiedergabedauer oder Wiederholungen.</p>
     </div>`;
     bind(root);
@@ -235,5 +235,5 @@
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, {once:true}); else init();
-  window.LifeRPGSoundGardenLibrary = { version:'0.31.4dz12', render, openArtist:key=>{selectedArtistKey=key;app.showView?.('soundgarden');render();} };
+  window.LifeRPGSoundGardenLibrary = { version:'0.31.4dz13', render, openArtist:key=>{selectedArtistKey=key;app.showView?.('soundgarden');render();} };
 })();

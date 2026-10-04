@@ -1,4 +1,4 @@
-const CACHE_NAME = "life-rpg-v0314dz12-weekly-meals-sound-garden-library";
+const CACHE_NAME = "life-rpg-v0314dz13-sound-garden-no-live-versions";
 const ASSET_CACHE_NAME = "life-rpg-assets-v6";
 const MAX_RUNTIME_ASSETS = 96;
 const CORE = [
@@ -16,8 +16,8 @@ const CORE = [
   "./meal-planner.css?v=0.31.4dz12",
   "./daily-life-v314cv.js?v=0.31.4dv",
   "./sound-garden-spotify.js?v=0.31.4dy",
-  "./sound-garden.js?v=0.31.4dz12",
-  "./sound-garden-library.js?v=0.31.4dz12",
+  "./sound-garden.js?v=0.31.4dz13",
+  "./sound-garden-library.js?v=0.31.4dz13",
   "./sound-garden.css?v=0.31.4dz12",
   "./data/quests.js?v=0.31.4dz4",
   "./styles.css?v=0.31.4cr",

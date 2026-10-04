@@ -1,4 +1,4 @@
-/* Life RPG · Sound Garden V0.31.4dz12
+/* Life RPG · Sound Garden V0.31.4dz13
    Artist-aware discovery; optional Spotify Premium PKCE + in-app Web Playback SDK.
    Existing DV–DX data and reward ledgers remain stable; no reward for Spotify plays.
 */
@@ -6,7 +6,7 @@
   'use strict';
   const app = window.LifeRPGApp;
   if (!app?.getState || !app?.saveState || !app?.awardActivity) return;
-  const VERSION = '0.31.4dz12';
+  const VERSION = '0.31.4dz13';
   const Spotify = window.LifeRPGSpotifyBridge;
   const ALIASES = {'hanabie':['HANABIE.','花冷え。','花冷え','HANABIE']};
   const PLAYLIST = 'https://open.spotify.com/playlist/6aD4oA94t1SpI10OpTrsVl';
@@ -16,6 +16,15 @@
   const clean = s => String(s ?? '').trim().replace(/\s+/g,' ').slice(0,180);
   const norm = s => clean(s).normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/&/g,' and ').replace(/[^\p{L}\p{N}]+/gu,' ').trim();
   const baseSong = s => norm(clean(s).replace(/\s*[-–—]\s*(?:\d{4}\s*)?(?:remaster(?:ed)?|deluxe|radio edit|single version|album version|live version|mono|stereo)(?:\s+\d{4})?.*$/i,'').replace(/\s*[([{][^\])}]*\b(?:remaster|deluxe|radio edit|single version|live|mono|stereo|\d{4} version)[^\])}]*[\])}]/ig,''));
+  const isLiveVersion = (title, album='') => {
+    const marker = value => {
+      const text = clean(value);
+      if (!text) return false;
+      return /(?:[([{]\s*live\b)|(?:[-–—]\s*live\b)|(?:\blive\s+(?:at|from|in|on|@|version|recording|session|performance|concert)\b)|(?:\b(?:recorded|performed)\s+live\b)|(?:\bin\s+concert\b)|(?:\bconcert\s+(?:version|recording)\b)|(?:\bmtv\s+unplugged\b)/i.test(text);
+    };
+    const albumText = clean(album);
+    return marker(title) || marker(albumText) || /^live(?:\s*[.!])?$/i.test(albumText) || /^live\s*[-–—:]\s*.+/i.test(albumText);
+  };
   const keyFor = (artist,title) => `${norm(artist)}::${baseSong(title)}`;
   const sourceLink = track => /^https:\/\/(?:music\.apple\.com|itunes\.apple\.com)\//.test(track?.storeUrl || '') ? track.storeUrl : '';
   const spotifySearch = track => `https://open.spotify.com/search/${encodeURIComponent(`${track.artist} ${track.title}`)}`;
@@ -130,7 +139,8 @@
     if (!option) return;
     for (const r of rows) {
       if (r.kind !== 'song' || Number(r.artistId) !== option.id) continue;
-      const title=clean(r.trackName);
+      const title=clean(r.trackName), album=clean(r.collectionName);
+      if (isLiveVersion(title, album)) continue;
       if (title && !option.examples.some(other=>norm(other)===norm(title)) && option.examples.length < 4) option.examples.push(title);
       if (!option.genre && r.primaryGenreName) option.genre=clean(r.primaryGenreName);
       if (!option.album && r.collectionName) option.album=clean(r.collectionName);
@@ -189,7 +199,7 @@ const artistImage = url => /^https:\/\/i\.scdn\.co\/image\/[A-Za-z0-9]+(?:[?#].*
 function addSpotifyIdentityTracks(option, tracks, album) {
   for (const track of tracks||[]) {
     if (!validSpotifyId(track?.id) || !track?.name ||
-        !(track.artists||[]).some(x=>x.id===option.id)) continue;
+        !(track.artists||[]).some(x=>x.id===option.id) || isLiveVersion(track.name, album?.name||track.album?.name||'')) continue;
     if (option.sampleTracks.some(x=>x.id===track.id || norm(x.title)===norm(track.name))) continue;
     if (option.sampleTracks.length>=4) break;
     const title=clean(track.name);
@@ -260,11 +270,13 @@ async function spotifyArtistOptions(a) {
       if(!await resolveArtist(a))return [];
     }
     if(!refresh && Array.isArray(m.catalog[a.key]) && m.catalog[a.key].length &&
-      m.catalog[a.key].every(t=>t.spotifyArtistId===a.spotifyArtistId && t.spotifyTrackId))return m.catalog[a.key];
+      m.catalog[a.key].every(t=>t.spotifyArtistId===a.spotifyArtistId && t.spotifyTrackId && !isLiveVersion(t.title,t.album)))return m.catalog[a.key];
     const picked=new Map();
     const add=(t,album)=>{
       if(!t?.id || !/^[a-zA-Z0-9]{22}$/.test(t.id) || !t.name ||
         !Array.isArray(t.artists) || !t.artists.some(artist=>artist.id===a.spotifyArtistId))return;
+      const albumName=album?.name||t.album?.name||'';
+      if(isLiveVersion(t.name,albumName))return;
       const key=keyFor(a.name,t.name);
       if(!baseSong(t.name)||picked.has(key))return;
       picked.set(key,{key,title:t.name,artist:a.name,artistKey:a.key,
@@ -327,6 +339,8 @@ async function spotifyArtistOptions(a) {
     const picked=new Map();
     const add=(t,album,source='search')=>{
       if(!t?.id||!validSpotifyId(t.id)||!t.name||!Array.isArray(t.artists)||!t.artists.some(artist=>artist.id===a.spotifyArtistId))return;
+      const albumName=album?.name||t.album?.name||'';
+      if(isLiveVersion(t.name,albumName))return;
       const keyForTrack=keyFor(a.name,t.name);
       if(!baseSong(t.name)||picked.has(keyForTrack))return;
       picked.set(keyForTrack,{key:keyForTrack,title:t.name,artist:a.name,artistKey:a.key,
@@ -380,7 +394,7 @@ async function spotifyArtistOptions(a) {
     if(!a||!guide||guide.spotifyArtistId!==a.spotifyArtistId||!Array.isArray(guide.trackIds))return [];
     const catalog=Array.isArray(m.catalog[a.key])?m.catalog[a.key]:[];
     const byId=new Map(catalog.filter(t=>t?.spotifyTrackId).map(t=>[t.spotifyTrackId,t]));
-    return guide.trackIds.map(id=>byId.get(id)).filter(Boolean).slice(0,guideTargetCount());
+    return guide.trackIds.map(id=>byId.get(id)).filter(track=>track && !isLiveVersion(track.title,track.album)).slice(0,guideTargetCount());
   }
   function setCurrentFromGuide(key,spotifyTrackId) {
     const m=data(),track=artistGuideForKey(key).find(t=>t.spotifyTrackId===spotifyTrackId);
@@ -449,7 +463,7 @@ async function spotifyArtistOptions(a) {
     if(!Number.isSafeInteger(a.artistId)||a.artistId<=0) {
       if(!await resolveArtist(a))return [];
     }
-    if(!refresh&&Array.isArray(m.catalog[a.key])&&m.catalog[a.key].length&&m.catalog[a.key].every(t=>t.artistId===a.artistId)) return m.catalog[a.key];
+    if(!refresh&&Array.isArray(m.catalog[a.key])&&m.catalog[a.key].length&&m.catalog[a.key].every(t=>t.artistId===a.artistId&&!isLiveVersion(t.title,t.album))) return m.catalog[a.key];
     // Identity-filtered lookup, then broader artist search. Never match by song title alone.
     const response=await itunesJSONP('lookup',{id:a.artistId,entity:'song',limit:180});
     let rows=rowsOf(response);
@@ -458,8 +472,8 @@ async function spotifyArtistOptions(a) {
     const picked=new Map();
     for(const r of rows) {
       if(r.kind!=='song'||!r.trackName||Number(r.artistId)!==a.artistId||!Number.isSafeInteger(Number(r.trackId)))continue;
-      const title=clean(r.trackName),id=keyFor(a.name,title);
-      if(!baseSong(title)||picked.has(id))continue;
+      const title=clean(r.trackName),album=clean(r.collectionName),id=keyFor(a.name,title);
+      if(isLiveVersion(title,album)||!baseSong(title)||picked.has(id))continue;
       picked.set(id,{key:id,title,artist:a.name,artistKey:a.key,artistId:a.artistId,album:clean(r.collectionName),storeUrl:String(r.trackViewUrl||''),sourceId:Number(r.trackId)});
     }
     m.catalog[a.key]=[...picked.values()].slice(0,160);
