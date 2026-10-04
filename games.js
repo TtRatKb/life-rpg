@@ -7,7 +7,7 @@
     return;
   }
 
-  const SCHEMA = 10;
+  const SCHEMA = 11;
   const STEAM_SYNC_SCHEMA = 4;
   const STEAM_PLAYTIME_SYNC_SCHEMA = 1;
   const STEAM_AUTO_SYNC_STALE_MS = 6 * 60 * 60 * 1000;
@@ -113,6 +113,7 @@
     catalogSelected: byId("gameCatalogSelected"),
     platform: byId("gamePlatform"),
     statusField: byId("gameStatus"),
+    owned: byId("gameOwned"),
     role: byId("gameRole"),
     motivation: byId("gameMotivation"),
     trackingMode: byId("gameTrackingMode"),
@@ -159,6 +160,7 @@
     bulkStatus: byId("gameBulkStatus"),
     bulkRole: byId("gameBulkRole"),
     bulkMotivation: byId("gameBulkMotivation"),
+    bulkOwned: byId("gameBulkOwned"),
     bulkMinutes: byId("gameBulkMinutes"),
     bulkPreview: byId("gameBulkPreview"),
 
@@ -253,6 +255,8 @@
     els.steamAppIdInput?.addEventListener("input", () => { pendingSteamAchievements = []; renderSteamSection(); });
     els.steamGameSpoilerMode?.addEventListener("change", renderSteamAchievements);
     [els.title, els.platform, els.statusField, els.role, els.minutes, els.progress].forEach(input => input?.addEventListener("input", renderGamePreview));
+    els.statusField?.addEventListener("change", renderGameFormState);
+    els.owned?.addEventListener("change", renderGamePreview);
     els.catalogSearch?.addEventListener("click", searchGameCatalog);
     els.gameType?.addEventListener("change", () => {
       refreshGoalSuggestions({ preserveSelection: false, autoSelect: !String(els.editId?.value || "") });
@@ -410,7 +414,7 @@
     els.bulkClose?.addEventListener("click", closeBulkDialog);
     els.bulkCancel?.addEventListener("click", closeBulkDialog);
     els.bulkForm?.addEventListener("submit", saveBulkGames);
-    [els.bulkText, els.bulkStatus, els.bulkRole, els.bulkMotivation, els.bulkMinutes].forEach(input => {
+    [els.bulkText, els.bulkStatus, els.bulkRole, els.bulkMotivation, els.bulkOwned, els.bulkMinutes].forEach(input => {
       input?.addEventListener("input", renderBulkPreview);
       input?.addEventListener("change", renderBulkPreview);
     });
@@ -455,6 +459,14 @@
     });
   }
 
+  function inferLegacyGameOwned(game = {}) {
+    if (typeof game.owned === "boolean") return game.owned;
+    if (game.status && game.status !== "backlog") return true;
+    if (Number(game.steamLibrarySyncedAt || 0) > 0) return true;
+    if (Number(game.steamPlaytimeMinutes || 0) > 0 || Number(game.steamLastPlayedAt || 0) > 0) return true;
+    return false;
+  }
+
   function ensureState() {
     const state = app.getState();
     let changed = false;
@@ -464,7 +476,9 @@
     }
 
     const model = state.gameLibrary;
-    if (Number(model.schemaVersion || 0) < SCHEMA) { model.schemaVersion = SCHEMA; changed = true; }
+    const previousSchemaVersion = Number(model.schemaVersion || 0);
+    const migratingOwnershipV11 = previousSchemaVersion < 11;
+    if (previousSchemaVersion < SCHEMA) { model.schemaVersion = SCHEMA; changed = true; }
     if (!Array.isArray(model.items)) { model.items = []; changed = true; }
     if (!Array.isArray(model.logs)) { model.logs = []; changed = true; }
 
@@ -472,6 +486,8 @@
       if (!game.id) { game.id = makeId("game"); changed = true; }
       if (!game.title) { game.title = "Untitled game"; changed = true; }
       if (!STATUSES[game.status]) { game.status = "backlog"; changed = true; }
+      if (typeof game.owned !== "boolean") { game.owned = migratingOwnershipV11 ? true : inferLegacyGameOwned(game); changed = true; }
+      if (game.status !== "backlog" && game.owned !== true) { game.owned = true; changed = true; }
       if (!ROLES[game.role]) { game.role = "fun"; changed = true; }
       if (!MOTIVATIONS[game.motivation]) { game.motivation = "medium"; changed = true; }
       if (!Number.isFinite(Number(game.sessionMinutes)) || Number(game.sessionMinutes) <= 0) { game.sessionMinutes = 45; changed = true; }
@@ -904,6 +920,7 @@
                 <span class="game-status-chip-v17">${status.icon} ${esc(status.label)}</span>
                 <span class="game-role-chip-v17">${role.icon} ${esc(role.label)}</span>
                 <span class="game-motivation-chip-v314dz4">${motivation.icon} ${esc(motivation.label)}</span>
+                <span class="game-role-chip-v17">${game.owned ? "✓ Owned" : "🛍 Shop"}</span>
                 <span class="game-type-chip-v305">${typeMeta.icon} ${esc(typeMeta.label)}</span>
                 <span class="game-tracking-chip-v312">${tracking.icon} ${esc(tracking.label)}</span>
                 ${game.steamAppId ? `<span class="game-steam-chip-v312">Steam · ${esc(game.steamAppId)}</span>` : ""}
@@ -998,6 +1015,7 @@
     if (els.title) els.title.value = game?.title || "";
     if (els.platform) els.platform.value = game?.platform || "";
     if (els.statusField) els.statusField.value = game?.status || "playing";
+    if (els.owned) els.owned.checked = game ? Boolean(game.owned) : true;
     if (els.role) els.role.value = game?.role || "fun";
     if (els.motivation) els.motivation.value = MOTIVATIONS[game?.motivation] ? game.motivation : "medium";
     if (els.trackingMode) els.trackingMode.value = TRACKING_MODES[game?.trackingMode] ? game.trackingMode : "auto";
@@ -1028,6 +1046,11 @@
 
   function renderGameFormState() {
     els.progressWrap?.classList.toggle("hidden", (els.progressMode?.value || "none") !== "percent");
+    if (els.owned) {
+      const canNeedPurchase = (els.statusField?.value || "playing") === "backlog";
+      if (!canNeedPurchase) els.owned.checked = true;
+      els.owned.disabled = !canNeedPurchase;
+    }
     renderTrackingFormState();
     renderGamePreview();
   }
@@ -1235,6 +1258,7 @@
       title: String(els.title?.value || "").trim(),
       platform: String(els.platform?.value || "").trim(),
       status,
+      owned: status === "backlog" ? Boolean(els.owned?.checked) : true,
       role: els.role?.value || "fun",
       motivation: MOTIVATIONS[els.motivation?.value] ? els.motivation.value : "medium",
       trackingMode: TRACKING_MODES[els.trackingMode?.value] ? els.trackingMode.value : "auto",
@@ -1381,8 +1405,9 @@
     const role = ROLES[els.bulkRole?.value] || ROLES.fun;
     const motivation = MOTIVATIONS[els.bulkMotivation?.value] || MOTIVATIONS.medium;
     const minutes = Math.max(5, Number(els.bulkMinutes?.value || 45));
+    const owned = (els.bulkStatus?.value || "backlog") !== "backlog" ? true : Boolean(els.bulkOwned?.checked);
     els.bulkPreview.innerHTML = entries.length
-      ? `<strong>${entries.length} game${entries.length === 1 ? "" : "s"} ready</strong><span>${status.icon} ${esc(status.label)} · ${role.icon} ${esc(role.label)} · ${motivation.icon} ${esc(motivation.label)} · ${minutes}m default session</span><small>Tip: “Title — Platform”, “Title | Platform”, or just one title per line.</small>`
+      ? `<strong>${entries.length} game${entries.length === 1 ? "" : "s"} ready</strong><span>${status.icon} ${esc(status.label)} · ${owned ? "✓ Owned" : "🛍 Needs purchase"} · ${role.icon} ${esc(role.label)} · ${motivation.icon} ${esc(motivation.label)} · ${minutes}m default session</span><small>Tip: “Title — Platform”, “Title | Platform”, or just one title per line.</small>`
       : `<strong>Paste one game per line.</strong><span>Great for moving an existing backlog into Life RPG without opening the add dialog over and over.</span>`;
   }
 
@@ -1394,6 +1419,7 @@
     const status = STATUSES[els.bulkStatus?.value] ? els.bulkStatus.value : "backlog";
     const role = ROLES[els.bulkRole?.value] ? els.bulkRole.value : "fun";
     const motivation = MOTIVATIONS[els.bulkMotivation?.value] ? els.bulkMotivation.value : "medium";
+    const owned = status !== "backlog" ? true : Boolean(els.bulkOwned?.checked);
     const sessionMinutes = Math.max(5, Number(els.bulkMinutes?.value || 45));
     const existing = new Set(current.items.map(game => duplicateKey(game.title, game.platform)));
     const addedGames = [];
@@ -1405,7 +1431,7 @@
       if (existing.has(key)) { skipped += 1; return; }
       existing.add(key);
       const game = {
-        id: makeId("game"), title: entry.title, platform: entry.platform, status, role, motivation, trackingMode: "auto", customUnit: "", sessionAmount: sessionMinutes, sessionMinutes,
+        id: makeId("game"), title: entry.title, platform: entry.platform, status, owned, role, motivation, trackingMode: "auto", customUnit: "", sessionAmount: sessionMinutes, sessionMinutes,
         progressMode: "none", progress: 0, gameType: "auto", genres: [], platforms: entry.platform ? [entry.platform] : [],
         description: "", developer: "", publisher: "", releaseDate: "", coverUrl: "", catalogProvider: "", catalogId: "", steamAppId: "",
         goals: [], notes: "", totalMinutes: 0, sessions: 0,
@@ -2218,12 +2244,13 @@
       const supportsPlayerSync = data?.capabilities?.playerAchievements === true || Number(data?.protocolVersion || 0) >= 2;
       const supportsLibrarySync = data?.capabilities?.ownedGames === true || Number(data?.protocolVersion || 0) >= 3;
       const supportsFamilyPlaytimeFallback = data?.capabilities?.recentlyPlayed === true || Number(data?.protocolVersion || 0) >= 4;
+      const supportsStorePricing = data?.capabilities?.storePricing === true || Number(data?.protocolVersion || 0) >= 5;
       if (els.steamConnectionStatus) {
         els.steamConnectionStatus.textContent = !data.steamKeyConfigured
           ? "Worker is online, but STEAM_API_KEY is not configured yet."
           : supportsPlayerSync
-            ? `✓ Worker ready · personal achievements${supportsLibrarySync ? " + Steam playtime" : ""}${supportsFamilyPlaytimeFallback ? " + Family Sharing fallback" : ""} supported`
-            : "Worker + Steam key are online, but this is the old Worker build. Update the Worker to v3 for personal achievement unlocks and Steam playtime.";
+            ? `✓ Worker ready · personal achievements${supportsLibrarySync ? " + Steam playtime" : ""}${supportsFamilyPlaytimeFallback ? " + Family Sharing fallback" : ""}${supportsStorePricing ? " + Shop prices" : ""} supported${supportsStorePricing ? "" : " · update Worker to v5 for automatic Steam Shop prices"}`
+            : "Worker + Steam key are online, but this is an old Worker build. Update the Worker to v5.";
       }
     } catch (error) {
       if (els.steamConnectionStatus) els.steamConnectionStatus.textContent = `Could not reach Worker · ${String(error?.message || error)}`;

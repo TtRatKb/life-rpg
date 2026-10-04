@@ -1,11 +1,11 @@
-const CACHE_NAME = "life-rpg-v0314dz13-sound-garden-no-live-versions";
+const CACHE_NAME = "life-rpg-v0314dz14-auto-shop-free-choice-coloring";
 const ASSET_CACHE_NAME = "life-rpg-assets-v6";
 const MAX_RUNTIME_ASSETS = 96;
 const CORE = [
   "./",
   "./index.html",
   "./life-hub-v314dk.js?v=0.31.4dz12",
-  "./creative-hub-v314dl.js?v=0.31.4dz2",
+  "./creative-hub-v314dl.js?v=0.31.4dz14",
   "./creative-hub-v314dl.css?v=0.31.4dn",
   "./knowledge-workshop.js?v=0.31.4do",
   "./knowledge-workshop.css?v=0.31.4do",
@@ -154,7 +154,7 @@ const CORE = [
   "./adventures.js?v=0.31.4ag",
   "./adventure-workspace.js?v=0.31.4c",
   "./library.js?v=0.31.4ag",
-  "./games.js?v=0.31.4dz4",
+  "./games.js?v=0.31.4dz14",
   "./time.js?v=0.31.4cu",
   "./my-week.css?v=0.31.4cu",
   "./my-week.js?v=0.31.4cu",
@@ -188,7 +188,7 @@ const CORE = [
   "./gifts.js?v=0.31.4ba",
   "./seasons.js?v=0.31.4ba",
   "./content/SP_003.dat?v=0.31.4cy",
-  "./shop.js?v=0.31.4cv",
+  "./shop.js?v=0.31.4dz14",
   "./achievements.js?v=0.31.0",
   "./activity-log.js?v=0.31.4dz1",
   "./kotoba-integration.js?v=0.31.4k",

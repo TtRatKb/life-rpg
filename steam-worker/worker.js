@@ -1,10 +1,11 @@
-const PROTOCOL_VERSION = 4;
+const PROTOCOL_VERSION = 5;
 const CAPABILITIES = {
   playerAchievements: true,
   achievementSchema: true,
   globalAchievementPercentages: true,
   ownedGames: true,
-  recentlyPlayed: true
+  recentlyPlayed: true,
+  storePricing: true
 };
 
 const CORS = {
@@ -189,6 +190,44 @@ async function handleRecently(url, env) {
   });
 }
 
+
+async function handleStore(url) {
+  const appid = cleanDigits(url.searchParams.get("appid"));
+  const cc = String(url.searchParams.get("cc") || "DE").replace(/[^A-Za-z]/g, "").slice(0, 2).toUpperCase() || "DE";
+  const lang = String(url.searchParams.get("lang") || "german").replace(/[^A-Za-z_-]/g, "").slice(0, 24) || "german";
+  if (!validAppId(appid)) return json({ ok: false, error: "Valid appid required" }, 400);
+
+  const storeUrl = new URL("https://store.steampowered.com/api/appdetails");
+  storeUrl.searchParams.set("appids", appid);
+  storeUrl.searchParams.set("cc", cc);
+  storeUrl.searchParams.set("l", lang);
+
+  const payload = await fetchSteamJson(storeUrl);
+  const record = payload?.[appid];
+  if (!record?.success || !record?.data) return json({ ok: false, error: "Steam Store did not return app details" }, 404);
+
+  const data = record.data || {};
+  const price = data.price_overview || {};
+  const isFree = Boolean(data.is_free);
+  return json({
+    ok: true,
+    protocolVersion: PROTOCOL_VERSION,
+    capabilities: CAPABILITIES,
+    appid: Number(appid),
+    name: String(data.name || ""),
+    isFree,
+    currency: String(price.currency || (cc === "DE" ? "EUR" : "")),
+    initialPriceCents: isFree ? 0 : (Number.isFinite(Number(price.initial)) ? Math.max(0, Math.round(Number(price.initial))) : null),
+    finalPriceCents: isFree ? 0 : (Number.isFinite(Number(price.final)) ? Math.max(0, Math.round(Number(price.final))) : null),
+    discountPercent: Number.isFinite(Number(price.discount_percent)) ? Math.max(0, Math.round(Number(price.discount_percent))) : 0,
+    initialFormatted: String(price.initial_formatted || ""),
+    finalFormatted: String(price.final_formatted || ""),
+    headerImage: String(data.header_image || ""),
+    storeUrl: `https://store.steampowered.com/app/${appid}/`,
+    country: cc
+  });
+}
+
 export default {
   async fetch(request, env) {
     if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS });
@@ -204,9 +243,9 @@ export default {
       });
     }
 
-    if (!env.STEAM_API_KEY) return json({ ok: false, error: "STEAM_API_KEY is not configured" }, 500);
-
     try {
+      if (url.pathname === "/api/steam/store") return await handleStore(url);
+      if (!env.STEAM_API_KEY) return json({ ok: false, error: "STEAM_API_KEY is not configured" }, 500);
       if (url.pathname === "/api/steam/achievements") return await handleAchievements(url, env);
       if (url.pathname === "/api/steam/library") return await handleLibrary(url, env);
       if (url.pathname === "/api/steam/recently") return await handleRecently(url, env);

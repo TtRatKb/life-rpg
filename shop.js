@@ -7,7 +7,7 @@
     return;
   }
 
-  const SCHEMA = 2;
+  const SCHEMA = 3;
   const FILTERS = new Set(["wishlist", "redeemed", "purchased", "all"]);
   const NOTION_SEED = [
     { name: "New tea / matcha / fancy drink item", coinCost: 180, mode: "repeatable" },
@@ -61,6 +61,7 @@
     filters: byId("shopFilters"),
     history: byId("shopHistory"),
     add: byId("shopAddButton"),
+    refreshLinkedPrices: byId("shopRefreshLinkedPrices"),
     dialog: byId("shopItemDialog"),
     form: byId("shopItemForm"),
     dialogTitle: byId("shopItemDialogTitle"),
@@ -85,18 +86,22 @@
   let activeFilter = "wishlist";
   let metadataBusy = false;
   let pendingPriceAction = null;
+  let linkedPriceBusy = false;
 
   init();
 
   function init() {
     const changed = ensureState();
+    const linkedChanged = syncLinkedLibraryItems();
     bindEvents();
     render();
-    if (changed) app.saveState({ source: "shop-v0306-init" });
+    if (changed || linkedChanged) app.saveState({ source: "shop-v0314dz14-init", suppressUiRefresh: true });
     window.addEventListener("life-rpg:render", render);
     window.addEventListener("life-rpg:state-saved", event => {
       if (event?.detail?.source?.startsWith("shop")) return;
       ensureState();
+      const autoChanged = syncLinkedLibraryItems();
+      if (autoChanged) app.saveState({ source: "shop-auto-library-sync", suppressUiRefresh: true });
       render();
     });
   }
@@ -153,8 +158,15 @@
       mode: item.mode === "repeatable" ? "repeatable" : "one-time",
       status: ["wishlist", "available", "redeemed", "purchased", "archived"].includes(item.status) ? item.status : "wishlist",
       source: clean(item.source) || "manual",
+      autoManaged: Boolean(item.autoManaged),
+      linkedType: ["game", "book"].includes(item.linkedType) ? item.linkedType : "",
+      linkedId: clean(item.linkedId),
+      priceCheckedAt: finiteOrNull(item.priceCheckedAt),
+      priceSource: clean(item.priceSource),
+      currency: clean(item.currency) || "EUR",
+      listPriceCents: finiteOrNull(item.listPriceCents),
       redemptionCoins: finiteOrNull(item.redemptionCoins),
-      initialPriceCents: finiteOrNull(item.initialPriceCents) ?? (realPriceCents ?? cost),
+      initialPriceCents: finiteOrNull(item.initialPriceCents) ?? (realPriceCents ?? (cost > 0 ? cost : null)),
       priceHistory: Array.isArray(item.priceHistory) ? item.priceHistory.filter(Boolean).slice(-30) : [],
       purchasePriceCents: finiteOrNull(item.purchasePriceCents),
       purchaseCoins: finiteOrNull(item.purchaseCoins),
@@ -165,10 +177,263 @@
     };
   }
 
+  function gameOwned(game = {}) {
+    if (typeof game.owned === "boolean") return game.owned;
+    if (game.status && game.status !== "backlog") return true;
+    return Number(game.steamLibrarySyncedAt || 0) > 0 || Number(game.steamPlaytimeMinutes || 0) > 0 || Number(game.steamLastPlayedAt || 0) > 0;
+  }
+
+  function bookNeedsShop(book = {}) {
+    if (book.status !== "want") return false;
+    return !["ku", "borrowed"].includes(String(book.source || "").toLowerCase());
+  }
+
+  function linkedId(type, sourceId) {
+    return `auto-${type}-${String(sourceId || "").replace(/[^a-z0-9_-]/gi, "-")}`;
+  }
+
+  function syncLinkedLibraryItems() {
+    const root = app.getState();
+    const shop = root.shop;
+    if (!shop?.items) return false;
+    const desired = new Map();
+
+    for (const game of root.gameLibrary?.items || []) {
+      if (!game?.id || game.status !== "backlog" || gameOwned(game)) continue;
+      const appId = String(game.steamAppId || "").replace(/\D/g, "");
+      const key = `game:${game.id}`;
+      desired.set(key, {
+        id: linkedId("game", game.id),
+        name: String(game.title || "Untitled game"),
+        imageUrl: String(game.coverUrl || (appId ? `https://cdn.akamai.steamstatic.com/steam/apps/${encodeURIComponent(appId)}/header.jpg` : "")),
+        url: appId ? `https://store.steampowered.com/app/${encodeURIComponent(appId)}/` : "",
+        description: `🎮 Want to Play · not owned${game.platform ? ` · ${game.platform}` : ""}`,
+        source: "game-library",
+        linkedType: "game",
+        linkedId: String(game.id),
+        autoManaged: true,
+        mode: "one-time"
+      });
+    }
+
+    for (const book of root.bookLibrary?.items || []) {
+      if (!book?.id || !bookNeedsShop(book)) continue;
+      const isbn = String(book.isbn || "").replace(/[^0-9X]/gi, "");
+      const key = `book:${book.id}`;
+      const role = book.source === "kindle" ? "Kindle" : book.source === "audio" ? "Audiobook" : "Book";
+      desired.set(key, {
+        id: linkedId("book", book.id),
+        name: String(book.title || "Untitled book"),
+        imageUrl: String(book.coverUrl || ""),
+        url: isbn ? `https://books.google.com/books?vid=ISBN${encodeURIComponent(isbn)}` : "",
+        description: `📚 Want to Read · ${role} · not owned / not KU`,
+        source: "book-library",
+        linkedType: "book",
+        linkedId: String(book.id),
+        autoManaged: true,
+        mode: "one-time"
+      });
+    }
+
+    let changed = false;
+    const existingByKey = new Map(shop.items.filter(item => item.autoManaged && item.linkedType && item.linkedId).map(item => [`${item.linkedType}:${item.linkedId}`, item]));
+
+    for (const [key, spec] of desired) {
+      const existing = existingByKey.get(key);
+      if (!existing) {
+        shop.items.unshift(normalizeItem({
+          ...spec,
+          coinCost: 0,
+          realPriceCents: null,
+          status: "wishlist",
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        }));
+        changed = true;
+        continue;
+      }
+      const prior = JSON.stringify([existing.name, existing.imageUrl, existing.url, existing.description, existing.source, existing.autoManaged, existing.linkedType, existing.linkedId, existing.status]);
+      existing.name = spec.name;
+      if (spec.imageUrl) existing.imageUrl = spec.imageUrl;
+      if (!existing.url && spec.url) existing.url = spec.url;
+      existing.description = spec.description;
+      existing.source = spec.source;
+      existing.autoManaged = true;
+      existing.linkedType = spec.linkedType;
+      existing.linkedId = spec.linkedId;
+      if (existing.status === "archived") existing.status = "wishlist";
+      const next = JSON.stringify([existing.name, existing.imageUrl, existing.url, existing.description, existing.source, existing.autoManaged, existing.linkedType, existing.linkedId, existing.status]);
+      if (prior !== next) { existing.updatedAt = new Date().toISOString(); changed = true; }
+    }
+
+    for (const item of shop.items) {
+      if (!item.autoManaged || !item.linkedType || !item.linkedId) continue;
+      const key = `${item.linkedType}:${item.linkedId}`;
+      if (desired.has(key) || ["redeemed", "purchased"].includes(item.status)) continue;
+      if (item.status !== "archived") {
+        item.status = "archived";
+        item.updatedAt = new Date().toISOString();
+        changed = true;
+      }
+    }
+
+    if (shop.currentWishId && !shop.items.some(item => item.id === shop.currentWishId && !["purchased", "archived"].includes(item.status))) {
+      shop.currentWishId = null;
+      changed = true;
+    }
+    return changed;
+  }
+
+  function linkedEntity(item) {
+    const root = app.getState();
+    if (item?.linkedType === "game") return (root.gameLibrary?.items || []).find(game => String(game.id) === String(item.linkedId)) || null;
+    if (item?.linkedType === "book") return (root.bookLibrary?.items || []).find(book => String(book.id) === String(item.linkedId)) || null;
+    return null;
+  }
+
+  function applyLinkedPurchase(item, purchased = true) {
+    const entity = linkedEntity(item);
+    if (!entity) return false;
+    entity.updatedAt = Date.now();
+    if (item.linkedType === "game") {
+      entity.owned = Boolean(purchased);
+      if (!purchased) entity.status = "backlog";
+      else if (entity.status !== "backlog") entity.owned = true;
+      return true;
+    }
+    if (item.linkedType === "book") {
+      entity.status = purchased ? "owned" : "want";
+      return true;
+    }
+    return false;
+  }
+
+  function normalizeCompare(value) {
+    return String(value || "").toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, " ").trim();
+  }
+
+  async function fetchSteamLinkedPrice(item, game) {
+    const appId = String(game?.steamAppId || "").replace(/\D/g, "");
+    if (!appId) throw new Error("No Steam App ID attached to this game.");
+    const workerUrl = String(app.getState().integrations?.steam?.workerUrl || "").replace(/\/+$/, "");
+    if (!/^https?:\/\//i.test(workerUrl)) throw new Error("Configure the Steam Worker in Settings first.");
+    const response = await fetch(`${workerUrl}/api/steam/store?appid=${encodeURIComponent(appId)}&cc=DE&lang=german`, { headers: { Accept: "application/json" } });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok || !payload?.ok) throw new Error(payload?.error || `Steam price lookup failed (${response.status}). Update the Steam Worker to v5 if needed.`);
+    return {
+      cents: payload.isFree ? 0 : finiteOrNull(payload.finalPriceCents),
+      listCents: finiteOrNull(payload.initialPriceCents),
+      currency: String(payload.currency || "EUR"),
+      url: String(payload.storeUrl || `https://store.steampowered.com/app/${appId}/`),
+      imageUrl: String(payload.headerImage || game.coverUrl || ""),
+      source: "Steam Store · DE"
+    };
+  }
+
+  async function fetchBookLinkedPrice(item, book) {
+    const isbn = String(book?.isbn || "").toUpperCase().replace(/[^0-9X]/g, "");
+    const title = String(book?.title || "").trim();
+    const author = String(book?.author || "").trim();
+    const query = isbn ? `isbn:${isbn}` : [title ? `intitle:"${title}"` : "", author ? `inauthor:"${author}"` : ""].filter(Boolean).join(" ");
+    if (!query) throw new Error("This book needs a title or ISBN before a price can be checked.");
+    const url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=8&projection=full`;
+    const response = await fetch(url, { headers: { Accept: "application/json" } });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(`Google Books price lookup failed (${response.status}).`);
+    const candidates = Array.isArray(payload.items) ? payload.items : [];
+    const wantedTitle = normalizeCompare(title);
+    const wantedAuthor = normalizeCompare(author);
+    const match = candidates.find(entry => {
+      const info = entry?.volumeInfo || {};
+      const ids = Array.isArray(info.industryIdentifiers) ? info.industryIdentifiers.map(x => String(x.identifier || "").replace(/[^0-9X]/gi, "")) : [];
+      if (isbn && ids.includes(isbn)) return true;
+      const sameTitle = wantedTitle && normalizeCompare(info.title) === wantedTitle;
+      const authors = Array.isArray(info.authors) ? info.authors.map(normalizeCompare) : [];
+      return sameTitle && (!wantedAuthor || authors.some(a => a === wantedAuthor || a.includes(wantedAuthor) || wantedAuthor.includes(a)));
+    }) || candidates.find(entry => entry?.saleInfo?.retailPrice || entry?.saleInfo?.listPrice) || candidates[0];
+    if (!match) throw new Error("Google Books did not return a matching edition.");
+    const sale = match.saleInfo || {};
+    const price = sale.retailPrice || sale.listPrice || null;
+    if (!price || !Number.isFinite(Number(price.amount))) throw new Error("No current sale price is exposed for this edition. You can still add a product link/price manually.");
+    const currency = String(price.currencyCode || "EUR");
+    if (currency !== "EUR") throw new Error(`Google Books returned ${currency}, not EUR. Add the local price manually.`);
+    const info = match.volumeInfo || {};
+    return {
+      cents: Math.max(0, Math.round(Number(price.amount) * 100)),
+      listCents: sale.listPrice && Number.isFinite(Number(sale.listPrice.amount)) ? Math.max(0, Math.round(Number(sale.listPrice.amount) * 100)) : null,
+      currency,
+      url: String(sale.buyLink || item.url || ""),
+      imageUrl: String(info.imageLinks?.thumbnail || info.imageLinks?.smallThumbnail || book.coverUrl || "").replace(/^http:/i, "https:"),
+      source: "Google Books · sale price"
+    };
+  }
+
+  function applyLinkedPrice(item, result) {
+    const now = new Date().toISOString();
+    const prior = finiteOrNull(item.realPriceCents);
+    item.realPriceCents = result.cents;
+    item.coinCost = Math.max(0, Number(result.cents || 0));
+    item.listPriceCents = result.listCents;
+    item.currency = result.currency || "EUR";
+    item.priceSource = result.source || "";
+    item.priceCheckedAt = Date.now();
+    if (result.url) item.url = result.url;
+    if (result.imageUrl) item.imageUrl = result.imageUrl;
+    if (item.initialPriceCents == null && result.cents != null) item.initialPriceCents = result.cents;
+    item.priceHistory ||= [];
+    if (prior != null && result.cents != null && prior !== result.cents) item.priceHistory.push({ at: now, fromCents: prior, toCents: result.cents, stage: "auto-check" });
+    item.priceHistory = item.priceHistory.slice(-30);
+    item.updatedAt = now;
+  }
+
+  async function refreshLinkedPrice(itemId, { silent = false } = {}) {
+    const item = state().items.find(entry => entry.id === itemId);
+    if (!item?.autoManaged) return false;
+    const entity = linkedEntity(item);
+    if (!entity) return false;
+    try {
+      const result = item.linkedType === "game"
+        ? await fetchSteamLinkedPrice(item, entity)
+        : await fetchBookLinkedPrice(item, entity);
+      if (result.cents == null) throw new Error("No current price was returned.");
+      applyLinkedPrice(item, result);
+      persist("shop-linked-price-refresh");
+      if (!silent) app.showToast?.(result.cents === 0 ? `🛍️ ${item.name} is currently free.` : `🛍️ ${item.name} · ${money(result.cents)} checked.`);
+      return true;
+    } catch (error) {
+      console.warn("Linked Shop price lookup failed", error);
+      if (!silent) app.showToast?.(`Preis konnte nicht automatisch geprüft werden · ${String(error?.message || error)}`);
+      return false;
+    }
+  }
+
+  async function refreshAllLinkedPrices() {
+    if (linkedPriceBusy) return;
+    linkedPriceBusy = true;
+    if (els.refreshLinkedPrices) {
+      els.refreshLinkedPrices.disabled = true;
+      els.refreshLinkedPrices.textContent = "Preise werden geprüft…";
+    }
+    const items = state().items.filter(item => item.autoManaged && ["wishlist", "available"].includes(item.status));
+    let ok = 0, failed = 0;
+    for (const item of items) {
+      const result = await refreshLinkedPrice(item.id, { silent: true });
+      if (result) ok += 1; else failed += 1;
+    }
+    linkedPriceBusy = false;
+    if (els.refreshLinkedPrices) {
+      els.refreshLinkedPrices.disabled = false;
+      els.refreshLinkedPrices.textContent = "↻ Preise prüfen";
+    }
+    app.showToast?.(`🛍️ Preischeck fertig · ${ok} aktualisiert${failed ? ` · ${failed} ohne verlässlichen Preis` : ""}.`);
+    render();
+  }
+
   function state() { ensureState(); return app.getState().shop; }
 
   function bindEvents() {
     els.add?.addEventListener("click", () => openEditor());
+    els.refreshLinkedPrices?.addEventListener("click", refreshAllLinkedPrices);
     els.filters?.addEventListener("click", event => {
       const button = event.target.closest?.("[data-shop-filter]");
       if (!button || !FILTERS.has(button.dataset.shopFilter)) return;
@@ -205,6 +470,12 @@
       case "delete": removeItem(itemId); break;
       case "open": openLink(itemId); break;
       case "restore": restorePurchased(itemId); break;
+      case "refresh-price": refreshLinkedPrice(itemId); break;
+      case "open-source": {
+        const item = state().items.find(entry => entry.id === itemId);
+        app.showView?.(item?.linkedType === "book" ? "library" : "games");
+        break;
+      }
     }
   }
 
@@ -287,6 +558,7 @@
     const shop = state();
     const item = shop.items.find(entry => entry.id === itemId);
     if (!item || ["purchased", "archived"].includes(item.status)) return;
+    if (!(Number(item.coinCost || 0) > 0)) { app.showToast?.("Check or enter a price before pinning this wish."); return; }
     shop.currentWishId = shop.currentWishId === itemId ? null : itemId;
     persist("shop-current-wish");
     app.showToast?.(shop.currentWishId ? `✦ Current Wish: ${item.name}` : "Current Wish unpinned.");
@@ -370,6 +642,7 @@
       item.redeemedAt = null;
       item.redemptionCoins = null;
       item.status = item.mode === "repeatable" ? "wishlist" : "purchased";
+      if (item.autoManaged && item.status === "purchased") applyLinkedPurchase(item, true);
       if (walletDelta) shop.transactions.push({ id: id("shop-tx"), itemId: item.id, itemName: item.name,
         type: "price-adjustment", coins: walletDelta, actualPriceCents: price, at: now });
       shop.transactions.push({ id: id("shop-tx"), itemId: item.id, itemName: item.name,
@@ -402,6 +675,7 @@
     const item = state().items.find(entry => entry.id === itemId);
     if (!item || item.status !== "purchased") return;
     item.status = "wishlist";
+    if (item.autoManaged) applyLinkedPurchase(item, false);
     item.updatedAt = new Date().toISOString();
     persist("shop-restore");
   }
@@ -410,6 +684,7 @@
     const shop = state();
     const item = shop.items.find(entry => entry.id === itemId);
     if (!item) return;
+    if (item.autoManaged) { app.showToast?.("This Shop entry is managed by Library / Games. Mark it Owned, Kindle Unlimited or Borrowed there to remove it automatically."); return; }
     if (item.status === "redeemed") { app.showToast?.("Refund the redemption before deleting this reward."); return; }
     if (!window.confirm(`Remove ${item.name} from the Shop? Purchase history will stay in the log.`)) return;
     shop.items = shop.items.filter(entry => entry.id !== itemId);
@@ -522,27 +797,39 @@
   function shopCard(item) {
     const shop = state();
     const coins = Math.max(0, Number(app.getState().coins || 0));
-    const current = shop.currentWishId === item.id;
-    const affordable = coins >= Number(item.coinCost || 0);
+    const priced = item.realPriceCents != null || Number(item.coinCost || 0) > 0;
+    const cost = Math.max(0, Number(item.coinCost || 0));
+    const affordable = priced && cost > 0 && coins >= cost;
     const redeemed = item.status === "redeemed";
     const purchased = item.status === "purchased";
+    const current = shop.currentWishId === item.id;
+    const sourceLabel = item.linkedType === "game" ? "🎮 GAMES · AUTO" : item.linkedType === "book" ? "📚 LIBRARY · AUTO" : item.mode === "repeatable" ? "↻ REPEATABLE" : "✦ ONE-TIME";
+    const stateLabel = redeemed ? "REDEEMED" : purchased ? "BOUGHT" : current ? "CURRENT WISH" : item.realPriceCents === 0 && item.priceCheckedAt ? "FREE" : affordable ? "READY" : priced ? "WISHLIST" : "PRICE OPEN";
+    const progress = cost > 0 ? Math.min(100, coins / cost * 100) : 0;
+    const priceMeta = item.realPriceCents != null
+      ? item.realPriceCents === 0
+        ? `<strong>Free</strong><span>${esc(item.priceSource || "Current store price")}</span>`
+        : `<strong>${coinLabel(item.coinCost)}</strong><span>${money(item.realPriceCents)}${item.priceSource ? ` · ${esc(item.priceSource)}` : ""}</span>`
+      : `<strong>Preis offen</strong><span>${item.autoManaged ? "Automatisch prüfen oder manuell ergänzen" : "Reward value"}</span>`;
+    const checked = item.priceCheckedAt ? ` · checked ${shortDate(item.priceCheckedAt)}` : "";
     return `
       <article class="shop-item-card-v306 ${current ? "current" : ""} ${redeemed ? "redeemed" : ""} ${purchased ? "purchased" : ""}">
         ${imageMarkup(item, "shop-item-image-v306")}
         <div class="shop-item-body-v306">
-          <div class="shop-item-meta-v306"><span>${item.mode === "repeatable" ? "↻ REPEATABLE" : "✦ ONE-TIME"}</span><b>${redeemed ? "REDEEMED" : purchased ? "BOUGHT" : current ? "CURRENT WISH" : affordable ? "READY" : "WISHLIST"}</b></div>
+          <div class="shop-item-meta-v306"><span>${sourceLabel}</span><b>${stateLabel}</b></div>
           <h3>${esc(item.name)}</h3>
           ${item.description ? `<p>${esc(item.description)}</p>` : ""}
-          <div class="shop-price-pair-v306"><strong>${coinLabel(item.coinCost)}</strong>${item.realPriceCents != null ? `<span>${money(item.realPriceCents)}</span>` : `<span>Reward value</span>`}</div>
-          <div class="shop-item-progress-v306"><div class="progress"><span style="width:${Math.min(100, Number(item.coinCost || 1) ? coins / Number(item.coinCost || 1) * 100 : 100)}%"></span></div><small>${affordable ? "You can afford this reward." : `${coinLabel(Math.max(0, Number(item.coinCost || 0) - coins))} left`}</small></div>
+          <div class="shop-price-pair-v306">${priceMeta}</div>
+          ${item.autoManaged && item.priceSource ? `<small class="muted">${esc(item.priceSource)}${checked}</small>` : ""}
+          ${cost > 0 ? `<div class="shop-item-progress-v306"><div class="progress"><span style="width:${progress}%"></span></div><small>${affordable ? "You can afford this reward." : `${coinLabel(Math.max(0, cost - coins))} left`}</small></div>` : ""}
           <div class="shop-card-actions-v306">
-            ${!redeemed && !purchased ? `<button class="${affordable ? "primary-button" : "secondary-button"}" data-shop-action="redeem" data-shop-item="${attr(item.id)}" type="button">${affordable ? "Review & redeem" : "Check price"}</button>` : ""}
+            ${item.autoManaged && !redeemed && !purchased ? `<button class="secondary-button" data-shop-action="refresh-price" data-shop-item="${attr(item.id)}" type="button">↻ Preis prüfen</button>` : ""}
+            ${!redeemed && !purchased && cost > 0 ? `<button class="${affordable ? "primary-button" : "secondary-button"}" data-shop-action="redeem" data-shop-item="${attr(item.id)}" type="button">${affordable ? "Review & redeem" : "Preis / Coins prüfen"}</button>` : ""}
             ${redeemed ? `<button class="primary-button" data-shop-action="bought" data-shop-item="${attr(item.id)}" type="button">Mark bought</button><button class="secondary-button" data-shop-action="refund" data-shop-item="${attr(item.id)}" type="button">Cancel & refund</button>` : ""}
             ${purchased ? `<button class="secondary-button" data-shop-action="restore" data-shop-item="${attr(item.id)}" type="button">Back to wishlist</button>` : ""}
-            ${!redeemed && !purchased ? `<button class="ghost-button ${current ? "active" : ""}" data-shop-action="pin" data-shop-item="${attr(item.id)}" type="button">${current ? "Current Wish ✓" : "Pin wish"}</button>` : ""}
+            ${!redeemed && !purchased && cost > 0 ? `<button class="ghost-button ${current ? "active" : ""}" data-shop-action="pin" data-shop-item="${attr(item.id)}" type="button">${current ? "Current Wish ✓" : "Pin wish"}</button>` : ""}
             ${item.url ? `<button class="ghost-button" data-shop-action="open" data-shop-item="${attr(item.id)}" type="button">Open link</button>` : ""}
-            <button class="ghost-button" data-shop-action="edit" data-shop-item="${attr(item.id)}" type="button">Edit</button>
-            <button class="ghost-button danger" data-shop-action="delete" data-shop-item="${attr(item.id)}" type="button">Remove</button>
+            ${item.autoManaged ? `<button class="ghost-button" data-shop-action="edit" data-shop-item="${attr(item.id)}" type="button">Preis / Link bearbeiten</button><button class="ghost-button" data-shop-action="open-source" data-shop-item="${attr(item.id)}" type="button">Open ${item.linkedType === "book" ? "Library" : "Games"}</button>` : `<button class="ghost-button" data-shop-action="edit" data-shop-item="${attr(item.id)}" type="button">Edit</button><button class="ghost-button danger" data-shop-action="delete" data-shop-item="${attr(item.id)}" type="button">Remove</button>`}
           </div>
         </div>
       </article>`;
@@ -599,6 +886,8 @@
     getCurrentWish: () => {
       const item = state().items.find(entry => entry.id === state().currentWishId);
       return item ? { ...item } : null;
-    }
+    },
+    refreshLinkedPrices: refreshAllLinkedPrices,
+    _test: { syncLinkedLibraryItems, gameOwned, bookNeedsShop, applyLinkedPurchase, linkedEntity }
   };
 })();
