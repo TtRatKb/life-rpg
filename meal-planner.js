@@ -1,8 +1,8 @@
 (() => {
-  const SCHEMA = 4;
+  const SCHEMA = 5;
   const DAY_MS = 86400000;
   const DEFAULT_TAG_LIMITS = { nudeln: 1, kartoffeln: 1, reis: 1, tortilla: 1 };
-  const ui = { tab: 'plan', periodStart: '', periodDays: 7, mode: 'main', editingDishId: null, swapBlockId: null, swapMemory: {} };
+  const ui = { tab: 'plan', periodStart: '', periodDays: 7, shoppingStart: '', shoppingDays: 7, mode: 'main', editingDishId: null, swapBlockId: null, swapMemory: {} };
 
   function app() { return window.LifeRPGApp; }
   function rootState() { return app()?.getState?.() || null; }
@@ -67,6 +67,7 @@
     const current = root.mealPlanner && typeof root.mealPlanner === 'object' && !Array.isArray(root.mealPlanner)
       ? root.mealPlanner : {};
     const defaults = defaultPlanner();
+    const previousSchema = Number(current.schemaVersion || 0);
     const planner = {
       ...defaults,
       ...current,
@@ -95,6 +96,7 @@
         preferWeekendSpecials: current.settings?.preferWeekendSpecials !== false
       }
     };
+    if (previousSchema < 5) planner.plans = migratePlansToCalendarWeeks(planner.plans);
     root.mealPlanner = planner;
     return planner;
   }
@@ -149,94 +151,93 @@
 
   function ensureUiPeriod() {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(ui.periodStart)) ui.periodStart = nextMondayKey();
-    ui.periodDays = clamp(ui.periodDays || 7, 1, 31);
+    ui.periodStart = calendarWeekKey(parseLocalDate(ui.periodStart));
+    ui.periodDays = 7;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(ui.shoppingStart)) ui.shoppingStart = ui.periodStart;
+    ui.shoppingDays = clamp(ui.shoppingDays || 7, 1, 31);
   }
 
   function addDays(date, days) { const d = new Date(date); d.setDate(d.getDate() + Number(days || 0)); return d; }
   function dayDiff(a, b) { return Math.round((parseLocalDate(localDateKey(a)) - parseLocalDate(localDateKey(b))) / DAY_MS); }
   function calendarWeekKey(date) { return localDateKey(mondayOf(date)); }
-  function periodKey(start = ui.periodStart, days = ui.periodDays) { return `${start}::${clamp(days,1,31)}`; }
-  function planStartKey(plan) { return String(plan?.periodStart || plan?.weekStart || ''); }
-  function planLength(plan) { return clamp(plan?.days || 7, 1, 31); }
-  function periodDates(start = ui.periodStart, days = ui.periodDays) {
-    const first = parseLocalDate(start);
-    return Array.from({length: clamp(days,1,31)}, (_, index) => addDays(first, index));
+  function periodKey(start = ui.periodStart) { return calendarWeekKey(parseLocalDate(start)); }
+  function planStartKey(plan) { return calendarWeekKey(parseLocalDate(String(plan?.weekStart || plan?.periodStart || ui.periodStart))); }
+  function planLength() { return 7; }
+  function periodDates(start = ui.periodStart) {
+    const first = parseLocalDate(calendarWeekKey(parseLocalDate(start)));
+    return Array.from({length: 7}, (_, index) => addDays(first, index));
   }
 
-  function planFor(start = ui.periodStart, days = ui.periodDays) {
+  function migratePlansToCalendarWeeks(rawPlans) {
+    const source = rawPlans && typeof rawPlans === 'object' && !Array.isArray(rawPlans) ? rawPlans : {};
+    const unique = [];
+    const seen = new Set();
+    Object.values(source).forEach(plan => {
+      if (!plan || typeof plan !== 'object' || !Array.isArray(plan.blocks)) return;
+      const rawStart = String(plan.periodStart || plan.weekStart || '');
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(rawStart)) return;
+      const sig = `${rawStart}|${Number(plan.days || 7)}|${plan.generatedAt || ''}|${plan.committedAt || ''}`;
+      if (seen.has(sig)) return;
+      seen.add(sig); unique.push(plan);
+    });
+    const out = {};
+    const ensureWeek = (weekKey, sourcePlan) => {
+      if (!out[weekKey]) out[weekKey] = {
+        periodStart: weekKey, weekStart: weekKey, days: 7,
+        status: sourcePlan?.status === 'committed' ? 'committed' : 'draft', blocks: [],
+        generatedAt: sourcePlan?.generatedAt || new Date().toISOString(),
+        updatedAt: sourcePlan?.updatedAt || sourcePlan?.generatedAt || new Date().toISOString(),
+        committedAt: sourcePlan?.committedAt || null
+      };
+      if (sourcePlan?.status === 'committed') {
+        out[weekKey].status = 'committed';
+        out[weekKey].committedAt = sourcePlan.committedAt || out[weekKey].committedAt || new Date().toISOString();
+      }
+      return out[weekKey];
+    };
+    unique.forEach(plan => {
+      const base = parseLocalDate(String(plan.periodStart || plan.weekStart));
+      (plan.blocks || []).forEach(block => {
+        const duration = Math.max(1, Number(block?.duration || 1));
+        let remaining = duration;
+        let consumed = 0;
+        while (remaining > 0) {
+          const actual = addDays(base, Number(block?.start || 0) + consumed);
+          const weekKey = calendarWeekKey(actual);
+          const week = ensureWeek(weekKey, plan);
+          const offset = dayDiff(actual, parseLocalDate(weekKey));
+          const slice = Math.min(remaining, 7 - offset);
+          const idBase = String(block?.id || uid('meal'));
+          if (!week.blocks.some(existing => existing.id === `${idBase}-w${consumed}`)) {
+            week.blocks.push({
+              ...block,
+              id: `${idBase}-w${consumed}`,
+              originId: block?.originId || idBase,
+              start: offset,
+              duration: slice,
+              continuationOffset: Number(block?.continuationOffset || 0) + consumed
+            });
+          }
+          remaining -= slice;
+          consumed += slice;
+        }
+      });
+    });
+    Object.values(out).forEach(plan => plan.blocks.sort((a,b) => Number(a.start || 0) - Number(b.start || 0)));
+    return out;
+  }
+
+  function planFor(start = ui.periodStart) {
     ensureUiPeriod();
-    const s = ensureState();
-    const exact = s.plans[periodKey(start, days)];
-    if (exact) return exact;
-    const legacy = s.plans[start];
-    if (legacy && clamp(days,1,31) === planLength(legacy)) return legacy;
-    return null;
+    return ensureState().plans[periodKey(start)] || null;
   }
 
   function storePlan(plan) {
-    ensureState().plans[periodKey(planStartKey(plan), planLength(plan))] = plan;
-  }
-
-  function resizeCurrentPlan(newDays) {
-    ensureUiPeriod();
-    const oldDays = ui.periodDays;
-    const nextDays = clamp(newDays, 1, 31);
-    if (nextDays === oldDays) return false;
-
-    const s = ensureState();
-    const oldKey = periodKey(ui.periodStart, oldDays);
-    const plan = planFor(ui.periodStart, oldDays);
-    ui.periodDays = nextDays;
-    ui.swapMemory = {};
-
-    if (!plan) {
-      render();
-      return false;
-    }
-
-    // A range-length edit changes the same plan instead of switching to a
-    // different storage key. Remove the old alias first so committed plans
-    // cannot be counted twice by cooldown/history logic.
-    if (s.plans[oldKey] === plan) delete s.plans[oldKey];
-    if (s.plans[ui.periodStart] === plan) delete s.plans[ui.periodStart];
-
-    plan.periodStart = ui.periodStart;
-    plan.weekStart = ui.periodStart;
-    plan.days = nextDays;
-    plan.updatedAt = new Date().toISOString();
-
-    // Keep every existing meal that begins inside the resized range. If a
-    // multi-day dish continues beyond the visible end, its duration remains
-    // intact: the leftovers still exist even if the shopping horizon ends.
-    plan.blocks = (plan.blocks || []).filter(block => Number(block?.start || 0) < nextDays);
-
-    // When extending, preserve the existing meals and add explicit open slots
-    // only for newly visible, uncovered days. Those slots can be filled with
-    // the existing one-click swap without rebuilding the rest of the plan.
-    if (nextDays > oldDays) {
-      const occupied = new Set();
-      plan.blocks.forEach(block => {
-        const start = Number(block?.start || 0);
-        const duration = Math.max(1, Number(block?.duration || 1));
-        for (let i = 0; i < duration; i += 1) {
-          const index = start + i;
-          if (index >= 0 && index < nextDays) occupied.add(index);
-        }
-      });
-      for (let index = oldDays; index < nextDays; index += 1) {
-        if (occupied.has(index)) continue;
-        plan.blocks.push({ id: uid('flex'), dishId: null, start: index, duration: 1, label: 'Open / leftovers' });
-      }
-      plan.blocks.sort((a,b) => Number(a?.start || 0) - Number(b?.start || 0));
-    }
-
-    storePlan(plan);
-    save('meal-plan-resize');
-    render();
-    app()?.showToast?.(nextDays > oldDays
-      ? `Zeitraum auf ${nextDays} Tage erweitert · bestehende Gerichte bleiben erhalten.`
-      : `Zeitraum auf ${nextDays} Tage verkürzt · bestehende Gerichte bleiben erhalten.`);
-    return true;
+    const weekKey = periodKey(planStartKey(plan));
+    plan.periodStart = weekKey;
+    plan.weekStart = weekKey;
+    plan.days = 7;
+    ensureState().plans[weekKey] = plan;
   }
 
   function allPlans() {
@@ -382,12 +383,12 @@
     return score;
   }
 
-  function generatePlan(startKey = ui.periodStart, days = ui.periodDays) {
+  function generatePlan(startKey = ui.periodStart, days = 7) {
     const s = ensureState();
-    const totalDays = clamp(days, 1, 31);
+    const totalDays = 7;
     const dishes = s.dishes.filter(dish => dish.active !== false);
     if (!dishes.length) return {
-      periodStart: startKey, weekStart: startKey, days: totalDays, status: 'draft', blocks: [],
+      periodStart: periodKey(startKey), weekStart: periodKey(startKey), days: 7, status: 'draft', blocks: [],
       generatedAt: new Date().toISOString(), updatedAt: new Date().toISOString(), committedAt: null
     };
 
@@ -428,9 +429,9 @@
     }
 
     return {
-      periodStart: startKey,
-      weekStart: startKey,
-      days: totalDays,
+      periodStart: periodKey(startKey),
+      weekStart: periodKey(startKey),
+      days: 7,
       status: 'draft',
       blocks: best?.blocks || [],
       generatedAt: new Date().toISOString(),
@@ -442,12 +443,12 @@
   function generateCurrentPeriod() {
     ensureUiPeriod();
     ui.swapMemory = {};
-    const generated = generatePlan(ui.periodStart, ui.periodDays);
+    const generated = generatePlan(ui.periodStart, 7);
     storePlan(generated);
     save('meal-plan-generate');
     render();
     if (!generated.blocks.length) app()?.showToast?.('Add a few dishes first, then Life RPG can build the plan.');
-    else if (coveredDays(generated) < ui.periodDays) app()?.showToast?.(`Meal plan built for ${coveredDays(generated)}/${ui.periodDays} days.`);
+    else if (coveredDays(generated) < 7) app()?.showToast?.(`Meal plan built for ${coveredDays(generated)}/7 days.`);
     else app()?.showToast?.('🍲 Meal plan built. Swap anything that does not feel right.');
   }
 
@@ -549,11 +550,19 @@
     app()?.showToast?.(`↻ Swapped to ${dish.name}.`);
   }
 
-  function periodLabel(start = ui.periodStart, days = ui.periodDays) {
-    const dates = periodDates(start, days);
+  function isoWeekNumber(date) {
+    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    const dayNum = d.getUTCDay() || 7;
+    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    return Math.ceil((((d - yearStart) / DAY_MS) + 1) / 7);
+  }
+
+  function periodLabel(start = ui.periodStart) {
+    const dates = periodDates(start);
     const a = dates[0].toLocaleDateString('de-DE', { day:'2-digit', month:'short' });
-    const b = dates[dates.length - 1].toLocaleDateString('de-DE', { day:'2-digit', month:'short', year:'numeric' });
-    return dates.length === 1 ? b : `${a} – ${b}`;
+    const b = dates[6].toLocaleDateString('de-DE', { day:'2-digit', month:'short', year:'numeric' });
+    return `KW ${isoWeekNumber(dates[0])} · ${a} – ${b}`;
   }
 
   function lastUsedLabel(dish, targetDate = ui.periodStart) {
@@ -593,7 +602,7 @@
   function renderMain(page) {
     page.innerHTML = `<div class="meal-planner-shell-v314dz6 meal-planner-page-shell-v314dz7">
       <div class="meal-planner-head-v314dz6 meal-planner-page-head-v314dz7">
-        <div><p class="eyebrow">ALLTAG · ESSENSPLAN</p><h1>Essensplan 🍲</h1><p>Plane genau den Zeitraum, für den ihr einkauft — mit Cooldowns, Essensfamilien, Wochenendgerichten und einer Einkaufsliste daraus.</p></div>
+        <div><p class="eyebrow">ALLTAG · ESSENSPLAN</p><h1>Essensplan 🍲</h1><p>Plane Woche für Woche von Montag bis Sonntag. Du kannst beliebig weit vorausblättern; jede Kalenderwoche bleibt separat gespeichert.</p></div>
         <div class="meal-planner-page-summary-v314dz7"><span>MEAL PLANNER</span><strong>${esc(ensureState().dishes.length)} Gerichte</strong></div>
       </div>
       <nav class="meal-planner-tabs-v314dz6" aria-label="Meal planner sections">
@@ -611,21 +620,20 @@
     const s = ensureState();
     const planned = plan?.blocks?.filter(block => block.dishId).length || 0;
     return `<section class="meal-week-v314dz6">
-      <div class="meal-period-controls-v314dz8">
-        <button class="secondary-button" type="button" data-meal-action="prev-period" aria-label="Vorheriger Zeitraum">←</button>
-        <label><span>Startdatum</span><input type="date" data-meal-period-start value="${attr(ui.periodStart)}"></label>
-        <label><span>Tage</span><input type="number" min="1" max="31" step="1" data-meal-period-days value="${ui.periodDays}"></label>
-        <div class="meal-period-label-v314dz8"><small>ZEITRAUM</small><h3>${esc(periodLabel())}</h3></div>
-        <button class="secondary-button" type="button" data-meal-action="next-period" aria-label="Nächster Zeitraum">→</button>
+      <div class="meal-period-controls-v314dz8 meal-week-controls-v314dz12">
+        <button class="secondary-button" type="button" data-meal-action="prev-period" aria-label="Vorherige Woche">←</button>
+        <label><span>Woche wählen</span><input type="date" data-meal-period-start value="${attr(ui.periodStart)}"></label>
+        <div class="meal-period-label-v314dz8"><small>KALENDERWOCHE</small><h3>${esc(periodLabel())}</h3></div>
+        <button class="secondary-button" type="button" data-meal-action="next-period" aria-label="Nächste Woche">→</button>
       </div>
       <div class="meal-plan-actions-v314dz6">
-        <button class="primary-button" type="button" data-meal-action="generate" ${s.dishes.some(d => d.active !== false) ? '' : 'disabled'}>✦ ${plan ? 'Neu planen' : 'Plan erstellen'}</button>
-        ${plan ? `<button class="secondary-button" type="button" data-meal-action="commit">${plan.status === 'committed' ? '✓ Plan aktiv' : 'Diesen Plan verwenden'}</button>` : ''}
+        <button class="primary-button" type="button" data-meal-action="generate" ${s.dishes.some(d => d.active !== false) ? '' : 'disabled'}>✦ ${plan ? 'Woche neu planen' : 'Woche planen'}</button>
+        ${plan ? `<button class="secondary-button" type="button" data-meal-action="commit">${plan.status === 'committed' ? '✓ Woche aktiv' : 'Diese Woche verwenden'}</button>` : ''}
         <button class="secondary-button" type="button" data-meal-tab="history">Vergangenes nachtragen</button>
-        <span>${planned} Gericht${planned === 1 ? '' : 'e'} · ${plan ? `${coveredDays(plan)}/${ui.periodDays} Tage` : 'noch nicht geplant'}</span>
+        <span>${planned} Gericht${planned === 1 ? '' : 'e'} · ${plan ? `${coveredDays(plan)}/7 Tage` : 'noch nicht geplant'}</span>
       </div>
       ${!s.dishes.length ? `<div class="meal-empty-v314dz6"><span>🍲</span><strong>Starte mit den Gerichten, die ihr wirklich esst.</strong><p>Etwa 15–20 reichen schon für sinnvolle Pläne.</p><button class="primary-button" type="button" data-meal-tab="dishes">Gerichte hinzufügen</button></div>` : renderPeriodGrid(plan, dates)}
-      <div class="meal-plan-note-v314dz6"><strong>Wie der Planer denkt</strong><span>Cooldowns werden taggenau geprüft. Tag-Limits gelten pro Kalenderwoche, auch wenn dein gewählter Zeitraum mitten in der Woche beginnt oder über mehrere Wochen läuft. „Weekend special“ bevorzugt Samstag/Sonntag, ist aber kein harter Zwang.</span></div>
+      <div class="meal-plan-note-v314dz6"><strong>Wie der Planer denkt</strong><span>Jede Ansicht ist eine echte Kalenderwoche von Montag bis Sonntag. Cooldowns greifen über die gespeicherten Wochen hinweg; Tag-Limits gelten innerhalb jeder Woche. Für Einkäufe kannst du im Einkauf-Tab unabhängig davon einen beliebigen Zeitraum wählen.</span></div>
     </section>`;
   }
 
@@ -648,7 +656,7 @@
     if (!dish) return `<article class="meal-day-card-v314dz6 is-open ${weekend ? 'is-weekend' : ''}"><small>${esc(date.toLocaleDateString('de-DE',{weekday:'short'}).toUpperCase())}</small><b>${esc(date.toLocaleDateString('de-DE',{day:'2-digit',month:'short'}))}</b><div><strong>${esc(block.label || 'Offen / Reste')}</strong><span>Flexibler Tag</span>${part === 0 ? `<button type="button" class="text-button" data-meal-swap="${attr(block.id)}">1-Tages-Gericht finden ↻</button>` : ''}</div></article>`;
     return `<article class="meal-day-card-v314dz6 ${weekend ? 'is-weekend' : ''} ${dish.weekendSpecial ? 'is-special' : ''}">
       <small>${esc(date.toLocaleDateString('de-DE',{weekday:'short'}).toUpperCase())}</small><b>${esc(date.toLocaleDateString('de-DE',{day:'2-digit',month:'short'}))}</b>
-      <div><strong>${part ? `Reste · ${esc(dish.name)}` : esc(dish.name)}</strong><span>${part ? `Tag ${part + 1}/${dish.days}` : dish.days > 1 ? `${dish.days} Tage` : '1 Tag'}${dish.weekendSpecial ? ' · ✦ Wochenende' : ''}</span>
+      <div><strong>${(part + Number(block.continuationOffset || 0)) ? `Reste · ${esc(dish.name)}` : esc(dish.name)}</strong><span>${(part + Number(block.continuationOffset || 0)) ? `Tag ${part + Number(block.continuationOffset || 0) + 1}/${dish.days}` : dish.days > 1 ? `${dish.days} Tage` : '1 Tag'}${dish.weekendSpecial ? ' · ✦ Wochenende' : ''}</span>
       ${part === 0 ? `<div class="meal-day-actions-v314dz6"><button type="button" class="text-button" data-meal-swap="${attr(block.id)}">Tauschen ↻</button>${dish.sourceUrl ? `<button type="button" class="text-button" data-meal-open-url="${attr(dish.id)}">Rezept ↗</button>` : ''}</div>` : ''}</div>
     </article>`;
   }
@@ -693,16 +701,46 @@
     </section>`;
   }
 
+  function plannedMealsForRange(startKey = ui.shoppingStart, days = ui.shoppingDays) {
+    const start = parseLocalDate(startKey);
+    const end = addDays(start, clamp(days, 1, 31) - 1);
+    const rows = [];
+    const seen = new Set();
+    for (let offset = 0; offset < clamp(days, 1, 31); offset += 1) {
+      const date = addDays(start, offset);
+      const weekKey = calendarWeekKey(date);
+      const plan = ensureState().plans[weekKey];
+      if (!plan?.blocks) continue;
+      const dayIndex = dayDiff(date, parseLocalDate(weekKey));
+      const block = plan.blocks.find(item => dayIndex >= Number(item.start || 0) && dayIndex < Number(item.start || 0) + Number(item.duration || 1));
+      if (!block?.dishId) continue;
+      const uniqueKey = String(block.originId || `${weekKey}:${block.id}`);
+      if (seen.has(uniqueKey)) continue;
+      seen.add(uniqueKey);
+      const dish = dishById(block.dishId);
+      if (dish) rows.push({ weekKey, block, dish, firstDate: addDays(parseLocalDate(weekKey), Number(block.start || 0)) });
+    }
+    return rows.sort((a,b) => a.firstDate - b.firstDate);
+  }
+
+  function shoppingRangeLabel() {
+    const start = parseLocalDate(ui.shoppingStart);
+    const end = addDays(start, ui.shoppingDays - 1);
+    const a = start.toLocaleDateString('de-DE',{day:'2-digit',month:'short'});
+    const b = end.toLocaleDateString('de-DE',{day:'2-digit',month:'short',year:'numeric'});
+    return ui.shoppingDays === 1 ? b : `${a} – ${b}`;
+  }
+
   function renderShoppingTab() {
-    const plan = planFor();
     const s = ensureState();
-    const mealBlocks = (plan?.blocks || []).filter(block => block.dishId).map(block => ({ block, dish: dishById(block.dishId) })).filter(x => x.dish);
+    const mealBlocks = plannedMealsForRange();
     const hasIngredients = mealBlocks.some(x => x.dish.ingredients?.length);
     return `<section>
-      <div class="meal-section-heading-v314dz6"><div><small>EINKAUF</small><h3>${esc(periodLabel())}</h3><p>Zutaten aus dem Plan und der wiederkehrende Vorratscheck bleiben getrennt und werden beim Kopieren zusammengeführt.</p></div><button class="primary-button" type="button" data-meal-action="copy-shopping" ${plan ? '' : 'disabled'}>Einkaufsliste kopieren</button></div>
+      <div class="meal-section-heading-v314dz6"><div><small>EINKAUF</small><h3>${esc(shoppingRangeLabel())}</h3><p>Die Wochenplanung bleibt Montag–Sonntag. Für den Einkauf wählst du separat, ab welchem Tag und für wie viele Tage du einkaufen möchtest.</p></div><button class="primary-button" type="button" data-meal-action="copy-shopping" ${mealBlocks.length || s.restockItems.some(item => item.need) ? '' : 'disabled'}>Einkaufsliste kopieren</button></div>
+      <div class="meal-shopping-range-v314dz12"><label><span>Ab</span><input type="date" data-meal-shopping-start value="${attr(ui.shoppingStart)}"></label><label><span>Für wie viele Tage?</span><input type="number" min="1" max="31" step="1" data-meal-shopping-days value="${ui.shoppingDays}"></label><div><small>ZEITRAUM</small><strong>${esc(shoppingRangeLabel())}</strong></div></div>
       <div class="meal-shopping-columns-v314dz6">
-        <section class="meal-shopping-card-v314dz6"><div class="meal-shopping-card-head-v314dz6"><div><small>GERICHTE</small><h4>Zutaten aus dem Plan</h4></div></div>
-          ${plan ? (hasIngredients ? mealBlocks.map(({dish}) => `<div class="meal-ingredient-group-v314dz6"><strong>${esc(dish.name)}</strong>${dish.ingredients.length ? `<ul>${dish.ingredients.map(line => `<li>□ ${esc(line)}</li>`).join('')}</ul>` : '<p>Keine Zutaten gespeichert.</p>'}</div>`).join('') : '<p class="muted">Der Zeitraum ist geplant, aber für diese Gerichte sind noch keine Zutaten gespeichert.</p>') : '<p class="muted">Erstelle zuerst einen Plan für den aktuellen Zeitraum.</p>'}
+        <section class="meal-shopping-card-v314dz6"><div class="meal-shopping-card-head-v314dz6"><div><small>GERICHTE</small><h4>Zutaten aus den geplanten Wochen</h4></div></div>
+          ${mealBlocks.length ? (hasIngredients ? mealBlocks.map(({dish,firstDate}) => `<div class="meal-ingredient-group-v314dz6"><strong>${esc(dish.name)}</strong><small>${esc(firstDate.toLocaleDateString('de-DE',{weekday:'short',day:'2-digit',month:'2-digit'}))}</small>${dish.ingredients.length ? `<ul>${dish.ingredients.map(line => `<li>□ ${esc(line)}</li>`).join('')}</ul>` : '<p>Keine Zutaten gespeichert.</p>'}</div>`).join('') : '<p class="muted">Für die geplanten Gerichte sind noch keine Zutaten gespeichert.</p>') : '<p class="muted">In diesem Einkaufszeitraum liegen noch keine geplanten Gerichte.</p>'}
         </section>
         <section class="meal-shopping-card-v314dz6"><div class="meal-shopping-card-head-v314dz6"><div><small>VORRATSCHECK</small><h4>Haben wir das noch?</h4></div></div>
           <form class="meal-restock-add-v314dz6" data-meal-restock-form><input name="name" maxlength="120" placeholder="Kaffeebohnen, Toilettenpapier…" required><select name="category"><option>Lebensmittel</option><option>Haushalt</option><option>Bad</option><option>Sonstiges</option></select><button class="secondary-button" type="submit">Hinzufügen</button></form>
@@ -768,12 +806,17 @@
       save('meal-planner-restock-check');
     }));
     dialog.querySelectorAll('[data-meal-period-start]').forEach(input => input.addEventListener('change', () => {
-      if (/^\d{4}-\d{2}-\d{2}$/.test(input.value)) ui.periodStart = input.value;
+      if (/^\d{4}-\d{2}-\d{2}$/.test(input.value)) ui.periodStart = calendarWeekKey(parseLocalDate(input.value));
       ui.swapMemory = {};
       render();
     }));
-    dialog.querySelectorAll('[data-meal-period-days]').forEach(input => input.addEventListener('change', () => {
-      resizeCurrentPlan(input.value);
+    dialog.querySelectorAll('[data-meal-shopping-start]').forEach(input => input.addEventListener('change', () => {
+      if (/^\d{4}-\d{2}-\d{2}$/.test(input.value)) ui.shoppingStart = input.value;
+      render();
+    }));
+    dialog.querySelectorAll('[data-meal-shopping-days]').forEach(input => input.addEventListener('change', () => {
+      ui.shoppingDays = clamp(input.value, 1, 31);
+      render();
     }));
     dialog.querySelectorAll('[data-meal-history-dish]').forEach(select => select.addEventListener('change', () => {
       const option = select.selectedOptions?.[0];
@@ -800,8 +843,8 @@
     if (target.dataset.mealHistoryDelete) { deleteHistory(target.dataset.mealHistoryDelete); return; }
     switch (target.dataset.mealAction) {
       case 'close': closePlanner(); break;
-      case 'prev-period': ui.periodStart = localDateKey(addDays(parseLocalDate(ui.periodStart), -ui.periodDays)); ui.swapMemory = {}; render(); break;
-      case 'next-period': ui.periodStart = localDateKey(addDays(parseLocalDate(ui.periodStart), ui.periodDays)); ui.swapMemory = {}; render(); break;
+      case 'prev-period': ui.periodStart = localDateKey(addDays(parseLocalDate(ui.periodStart), -7)); ui.swapMemory = {}; render(); break;
+      case 'next-period': ui.periodStart = localDateKey(addDays(parseLocalDate(ui.periodStart), 7)); ui.swapMemory = {}; render(); break;
       case 'generate': generateCurrentPeriod(); break;
       case 'commit': commitCurrentPlan(); break;
       case 'new-dish': ui.mode = 'dish'; ui.editingDishId = null; render(); break;
@@ -913,12 +956,9 @@
   }
 
   function shoppingText() {
-    const plan = planFor();
-    if (!plan) return '';
-    const lines = [`Einkaufsliste · ${periodLabel()}`, ''];
-    const blocks = plan.blocks.filter(block => block.dishId);
-    blocks.forEach(block => {
-      const dish = dishById(block.dishId);
+    const rows = plannedMealsForRange();
+    const lines = [`Einkaufsliste · ${shoppingRangeLabel()}`, ''];
+    rows.forEach(({dish}) => {
       if (!dish?.ingredients?.length) return;
       lines.push(dish.name.toUpperCase());
       dish.ingredients.forEach(item => lines.push(`☐ ${item}`));
@@ -966,11 +1006,12 @@
     if (!app()) return;
     const root = rootState();
     const existed = Boolean(root?.mealPlanner);
+    const previousSchema = Number(root?.mealPlanner?.schemaVersion || 0);
     ensureState();
     ensureUiPeriod();
     bindPage();
     render();
-    if (!existed) save('meal-planner-init');
+    if (!existed || previousSchema < SCHEMA) save(previousSchema < SCHEMA && existed ? 'meal-planner-week-migration' : 'meal-planner-init');
     window.addEventListener('life-rpg:view-changed', event => {
       if (event?.detail?.view === 'meals') render();
     });
@@ -984,8 +1025,7 @@
     shoppingText,
     periodKey,
     periodDates,
-    autoSwap,
-    resizeCurrentPlan
+    autoSwap
   };
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once:true });

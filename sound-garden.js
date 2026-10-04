@@ -1,4 +1,4 @@
-/* Life RPG · Sound Garden V0.31.4dz1
+/* Life RPG · Sound Garden V0.31.4dz12
    Artist-aware discovery; optional Spotify Premium PKCE + in-app Web Playback SDK.
    Existing DV–DX data and reward ledgers remain stable; no reward for Spotify plays.
 */
@@ -6,7 +6,7 @@
   'use strict';
   const app = window.LifeRPGApp;
   if (!app?.getState || !app?.saveState || !app?.awardActivity) return;
-  const VERSION = '0.31.4dz1';
+  const VERSION = '0.31.4dz12';
   const Spotify = window.LifeRPGSpotifyBridge;
   const ALIASES = {'hanabie':['HANABIE.','花冷え。','花冷え','HANABIE']};
   const PLAYLIST = 'https://open.spotify.com/playlist/6aD4oA94t1SpI10OpTrsVl';
@@ -37,6 +37,11 @@
     if (!Array.isArray(m.history)) m.history = [];
     if (!Array.isArray(m.recentArtists)) m.recentArtists = [];
     if (!m.savedToPlaylist || typeof m.savedToPlaylist !== 'object') m.savedToPlaylist = {};
+    if (!m.listenedSpotify || typeof m.listenedSpotify !== 'object' || Array.isArray(m.listenedSpotify)) m.listenedSpotify = {};
+    if (!m.artistGuides || typeof m.artistGuides !== 'object' || Array.isArray(m.artistGuides)) m.artistGuides = {};
+    if (!m.librarySettings || typeof m.librarySettings !== 'object' || Array.isArray(m.librarySettings)) m.librarySettings = {};
+    const guideTarget = Number(m.librarySettings.trackTarget || 10);
+    m.librarySettings.trackTarget = [10,20,30,50].includes(guideTarget) ? guideTarget : 10;
     if (!m.playlistUrl || !/^https:\/\/open\.spotify\.com\/playlist\/[\w-]+/.test(m.playlistUrl)) m.playlistUrl = PLAYLIST;
     // DV migration: old song candidates had no stable artist identity; never reuse them.
     if (Number(m.version || 0) < 2) {
@@ -100,6 +105,7 @@
     const m=data(), old=m.artists.find(a=>a.key===key);
     if (!old || !window.confirm(`„${old.name}“ aus dem Discovery-Pool entfernen? Bereits erhaltene Rewards und Songbewertungen bleiben bestehen.`)) return;
     m.artists=m.artists.filter(a=>a.key!==key);
+    delete m.catalog[key];delete m.artistGuides[key];
     if (m.current?.artistKey===key) m.current=null;
     if (m.pendingIdentity?.artistKey===key) m.pendingIdentity=null;
     save('artist-remove'); render();
@@ -243,8 +249,8 @@ async function spotifyArtistOptions(a) {
     busy=true;status='Überprüfe Spotify-Artist-Link …';render();
     Spotify.artistById(id).then(row=>{
       if(!row?.id||!row.name)throw new Error('Dieser Link verweist auf keinen Spotify-Artist.');
-      a.spotifyArtistId=row.id;a.spotifyArtistName=row.name;
-      delete m.catalog[a.key];if(m.current?.artistKey===a.key)m.current=null;
+      a.spotifyArtistId=row.id;a.spotifyArtistName=row.name;a.spotifyImage=artistImage(row.images?.[1]?.url||row.images?.[0]?.url);a.spotifyUrl=`https://open.spotify.com/artist/${row.id}`;
+      delete m.catalog[a.key];delete m.artistGuides[a.key];if(m.current?.artistKey===a.key)m.current=null;
       m.pendingIdentity=null;save('spotify-artist-link');status=`✓ ${a.name} mit ${row.name} auf Spotify verknüpft.`;
     }).catch(e=>{status=`Spotify-Link: ${e.message}`;}).finally(()=>{busy=false;render();});
   }
@@ -296,6 +302,101 @@ async function spotifyArtistOptions(a) {
     m.catalog[a.key]=[...picked.values()].slice(0,160);
     save('spotify-catalog-cache');return m.catalog[a.key];
   }
+
+  function guideTargetCount() {
+    const n=Number(data().librarySettings?.trackTarget||10);
+    return [10,20,30,50].includes(n)?n:10;
+  }
+  function setGuideTarget(value) {
+    const n=Number(value);
+    data().librarySettings.trackTarget=[10,20,30,50].includes(n)?n:10;
+    save('artist-guide-target');
+    return data().librarySettings.trackTarget;
+  }
+  async function spotifyCoreTracksForKey(key,refresh=false) {
+    if(!spotifyActive()) throw new Error('Bitte zuerst Spotify verbinden.');
+    const m=data(),a=m.artists.find(x=>x.key===key);
+    if(!a) throw new Error('Artist nicht gefunden.');
+    if(!a.spotifyArtistId) throw new Error('Bitte den Artist zuerst eindeutig mit Spotify verknüpfen.');
+    const target=guideTargetCount();
+    const existing=m.artistGuides[a.key];
+    if(!refresh && existing?.spotifyArtistId===a.spotifyArtistId && Array.isArray(existing.trackIds) && existing.trackIds.length>=target) {
+      const cached=artistGuideForKey(a.key);
+      if(cached.length>=target)return cached.slice(0,target);
+    }
+    const picked=new Map();
+    const add=(t,album,source='search')=>{
+      if(!t?.id||!validSpotifyId(t.id)||!t.name||!Array.isArray(t.artists)||!t.artists.some(artist=>artist.id===a.spotifyArtistId))return;
+      const keyForTrack=keyFor(a.name,t.name);
+      if(!baseSong(t.name)||picked.has(keyForTrack))return;
+      picked.set(keyForTrack,{key:keyForTrack,title:t.name,artist:a.name,artistKey:a.key,
+        spotifyArtistId:a.spotifyArtistId,spotifyTrackId:t.id,album:album?.name||t.album?.name||'',
+        cover:album?.images?.[0]?.url||t.album?.images?.[0]?.url||'',storeUrl:t.external_urls?.spotify||`https://open.spotify.com/track/${t.id}`,guideSource:source});
+    };
+    const query=(a.spotifyArtistName||a.name).replace(/"/g,'');
+    const wanted=Math.max(target,10);
+    // Spotify removed the dedicated artist top-tracks endpoint for Development Mode in 2026.
+    // Search order is therefore used as the strongest available Spotify relevance signal,
+    // but every row is still verified against the exact linked Artist ID.
+    for(let offset=0;offset<50 && picked.size<wanted;offset+=10){
+      try{
+        const result=await Spotify.api(`/search?${new URLSearchParams({q:`artist:"${query}"`,type:'track',market:'DE',limit:'10',offset:String(offset)})}`);
+        for(const track of result.tracks?.items||[]) add(track,null,'search');
+        if(!result.tracks?.next)break;
+      }catch(e){ if(!picked.size) throw e; break; }
+    }
+    if(picked.size<target){
+      try{
+        const albums=await Spotify.api(`/artists/${encodeURIComponent(a.spotifyArtistId)}/albums?${new URLSearchParams({include_groups:'album,single',market:'DE',limit:'10'})}`);
+        const unique=[...new Map((albums.items||[]).filter(x=>x.id).map(x=>[x.id,x])).values()];
+        for(const album of unique.slice(0,10)){
+          if(picked.size>=Math.max(target,20)) break;
+          try{
+            const page=await Spotify.api(`/albums/${encodeURIComponent(album.id)}/tracks?${new URLSearchParams({market:'DE',limit:'50'})}`);
+            for(const track of page.items||[]) add(track,album,'catalog');
+          }catch{}
+        }
+      }catch{}
+    }
+    if(!picked.size) throw new Error(`Spotify hat für ${a.name} keine exakt zuordenbaren Songs geliefert.`);
+    try{
+      const meta=await Spotify.artistById(a.spotifyArtistId);
+      if(meta?.name)a.spotifyArtistName=meta.name;
+      a.spotifyImage=artistImage(meta?.images?.[1]?.url||meta?.images?.[0]?.url)||a.spotifyImage||'';
+      a.spotifyUrl=`https://open.spotify.com/artist/${a.spotifyArtistId}`;
+    }catch{}
+    const tracks=[...picked.values()].slice(0,50);
+    const existingCatalog=Array.isArray(m.catalog[a.key])?m.catalog[a.key]:[];
+    const merged=new Map();
+    tracks.forEach(track=>merged.set(track.spotifyTrackId,track));
+    existingCatalog.forEach(track=>{if(track?.spotifyTrackId&&!merged.has(track.spotifyTrackId))merged.set(track.spotifyTrackId,track);});
+    m.catalog[a.key]=[...merged.values()].slice(0,160);
+    m.artistGuides[a.key]={spotifyArtistId:a.spotifyArtistId,trackIds:tracks.map(track=>track.spotifyTrackId),targetBuilt:Math.min(50,tracks.length),updatedAt:Date.now(),source:'spotify-search+catalog-v1'};
+    save('artist-guide-build');
+    return tracks.slice(0,target);
+  }
+  function artistGuideForKey(key) {
+    const m=data(),a=m.artists.find(x=>x.key===key),guide=m.artistGuides[key];
+    if(!a||!guide||guide.spotifyArtistId!==a.spotifyArtistId||!Array.isArray(guide.trackIds))return [];
+    const catalog=Array.isArray(m.catalog[a.key])?m.catalog[a.key]:[];
+    const byId=new Map(catalog.filter(t=>t?.spotifyTrackId).map(t=>[t.spotifyTrackId,t]));
+    return guide.trackIds.map(id=>byId.get(id)).filter(Boolean).slice(0,guideTargetCount());
+  }
+  function setCurrentFromGuide(key,spotifyTrackId) {
+    const m=data(),track=artistGuideForKey(key).find(t=>t.spotifyTrackId===spotifyTrackId);
+    if(!track)return false;
+    m.current={...track,assignedAt:Date.now(),guidePick:true};
+    save('artist-guide-pick');
+    render();
+    return true;
+  }
+  function markGuideTrackHeard(key,spotifyTrackId) {
+    const m=data(),track=artistGuideForKey(key).find(t=>t.spotifyTrackId===spotifyTrackId);
+    if(!track||!validSpotifyId(track.spotifyTrackId))return false;
+    m.listenedSpotify[track.spotifyTrackId]=Date.now();
+    save('artist-guide-heard');
+    return true;
+  }
   async function resolveArtist(a,forceChoice=false) {
     const m=data();
     if(!forceChoice && (spotifyActive()?Boolean(a.spotifyArtistId):(Number.isSafeInteger(a.artistId)&&a.artistId>0)))return true;
@@ -304,9 +405,9 @@ async function spotifyArtistOptions(a) {
     if(!options.length){status=`Kein passender ${useSpotify?'Spotify':'Katalog'}-Artist für „${a.name}“ gefunden. ${useSpotify?'Du kannst stattdessen seinen Spotify-Artist-Link eintragen.':'Verbinde Spotify oder verwende eine alternative Schreibweise (z. B. 花冷え。).'} Es wird kein gleichnamiger Song als Ersatz verwendet.`;return false;}
     if(options.length===1) {
       const o=options[0];
-      if(useSpotify){a.spotifyArtistId=o.id;a.spotifyArtistName=o.name;}
+      if(useSpotify){a.spotifyArtistId=o.id;a.spotifyArtistName=o.name;a.spotifyImage=artistImage(o.image);a.spotifyUrl=o.url||`https://open.spotify.com/artist/${o.id}`;}
       else a.artistId=o.id;
-      delete m.catalog[a.key];
+      delete m.catalog[a.key];delete m.artistGuides[a.key];
       if(m.current?.artistKey===a.key)m.current=null;
       m.pendingIdentity=null;
       save('artist-identity');
@@ -332,9 +433,9 @@ async function spotifyArtistOptions(a) {
     const m=data(),pending=m.pendingIdentity,a=m.artists.find(x=>x.key===key);
     const option=pending?.artistKey===key&&pending.options.find(x=>String(x.id)===String(id));
     if(!a||!option)return;
-    if(pending.source==='spotify'){a.spotifyArtistId=option.id;a.spotifyArtistName=option.name;}
+    if(pending.source==='spotify'){a.spotifyArtistId=option.id;a.spotifyArtistName=option.name;a.spotifyImage=artistImage(option.image);a.spotifyUrl=option.url||`https://open.spotify.com/artist/${option.id}`;}
     else a.artistId=option.id;
-    delete m.catalog[a.key];
+    delete m.catalog[a.key];delete m.artistGuides[a.key];
     if(m.current?.artistKey===a.key)m.current=null;
     const resumeDiscovery=Boolean(pending.resumeDiscovery);
     m.pendingIdentity=null;artistSampleId='';
@@ -512,7 +613,7 @@ async function spotifyArtistOptions(a) {
     const t=data().current;
     if(!t?.spotifyTrackId||!spotifyActive())return tell('Bitte Spotify verbinden und einen neuen Song vorschlagen.');
     const button=$('sgPlayInside');if(button)button.disabled=true;
-    try {await Spotify.play(t);status='♫ Spotify spielt jetzt innerhalb von Life RPG.';}
+    try {await Spotify.play(t);data().listenedSpotify[t.spotifyTrackId]=Date.now();save('spotify-listened');status='♫ Spotify spielt jetzt innerhalb von Life RPG.';}
     catch(e){status=`Spotify-Player: ${e.message} Der eingebettete Player darunter bleibt als Alternative verfügbar.`;}
     finally {if(button)button.disabled=false;render();}
   }
@@ -577,7 +678,7 @@ async function spotifyArtistOptions(a) {
       const action=b.dataset.sg;
       if(action==='new') {data().current=null;next(true);}
       else if(action==='next') next(true);
-      else if(action==='refresh') {const m=data();if(m.current) delete m.catalog[m.current.artistKey];m.current=null;save('catalog-refresh');next(true);}
+      else if(action==='refresh') {const m=data();if(m.current){delete m.catalog[m.current.artistKey];delete m.artistGuides[m.current.artistKey];}m.current=null;save('catalog-refresh');next(true);}
       else if(action==='rate') rate(b.dataset.value);
       else if(action==='remove') removeArtist(b.dataset.key);
       else if(action==='verify') verifyArtist(b.dataset.key);
@@ -619,7 +720,7 @@ async function spotifyArtistOptions(a) {
     $('sgHistory').innerHTML=m.history.length?m.history.slice(0,14).map(h=>`<div><span><b>${esc(h.title)}</b><small>${esc(h.artist)}</small></span><em>${esc({liked:'♡ Gefällt mir',maybe:'☆ Vielleicht',disliked:'✕ Nicht meins',known:'✓ Bekannt',skip:'Übersprungen'}[h.status]||h.status)}</em></div>`).join(''):'<p class="sg-empty">Hier erscheinen deine bewerteten Entdeckungen.</p>';
   }
   function open() {mount();render();if(typeof dialog.showModal==='function' && !dialog.open)dialog.showModal();else dialog.setAttribute('open','');}
-  window.LifeRPGSoundGarden={version:VERSION,open,summary,next,rate,addArtist,addArtists,importKnown,verifyArtist,chooseArtist};
+  window.LifeRPGSoundGarden={version:VERSION,open,summary,next,rate,addArtist,addArtists,importKnown,verifyArtist,chooseArtist,getData:data,guideTarget:guideTargetCount,setGuideTarget,buildArtistGuide:spotifyCoreTracksForKey,getArtistGuide:artistGuideForKey,setCurrentFromGuide,markGuideTrackHeard};
   // Late init: DailyLife renders before this script by design.
   window.LifeRPGDailyLife?.render?.();
   window.addEventListener('life-rpg:state-saved',()=>{if(dialog?.open)render();});
