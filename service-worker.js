@@ -1,4 +1,4 @@
-const CACHE_NAME = "life-rpg-v0314dz17-dashboard-v2-skill-momentum";
+const CACHE_NAME = "life-rpg-v0314dz18-dashboard-density-navigation-fix";
 const ASSET_CACHE_NAME = "life-rpg-assets-v6";
 const MAX_RUNTIME_ASSETS = 96;
 const CORE = [
@@ -8,9 +8,9 @@ const CORE = [
   "./creative-hub-v314dl.js?v=0.31.4dz14",
   "./creative-hub-v314dl.css?v=0.31.4dn",
   "./knowledge-workshop.js?v=0.31.4do",
-  "./dashboard-v2.js?v=0.31.4dz17",
+  "./dashboard-v2.js?v=0.31.4dz18",
   "./knowledge-workshop.css?v=0.31.4do",
-  "./dashboard-v2.css?v=0.31.4dz17",
+  "./dashboard-v2.css?v=0.31.4dz18",
   "./life-hub-v314dk.css?v=0.31.4dl",
   "./daily-life-v314cv.css?v=0.31.4cv",
   "./daily-plan-v2.css?v=0.31.4dz4",

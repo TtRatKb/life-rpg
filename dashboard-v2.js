@@ -7,7 +7,7 @@
   const skills = window.LifeRPGSkills;
   if (!app?.getState || !app?.saveState || !skills?.registry) return;
 
-  const VERSION = "0.31.4dz17";
+  const VERSION = "0.31.4dz18";
   const REALMS = {
     Work: { icon: "📎", label: "Work" },
     Knowledge: { icon: "📚", label: "Knowledge" },
@@ -172,17 +172,16 @@
   function ensureLayout() {
     const base = document.getElementById("view-basecamp");
     const hero = base?.querySelector(".dashboard-hero-v3");
+    const priority = base?.querySelector(".daily-life-priority-v314cv");
     const focus = base?.querySelector(".dashboard-focus-grid-v314au");
     const planColumn = focus?.querySelector(".dashboard-plan-column-v314au");
     const side = focus?.querySelector(".dashboard-focus-side-v314au");
     const plan = document.getElementById("dailyPicksPanel");
     const briefing = document.getElementById("dailyBriefingPanel");
-    if (!base || !hero || !focus || !planColumn || !side || !plan || !briefing) return false;
+    const wish = document.querySelector(".dashboard-shop-wish-panel-v306");
+    if (!base || !hero || !priority || !focus || !planColumn || !side || !plan || !briefing) return false;
 
-    base.classList.add("dashboard-v2-active-v314dz17");
-    hero.insertAdjacentElement("afterend", focus);
-    if (planColumn.firstElementChild !== plan) planColumn.prepend(plan);
-    if (side.firstElementChild !== briefing) side.prepend(briefing);
+    base.classList.add("dashboard-v2-active-v314dz17", "dashboard-v3-active-v314dz18");
 
     document.querySelector(".dashboard-achievement-panel-v306")?.classList.add("dashboard-retired-v314dz17");
     document.querySelector(".dashboard-external-card-v3")?.classList.add("dashboard-retired-v314dz17");
@@ -198,8 +197,6 @@
       skillCard = document.createElement("section");
       skillCard.id = "dashboardSkillMomentumV314dz17";
       skillCard.className = "panel dashboard-skill-momentum-v314dz17";
-      const wish = document.querySelector(".dashboard-shop-wish-panel-v306");
-      if (wish) wish.insertAdjacentElement("beforebegin", skillCard); else side.appendChild(skillCard);
     }
 
     let milestone = document.getElementById("dashboardCharacterMilestoneV314dz17");
@@ -210,13 +207,35 @@
       document.querySelector(".dashboard-player-details-v3 .xp-card")?.insertAdjacentElement("afterend", milestone);
     }
 
+    let progress = document.getElementById("dashboardProgressGridV314dz18");
+    if (!progress) {
+      progress = document.createElement("section");
+      progress.id = "dashboardProgressGridV314dz18";
+      progress.className = "dashboard-progress-grid-v314dz18";
+    }
+
     let utility = document.getElementById("dashboardUtilityGridV314dz17");
     if (!utility) {
       utility = document.createElement("section");
       utility.id = "dashboardUtilityGridV314dz17";
       utility.className = "dashboard-utility-grid-v314dz17";
-      focus.insertAdjacentElement("afterend", utility);
     }
+
+    // DZ18 hierarchy: compact greeting -> habits/rewards -> plan -> progress -> utilities.
+    // Elements are moved, never cloned, so all existing renderers and event handlers keep their anchors.
+    if (hero.nextElementSibling !== priority) hero.insertAdjacentElement("afterend", priority);
+    if (priority.nextElementSibling !== plan) priority.insertAdjacentElement("afterend", plan);
+    if (plan.nextElementSibling !== progress) plan.insertAdjacentElement("afterend", progress);
+    [briefing, skillCard, wish].filter(Boolean).forEach(node => { if (node.parentElement !== progress) progress.appendChild(node); });
+    if (progress.nextElementSibling !== utility) progress.insertAdjacentElement("afterend", utility);
+
+    focus.classList.add("dashboard-layout-shell-retired-v314dz18");
+    plan.classList.add("dashboard-plan-direct-v314dz18");
+    briefing.classList.add("dashboard-briefing-direct-v314dz18");
+    skillCard.classList.add("dashboard-skill-direct-v314dz18");
+    wish?.classList.add("dashboard-wish-direct-v314dz18");
+    priority.classList.add("dashboard-priority-direct-v314dz18");
+
     const quick = document.getElementById("lifeQuickDashboardCard");
     const week = document.getElementById("weekDashboard");
     const home = document.querySelector(".dashboard-home-card-v3");
