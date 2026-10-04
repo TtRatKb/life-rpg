@@ -221,19 +221,24 @@
   ];
   let libraryHtml = "";
   function renderLibrary() {
-    const anchor = document.getElementById("milestonePanel");
+    // DZ17: earned content no longer occupies the Dashboard. Keep a compact,
+    // collapsed safety library directly under the Talent Trees while native
+    // experiences continue to live in Journal, Training Grounds, Studios, etc.
+    const anchor = document.getElementById("skillsTalentHub");
     if (!anchor) return;
     const owned = libraryItems.filter(([realm,id]) => has(realm,id));
     let panel = document.getElementById("talentV3Library");
     if (!owned.length) { if (panel) panel.remove(); libraryHtml=""; return; }
-    if (!panel) {
-      panel = document.createElement("section");
+    if (!panel || panel.tagName !== "DETAILS") {
+      panel?.remove();
+      panel = document.createElement("details");
       panel.id = "talentV3Library";
-      panel.className = "panel talent-v3-library";
+      panel.className = "panel talent-v3-library talent-v3-library-skills-v314dz17";
       panel.setAttribute("aria-label", "Unlocked content library");
-      anchor.insertAdjacentElement("beforebegin", panel);
+      anchor.insertAdjacentElement("afterend", panel);
+      libraryHtml = "";
     }
-    const body = `<div class="talent-v3-library-head"><div><p class="eyebrow">YOURS TO KEEP</p><h2>Unlocked Content ✿</h2><p class="muted">Open your earned experiences here without returning to the Talent Tree.</p></div><span class="talent-v3-library-count">${owned.length} unlocked</span></div><div class="talent-v3-library-grid">${owned.map(([realm,id,icon,title,detail])=>`<button type="button" class="talent-v3-library-item" data-v3-library="${safe(id)}"><span class="talent-v3-library-icon" aria-hidden="true">${safe(icon)}</span><span><small>${safe(realm.toUpperCase())}</small><strong>${safe(title)}</strong><em>${safe(detail)}</em></span><b aria-hidden="true">›</b></button>`).join("")}</div>`;
+    const body = `<summary><div><p class="eyebrow">UNLOCKED FROM YOUR TREES</p><strong>Tools & experiences you already own</strong></div><span class="talent-v3-library-count">${owned.length} unlocked</span></summary><div class="talent-v3-library-grid">${owned.map(([realm,id,icon,title,detail])=>`<button type="button" class="talent-v3-library-item" data-v3-library="${safe(id)}"><span class="talent-v3-library-icon" aria-hidden="true">${safe(icon)}</span><span><small>${safe(realm.toUpperCase())}</small><strong>${safe(title)}</strong><em>${safe(detail)}</em></span><b aria-hidden="true">›</b></button>`).join("")}</div>`;
     if (libraryHtml !== body) {panel.innerHTML=body;libraryHtml=body;}
   }
   const libraryActions = {

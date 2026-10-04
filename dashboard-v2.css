@@ -1,0 +1,175 @@
+/* Life RPG V0.31.4dz17 — Dashboard V2 · Today First + Skill Momentum */
+.dashboard-retired-v314dz17,
+.dashboard-context-retired-v314dz17,
+#view-basecamp #socialDeliveryCard.dashboard-retired-v314dz17,
+#view-basecamp #livingWorldV3Card.dashboard-retired-v314dz17,
+#view-basecamp #companionMomentsV2Card.dashboard-retired-v314dz17,
+#view-basecamp #talentV3Library.dashboard-library-moved-v314dz17 { display:none !important; }
+
+#view-basecamp.dashboard-v2-active-v314dz17 { display:flex; flex-direction:column; gap:14px; }
+#view-basecamp.dashboard-v2-active-v314dz17 .dashboard-hero-v3 { order:0; margin-bottom:0; }
+#view-basecamp.dashboard-v2-active-v314dz17 .dashboard-focus-grid-v314au { order:1; margin:0; grid-template-columns:minmax(0,1.45fr) minmax(310px,.55fr); gap:14px; }
+#view-basecamp.dashboard-v2-active-v314dz17 #dashboardUtilityGridV314dz17 { order:2; }
+#view-basecamp.dashboard-v2-active-v314dz17 .daily-life-priority-v314cv { order:3; margin:0; }
+
+.dashboard-plan-column-v314au { gap:0; }
+.dashboard-plan-column-v314au > #dailyPicksPanel { margin:0; }
+.dashboard-focus-side-v314au { gap:10px; }
+.dashboard-focus-side-v314au > #dailyBriefingPanel,
+.dashboard-focus-side-v314au > .dashboard-shop-wish-panel-v306,
+.dashboard-focus-side-v314au > #dashboardSkillMomentumV314dz17 { margin:0; }
+
+.dashboard-briefing-compact-v314au { padding:14px !important; }
+.dashboard-briefing-compact-v314au .daily-briefing-head-v14 h2 { font-size:1.18rem; }
+.dashboard-briefing-compact-v314au .panel-subcopy { display:none; }
+.dashboard-briefing-compact-v314au .daily-companion-v14 { margin-top:5px; }
+.dashboard-briefing-compact-v314au .daily-briefing-state-v14 { gap:5px; }
+.dashboard-briefing-compact-v314au .daily-briefing-actions-v14 { margin-top:8px; }
+
+.dashboard-skill-momentum-v314dz17 { padding:14px !important; border-radius:20px !important; background:linear-gradient(145deg,#fffaf7,#faf1fb); box-shadow:0 10px 26px rgba(72,41,68,.06) !important; }
+.dashboard-skill-head-v314dz17 { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; margin-bottom:9px; }
+.dashboard-skill-head-v314dz17 h2 { margin:2px 0 3px; font-size:1.1rem; color:#513549; }
+.dashboard-skill-head-v314dz17 p:not(.eyebrow) { margin:0; color:#876f7f; font-size:.64rem; line-height:1.35; }
+.dashboard-skill-grid-v314dz17 { display:grid; gap:6px; }
+.dashboard-skill-row-v314dz17 { width:100%; display:grid; grid-template-columns:30px minmax(0,1fr) auto; gap:8px; align-items:center; text-align:left; padding:8px; border:1px solid rgba(164,104,137,.14); border-radius:12px; background:rgba(255,255,255,.82); color:#55394e; cursor:pointer; }
+.dashboard-skill-row-v314dz17:hover { border-color:#c88ba7; background:#fff6fa; }
+.dashboard-skill-icon-v314dz17 { display:grid; place-items:center; width:30px; height:30px; border-radius:10px; background:#f8e7ee; font-size:1rem; }
+.dashboard-skill-copy-v314dz17 { min-width:0; display:grid; gap:2px; }
+.dashboard-skill-copy-v314dz17 small { color:#a16484; font-size:.52rem; font-weight:850; letter-spacing:.04em; text-transform:uppercase; }
+.dashboard-skill-copy-v314dz17 strong { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:.7rem; }
+.dashboard-skill-copy-v314dz17 i { display:block; height:5px; overflow:hidden; border-radius:99px; background:#f0e1e9; }
+.dashboard-skill-copy-v314dz17 i b { display:block; height:100%; border-radius:inherit; background:linear-gradient(90deg,#e36696,#a66598); }
+.dashboard-skill-copy-v314dz17 em { color:#856d7d; font-size:.53rem; font-style:normal; }
+.dashboard-realm-ready-v314dz17 { display:flex; gap:5px; overflow-x:auto; margin:0 0 8px; scrollbar-width:none; }
+.dashboard-realm-ready-v314dz17::-webkit-scrollbar { display:none; }
+.dashboard-realm-ready-v314dz17 button { display:flex; align-items:center; gap:4px; flex:0 0 auto; padding:5px 7px; border:1px solid #e9cfda; border-radius:99px; background:#fff; color:#68445a; font-size:.55rem; cursor:pointer; }
+.dashboard-realm-ready-v314dz17 button b { color:#aa557e; }
+.dashboard-journey-ready-v314dz17 { margin-top:8px; width:100%; display:grid; grid-template-columns:28px minmax(0,1fr) auto; align-items:center; gap:8px; padding:8px 9px; border:1px solid #e5bfd2; border-radius:12px; background:linear-gradient(135deg,#fff7fa,#f7ecfb); color:#5a3851; text-align:left; cursor:pointer; }
+.dashboard-journey-ready-v314dz17 > span { font-size:1rem; color:#a6537b; }
+.dashboard-journey-ready-v314dz17 strong,.dashboard-journey-ready-v314dz17 small { display:block; }
+.dashboard-journey-ready-v314dz17 strong { font-size:.66rem; }
+.dashboard-journey-ready-v314dz17 small { margin-top:1px; color:#886f7f; font-size:.52rem; }
+.dashboard-journey-ready-v314dz17 > b { font-size:.56rem; color:#9d5077; }
+
+.dashboard-character-milestone-v314dz17 { margin-top:8px; }
+.dashboard-character-milestone-v314dz17 > div,
+.dashboard-character-milestone-v314dz17 > button { width:100%; display:grid; grid-template-columns:28px minmax(0,1fr) auto; align-items:center; gap:8px; padding:7px 8px; border:1px solid rgba(165,102,134,.15); border-radius:11px; background:rgba(255,255,255,.66); color:#65435a; text-align:left; }
+.dashboard-character-milestone-v314dz17 > button { cursor:pointer; }
+.dashboard-character-milestone-v314dz17 span { color:#aa5d82; }
+.dashboard-character-milestone-v314dz17 strong,.dashboard-character-milestone-v314dz17 small { display:block; }
+.dashboard-character-milestone-v314dz17 strong { font-size:.62rem; }
+.dashboard-character-milestone-v314dz17 small { margin-top:1px; font-size:.51rem; color:#8e7585; }
+.dashboard-character-milestone-v314dz17 b { font-size:.53rem; color:#9b5276; }
+
+.dashboard-utility-grid-v314dz17 { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:9px; align-items:stretch; }
+.dashboard-utility-card-v314dz17 { min-width:0; min-height:116px; margin:0 !important; padding:12px !important; border-radius:18px !important; box-shadow:0 9px 24px rgba(72,41,68,.05) !important; overflow:hidden; }
+.dashboard-utility-card-v314dz17 .eyebrow { font-size:.5rem; margin-bottom:2px; }
+.dashboard-utility-card-v314dz17 h2,.dashboard-utility-card-v314dz17 h3 { margin:1px 0 4px; font-size:.9rem !important; }
+.dashboard-utility-card-v314dz17 p:not(.eyebrow) { margin:0; font-size:.58rem; line-height:1.35; }
+.dashboard-utility-card-v314dz17 .primary-button,
+.dashboard-utility-card-v314dz17 .secondary-button,
+.dashboard-utility-card-v314dz17 .mini-nav-button { min-height:30px; padding:5px 8px; font-size:.57rem; }
+
+.dashboard-quick-v314dz17 { display:grid !important; grid-template-columns:minmax(0,1fr) auto; align-items:center !important; gap:8px !important; background:linear-gradient(135deg,#fff9f5,#fbeaf1) !important; }
+.dashboard-quick-v314dz17 p:not(.eyebrow) { display:none; }
+.dashboard-quick-v314dz17 small { font-size:.54rem !important; }
+
+.dashboard-week-v314dz17 { background:linear-gradient(135deg,#fffbfd,#f8eef7)!important; }
+.dashboard-week-v314dz17 .week-dashboard-intro { align-items:center; gap:8px; }
+.dashboard-week-v314dz17 .week-dashboard-intro p:not(.eyebrow) { display:none; }
+.dashboard-week-v314dz17 .week-dashboard-stats { margin-top:7px; gap:10px; }
+.dashboard-week-v314dz17 .week-dashboard-stats b { font-size:.84rem; }
+.dashboard-week-v314dz17 .week-dashboard-stats small { font-size:.48rem; }
+.dashboard-week-v314dz17 .week-dashboard-today { display:none; }
+.dashboard-week-v314dz17 .week-dashboard-timer { margin-top:7px; }
+
+.dashboard-home-v314dz17 #seasonalLifeRoot,
+.dashboard-home-v314dz17 #roomGrid,
+.dashboard-home-v314dz17 #roomMessage,
+.dashboard-home-v314dz17 #sharedApartmentV2Entry,
+.dashboard-home-v314dz17 .home-keepsake-note-v314ay { display:none !important; }
+.dashboard-home-v314dz17 .home-household-status-v314aw { margin-top:5px; }
+.dashboard-home-v314dz17 .home-household-summary-v314aw { grid-template-columns:26px minmax(0,1fr); padding:6px 7px; border-radius:11px; }
+.dashboard-home-v314dz17 .home-household-summary-v314aw > span { font-size:.9rem; }
+.dashboard-home-v314dz17 .home-household-summary-v314aw strong { font-size:.62rem; }
+.dashboard-home-v314dz17 .home-household-summary-v314aw small { font-size:.48rem; }
+.dashboard-home-v314dz17 .home-resident-row-v314aw { gap:4px; margin-top:5px; }
+.dashboard-home-v314dz17 .home-resident-chip-v314aw { padding:4px 6px; }
+.dashboard-home-v314dz17 .home-resident-chip-v314aw b { font-size:.53rem; }
+.dashboard-home-v314dz17 .home-resident-chip-v314aw small { display:none; }
+
+.dashboard-social-v314dz17 #socialPulse { margin-top:4px; }
+.dashboard-social-actions-v314dz17 { display:grid; gap:5px; }
+.dashboard-social-actions-v314dz17 button { display:grid; grid-template-columns:24px minmax(0,1fr) auto; align-items:center; gap:6px; min-height:34px; padding:6px 7px; border:1px solid #ead4df; border-radius:10px; background:#fff; color:#603f56; text-align:left; cursor:pointer; }
+.dashboard-social-actions-v314dz17 button span { font-size:.85rem; color:#aa5f85; }
+.dashboard-social-actions-v314dz17 button strong { font-size:.58rem; }
+.dashboard-social-actions-v314dz17 button b { color:#a1587e; }
+.dashboard-social-quiet-v314dz17 { display:grid; grid-template-columns:26px minmax(0,1fr); align-items:center; gap:7px; padding:7px; border:1px dashed #e4d2dc; border-radius:11px; background:rgba(255,255,255,.55); }
+.dashboard-social-quiet-v314dz17 > span { color:#aa6688; }
+.dashboard-social-quiet-v314dz17 strong,.dashboard-social-quiet-v314dz17 small { display:block; }
+.dashboard-social-quiet-v314dz17 strong { font-size:.58rem; }
+.dashboard-social-quiet-v314dz17 small { margin-top:2px; color:#887382; font-size:.5rem; line-height:1.3; }
+
+.dashboard-skill-dialog-v314dz17 { width:min(620px,94vw); max-height:90dvh; padding:0; border:1px solid #e4cbd8; border-radius:22px; background:#fffaf8; color:#493244; box-shadow:0 25px 90px rgba(49,27,49,.38); }
+.dashboard-skill-dialog-v314dz17::backdrop { background:rgba(33,20,33,.62); }
+.dashboard-skill-dialog-shell-v314dz17 { padding:18px; display:grid; gap:12px; }
+.dashboard-skill-dialog-shell-v314dz17 > header { display:flex; justify-content:space-between; gap:10px; align-items:flex-start; }
+.dashboard-skill-dialog-shell-v314dz17 h2 { margin:2px 0; }
+.dashboard-skill-guide-progress-v314dz17 { padding:12px; border:1px solid #ead7e0; border-radius:14px; background:#fff; }
+.dashboard-skill-guide-progress-v314dz17 > div { display:flex; gap:9px; align-items:center; }
+.dashboard-skill-guide-progress-v314dz17 > div > span { font-size:1.4rem; }
+.dashboard-skill-guide-progress-v314dz17 small,.dashboard-skill-guide-progress-v314dz17 strong,.dashboard-skill-guide-progress-v314dz17 p { display:block; }
+.dashboard-skill-guide-progress-v314dz17 p { margin:3px 0 0; color:#826b7b; font-size:.7rem; }
+.dashboard-skill-guide-progress-v314dz17 > i { display:block; height:7px; overflow:hidden; border-radius:99px; background:#f0e1e9; margin-top:10px; }
+.dashboard-skill-guide-progress-v314dz17 > i b { display:block; height:100%; background:linear-gradient(90deg,#e36595,#9e6294); }
+.dashboard-skill-actions-v314dz17 { display:grid; gap:7px; }
+.dashboard-skill-actions-v314dz17 > button,.dashboard-journey-realms-v314dz17 > button { display:grid; grid-template-columns:34px minmax(0,1fr) auto; align-items:center; gap:9px; width:100%; padding:9px 10px; border:1px solid #ead5df; border-radius:12px; background:#fff; color:#56384e; text-align:left; cursor:pointer; }
+.dashboard-skill-actions-v314dz17 > button span,.dashboard-journey-realms-v314dz17 > button span { font-size:1.1rem; }
+.dashboard-skill-actions-v314dz17 strong,.dashboard-skill-actions-v314dz17 small,.dashboard-journey-realms-v314dz17 strong,.dashboard-journey-realms-v314dz17 small { display:block; }
+.dashboard-skill-actions-v314dz17 strong,.dashboard-journey-realms-v314dz17 strong { font-size:.72rem; }
+.dashboard-skill-actions-v314dz17 small,.dashboard-journey-realms-v314dz17 small { margin-top:2px; color:#866f7f; font-size:.59rem; }
+.dashboard-journey-copy-v314dz17 { margin:0; color:#775c70; font-size:.72rem; }
+
+/* Unlocked content is no longer a dashboard wall. It lives collapsed below the Talent Trees. */
+#view-skills .talent-v3-library-skills-v314dz17 { margin:14px 0; padding:0 !important; overflow:hidden; }
+#view-skills .talent-v3-library-skills-v314dz17 > summary { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:13px 15px; cursor:pointer; list-style:none; }
+#view-skills .talent-v3-library-skills-v314dz17 > summary::-webkit-details-marker { display:none; }
+#view-skills .talent-v3-library-skills-v314dz17 .talent-v3-library-grid { padding:0 15px 15px; }
+
+@media(max-width:1180px){
+  #view-basecamp.dashboard-v2-active-v314dz17 .dashboard-focus-grid-v314au{grid-template-columns:minmax(0,1.2fr) minmax(290px,.8fr)}
+  .dashboard-utility-grid-v314dz17{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:900px){
+  #view-basecamp.dashboard-v2-active-v314dz17 .dashboard-focus-grid-v314au{grid-template-columns:1fr}
+  .dashboard-focus-side-v314au{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .dashboard-focus-side-v314au > #dailyBriefingPanel{grid-column:1/-1}
+}
+@media(max-width:720px){
+  #view-basecamp.dashboard-v2-active-v314dz17 .dashboard-focus-grid-v314au{display:flex;flex-direction:column}
+  .dashboard-focus-side-v314au{display:grid;grid-template-columns:1fr}
+  .dashboard-focus-side-v314au > #dailyBriefingPanel{grid-column:auto}
+  .dashboard-utility-grid-v314dz17{grid-template-columns:1fr 1fr;gap:7px}
+  .dashboard-utility-card-v314dz17{min-height:102px;padding:10px!important}
+  .dashboard-skill-grid-v314dz17{grid-template-columns:1fr 1fr}
+  .dashboard-skill-row-v314dz17{grid-template-columns:26px minmax(0,1fr);}
+  .dashboard-skill-row-v314dz17>b{display:none}
+}
+@media(max-width:470px){
+  .dashboard-utility-grid-v314dz17,.dashboard-skill-grid-v314dz17{grid-template-columns:1fr}
+}
+
+/* DZ17: keep the identity card, but let today's plan reach the fold sooner. */
+#view-basecamp.dashboard-v2-active-v314dz17 .dashboard-hero-v3 {
+  padding: 18px;
+}
+#view-basecamp.dashboard-v2-active-v314dz17 .dashboard-player-art-v3 {
+  min-height: 180px;
+}
+@media(max-width:900px){
+  #view-basecamp.dashboard-v2-active-v314dz17 .dashboard-player-art-v3 { min-height:150px; }
+}
+@media(max-width:720px){
+  #view-basecamp.dashboard-v2-active-v314dz17 .dashboard-hero-v3 { padding:14px!important; }
+  #view-basecamp.dashboard-v2-active-v314dz17 .dashboard-player-art-v3 { min-height:108px; }
+}
