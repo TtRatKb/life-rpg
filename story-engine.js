@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const PACK_URL = "content/SP_004.dat?v=0.31.4dz15";
+  const PACK_URL = "content/SP_004.dat?v=0.31.4dz16";
   const KEY = new TextEncoder().encode("LifeRPG-SP4-chapter-continuity-shield-v1");
   let cache = null;
 

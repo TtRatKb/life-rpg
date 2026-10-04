@@ -3,3 +3,12 @@
 body.focus-dock-pip{margin:0;background:#fff9f7}body.focus-dock-pip .focus-dock{position:static!important;width:100%!important;border:0;border-radius:0;box-shadow:none;max-width:none}body.focus-dock-pip .focus-dock-head{cursor:default}body.focus-dock-popup{background:#fff9f7;color:#643e57;margin:0;font-family:system-ui,sans-serif}.focus-popup-main{padding:16px;display:grid;gap:8px}.focus-popup-main>small{font-size:.67rem;letter-spacing:.1em;color:#9f6382;font-weight:800}.focus-popup-main h2{margin:0;font-size:1.05rem}.focus-popup-main #timerPopupClock{font:750 2rem ui-monospace,SFMono-Regular,monospace}.focus-popup-main footer{display:flex;gap:8px}.focus-popup-main button{flex:1;border:1px solid #c49ab0;border-radius:9px;padding:9px;background:#774262;color:#fff;cursor:pointer}.focus-popup-main p{font-size:.7rem;color:#947889;line-height:1.4}@media(max-width:620px){.focus-dock{right:10px;bottom:calc(env(safe-area-inset-bottom,0px) + 78px);width:min(310px,calc(100vw - 20px))}.focus-dock-review footer button{min-width:120px}.focus-review-lines{grid-template-columns:1fr 1fr}}@media(prefers-reduced-motion:reduce){.focus-dock-beacon{animation:none}}@keyframes focus-dock-pulse{50%{opacity:.45}}
 
 .focus-dock-launcher{position:fixed;right:clamp(10px,2vw,28px);bottom:calc(env(safe-area-inset-bottom,0px) + 90px);z-index:2640;display:grid;justify-items:end;gap:8px}.focus-dock-launcher.hidden{display:none!important}.focus-dock-launcher>button{border:1px solid #cc92b0;background:#764365;color:#fff;border-radius:99px;padding:12px 18px;font-weight:750;box-shadow:0 9px 26px #44263a4d;cursor:pointer}.focus-dock-launch-options{display:none;min-width:180px;background:#fff9f7;border:1px solid #dec3d2;border-radius:13px;padding:6px;box-shadow:0 10px 36px #452a3f3d}.focus-dock-launcher.is-open .focus-dock-launch-options{display:grid}.focus-dock-launch-options button{text-align:left;border:0;border-radius:9px;background:none;padding:10px;color:#65465c;cursor:pointer}.focus-dock-launch-options button:hover{background:#f7e4ef}
+
+
+/* DZ16 · Story reader focus mode
+   Keep active timers running, but hide all timer controls while a Story/Talk/
+   Hangout/World-Moment reader is open. They reappear unchanged on exit. */
+body.story-mode-open .focus-dock-launcher,
+body.story-mode-open .focus-dock {
+  display: none !important;
+}

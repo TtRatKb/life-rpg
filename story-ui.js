@@ -563,6 +563,8 @@
       state.story.readerStep = 0;
     }
 
+    repairStoryV2Dz16ChapterCut();
+
     state.story.completedSceneIds = state.story.completedSceneIds.filter(id => Boolean(engine.sceneById(pack, id)));
     state.story.unlockedSceneIds = state.story.unlockedSceneIds.filter(id => Boolean(engine.sceneById(pack, id)));
 
@@ -586,6 +588,83 @@
 
     repairAccidentalFreeSceneUnlock();
     repairV024CanonAlignment();
+  }
+
+  function repairStoryV2Dz16ChapterCut() {
+    if (pack?.packId !== "SP_004") return;
+    const state = app.getState();
+    ensureStoryState();
+    state.story.storyV2 = object(state.story.storyV2);
+    if (Number(state.story.storyV2.chapterCutRevision || 0) >= 1) return;
+
+    const openingScene = engine.sceneById(pack, "V2_001");
+    const coffeeScene = engine.sceneById(pack, "V2_001B");
+    if (!openingScene || !coffeeScene) return;
+
+    // DZ15 originally shipped the first school-day thread and the later café
+    // follow-up as one long chapter. DZ16 splits them at the natural hinge.
+    // Move the one choice that belongs to the new follow-up chapter without
+    // touching any of the player's existing answers.
+    const oldCoffeeChoiceKey = choiceKey("V2_001", "s3_choice");
+    const newCoffeeChoiceKey = choiceKey("V2_001B", "s3_choice");
+    if (state.story.choiceSelections[oldCoffeeChoiceKey] != null && state.story.choiceSelections[newCoffeeChoiceKey] == null) {
+      state.story.choiceSelections[newCoffeeChoiceKey] = state.story.choiceSelections[oldCoffeeChoiceKey];
+      delete state.story.choiceSelections[oldCoffeeChoiceKey];
+    }
+
+    const openingSnapshot = state.story.progressionSnapshots?.V2_001;
+    if (openingSnapshot && !state.story.progressionSnapshots?.V2_001B) {
+      try {
+        state.story.progressionSnapshots.V2_001B = JSON.parse(JSON.stringify(openingSnapshot));
+      } catch (_) {
+        state.story.progressionSnapshots.V2_001B = openingSnapshot;
+      }
+    }
+
+    const openingWasCompleted = state.story.completedSceneIds.includes("V2_001");
+    const openingWasUnlocked = state.story.unlockedSceneIds.includes("V2_001");
+    const wasReadingOpening = state.story.activeSceneId === "V2_001";
+    const oldReaderStep = Math.max(0, Number(state.story.readerStep || 0));
+
+    // Preserve an in-progress DZ15 reader position. buildSequence() now sees
+    // only the shortened Chapter 1, so its length is exactly the split point in
+    // the old combined runtime sequence (including any choice-after beats).
+    if (wasReadingOpening) {
+      const prefixRuntime = {
+        kind: "main",
+        sceneId: "V2_001",
+        scene: openingScene,
+        replay: false,
+        replaySelections: {},
+        progressionSnapshot: openingSnapshot || null
+      };
+      const prefixLength = buildSequence(prefixRuntime).length;
+      if (oldReaderStep >= prefixLength) {
+        state.story.activeSceneId = "V2_001B";
+        state.story.readerStep = Math.max(0, oldReaderStep - prefixLength);
+        if (!state.story.unlockedSceneIds.includes("V2_001B")) state.story.unlockedSceneIds.push("V2_001B");
+      }
+    }
+
+    // Anyone who already finished the old combined chapter has already read and
+    // paid for both halves. Mark the inserted chapter complete too so the cut
+    // cannot create a regression, another energy cost, or duplicate effects.
+    if (openingWasCompleted) {
+      if (!state.story.completedSceneIds.includes("V2_001B")) state.story.completedSceneIds.push("V2_001B");
+      if (!state.story.unlockedSceneIds.includes("V2_001B")) state.story.unlockedSceneIds.push("V2_001B");
+      state.story.sceneCompletedAt = object(state.story.sceneCompletedAt);
+      if (!state.story.sceneCompletedAt.V2_001B) {
+        state.story.sceneCompletedAt.V2_001B = state.story.sceneCompletedAt.V2_001 || new Date().toISOString();
+      }
+      state.memories = array(state.memories);
+      if (coffeeScene.memory?.id && !state.memories.includes(coffeeScene.memory.id)) state.memories.push(coffeeScene.memory.id);
+    } else if (openingWasUnlocked && state.story.activeSceneId === "V2_001B") {
+      if (!state.story.unlockedSceneIds.includes("V2_001B")) state.story.unlockedSceneIds.push("V2_001B");
+    }
+
+    state.story.storyV2.chapterCutRevision = 1;
+    state.story.storyV2.chapterCutMigratedAt = new Date().toISOString();
+    app.saveState({ source: "story-v2-dz16-chapter-cut-migration" });
   }
 
   function repairV024CanonAlignment() {
@@ -4320,7 +4399,8 @@
       characters: [],
       focus: null,
       portrait: null,
-      portraitExpression: null
+      portraitExpression: null,
+      daypart: null
     };
 
     if (!runtime?.sequence?.length) return base;
@@ -4367,6 +4447,7 @@
     }
     if (Object.prototype.hasOwnProperty.call(patch, "focus")) next.focus = patch.focus || null;
     if (Object.prototype.hasOwnProperty.call(patch, "portrait")) next.portrait = patch.portrait || null;
+    if (Object.prototype.hasOwnProperty.call(patch, "daypart")) next.daypart = patch.daypart || null;
     if (Object.prototype.hasOwnProperty.call(patch, "portraitExpression")) {
       next.portraitExpression = patch.portraitExpression || null;
       if (next.portrait && next.portraitExpression) {
@@ -4427,26 +4508,26 @@
 
   const STORY_BACKGROUND_TIME_ASSETS = {
     homeMorning: {
-      dawn: { src: "assets/story/backgrounds/time/home_dawn.webp", alt: "Luca's home at dawn" },
-      day: { src: "assets/story/backgrounds/time/home_day.webp", alt: "Luca's home in daylight" },
-      sunset: { src: "assets/story/backgrounds/time/home_sunset.webp", alt: "Luca's home at sunset" },
-      night: { src: "assets/story/backgrounds/time/home_night.webp", alt: "Luca's home at night" }
+      dawn: { src: "assets/story/backgrounds/home_morning.png", alt: "Luca's home at dawn" },
+      day: { src: "assets/story/backgrounds/home_morning.png", alt: "Luca's home in daylight" },
+      sunset: { src: "assets/story/backgrounds/home_morning.png", alt: "Luca's home at sunset" },
+      night: { src: "assets/story/backgrounds/home_morning.png", alt: "Luca's home at night" }
     },
     stationEvening: {
       dawn: { src: "assets/story/backgrounds/time/station_dawn.webp", alt: "Train station at dawn" },
-      day: { src: "assets/story/backgrounds/time/station_day.webp", alt: "Train station in daylight" },
+      day: { src: "assets/story/backgrounds/station_evening.png", alt: "Train station in daylight" },
       sunset: { src: "assets/story/backgrounds/time/station_sunset.webp", alt: "Train station at sunset" },
       night: { src: "assets/story/backgrounds/time/station_night.webp", alt: "Train station at night" }
     },
     cityDusk: {
       dawn: { src: "assets/story/backgrounds/time/city_dawn.webp", alt: "Collector District at dawn" },
-      day: { src: "assets/story/backgrounds/time/city_day.webp", alt: "Collector District in daylight" },
+      day: { src: "assets/story/backgrounds/time/city_dawn.webp", alt: "Collector District in daylight" },
       sunset: { src: "assets/story/backgrounds/time/city_sunset.webp", alt: "Collector District at sunset" },
       night: { src: "assets/story/backgrounds/time/city_night.webp", alt: "Collector District at night" }
     },
     cityCafe: {
       dawn: { src: "assets/story/backgrounds/time/koharu_cafe_dawn.webp", alt: "Koharu Café at dawn" },
-      day: { src: "assets/story/backgrounds/time/koharu_cafe_day.webp", alt: "Koharu Café in daylight" },
+      day: { src: "assets/story/backgrounds/koharu_cafe.webp", alt: "Koharu Café in daylight" },
       sunset: { src: "assets/story/backgrounds/time/koharu_cafe_sunset.webp", alt: "Koharu Café at sunset" },
       night: { src: "assets/story/backgrounds/time/koharu_cafe_night.webp", alt: "Koharu Café at night" }
     },
@@ -4574,10 +4655,33 @@
     return null;
   }
 
+  function authoredStoryDaypart(visual = null, activeRuntime = runtime) {
+    const explicit = String(visual?.daypart || "").toLowerCase();
+    if (["dawn", "day", "sunset", "night"].includes(explicit)) return explicit;
+
+    const location = String(activeRuntime?.scene?.location || "").toLowerCase();
+    if (/late night|midnight|night|after midnight/.test(location)) return "night";
+    if (/dawn|sunrise|early morning/.test(location)) return "dawn";
+    if (/evening|dusk|sunset|after school|after work/.test(location)) return "sunset";
+    if (/morning|midday|lunch|afternoon|daytime|day off/.test(location)) return "day";
+
+    // Semantic defaults are deliberately scene-based, not wall-clock based.
+    const requested = visual?.background || contextualBackgroundForRuntime(activeRuntime);
+    if (requested === "homeMorning" || requested === "schoolHallway" || requested === "cityCafe") return "day";
+    if (requested === "stationEvening" || requested === "cityDusk") return "sunset";
+    return null;
+  }
+
   function storyLightingContext(visual = null, activeRuntime = runtime) {
     const requested = visual?.background || contextualBackgroundForRuntime(activeRuntime);
     const locationKey = inferWorldLocation(activeRuntime?.scene) || locationKeyFromBackground(requested);
+    const authoredPart = authoredStoryDaypart(visual, activeRuntime);
+    if (authoredPart) {
+      return { part: authoredPart, locationKey: locationKey || "other", fixed: true, source: "story-authored" };
+    }
 
+    // Ambient/social content that genuinely has no authored time may still use
+    // the real-world light. Main Story beats should normally never reach here.
     const solar = app.getSolarDaypart?.(new Date()) || null;
     if (solar?.part) {
       return { ...solar, locationKey: locationKey || "other", fixed: false };

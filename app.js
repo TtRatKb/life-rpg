@@ -2790,10 +2790,10 @@
 
   const WORLD_LOCATION_TIME_ART = {
     currentHome: {
-      dawn: "assets/story/backgrounds/time/home_dawn.webp",
-      day: "assets/story/backgrounds/time/home_day.webp",
-      sunset: "assets/story/backgrounds/time/home_sunset.webp",
-      night: "assets/story/backgrounds/time/home_night.webp"
+      dawn: "assets/story/backgrounds/home_morning.png",
+      day: "assets/story/backgrounds/home_morning.png",
+      sunset: "assets/story/backgrounds/home_morning.png",
+      night: "assets/story/backgrounds/home_morning.png"
     },
     school: {
       dawn: "assets/story/backgrounds/time/school_dawn.webp",
@@ -2802,7 +2802,7 @@
     },
     station: {
       dawn: "assets/story/backgrounds/time/station_dawn.webp",
-      day: "assets/story/backgrounds/time/station_day.webp",
+      day: "assets/story/backgrounds/station_evening.png",
       sunset: "assets/story/backgrounds/time/station_sunset.webp",
       night: "assets/story/backgrounds/time/station_night.webp"
     },
@@ -2828,13 +2828,13 @@
     },
     cafe: {
       dawn: "assets/story/backgrounds/time/koharu_cafe_dawn.webp",
-      day: "assets/story/backgrounds/time/koharu_cafe_day.webp",
+      day: "assets/story/backgrounds/koharu_cafe.webp",
       sunset: "assets/story/backgrounds/time/koharu_cafe_sunset.webp",
       night: "assets/story/backgrounds/time/koharu_cafe_night.webp"
     },
     district: {
       dawn: "assets/story/backgrounds/time/city_dawn.webp",
-      day: "assets/story/backgrounds/time/city_day.webp",
+      day: "assets/story/backgrounds/time/city_dawn.webp",
       sunset: "assets/story/backgrounds/time/city_sunset.webp",
       night: "assets/story/backgrounds/time/city_night.webp"
     }
