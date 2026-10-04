@@ -1,4 +1,4 @@
-/* Life RPG V0.31.4dz14: creative studios + free-choice coloring card purchases. */
+/* Life RPG V0.31.4dz19: creative studios + canvas focus chrome controls. */
 (() => {
   "use strict";
   if (window.LifeRPGCreativeHub) return;
@@ -21,7 +21,7 @@
   function build(){const main=document.querySelector(".app-shell > main");if(!main)return;
     for(const [kind,title,sub] of [["coloring","Coloring Studio","Your unlocked collectible cards · choose a card before coloring"],["drawing","Drawing Studio","Your practice library · choose what to draw or resume"]]){
       if(view(kind))continue;
-      const section=document.createElement("section");section.id=`view-${kind}`;section.className="view creative-hub-view";section.innerHTML=`<div class="creative-hub-head"><div><p class="eyebrow">HOBBIES · CREATIVE STUDIO</p><h1>${title}</h1><p>${sub}</p></div><button type="button" class="secondary-button" data-creative-to-play>← Spielen & Lernen</button></div><div data-creative-gallery><div class="creative-loading" role="status">Studio-Galerie wird geladen…</div></div><div data-creative-editor hidden><div class="creative-editor-head"><button type="button" class="secondary-button" data-creative-back>← Zur Galerie</button><strong data-creative-title>${title}</strong><span>Dein Fortschritt wird lokal gespeichert</span></div></div><iframe data-creative-frame title="${title} Editor" loading="eager" hidden></iframe>`;
+      const section=document.createElement("section");section.id=`view-${kind}`;section.className="view creative-hub-view";section.innerHTML=`<div class="creative-hub-head"><div><p class="eyebrow">HOBBIES · CREATIVE STUDIO</p><h1>${title}</h1><p>${sub}</p></div><button type="button" class="secondary-button" data-creative-to-play>← Spielen & Lernen</button></div><div data-creative-gallery><div class="creative-loading" role="status">Studio-Galerie wird geladen…</div></div><div data-creative-editor hidden><div class="creative-editor-head"><div class="creative-editor-actions-v314dz19"><button type="button" class="secondary-button" data-creative-back>← Zur Galerie</button><button type="button" class="secondary-button creative-focus-button-v314dz19" data-creative-focus aria-pressed="false">⛶ Canvas-Fokus</button></div><strong data-creative-title>${title}</strong><span>Dein Fortschritt wird lokal gespeichert</span></div></div><iframe data-creative-frame title="${title} Editor" loading="eager" hidden></iframe>`;
       main.appendChild(section);
     }
   }
@@ -50,11 +50,24 @@
       gallery.innerHTML=`<div class="creative-gallery-intro"><strong>Your Drawing Projects</strong><span>${meta.completed.size}/${list.length} practiced · sketches remain on this device</span></div><div class="creative-gallery-filters">${tracks.map(t=>`<button type="button" data-creative-filter="${E(t)}" aria-pressed="${String(t===drawingFilter)}">${E(t==="all"?"All":t[0].toUpperCase()+t.slice(1))}</button>`).join("")}</div><div class="creative-gallery-grid">${cards.map(c=>{const done=meta.completed.has(c.id),ongoing=meta.continueId===c.id;return `<button type="button" class="creative-card creative-drawing-card" data-creative-item="${E(c.id)}"><span class="creative-drawing-illustration" aria-hidden="true">${E(c.icon)}</span><div class="creative-card-info"><small>${ongoing?"CONTINUE PROJECT":done?"PRACTICED ✓":E(c.track.toUpperCase())}</small><strong>${E(c.title)}</strong><p>${E(c.summary)}</p><span>${E(c.minutes)} min · ${E(c.difficulty)} · ${ongoing?"Continue":done?"View / redraw":"Open project"} →</span></div></button>`;}).join("")}</div><p class="creative-storage-note">Each project uses the existing Drawing Studio save, references and reward queue; no duplicate challenge or reset is created.</p>`;
     }
   }
-  function mode(kind,next){const root=view(kind);if(!root)return;modes[kind]=next;root.querySelector("[data-creative-gallery]").hidden=next==="editor";root.querySelector("[data-creative-editor]").hidden=next!=="editor";const f=frame(kind);if(f)f.hidden=next!=="editor";}
+  function syncFocusButtons(){
+    const active=Boolean(window.LifeRPGChrome?.isCreativeFocus?.()||document.body.classList.contains("creative-canvas-focus-v314dz19"));
+    document.querySelectorAll("[data-creative-focus]").forEach(button=>{
+      button.setAttribute("aria-pressed",String(active));
+      button.textContent=active?"☰ Navigation zeigen":"⛶ Canvas-Fokus";
+      button.title=active?"Life RPG Navigation wieder einblenden":"Mehr Platz zum Malen / Zeichnen";
+    });
+  }
+  function setCreativeFocus(next){
+    if(window.LifeRPGChrome?.setCreativeFocus)window.LifeRPGChrome.setCreativeFocus(Boolean(next));
+    else document.body.classList.toggle("creative-canvas-focus-v314dz19",Boolean(next));
+    syncFocusButtons();
+  }
+  function mode(kind,next){const root=view(kind);if(!root)return;modes[kind]=next;root.classList.toggle("is-editor-mode",next==="editor");root.querySelector("[data-creative-gallery]").hidden=next==="editor";root.querySelector("[data-creative-editor]").hidden=next!=="editor";const f=frame(kind);if(f)f.hidden=next!=="editor";if(next!=="editor")setCreativeFocus(false);syncFocusButtons();}
   function openItem(kind,id,fromLoad=false){const b=bridge(kind);if(!b){selected[kind]=id;load(kind);return;}if(!unlocked())return;
     const card=b.catalog().find(x=>x.id===id);if(!card)return;
     if(kind==="coloring"&&!cardOwned(card)){window.LifeRPGTalentTreeGraph?.focusContent?.("Hobbies",card.unlockId);return false;}
-    selected[kind]=id;mode(kind,"editor");view(kind)?.querySelector("[data-creative-title]").replaceChildren(document.createTextNode(card.title));
+    selected[kind]=id;mode(kind,"editor");setCreativeFocus(true);view(kind)?.querySelector("[data-creative-title]").replaceChildren(document.createTextNode(card.title));
     if(kind==="coloring")b.openCard(id);else{const meta=completedDrawing();b.openChallenge(id,meta.continueId===id);}
     if(!fromLoad)requestAnimationFrame(()=>{try{frame(kind)?.contentWindow?.dispatchEvent(new Event("resize"));}catch{}});
   }
@@ -65,6 +78,7 @@
   document.addEventListener("click",event=>{
     const home=event.target.closest("[data-creative-to-play]");if(home){app.showView("hub-play");return;}
     const back=event.target.closest("[data-creative-back]");if(back){gallery(back.closest(".creative-hub-view")?.id?.replace("view-",""));return;}
+    const focus=event.target.closest("[data-creative-focus]");if(focus){const active=Boolean(window.LifeRPGChrome?.isCreativeFocus?.()||document.body.classList.contains("creative-canvas-focus-v314dz19"));setCreativeFocus(!active);return;}
     const talents=event.target.closest("[data-creative-skills]");if(talents){window.LifeRPGTalentTreeGraph?.focusContent?.("Hobbies","coloring-studio");return;}
     const unlock=event.target.closest("[data-creative-unlock]");if(unlock){
       const card=bridge("coloring")?.catalog?.().find?.(entry=>entry.id===unlock.dataset.creativeUnlock);
@@ -79,12 +93,13 @@
     const filter=event.target.closest("[data-creative-filter]");if(filter){drawingFilter=filter.dataset.creativeFilter;render("drawing");return;}
     const item=event.target.closest("[data-creative-item]");if(item){const kind=item.closest(".creative-hub-view")?.id?.replace("view-","");if(kind)openItem(kind,item.dataset.creativeItem);}
   });
-  window.addEventListener("life-rpg:view-changed",e=>{const id=e.detail?.view;if(ID[id]){if(!frame(id)?.dataset.creativeLoading)load(id);if(modes[id]==="gallery")render(id);}else{for(const kind of Object.keys(ID))if(modes[kind]==="editor")suspend(kind);}});
+  window.addEventListener("life-rpg:view-changed",e=>{const id=e.detail?.view;if(ID[id]){if(!frame(id)?.dataset.creativeLoading)load(id);if(modes[id]==="gallery")render(id);else if(modes[id]==="editor")setCreativeFocus(true);}else{setCreativeFocus(false);for(const kind of Object.keys(ID))if(modes[kind]==="editor")suspend(kind);}});
+  window.addEventListener("life-rpg:chrome-change",syncFocusButtons);
   window.addEventListener("focus",()=>{for(const kind of Object.keys(ID))if(modes[kind]==="gallery")render(kind);});
   window.addEventListener("life-rpg:talent-content-v2-change",()=>{if(modes.coloring==="gallery")render("coloring");});
   window.addEventListener("life-rpg:state-saved",()=>{if(modes.coloring==="gallery")render("coloring");});
   window.addEventListener("pagehide",()=>{for(const kind of Object.keys(ID))suspend(kind);});
   function init(){build();for(const kind of Object.keys(ID))if(document.getElementById(`view-${kind}`)?.classList.contains("active"))load(kind);}
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init,{once:true});else init();
-  window.LifeRPGCreativeHub={version:"0.31.4dz14",enter,gallery,render,openItem,_test:{unlocked,cardOwned,coloringMeta,completedDrawing,modes}};
+  window.LifeRPGCreativeHub={version:"0.31.4dz19",enter,gallery,render,openItem,_test:{unlocked,cardOwned,coloringMeta,completedDrawing,modes}};
 })();

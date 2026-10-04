@@ -1,12 +1,14 @@
-const CACHE_NAME = "life-rpg-v0314dz18-dashboard-density-navigation-fix";
+const CACHE_NAME = "life-rpg-v0314dz19-collapsible-chrome-creative-focus";
 const ASSET_CACHE_NAME = "life-rpg-assets-v6";
 const MAX_RUNTIME_ASSETS = 96;
 const CORE = [
   "./",
   "./index.html",
   "./life-hub-v314dk.js?v=0.31.4dz12",
-  "./creative-hub-v314dl.js?v=0.31.4dz14",
-  "./creative-hub-v314dl.css?v=0.31.4dn",
+  "./creative-hub-v314dl.js?v=0.31.4dz19",
+  "./creative-hub-v314dl.css?v=0.31.4dz19",
+  "./ui-chrome.css?v=0.31.4dz19",
+  "./ui-chrome.js?v=0.31.4dz19",
   "./knowledge-workshop.js?v=0.31.4do",
   "./dashboard-v2.js?v=0.31.4dz18",
   "./knowledge-workshop.css?v=0.31.4do",

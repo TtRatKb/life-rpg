@@ -1,0 +1,113 @@
+/* Life RPG V0.31.4dz19 — persistent desktop rail collapse + creative canvas focus */
+
+.chrome-toggle-v314dz19 {
+  display: inline-grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  margin-right: auto;
+  padding: 0;
+  border: 1px solid rgba(101,65,96,.12);
+  border-radius: 13px;
+  color: #714d69;
+  background: rgba(255,255,255,.78);
+  box-shadow: 0 5px 16px rgba(68,39,63,.06);
+  font-size: 1rem;
+  cursor: pointer;
+}
+.chrome-toggle-v314dz19:hover { background: #fff; }
+.chrome-toggle-v314dz19:focus-visible { outline: 3px solid rgba(226,109,153,.28); outline-offset: 2px; }
+
+@media (min-width: 1051px) {
+  body.nav-rail-collapsed-v314dz19 .app-shell {
+    padding-left: 102px;
+  }
+  body.nav-rail-collapsed-v314dz19 .topbar {
+    left: 82px;
+    padding-left: 20px;
+  }
+  body.nav-rail-collapsed-v314dz19 .brand-button {
+    width: 82px;
+    justify-content: center;
+    padding: 0;
+  }
+  body.nav-rail-collapsed-v314dz19 .brand-button > span:last-child {
+    display: none;
+  }
+  body.nav-rail-collapsed-v314dz19 .bottom-nav {
+    width: 82px;
+    padding-left: 9px;
+    padding-right: 9px;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+  body.nav-rail-collapsed-v314dz19 .nav-section-label,
+  body.nav-rail-collapsed-v314dz19 .nav-profile-card {
+    display: none;
+  }
+  body.nav-rail-collapsed-v314dz19 .nav-button {
+    position: relative;
+    grid-template-columns: 1fr;
+    justify-items: center;
+    padding: 10px 5px;
+  }
+  body.nav-rail-collapsed-v314dz19 .nav-button span {
+    width: 34px;
+    height: 30px;
+  }
+  body.nav-rail-collapsed-v314dz19 .nav-button small {
+    display: none;
+  }
+  body.nav-rail-collapsed-v314dz19 .nav-unread-badge {
+    position: absolute;
+    top: 4px;
+    right: 5px;
+  }
+  body.nav-rail-collapsed-v314dz19 .shell-sakura-left {
+    left: 92px;
+  }
+}
+
+/* Tablet already uses the compact rail, and mobile uses bottom navigation. */
+@media (max-width: 1050px) {
+  .chrome-toggle-v314dz19 { display: none !important; }
+}
+
+/* Creative editor focus: remove Life RPG chrome, not the studio's own tools. */
+body.creative-canvas-focus-v314dz19 {
+  overflow: hidden;
+}
+body.creative-canvas-focus-v314dz19 .topbar,
+body.creative-canvas-focus-v314dz19 .bottom-nav,
+body.creative-canvas-focus-v314dz19 .shell-sakura {
+  display: none !important;
+}
+body.creative-canvas-focus-v314dz19 .app-shell {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 8px 10px 10px !important;
+}
+body.creative-canvas-focus-v314dz19 .app-shell > main {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+}
+body.creative-canvas-focus-v314dz19 .creative-hub-view.active {
+  min-height: calc(100dvh - 18px);
+}
+body.creative-canvas-focus-v314dz19 .creative-hub-view iframe[data-creative-frame] {
+  height: calc(100dvh - 58px);
+  min-height: 0;
+  border-radius: 14px;
+}
+
+@media (max-width: 720px) {
+  body.creative-canvas-focus-v314dz19 .app-shell {
+    padding: 6px !important;
+  }
+  body.creative-canvas-focus-v314dz19 .creative-hub-view iframe[data-creative-frame] {
+    height: calc(100dvh - 54px);
+  }
+}
