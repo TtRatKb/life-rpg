@@ -5,7 +5,7 @@
   const integration = window.LifeRPGKotobaIntegration;
   if (!app?.getState || !app?.saveState || !integration) return;
 
-  const VERSION = "0.31.4dz4";
+  const VERSION = "0.31.4dz20";
   const REQUEST_TYPE = "life-rpg:kotoba-request";
   const RESPONSE_TYPE = "kotoba:life-rpg-response";
   const REQUEST_TIMEOUT_MS = 18000;
@@ -351,7 +351,7 @@
     const kinds=current.tasks?.reduce((acc,t)=>(acc[t.kind]=(acc[t.kind]||0)+(t.status==="committed"?1:0),acc),{})||{};
     if(els.title)els.title.textContent="Japanese training complete";
     if(els.progress)els.progress.innerHTML=`<strong>${committed} Kotoba reviews confirmed</strong>${skipped?` · ${skipped} safely skipped`:""}`;
-    if(els.question)els.question.innerHTML=`<div class="kotoba-quick-summary-v314j"><div class="kotoba-quick-prompt-v314j" style="font-size:3rem">🌸</div><h3>Real Kotoba progress, directly from Life RPG.</h3><p class="kotoba-quick-mix-summary-v314k">${kinds.vocab||0} vocab · ${kinds.grammar||0} grammar · ${kinds.particle||0} particle reviews</p><div class="kotoba-quick-summary-grid-v314j"><div><strong>+${earned.realmXP}</strong><span>Japanese Realm XP</span></div><div><strong>+${earned.coins}</strong><span>Coins</span></div><div><strong>+${formatEnergy(earned.storyEnergy)}</strong><span>Story Energy</span></div></div><p class="muted">+${earned.xp} Character XP · +${earned.statXP} Japanese Skill XP · ${due.total} total Kotoba reviews currently remain due.</p></div>`;
+    if(els.question)els.question.innerHTML=`<div class="kotoba-quick-summary-v314j"><div class="kotoba-quick-prompt-v314j" style="font-size:3rem">🌸</div><h3>Real Kotoba progress, directly from Life RPG.</h3><p class="kotoba-quick-mix-summary-v314k">${kinds.vocab||0} vocab · ${kinds.grammar||0} grammar · ${kinds.particle||0} particle reviews</p><div class="kotoba-quick-summary-grid-v314j"><div><strong>+${earned.realmXP}</strong><span>Japanese Realm XP</span></div><div><strong>+${earned.coins}</strong><span>Coins</span></div><div><strong>+${formatEnergy(earned.storyEnergy)}</strong><span>Story Energy</span></div></div><p class="muted">+${earned.xp} Character XP · specialized Japanese Skill XP is assigned per confirmed review · ${due.total} total Kotoba reviews currently remain due.</p></div>`;
     setFeedback(null);els.form?.classList.add("hidden");els.speak?.classList.add("hidden");els.next?.classList.add("hidden");
     if(els.end){els.end.textContent="Close";els.end.onclick=closeDialog;}if(els.saveNote)els.saveNote.textContent="Every reward above was credited only after Kotoba itself persisted the corresponding SRS review. Life RPG-origin events are ignored by the later normal sync payout.";
   }

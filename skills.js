@@ -7,7 +7,7 @@
     return;
   }
 
-  const VERSION = "0.31.4ce";
+  const VERSION = "0.31.4dz20";
   const SCHEMA = 1;
   const MAX_EVENTS = 6000;
   const HABIT_XP = { tiny: 3, low: 5, normal: 8, high: 12, boss: 18 };
@@ -35,7 +35,12 @@
     skill("language-expression", "Language & Expression", "Knowledge", "⌗", "Vocabulary, precise language and expressive range."),
     skill("learning-inquiry", "Learning & Inquiry", "Knowledge", "🔎", "Studying, researching, explaining and following real curiosity."),
 
-    skill("language-learning", "Language Learning", "Japanese", "あ", "Japanese practice now, with room for future language-learning actions."),
+    skill("language-learning", "Japanese Foundations", "Japanese", "あ", "Your existing broad Japanese practice and legacy progress stay here."),
+    skill("japanese-vocabulary-kanji", "Vocabulary & Kanji", "Japanese", "語", "Words, meanings, readings and kanji recognition through real Japanese study."),
+    skill("japanese-grammar-particles", "Grammar & Particles", "Japanese", "文", "Grammar patterns, particles and sentence structure."),
+    skill("japanese-listening-comprehension", "Listening & Comprehension", "Japanese", "耳", "Understanding spoken Japanese in reviews and real media."),
+    skill("japanese-reading-mining", "Reading & Comprehension", "Japanese", "読", "Reading Japanese in books, subtitles and contextual sentences."),
+    skill("japanese-speaking-production", "Speaking & Production", "Japanese", "話", "Active recall, sentence production, shadowing and spoken output."),
 
     skill("movement-body-care", "Movement & Body Care", "Health", "🤸", "Walking, mobility, stretching, yoga and gentle physical care."),
     skill("physical-vitality", "Physical Vitality", "Health", "🏋️", "Workout, gym and sport practice when it genuinely happens."),
@@ -55,6 +60,116 @@
   const SKILL_BY_ID = Object.fromEntries(SKILLS.map(item => [item.id, item]));
   const SKILLS_BY_REALM = Object.fromEntries(Object.keys(REALMS).map(realm => [realm, SKILLS.filter(item => item.realm === realm)]));
 
+  const TRAINING_ACTIONS = {
+    "teaching-facilitation": [
+      trainingAction("🧑‍🏫", "Unterricht / Vertretung", "Öffne Meine Woche und erfasse einen tatsächlich gehaltenen Unterrichtsblock.", () => openWeekLog()),
+      trainingAction("✦", "School Moments", "Kurze Teaching-Life-Entscheidungen, wenn der Talent-Unlock bereits da ist.", () => window.LifeRPGTalentV3?.open?.("school-moments"))
+    ],
+    "lesson-design-preparation": [
+      trainingAction("🗂️", "Unterricht vorbereiten", "Logge echte Vorbereitungszeit in Meine Woche.", () => openWeekLog()),
+      trainingAction("🎯", "Focus-Block starten", "Ein echter Vorbereitungsblock trainiert den Skill über die geloggte Zeit.", () => window.LifeRPGTime?.startFocus?.({ categoryId:"work_home", subcategory:"Preparation", label:"Lesson preparation", minutes:35 }))
+    ],
+    "assessment-feedback": [
+      trainingAction("✓", "Korrekturen loggen", "Öffne Meine Woche und erfasse echte Korrekturzeit.", () => openWeekLog()),
+      trainingAction("🎯", "Correction Focus", "Starte einen konzentrierten Korrekturblock.", () => window.LifeRPGTime?.startFocus?.({ categoryId:"work_home", subcategory:"Corrections", label:"Assessment & feedback", minutes:35 }))
+    ],
+    "professional-organization": [
+      trainingAction("📋", "Schulorganisation", "Konferenzen, Administration und echte Orga-Zeit in Meine Woche erfassen.", () => openWeekLog()),
+      trainingAction("🗓️", "Meine Woche", "Öffne deinen Wochenplan und logge reale Organisationsarbeit.", () => app.showView?.("week"))
+    ],
+    "focus-concentration": [
+      trainingAction("🎯", "Focus Timer", "Starte einen echten Deep-Work-Block.", () => window.LifeRPGTime?.startFocus?.({ categoryId:"focus", subcategory:"Deep work", label:"Focused work", minutes:35 })),
+      trainingAction("▦", "Meine Woche", "Sieh echte Arbeitszeit und vorhandene Focus-Blöcke.", () => app.showView?.("week"))
+    ],
+    "logical-pattern-reasoning": [
+      trainingAction("🧩", "Sudoku", "Deduktion und Mustererkennung.", () => window.LifeRPGSudoku?.open?.()),
+      trainingAction("◩", "Nonogram", "Bildlogik und systematisches Ausschließen.", () => window.LifeRPGNonogram?.open?.()),
+      trainingAction("01", "Takuzu", "Binäre Logik, wenn der Unlock bereits da ist.", () => window.LifeRPGTalentV3?.open?.("takuzu"))
+    ],
+    "quantitative-reasoning": [
+      trainingAction("🔢", "Number Sense", "Kurze native Zahlen- und Schätzaufgaben.", () => window.LifeRPGNumberSense?.open?.()),
+      trainingAction("📚", "Knowledge Workshop", "Mathematische Notizen oder Erklärungen vertiefen.", () => window.LifeRPGKnowledgeWorkshop?.open?.())
+    ],
+    "memory-recall": [
+      trainingAction("🧠", "Memory Garden", "Arbeitsgedächtnis und Abruf trainieren.", () => window.LifeRPGMemoryGarden?.open?.()),
+      trainingAction("📚", "Knowledge Workshop", "Wissen aus eigenen Notizen wieder aufbauen.", () => window.LifeRPGKnowledgeWorkshop?.open?.())
+    ],
+    "language-expression": [
+      trainingAction("⌗", "Lexicon Lab", "Wortschatz, Ausdruck und adaptive Crosswords.", () => window.LifeRPGLexiconLab?.open?.()),
+      trainingAction("✍️", "Journal", "Längere eigene Formulierungen trainieren Ausdruck.", () => app.showView?.("journal"))
+    ],
+    "learning-inquiry": [
+      trainingAction("🔎", "Knowledge Workshop", "Eine echte Frage recherchieren, erklären oder verknüpfen.", () => window.LifeRPGKnowledgeWorkshop?.open?.()),
+      trainingAction("📖", "Library", "Lesen und daraus etwas festhalten.", () => app.showView?.("library"))
+    ],
+    "language-learning": [
+      trainingAction("🌸", "Kotoba Quick · mixed", "Breite Japanese-Praxis. Deine bisherigen allgemeinen Japanese-XP bleiben in diesem Foundations-Skill.", () => window.LifeRPGKotobaQuickTraining?.startQuick?.()),
+      trainingAction("🎮", "Japanese Games", "Spiele, die du in der Games Library als Japanese markiert hast, trainieren die breite Foundation.", () => app.showView?.("games")),
+      trainingAction("📚", "Japanese Library", "Breite Japanese-Leseaktivität bleibt ebenfalls als Foundations-Praxis verfügbar.", () => app.showView?.("library"))
+    ],
+    "japanese-vocabulary-kanji": [
+      trainingAction("語", "Kotoba Quick", "Neue bestätigte Vocabulary-Reviews aus Kotoba werden diesem Skill zugeordnet.", () => window.LifeRPGKotobaQuickTraining?.startQuick?.()),
+      trainingAction("⛏", "Vocabulary Mining", "Öffne deine Japanese Practice Library. Neue Mining-Sessions trainieren Vocabulary & Kanji gezielt.", () => openJapanesePractice("mining"))
+    ],
+    "japanese-grammar-particles": [
+      trainingAction("文", "Kotoba Quick", "Bestätigte Grammar- und Particle-Reviews trainieren gezielt diesen Skill.", () => window.LifeRPGKotobaQuickTraining?.startQuick?.()),
+      trainingAction("🌸", "Kotoba Status", "Sieh direkt, wie viele Grammar- und Particle-Reviews gerade fällig sind.", () => openKotobaPanel())
+    ],
+    "japanese-listening-comprehension": [
+      trainingAction("耳", "Listening Practice", "Starte ein gespeichertes Anime-/Video-/Podcast-Material aus deiner Japanese Practice Library.", () => openJapanesePractice("listening")),
+      trainingAction("🌸", "Kotoba Quick", "Listening-Runden aus bestätigten Kotoba-Reviews zählen ebenfalls hier.", () => window.LifeRPGKotobaQuickTraining?.startQuick?.())
+    ],
+    "japanese-reading-mining": [
+      trainingAction("📖", "Japanese Reading", "Japanese-markierte Bücher und Leselogging trainieren nach dem Update gezielt Reading & Comprehension.", () => app.showView?.("library")),
+      trainingAction("✿", "Reading / Subtitle Habit", "Lege z. B. einen Manga-, NHK- oder Untertitel-Habit an und ordne ihn diesem Skill zu.", () => openHabitForSkill("japanese-reading-mining"))
+    ],
+    "japanese-speaking-production": [
+      trainingAction("話", "Kotoba Quick · Output", "Production-/Form-Runden aus Kotoba trainieren diesen Skill automatisch, sobald Kotoba sie bestätigt.", () => window.LifeRPGKotobaQuickTraining?.startQuick?.()),
+      trainingAction("✿", "Speaking / Shadowing Habit", "Lege einen wiederkehrenden Japanese-Habit an und ordne ihn diesem Skill zu.", () => openHabitForSkill("japanese-speaking-production"))
+    ],
+    "movement-body-care": [
+      trainingAction("🤸", "Guided Stretch", "Kurze angeleitete Bewegung statt einer offenen Aufgabe.", () => window.LifeRPGRecoveryStudio?.start?.("stretch10")),
+      trainingAction("◷", "Bewegung loggen", "Echte Bewegungszeit im Zeitlog erfassen.", () => app.showView?.("rhythm"))
+    ],
+    "physical-vitality": [
+      trainingAction("🏋️", "Health Quest / Habit", "Gym, Workout oder Sport über passende Quests oder Habits.", () => app.showView?.("quests")),
+      trainingAction("✿", "Habits", "Ein Workout-Habit kann direkt diesem Skill zugeordnet werden.", () => app.showView?.("habits"))
+    ],
+    "personal-care": [
+      trainingAction("🫧", "Habits", "Pflege-Habits zählen, wenn du sie diesem Skill zuordnest.", () => app.showView?.("habits"))
+    ],
+    "reflection-self-awareness": [
+      trainingAction("🌙", "Daily Check-in", "Der tägliche Check-in trainiert Selbstwahrnehmung.", () => document.getElementById("dailyBriefingStart")?.click()),
+      trainingAction("✍️", "Journal", "Reflexionen und Wochenrückblicke vertiefen den Skill.", () => app.showView?.("journal"))
+    ],
+    "recovery-regulation": [
+      trainingAction("🌿", "Recovery Studio", "Atmung, Body Scan, Ruhe oder sanfte Regulation.", () => window.LifeRPGRecoveryStudio?.open?.()),
+      trainingAction("◷", "Recovery loggen", "Bewusste Erholung als echte Aktivität erfassen.", () => app.showView?.("rhythm"))
+    ],
+    "life-management": [
+      trainingAction("🏠", "Schnell loggen", "Haushalt erledigt? Direkt als Home Action erfassen.", () => window.LifeRPGLifeHub?.open?.()),
+      trainingAction("🍲", "Essensplan", "Planung und Vorratsorganisation als praktisches Life Management.", () => app.showView?.("meals")),
+      trainingAction("▦", "Meine Woche", "Termine und echte Adminzeit übersichtlich halten.", () => app.showView?.("week"))
+    ],
+    "creative-expression": [
+      trainingAction("✍️", "Drawing Studio", "Zeichnen und kreative Challenges trainieren den Skill.", () => window.LifeRPGCreativeHub?.enter?.("drawing")),
+      trainingAction("📝", "Adventure", "Ein konkretes kreatives Projekt weiterführen.", () => app.showView?.("adventures"))
+    ],
+    "craft-making": [
+      trainingAction("🧶", "Adventures", "Ein reales Craft-/DIY-Projekt als Adventure weiterführen.", () => app.showView?.("adventures")),
+      trainingAction("◷", "Craft-Zeit loggen", "Hands-on-Zeit als echte Hobby-Aktivität erfassen.", () => app.showView?.("rhythm"))
+    ],
+    "style-visual-design": [
+      trainingAction("◈", "Palette Atelier", "Farbtraining, wenn der Unlock bereits da ist.", () => window.LifeRPGTalentV3?.open?.("palette-atelier")),
+      trainingAction("💄", "Style-Habit", "Makeup/Hair/Styling-Habits können diesem Skill zugeordnet werden.", () => app.showView?.("habits"))
+    ],
+    "recreation-play": [
+      trainingAction("🎮", "Games", "Spielen zählt als echte Recreation.", () => app.showView?.("games")),
+      trainingAction("📖", "Library", "For-fun Reading trainiert Recreation & Play.", () => app.showView?.("library")),
+      trainingAction("🎨", "Coloring Studio", "Freies Ausmalen ist ebenfalls legitime Spiel-/Hobbyzeit.", () => window.LifeRPGCreativeHub?.enter?.("coloring"))
+    ]
+  };
+
   let initialized = false;
   let syncing = false;
   let syncTimer = null;
@@ -72,11 +187,14 @@
 
   function init() {
     ensureState();
+    const japaneseSplitCreated = ensureJapaneseSkillSplitMigration();
     injectNavigation();
     injectSkillsView();
+    ensureTrainingDialog();
     injectHabitSkillField();
     observeTalentTrees();
     bind();
+    if (japaneseSplitCreated) app.saveState({ source: "skills-japanese-split-init", suppressUiRefresh: true });
     reconcile({ persist: true, reason: "skills-init" });
     render();
     initialized = true;
@@ -100,6 +218,23 @@
     });
     model.migrations.derivedLocalPracticeV1 = true;
     return model;
+  }
+
+  function ensureJapaneseSkillSplitMigration() {
+    const model = state();
+    if (Number(model.migrations?.japaneseSkillSplitV1At || 0) > 0) return false;
+    model.migrations.japaneseSkillSplitV1At = Date.now();
+    return true;
+  }
+
+  function japaneseSkillSplitAt() {
+    return Math.max(0, Number(state().migrations?.japaneseSkillSplitV1At || 0));
+  }
+
+  function useSpecializedJapaneseSkills(at) {
+    const split = japaneseSkillSplitAt();
+    const when = timestamp(at);
+    return Boolean(split && when && when >= split);
   }
 
   function defaults() {
@@ -144,6 +279,26 @@
       if (talentTab) {
         event.preventDefault();
         selectTalentRealm(talentTab.dataset.skillTreeTab);
+        return;
+      }
+
+      const trainSkill = event.target.closest?.("[data-skill-train]");
+      if (trainSkill) {
+        event.preventDefault();
+        openTrainingGuide(trainSkill.dataset.skillTrain);
+        return;
+      }
+
+      const trainAction = event.target.closest?.("[data-skill-training-action]");
+      if (trainAction) {
+        event.preventDefault();
+        runTrainingAction(trainAction.dataset.skillTrainingAction);
+        return;
+      }
+
+      if (event.target.closest?.("[data-skill-training-close]")) {
+        event.preventDefault();
+        document.getElementById("skillTrainingDialogV314dz20")?.close?.();
         return;
       }
 
@@ -330,7 +485,7 @@
     const readingTimeEntries = timeEntries.filter(entry => entry.categoryId === "reading");
     (root.bookLibrary?.logs || []).forEach(log => {
       const book = bookById[log?.bookId];
-      const skillId = skillForBook(book);
+      const skillId = skillForBook(book, log.at || log.createdAt || book?.lastReadAt);
       if (!book || !skillId) return;
       if (isLikelyDuplicateMediaTime(log, readingTimeEntries)) return;
       const xp = bookLogXp(log);
@@ -523,11 +678,43 @@
     if (source === "lexicon-lab-complete") return nativeSkill("language-expression", 10, "lexicon-crossword");
     if (source === "weekly-review-base") return nativeSkill("reflection-self-awareness", Math.max(0, Number(reward.metadata?.skillXP || 6)), "weekly-review");
     if (source === "weekly-review-field-depth") return nativeSkill("reflection-self-awareness", Math.max(0, Number(reward.metadata?.skillXP || 0)), "weekly-review-depth");
-    if (/^Kotoba Quick\b/i.test(label) || /kotoba quick/i.test(label)) return nativeSkill("language-learning", 1.5, "kotoba-quick-review");
+    if (source === "kotoba-quest" || /^Kotoba(?: Quick)?\b/i.test(label) || /kotoba quick/i.test(label)) {
+      const skillId = useSpecializedJapaneseSkills(reward.at)
+        ? japaneseSkillForKotobaReward(reward)
+        : "language-learning";
+      return nativeSkill(skillId, 1.5, "kotoba-quick-review");
+    }
+    if (source === "japanese-practice") {
+      const skillId = useSpecializedJapaneseSkills(reward.at)
+        ? (String(reward.metadata?.mode || "") === "listening" ? "japanese-listening-comprehension" : "japanese-vocabulary-kanji")
+        : "language-learning";
+      const minutes = Math.max(5, Number(reward.metadata?.minutes || 15));
+      return nativeSkill(skillId, timeXp(minutes), "japanese-practice");
+    }
     return null;
   }
 
   function nativeSkill(skillId, xp, source) { return { skillId, xp, source, label: SKILL_BY_ID[skillId]?.label || "Skill practice" }; }
+
+  function japaneseSkillForKotobaReward(reward) {
+    const type = String(reward?.metadata?.kotobaType || "").toLowerCase();
+    const subskill = String(reward?.metadata?.skill || "").toLowerCase();
+
+    if (type === "mining-import") return "japanese-vocabulary-kanji";
+    if (["sentence-mining", "reading"].includes(type)) return "japanese-reading-mining";
+    if (type === "particle-review" || type === "particle-lesson") return "japanese-grammar-particles";
+    if (type === "grammar-review" || type === "grammar-lesson") {
+      if (/listen/.test(subskill)) return "japanese-listening-comprehension";
+      if (/production|form|speak|output/.test(subskill)) return "japanese-speaking-production";
+      return "japanese-grammar-particles";
+    }
+    if (type === "vocab-review" || type === "vocab-lesson") {
+      if (/listen/.test(subskill)) return "japanese-listening-comprehension";
+      if (/production|speak|output|de-jp/.test(subskill)) return "japanese-speaking-production";
+      return "japanese-vocabulary-kanji";
+    }
+    return "language-learning";
+  }
 
   function skillForQuest(quest) {
     if (!quest) return null;
@@ -577,11 +764,11 @@
     return null;
   }
 
-  function skillForBook(book) {
+  function skillForBook(book, at) {
     const role = String(book?.role || "").toLowerCase();
     if (role === "fun") return "recreation-play";
     if (role === "knowledge" || role === "growth") return "learning-inquiry";
-    if (role === "japanese") return "language-learning";
+    if (role === "japanese") return useSpecializedJapaneseSkills(at) ? "japanese-reading-mining" : "language-learning";
     return null;
   }
 
@@ -809,6 +996,96 @@
         <div id="skillsRecentPractice" class="skills-recent-v314aa"></div>
       </details>`;
     main.appendChild(section);
+  }
+
+
+  function ensureTrainingDialog() {
+    if (document.getElementById("skillTrainingDialogV314dz20")) return;
+    const dialog = document.createElement("dialog");
+    dialog.id = "skillTrainingDialogV314dz20";
+    dialog.className = "rpg-dialog skill-training-dialog-v314dz20";
+    dialog.innerHTML = `<div class="skill-training-shell-v314dz20">
+      <header><div><p class="eyebrow">TRAIN & LEVEL</p><h2 id="skillTrainingTitleV314dz20">Train a Skill</h2></div><button type="button" class="close-button" data-skill-training-close aria-label="Close">×</button></header>
+      <div id="skillTrainingBodyV314dz20"></div>
+    </div>`;
+    document.body.appendChild(dialog);
+  }
+
+  function trainingAction(icon, label, detail, run) { return { icon, label, detail, run }; }
+
+  function openTrainingGuide(skillId) {
+    const item = SKILL_BY_ID[skillId];
+    if (!item) return false;
+    ensureTrainingDialog();
+    const info = levelInfo(totalsBySkill()[skillId] || 0);
+    const remaining = Math.max(0, Number(info.required || 0) - Number(info.intoLevel || 0));
+    const actions = TRAINING_ACTIONS[skillId] || [];
+    const dialog = document.getElementById("skillTrainingDialogV314dz20");
+    const title = document.getElementById("skillTrainingTitleV314dz20");
+    const body = document.getElementById("skillTrainingBodyV314dz20");
+    if (!dialog || !title || !body) return false;
+    title.textContent = item.label;
+    let japaneseStatus = "";
+    if (item.realm === "Japanese") {
+      const status = window.LifeRPGKotobaIntegration?.getStatus?.();
+      const counts = status?.dueSnapshot?.counts;
+      if (status?.enabled && counts) {
+        japaneseStatus = `<div class="skill-training-kotoba-v314dz20"><span>🌸 Kotoba due now</span><strong>${Math.max(0,Number(counts.vocabularyCore||0)+Number(counts.vocabularyMining||0))} vocab · ${Math.max(0,Number(counts.grammar||0))} grammar · ${Math.max(0,Number(counts.particles||0))} particles</strong></div>`;
+      } else {
+        japaneseStatus = `<div class="skill-training-kotoba-v314dz20"><span>🌸 Kotoba Quest</span><strong>${status?.enabled ? "Connected · sync to refresh due reviews" : "Connect Kotoba to train directly from Life RPG"}</strong></div>`;
+      }
+    }
+    body.innerHTML = `<section class="skill-training-progress-v314dz20">
+      <div><span>${item.icon}</span><div><small>${esc(item.realm)} · LEVEL ${info.level}</small><strong>${formatXp(info.intoLevel)} / ${formatXp(info.required)} Skill XP</strong><p>${formatXp(remaining)} XP until Level ${info.level + 1} and another Talent Point contribution.</p></div></div>
+      <i><b style="width:${Number(info.percent || 0).toFixed(2)}%"></b></i>
+    </section>
+    ${japaneseStatus}
+    <section class="skill-training-actions-v314dz20"><p class="eyebrow">WAYS TO TRAIN THIS</p>
+      ${actions.length ? actions.map((entry,index)=>`<button type="button" data-skill-training-action="${index}"><span>${entry.icon}</span><div><strong>${esc(entry.label)}</strong><small>${esc(entry.detail)}</small></div><b>›</b></button>`).join("") : `<p class="muted">No direct launcher is mapped yet. A Habit can still be explicitly assigned to this Skill.</p>`}
+    </section>`;
+    dialog.dataset.skillId = skillId;
+    if (!dialog.open) dialog.showModal?.();
+    return true;
+  }
+
+  function runTrainingAction(index) {
+    const dialog = document.getElementById("skillTrainingDialogV314dz20");
+    const skillId = dialog?.dataset.skillId || "";
+    const entry = TRAINING_ACTIONS[skillId]?.[Number(index)];
+    if (!entry) return false;
+    dialog?.close?.();
+    try { entry.run?.(); return true; }
+    catch (error) { console.warn("Skill training action could not open", error); openSkillsView(); return false; }
+  }
+
+  function openWeekLog() {
+    app.showView?.("week");
+    window.setTimeout(() => document.querySelector('[data-week-mode="log"]')?.click(), 80);
+  }
+
+  function openJapanesePractice(mode = "listening") {
+    app.showView?.("hub-play");
+    window.setTimeout(() => {
+      document.getElementById("japanesePracticeLibraryPanel")?.scrollIntoView?.({ behavior:"smooth", block:"start" });
+      const first = window.LifeRPGJapanesePractice?.eligibleItems?.()?.find(item => (item.practiceModes || []).includes(mode));
+      if (first) app.showToast?.(`${mode === "mining" ? "Mining" : "Listening"} route ready · choose a saved item or start ${first.title}.`);
+    }, 120);
+  }
+
+  function openKotobaPanel() {
+    app.showView?.("hub-play");
+    window.setTimeout(() => document.getElementById("kotobaIntegrationPanel")?.scrollIntoView?.({ behavior:"smooth", block:"start" }), 120);
+  }
+
+  function openHabitForSkill(skillId) {
+    app.showView?.("habits");
+    window.setTimeout(() => {
+      document.getElementById("addHabitButton")?.click?.();
+      window.setTimeout(() => {
+        const select = document.getElementById("habitSkill");
+        if (select && SKILL_BY_ID[skillId]) select.value = skillId;
+      }, 60);
+    }, 80);
   }
 
 
@@ -1199,7 +1476,7 @@
     const pointText = info.discovered
       ? `${earnedPoints} pt${earnedPoints === 1 ? "" : "s"} earned · next +1 at Lv. ${info.level + 1}`
       : "First qualifying practice discovers this skill";
-    return `<article class="skill-card-v314aa ${info.discovered ? "is-discovered" : "is-undiscovered"}"><div class="skill-card-head-v314aa"><span>${item.icon}</span><div><strong>${esc(item.label)}</strong><small>${esc(item.description)}</small></div><b>${levelLabel}</b></div><div class="skill-progress-v314aa"><i><b style="width:${info.percent.toFixed(2)}%"></b></i><div><span>${formatXp(info.intoLevel)} / ${formatXp(info.required)} Skill XP</span><em>${esc(pointText)}</em></div></div></article>`;
+    return `<button type="button" data-skill-train="${escAttr(item.id)}" class="skill-card-v314aa skill-card-trainable-v314dz20 ${info.discovered ? "is-discovered" : "is-undiscovered"}"><div class="skill-card-head-v314aa"><span>${item.icon}</span><div><strong>${esc(item.label)}</strong><small>${esc(item.description)}</small></div><b>${levelLabel}</b></div><div class="skill-progress-v314aa"><i><b style="width:${info.percent.toFixed(2)}%"></b></i><div><span>${formatXp(info.intoLevel)} / ${formatXp(info.required)} Skill XP</span><em>${esc(pointText)} · Train ›</em></div></div></button>`;
   }
 
   function renderRecent() {
@@ -1224,7 +1501,7 @@
   }
 
   function sourceLabel(source) {
-    return ({ time: "Focus & Time", habit: "Habit", "daily-checkin": "Daily Check-in", "journal-reflection": "Journal", book: "Library", game: "Games", quest: "Quest", sudoku: "Sudoku", "sudoku-replay": "Sudoku", nonogram: "Nonogram", "nonogram-replay": "Nonogram", "number-sense": "Number Sense", "number-sense-replay": "Number Sense", "memory-garden": "Memory Garden", "memory-garden-replay": "Memory Garden", "lexicon-calibration": "Lexicon Calibration", "lexicon-daily-word": "Daily Word", "lexicon-crossword": "Lexicon Lab", "kotoba-quick-review": "Kotoba Quick", "weekly-review": "Weekly Review", "weekly-review-depth": "Weekly Review", "steam-playtime": "Steam Playtime" })[source] || source || "Practice";
+    return ({ time: "Focus & Time", habit: "Habit", "daily-checkin": "Daily Check-in", "journal-reflection": "Journal", book: "Library", game: "Games", quest: "Quest", sudoku: "Sudoku", "sudoku-replay": "Sudoku", nonogram: "Nonogram", "nonogram-replay": "Nonogram", "number-sense": "Number Sense", "number-sense-replay": "Number Sense", "memory-garden": "Memory Garden", "memory-garden-replay": "Memory Garden", "lexicon-calibration": "Lexicon Calibration", "lexicon-daily-word": "Daily Word", "lexicon-crossword": "Lexicon Lab", "kotoba-quick-review": "Kotoba / Quick Japanese", "japanese-practice": "Japanese Practice", "weekly-review": "Weekly Review", "weekly-review-depth": "Weekly Review", "steam-playtime": "Steam Playtime" })[source] || source || "Practice";
   }
 
   function validSkillId(value) { return value && SKILL_BY_ID[value] ? value : null; }
@@ -1263,6 +1540,7 @@
     refreshTalentHub: renderTalentHub,
     selectTalentRealm,
     rebuild: () => reconcile({ persist: true, reason: "skills-api-rebuild", force: true }),
+    openTrainingGuide,
     open: () => { openSkillsView(); render(); }
   };
 })();

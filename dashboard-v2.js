@@ -7,7 +7,7 @@
   const skills = window.LifeRPGSkills;
   if (!app?.getState || !app?.saveState || !skills?.registry) return;
 
-  const VERSION = "0.31.4dz18";
+  const VERSION = "0.31.4dz20";
   const REALMS = {
     Work: { icon: "📎", label: "Work" },
     Knowledge: { icon: "📚", label: "Knowledge" },
@@ -350,6 +350,7 @@
   }
 
   function openSkillGuide(id) {
+    if (skills.openTrainingGuide?.(id)) return;
     const def = skills.getSkill(id);
     if (!def) return;
     const info = skills.getLevelInfo(id);
