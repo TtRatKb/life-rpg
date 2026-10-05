@@ -611,3 +611,131 @@
   .skill-training-kotoba-v314dz20 { flex-direction:column; }
   .skill-training-kotoba-v314dz20 strong { text-align:left; }
 }
+
+/* =========================================================
+   V0.31.4dz21 · Realm-scoped Skill rail beside Talent Tree
+   ========================================================= */
+.skills-talent-workbench-v314dz21 {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(310px, 380px);
+  gap: 18px;
+  align-items: start;
+}
+.skills-talent-tree-column-v314dz21 { min-width: 0; }
+.skills-talent-skill-rail-v314dz21 {
+  position: sticky;
+  top: 92px;
+  min-width: 0;
+  max-height: calc(100vh - 110px);
+  overflow: auto;
+  padding: 15px;
+  border: 1px solid rgba(91,49,78,.11);
+  border-radius: 20px;
+  background: linear-gradient(155deg, rgba(255,255,255,.9), rgba(250,237,243,.88));
+  box-shadow: 0 12px 30px rgba(75,40,64,.06);
+}
+#skillsTalentSkillRailHeadV314dz21 {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 10px;
+}
+#skillsTalentSkillRailHeadV314dz21 h3 { margin: 2px 0 3px; color: #4f3145; font-size: 1.06rem; }
+#skillsTalentSkillRailHeadV314dz21 p:not(.eyebrow) { margin: 0; color: #826b79; font-size: .72rem; line-height: 1.4; }
+#skillsTalentSkillRailHeadV314dz21 > span {
+  flex: 0 0 auto;
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: #f9e7ef;
+  color: #a44e73;
+  font-size: .65rem;
+  font-weight: 850;
+}
+.skills-talent-skill-list-v314dz21 { display: grid; gap: 7px; }
+.skills-talent-skill-chip-v314dz21 {
+  width: 100%;
+  display: grid;
+  grid-template-columns: auto minmax(0,1fr) auto;
+  gap: 9px;
+  align-items: center;
+  padding: 10px 11px;
+  border: 1px solid rgba(91,49,78,.09);
+  border-radius: 14px;
+  background: rgba(255,255,255,.72);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.skills-talent-skill-chip-v314dz21:hover,
+.skills-talent-skill-chip-v314dz21.is-selected {
+  border-color: rgba(197,88,139,.3);
+  background: #fff;
+  box-shadow: 0 7px 18px rgba(91,49,78,.06);
+}
+.skills-talent-skill-chip-v314dz21 > span { font-size: 1.15rem; }
+.skills-talent-skill-chip-v314dz21 strong { display: block; color: #513548; font-size: .8rem; }
+.skills-talent-skill-chip-v314dz21 small { display: block; margin-top: 1px; color: #8b7581; font-size: .63rem; }
+.skills-talent-skill-chip-v314dz21 em { color: #b2527c; font-size: .61rem; font-style: normal; font-weight: 850; }
+.skills-talent-skill-chip-v314dz21 i {
+  display: block;
+  height: 4px;
+  margin-top: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(91,49,78,.08);
+}
+.skills-talent-skill-chip-v314dz21 i b {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg,#e65f98,#c567a7);
+}
+.skills-talent-skill-detail-v314dz21 {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(91,49,78,.09);
+}
+.skill-training-progress-v314dz20.is-compact-v314dz21 { padding: 12px; border-radius: 15px; }
+.skill-training-progress-v314dz20.is-compact-v314dz21 > div > span { font-size: 1.25rem; }
+.skill-training-progress-v314dz20.is-compact-v314dz21 strong { font-size: .82rem; }
+.skill-training-progress-v314dz20.is-compact-v314dz21 p { font-size: .69rem; line-height: 1.35; }
+.skill-training-actions-v314dz20.is-inline-v314dz21 { margin-top: 12px; }
+.skill-training-actions-v314dz20.is-inline-v314dz21 > .eyebrow { font-size: .58rem; }
+.skill-training-action-v314dz21 { position: relative; }
+.skill-training-action-top-v314dz21 { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.skill-training-action-top-v314dz21 em {
+  flex: 0 0 auto;
+  padding: 2px 6px;
+  border-radius: 999px;
+  font-size: .5rem;
+  font-style: normal;
+  font-weight: 900;
+  letter-spacing: .04em;
+}
+.skill-training-action-v314dz21.is-native .skill-training-action-top-v314dz21 em { color: #477157; background: rgba(101,151,111,.13); }
+.skill-training-action-v314dz21.is-guided .skill-training-action-top-v314dz21 em { color: #7d6541; background: rgba(213,174,102,.15); }
+.skill-training-action-v314dz21.is-linked .skill-training-action-top-v314dz21 em { color: #865a75; background: rgba(171,105,145,.11); }
+.skill-training-action-v314dz21 u {
+  display: block;
+  margin-top: 3px;
+  color: #a18b97;
+  font-size: .56rem;
+  text-decoration: none;
+}
+
+@media (max-width: 1120px) {
+  .skills-talent-workbench-v314dz21 { grid-template-columns: minmax(0,1fr) 300px; gap: 13px; }
+  .skills-talent-skill-rail-v314dz21 { padding: 12px; }
+  .skill-training-action-top-v314dz21 { align-items: flex-start; flex-direction: column; gap: 3px; }
+}
+@media (max-width: 860px) {
+  .skills-talent-workbench-v314dz21 { grid-template-columns: 1fr; }
+  .skills-talent-skill-rail-v314dz21 { position: static; max-height: none; }
+  .skills-talent-skill-list-v314dz21 { grid-template-columns: repeat(2, minmax(0,1fr)); }
+}
+@media (max-width: 560px) {
+  .skills-talent-skill-list-v314dz21 { grid-template-columns: 1fr; }
+  #skillsTalentSkillRailHeadV314dz21 { flex-direction: column; }
+  .skill-training-action-top-v314dz21 { flex-direction: row; align-items: center; }
+}
