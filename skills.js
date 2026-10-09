@@ -7,7 +7,7 @@
     return;
   }
 
-  const VERSION = "0.31.4dz21";
+  const VERSION = "0.31.4dz22";
   const SCHEMA = 1;
   const MAX_EVENTS = 6000;
   const HABIT_XP = { tiny: 3, low: 5, normal: 8, high: 12, boss: 18 };
@@ -62,18 +62,22 @@
 
   const TRAINING_ACTIONS = {
     "teaching-facilitation": [
+      trainingAction("↗", "Schulcockpit", "Arbeite im Schulcockpit; verbinde echte Abschlüsse mit diesem Work-Skill.", () => window.LifeRPGWorkBridge?.open?.(), "linked"),
       trainingAction("🧑‍🏫", "Unterricht / Vertretung", "Öffne Meine Woche und erfasse einen tatsächlich gehaltenen Unterrichtsblock.", () => openWeekLog(), "guided"),
       trainingAction("✦", "School Moments", "Kurze Teaching-Life-Entscheidungen, wenn der Talent-Unlock bereits da ist.", () => window.LifeRPGTalentV3?.open?.("school-moments"), "native")
     ],
     "lesson-design-preparation": [
+      trainingAction("↗", "Schulcockpit", "Arbeite im Schulcockpit; verbinde echte Abschlüsse mit diesem Work-Skill.", () => window.LifeRPGWorkBridge?.open?.(), "linked"),
       trainingAction("🗂️", "Unterricht vorbereiten", "Logge echte Vorbereitungszeit in Meine Woche.", () => openWeekLog(), "guided"),
       trainingAction("🎯", "Focus-Block starten", "Ein echter Vorbereitungsblock trainiert den Skill über die geloggte Zeit.", () => window.LifeRPGTime?.startFocus?.({ categoryId:"work_home", subcategory:"Preparation", label:"Lesson preparation", minutes:35 }), "guided")
     ],
     "assessment-feedback": [
+      trainingAction("↗", "Schulcockpit", "Arbeite im Schulcockpit; verbinde echte Abschlüsse mit diesem Work-Skill.", () => window.LifeRPGWorkBridge?.open?.(), "linked"),
       trainingAction("✓", "Korrekturen loggen", "Öffne Meine Woche und erfasse echte Korrekturzeit.", () => openWeekLog(), "guided"),
       trainingAction("🎯", "Correction Focus", "Starte einen konzentrierten Korrekturblock.", () => window.LifeRPGTime?.startFocus?.({ categoryId:"work_home", subcategory:"Corrections", label:"Assessment & feedback", minutes:35 }), "guided")
     ],
     "professional-organization": [
+      trainingAction("↗", "Schulcockpit", "Arbeite im Schulcockpit; verbinde echte Abschlüsse mit diesem Work-Skill.", () => window.LifeRPGWorkBridge?.open?.(), "linked"),
       trainingAction("🧾", "Work Deep Brief", "Eine kurze native Work-Reflexion direkt in Life RPG schreiben und speichern.", () => window.LifeRPGTalentContentV2?.open?.("work-debrief"), "native"),
       trainingAction("📋", "Schulorganisation", "Konferenzen, Administration und echte Orga-Zeit in Meine Woche erfassen.", () => openWeekLog(), "guided"),
       trainingAction("🗓️", "Meine Woche", "Öffne deinen Wochenplan und logge reale Organisationsarbeit.", () => app.showView?.("week"))
@@ -92,6 +96,7 @@
       trainingAction("📚", "Knowledge Workshop", "Mathematische Notizen oder Erklärungen vertiefen.", () => window.LifeRPGKnowledgeWorkshop?.open?.())
     ],
     "memory-recall": [
+      trainingAction("🧠", "Recall Drill", "3–5 ältere Garden-Notizen oder bekannte Fachwörter aktiv abrufen.", () => window.LifeRPGKnowledgePractice?.open?.("recall"), "native"),
       trainingAction("🧠", "Memory Garden", "Arbeitsgedächtnis und Abruf trainieren.", () => window.LifeRPGMemoryGarden?.open?.(), "native"),
       trainingAction("📚", "Knowledge Workshop", "Wissen aus eigenen Notizen wieder aufbauen.", () => window.LifeRPGKnowledgeWorkshop?.open?.())
     ],
@@ -100,6 +105,7 @@
       trainingAction("✍️", "Journal", "Längere eigene Formulierungen trainieren Ausdruck.", () => app.showView?.("journal"))
     ],
     "learning-inquiry": [
+      trainingAction("✦", "Explain It Back", "Einen gespeicherten Gedanken selbst erklären und mit der Quelle vergleichen.", () => window.LifeRPGKnowledgePractice?.open?.("explain"), "native"),
       trainingAction("🔎", "Knowledge Workshop", "Eine echte Frage recherchieren, erklären oder verknüpfen.", () => window.LifeRPGKnowledgeWorkshop?.open?.()),
       trainingAction("📖", "Library", "Lesen und daraus etwas festhalten.", () => app.showView?.("library"))
     ],
@@ -674,6 +680,13 @@
   function skillForRewardEvent(reward) {
     const source = String(reward.source || "");
     const label = String(reward.label || "");
+    if (source === "knowledge-practice-recall") return nativeSkill("memory-recall", Math.max(0, Math.min(8, Number(reward.metadata?.skillXP || 0))), source);
+    if (source === "knowledge-practice-explain") return nativeSkill("learning-inquiry", Math.max(0, Math.min(6, Number(reward.metadata?.skillXP || 0))), source);
+    if (source === "schulcockpit-completion") {
+      const map = {"lesson-prepared":"lesson-design-preparation","lesson-reflected":"teaching-facilitation","preparation-completed":"professional-organization","assessment-analyzed":"assessment-feedback"};
+      const id = map[reward.metadata?.bridgeType];
+      if (id) return nativeSkill(id, Math.max(0, Math.min(4, Number(reward.metadata?.skillXP || 0))), source);
+    }
     if (source === "home-quick-action") return nativeSkill("life-management", Math.max(0, Number(reward.statXP ?? 1)), "home-quick-action");
     if (source === "sudoku-complete") return nativeSkill("logical-pattern-reasoning", 10, "sudoku");
     if (source === "sudoku-daily-replay") return nativeSkill("logical-pattern-reasoning", 8, "sudoku-replay");
@@ -1636,3 +1649,4 @@
     open: () => { openSkillsView(); render(); }
   };
 })();
+

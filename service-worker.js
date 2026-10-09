@@ -1,7 +1,10 @@
-const CACHE_NAME = "life-rpg-v0314dz21-realm-skill-workbench";
+const CACHE_NAME = "life-rpg-v0314dz22-connected-skill-actions";
 const ASSET_CACHE_NAME = "life-rpg-assets-v6";
 const MAX_RUNTIME_ASSETS = 96;
 const CORE = [
+  "./knowledge-practice.js?v=0.31.4dz22",
+  "./knowledge-practice.css?v=0.31.4dz22",
+  "./work-event-bridge.js?v=0.31.4dz22",
   "./",
   "./index.html",
   "./life-hub-v314dk.js?v=0.31.4dz12",
@@ -33,7 +36,7 @@ const CORE = [
   "./talent-content-v2.css?v=0.31.4ar",
   "./logic-expansion.css?v=0.31.4ar",
   "./dreamscape.css?v=0.31.4cx",
-  "./skills.js?v=0.31.4dz21",
+  "./skills.js?v=0.31.4dz22",
   "./talent-v2.js?v=0.31.4bz",
   "./talent-tree-v2-graph.js?v=0.31.4du",
   "./talent-reward-studios.css?v=0.31.4cw",
@@ -294,3 +297,4 @@ self.addEventListener("notificationclick", event => {
     return clients.openWindow("./");
   })());
 });
+
