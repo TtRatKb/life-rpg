@@ -37,3 +37,11 @@
 #todoistPageMount .todoist-inline-check{flex-direction:row;align-items:center;gap:8px}.todoist-connect-form{display:flex;align-items:end;gap:12px;flex-wrap:wrap}.todoist-connect-form label:first-child{flex:1;min-width:220px}.todoist-connect-form button{align-self:end}
 @media(max-width:900px){.todoist-filters{grid-template-columns:1fr 1fr}.todoist-filter-tabs{grid-column:1/-1}.todoist-add-details{grid-template-columns:repeat(2,minmax(100px,1fr))}.todoist-page-title{padding:19px}}
 @media(max-width:600px){.todoist-page-title{flex-direction:column;align-items:stretch;gap:14px;border-radius:17px;padding:18px}.todoist-page-status{justify-content:flex-start;max-width:none}.todoist-page-status small{text-align:left}.todoist-overview{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.todoist-overview>div{padding:12px}.todoist-panel{padding:15px}.todoist-filters{grid-template-columns:1fr}.todoist-filter-tabs{grid-column:auto;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}.todoist-filter-tabs button{min-width:0;white-space:normal}.todoist-add-details{grid-template-columns:1fr 1fr}.todoist-add-details button{grid-column:1/-1}.todoist-task{gap:9px}.todoist-task-body>strong{font-size:.85rem}#todoistPageMount .todoist-holiday-link{font-size:.7rem;padding:7px}.todoist-settings-card{padding:15px}}
+
+/* DZ23d: intentionally separate everyday task list and selective vacation plan. */
+.todoist-task-explainer{background:#fff8f0;border:1px solid #eedbc5;color:#775d62;padding:10px 13px;border-radius:10px;font-size:.82rem;line-height:1.5;margin:0 0 9px}
+#todoistPageMount .todoist-linked-badge{border:1px solid #ead0dd;background:#fbedf3;color:#875775;border-radius:9px;padding:6px 9px;font-size:.72rem;white-space:nowrap}
+.todoist-task-details{font-size:.8rem;color:#755a74;margin-top:6px}.todoist-task-details summary{cursor:pointer;color:#906a85;font-weight:650;width:max-content;max-width:100%}
+.todoist-description{white-space:pre-wrap;line-height:1.5;background:#fff5f8;padding:9px 11px;border-radius:10px;overflow-wrap:anywhere}
+.todoist-label-list{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}.todoist-label-list span{background:#f6eaf0;border-radius:8px;padding:3px 7px;font-size:.71rem}
+.todoist-parent{font-size:.75rem;color:#907b90}

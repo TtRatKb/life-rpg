@@ -1,9 +1,9 @@
-/* Life RPG · DZ23b · Ferien & Auszeiten. Standalone additive state: NEVER rewrites saves. */
+/* Life RPG · DZ23d · Ferien & Auszeiten. Standalone additive state: NEVER rewrites saves. */
 (() => {
   'use strict';
   const app = window.LifeRPGApp;
   if (!app?.getState || !app?.saveState) return;
-  const GROUPS = { school:'📚 Schule', space:'🏡 Raum & Ordnung', digital:'💻 Digital', joy:'🌸 Freizeit', recovery:'☕ Erholung' };
+  const GROUPS = { school:'📚 Schule', space:'🏡 Raum & Ordnung', digital:'💻 Digital', life:'🗂️ Organisation', joy:'🌸 Freizeit', recovery:'☕ Erholung' };
   const PRIORITY = { must:'Muss', want:'Möchte ich', bonus:'Optional' };
   const esc = v => app.escapeHtml(String(v ?? ''));
   const today = () => {const d = new Date(); return [d.getFullYear(), String(d.getMonth()+1).padStart(2,'0'), String(d.getDate()).padStart(2,'0')].join('-');};
@@ -80,7 +80,7 @@
     // chore twice. Preserve the player's chosen priority, effort, and progress.
     const match=b.goals.find(g=>!g.linkedTodoistId&&!g.doneAt&&g.title.trim().toLowerCase()===title.toLowerCase());
     if(match){match.linkedTodoistId=tid;persist('break-goal-todoist-linked');return match;}
-    return add({title,group:task.group||'school',priority:'want',minutes:task.minutes||20,effort:'medium',linkedTodoistId:tid});
+    return add({title,group:task.group||'life',priority:'want',minutes:task.minutes||20,effort:'medium',linkedTodoistId:tid});
   }
   function isDone(g) {return Boolean(g?.doneAt);}
   function markDone(id,{fromTodoist=false,at=null}={}) {
@@ -129,7 +129,36 @@
   function card(g) {return `<article class="break-goal ${g.doneAt?'is-done':''}" data-break-id="${esc(g.id)}">
       <div class="break-goal-main"><span class="break-goal-tick">${g.doneAt?'✓':'○'}</span><div><strong>${esc(g.title)}</strong><small>${esc(GROUPS[g.group])} · ${esc(PRIORITY[g.priority])} · ~${g.minutes} Min.${g.linkedTodoistId?' · Todoist ↗':''}</small></div></div>
       <div class="break-goal-actions">${g.doneAt ? (!g.linkedTodoistId?`<button type="button" class="text-button" data-break-undo="${esc(g.id)}">Rückgängig</button>`:'<span class="break-done-label">In Todoist erledigt</span>') : `<button type="button" class="secondary-button" data-break-do="${esc(g.id)}">${g.linkedTodoistId?'In Todoist erledigen':'Abhaken'}</button>`}<button type="button" class="text-button" data-break-remove="${esc(g.id)}" aria-label="Ziel entfernen">×</button></div></article>`;}
-  let filter='all';
+  let filter='all',pickerOpen=false,pickerMode='backlog',pickerSearch='',selectedTasks=new Set();
+  const pickerCandidates=()=>window.LifeRPGTodoist?.vacationCandidates?.({start:active()?.start,end:active()?.end,mode:pickerMode})||[];
+  function selectionMarkup(){
+    const b=active(),connected=window.LifeRPGTodoist?.connected?.();
+    if(!connected)return '<p class="break-select-hint">Verbinde Todoist zuerst unter „Meine Aufgaben“, um offene Aufgaben für diese Auszeit auszuwählen.</p>';
+    const candidates=pickerCandidates();
+    const matches=candidates.filter(t=>t.content.toLocaleLowerCase().includes(pickerSearch.toLocaleLowerCase())).slice(0,100);
+    return `<div class="break-pick-toolbar"><label>Vorschläge<select data-break-pick-mode><option value="backlog" ${pickerMode==='backlog'?'selected':''}>Fällige offene Aufgaben: 14 Tage vor Beginn bis Ferienende (ohne Routinen)</option><option value="all" ${pickerMode==='all'?'selected':''}>Alle offenen Todoist-Aufgaben</option></select></label><label>Suche<input data-break-pick-search type="search" value="${esc(pickerSearch)}" placeholder="Aufgaben filtern…"></label></div>
+      <p class="break-select-hint">Nur angehakte Aufgaben werden übernommen. Sie bleiben in Todoist und in „Meine Aufgaben“. Kein extra Ferien-Reward.</p>
+      <div class="break-pick-list">${matches.map(t=>`<label class="break-pick-item"><input type="checkbox" data-break-pick-check="${esc(t.id)}" ${selectedTasks.has(String(t.id))?'checked':''}><span><strong>${esc(t.content)}</strong><small>${esc(t.due?.date||'Ohne Termin')} · ${t.priority===4?'Prio 1':t.priority===3?'Prio 2':t.priority===2?'Prio 3':'Prio 4'}${t.due?.is_recurring?' · Wiederkehrend':''}</small></span></label>`).join('')||'<p>Keine passenden offenen Aufgaben.</p>'}</div>
+      ${matches.length<candidates.length?`<small>Maximal 100 Treffer auf einmal angezeigt. Nutze die Suche, um gezielt weitere Aufgaben zu finden.</small>`:''}
+      <div class="break-pick-actions"><button type="button" class="primary-button" data-break-import ${selectedTasks.size?'':'disabled'}>${selectedTasks.size} ausgewählte Aufgaben übernehmen</button><button type="button" class="secondary-button" data-break-cancel>Schließen</button></div>`;
+  }
+  function importSelected(){
+    const b=active();if(!b)return 0;
+    const all=window.LifeRPGTodoist?.vacationCandidates?.({start:b.start,end:b.end,mode:'all'})||[];
+    let count=0;
+    for(const item of all){
+      if(!selectedTasks.has(String(item.id)) || b.goals.some(g=>g.linkedTodoistId===String(item.id)))continue;
+      const title=String(item.content||'').trim();if(!title)continue;
+      const seed=b.goals.find(g=>!g.doneAt&&!g.linkedTodoistId&&g.title.trim().toLowerCase()===title.toLowerCase());
+      if(seed){seed.linkedTodoistId=String(item.id);count++;continue;}
+      b.goals.push(normalize({title,group:window.LifeRPGTodoist?.groupForTask?.(item)||'life',priority:'want',minutes:window.LifeRPGTodoist?.estimatedMinutes?.(item)||20,effort:'medium',linkedTodoistId:String(item.id)}));count++;
+    }
+    selectedTasks.clear();pickerOpen=false;
+    if(count)persist('break-bulk-todoist-import');else render();
+    app.showToast?.(`${count} Aufgabe${count===1?'':'n'} zum Ferienplan hinzugefügt`);
+    return count;
+  }
+
   function render() {
     // A cloud save may replace initial state after script startup. Re-create the
     // optional board in memory, without initiating a premature cloud write.
@@ -143,7 +172,7 @@
     }).join('');
     mount.innerHTML=`<div class="break-hero"><span class="eyebrow">SEASONAL ADVENTURE · ${esc(dateLabel(b.start))}–${esc(dateLabel(b.end))}</span><h1>🍁 ${esc(b.title)}</h1><p>Ein Ferienplan, der wichtige Aufgaben *und* freie Zeit schützt. Die Liste ist eine Wunschliste, keine tägliche Pflicht.</p><div class="break-progress"><span style="width:${goals.length?done/goals.length*100:0}%"></span></div><small>${done} von ${goals.length} Ferienzielen · ohne doppeltes Reward-Logging</small></div>
     <div class="break-new"><label>Auszeit <select data-break-switch>${(model().breaks||[]).map(item=>`<option value="${esc(item.id)}" ${item.id===b.id?'selected':''}>${esc(item.title)}</option>`).join('')}</select></label><details><summary>+ Neue Auszeit planen</summary><form id="breakNewForm"><input name="title" required maxlength="100" placeholder="z. B. Weihnachtsferien 2026"><label>Beginn <input name="start" type="date" required></label><label>Ende <input name="end" type="date" required></label><button type="submit" class="primary-button">Auszeit anlegen</button></form></details></div>
-    <div class="break-toolbar"><label>Ansicht <select data-break-filter><option value="all" ${filter==='all'?'selected':''}>Alle Ziele</option><option value="open" ${filter==='open'?'selected':''}>Noch offen</option><option value="must" ${filter==='must'?'selected':''}>Muss</option><option value="want" ${filter==='want'?'selected':''}>Wünsche</option><option value="bonus" ${filter==='bonus'?'selected':''}>Optional</option></select></label><button type="button" class="secondary-button" data-break-todoist>Meine Aufgaben öffnen →</button></div>
+    <div class="break-toolbar"><label>Ansicht <select data-break-filter><option value="all" ${filter==='all'?'selected':''}>Alle Ziele</option><option value="open" ${filter==='open'?'selected':''}>Noch offen</option><option value="must" ${filter==='must'?'selected':''}>Muss</option><option value="want" ${filter==='want'?'selected':''}>Wünsche</option><option value="bonus" ${filter==='bonus'?'selected':''}>Optional</option></select></label><button type="button" class="secondary-button" data-break-pick-open>+ Todoist-Rückstand auswählen</button><button type="button" class="secondary-button" data-break-todoist>Meine Aufgaben öffnen →</button></div>${pickerOpen?`<section class="break-import-panel"><h3>Todoist-Aufgaben bewusst auswählen</h3>${selectionMarkup()}</section>`:''}
     <form class="break-add" id="breakAddForm"><input name="title" required maxlength="140" placeholder="Neuer Ferienwunsch oder kleiner nächster Schritt…"><select name="group">${Object.entries(GROUPS).map(([k,v])=>`<option value="${k}">${esc(v)}</option>`).join('')}</select><select name="priority"><option value="want">Möchte ich</option><option value="must">Muss</option><option value="bonus">Optional</option></select><select name="effort"><option value="low">Leicht</option><option value="medium" selected>Mittel</option><option value="high">Anstrengend</option></select><label>Min. <input type="number" min="5" max="240" step="5" name="minutes" value="20"></label><button type="submit" class="primary-button">Hinzufügen</button></form>
     <div class="break-groups">${byGroup||'<p>Keine passenden Ziele.</p>'}</div>
     <p class="break-footnote">Wichtig: Schulcockpit-Abschlüsse, Buch-/Game-Logs und Todoist-Aufgaben werden nicht durch ein zweites Ferien-Reward dupliziert. Im Daily Plan können offene Ferienziele als echte Vorschläge erscheinen. Bereits geloggte Aktivitäten bleiben in ihren ursprünglichen Systemen.</p>`;
@@ -159,6 +188,9 @@
     document.addEventListener('click',async e=>{
       const open=e.target.closest('[data-break-open]');if(open){app.showView('breaks');return;}
       if(e.target.closest('[data-break-todoist]')){window.LifeRPGTodoist?.open?.();return;}
+      if(e.target.closest('[data-break-pick-open]')){pickerOpen=!pickerOpen;selectedTasks.clear();render();return;}
+      if(e.target.closest('[data-break-cancel]')){pickerOpen=false;selectedTasks.clear();render();return;}
+      if(e.target.closest('[data-break-import]')){importSelected();return;}
       const target=e.target.closest('[data-break-do]');if(target){target.disabled=true;try{await clickComplete(goalById(target.dataset.breakDo));}catch(err){app.showToast(err.message||'Todoist war nicht erreichbar.');target.disabled=false;}return;}
       if(e.target.closest('[data-break-undo]')){undo(e.target.closest('[data-break-undo]').dataset.breakUndo);return;}
       if(e.target.closest('[data-break-remove]')){const id=e.target.closest('[data-break-remove]').dataset.breakRemove;remove(id);return;}
@@ -168,7 +200,8 @@
       if(e.target?.id!=='breakAddForm')return;
       e.preventDefault();const form=new FormData(e.target);if(add(Object.fromEntries(form))){e.target.reset();}
     });
-    document.addEventListener('change',e=>{if(e.target.matches('[data-break-filter]')){filter=e.target.value;render();} if(e.target.matches('[data-break-switch]')){model().activeId=e.target.value;persist('break-switch');}});
+    document.addEventListener('input',e=>{if(e.target.matches('[data-break-pick-search]')){pickerSearch=e.target.value;const start=e.target.selectionStart;render();const n=document.querySelector('[data-break-pick-search]');if(n){n.focus();n.setSelectionRange(start,start);}}});
+    document.addEventListener('change',e=>{if(e.target.matches('[data-break-pick-mode]')){pickerMode=e.target.value;selectedTasks.clear();render();return;}if(e.target.matches('[data-break-pick-check]')){const id=e.target.dataset.breakPickCheck;if(e.target.checked)selectedTasks.add(id);else selectedTasks.delete(id);render();return;}if(e.target.matches('[data-break-filter]')){filter=e.target.value;render();} if(e.target.matches('[data-break-switch]')){model().activeId=e.target.value;selectedTasks.clear();pickerOpen=false;persist('break-switch');}});
     window.addEventListener('life-rpg:render',render);
     window.addEventListener('life-rpg:view-changed',ev=>{if(ev.detail?.view==='breaks')render();});
     window.addEventListener('life-rpg:state-saved',render);
@@ -177,5 +210,5 @@
   setup();
   initSeed(); // intentionally no startup save: cloud state may still be loading
   render();
-  window.LifeRPGHoliday={active,inPeriod,goalById,eligibleForDaily,scoreForDaily,markDone,undo,add,createBreak,linkTodoist,refreshLinkedCompletions,render,open:()=>app.showView('breaks'),_test:{model,normalize,SEED}};
+  window.LifeRPGHoliday={active,inPeriod,goalById,eligibleForDaily,scoreForDaily,markDone,undo,add,createBreak,linkTodoist,refreshLinkedCompletions,render,importSelected,pickerCandidates,open:()=>app.showView('breaks'),_test:{model,normalize,SEED}};
 })();

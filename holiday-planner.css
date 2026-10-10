@@ -21,3 +21,19 @@
 @media (max-width:550px){.break-view{padding:12px}.break-goal-actions{width:100%;justify-content:flex-end}.break-add input[name="title"]{flex-basis:100%}}
 
 .break-new{display:flex;gap:12px;align-items:start;justify-content:space-between;flex-wrap:wrap;margin:4px 0 14px}.break-new label{display:flex;align-items:center;gap:8px}.break-new select,.break-new input{border:1px solid #dfc9d9;border-radius:12px;background:#fffaf8;color:#402a44;padding:9px}.break-new summary{cursor:pointer;color:#9b6386;font-weight:650}.break-new form{display:flex;align-items:end;gap:8px;flex-wrap:wrap;padding:12px;border-radius:14px;background:var(--panel-bg,#fffaf8);margin-top:8px}.break-new form>input{flex:1;min-width:180px}
+
+/* DZ23d: explicit opt-in backlog import, no automatic holiday task flooding */
+.break-import-panel{margin:14px 0;padding:16px;border:1px solid #e8ccd9;background:#fffafa;border-radius:16px}
+.break-import-panel h3{margin:0 0 9px;font-size:1rem}
+.break-pick-toolbar{display:grid;grid-template-columns:minmax(220px,2fr) minmax(150px,1fr);gap:12px;margin:12px 0}
+.break-pick-toolbar label{display:flex;flex-direction:column;gap:5px;font-size:.82rem}
+.break-pick-toolbar input,.break-pick-toolbar select{padding:9px;border:1px solid #dbc6d3;border-radius:9px;min-width:0;width:100%;box-sizing:border-box}
+.break-select-hint{font-size:.8rem;line-height:1.45;color:#826c7c;margin:10px 0}
+.break-pick-list{max-height:340px;overflow:auto;border:1px solid #f1dfe9;border-radius:12px;background:white}
+.break-pick-item{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-bottom:1px solid #f5eaf0;cursor:pointer}
+.break-pick-item:last-child{border-bottom:0}.break-pick-item input{margin-top:4px;flex:0 0 auto}
+.break-pick-item span{display:flex;flex-direction:column;min-width:0;gap:4px}
+.break-pick-item strong{font-size:.82rem;line-height:1.4;overflow-wrap:anywhere}
+.break-pick-item small{font-size:.72rem;color:#91788b}
+.break-pick-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px}
+@media(max-width:700px){.break-pick-toolbar{grid-template-columns:1fr}.break-import-panel{padding:12px}}

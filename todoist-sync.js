@@ -1,4 +1,4 @@
-/* Life RPG · DZ23c. First-class tasks page + Todoist v1 bridge. No token in app/cloud save. */
+/* Life RPG · DZ23d. Task source-of-truth + selective vacation backlog + baseline-safe rewards. No token in app/cloud save. */
 (() => {
  'use strict';
  const app=window.LifeRPGApp;
@@ -6,21 +6,36 @@
  const SESSION='life-rpg-todoist-access-session-v1', DEVICE='life-rpg-todoist-access-device-v1';
  const API='https://api.todoist.com/api/v1';
  const esc=v=>app.escapeHtml(String(v??''));
- let tasks=[],projects=[],connected=false,busy=false,lastError='',lastSyncAt='',q='',taskFilter='due',projectFilter='',showSettings=false,showMore=0,loadingOpen=false;
+ let tasks=[],projects=[],connected=false,busy=false,lastError='',lastSyncAt='',q='',taskFilter='due',projectFilter='',showSettings=false,showMore=0,loadingOpen=false,rewardMigrationPending=false;
  const mount=()=>document.getElementById('todoistPageMount');
  const currentToken=()=>{try{return sessionStorage.getItem(SESSION)||localStorage.getItem(DEVICE)||'';}catch{return '';}};
- function model(){const st=app.getState();st.todoistBridgeV1 ||= {schemaVersion:1,connectedAt:'',receipts:{},rewardMode:'safe'};if(typeof st.todoistBridgeV1.dailyEnabled!=='boolean')st.todoistBridgeV1.dailyEnabled=true;return st.todoistBridgeV1;}
+ function model(){
+   const st=app.getState();st.todoistBridgeV1 ||= {schemaVersion:1,connectedAt:'',receipts:{},rewardMode:'all'};
+   const m=st.todoistBridgeV1;
+   if(!m.receipts||typeof m.receipts!=='object')m.receipts={};
+   if(typeof m.dailyEnabled!=='boolean')m.dailyEnabled=true;
+   // DZ23a–c silently defaulted to 'safe' (holidays only). Keep receipts and
+   // the historical first-connection cutoff, but enable everyday tasks now.
+   // A user may opt back out afterwards. No old blocked receipt is re-paid.
+   if(!m.rewardModeMigrationDz23d){m.rewardMode='all';m.rewardModeMigrationDz23d=true;rewardMigrationPending=true;}
+   return m;
+ }
  function persist(source){return app.saveState({source,suppressUiRefresh:true});}
  function safeDate(v){const n=Date.parse(v||'');return Number.isFinite(n)?n:0;}
  function dayKey(v){const d=new Date(v);return Number.isFinite(d.getTime())?`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`:'';}
  function recurrence(item){return Boolean(item?.due?.is_recurring);}
  function receiptKey(item){const id=String(item?.id||'');return id?`todoist:${id}${recurrence(item)?':'+dayKey(item.completed_at||new Date().toISOString()):''}`:'';}
  function likelyDuplicate(item){
-   // Better to miss a small Todoist reward than double-pay completed school work.
-   // The school source keeps canonical Work XP; Todoist is a task mirror.
-   const s=[item.content,...(item.labels||[])].join(' ').toLowerCase();
-   return /schulcockpit|unterrichtsvorbereitung|unterricht vorbereitet|klausuranalyse|prüfungsanalyse|reihenplanung|stundenplanung|jahresplan|klassenarbeit|kompetenzbogen|kompetenzbögen|korrektur|korrigieren|materialvorbereitung|unterrichtsreflexion|prüfungsanalyse/.test(s);
+   // We cannot prove that two *different* task IDs / app events describe the
+   // same real action until Schulcockpit propagates the same correlation ID.
+   // Suppress for explicitly tagged mirrors and typical actual bridge actions,
+   // not for every school-related task (email, planning a call, ideas, etc.).
+   const labels=(item.labels||[]).map(v=>String(v).toLowerCase());
+   if(labels.some(x=>/^(schulcockpit|already-rewarded|life-rpg-logged|lrpg:external-reward)$/.test(x)))return true;
+   const s=String(item.content||'').toLowerCase();
+   return /(?:unterricht(?:s|\s)?vorbereitung (?:abgeschlossen|fertig)|unterricht (?:vorbereitet|reflektiert)|(?:klassenarbeit|klausur|prüfung) (?:analysiert|korrigiert)|(?:material|unterrichts)vorbereitung (?:abgeschlossen|fertig))/i.test(s);
  }
+
  function today(){const d=new Date();return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');}
  function addDays(date,days){const [y,m,d]=date.split('-').map(Number);const dt=new Date(y,m-1,d+days);return [dt.getFullYear(),String(dt.getMonth()+1).padStart(2,'0'),String(dt.getDate()).padStart(2,'0')].join('-');}
  function dueDay(t){return String(t?.due?.date||'').slice(0,10);}
@@ -60,6 +75,13 @@
  }
  function eligibleForDaily(){if(!connected||!model().dailyEnabled)return [];const now=today();return tasks.filter(t=>!holidayLinked(t)&&!holidayDuplicate(t)&&!isCompleted(t.id)&&dueDay(t)>=addDays(now,-7)&&dueDay(t)<=addDays(now,1)).filter(t=>!(window.LifeRPGHoliday?.inPeriod?.()&&schoolRoutine(t))).slice(0,70);}
  function getTask(id){return connected?tasks.find(t=>t.id===String(id))||null:null;}
+ function vacationCandidates({start='',end='',mode='backlog'}={}){
+   if(!connected)return [];
+   const from=addDays(start||today(),-14), through=end||addDays(today(),14);
+   return tasks.filter(t=>!holidayLinked(t) && !isCompleted(t.id) && (
+     mode==='all' || (!recurrence(t) && dueDay(t) && dueDay(t)>=from && dueDay(t)<=through)
+   )).sort((a,b)=>(dueDay(a)||'9999').localeCompare(dueDay(b)||'9999')||b.priority-a.priority||a.content.localeCompare(b.content));
+ }
  function isCompleted(id){const key=`todoist:${id}`;return Boolean(model().receipts?.[`${key}:${today()}`]) || (Boolean(model().receipts?.[key]) && !getTask(id));}
  
  function ensureConnectedDate(){const m=model();if(!m.connectedAt){m.connectedAt=new Date().toISOString();persist('todoist-first-connection');}}
@@ -76,21 +98,28 @@
    if(out.length>limit)throw Error('Zu viele Todoist-Einträge; bitte den Sync-Bereich eingrenzen.');
    cursor=res?.next_cursor||'';if(!cursor)break;
  }return out;}
- function normalizedTasks(list){return list.map(t=>({id:String(t.id),content:String(t.content||'').slice(0,220),labels:Array.isArray(t.labels)?t.labels:[],priority:Number(t.priority||1),due:t.due||null,project_id:String(t.project_id||''),parent_id:String(t.parent_id||''),duration:t.duration||null}));}
+ function normalizedTasks(list){return list.map(t=>({
+   id:String(t.id),content:String(t.content||'').slice(0,220),
+   description:String(t.description||'').slice(0,2500),
+   labels:Array.isArray(t.labels)?t.labels.slice(0,30).map(String):[],
+   priority:Number(t.priority||1),due:t.due||null,project_id:String(t.project_id||''),
+   parent_id:String(t.parent_id||''),duration:t.duration||null,section_id:String(t.section_id||''),
+   added_at:String(t.added_at||'')
+ }));}
  function matchedHoliday(item){return holidayLinked(item);}
  function awardCompleted(item){
    const key=receiptKey(item);if(!key||model().receipts[key])return false;
    const stamp=item.completed_at||new Date().toISOString();
    const pastEvent=(app.getState().rewardLedger?.events||[]).find(e=>e.source==='todoist-completion' && e.sourceId===key && !e.duplicate);
    const blocked=likelyDuplicate(item);
-   const mode=model().rewardMode||'safe';const linkedGoal=window.LifeRPGHoliday?.active?.()?.goals?.find(g=>g.linkedTodoistId===String(item.id));
-   const eligible=!blocked && (mode==='all'||Boolean(linkedGoal));
+   const mode=model().rewardMode||'all';const linkedGoal=window.LifeRPGHoliday?.active?.()?.goals?.find(g=>g.linkedTodoistId===String(item.id));
+   const eligible=!blocked && mode==='all';
    const realm=linkedGoal?.group==='school'?'Work':linkedGoal?.group==='joy'?'Hobbies':linkedGoal?.group==='recovery'?'Recovery':taskGroup(item)==='school'?'Work':taskGroup(item)==='joy'?'Hobbies':'Home';
    let eventId=pastEvent?.id||null;
    if(eligible && !pastEvent){
      // Small one-off task reward, never effort/time rewards; actual focus, school
      // and Quest activity must still be logged only in their canonical system.
-     const reward=app.awardActivity({source:'todoist-completion',sourceId:key,label:'Todoist task completed',realm,xp:3,realmXP:3,statXP:0,coins:2,storyEnergyBase:0.1,skipAddOnRewards:true,progressionRelevant:true,at:stamp,metadata:{bridge:'todoist',type:'task',rewardMode:mode}});
+     const reward=app.awardActivity({source:'todoist-completion',sourceId:key,label:`Todoist · ${String(item.content||'Aufgabe').slice(0,120)}`,realm,xp:3,realmXP:3,statXP:0,coins:2,storyEnergyBase:0.1,skipAddOnRewards:true,progressionRelevant:true,at:stamp,metadata:{bridge:'todoist',type:'task',rewardMode:mode,taskId:String(item.id)}});
      eventId=reward.eventId||null;
    }
    model().receipts[key]={at:stamp,eventId,blocked:blocked||!eligible};
@@ -111,15 +140,16 @@
      try{completed=await paged(`/tasks/completed/by_completion_date?since=${encodeURIComponent(start)}&until=${encodeURIComponent(new Date(Date.now()+60000).toISOString())}`,'items',1200);}catch(e){historyWarning=`Abschluss-Historie derzeit nicht verfügbar (${e.message}). Es werden keine unbestätigten Rewards vergeben.`;}
      tasks=next;projects=nextProjects;connected=true;lastError=historyWarning;lastSyncAt=new Date().toISOString();
      if(first){model().connectedAt=new Date().toISOString();}
-     let awarded=0;const accepted=[];
+     let awarded=0,newReceipts=0;const accepted=[];
      for(const item of completed){
        const when=safeDate(item.completed_at);
        if(when < safeDate(model().connectedAt))continue;
        accepted.push(item);
+       const key=receiptKey(item);if(key && !model().receipts[key])newReceipts++;
        if(awardCompleted(item))awarded++;
      }
      window.LifeRPGHoliday?.refreshLinkedCompletions?.(accepted);
-     if(first||accepted.length)persist('todoist-verified-completions');
+     if(first||newReceipts||rewardMigrationPending){const saved=persist('todoist-verified-completions');if(saved!==false)rewardMigrationPending=false;}
      if(!quiet)app.showToast?.(`Todoist: ${tasks.length} Aufgaben aktualisiert${awarded?` · ${awarded} neue Abschlüsse belohnt`:''}${historyWarning?' · Abschluss-Historie nicht abrufbar':''}.`);
      render();window.LifeRPGDaily?.render?.();return tasks.length;
    }catch(e){lastError=e.message;connected=false;if(!quiet)app.showToast?.(lastError);render();throw e;}
@@ -164,7 +194,16 @@
    return list.sort((a,b)=>{const aa=dueDay(a)||'9999-99-99',bb=dueDay(b)||'9999-99-99';return aa.localeCompare(bb)||Number(b.priority)-Number(a.priority)||a.content.localeCompare(b.content);});
  }
  const projectName=t=>projects.find(p=>String(p.id)===t.project_id)?.name||'Eingang';
- function taskRow(t){const high=Number(t.priority)>=3;return `<article class="todoist-task" data-task-id="${esc(t.id)}"><button type="button" class="todoist-check" data-todoist-done="${esc(t.id)}" ${isCompleted(t.id)?'disabled':''} aria-label="${esc(t.content)} erledigen" title="In Todoist abschließen">✓</button><div class="todoist-task-body"><strong>${esc(t.content)}</strong><div class="todoist-task-meta"><span class="${dueDay(t)&&dueDay(t)<today()?'is-overdue':''}">${esc(dateText(t))}</span><span>· ${esc(projectName(t))}</span>${high?'<span>· Wichtig</span>':''}${t.parent_id?'<span>· Unteraufgabe</span>':''}</div></div><button type="button" class="todoist-holiday-link" data-todoist-link="${esc(t.id)}" ${holidayLinked(t)?'disabled':''} title="Optional mit dem Ferien-Board verknüpfen">${holidayLinked(t)?'🍁 Verknüpft':'🍁 Ferien'}</button></article>`;}
+ function taskRow(t){
+   const high=Number(t.priority)>=3, linked=holidayLinked(t),d=dueDay(t);
+   const parent=tasks.find(x=>x.id===t.parent_id);
+   const details=[t.description?`<p class="todoist-description">${esc(t.description)}</p>`:'',
+     t.labels?.length?`<div class="todoist-label-list">${t.labels.map(label=>`<span>#${esc(label)}</span>`).join('')}</div>`:'',
+     t.parent_id?`<p class="todoist-parent">Unteraufgabe${parent?` von ${esc(parent.content)}`:''}</p>`:''].filter(Boolean).join('');
+   const detailToggle=details?`<details class="todoist-task-details"><summary>Beschreibung & Tags</summary>${details}</details>`:'';
+   return `<article class="todoist-task" data-task-id="${esc(t.id)}"><button type="button" class="todoist-check" data-todoist-done="${esc(t.id)}" ${isCompleted(t.id)?'disabled':''} aria-label="${esc(t.content)} erledigen" title="In Todoist abschließen">✓</button><div class="todoist-task-body"><strong>${esc(t.content)}</strong><div class="todoist-task-meta"><span class="${d&&d<today()?'is-overdue':''}">${esc(dateText(t))}</span><span>· ${esc(projectName(t))}</span>${high?`<span>· ${Number(t.priority)===4?'Priorität 1':'Priorität 2'}</span>`:''}${t.parent_id?'<span>· Unteraufgabe</span>':''}</div>${detailToggle}</div>${linked?'<span class="todoist-linked-badge">Im Ferienplan</span>':`<button type="button" class="todoist-holiday-link" data-todoist-link="${esc(t.id)}" title="Diese einzelne Aufgabe zusätzlich in die Auszeit übernehmen">+ Auszeit</button>`}</article>`;
+ }
+
  function taskListMarkup(){const found=filteredTasks(),shown=found.slice(0,50+showMore*50);
    let last='',html='';for(const t of shown){const d=dueDay(t),group=!d?'Ohne Datum':d<today()?'Überfällig':d===today()?'Heute':d===addDays(today(),1)?'Morgen':d<=addDays(today(),7)?'Nächste 7 Tage':'Später';if(group!==last){last=group;html+=`<h3 class="todoist-date-heading">${group}</h3>`;}html+=taskRow(t);}
    return `<div class="todoist-list-summary" role="status">${found.length} passende Aufgaben · ${tasks.length} insgesamt</div><div class="todoist-task-list">${html||'<div class="todoist-empty">Keine Aufgaben in dieser Ansicht. 🌸</div>'}</div>${found.length>shown.length?`<button type="button" class="secondary-button todoist-more" data-todoist-more>Weitere 50 anzeigen (${found.length-shown.length} übrig)</button>`:''}`;
@@ -172,9 +211,9 @@
  function settingsMarkup(){const m=model();return `<div class="todoist-settings-card"><div class="todoist-settings-head"><strong>Verbindung & Belohnungen</strong><p>Nur bei Bedarf ändern. Der Token gehört nicht in deinen Cloud-Save.</p></div>
    <div class="todoist-connect"><span>${connected&&currentToken()?'✓ Verbunden':currentToken()?'Verbindung prüfen':'Nicht verbunden'}</span><a href="https://app.todoist.com/app/settings/integrations/developer" target="_blank" rel="noopener">API-Token in Todoist finden ↗</a></div>
    ${connected?'':`<form data-todoist-connect-form class="todoist-connect-form"><label>Persönlicher Todoist API-Token<input type="password" name="token" required autocomplete="off" placeholder="Token einfügen"></label><label class="todoist-inline-check"><input type="checkbox" name="remember"> Nur auf diesem Gerät merken</label><button class="primary-button" type="submit">Verbinden</button></form>`}
-   <label>Automatische Rewards für neue Abschlüsse<select data-todoist-reward-mode><option value="safe" ${m.rewardMode!=='all'?'selected':''}>Nur Ferien-verknüpfte Aufgaben</option><option value="all" ${m.rewardMode==='all'?'selected':''}>Weitere Todoist-Aufgaben (ohne bekannte Schulcockpit-Duplikate)</option></select></label>
+   <label>Automatische Rewards für neue Abschlüsse<select data-todoist-reward-mode><option value="all" ${m.rewardMode==='all'?'selected':''}>Alle neuen normalen Todoist-Abschlüsse (empfohlen)</option><option value="safe" ${m.rewardMode!=='all'?'selected':''}>Keine automatischen Todoist-Rewards</option></select></label>
    <label class="todoist-inline-check"><input type="checkbox" data-todoist-daily-enabled ${m.dailyEnabled!==false?'checked':''}> Fällige Aufgaben im Daily Plan berücksichtigen</label>
-   <p class="todoist-settings-footnote">Bereits vor der ersten Verbindung erledigte Aufgaben geben keine Retro-Rewards. Aktuelle Schulcockpit-Tätigkeiten sollten nur über ihre ursprüngliche Quelle belohnt werden.</p>
+   <p class="todoist-settings-footnote">Auch in Todoist erledigte Aufgaben werden beim nächsten Abgleich erkannt und einmalig belohnt (3 XP, 2 Coins, 0,1 Story Energy vor Tages-Dämpfung). Keine Retro-Rewards vor der ersten Verbindung. Tätigkeiten, die schon in Schulcockpit oder anderen Life-RPG-Modulen belohnt wurden, dürfen nicht nochmals als unabhängige Todoist-Arbeit vergütet werden: Spiegel-Aufgaben mit #schulcockpit oder #already-rewarded markieren. Ohne gemeinsame Ereignis-ID ist automatische Quell-Deduplizierung nur eingeschränkt möglich.</p>
    <button class="secondary-button" type="button" data-todoist-disconnect ${currentToken()?'':'disabled'}>Token auf diesem Gerät entfernen</button></div>`;}
  function render(){const root=mount();if(!root)return;const count=datesSummary(),verified=connected&&!!currentToken();
    root.innerHTML=`<header class="todoist-page-title"><div><p class="eyebrow">ALLTAG · DEINE AUFGABEN</p><h1>Meine Aufgaben</h1><p>Alles im Blick — für Schule, Zuhause und deine Projekte. Todoist bleibt dein schneller Eingang auf dem iPhone.</p></div><div class="todoist-page-status"><span class="${verified?'is-connected':''}">${verified?'● Verbunden':'○ Nicht verbunden'}</span><small>${lastSyncAt?'Stand: '+esc(new Date(lastSyncAt).toLocaleString('de-DE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})):'Noch nicht synchronisiert'}</small><button class="secondary-button" type="button" data-todoist-refresh ${currentToken()&&!busy?'':'disabled'}>↻ Aktualisieren</button></div></header>
@@ -182,7 +221,7 @@
    ${!verified?`<div class="todoist-welcome"><h2>${currentToken()?'Verbindung wird geprüft…':'Todoist einmal verbinden'}</h2><p>Deine Aufgaben werden direkt von Todoist geladen. Es werden keine Aufgabenlisten oder Zugangsdaten in den Life-RPG-Cloud-Save kopiert.</p><button type="button" class="primary-button" data-todoist-settings-open>Verbindung einrichten</button></div>`:''}
    ${verified?`<div class="todoist-overview"><div><strong>${count.today}</strong><span>Heute & fällig</span></div><div><strong>${count.late}</strong><span>Überfällig</span></div><div><strong>${count.soon}</strong><span>Nächste 7 Tage</span></div><div><strong>${tasks.length}</strong><span>Offene Aufgaben</span></div></div>
    <section class="todoist-panel todoist-capture"><div class="todoist-panel-heading"><h2>Aufgabe hinzufügen</h2><span>Direkt in Todoist speichern</span></div><form data-todoist-add-form><input name="title" required maxlength="180" placeholder="Was möchtest du nicht vergessen?" aria-label="Neue Aufgabe"><div class="todoist-add-details"><label>Fällig am<input type="date" name="dueDate"></label><label>Projekt<select name="projectId"><option value="">Eingang</option>${projects.filter(p=>!p.is_archived).map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}</select></label><label>Priorität<select name="priority"><option value="1">Normal</option><option value="2">Mittel</option><option value="3">Hoch</option><option value="4">Sehr hoch</option></select></label><button class="primary-button" type="submit">+ Hinzufügen</button></div></form></section>
-   <section class="todoist-panel todoist-board"><div class="todoist-panel-heading"><h2>Deine Aufgaben</h2><span>Erledigen synchronisiert mit Todoist</span></div><div class="todoist-filters"><div class="todoist-filter-tabs" aria-label="Zeitraum">${[['today','Heute'],['due','Nächste 7 Tage'],['all','Alle'],['undated','Ohne Datum']].map(([key,label])=>`<button type="button" class="${taskFilter===key?'is-active':''}" data-todoist-tab="${key}" aria-pressed="${taskFilter===key}">${label}</button>`).join('')}</div><label class="todoist-project-filter">Projekt<select data-todoist-project-filter><option value="">Alle Projekte</option>${projects.filter(p=>!p.is_archived).map(p=>`<option value="${esc(p.id)}" ${projectFilter===String(p.id)?'selected':''}>${esc(p.name)}</option>`).join('')}</select></label><label class="todoist-search">Suche<input data-todoist-query type="search" value="${esc(q)}" placeholder="Aufgaben durchsuchen…"></label></div><div data-todoist-list>${taskListMarkup()}</div></section>`:''}
+   <section class="todoist-panel todoist-board"><div class="todoist-panel-heading"><h2>Deine Aufgaben</h2><span>Erledigen synchronisiert mit Todoist</span></div><div class="todoist-filters"><div class="todoist-filter-tabs" aria-label="Zeitraum">${[['today','Heute'],['due','Nächste 7 Tage'],['all','Alle'],['undated','Ohne Datum']].map(([key,label])=>`<button type="button" class="${taskFilter===key?'is-active':''}" data-todoist-tab="${key}" aria-pressed="${taskFilter===key}">${label}</button>`).join('')}</div><label class="todoist-project-filter">Projekt<select data-todoist-project-filter><option value="">Alle Projekte</option>${projects.filter(p=>!p.is_archived).map(p=>`<option value="${esc(p.id)}" ${projectFilter===String(p.id)?'selected':''}>${esc(p.name)}</option>`).join('')}</select></label><label class="todoist-search">Suche<input data-todoist-query type="search" value="${esc(q)}" placeholder="Aufgaben durchsuchen…"></label></div><p class="todoist-task-explainer">Hier stehen alle regulären Aufgaben. <strong>„+ Auszeit“</strong> übernimmt nur diese eine Aufgabe zusätzlich in den Ferienplan — keine automatische Übernahme.</p><div data-todoist-list>${taskListMarkup()}</div></section>`:''}
    <section class="todoist-panel todoist-advanced"><button type="button" class="todoist-settings-toggle" data-todoist-settings-toggle aria-expanded="${showSettings}"><span>⚙ Verbindung & Einstellungen</span><span>${showSettings?'−':'+'}</span></button>${showSettings?settingsMarkup():''}</section>`;
  }
  function renderList(){const list=mount()?.querySelector('[data-todoist-list]');if(list)list.innerHTML=taskListMarkup();}
@@ -200,7 +239,7 @@
      if(b.hasAttribute('data-todoist-settings-open')){showSettings=true;render();return;}
      if(b.hasAttribute('data-todoist-settings-toggle')){showSettings=!showSettings;render();return;}
      if(b.hasAttribute('data-todoist-disconnect')){disconnect();return;}
-     if(b.hasAttribute('data-todoist-link')){const t=tasks.find(x=>x.id===b.dataset.todoistLink);if(t){window.LifeRPGHoliday?.linkTodoist?.({id:t.id,content:t.content,minutes:minutes(t),group:taskGroup(t)==='school'?'school':taskGroup(t)==='space'?'space':taskGroup(t)==='digital'?'digital':'joy'});app.showToast?.('Mit Ferien verknüpft ✓');renderList();}return;}
+     if(b.hasAttribute('data-todoist-link')){const t=tasks.find(x=>x.id===b.dataset.todoistLink);if(t){window.LifeRPGHoliday?.linkTodoist?.({id:t.id,content:t.content,minutes:minutes(t),group:taskGroup(t)==='school'?'school':taskGroup(t)==='space'?'space':taskGroup(t)==='digital'?'digital':taskGroup(t)==='joy'?'joy':'life'});app.showToast?.('Mit Ferien verknüpft ✓');renderList();}return;}
      if(b.hasAttribute('data-todoist-refresh')){b.disabled=true;try{await sync();}catch{render();}return;}
      if(b.hasAttribute('data-todoist-done')){b.disabled=true;try{await complete(b.dataset.todoistDone);}catch(err){app.showToast?.(err.message);b.disabled=false;}return;}
    });
@@ -209,7 +248,7 @@
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
  document.addEventListener('click',e=>{if(e.target.closest('[data-todoist-open]'))open();});
  window.addEventListener('life-rpg:view-changed',()=>{if(document.getElementById('view-tasks')?.classList.contains('active')){render();if(currentToken()&&!connected&&!loadingOpen){loadingOpen=true;sync({quiet:true}).catch(()=>{}).finally(()=>{loadingOpen=false;});}}});
- window.LifeRPGTodoist={open,connected:()=>connected,hasTask,getTask,eligibleForDaily,scoreForDaily,isCompleted,groupForTask:taskGroup,estimatedMinutes:minutes,sync,complete,linkToBreak:id=>{const t=tasks.find(t=>t.id===String(id));return t&&window.LifeRPGHoliday?.linkTodoist?.(t);},_test:{model,receiptKey,likelyDuplicate,awardCompleted,normalizedTasks,connect,disconnect,taskGroup,dueDay,minutes,schoolRoutine,create}};
+ window.LifeRPGTodoist={open,connected:()=>connected,hasTask,getTask,eligibleForDaily,scoreForDaily,isCompleted,groupForTask:taskGroup,estimatedMinutes:minutes,vacationCandidates,sync,complete,linkToBreak:id=>{const t=tasks.find(t=>t.id===String(id));return t&&window.LifeRPGHoliday?.linkTodoist?.(t);},_test:{model,receiptKey,likelyDuplicate,awardCompleted,normalizedTasks,connect,disconnect,taskGroup,dueDay,minutes,schoolRoutine,create,vacationCandidates}};
  // On returning to the open app, a previously authorized session may resync;
  // there is deliberately no background poll, webhook or OAuth secret in the PWA.
  let lastVisibilitySync = 0;

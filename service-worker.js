@@ -1,11 +1,11 @@
-const CACHE_NAME = "life-rpg-v0314dz23c-tasks-page";
+const CACHE_NAME = "life-rpg-v0314dz23d-tasks-holiday";
 const ASSET_CACHE_NAME = "life-rpg-assets-v6";
 const MAX_RUNTIME_ASSETS = 96;
 const CORE = [
-  "./todoist-sync.js?v=0.31.4dz23c",
-  "./todoist-sync.css?v=0.31.4dz23c",
-  "./holiday-planner.js?v=0.31.4dz23c",
-  "./holiday-planner.css?v=0.31.4dz23",
+  "./todoist-sync.js?v=0.31.4dz23d",
+  "./todoist-sync.css?v=0.31.4dz23d",
+  "./holiday-planner.js?v=0.31.4dz23d",
+  "./holiday-planner.css?v=0.31.4dz23d",
   "./knowledge-practice.js?v=0.31.4dz22",
   "./knowledge-practice.css?v=0.31.4dz22",
   "./work-event-bridge.js?v=0.31.4dz22",
