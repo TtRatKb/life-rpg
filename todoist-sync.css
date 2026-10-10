@@ -45,3 +45,16 @@
 .todoist-description{white-space:pre-wrap;line-height:1.5;background:#fff5f8;padding:9px 11px;border-radius:10px;overflow-wrap:anywhere}
 .todoist-label-list{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}.todoist-label-list span{background:#f6eaf0;border-radius:8px;padding:3px 7px;font-size:.71rem}
 .todoist-parent{font-size:.75rem;color:#907b90}
+
+/* DZ27: opt-in verification of potentially overlapping school completions. */
+.todoist-school-match{padding:0!important;overflow:hidden}
+.todoist-school-match>summary{cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:17px 20px;font-weight:800;color:#68425b}
+.todoist-school-match>summary::-webkit-details-marker{display:none}
+.todoist-school-match>summary>span{font-size:.75rem;font-weight:600;color:#986e87;text-align:right}
+.todoist-school-match-body{border-top:1px solid #eedce8;padding:16px 20px 20px;display:grid;gap:12px}
+.todoist-school-match-body p{margin:0;color:#745968;line-height:1.5;font-size:.89rem}
+.todoist-school-fields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.todoist-school-fields label{display:grid;gap:5px;font-size:.78rem;font-weight:700;color:#68425b;min-width:0}
+.todoist-school-fields input,.todoist-school-fields select{min-width:0;width:100%;box-sizing:border-box;padding:10px;border-radius:10px;border:1px solid #e6cfe0;background:#fff;color:#50334a}
+.todoist-school-match .todoist-school-hint{font-size:.78rem;color:#886f80}
+@media(max-width:820px){.todoist-school-fields{grid-template-columns:1fr}.todoist-school-match>summary{align-items:start;flex-direction:column;gap:3px}}

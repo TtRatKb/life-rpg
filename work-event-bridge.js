@@ -1,4 +1,4 @@
-/* DZ26: scope-aware school completion transport (same-origin + optional private Firestore) — no time import. */
+/* DZ27: scope-aware school completion transport (same-origin + optional private Firestore) — no time import. */
 (() => {
   "use strict";
   const app = window.LifeRPGApp;
@@ -78,7 +78,11 @@
       }
       if (count && app.saveState({source:"schulcockpit-bridge",suppressUiRefresh:true}) === false)
         throw Error("Life-RPG-Speichern ist fehlgeschlagen. Bitte nicht neu laden; Speicher prüfen oder Save exportieren.");
-      if (count) window.LifeRPGSkills?.rebuild?.();
+      if (count) {
+        window.LifeRPGSkills?.rebuild?.();
+        if (typeof CustomEvent === 'function' && typeof window.dispatchEvent === 'function')
+          window.dispatchEvent(new CustomEvent('life-rpg:school-completions-ingested',{detail:{count}}));
+      }
       return count;
     } finally {busy=false;}
   }
@@ -141,5 +145,5 @@
       else if(++tries>120)clearInterval(t);
     },1500);
   }
-  window.LifeRPGWorkBridge={version:"0.31.4dz26",open,ingest,syncLocal,valid,TYPES,_test:{valid,ingest,model,readLocal,rewardProfile}};
+  window.LifeRPGWorkBridge={version:"0.31.4dz27",open,ingest,syncLocal,valid,TYPES,_test:{valid,ingest,model,readLocal,rewardProfile}};
 })();
