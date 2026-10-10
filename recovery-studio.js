@@ -4,7 +4,7 @@
   const app = window.LifeRPGApp;
   if (!app?.getState || !app?.awardActivity) return;
 
-  const VERSION = "0.31.4dz4";
+  const VERSION = "0.31.4dz36";
   const SCHEMA = 1;
   const HISTORY_LIMIT = 240;
   const REPEAT_SCALES = [1, 0.7, 0.45, 0.3];
@@ -152,6 +152,36 @@
         ["Hip flexors", 45, "Take a small split stance and gently shift the hips forward. Keep the range tiny if needed."],
         ["Finish", 30, "Come back to neutral, shake out the arms and legs, and notice how you feel." ]
       ],
+      media: { kind: "youtube", videoId: "7GpAI4xGv-c", credit: "Marcel Clementi · 10 Minuten Yoga für jeden Tag", source: "https://www.youtube.com/watch?v=7GpAI4xGv-c", startSeconds: 0 },
+      reward: { xp: 16, realmXP: 16, statXP: 11, story: 0.55, coins: 10 }
+    },
+    // External media are streamed from the original providers; no recordings are
+    // copied into the Life RPG repository, local save, or service-worker cache.
+    audioBodyScan3: {
+      id: "audioBodyScan3", icon: "🎧", title: "Geführter Body-Scan (Deutsch · kurz)",
+      short: "ca. 3 min · deutsches Audio", minutes: 3,
+      subcategory: "Quiet time", kind: "stages", intensity: "passive",
+      blurb: "Augen schließen und zuhören, ohne die nächste Textkarte lesen zu müssen. Kostenloses Originalaudio von UCLA Mindful.",
+      stages: [["Just listen", 180, "Play the guided audio. You do not need to watch the screen."]],
+      media: { kind: "audio", url: "https://d1cy5zxxhbcbkk.cloudfront.net/guided-meditations/German-ShortBodyscan.mp3", credit: "UCLA Mindful · German translation: Cindy Hurley Leister · CC BY-NC-ND 4.0", source: "https://www.uclahealth.org/uclamindful/guided-meditations", license: "https://creativecommons.org/licenses/by-nc-nd/4.0/" },
+      reward: { xp: 7, realmXP: 7, statXP: 5, story: 0.2, coins: 5 }
+    },
+    audioBodyScan13: {
+      id: "audioBodyScan13", icon: "🎧", title: "Geführter Body-Scan zum Entspannen (Deutsch)",
+      short: "ca. 13 min · deutsches Audio", minutes: 13,
+      subcategory: "Quiet time", kind: "stages", intensity: "passive",
+      blurb: "Eine längere deutschsprachige Audio-Anleitung: Handy hinlegen, Augen schließen und nur zuhören.",
+      stages: [["Listen and rest", 780, "Play the guided body scan. The timer follows actual audio playback and pauses with it."]],
+      media: { kind: "audio", url: "https://d1cy5zxxhbcbkk.cloudfront.net/guided-meditations/German-BodyScanSleep.mp3", credit: "UCLA Mindful · German translation: Cindy Hurley Leister · CC BY-NC-ND 4.0", source: "https://www.uclahealth.org/uclamindful/guided-meditations", license: "https://creativecommons.org/licenses/by-nc-nd/4.0/" },
+      reward: { xp: 18, realmXP: 18, statXP: 13, story: 0.66, coins: 12 }
+    },
+    videoYoga10: {
+      id: "videoYoga10", icon: "▶", title: "Sanftes Yoga für Anfänger (Video)",
+      short: "ca. 10 min · Bewegungen sehen", minutes: 10,
+      subcategory: "Other recovery", kind: "stages", intensity: "gentle-movement",
+      blurb: "Zehn Minuten einfache Yogabewegungen zum Mitmachen. Kostenfrei bei Yoga Vidya auf YouTube.",
+      stages: [["Follow the teacher", 600, "Watch and copy only the movements that feel comfortable. Pause the timer for breaks."]],
+      media: { kind: "youtube", videoId: "i0hBJuCSX6s", credit: "Yoga Vidya · Yoga Anfängerstunde", source: "https://www.youtube.com/watch?v=i0hBJuCSX6s", startSeconds: 0 },
       reward: { xp: 16, realmXP: 16, statXP: 11, story: 0.55, coins: 10 }
     },
     neckShoulders7: {
@@ -197,6 +227,7 @@
     finish: byId("recoveryFinishButton"),
     abandon: byId("recoveryAbandonButton"),
     status: byId("recoveryStudioStatus"),
+    media: byId("recoveryMediaPanel"),
     stats: byId("recoveryStudioStats"),
     growthStats: byId("recoveryGrowthStats"),
     trainingStats: byId("trainingGroundsRecoveryStatus"),
@@ -204,6 +235,8 @@
   };
 
   let ticker = null;
+  let mountedMediaRun = null;
+  let mediaTeardown = false;
 
   init();
 
@@ -264,6 +297,10 @@
     els.close?.addEventListener("click", () => els.dialog?.open && els.dialog.close());
     els.finish?.addEventListener("click", finishActiveSession);
     els.abandon?.addEventListener("click", abandonActiveSession);
+    els.media?.addEventListener("click", event => {
+      if (event.target.closest("[data-recovery-video-load]")) { loadVideoForActive(); return; }
+      if (event.target.closest("[data-recovery-media-toggle]")) { toggleMediaClock(); }
+    });
 
     document.addEventListener("click", event => {
       const open = event.target.closest?.("[data-recovery-open]");
@@ -330,6 +367,9 @@
       completedAt: null,
       rewardEventId: null
     };
+    // An audio session only clocks actual listening, not setup/loading.
+    // Pause the existing Life Rhythm timer until the native player fires play.
+    if (def.media) window.LifeRPGTime?.pauseActive?.();
     persist("recovery-studio-start");
     startTicker();
     renderActive();
@@ -345,7 +385,11 @@
     const minimumReached = elapsedSeconds >= active.targetSeconds;
     const globalActive = window.LifeRPGTime?.getActive?.();
 
-    if (globalActive?.id === active.timeActiveId) window.LifeRPGTime.finishActive?.();
+    if (globalActive?.id === active.timeActiveId) {
+      // Suppress audio pause handlers while finishing to avoid spurious timer writes.
+      stopMedia();
+      window.LifeRPGTime.finishActive?.();
+    }
     // LifeRPGTime emits a time-change event synchronously after logging. That
     // listener may already have reconciled and finalized this run. Do not append
     // history or rewards a second time.
@@ -395,6 +439,7 @@
     state().stats.completedMinutes += Math.max(def.minutes, Math.floor(elapsedSeconds / 60));
     state().active = null;
     stopTicker();
+    stopMedia();
     persist("recovery-studio-complete");
     app.showToast?.(`🌿 ${def.title} complete · +${reward.xp} XP · +${app.formatEnergy?.(reward.storyEnergy) ?? reward.storyEnergy} 🔥 · +${reward.coins} 🪙`);
     leaveFocusToLibrary();
@@ -450,7 +495,7 @@
     const elapsedSeconds = elapsedForActive(active);
     if (!window.confirm("Stop this Recovery Studio session? The time so far will be logged, but a full completion reward needs the listed minimum.")) return;
     const globalActive = window.LifeRPGTime?.getActive?.();
-    if (globalActive?.id === active.timeActiveId) window.LifeRPGTime.finishActive?.();
+    if (globalActive?.id === active.timeActiveId) { stopMedia(); window.LifeRPGTime.finishActive?.(); }
     if (!state().active || state().active.runId !== active.runId) return;
     state().history.push({ runId: active.runId, sessionId: active.sessionId, startedAt: active.startedAt, endedAt: new Date().toISOString(), durationSeconds: elapsedSeconds, completed: false, rewardEventId: null });
     state().history = state().history.slice(-HISTORY_LIMIT);
@@ -561,6 +606,7 @@
     const active = state().active;
     if (!els.active) return;
     if (!active) {
+      stopMedia();
       els.active.classList.add("hidden");
       return;
     }
@@ -581,6 +627,8 @@
     if (els.activeCue) els.activeCue.textContent = reached ? "The full session counts. Overtime is simply extra rest." : phase.cue;
     if (els.finish) els.finish.textContent = reached ? "Finish & claim recovery" : "Stop & log time";
     if (els.abandon) els.abandon.classList.toggle("hidden", reached);
+    els.active.classList.toggle("is-media-guided-dz36", Boolean(def.media));
+    renderMedia(active, def);
 
     renderBreathVisual(def, phase, reached);
     if (els.status) {
@@ -588,6 +636,130 @@
         ? `Full ${def.minutes}-minute minimum reached. Finishing now will log the exact time and award the Recovery completion once.`
         : `${formatDurationSeconds(elapsed)} elapsed · ${def.minutes} minutes completes this session. Stopping early still logs the time, but not the completion reward.`;
     }
+  }
+
+  function currentGlobalTimer(active) {
+    const running = window.LifeRPGTime?.getActive?.();
+    return running?.id === active?.timeActiveId ? running : null;
+  }
+
+  function stopMedia() {
+    if (mountedMediaRun === null) return;
+    mediaTeardown = true;
+    // iframe removal also stops YouTube, without sending or persisting any media bytes.
+    if (els.media) els.media.replaceChildren();
+    mediaTeardown = false;
+    mountedMediaRun = null;
+  }
+
+  function renderMedia(active, def) {
+    if (!els.media) return;
+    const media = def.media;
+    if (!media) {
+      stopMedia();
+      els.media.hidden = true;
+      return;
+    }
+    els.media.hidden = false;
+    // Do not rebuild a playing audio/video DOM node every 250ms!
+    if (mountedMediaRun === active.runId) {
+      const toggle = els.media.querySelector("[data-recovery-media-toggle]");
+      const clock = currentGlobalTimer(active);
+      if (toggle && clock) toggle.textContent = clock.pausedAt ? "▶ Timer fortsetzen" : "⏸ Timer pausieren";
+      return;
+    }
+    stopMedia();
+    mountedMediaRun = active.runId;
+    els.media.replaceChildren();
+    const heading = document.createElement("div");
+    heading.className = "recovery-media-head-dz36";
+    const title = document.createElement("strong");
+    title.textContent = media.kind === "audio" ? "🎧 Geführtes Audio · Bildschirm darf aus dem Blick" : "▶ Videoanleitung · Positionen direkt ansehen";
+    heading.append(title);
+    els.media.append(heading);
+    if (media.kind === "audio") {
+      const audio = document.createElement("audio");
+      audio.controls = true;
+      audio.preload = "none";
+      audio.src = media.url;
+      audio.setAttribute("aria-label", "Geführte Meditation abspielen");
+      audio.addEventListener("playing", () => {
+        if (mediaTeardown || state().active?.runId !== active.runId) return;
+        const t = currentGlobalTimer(active);
+        if (t?.pausedAt) window.LifeRPGTime?.resumeActive?.();
+      });
+      const pauseForAudio = () => {
+        if (mediaTeardown || state().active?.runId !== active.runId) return;
+        const t = currentGlobalTimer(active);
+        if (t && !t.pausedAt) window.LifeRPGTime?.pauseActive?.();
+      };
+      audio.addEventListener("pause", pauseForAudio);
+      audio.addEventListener("waiting", pauseForAudio);
+      audio.addEventListener("ended", pauseForAudio);
+      audio.addEventListener("error", () => { if (state().active?.runId === active.runId) app.showToast?.("Audio kann hier nicht geladen werden. Öffne alternativ das Original bei UCLA Mindful."); });
+      els.media.append(audio);
+      const note = document.createElement("p");
+      note.textContent = "▶ Das tatsächliche Abspielen startet den Timer · ⏸ Pausieren oder Puffern stoppt die Zeit. Danach „Session abschließen“ wählen.";
+      els.media.append(note);
+    } else {
+      const stage = document.createElement("div");
+      stage.className = "recovery-video-stage-dz36";
+      stage.innerHTML = `<div class="recovery-video-placeholder-dz36"><span>▷</span><p>Video erst nach deinem Klick von YouTube laden.</p><button type="button" class="primary-button" data-recovery-video-load>▶ Video laden</button></div>`;
+      els.media.append(stage);
+      const note = document.createElement("p");
+      note.textContent = "Der Timer beginnt mit „Video laden“. Falls Werbung läuft, das Video puffert oder du pausierst, bitte den Timer ebenfalls pausieren. Ein Videoabschluss wird nicht automatisch behauptet.";
+      els.media.append(note);
+      const toggle = document.createElement("button");
+      toggle.type = "button";
+      toggle.className = "secondary-button recovery-timer-toggle-dz36";
+      toggle.dataset.recoveryMediaToggle = "";
+      toggle.textContent = "⏸ Timer pausieren";
+      els.media.append(toggle);
+    }
+    const credits = document.createElement("p");
+    credits.className = "recovery-media-credit-dz36";
+    const link = document.createElement("a");
+    link.href = media.source;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    link.textContent = `Quelle öffnen ↗ · ${media.credit}`;
+    credits.append(link);
+    if (media.license) {
+      const sep = document.createTextNode(" · ");
+      const license = document.createElement("a");
+      license.href = media.license; license.target = "_blank"; license.rel = "noopener noreferrer";
+      license.textContent = "Lizenz";
+      credits.append(sep, license);
+    }
+    els.media.append(credits);
+  }
+
+  function loadVideoForActive() {
+    const active = state().active;
+    const media = SESSIONS[active?.sessionId]?.media;
+    if (media?.kind !== "youtube" || !/^[a-zA-Z0-9_-]{11}$/.test(media.videoId)) return;
+    const stage = els.media?.querySelector(".recovery-video-stage-dz36");
+    if (!stage || stage.querySelector("iframe")) return;
+    const iframe = document.createElement("iframe");
+    iframe.title = `${SESSIONS[active.sessionId].title} · YouTube`;
+    iframe.allow = "accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; fullscreen";
+    iframe.allowFullscreen = true;
+    iframe.referrerPolicy = "strict-origin-when-cross-origin";
+    iframe.loading = "eager";
+    iframe.src = `https://www.youtube-nocookie.com/embed/${media.videoId}?rel=0&playsinline=1&start=${Math.max(0,Math.floor(media.startSeconds||0))}`;
+    stage.replaceChildren(iframe);
+    // User explicitly loaded the clip; until then no setup/browsing time counts.
+    const running = currentGlobalTimer(active);
+    if (running?.pausedAt) window.LifeRPGTime?.resumeActive?.();
+  }
+
+  function toggleMediaClock() {
+    const active = state().active;
+    const timer = currentGlobalTimer(active);
+    if (!timer) return;
+    if (timer.pausedAt) window.LifeRPGTime?.resumeActive?.();
+    else window.LifeRPGTime?.pauseActive?.();
+    renderActive();
   }
 
   function renderBreathVisual(def, phase, reached) {
@@ -653,7 +825,7 @@
     const stressed = ["high", "overload"].includes(checkIn.stress);
 
     if (ill || impact >= 3) return { sessionId: "lieDown15", tone: "high-need", heading: "Your body gets the bigger share of the day today.", reason: "You logged illness or strong physical impact, so the recommendation adds real rest instead of shrinking recovery into a token task.", shortLabel: "15-min quiet rest" };
-    if (impact >= 2 || veryLow) return { sessionId: "bodyScan10", tone: "need", heading: "A proper pause fits better than another push.", reason: "Noticeable symptoms, poor sleep or very low energy make passive recovery the better fit today.", shortLabel: "10-min body scan" };
+    if (impact >= 2 || veryLow) return { sessionId: "audioBodyScan13", tone: "need", heading: "A proper pause fits better than another push.", reason: "A guided German audio lets you rest with closed eyes — no need to keep reading instructions.", shortLabel: "13-min guided audio body scan" };
     if (stressed) return { sessionId: "box5", tone: "need", heading: "A short nervous-system downshift is available.", reason: "Today's check-in shows a heavier stress load, so the suggestion stays short, guided and low-demand.", shortLabel: "5-min box breathing" };
     if (impact === 1) return { sessionId: "breathing5", tone: "neutral", heading: "Keep recovery easy and uncomplicated.", reason: "You logged mild physical discomfort, so this suggestion asks for almost nothing beyond five quiet minutes.", shortLabel: "5-min breathing" };
     return { sessionId: "neckShoulders7", tone: "neutral", heading: "A small physical reset could be enough today.", reason: "Your check-in does not call for heavy recovery, so a gentle optional desk-day release is available instead of forced rest.", shortLabel: "7-min gentle release" };
