@@ -1,4 +1,4 @@
-const CACHE_NAME = "life-rpg-v0314dz23d-tasks-holiday";
+const CACHE_NAME = "life-rpg-v0314dz24-school-cloud-bridge";
 const ASSET_CACHE_NAME = "life-rpg-assets-v6";
 const MAX_RUNTIME_ASSETS = 96;
 const CORE = [
@@ -8,7 +8,8 @@ const CORE = [
   "./holiday-planner.css?v=0.31.4dz23d",
   "./knowledge-practice.js?v=0.31.4dz22",
   "./knowledge-practice.css?v=0.31.4dz22",
-  "./work-event-bridge.js?v=0.31.4dz22",
+  "./work-event-bridge.js?v=0.31.4dz24",
+  "./work-event-cloud.js?v=0.31.4dz24",
   "./",
   "./index.html",
   "./life-hub-v314dk.js?v=0.31.4dz23c",
@@ -206,7 +207,7 @@ const CORE = [
   "./activity-log.js?v=0.31.4dz1",
   "./kotoba-integration.js?v=0.31.4k",
   "./kotoba-quick-training.js?v=0.31.4dz20",
-  "./cloud-save.js?v=0.31.4by",
+  "./cloud-save.js?v=0.31.4dz24",
   "./assets/app-icon-192.png",
   "./assets/app-icon-512.png",
 ];

@@ -43,6 +43,7 @@ provider.setCustomParameters({ prompt: "select_account" });
 const app = window.LifeRPGApp;
 
 let currentUser = null;
+let cloudAuthSettled = false;
 let cloudReady = false;
 let knownRemoteRevision = null;
 let saveTimer = null;
@@ -50,6 +51,11 @@ let applyingRemote = false;
 let pendingConflict = null;
 let conflictOpen = false;
 let lastCloudSavedAtClient = null;
+
+// DZ24 read-only status for the optional Schoolcockpit bridge. The bridge is
+// strictly paused until the existing cloud-save reconciles or the user resolves
+// a save conflict. It must never write the main save document itself.
+window.LifeRPGCloudStatus = { snapshot: () => ({ uid:currentUser?.uid || null, ready:!!currentUser && cloudReady && !conflictOpen, settled: cloudAuthSettled }) };
 
 const els = {
   statusButton: byId("cloudStatusButton"),
@@ -95,6 +101,7 @@ async function initCloudSave() {
   }
 
   onAuthStateChanged(auth, async user => {
+    cloudAuthSettled = true;
     currentUser = user || null;
     cloudReady = false;
     knownRemoteRevision = null;
