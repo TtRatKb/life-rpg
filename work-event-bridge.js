@@ -1,4 +1,4 @@
-/* DZ24: school completion transport (same-origin + optional private Firestore) — no time import. */
+/* DZ26: scope-aware school completion transport (same-origin + optional private Firestore) — no time import. */
 (() => {
   "use strict";
   const app = window.LifeRPGApp;
@@ -9,8 +9,27 @@
     "lesson-prepared": {skill:"lesson-design-preparation", label:"Schulcockpit · Unterricht vorbereitet"},
     "lesson-reflected": {skill:"assessment-feedback", label:"Schulcockpit · Unterricht reflektiert"},
     "preparation-completed": {skill:"professional-organization", label:"Schulcockpit · Vorbereitung abgeschlossen"},
-    "assessment-analyzed": {skill:"assessment-feedback", label:"Schulcockpit · Prüfungsanalyse abgeschlossen"}
+    "assessment-analyzed": {skill:"assessment-feedback", label:"Schulcockpit · Prüfungsanalyse abgeschlossen"},
+    "sequence-planned": {skill:"lesson-design-preparation", label:"Schulcockpit · Reihenplanung abgeschlossen"}
   });
+  // The award engine already applies the global Story Energy diminishing curve.
+  // No minutes are supplied and no second time entry is created.
+  const REWARDS = Object.freeze({
+    "preparation-completed": {brief:[3,3,4,2,.10],standard:[5,5,6,5,.18]},
+    "lesson-reflected": {brief:[3,3,4,3,.12],standard:[5,5,6,5,.20]},
+    "lesson-prepared": {standard:[5,5,6,5,.20],extended:[7,7,8,7,.27]},
+    "assessment-analyzed": {substantial:[9,9,10,10,.35],extended:[11,11,12,12,.42]},
+    "sequence-planned": {substantial:[12,12,14,14,.45],extended:[15,15,16,18,.55]}
+  });
+  const LEGACY = [3,3,4,2,.10];
+  const BAND_NAMES = {brief:"Kleiner Abschluss",standard:"Ausgearbeiteter Schritt",substantial:"Größeres Arbeitspaket",extended:"Umfangreicher Abschluss"};
+  function rewardProfile(e) {
+    if (e.rewardSchema !== 2) return {band:"legacy",data:LEGACY};
+    const permitted=REWARDS[e.type]||{};
+    // Invalid or unexpected bands cannot inflate an award.
+    const band=Object.hasOwn(permitted,e.effortBand)?e.effortBand:Object.keys(permitted)[0];
+    return {band,data:permitted[band]};
+  }
   let armed = readConfig(), dialog = null, busy = false;
   function canApply() {
     const status=window.LifeRPGCloudStatus?.snapshot?.();
@@ -29,7 +48,7 @@
   function valid(e) {
     return e && e.schema === 1 && e.source === "schulcockpit" && !!TYPES[e.type] &&
       typeof e.eventId === "string" && e.eventId.startsWith(`${e.type}:`) &&
-      /^(lesson-prepared|lesson-reflected|preparation-completed|assessment-analyzed):[a-zA-Z0-9_-]{1,120}$/.test(e.eventId) &&
+      /^(lesson-prepared|lesson-reflected|preparation-completed|assessment-analyzed|sequence-planned):[a-zA-Z0-9_-]{1,120}$/.test(e.eventId) &&
       typeof e.completedAt === "string" && Number.isFinite(Date.parse(e.completedAt)) &&
       Date.parse(e.completedAt) <= Date.now() + 60000;
   }
@@ -43,13 +62,16 @@
       for (const e of events) {
         if (!valid(e) || model().receipts[e.eventId]) continue;
         const mapped = TYPES[e.type];
+        const profile=rewardProfile(e);
+        const [charXp,realmXp,skillXp,coins,energy]=profile.data;
         const id = `school:${e.eventId}`;
         const prior = (app.getState().rewardLedger?.events || []).find(r => r.source === "schulcockpit-completion" && r.sourceId === id && !r.duplicate);
         const reward = prior ? {eventId:prior.id} : app.awardActivity({
           source:"schulcockpit-completion", sourceId:id, label:mapped.label,
-          at:e.completedAt, realm:"Work", xp:3, realmXP:3, statXP:0,
-          coins:2, storyEnergyBase:0.10, skipAddOnRewards:true, progressionRelevant:true,
-          metadata:{bridgeType:e.type,skillId:mapped.skill,skillXP:4}
+          at:e.completedAt, realm:"Work", xp:charXp, realmXP:realmXp, statXP:0,
+          coins, storyEnergyBase:energy, skipAddOnRewards:true, progressionRelevant:true,
+          metadata:{bridgeType:e.type,skillId:mapped.skill,skillXP:skillXp,effortBand:profile.band,
+            effortLabel:BAND_NAMES[profile.band]||"Bisheriger Abschluss",rewardSchema:e.rewardSchema===2?2:1}
         });
         model().receipts[e.eventId] = {at:e.completedAt,rewardId:reward.eventId};
         count++;
@@ -80,7 +102,7 @@
     if (!dialog) {
       dialog=document.createElement("dialog"); dialog.className="kp-dialog"; dialog.setAttribute("aria-labelledby","schoolBridgeTitle"); document.body.appendChild(dialog);
       dialog.innerHTML=`<header><h2 id="schoolBridgeTitle">Schulcockpit ↔ Life RPG</h2><button class="close-button" data-school-close aria-label="Schließen">×</button></header>
-        <p>Unterrichtsvorbereitung, Reflexion, erledigte Materialorganisation und Prüfungsanalyse trainieren jeweils genau einen bestehenden Work-Skill. Neue Abschlüsse bringen etwas Character-/Work-XP, Skill-XP, Coins und Story Energy. Keine zweite Zeitbuchung. <strong>Keine Unterrichtsminuten, keine Schülerdaten, keine zweite Zeitbelohnung.</strong></p>
+        <p>Unterrichts- und Reihenplanung, Reflexion, erledigte Materialorganisation und Prüfungsanalyse trainieren jeweils genau einen bestehenden Work-Skill. Neue Abschlüsse bringen etwas Character-/Work-XP, Skill-XP, Coins und Story Energy. Keine zweite Zeitbuchung. <strong>Keine Unterrichtsminuten, keine Schülerdaten, keine zweite Zeitbelohnung.</strong></p>
         <p>Auf demselben Browser funktioniert die lokale Verbindung. Für Mac, iPhone und iPad nutzt die optionale Cloud-Brücke dein bestehendes Google-/Firebase-Konto. Aktivierung und Versand erfolgen in Schulcockpit.</p>
         <div class="kp-actions"><button class="primary-button" data-school-enable>Lokale Verbindung aktivieren</button><button class="secondary-button" data-school-sync>Jetzt synchronisieren</button><a class="secondary-button" href="https://ttratkb.github.io/Schulcockpit/" target="_blank" rel="noopener">Schulcockpit öffnen ↗</a><button class="secondary-button" data-school-disable>Lokale Verbindung pausieren</button></div>
         <p data-school-status role="status"></p><p data-school-cloud-status role="status">Cloud-Verbindung wird geprüft …</p>
@@ -119,5 +141,5 @@
       else if(++tries>120)clearInterval(t);
     },1500);
   }
-  window.LifeRPGWorkBridge={version:"0.31.4dz25",open,ingest,syncLocal,valid,TYPES,_test:{valid,ingest,model,readLocal}};
+  window.LifeRPGWorkBridge={version:"0.31.4dz26",open,ingest,syncLocal,valid,TYPES,_test:{valid,ingest,model,readLocal,rewardProfile}};
 })();

@@ -22,7 +22,8 @@
     "lesson-prepared": "lesson-design-preparation",
     "lesson-reflected": "assessment-feedback",
     "preparation-completed": "professional-organization",
-    "assessment-analyzed": "assessment-feedback"
+    "assessment-analyzed": "assessment-feedback",
+    "sequence-planned": "lesson-design-preparation"
   });
 
   const FILTERS = [
@@ -475,7 +476,7 @@
     const id = SCHOOL_SKILLS[event.metadata?.bridgeType];
     if (!id) return null;
     const info = window.LifeRPGSkills?.getSkill?.(id);
-    return { skillId: id, label: info?.label || id, xp: Math.max(0, Math.min(4, number(event.metadata?.skillXP))) };
+    return { skillId: id, label: info?.label || id, xp: Math.max(0, Math.min(16, number(event.metadata?.skillXP))) };
   }
 
   function genericRewardRow(event) {
@@ -495,7 +496,7 @@
     const m = event.metadata || {};
     if (event.source === "schulcockpit-completion") {
       const label = schoolSkillForEvent(event)?.label || "Work";
-      return `${label} · Einmaliger Abschluss, keine zusätzlich erfundenen Arbeitsminuten`;
+      return `${label}${m.effortLabel ? ` · ${m.effortLabel}` : ""} · Einmaliger Abschluss, keine zusätzlich erfundenen Arbeitsminuten`;
     }
     if (event.source === "talent-v2-cache") return `Talent Tree permanent Reward Cache · Rank ${number(m.rank) || 1} · no XP`;
     if (event.source === "talent-v2-resonance") return `Talent Tree Resonance proc · Rank ${number(m.rank) || 1} · bonus Coins / Story Energy`;
@@ -596,7 +597,7 @@
   function genericWhy(event) {
     const reward = rewardFromEvent(event);
     const bits = [];
-    if (event.source === "schulcockpit-completion") bits.push(`<p>Schulcockpit hat einen abgeschlossenen Arbeitsschritt gemeldet. Die angezeigten Character-/Work-/Skill-XP sind <strong>getrennte Fortschrittswerte</strong>, keine zusätzlichen Skills. Coins und Story Energy entsprechen dem tatsächlich gespeicherten Reward-Ereignis. Ältere Schulcockpit-Abschlüsse erhalten rückwirkend keine zusätzlichen Coins oder Story Energy. Keine Arbeitsminuten wurden durch diesen Abschluss erfunden.</p>`);
+    if (event.source === "schulcockpit-completion") bits.push(`<p>Schulcockpit hat einen abgeschlossenen Arbeitsschritt gemeldet. Die Aufwandsstufe wird bei Abschluss aus dem Umfang der gespeicherten Arbeit im Schulcockpit bestimmt, ohne Inhalte zu übertragen. Die angezeigten Character-/Work-/Skill-XP sind <strong>getrennte Fortschrittswerte</strong>, keine zusätzlichen Skills. Coins und Story Energy entsprechen dem tatsächlich gespeicherten Reward-Ereignis. Ältere Schulcockpit-Abschlüsse erhalten rückwirkend keine zusätzlichen Coins oder Story Energy. Keine Arbeitsminuten wurden durch diesen Abschluss erfunden.</p>`);
     if (event.source === "kotoba-dungeon") return dungeonRewardWhy(event);
     if (event.duplicate) bits.push(dedupeWhy(event));
     const streak = number(event.metadata?.dailyStreak);

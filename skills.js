@@ -682,9 +682,9 @@
     if (source === "knowledge-practice-recall") return nativeSkill("memory-recall", Math.max(0, Math.min(8, Number(reward.metadata?.skillXP || 0))), source);
     if (source === "knowledge-practice-explain") return nativeSkill("learning-inquiry", Math.max(0, Math.min(6, Number(reward.metadata?.skillXP || 0))), source);
     if (source === "schulcockpit-completion") {
-      const map = {"lesson-prepared":"lesson-design-preparation","lesson-reflected":"assessment-feedback","preparation-completed":"professional-organization","assessment-analyzed":"assessment-feedback"};
+      const map = {"lesson-prepared":"lesson-design-preparation","lesson-reflected":"assessment-feedback","preparation-completed":"professional-organization","assessment-analyzed":"assessment-feedback","sequence-planned":"lesson-design-preparation"};
       const id = map[reward.metadata?.bridgeType];
-      if (id) return nativeSkill(id, Math.max(0, Math.min(4, Number(reward.metadata?.skillXP || 0))), source);
+      if (id) return nativeSkill(id, Math.max(0, Math.min(16, Number(reward.metadata?.skillXP || 0))), source);
     }
     if (source === "home-quick-action") return nativeSkill("life-management", Math.max(0, Number(reward.statXP ?? 1)), "home-quick-action");
     if (source === "sudoku-complete") return nativeSkill("logical-pattern-reasoning", 10, "sudoku");

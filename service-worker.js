@@ -1,4 +1,4 @@
-const CACHE_NAME = "life-rpg-v0314dz25-work-skills-ledger";
+const CACHE_NAME = "life-rpg-v0314dz26-work-effort-tiers";
 const ASSET_CACHE_NAME = "life-rpg-assets-v6";
 const MAX_RUNTIME_ASSETS = 96;
 const CORE = [
@@ -8,7 +8,7 @@ const CORE = [
   "./holiday-planner.css?v=0.31.4dz23d",
   "./knowledge-practice.js?v=0.31.4dz22",
   "./knowledge-practice.css?v=0.31.4dz22",
-  "./work-event-bridge.js?v=0.31.4dz25",
+  "./work-event-bridge.js?v=0.31.4dz26",
   "./work-event-cloud.js?v=0.31.4dz24",
   "./",
   "./index.html",
@@ -41,7 +41,7 @@ const CORE = [
   "./talent-content-v2.css?v=0.31.4ar",
   "./logic-expansion.css?v=0.31.4ar",
   "./dreamscape.css?v=0.31.4cx",
-  "./skills.js?v=0.31.4dz25",
+  "./skills.js?v=0.31.4dz26",
   "./talent-v2.js?v=0.31.4bz",
   "./talent-tree-v2-graph.js?v=0.31.4du",
   "./talent-reward-studios.css?v=0.31.4cw",
@@ -204,7 +204,7 @@ const CORE = [
   "./content/SP_004.dat?v=0.31.4dz16",
   "./shop.js?v=0.31.4dz14",
   "./achievements.js?v=0.31.0",
-  "./activity-log.js?v=0.31.4dz25",
+  "./activity-log.js?v=0.31.4dz26",
   "./kotoba-integration.js?v=0.31.4k",
   "./kotoba-quick-training.js?v=0.31.4dz20",
   "./cloud-save.js?v=0.31.4dz24",
