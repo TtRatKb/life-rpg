@@ -1,0 +1,5 @@
+/* DZ32 · Quest↔Habit link. No changes to the global theme. */
+.habit-promote-quest-v32 { white-space: nowrap; border-color: #d9aec9; }
+.habit-linked-info-v32 { margin: 0 0 12px; font-size: .84rem; color: #93617d; background: #faedf4; padding: 9px 11px; border-radius: 12px; }
+.habit-linked-launch-v32 { min-height: 36px; }
+@media (max-width: 600px) { .habit-linked-launch-v32, .habit-promote-quest-v32 { white-space: normal; } }

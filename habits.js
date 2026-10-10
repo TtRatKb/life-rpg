@@ -29,6 +29,7 @@
   let showArchived = false;
   let habitViewOffset = 0; // 0 = today, -1 = yesterday
   let initialized = false;
+  let pendingQuestId = null; // Only tiny link metadata is stored, no copied quest/history payload.
 
   const els = {
     add: byId("addHabitButton"),
@@ -170,6 +171,18 @@
         render();
       }
 
+      const promote = event.target.closest?.("[data-habit-promote-quest]");
+      if (promote) {
+        event.preventDefault();
+        promoteQuestToHabit(promote.dataset.habitPromoteQuest);
+        return;
+      }
+      const linkedAction = event.target.closest?.("[data-habit-run-quest]");
+      if (linkedAction) {
+        event.preventDefault();
+        runLinkedQuest(linkedAction.dataset.habitRunQuest);
+        return;
+      }
       const complete = event.target.closest?.("[data-habit-complete]");
       if (complete) {
         completeHabit(complete.dataset.habitComplete, complete.dataset.habitDate || todayKey());
@@ -193,6 +206,7 @@
       }
     });
 
+    window.addEventListener("life-rpg:time-change", () => { if (initialized) render(); });
     window.addEventListener("life-rpg:render", () => {
       if (!initialized) return;
       ensureHabitsState();
@@ -350,7 +364,7 @@
       .map(habit => snapshotForHabit(habit, viewDate));
 
     if (els.activeSummary) els.activeSummary.textContent = String(active.length);
-    if (els.dueSummary) els.dueSummary.textContent = String(boardSnapshots.filter(s => s.canComplete).length);
+    if (els.dueSummary) els.dueSummary.textContent = String(boardSnapshots.filter(s => s.canComplete && !s.periodComplete).length);
     if (els.dueSummaryLabel) els.dueSummaryLabel.textContent = habitViewOffset === -1 ? "READY YESTERDAY" : "READY TODAY";
     if (els.streakSummary) {
       const best = todaySnapshots.reduce((max, s) => Math.max(max, s.streak), 0);
@@ -407,7 +421,7 @@
           .sort(compareHabitSnapshots);
         if (!entries.length) return "";
         const meta = DAYPARTS[key];
-        const ready = entries.filter(snapshot => snapshot.canComplete).length;
+        const ready = entries.filter(snapshot => snapshot.canComplete && !snapshot.periodComplete).length;
         const clear = daypartClearInfo(key, entries, dateKey);
         return `
           <section class="habit-daypart-section-v131 ${clear.awarded ? "bonus-cleared-v23" : ""}" data-daypart="${key}">
@@ -491,7 +505,7 @@
     const reminders = habitState().reminders || {};
     const sorted = [...activeSnapshots].sort((a,b) => Number(b.canComplete)-Number(a.canComplete) ||
       Number(Boolean(reminders[reminderKey(a.habit.id,dateKey)]?.until))-Number(Boolean(reminders[reminderKey(b.habit.id,dateKey)]?.until)) || compareHabitSnapshots(a,b));
-    const readyCount = sorted.filter(s=>s.canComplete).length;
+    const readyCount = sorted.filter(s=>s.canComplete && !s.periodComplete).length;
     const doneCount = sorted.filter(s=>s.completedToday || s.periodComplete).length;
     els.dashboard.innerHTML = `
       <div class="dashboard-habit-summary-v314au"><strong>${readyCount ? `${readyCount} open · ${historical?"yesterday":"keep in sight"}` : "All clear for this date ♡"}</strong><span>${doneCount}/${sorted.length} complete</span></div>
@@ -502,7 +516,7 @@
     const { habit, canComplete, reward, timingText, completedToday, periodComplete } = snapshot;
     const historical = dateKey !== todayKey();
     const daypart = DAYPARTS[normalizedDaypart(habit)];
-    const done = completedToday || periodComplete;
+    const done = completedToday || (periodComplete && !canComplete);
     const reminder = !historical && canComplete ? habitState().reminders?.[reminderKey(habit.id,dateKey)] : null;
     const snoozed = Number(reminder?.until || 0) > Date.now();
     const due = Number(reminder?.until || 0) > 0 && !snoozed;
@@ -511,8 +525,8 @@
       <span class="habit-realm-dot-v1 realm-${cssToken(habit.realm)}"></span>
       <div class="dashboard-habit-compact-copy-v314au"><strong>${escapeHtml(habit.name)}</strong>
         <small>${daypart.icon} ${escapeHtml(timingText)}${snoozed?` · Reminder ${escapeHtml(scheduledTime)}`:due?" · Reminder is due": ""}</small></div>
-      <span class="dashboard-habit-reward-v314au">🔥 ${formatEnergy(reward)}</span>
-      ${canComplete ? `<div class="essentials-actions-v314cv"><button class="habit-quick-complete-v1" type="button" data-habit-complete="${escapeHtml(habit.id)}" data-habit-date="${escapeHtml(dateKey)}">${historical?"Log":"Done"}</button>${historical?"":`<button class="essentials-later-v314cv" type="button" data-habit-remind="${escapeHtml(habit.id)}">${snoozed?"Change time":"Later…"}</button>`}</div>`
+      <span class="dashboard-habit-reward-v314au">${habit.linkedQuestId ? "↔ Quest" : `🔥 ${formatEnergy(reward)}`}</span>
+      ${canComplete ? `<div class="essentials-actions-v314cv"><button class="habit-quick-complete-v1" type="button" ${habit.linkedQuestId ? `data-habit-run-quest="${escapeHtml(habit.id)}"` : `data-habit-complete="${escapeHtml(habit.id)}" data-habit-date="${escapeHtml(dateKey)}"`}>${habit.linkedQuestId ? (isMinuteQuest(app.getQuestById?.(habit.linkedQuestId)) ? "Timer" : "Quest") : historical ? "Log" : "Done"}</button>${historical?"":`<button class="essentials-later-v314cv" type="button" data-habit-remind="${escapeHtml(habit.id)}">${snoozed?"Change time":"Later…"}</button>`}</div>`
        : `<span class="dashboard-habit-state-v1">${done?"✓":"—"}</span>`}</article>`;
   }
 
@@ -550,6 +564,10 @@
     let actionHtml;
     if (archived) {
       actionHtml = `<button class="secondary-button" type="button" data-habit-archive="${escapeHtml(habit.id)}">Restore</button>`;
+    } else if (habit.linkedQuestId) {
+      const quest = app.getQuestById?.(habit.linkedQuestId);
+      const canLaunch = !historical && Boolean(quest);
+      actionHtml = `<button class="primary-button habit-linked-launch-v32" type="button" data-habit-run-quest="${escapeHtml(habit.id)}" ${canLaunch ? "" : "disabled"}>${completedOnDate ? "✓ Heute erfasst" : isMinuteQuest(quest) ? "▶ Quest-Timer starten" : "↗ Quest öffnen"}</button>`;
     } else if (canComplete) {
       actionHtml = `<button class="primary-button habit-complete-button-v1" type="button" data-habit-complete="${escapeHtml(habit.id)}" data-habit-date="${escapeHtml(dateKey)}">✓ ${historical ? "Log yesterday" : "Log done"} · +${formatEnergy(reward)} 🔥</button>`;
     } else {
@@ -589,16 +607,16 @@
           </div>
         </div>
 
-        <div class="habit-reward-line-v1">
+        ${habit.linkedQuestId ? `<p class="habit-linked-info-v32">↔ Mit Quest & Zeiterfassung verbunden · kein zweiter Habit-Reward</p>` : `<div class="habit-reward-line-v1">
           <div><small>BASE</small><strong>${formatEnergy(baseReward)} 🔥</strong></div>
           <span>×</span>
           <div><small>STREAK</small><strong>${formatMultiplier(multiplier)}</strong></div>
           <span>=</span>
           <div class="habit-reward-current-v1"><small>${historical ? "BACKFILL CLEAR" : "NEXT CLEAR"}</small><strong>${formatEnergy(reward)} 🔥 · ${Number(snapshot.coinReward || 0)} 🪙</strong></div>
-        </div>
+        </div>`}
 
         <footer class="habit-card-footer-v1">
-          <span class="habit-no-penalty-v1">${historical ? "Backfills are limited to yesterday and never duplicate an existing log." : streak ? "Keep going for a larger bonus." : "Fresh start. Nothing was lost."}</span>
+          <span class="habit-no-penalty-v1">${habit.linkedQuestId ? "Dein Quest-/Zeitlog erfüllt das Habit automatisch." : historical ? "Backfills are limited to yesterday and never duplicate an existing log." : streak ? "Keep going for a larger bonus." : "Fresh start. Nothing was lost."}</span>
           <div class="habit-card-actions-v1">
             <button class="text-button" type="button" data-habit-archive="${escapeHtml(habit.id)}">${archived ? "Restore" : "Archive"}</button>
             ${actionHtml}
@@ -616,9 +634,9 @@
     const periodComplete = inPeriod.length >= target;
     const scheduleAllowsDate = isScheduledOnDate(habit, dateKey);
     const trackable = isTrackableOnDate(habit, dateKey);
-    const canComplete = habit.active !== false && trackable && scheduleAllowsDate && !completedOnDate && !periodComplete;
+    const canComplete = habit.active !== false && trackable && scheduleAllowsDate && !completedOnDate; // Weekly/monthly extras allowed after goal.
     const streak = calculateStreak(habit, completions, dateKey);
-    const candidate = canComplete ? candidateCompletion(habit, period, dateKey) : null;
+    const candidate = canComplete && !habit.linkedQuestId ? candidateCompletion(habit, period, dateKey) : null;
     const candidateCompletions = candidate ? [...completions, candidate] : completions;
     const candidateStreak = candidate ? calculateStreak(habit, candidateCompletions, dateKey) : streak;
     const rewardStreak = Math.max(streak, candidateStreak, 1);
@@ -638,7 +656,7 @@
       storyEnergyBase: rawReward,
       at: previewAt
     });
-    const reward = preview ? Number(preview.storyEnergy || 0) : rawReward;
+    const reward = habit.linkedQuestId ? 0 : (preview ? Number(preview.storyEnergy || 0) : rawReward);
 
     return {
       habit,
@@ -677,7 +695,7 @@
     const state = app.getState();
     ensureHabitsState();
     const habit = state.habits.items.find(item => item.id === habitId);
-    if (!habit || habit.active === false) return;
+    if (!habit || habit.active === false || habit.linkedQuestId) return; // Never award a linked Quest twice.
 
     const today = todayKey();
     const yesterday = dateKeyWithOffset(-1);
@@ -813,7 +831,7 @@
       : habitState().items
           .filter(habit => habit.active !== false && normalizedDaypart(habit) === daypart && isTrackableOnDate(habit, dateKey))
           .map(habit => snapshotForHabit(habit, dateKey));
-    const due = source.filter(snapshot => snapshot.completedOnDate || snapshot.canComplete);
+    const due = source.filter(snapshot => snapshot.completedOnDate || (snapshot.canComplete && !snapshot.periodComplete));
     const event = daypartRewardEvent(daypart, dateKey);
     const done = due.filter(snapshot => snapshot.completedOnDate).length;
     return {
@@ -854,11 +872,105 @@
     return { awarded: true, daypart, storyEnergy: Number(reward.storyEnergy || 0), xp: Number(reward.xp || 0) };
   }
 
-  function openHabitDialog(habitId = null) {
+  function promoteQuestToHabit(questId) {
+    const quest = app.getQuestById?.(questId);
+    if (!quest) return;
+    const found = habitState().items.find(h => h.linkedQuestId === questId);
+    if (found) {
+      app.showToast?.(`“${quest.name}” ist bereits als Habit angelegt. Du kannst sein Wochenziel unter Habits ändern.`);
+      app.showView?.("habits");
+      openHabitDialog(found.id);
+      return;
+    }
+    openHabitDialog(null, questId);
+  }
+
+  function isMinuteQuest(quest) {
+    return /min|minute/i.test(String(quest?.unitLabel || ""));
+  }
+
+  function runLinkedQuest(habitId) {
+    const habit = habitState().items.find(h => h.id === habitId);
+    if (!habit?.linkedQuestId) return;
+    const quest = app.getQuestById?.(habit.linkedQuestId);
+    if (!quest) { app.showToast?.("Diese Quest ist nicht mehr vorhanden. Bearbeite die Habit-Verknüpfung."); return; }
+    const availability = app.getQuestAvailability?.(quest);
+    if (isMinuteQuest(quest)) {
+      const time = window.LifeRPGTime;
+      if (!time?.startQuest || time.getActive?.()) {
+        app.showToast?.(time?.getActive?.() ? "Ein Timer läuft bereits. Bitte erst stoppen oder abbrechen." : "Timer ist noch nicht verfügbar.");
+        return;
+      }
+      if (availability && availability.available === false) {
+        // A time session can still be recorded even if today's Quest reward is on cooldown.
+        // The free timer has its own real time ledger; no forced extra Quest payout.
+        time.startClock?.({ categoryId: quest.realm === "Home" ? "life_admin" : "other", subcategory: quest.realm === "Home" ? "Household" : "Other", label: quest.name });
+        app.showToast?.("Die Quest ist heute bereits erledigt; zusätzliche Zeit wird normal erfasst.");
+      } else {
+        time.startQuest({ questId: quest.id, minutes: Math.max(1, Number(quest.units || quest.planningMinutes || 10)) });
+      }
+      return;
+    }
+    if (availability && availability.available === false) {
+      app.showToast?.(availability.reason || "Diese Quest ist gerade nicht erneut verfügbar.");
+      return;
+    }
+    app.showView?.("quests");
+    window.requestAnimationFrame?.(() => {
+      // Use the real Quest logger/native route instead of inventing a Habit checkbox.
+      const buttons = [...document.querySelectorAll(".complete-quest-button[data-quest-id], [data-native-quest-launch]")];
+      const target = buttons.find(button => (button.dataset.questId || button.dataset.nativeQuestLaunch) === quest.id);
+      if (target) target.click();
+      else app.showToast?.("Öffne die verknüpfte Quest im Quest-Bereich, um sie zu loggen.");
+    });
+  }
+
+  function linkedCompletionsForHabit(habit) {
+    if (!habit?.linkedQuestId) return [];
+    const root = app.getState();
+    const quest = app.getQuestById?.(habit.linkedQuestId);
+    if (!quest) return [];
+    const target = Math.max(0.1, Number(quest.units || 1));
+    const earliest = habit.scheduleStartDate || habit.createdDate || todayKey();
+    const today = todayKey();
+    const questByDay = new Map();
+    for (const log of (root.completionLog || [])) {
+      if (log?.questId !== habit.linkedQuestId || !log.at) continue;
+      const stamp = new Date(log.at);
+      if (!Number.isFinite(stamp.getTime())) continue;
+      const date = formatDateKey(stamp);
+      if (date < earliest || date > today) continue;
+      questByDay.set(date, (questByDay.get(date) || 0) + Math.max(0, Number(log.units || 0)));
+    }
+    const timeByDay = new Map();
+    for (const entry of (root.timeTracking?.entries || [])) {
+      if (!entry || !entry.endAt) continue;
+      // Only an explicit Quest timer or an unambiguous cleanup time log matches.
+      const direct = entry.linkedQuestId === habit.linkedQuestId;
+      const cleanup = /10.minute clean/i.test(String(quest.name || "")) &&
+        entry.categoryId === "life_admin" && entry.subcategory === "Household" &&
+        /clean|aufr[aä]um|putz|tidy|declutter|room reset|ordnen/i.test(String(entry.label || ""));
+      if (!direct && !cleanup) continue;
+      const stamp = new Date(entry.endAt);
+      if (!Number.isFinite(stamp.getTime())) continue;
+      const date = formatDateKey(stamp);
+      if (date < earliest || date > today) continue;
+      timeByDay.set(date, (timeByDay.get(date) || 0) + Math.max(0, Number(entry.minutes || 0)));
+    }
+    // The same timed session may appear in both ledgers; do not sum it twice.
+    const dates = new Set([...questByDay.keys(), ...timeByDay.keys()]);
+    return [...dates].filter(date => Math.max(questByDay.get(date) || 0, timeByDay.get(date) || 0) + 1e-7 >= target)
+      .map(date => ({ id: `questlink:${habit.id}:${date}`, habitId: habit.id, date,
+        periodKey: currentPeriod(habit, date)?.key || `D:${date}`, timestamp: rewardDateForDateKey(date).getTime(), linkedSource: true }));
+  }
+
+  function openHabitDialog(habitId = null, questId = null) {
     if (!els.dialog || !els.form) return;
     ensureHabitsState();
 
     const habit = habitId ? habitState().items.find(item => item.id === habitId) : null;
+    pendingQuestId = habit?.linkedQuestId || questId || null;
+    const linkedQuest = pendingQuestId ? app.getQuestById?.(pendingQuestId) : null;
     els.form.reset();
     els.editId.value = habit?.id || "";
     els.title.textContent = habit ? "Edit habit" : "Create a habit";
@@ -880,7 +992,14 @@
       els.scheduleType.value = "daily";
       els.scheduleCount.value = "2";
       els.daypart.value = "anytime";
-      els.note.value = "";
+      els.note.value = linkedQuest ? `Auto-Tracking über Quest: ${linkedQuest.name}. Abschluss über Quest/Timer; keine doppelten Habit-Rewards.` : "";
+      if (linkedQuest) {
+        els.name.value = linkedQuest.name;
+        els.realm.value = REALMS.includes(linkedQuest.realm) ? linkedQuest.realm : "Home";
+        els.effort.value = "low";
+        els.scheduleType.value = "weekly";
+        els.scheduleCount.value = /10.minute clean/i.test(linkedQuest.name) ? "3" : "1";
+      }
     }
 
     updateScheduleControls();
@@ -890,6 +1009,7 @@
   }
 
   function closeHabitDialog() {
+    pendingQuestId = null;
     els.dialog?.close();
   }
 
@@ -925,6 +1045,7 @@
         effort: EFFORTS[els.effort.value] ? els.effort.value : "low",
         daypart: DAYPARTS[els.daypart?.value] ? els.daypart.value : "anytime",
         note: els.note.value.trim(),
+        linkedQuestId: pendingQuestId || null,
         schedule,
         active: true,
         createdDate: today,
@@ -965,6 +1086,7 @@
   }
 
   function resetHabitDialogForAnother(defaults = {}) {
+    pendingQuestId = null;
     els.form?.reset();
     els.editId.value = "";
     els.title.textContent = "Create a habit";
@@ -1110,7 +1232,11 @@
 
   function completionsForHabit(habit) {
     const trackingFrom = Number(habit.trackingFrom || 0);
-    return habitState().completions.filter(c => c.habitId === habit.id && Number(c.timestamp || 0) >= trackingFrom);
+    const manual = habitState().completions.filter(c => c.habitId === habit.id && Number(c.timestamp || 0) >= trackingFrom);
+    if (!habit.linkedQuestId) return manual;
+    const merged = new Map();
+    [...manual, ...linkedCompletionsForHabit(habit)].forEach(c => { if (!merged.has(c.date)) merged.set(c.date, c); });
+    return [...merged.values()];
   }
 
   function currentPeriod(habit, dateKey = todayKey()) {
@@ -1243,8 +1369,8 @@
     const schedule = normalizeSchedule(habit.schedule);
     const historical = dateKey !== todayKey();
     if (schedule.type === "daily" || schedule.type === "interval") return count >= 1 ? "Done for this due date" : "0 / 1 done";
-    if (schedule.type === "weekly") return `${Math.min(count, target)} / ${target} ${historical ? "that week" : "this week"}`;
-    return `${Math.min(count, target)} / ${target} ${historical ? "that month" : "this month"}`;
+    if (schedule.type === "weekly") return `${count} / ${target} ${historical ? "that week" : "this week"}${count > target ? ` · +${count-target} extra` : ""}`;
+    return `${count} / ${target} ${historical ? "that month" : "this month"}${count > target ? ` · +${count-target} extra` : ""}`;
   }
 
   function timingLabel(habit, { completedOnDate = false, periodComplete = false, dateKey = todayKey(), trackable = true } = {}) {
@@ -1270,6 +1396,7 @@
     }
 
     if (schedule.type === "weekly") {
+      if (periodComplete && !completedOnDate) return "Weekly goal met · extras welcome";
       if (periodComplete) return "Weekly goal met";
       if (completedOnDate) return historical ? "Logged yesterday" : "Logged today";
       if (historical) return "Available yesterday";
@@ -1277,6 +1404,7 @@
       return days === 0 ? "Last day this week" : `${days + 1} days left this week`;
     }
 
+    if (periodComplete && !completedOnDate) return "Monthly goal met · extras welcome";
     if (periodComplete) return "Monthly goal met";
     if (completedOnDate) return historical ? "Logged yesterday" : "Logged today";
     if (historical) return "Available yesterday";

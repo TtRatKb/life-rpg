@@ -2047,6 +2047,7 @@
         <div class="quest-actions ${isMinuteQuestForTimer(quest) ? "universal-timer-actions-v311" : ""}">
           ${availability.available && nativeQuestActionMarkup(quest) ? nativeQuestActionMarkup(quest) : (isMinuteQuestForTimer(quest) && availability.available ? questTimerActionsMarkup(quest, availability, todayUnits, { compact: true }) : `<button class="primary-button complete-quest-button" data-quest-id="${quest.id}" ${availability.available ? "" : "disabled"}>${availability.available ? "Log" : "Waiting"}</button>`)}
           ${availability.available && nativeQuestActionMarkup(quest) ? `<button class="text-button complete-quest-button" data-quest-id="${quest.id}">Log manually</button>` : (isMinuteQuestForTimer(quest) && availability.available ? `<button class="text-button complete-quest-button" data-quest-id="${quest.id}">Log manually</button>` : "")}
+          <button class="secondary-button habit-promote-quest-v32" type="button" data-habit-promote-quest="${escapeHtml(quest.id)}">↻ Als Habit</button>
           <button class="secondary-button remove-loadout-button" data-quest-id="${quest.id}">Remove</button>
         </div>
       </article>
@@ -2351,6 +2352,7 @@
               ? (selected ? "In today's loadout" : "Ready")
               : escapeHtml(availability.reason)}</small>
             <div class="library-actions ${isMinuteQuestForTimer(quest) ? "universal-timer-actions-v311" : ""}">
+              <button type="button" class="secondary-button habit-promote-quest-v32" data-habit-promote-quest="${escapeHtml(quest.id)}">↻ Als Habit</button>
               <button
                 class="secondary-button toggle-loadout-button ${selected ? "selected-button" : ""}"
                 data-quest-id="${quest.id}">
