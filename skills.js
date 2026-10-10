@@ -928,7 +928,8 @@
     if (outstanding > 0 && !feed.pending.length) {
       feed.pending.push({ id: "initial-unspent", kind: "unspent", at: Date.now() });
     }
-    app.saveState({ source: "skills-feedback-init", suppressUiRefresh: true });
+    // Do not write a full multi-megabyte save just to display an old-point reminder.
+    // The next genuine activity/save or notice acknowledgement persists this tiny marker.
     renderSkillFeedbackNotice();
   }
 

@@ -16,6 +16,8 @@
   ];
   const LOCAL_SAVE_COMPACTION_SCHEMA = 2;
   const LOCAL_SAVE_FORMAT = "life-rpg-local-compact-v2";
+  const COMPRESSED_LOCAL_SAVE_FORMAT = "life-rpg-local-deflate-v3";
+  let localSaveDecodeFailure = false;
   const LOCAL_KEY_DICTIONARY_LIMIT = 768;
   let localSaveKeyDictionaryCache = null;
   let localSaveMigratedFromLegacy = false;
@@ -1120,7 +1122,15 @@
       if (!raw) return defaultState();
       return mergeState(defaultState(), deserializeLocalState(raw));
     } catch (error) {
-      console.error("Life RPG local save could not be decoded", error);
+      // An undecodable save must NEVER be overwritten with a fresh default.
+      localSaveDecodeFailure = true;
+      console.error("Life RPG local save could not be decoded; write protection enabled", error);
+      window.addEventListener("DOMContentLoaded", () => {
+        const message = "Life RPG could not decode the local save. Existing browser data was NOT overwritten. Check that pako.min.js loaded, then reload. Do not clear site data.";
+        const toast = document.getElementById("toast");
+        if (toast) { toast.textContent = message; toast.classList.add("show"); }
+        window.alert?.(message);
+      }, { once: true });
       return defaultState();
     }
   }
@@ -1370,6 +1380,40 @@
     return out;
   }
 
+  function deflateLocalSave(plain) {
+    if (!window.pako?.deflate || !window.pako?.inflate || typeof btoa !== "function") return null;
+    const compressed = window.pako.deflate(plain, { level: 1 });
+    let encoded = "";
+    const chunk = 16384;
+    for (let i = 0; i < compressed.length; i += chunk) {
+      encoded += String.fromCharCode.apply(null, compressed.subarray(i, i + chunk));
+    }
+    const payload = btoa(encoded);
+    const wrapper = JSON.stringify({
+      __lifeRpgLocalSaveFormat: COMPRESSED_LOCAL_SAVE_FORMAT,
+      length: plain.length,
+      check: hashTextFNV1a32(plain),
+      payload
+    });
+    // Compression is only useful when it saves considerable browser storage.
+    return wrapper.length < plain.length * 0.94 ? wrapper : null;
+  }
+
+  function inflateLocalSave(wrapper) {
+    if (!window.pako?.inflate || typeof atob !== "function") {
+      throw new Error("Local save is compressed but its decoder did not load");
+    }
+    if (typeof wrapper.payload !== "string" || !wrapper.payload) throw new Error("Invalid compressed save payload");
+    const binary = atob(wrapper.payload);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+    const plain = window.pako.inflate(bytes, { to: "string" });
+    if (plain.length !== wrapper.length || hashTextFNV1a32(plain) !== wrapper.check) {
+      throw new Error("Compressed local save failed length/checksum verification");
+    }
+    return plain;
+  }
+
   function serializeLocalState(snapshot) {
     const packed = packLocalPersistenceSections(snapshot);
     const keys = Array.isArray(localSaveKeyDictionaryCache) && localSaveKeyDictionaryCache.length
@@ -1377,15 +1421,23 @@
       : buildLocalKeyDictionary(packed);
     localSaveKeyDictionaryCache = keys.slice();
     const keyToIndex = new Map(keys.map((key, index) => [key, index]));
-    return JSON.stringify({
+    const compact = JSON.stringify({
       __lifeRpgLocalSaveFormat: LOCAL_SAVE_FORMAT,
       keys,
       state: encodeLocalKeys(packed, keyToIndex)
     });
+    try { return deflateLocalSave(compact) || compact; }
+    catch (error) {
+      console.warn("Local compression failed; falling back to existing lossless compact format.", error);
+      return compact;
+    }
   }
 
   function deserializeLocalState(raw) {
-    const parsed = JSON.parse(raw);
+    let parsed = JSON.parse(raw);
+    if (parsed?.__lifeRpgLocalSaveFormat === COMPRESSED_LOCAL_SAVE_FORMAT) {
+      parsed = JSON.parse(inflateLocalSave(parsed));
+    }
     if (!parsed || parsed.__lifeRpgLocalSaveFormat !== LOCAL_SAVE_FORMAT || !Array.isArray(parsed.keys) || !parsed.state) {
       if (parsed && typeof parsed === "object") localSaveMigratedFromLegacy = true;
       return parsed;
@@ -1618,6 +1670,10 @@
   }
 
   function saveState(options = {}) {
+    if (localSaveDecodeFailure) {
+      console.error("Life RPG save is write-protected after a local decode error. No changes will overwrite the original save.");
+      return false;
+    }
     const source = options.source || "app";
     let persisted = false;
     let lastError = null;
