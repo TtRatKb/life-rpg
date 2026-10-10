@@ -7,7 +7,7 @@
     return;
   }
 
-  const VERSION = "0.31.4dz25";
+  const VERSION = "0.31.4dz29";
   const SCHEMA = 1;
   const MAX_EVENTS = 6000;
   const HABIT_XP = { tiny: 3, low: 5, normal: 8, high: 12, boss: 18 };
@@ -186,6 +186,14 @@
   let treeDecoratorTimer = null;
   let treeDecoratorBusy = false;
   let treeObserver = null;
+  const FEEDBACK_RECENCY_MS = 20 * 60 * 1000;
+  const FEEDBACK_MAX_PENDING = 24;
+  let skillFeedbackQueue = [];
+  let feedbackTimer = null;
+  let feedbackCurrent = null;
+  let feedbackRenderKey = "";
+  let feedbackPositionObserver = null;
+
 
   init();
 
@@ -199,11 +207,13 @@
     injectNavigation();
     injectSkillsView();
     ensureTrainingDialog();
+    ensureSkillFeedbackUI();
     injectHabitSkillField();
     observeTalentTrees();
     bind();
     if (japaneseSplitCreated) app.saveState({ source: "skills-japanese-split-init", suppressUiRefresh: true });
     reconcile({ persist: true, reason: "skills-init" });
+    bootstrapSkillFeedback();
     render();
     initialized = true;
   }
@@ -321,6 +331,13 @@
         return;
       }
 
+      const feedbackButton = event.target.closest?.("[data-skill-feedback-action]");
+      if (feedbackButton) {
+        event.preventDefault();
+        acknowledgeSkillFeedback(feedbackButton.dataset.skillFeedbackAction);
+        return;
+      }
+
       const rebuild = event.target.closest?.("[data-skills-rebuild]");
       if (rebuild) {
         event.preventDefault();
@@ -366,7 +383,7 @@
       scheduleReconcile("render");
       render();
     });
-    ["life-rpg:time-change", "life-rpg:game-change", "life-rpg:library-change", "life-rpg:adventure-change", "life-rpg:smart-quest-change"].forEach(name => {
+    ["life-rpg:time-change", "life-rpg:game-change", "life-rpg:library-change", "life-rpg:adventure-change", "life-rpg:smart-quest-change", "life-rpg:school-completions-ingested"].forEach(name => {
       window.addEventListener(name, () => scheduleReconcile(name));
     });
   }
@@ -385,7 +402,9 @@
       const signature = eventSignature(nextEvents);
       const changed = force || signature !== lastDerivedSignature || !eventsEquivalent(model.events, nextEvents);
       if (!changed) return false;
+      const beforeEvents = model.events.slice();
       model.events = nextEvents;
+      captureSkillFeedback(beforeEvents, nextEvents, reason);
       model.lastRebuiltAt = Date.now();
       model.lastRebuildReason = reason;
       lastDerivedSignature = signature;
@@ -884,6 +903,213 @@
     return safe > 0 ? round2(Math.min(18, 1 + 0.54 * Math.sqrt(safe))) : 0;
   }
 
+  // DZ29: Presentation-only Skill XP feedback, observing NEW canonical events.
+  // No additional XP or reward event is written from this layer.
+  function feedbackState() {
+    const model = state();
+    if (!model.feedbackV1 || typeof model.feedbackV1 !== "object" || Array.isArray(model.feedbackV1)) {
+      model.feedbackV1 = { bootstrappedAt: 0, pending: [] };
+    }
+    const feed = model.feedbackV1;
+    if (!Array.isArray(feed.pending)) feed.pending = [];
+    return feed;
+  }
+
+  function bootstrapSkillFeedback() {
+    const feed = feedbackState();
+    if (Number(feed.bootstrappedAt || 0) > 0) {
+      renderSkillFeedbackNotice();
+      return;
+    }
+    // Historical points existed before this feature. Show a gentle reminder,
+    // not a fake Level-Up or XP-animation for historical/migrated activities.
+    const outstanding = Object.keys(REALMS).reduce((sum, realm) => sum + realmPointInfo(realm).available, 0);
+    feed.bootstrappedAt = Date.now();
+    if (outstanding > 0 && !feed.pending.length) {
+      feed.pending.push({ id: "initial-unspent", kind: "unspent", at: Date.now() });
+    }
+    app.saveState({ source: "skills-feedback-init", suppressUiRefresh: true });
+    renderSkillFeedbackNotice();
+  }
+
+  function skillEventTotals(events) {
+    const totals = Object.fromEntries(SKILLS.map(item => [item.id, 0]));
+    events.forEach(event => {
+      if (validSkillId(event?.skillId)) totals[event.skillId] = round2(totals[event.skillId] + Math.max(0, Number(event.xp || 0)));
+    });
+    return totals;
+  }
+
+  function captureSkillFeedback(beforeEvents, afterEvents, reason) {
+    const feed = feedbackState();
+    if (!Number(feed.bootstrappedAt || 0)) return;
+    if (reason === "skills-manual-rebuild") return;
+    const beforeIds = new Set(beforeEvents.map(e => String(e.id || "")));
+    const now = Date.now();
+    const newEvents = afterEvents.filter(event =>
+      !beforeIds.has(String(event.id || "")) &&
+      validSkillId(event.skillId) &&
+      Number(event.xp) > 0 &&
+      timestamp(event.at) >= Math.max(Number(feed.bootstrappedAt || 0) - 30000, now - FEEDBACK_RECENCY_MS) &&
+      timestamp(event.at) <= now + 60000
+    );
+    if (!newEvents.length) return;
+    const beforeTotal = skillEventTotals(beforeEvents);
+    const afterTotal = skillEventTotals(afterEvents);
+    const skillIds = [...new Set(newEvents.map(e => e.skillId))];
+    for (const id of skillIds) {
+      const oldXp = beforeTotal[id], newXp = afterTotal[id];
+      if (!(newXp > oldXp + 0.001)) continue;
+      const meta = SKILL_BY_ID[id];
+      const before = levelInfo(oldXp), after = levelInfo(newXp);
+      enqueueSkillXP({ id, realm: meta.realm, label: meta.label, icon: meta.icon,
+        gained: round2(newXp - oldXp), before, after });
+      if (after.level > before.level) {
+        const key = `skill:${id}:lv${after.level}`;
+        if (!feed.pending.some(note => note.id === key)) {
+          feed.pending.unshift({ id: key, kind: "level", skillId: id, realm: meta.realm,
+            from: before.level, to: after.level, at: now });
+        }
+      }
+    }
+    if (feed.pending.length > FEEDBACK_MAX_PENDING) {
+      feed.pending = feed.pending.slice(-FEEDBACK_MAX_PENDING);
+    }
+    renderSkillFeedbackNotice();
+  }
+
+  function ensureSkillFeedbackUI() {
+    if (!document.getElementById("skillXpFloatDz29")) {
+      const toast = document.createElement("aside");
+      toast.id = "skillXpFloatDz29";
+      toast.className = "skill-xp-toast-dz29";
+      toast.setAttribute("aria-live", "polite");
+      toast.setAttribute("role", "status");
+      toast.hidden = true;
+      document.body.appendChild(toast);
+    }
+    if (!document.getElementById("skillPointNoticeDz29")) {
+      const badge = document.createElement("aside");
+      badge.id = "skillPointNoticeDz29";
+      badge.className = "skill-level-notice-dz29";
+      badge.setAttribute("role", "region");
+      badge.setAttribute("aria-label", "Skill-Fortschritt und Talentpunkte");
+      badge.hidden = true;
+      document.body.appendChild(badge);
+    }
+    window.addEventListener("resize", repositionSkillFeedback);
+    document.addEventListener("close", () => {
+      if (!feedbackCurrent && skillFeedbackQueue.length) showNextSkillXP();
+    }, true);
+    // Focus Dock is loaded later by pwa.js, after the Skills module.
+    // Track its appearance without replacing/rebuilding any app DOM.
+    document.addEventListener("click", () => window.setTimeout(repositionSkillFeedback, 80), true);
+    window.addEventListener("life-rpg:time-change", repositionSkillFeedback);
+  }
+
+  function repositionSkillFeedback() {
+    const anyDock = document.querySelector(".focus-dock");
+    if (anyDock && !feedbackPositionObserver && typeof MutationObserver === "function") {
+      feedbackPositionObserver = new MutationObserver(repositionSkillFeedback);
+      feedbackPositionObserver.observe(anyDock, { attributes: true, attributeFilter: ["class", "style", "hidden"] });
+    }
+    // The real timer dock may be open and taller than its launcher.
+    const dock = document.querySelector(".focus-dock:not(.hidden)");
+    const rect = dock?.getBoundingClientRect?.();
+    const bottom = rect && rect.height && rect.bottom > 0 && rect.top < window.innerHeight
+      ? Math.max(105, Math.ceil(window.innerHeight - rect.top) + 12)
+      : (window.innerWidth < 620 ? 143 : 159);
+    for (const id of ["skillXpFloatDz29", "skillPointNoticeDz29"]) {
+      const el = document.getElementById(id);
+      if (el) el.style.setProperty("--skill-feedback-base", `${bottom}px`);
+    }
+  }
+
+  function enqueueSkillXP(entry) {
+    if (skillFeedbackQueue.length > 8) skillFeedbackQueue.shift();
+    skillFeedbackQueue.push(entry);
+    if (!feedbackCurrent) showNextSkillXP();
+  }
+
+  function showNextSkillXP() {
+    window.clearTimeout(feedbackTimer);
+    // Native puzzle/creative activities can complete inside a modal dialog.
+    // A normal fixed toast would render *behind* the browser's top-layer dialog.
+    // Wait until it closes so the user actually sees the earned progress.
+    if (document.querySelector("dialog[open]")) {
+      feedbackTimer = window.setTimeout(showNextSkillXP, 1000);
+      return;
+    }
+    const next = skillFeedbackQueue.shift();
+    const root = document.getElementById("skillXpFloatDz29");
+    if (!next || !root) { feedbackCurrent = null; if (root) root.hidden = true; return; }
+    feedbackCurrent = next;
+    const leveled = next.after.level > next.before.level;
+    root.innerHTML = `<div class="skill-xp-top-dz29"><span aria-hidden="true">${esc(next.icon)}</span><div><small>${leveled ? "✦ SKILL LEVEL UP" : "SKILL GROWTH"} · ${esc(next.realm)}</small><strong>${esc(next.label)}</strong></div><b>+${formatXp(next.gained)} XP</b></div>
+      <div class="skill-xp-label-dz29"><span class="skill-xp-level-dz29">Level ${next.before.level}</span><span>${formatXp(next.before.intoLevel)} / ${formatXp(next.before.required)}</span></div>
+      <div class="skill-xp-track-dz29"><i style="width:${next.before.percent.toFixed(2)}%"></i></div>
+      ${leveled ? `<p class="skill-xp-celebrate-dz29">✦ Level ${next.after.level} erreicht · Talentpunkt verdient!</p>` : `<p>Dein Skill wird stärker.</p>`}`;
+    root.hidden = false;
+    repositionSkillFeedback();
+    const bar = root.querySelector(".skill-xp-track-dz29 i");
+    const info = root.querySelector(".skill-xp-label-dz29");
+    const ms = leveled ? 6800 : 5300;
+    if (!window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches && bar) {
+      if (leveled) {
+        window.setTimeout(() => { bar.style.width = "100%"; }, 90);
+        window.setTimeout(() => {
+          bar.style.transition = "none"; bar.style.width = "0%";
+          if (info) info.innerHTML = `<span>Level ${next.after.level}</span><span>${formatXp(next.after.intoLevel)} / ${formatXp(next.after.required)}</span>`;
+        }, 1550);
+        window.setTimeout(() => {
+          bar.style.transition = "width 1200ms ease";
+          bar.style.width = `${next.after.percent.toFixed(2)}%`;
+        }, 1630);
+      } else window.setTimeout(() => { bar.style.width = `${next.after.percent.toFixed(2)}%`; }, 90);
+    } else if (bar) {
+      bar.style.width = `${next.after.percent.toFixed(2)}%`;
+      if (info) info.innerHTML = `<span>Level ${next.after.level}</span><span>${formatXp(next.after.intoLevel)} / ${formatXp(next.after.required)}</span>`;
+    }
+    feedbackTimer = window.setTimeout(() => { feedbackCurrent = null; showNextSkillXP(); }, ms);
+  }
+
+  function renderSkillFeedbackNotice() {
+    const root = document.getElementById("skillPointNoticeDz29");
+    if (!root) return;
+    const feed = feedbackState();
+    const first = feed.pending[0];
+    const key = first ? `${first.id}:${feed.pending.length}:${Object.keys(REALMS).map(realm => realmPointInfo(realm).available).join(",")}` : "none";
+    if (key === feedbackRenderKey) return;
+    feedbackRenderKey = key;
+    if (!first) { root.hidden = true; root.innerHTML = ""; return; }
+    const skill = SKILL_BY_ID[first.skillId];
+    const count = first.realm ? realmPointInfo(first.realm).available : Object.keys(REALMS).reduce((sum, realm) => sum + realmPointInfo(realm).available, 0);
+    const detail = first.kind === "level"
+      ? `${esc(skill?.label || "Skill")} · Lv. ${first.from} → ${first.to}`
+      : "Bereits erspielte Talentpunkte warten auf dich";
+    const title = first.kind === "level" ? "✦ Skill Level Up!" : "✦ Talentpunkte verfügbar";
+    const more = feed.pending.length > 1 ? ` · ${feed.pending.length - 1} weitere` : "";
+    root.innerHTML = `<div class="skill-level-line-dz29"><span>${title}</span><strong>${count} ${count === 1 ? "Punkt" : "Punkte"} bereit${more}</strong></div>
+      <p>${detail}</p><div class="skill-level-actions-dz29"><button type="button" data-skill-feedback-action="tree">Zum Talentbaum →</button><button type="button" data-skill-feedback-action="later">Später</button></div>`;
+    root.hidden = false;
+    repositionSkillFeedback();
+  }
+
+  function acknowledgeSkillFeedback(action) {
+    if (action !== "tree" && action !== "later") return;
+    const feed = feedbackState();
+    const item = feed.pending.shift();
+    if (!item) return;
+    feedbackRenderKey = "";
+    app.saveState({ source: "skills-feedback-dismiss", suppressUiRefresh: true });
+    if (action === "tree") {
+      openSkillsView();
+      if (item.realm) selectTalentRealm(item.realm, { scroll: true });
+      else renderTalentHub();
+    }
+    renderSkillFeedbackNotice();
+  }
+
   function xpRequiredForLevel(level) {
     const l = Math.max(1, Number(level || 1));
     return 60 + 25 * l + 5 * l * l;
@@ -1289,6 +1515,7 @@
     renderTalentHub();
     renderRealms(totals);
     renderRecent();
+    renderSkillFeedbackNotice();
   }
 
   function renderSummary(totals) {

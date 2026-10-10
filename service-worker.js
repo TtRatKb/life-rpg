@@ -1,4 +1,4 @@
-const CACHE_NAME = "life-rpg-v0314dz28-play-qol";
+const CACHE_NAME = "life-rpg-v0314dz29-skill-feedback";
 const ASSET_CACHE_NAME = "life-rpg-assets-v6";
 const MAX_RUNTIME_ASSETS = 96;
 const CORE = [
@@ -45,7 +45,8 @@ const CORE = [
   "./talent-content-v2.css?v=0.31.4ar",
   "./logic-expansion.css?v=0.31.4ar",
   "./dreamscape.css?v=0.31.4cx",
-  "./skills.js?v=0.31.4dz26",
+  "./skills.js?v=0.31.4dz29",
+  "./skill-feedback-dz29.css?v=0.31.4dz29",
   "./talent-v2.js?v=0.31.4bz",
   "./talent-tree-v2-graph.js?v=0.31.4du",
   "./talent-reward-studios.css?v=0.31.4cw",

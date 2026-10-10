@@ -1,0 +1,27 @@
+/* Life RPG DZ29 – skill progression in the corner, no global rerenders */
+.skill-xp-toast-dz29,.skill-level-notice-dz29{position:fixed;right:clamp(10px,2vw,28px);box-sizing:border-box;z-index:2635;width:min(325px,calc(100vw - 20px));color:#603c55;border:1px solid #e3c5d3;background:linear-gradient(145deg,#fffdfa,#fff1f7);box-shadow:0 11px 37px #38253c35;border-radius:17px;line-height:1.45}
+.skill-xp-toast-dz29[hidden],.skill-level-notice-dz29[hidden]{display:none!important}
+.skill-level-notice-dz29{bottom:var(--skill-feedback-base,159px);padding:12px 13px;z-index:2637}
+.skill-level-line-dz29{display:flex;gap:6px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.skill-level-line-dz29>span{font-size:.77rem;letter-spacing:.02em;font-weight:850;color:#8c436e}
+.skill-level-line-dz29 strong{font-size:.73rem;border-radius:99px;padding:3px 7px;background:#f8e3ec;color:#89456c}
+.skill-level-notice-dz29 p{margin:4px 0 10px;font-size:.79rem;color:#796071}
+.skill-level-actions-dz29{display:flex;gap:7px;align-items:center}
+.skill-level-actions-dz29 button{min-height:34px;border:1px solid #d8b6c7;border-radius:9px;background:#fff;color:#74465f;padding:6px 10px;font-family:inherit;font-weight:700;font-size:.76rem;line-height:1.3;cursor:pointer}
+.skill-level-actions-dz29 button:first-child{background:#824d6e;color:#fff;border-color:#824d6e;flex:1}
+.skill-xp-toast-dz29{bottom:calc(var(--skill-feedback-base,159px) + 119px);padding:12px 14px;z-index:2636;pointer-events:none}
+.skill-xp-top-dz29{display:flex;gap:9px;align-items:center}
+.skill-xp-top-dz29>span{font-size:1.3rem}
+.skill-xp-top-dz29>div{min-width:0;flex:1;display:grid}
+.skill-xp-top-dz29 small{font-size:.62rem;font-weight:800;letter-spacing:.07em;color:#9e6483}
+.skill-xp-top-dz29 strong{font-size:.83rem;overflow-wrap:anywhere}
+.skill-xp-top-dz29>b{font-size:.8rem;color:#ad4b83;white-space:nowrap}
+.skill-xp-label-dz29{display:flex;justify-content:space-between;font-size:.68rem;color:#7d6371;margin:9px 0 5px}
+.skill-xp-track-dz29{height:8px;border-radius:99px;background:#ead5e0;overflow:hidden}
+.skill-xp-track-dz29 i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#e686ac,#b8518c);transition:width 1450ms ease}
+.skill-xp-toast-dz29 p{font-size:.7rem;margin:7px 0 0;color:#8d6880}
+.skill-xp-celebrate-dz29{font-weight:800;color:#9b4072!important}
+.skill-level-actions-dz29 button:focus-visible{outline:3px solid #d882af;outline-offset:2px}
+body.story-mode-open .skill-xp-toast-dz29,body.story-mode-open .skill-level-notice-dz29,body.creative-canvas-focus-v314dz19 .skill-xp-toast-dz29,body.creative-canvas-focus-v314dz19 .skill-level-notice-dz29{display:none!important}
+@media(max-width:620px){.skill-xp-toast-dz29,.skill-level-notice-dz29{right:10px;width:min(303px,calc(100vw - 20px))}.skill-xp-toast-dz29{bottom:calc(var(--skill-feedback-base,143px) + 137px)}}
+@media(prefers-reduced-motion:reduce){.skill-xp-track-dz29 i{transition:none!important}}
