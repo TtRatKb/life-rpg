@@ -56,7 +56,7 @@
     const m = model();
     if (m.seedVersion === 1 || (m.breaks || []).some(b => b.id === 'autumn-2026')) return false;
     m.breaks ||= [];
-    m.breaks.push({id:'autumn-2026',title:'Herbstferien 2026',start:'2026-10-10',end:'2026-10-25',goals:SEED.map((data,i) => ({id:`autumn26-${String(i+1).padStart(2,'0')}`,title:data[0],group:data[1],priority:data[2],minutes:data[3],effort:data[4],doneAt:'',linkedTodoistId:''}))});
+    m.breaks.push({id:'autumn-2026',title:'Herbstferien 2026',start:'2026-10-10',end:'2026-10-25',goals:SEED.map((data,i) => ({id:`autumn26-${String(i+1).padStart(2,'0')}`,title:data[0],group:data[1],priority:data[2],minutes:data[3],effort:data[4],doneAt:'',linkedTodoistId:'',linkedBookId:''}))});
     m.activeId='autumn-2026'; m.seedVersion=1;
     return true;
   }
@@ -70,7 +70,7 @@
   }
   function inPeriod(date=today()) {const b=active();return !!b && date>=b.start && date<=b.end;}
   function persist(source) {const ok=app.saveState({source,suppressUiRefresh:true});if(ok){render();window.LifeRPGDaily?.render?.();}return ok;}
-  function normalize(raw) {return {id:uid(),title:String(raw.title||'').trim().slice(0,140),group:GROUPS[raw.group]?raw.group:'joy',priority:PRIORITY[raw.priority]?raw.priority:'want',minutes:Math.max(5,Math.min(240,Math.round(Number(raw.minutes)||20))),effort:['low','medium','high'].includes(raw.effort)?raw.effort:'medium',doneAt:'',linkedTodoistId:String(raw.linkedTodoistId||'').slice(0,40)};}
+  function normalize(raw) {return {id:uid(),title:String(raw.title||'').trim().slice(0,140),group:GROUPS[raw.group]?raw.group:'joy',priority:PRIORITY[raw.priority]?raw.priority:'want',minutes:Math.max(5,Math.min(240,Math.round(Number(raw.minutes)||20))),effort:['low','medium','high'].includes(raw.effort)?raw.effort:'medium',doneAt:'',linkedTodoistId:String(raw.linkedTodoistId||'').slice(0,40),linkedBookId:String(raw.linkedBookId||'').slice(0,100)};}
   function add(raw) {const b=active();if(!b)return null;const item=normalize(raw);if(!item.title)return null;b.goals.push(item);persist('break-goal-add');return item;}
   function linkTodoist(task) {
     const b=active();if(!b || !task?.id)return null;
@@ -82,10 +82,33 @@
     if(match){match.linkedTodoistId=tid;persist('break-goal-todoist-linked');return match;}
     return add({title,group:task.group||'life',priority:'want',minutes:task.minutes||20,effort:'medium',linkedTodoistId:tid});
   }
+  function availableBooks(){return Array.isArray(app.getState().bookLibrary?.items)?app.getState().bookLibrary.items:[];}
+  function bookForGoal(g){return availableBooks().find(b=>String(b.id)===String(g?.linkedBookId||''));}
+  function refreshBookCompletions(){
+    const b=active();if(!b)return 0;
+    let changed=0;
+    for(const g of b.goals||[]){
+      const book=g.linkedBookId && bookForGoal(g);
+      if(!book||g.doneAt||book.status!=='finished')continue;
+      g.doneAt=new Date(book.finishedAt||Date.now()).toISOString();changed++;
+      // Book completion is already rewarded by the Library. If the holiday
+      // goal also mirrors a Todoist task, the Todoist close must pay no second
+      // reward. An unavailable Todoist session is retried later.
+      if(g.linkedTodoistId)window.LifeRPGTodoist?.closeFromNative?.(g.linkedTodoistId,{source:'book-finish',id:book.id}).catch(()=>{});
+    }
+    if(changed)persist('break-book-native-completed');return changed;
+  }
+  function linkBook(goalId,bookId){
+    const goal=goalById(goalId),book=availableBooks().find(x=>String(x.id)===String(bookId));
+    if(!goal)return false;
+    goal.linkedBookId=book?String(book.id):'';
+    persist('break-book-linked');refreshBookCompletions();return true;
+  }
   function isDone(g) {return Boolean(g?.doneAt);}
   function markDone(id,{fromTodoist=false,at=null}={}) {
     const g=goalById(id);if(!g || g.doneAt)return false;
     if(g.linkedTodoistId && !fromTodoist) return false; // only Todoist owns linked task completion
+    if(g.linkedBookId && !fromTodoist)return false; // Library owns native book completion
     g.doneAt=at||new Date().toISOString();
     // Completion of the holiday checklist is not an extra reward channel.  Real
     // activities remain rewarded in their canonical Life RPG/Todoist/Schulcockpit log.
@@ -126,9 +149,15 @@
     if(changed)persist('break-todoist-completion');
   }
   function dateLabel(d) {if(!d)return '';const [y,m,day]=d.split('-');return `${day}.${m}.${y}`;}
+  function bookSelector(g){
+    if(g.group!=='joy'||g.doneAt)return '';
+    const books=availableBooks();if(!books.length)return '';
+    const chosen=bookForGoal(g);
+    return `<label class="break-native-link-dz28">📚 Buch aus Library <select data-break-book-link="${esc(g.id)}"><option value="">Nicht verbunden</option>${books.map(book=>`<option value="${esc(book.id)}" ${chosen?.id===book.id?'selected':''}>${esc(book.title)}${book.status==='finished'?' ✓':''}</option>`).join('')}</select></label>`;
+  }
   function card(g) {return `<article class="break-goal ${g.doneAt?'is-done':''}" data-break-id="${esc(g.id)}">
       <div class="break-goal-main"><span class="break-goal-tick">${g.doneAt?'✓':'○'}</span><div><strong>${esc(g.title)}</strong><small>${esc(GROUPS[g.group])} · ${esc(PRIORITY[g.priority])} · ~${g.minutes} Min.${g.linkedTodoistId?' · Todoist ↗':''}</small></div></div>
-      <div class="break-goal-actions">${g.doneAt ? (!g.linkedTodoistId?`<button type="button" class="text-button" data-break-undo="${esc(g.id)}">Rückgängig</button>`:'<span class="break-done-label">In Todoist erledigt</span>') : `<button type="button" class="secondary-button" data-break-do="${esc(g.id)}">${g.linkedTodoistId?'In Todoist erledigen':'Abhaken'}</button>`}<button type="button" class="text-button" data-break-remove="${esc(g.id)}" aria-label="Ziel entfernen">×</button></div></article>`;}
+      ${bookSelector(g)}<div class="break-goal-actions">${g.doneAt ? (g.linkedBookId?'<span class="break-done-label">In der Library abgeschlossen ✓</span>':!g.linkedTodoistId?`<button type="button" class="text-button" data-break-undo="${esc(g.id)}">Rückgängig</button>`:'<span class="break-done-label">In Todoist erledigt</span>') : `<button type="button" class="secondary-button" data-break-do="${esc(g.id)}">${g.linkedBookId?'📚 In Library lesen':g.linkedTodoistId?'In Todoist erledigen':'Abhaken'}</button>`}<button type="button" class="text-button" data-break-remove="${esc(g.id)}" aria-label="Ziel entfernen">×</button></div></article>`;}
   let filter='all',pickerOpen=false,pickerMode='backlog',pickerSearch='',selectedTasks=new Set();
   const pickerCandidates=()=>window.LifeRPGTodoist?.vacationCandidates?.({start:active()?.start,end:active()?.end,mode:pickerMode})||[];
   function selectionMarkup(){
@@ -178,6 +207,7 @@
     <p class="break-footnote">Wichtig: Schulcockpit-Abschlüsse, Buch-/Game-Logs und Todoist-Aufgaben werden nicht durch ein zweites Ferien-Reward dupliziert. Im Daily Plan können offene Ferienziele als echte Vorschläge erscheinen. Bereits geloggte Aktivitäten bleiben in ihren ursprünglichen Systemen.</p>`;
   }
   async function clickComplete(g) {
+    if(g?.linkedBookId){app.showView?.('library');return;}
     if(g?.linkedTodoistId){
       if(!window.LifeRPGTodoist?.connected?.()){app.showToast('Erst Todoist in dieser Sitzung verbinden.');window.LifeRPGTodoist?.open?.();return;}
       await window.LifeRPGTodoist.complete(g.linkedTodoistId);return;
@@ -201,14 +231,15 @@
       e.preventDefault();const form=new FormData(e.target);if(add(Object.fromEntries(form))){e.target.reset();}
     });
     document.addEventListener('input',e=>{if(e.target.matches('[data-break-pick-search]')){pickerSearch=e.target.value;const start=e.target.selectionStart;render();const n=document.querySelector('[data-break-pick-search]');if(n){n.focus();n.setSelectionRange(start,start);}}});
-    document.addEventListener('change',e=>{if(e.target.matches('[data-break-pick-mode]')){pickerMode=e.target.value;selectedTasks.clear();render();return;}if(e.target.matches('[data-break-pick-check]')){const id=e.target.dataset.breakPickCheck;if(e.target.checked)selectedTasks.add(id);else selectedTasks.delete(id);render();return;}if(e.target.matches('[data-break-filter]')){filter=e.target.value;render();} if(e.target.matches('[data-break-switch]')){model().activeId=e.target.value;selectedTasks.clear();pickerOpen=false;persist('break-switch');}});
+    document.addEventListener('change',e=>{if(e.target.matches('[data-break-pick-mode]')){pickerMode=e.target.value;selectedTasks.clear();render();return;}if(e.target.matches('[data-break-pick-check]')){const id=e.target.dataset.breakPickCheck;if(e.target.checked)selectedTasks.add(id);else selectedTasks.delete(id);render();return;}if(e.target.matches('[data-break-book-link]')){linkBook(e.target.dataset.breakBookLink,e.target.value);return;}if(e.target.matches('[data-break-filter]')){filter=e.target.value;render();} if(e.target.matches('[data-break-switch]')){model().activeId=e.target.value;selectedTasks.clear();pickerOpen=false;persist('break-switch');}});
     window.addEventListener('life-rpg:render',render);
     window.addEventListener('life-rpg:view-changed',ev=>{if(ev.detail?.view==='breaks')render();});
     window.addEventListener('life-rpg:state-saved',render);
-    window.addEventListener('life-rpg:state-replaced',render);
+    window.addEventListener('life-rpg:state-replaced',()=>{render();refreshBookCompletions();});
+    window.addEventListener('life-rpg:library-change',refreshBookCompletions);
   }
   setup();
   initSeed(); // intentionally no startup save: cloud state may still be loading
   render();
-  window.LifeRPGHoliday={active,inPeriod,goalById,eligibleForDaily,scoreForDaily,markDone,undo,add,createBreak,linkTodoist,refreshLinkedCompletions,render,importSelected,pickerCandidates,open:()=>app.showView('breaks'),_test:{model,normalize,SEED}};
+  window.LifeRPGHoliday={active,inPeriod,goalById,eligibleForDaily,scoreForDaily,markDone,undo,add,createBreak,linkTodoist,refreshLinkedCompletions,refreshBookCompletions,linkBook,render,importSelected,pickerCandidates,open:()=>app.showView('breaks'),_test:{model,normalize,SEED}};
 })();

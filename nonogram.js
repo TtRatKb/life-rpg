@@ -5,7 +5,7 @@
   const LEVELS = Array.isArray(window.LIFE_RPG_NONOGRAM_LEVELS) ? window.LIFE_RPG_NONOGRAM_LEVELS : [];
   if (!app?.getState || !app?.awardActivity || !LEVELS.length) return;
 
-  const VERSION = "0.31.4cq";
+  const VERSION = "0.31.4dz28";
   const SCHEMA = 1;
   const TOTAL = 50;
   const REPEAT_SCALES = [1, .75, .5, .35];
@@ -22,7 +22,7 @@
     daily:byId("nonogramDailyCard"), progress:byId("nonogramJourneyProgress"), levels:byId("nonogramLevelGrid"),
     play:byId("nonogramPlayPanel"), result:byId("nonogramResult"),
     board:byId("nonogramBoard"), tools:byId("nonogramTools"), status:byId("nonogramStatus"), check:byId("nonogramCheckButton"),
-    undo:byId("nonogramUndoButton"), reset:byId("nonogramResetButton"), growthStats:byId("nonogramGrowthStats"), trainingStats:byId("trainingGroundsNonogramStatus"), quickStatus:byId("nonogramQuickStatus")
+    undo:byId("nonogramUndoButton"), checkpoint:byId("nonogramCheckpointButton"), restore:byId("nonogramRestoreButton"), reset:byId("nonogramResetButton"), growthStats:byId("nonogramGrowthStats"), trainingStats:byId("trainingGroundsNonogramStatus"), quickStatus:byId("nonogramQuickStatus")
   };
   let mode="fill";
   init();
@@ -33,14 +33,19 @@
   function state(){return ensureState();}
   function levelDef(level){return LEVELS.find(item=>Number(item.level)===Number(level))||null;}
   function tier(level){return Math.min(5,Math.max(1,Math.ceil(Number(level||1)/10)));}
-  function normalizeActive(a){if(!a||typeof a!=="object")return null;const def=levelDef(a.level);if(!def)return null;const cells=def.size*def.size;const history=Array.isArray(a.history)?a.history.map(entry=>normalizeHistoryEntry(entry,cells)).filter(Boolean):[];return{...a,id:a.id||`nonogram-l${def.level}`,level:def.level,size:def.size,solution:def.solution,marks:Array.isArray(a.marks)&&a.marks.length===cells?a.marks.map(v=>[0,1,2].includes(Number(v))?Number(v):0):Array(cells).fill(0),history,replay:Boolean(a.replay),createdAt:Number(a.createdAt||Date.now()),updatedAt:Number(a.updatedAt||a.createdAt||Date.now()),completedAt:a.completedAt?Number(a.completedAt):null,rewardEventId:a.rewardEventId||null};}
+  function normalizeActive(a){if(!a||typeof a!=="object")return null;const def=levelDef(a.level);if(!def)return null;const cells=def.size*def.size;const history=Array.isArray(a.history)?a.history.map(entry=>normalizeHistoryEntry(entry,cells)).filter(Boolean):[];return{...a,id:a.id||`nonogram-l${def.level}`,level:def.level,size:def.size,solution:def.solution,marks:Array.isArray(a.marks)&&a.marks.length===cells?a.marks.map(v=>[0,1,2].includes(Number(v))?Number(v):0):Array(cells).fill(0),history,checkpoint:normalizeCheckpoint(a.checkpoint,cells),replay:Boolean(a.replay),createdAt:Number(a.createdAt||Date.now()),updatedAt:Number(a.updatedAt||a.createdAt||Date.now()),completedAt:a.completedAt?Number(a.completedAt):null,rewardEventId:a.rewardEventId||null};}
+  function normalizeCheckpoint(raw,cells){
+    if(!raw||!Array.isArray(raw.marks)||raw.marks.length!==cells)return null;
+    if(!raw.marks.every(v=>[0,1,2].includes(v)))return null;
+    return{marks:raw.marks.slice(),at:Number(raw.at)||Date.now()};
+  }
   function normalizeHistoryEntry(entry,cells){if(!Array.isArray(entry)||!entry.length)return null;const index=Number(entry[0]);if(index===-1){if(entry.length!==cells+1)return null;const marks=entry.slice(1).map(v=>[0,1,2].includes(Number(v))?Number(v):0);return[-1,...marks];}const previous=Number(entry[1]);if(!Number.isInteger(index)||index<0||index>=cells||![0,1,2].includes(previous))return null;return[index,previous];}
   function completedSet(){return new Set(state().journey.completedLevels);}
   function nextLevel(){for(let i=1;i<=TOTAL;i++)if(!completedSet().has(i))return i;return null;}
   function persist(source="nonogram"){app.saveState({source});render();app.renderAll?.();}
 
   function bind(){
-    els.close?.addEventListener("click",close);els.check?.addEventListener("click",check);els.undo?.addEventListener("click",undoCurrent);els.reset?.addEventListener("click",resetCurrent);
+    els.close?.addEventListener("click",close);els.check?.addEventListener("click",check);els.undo?.addEventListener("click",undoCurrent);els.checkpoint?.addEventListener("click",saveCheckpoint);els.restore?.addEventListener("click",restoreCheckpoint);els.reset?.addEventListener("click",resetCurrent);
     document.addEventListener("keydown",event=>{if(!(event.metaKey||event.ctrlKey)||event.altKey||event.key.toLowerCase()!=="z"||event.shiftKey)return;const active=current();const inNonogram=Boolean(els.dialog?.open||window.LifeRPGTrainingFocus?.isActive?.("nonogram"));if(!active||active.completedAt||!inNonogram)return;event.preventDefault();undoCurrent();});
     document.addEventListener("click",event=>{
       const open=event.target.closest?.("[data-nonogram-open]");if(open){event.preventDefault();openDialog();return;}
@@ -56,7 +61,7 @@
 
   function openDialog(){render();if(!els.dialog.open)els.dialog.showModal();}
   function close(){if(els.dialog.open)els.dialog.close();}
-  function startLevel(level,{replay=false}={}){const def=levelDef(level);if(!def)return;const allowed=level<=1||completedSet().has(level)||completedSet().has(level-1);if(!allowed)return;const existing=current();if(existing&&!existing.completedAt&&existing.level===level&&Boolean(existing.replay)===Boolean(replay)){clearLocalResult();render();enterFocus(existing);return;}clearLocalResult();state().journey.active={id:`nonogram-l${level}${replay?"-replay":""}`,level,size:def.size,solution:def.solution,marks:Array(def.size*def.size).fill(0),history:[],replay:Boolean(replay),createdAt:Date.now(),updatedAt:Date.now(),completedAt:null,rewardEventId:null};mode="fill";persist("nonogram-start");enterFocus(current());}
+  function startLevel(level,{replay=false}={}){const def=levelDef(level);if(!def)return;const allowed=level<=1||completedSet().has(level)||completedSet().has(level-1);if(!allowed)return;const existing=current();if(existing&&!existing.completedAt&&existing.level===level&&Boolean(existing.replay)===Boolean(replay)){clearLocalResult();render();enterFocus(existing);return;}clearLocalResult();state().journey.active={id:`nonogram-l${level}${replay?"-replay":""}`,level,size:def.size,solution:def.solution,marks:Array(def.size*def.size).fill(0),history:[],checkpoint:null,replay:Boolean(replay),createdAt:Date.now(),updatedAt:Date.now(),completedAt:null,rewardEventId:null};mode="fill";persist("nonogram-start");enterFocus(current());}
   function current(){return state().journey.active;}
 
   function render(){renderGrowth();renderDaily();renderProgress();renderLevels();renderTools();renderBoard();renderResult();syncFocusHeader();}
@@ -71,7 +76,7 @@
   function renderProgress(){if(!els.progress)return;const n=state().journey.completedLevels.length,p=Math.round(n/TOTAL*100);els.progress.innerHTML=`<div><span><strong>${n}/${TOTAL}</strong> completed</span><span>${p}%</span></div><div class="bar"><span style="width:${p}%"></span></div>`;}
   function renderLevels(){if(!els.levels)return;const set=completedSet(),next=nextLevel();els.levels.innerHTML=Array.from({length:TOTAL},(_,i)=>i+1).map(level=>{const done=set.has(level),unlocked=done||level===1||set.has(level-1);const active=current()?.level===level&&!current()?.completedAt;return`<button type="button" data-nonogram-level="${level}" ${unlocked?"":"disabled"} class="${done?"done":""} ${active?"active":""}"><span>${done?"✓":active?"▶":unlocked?level:"🔒"}</span><small>${levelDef(level).size}×${levelDef(level).size}</small></button>`;}).join("");}
   function renderTools(){if(!els.tools)return;els.tools.querySelectorAll?.("[data-nonogram-tool]").forEach(btn=>btn.classList.toggle("active",btn.dataset.nonogramTool===mode));}
-  function renderBoard(){if(!els.board)return;const a=current();if(!a){if(els.check)els.check.disabled=true;if(els.reset)els.reset.disabled=true;els.board.innerHTML=`<div class="nonogram-empty-v314k"><span>◩</span><strong>Your next picture puzzle is waiting.</strong><p>Fill cells from the row and column clues. Mark impossible cells with ×.</p><button class="primary-button" type="button" data-nonogram-daily-start>Start Level ${nextLevel()||TOTAL}</button></div>`;updateStatus(null);return;}if(els.check)els.check.disabled=Boolean(a.completedAt);if(els.undo)els.undo.disabled=Boolean(a.completedAt)||!(a.history?.length);if(els.reset)els.reset.disabled=Boolean(a.completedAt);const rc=computeClues(a.solution,a.size,true),cc=computeClues(a.solution,a.size,false);const maxRow=Math.max(...rc.map(c=>c.length)),maxCol=Math.max(...cc.map(c=>c.length));els.board.style.setProperty("--nonogram-size",a.size);els.board.style.setProperty("--nonogram-row-clues",maxRow);els.board.style.setProperty("--nonogram-col-clues",maxCol);els.board.innerHTML=`<div class="nonogram-corner-v314k"></div><div class="nonogram-col-clues-v314k">${cc.map((clue,c)=>`<div data-nonogram-col-clue="${c}">${clue.map(n=>`<span>${n}</span>`).join("")}</div>`).join("")}</div><div class="nonogram-row-clues-v314k">${rc.map((clue,r)=>`<div data-nonogram-row-clue="${r}">${clue.map(n=>`<span>${n}</span>`).join("")}</div>`).join("")}</div><div class="nonogram-grid-v314k">${a.marks.map((mark,index)=>`<button type="button" data-nonogram-cell="${index}" class="${mark===1?"filled":mark===2?"crossed":""}" aria-label="Row ${Math.floor(index/a.size)+1}, column ${index%a.size+1}">${mark===2?"×":""}</button>`).join("")}</div>`;updateClueCompletion(a,rc,cc);updateStatus(a);}
+  function renderBoard(){if(!els.board)return;const a=current();if(!a){if(els.check)els.check.disabled=true;if(els.reset)els.reset.disabled=true;if(els.checkpoint)els.checkpoint.disabled=true;if(els.restore)els.restore.disabled=true;els.board.innerHTML=`<div class="nonogram-empty-v314k"><span>◩</span><strong>Your next picture puzzle is waiting.</strong><p>Fill cells from the row and column clues. Mark impossible cells with ×.</p><button class="primary-button" type="button" data-nonogram-daily-start>Start Level ${nextLevel()||TOTAL}</button></div>`;updateStatus(null);return;}if(els.check)els.check.disabled=Boolean(a.completedAt);if(els.undo)els.undo.disabled=Boolean(a.completedAt)||!(a.history?.length);if(els.reset)els.reset.disabled=Boolean(a.completedAt);if(els.checkpoint)els.checkpoint.disabled=Boolean(a.completedAt);if(els.restore)els.restore.disabled=Boolean(a.completedAt)||!a.checkpoint;const rc=computeClues(a.solution,a.size,true),cc=computeClues(a.solution,a.size,false);const maxRow=Math.max(...rc.map(c=>c.length)),maxCol=Math.max(...cc.map(c=>c.length));els.board.style.setProperty("--nonogram-size",a.size);els.board.style.setProperty("--nonogram-row-clues",maxRow);els.board.style.setProperty("--nonogram-col-clues",maxCol);els.board.innerHTML=`<div class="nonogram-corner-v314k"></div><div class="nonogram-col-clues-v314k">${cc.map((clue,c)=>`<div data-nonogram-col-clue="${c}">${clue.map(n=>`<span>${n}</span>`).join("")}</div>`).join("")}</div><div class="nonogram-row-clues-v314k">${rc.map((clue,r)=>`<div data-nonogram-row-clue="${r}">${clue.map(n=>`<span>${n}</span>`).join("")}</div>`).join("")}</div><div class="nonogram-grid-v314k">${a.marks.map((mark,index)=>`<button type="button" data-nonogram-cell="${index}" class="${mark===1?"filled":mark===2?"crossed":""}" aria-label="Row ${Math.floor(index/a.size)+1}, column ${index%a.size+1}">${mark===2?"×":""}</button>`).join("")}</div>`;updateClueCompletion(a,rc,cc);updateStatus(a);}
 
   function enterFocus(a=current()){if(!a||!els.play||!window.LifeRPGTrainingFocus?.enter)return false;if(els.dialog?.open)els.dialog.close();return window.LifeRPGTrainingFocus.enter({id:"nonogram",node:els.play,title:`Nonogram Journey · Level ${a.level}`,subtitle:`${a.size}×${a.size} · ${TIERS[tier(a.level)].label}${a.replay?" · Replay":""}`,tone:"light",onExit:()=>{render();if(els.dialog&&!els.dialog.open)els.dialog.showModal();}});}
   function syncFocusHeader(){const a=current();if(!a||!window.LifeRPGTrainingFocus?.isActive?.("nonogram"))return;window.LifeRPGTrainingFocus.update({title:`Nonogram Journey · Level ${a.level}`,subtitle:a.completedAt?"Solved ✓":`${a.size}×${a.size} · ${TIERS[tier(a.level)].label}${a.replay?" · Replay":""}`});}
@@ -83,10 +88,64 @@
   function applyCell(index,forcedMode=null){const a=current();if(!a||a.completedAt||index<0||index>=a.marks.length)return;const selected=forcedMode||mode;const before=a.marks[index];let after=before;if(selected==="fill")after=before===1?0:1;else if(selected==="cross")after=before===2?0:2;else after=0;if(after===before)return;a.history=Array.isArray(a.history)?a.history:[];a.history.push([index,before]);a.marks[index]=after;a.updatedAt=Date.now();app.saveState({source:"nonogram-progress"});renderBoard();}
   function undoCurrent(){const a=current();if(!a||a.completedAt||!Array.isArray(a.history)||!a.history.length)return;const entry=a.history.pop();if(entry[0]===-1){a.marks=entry.slice(1);}else{a.marks[entry[0]]=entry[1];}a.updatedAt=Date.now();app.saveState({source:"nonogram-undo"});clearLocalResult();renderBoard();}
   function resetCurrent(){const a=current();if(!a||a.completedAt)return;if(!window.confirm("Clear your marks on this Nonogram level?"))return;if(a.marks.every(v=>v===0))return;a.history=Array.isArray(a.history)?a.history:[];a.history.push([-1,...a.marks]);a.marks=Array(a.size*a.size).fill(0);a.updatedAt=Date.now();persist("nonogram-reset");}
-  function updateClueCompletion(a,rc,cc){for(let r=0;r<a.size;r++){const marks=a.marks.slice(r*a.size,(r+1)*a.size).map(v=>v===1?1:0),got=clueFromMarks(marks);els.board.querySelector(`[data-nonogram-row-clue="${r}"]`)?.classList.toggle("complete",sameClue(got,rc[r]));}for(let c=0;c<a.size;c++){const marks=[];for(let r=0;r<a.size;r++)marks.push(a.marks[r*a.size+c]===1?1:0);els.board.querySelector(`[data-nonogram-col-clue="${c}"]`)?.classList.toggle("complete",sameClue(clueFromMarks(marks),cc[c]));}}
+  function saveCheckpoint(){
+    const a=current();if(!a||a.completedAt)return;
+    a.checkpoint={marks:[...a.marks],at:Date.now()};a.updatedAt=Date.now();
+    app.saveState({source:"nonogram-checkpoint"});clearLocalResult();renderBoard();
+    app.showToast?.("◈ Versuchspunkt gespeichert. Dein aktuelles Brett bleibt erhalten.");
+  }
+  function restoreCheckpoint(){
+    const a=current();if(!a||a.completedAt||!a.checkpoint)return;
+    // Atomic undo permits one-step recovery from the restore; never truncate
+    // the existing unlimited history or overwrite the saved checkpoint.
+    if(a.marks.every((v,i)=>v===a.checkpoint.marks[i]))return;
+    a.history.push([-1,...a.marks]);a.marks=[...a.checkpoint.marks];
+    a.updatedAt=Date.now();clearLocalResult();persist("nonogram-checkpoint-restore");
+    app.showToast?.("◈ Zurück zum Versuchspunkt. Undo kann die Rückkehr rückgängig machen.");
+  }
+  // A line is contradictory ONLY if there is no possible arrangement of its
+  // clue runs that respects all known filled (1) and crossed (2) cells.
+  // This never consults the hidden solution pattern; partial rows stay neutral.
+  function feasibleLine(clues,line){
+    const runs=clues.length===1&&clues[0]===0?[]:clues;
+    if(!runs.length)return !line.includes(1);
+    const n=line.length,memo=new Map();
+    function visit(k,from){
+      const key=k+":"+from;if(memo.has(key))return memo.get(key);
+      if(k===runs.length)return !line.slice(from).includes(1);
+      const needed=runs.slice(k).reduce((s,x)=>s+x,0)+(runs.length-k-1);
+      for(let start=from;start+needed<=n;start++){
+        if(line.slice(from,start).includes(1))break;
+        const len=runs[k];
+        if(line.slice(start,start+len).includes(2))continue;
+        if(k<runs.length-1){
+          if(line[start+len]===1)continue;
+          if(visit(k+1,start+len+1)){memo.set(key,true);return true;}
+        }else if(!line.slice(start+len).includes(1)){
+          memo.set(key,true);return true;
+        }
+      }
+      memo.set(key,false);return false;
+    }
+    return visit(0,0);
+  }
+  function updateClueCompletion(a,rc,cc){
+    for(let r=0;r<a.size;r++){
+      const line=a.marks.slice(r*a.size,(r+1)*a.size),got=clueFromMarks(line.map(v=>v===1?1:0));
+      const node=els.board.querySelector(`[data-nonogram-row-clue="${r}"]`);
+      node?.classList.toggle("complete",sameClue(got,rc[r])&&feasibleLine(rc[r],line));
+      node?.classList.toggle("contradiction",!feasibleLine(rc[r],line));
+    }
+    for(let c=0;c<a.size;c++){
+      const line=Array.from({length:a.size},(_,r)=>a.marks[r*a.size+c]);
+      const node=els.board.querySelector(`[data-nonogram-col-clue="${c}"]`);
+      node?.classList.toggle("complete",sameClue(clueFromMarks(line.map(v=>v===1?1:0)),cc[c])&&feasibleLine(cc[c],line));
+      node?.classList.toggle("contradiction",!feasibleLine(cc[c],line));
+    }
+  }
   function clueFromMarks(line){const out=[];let run=0;for(const v of line){if(v)run++;else if(run){out.push(run);run=0;}}if(run)out.push(run);return out.length?out:[0];}
   function sameClue(a,b){return a.length===b.length&&a.every((v,i)=>v===b[i]);}
-  function updateStatus(a){if(!els.status)return;if(!a){els.status.textContent="Choose your next Journey level to begin.";return;}const filled=a.marks.filter(v=>v===1).length,totalOn=[...a.solution].filter(v=>v==="1").length;const undoCount=Array.isArray(a.history)?a.history.length:0;els.status.textContent=a.completedAt?`Level ${a.level} complete ✓`:`Level ${a.level} · ${a.size}×${a.size} · ${filled}/${totalOn} filled cells placed · ${undoCount} undo step${undoCount===1?"":"s"}`;}
+  function updateStatus(a){if(!els.status)return;if(!a){els.status.textContent="Choose your next Journey level to begin.";return;}const filled=a.marks.filter(v=>v===1).length,totalOn=[...a.solution].filter(v=>v==="1").length;const undoCount=Array.isArray(a.history)?a.history.length:0;els.status.textContent=a.completedAt?`Level ${a.level} complete ✓`:`Level ${a.level} · ${a.size}×${a.size} · ${filled}/${totalOn} filled cells placed · ${undoCount} undo step${undoCount===1?"":"s"}${a.checkpoint?" · ◈ Versuchspunkt gespeichert":""}`;}
 
   function check(){const a=current();if(!a||a.completedAt)return;const correct=a.marks.every((mark,i)=>(mark===1)===(a.solution[i]==="1"));if(!correct){showLocalResult("error","Not quite yet","At least one filled cell is missing or misplaced. Keep working from the row and column clues — your current grid is saved.");els.board?.classList.add("shake-v314k");setTimeout(()=>els.board?.classList.remove("shake-v314k"),350);return;}complete(a);}
   function complete(a){
@@ -130,5 +189,5 @@
   function byId(id){return document.getElementById(id);}
   function escapeHtml(v){return String(v??"").replace(/[&<>'"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[c]));}
 
-  window.LifeRPGNonogram={version:VERSION,open:openDialog,startNext:()=>startLevel(nextLevel()||TOTAL,{replay:!nextLevel()}),getProgress:()=>({completed:state().journey.completedLevels.length,total:TOTAL,next:nextLevel(),active:current()?.level||null})};
+  window.LifeRPGNonogram={version:VERSION,_test:{feasibleLine},open:openDialog,startNext:()=>startLevel(nextLevel()||TOTAL,{replay:!nextLevel()}),getProgress:()=>({completed:state().journey.completedLevels.length,total:TOTAL,next:nextLevel(),active:current()?.level||null})};
 })();

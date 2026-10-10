@@ -1,10 +1,10 @@
-const CACHE_NAME = "life-rpg-v0314dz27-school-todoist-link";
+const CACHE_NAME = "life-rpg-v0314dz28-play-qol";
 const ASSET_CACHE_NAME = "life-rpg-assets-v6";
 const MAX_RUNTIME_ASSETS = 96;
 const CORE = [
-  "./todoist-sync.js?v=0.31.4dz27",
-  "./todoist-sync.css?v=0.31.4dz27",
-  "./holiday-planner.js?v=0.31.4dz23d",
+  "./todoist-sync.js?v=0.31.4dz28",
+  "./todoist-sync.css?v=0.31.4dz28",
+  "./holiday-planner.js?v=0.31.4dz28",
   "./holiday-planner.css?v=0.31.4dz23d",
   "./knowledge-practice.js?v=0.31.4dz22",
   "./knowledge-practice.css?v=0.31.4dz22",
@@ -12,6 +12,10 @@ const CORE = [
   "./work-event-cloud.js?v=0.31.4dz24",
   "./",
   "./index.html",
+  "./play-qol-dz28.css?v=0.31.4dz28",
+  "./nonogram.js?v=0.31.4dz28",
+  "./sudoku.js?v=0.31.4dz28",
+  "./focus-dock.js?v=0.31.4dz28",
   "./life-hub-v314dk.js?v=0.31.4dz23c",
   "./creative-hub-v314dl.js?v=0.31.4dz19",
   "./creative-hub-v314dl.css?v=0.31.4dz19",
@@ -154,7 +158,7 @@ const CORE = [
   "./weekly-review.css?v=0.31.4ag",
   "./weekly-review.js?v=0.31.4ag",
   "./manifest.webmanifest?v=0.30.3a",
-  "./pwa.js?v=0.31.4dz23c",
+  "./pwa.js?v=0.31.4dz28",
   "./focus-dock.css?v=0.31.4dz16",
   "./focus-dock.js?v=0.31.4dz16",
   "./visual-performance.js?v=0.31.4bu",

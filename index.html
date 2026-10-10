@@ -15,6 +15,7 @@
   <link rel="apple-touch-icon" href="assets/app-icon-180.png?v=0.30.3a" />
   <link rel="icon" type="image/png" sizes="192x192" href="assets/app-icon-192.png?v=0.30.3a" />
   <link rel="stylesheet" href="styles.css?v=0.31.4cr" />
+  <link rel="stylesheet" href="play-qol-dz28.css?v=0.31.4dz28" />
   <link rel="stylesheet" href="ui-chrome.css?v=0.31.4dz19" />
   <link rel="stylesheet" href="my-week.css?v=0.31.4cu" />
   <link rel="stylesheet" href="skills.css?v=0.31.4dz25" />
@@ -52,7 +53,7 @@
   <link rel="stylesheet" href="dashboard-v2.css?v=0.31.4dz18" />
   <link rel="stylesheet" href="knowledge-practice.css?v=0.31.4dz22" />
   <link rel="stylesheet" href="holiday-planner.css?v=0.31.4dz23d" />
-  <link rel="stylesheet" href="todoist-sync.css?v=0.31.4dz27" />
+  <link rel="stylesheet" href="todoist-sync.css?v=0.31.4dz28" />
 </head>
 <body>
   <section id="mobileCloudGate" class="mobile-cloud-gate-v251" data-state="checking" aria-live="polite" aria-label="Life RPG cloud sign in">
@@ -2755,6 +2756,7 @@ League of Legends — PC" required></textarea></label>
       <section class="nonogram-level-map-v314k" aria-labelledby="nonogramLevelMapTitle"><div class="sudoku-section-title-v314h"><div><small>LEVEL MAP</small><strong id="nonogramLevelMapTitle">Chapter 1 · Levels 1–50</strong></div><span>5×5 → 7×7 → 10×10 · completed levels can be replayed.</span></div><div id="nonogramLevelGrid" class="nonogram-level-grid-v314k"></div></section>
       <section id="nonogramPlayPanel" class="training-play-panel-v314o nonogram-play-panel-v314o" data-training-play-panel>
         <div id="nonogramTools" class="nonogram-tools-v314k" aria-label="Nonogram drawing mode"><button class="active" data-nonogram-tool="fill" type="button">■ Fill</button><button data-nonogram-tool="cross" type="button">× Mark empty</button><button data-nonogram-tool="clear" type="button">○ Clear</button><small>Tip: right-click a cell to mark ×.</small></div>
+        <div class="nonogram-checkpoints-dz28"><button type="button" id="nonogramCheckpointButton">◈ Versuchspunkt setzen</button><button type="button" id="nonogramRestoreButton" disabled>↩ Zum Versuchspunkt</button><small>Rot = dieser Zeile/Spalte widersprechen die Markierungen sicher.</small></div>
         <div id="nonogramResult" class="training-result-v314o hidden" aria-live="polite"></div>
         <div id="nonogramBoard" class="nonogram-board-v314k"></div>
         <p id="nonogramStatus" class="sudoku-status-v310" aria-live="polite"></p>
@@ -3369,9 +3371,9 @@ League of Legends — PC" required></textarea></label>
   <script src="universal-timers.js?v=0.31.4cr"></script>
   <script src="inspirations.js?v=0.31.4c"></script>
   <script src="data/sudoku-levels.js?v=0.31.4h"></script>
-  <script src="sudoku.js?v=0.31.4z"></script>
+  <script src="sudoku.js?v=0.31.4dz28"></script>
   <script src="data/nonogram-levels.js?v=0.31.4k"></script>
-  <script src="nonogram.js?v=0.31.4cq"></script>
+  <script src="nonogram.js?v=0.31.4dz28"></script>
   <script src="data/number-sense-levels.js?v=0.31.4l"></script>
   <script src="number-sense.js?v=0.31.4z"></script>
   <script src="recovery-studio.js?v=0.31.4dz4"></script>
@@ -3383,8 +3385,8 @@ League of Legends — PC" required></textarea></label>
   <script src="smart-action-router.js?v=0.31.4dz4"></script>
   <script src="smart-quests.js?v=0.31.0"></script>
   <script src="japanese-practice-library.js?v=0.31.4dz4"></script>
-  <script src="todoist-sync.js?v=0.31.4dz27"></script>
-  <script src="holiday-planner.js?v=0.31.4dz23d"></script>
+  <script src="todoist-sync.js?v=0.31.4dz28"></script>
+  <script src="holiday-planner.js?v=0.31.4dz28"></script>
   <script src="daily.js?v=0.31.4dz23b"></script>
   <script src="data/year-journal-questions.js?v=0.31.4ar"></script>
   <script src="journal.js?v=0.31.4do"></script>
@@ -3421,7 +3423,7 @@ League of Legends — PC" required></textarea></label>
   <script src="sound-garden.js?v=0.31.4dz13"></script>
   <script src="sound-garden-library.js?v=0.31.4dz13"></script>
   <script type="module" src="cloud-save.js?v=0.31.4dz24"></script>
-  <script src="pwa.js?v=0.31.4dz23c"></script>
+  <script src="pwa.js?v=0.31.4dz28"></script>
   <script src="life-hub-v314dk.js?v=0.31.4dz23c"></script>
   <script src="creative-hub-v314dl.js?v=0.31.4dz19"></script>
   <script src="knowledge-workshop.js?v=0.31.4do"></script>

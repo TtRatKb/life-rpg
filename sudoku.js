@@ -253,6 +253,7 @@
       app.saveState({ source: "sudoku-progress" });
       validateCell(input, current, index, false);
       updateStatus(current);
+      updateDigitCounts(current);
     });
 
     els.board?.addEventListener("keydown", event => {
@@ -657,6 +658,12 @@
     return { mode: "journey", level: next, tier: Number(def?.tier || tierForLevel(next)), difficulty: tierMeta(def?.tier || tierForLevel(next)).difficulty, replay: false };
   }
 
+  function updateDigitCounts(current){
+    const strip=document.getElementById("sudokuDigitCountsDz28");
+    if(!strip||!current)return;
+    const counts=Array.from({length:9},(_,i)=>current.values.filter(v=>Number(v)===i+1).length);
+    strip.innerHTML=counts.map((count,i)=>`<span class="${count===9?'complete':count>9?'excess':''}" title="${count} von 9 eingetragen · keine Richtigkeitsprüfung" aria-label="Zahl ${i+1}: ${count} von 9 eingetragen">${i+1}<small>${count}/9</small></span>`).join("");
+  }
   function renderBoard(current) {
     if (!els.board) return;
     const next = nextJourneyLevel();
@@ -666,6 +673,7 @@
       if (els.meta) els.meta.textContent = activeMode === "journey" ? `Knowledge Realm · Logical Thinking · Chapter 1` : "Knowledge Realm · Logical Thinking · Practice Mode";
       if (els.status) els.status.textContent = activeMode === "journey" ? `${journeyCompletedCount()}/${JOURNEY_TOTAL} Journey levels complete` : "Practice puzzles save automatically as you play.";
       setActionDisabled(true);
+      document.getElementById("sudokuDigitCountsDz28")?.remove();
       return;
     }
 
@@ -676,6 +684,9 @@
       ? `Knowledge Realm · Logical Thinking · Chapter 1 · ${meta.label}${current.replay ? " · Replay" : ""}`
       : `Knowledge Realm · Logical Thinking · Practice Mode · progress saves automatically`;
 
+    let strip=document.getElementById("sudokuDigitCountsDz28");
+    if(!strip){strip=document.createElement("div");strip.id="sudokuDigitCountsDz28";strip.className="sudoku-digit-counts-dz28";els.board.before(strip);}
+    updateDigitCounts(current);
     els.board.innerHTML = current.puzzle.map((given, index) => {
       const value = current.values[index] || "";
       const row = Math.floor(index / 9);

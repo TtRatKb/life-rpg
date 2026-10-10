@@ -1,0 +1,16 @@
+/* DZ28 · Nonogram feasibility/branch checkpoint + Sudoku digit counter */
+.nonogram-tools-v314k{flex-wrap:wrap}
+.nonogram-checkpoints-dz28{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin:9px 0}
+.nonogram-checkpoints-dz28 button{padding:7px 11px;border-radius:11px;border:1px solid #d9bdd0;background:#fff9fc;color:#674258;font:inherit;font-size:.85rem;cursor:pointer}
+.nonogram-checkpoints-dz28 button:disabled{opacity:.45;cursor:default}
+.nonogram-row-clues-v314k>div.contradiction,.nonogram-col-clues-v314k>div.contradiction{background:#ffe1e3;color:#ad183c!important;border-radius:6px;text-decoration:none!important;box-shadow:inset 0 0 0 1px #ee9cae}
+.sudoku-digit-counts-dz28{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:4px;max-width:min(78vw,450px);margin:8px auto 0}
+.sudoku-digit-counts-dz28 span{display:flex;flex-direction:column;align-items:center;justify-content:center;background:#fff8fc;border:1px solid #e5ccdb;border-radius:7px;padding:4px 1px;color:#5d3652;font-weight:750;font-size:.94rem;line-height:1.15}
+.sudoku-digit-counts-dz28 small{color:#9b8290;font-size:.60rem}
+.sudoku-digit-counts-dz28 span.complete{background:#dff4e8;border-color:#84c79f;color:#216542}
+.sudoku-digit-counts-dz28 span.complete small{color:#216542}
+.sudoku-digit-counts-dz28 span.excess{background:#ffe3e5;border-color:#de8a9d;color:#982742}
+@media(max-width:600px){.sudoku-digit-counts-dz28{max-width:min(89vw,450px);gap:2px}.nonogram-checkpoints-dz28 button{flex:1}}
+
+/* Holiday–Library book link */
+.break-native-link-dz28{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:.74rem;color:#74566b;padding:4px 0}.break-native-link-dz28 select{padding:6px;border:1px solid #dfc4d6;border-radius:8px;max-width:240px;background:#fff}
