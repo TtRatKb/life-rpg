@@ -739,3 +739,7 @@
   #skillsTalentSkillRailHeadV314dz21 { flex-direction: column; }
   .skill-training-action-top-v314dz21 { flex-direction: row; align-items: center; }
 }
+
+/* DZ25: clarify selected Skill and its actions; no secondary Skill taxonomy. */
+.skill-training-help-dz25 { margin: 3px 0 12px; color: #826b7d; font-size: .80rem; line-height: 1.45; }
+.skill-training-progress-v314dz20 small { overflow-wrap: anywhere; }

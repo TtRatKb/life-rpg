@@ -7,7 +7,7 @@
     return;
   }
 
-  const VERSION = "0.31.4dz22";
+  const VERSION = "0.31.4dz25";
   const SCHEMA = 1;
   const MAX_EVENTS = 6000;
   const HABIT_XP = { tiny: 3, low: 5, normal: 8, high: 12, boss: 18 };
@@ -62,22 +62,21 @@
 
   const TRAINING_ACTIONS = {
     "teaching-facilitation": [
-      trainingAction("↗", "Schulcockpit", "Arbeite im Schulcockpit; verbinde echte Abschlüsse mit diesem Work-Skill.", () => window.LifeRPGWorkBridge?.open?.(), "linked"),
       trainingAction("🧑‍🏫", "Unterricht / Vertretung", "Öffne Meine Woche und erfasse einen tatsächlich gehaltenen Unterrichtsblock.", () => openWeekLog(), "guided"),
       trainingAction("✦", "School Moments", "Kurze Teaching-Life-Entscheidungen, wenn der Talent-Unlock bereits da ist.", () => window.LifeRPGTalentV3?.open?.("school-moments"), "native")
     ],
     "lesson-design-preparation": [
-      trainingAction("↗", "Schulcockpit", "Arbeite im Schulcockpit; verbinde echte Abschlüsse mit diesem Work-Skill.", () => window.LifeRPGWorkBridge?.open?.(), "linked"),
+      trainingAction("↗", "Schulcockpit · Unterrichtsplanung", "Gespeicherte und abgeschlossene Unterrichtsplanungen werden diesem Skill einmalig zugeordnet.", () => window.LifeRPGWorkBridge?.open?.(), "linked"),
       trainingAction("🗂️", "Unterricht vorbereiten", "Logge echte Vorbereitungszeit in Meine Woche.", () => openWeekLog(), "guided"),
       trainingAction("🎯", "Focus-Block starten", "Ein echter Vorbereitungsblock trainiert den Skill über die geloggte Zeit.", () => window.LifeRPGTime?.startFocus?.({ categoryId:"work_home", subcategory:"Preparation", label:"Lesson preparation", minutes:35 }), "guided")
     ],
     "assessment-feedback": [
-      trainingAction("↗", "Schulcockpit", "Arbeite im Schulcockpit; verbinde echte Abschlüsse mit diesem Work-Skill.", () => window.LifeRPGWorkBridge?.open?.(), "linked"),
+      trainingAction("↗", "Schulcockpit · Reflexion & Analyse", "Abgeschlossene Unterrichtsreflexionen und Prüfungsanalysen trainieren Assessment & Feedback.", () => window.LifeRPGWorkBridge?.open?.(), "linked"),
       trainingAction("✓", "Korrekturen loggen", "Öffne Meine Woche und erfasse echte Korrekturzeit.", () => openWeekLog(), "guided"),
       trainingAction("🎯", "Correction Focus", "Starte einen konzentrierten Korrekturblock.", () => window.LifeRPGTime?.startFocus?.({ categoryId:"work_home", subcategory:"Corrections", label:"Assessment & feedback", minutes:35 }), "guided")
     ],
     "professional-organization": [
-      trainingAction("↗", "Schulcockpit", "Arbeite im Schulcockpit; verbinde echte Abschlüsse mit diesem Work-Skill.", () => window.LifeRPGWorkBridge?.open?.(), "linked"),
+      trainingAction("↗", "Schulcockpit · Materialorganisation", "Abgeschlossene Material- und Druckvorbereitung zählt als Professional Organization.", () => window.LifeRPGWorkBridge?.open?.(), "linked"),
       trainingAction("🧾", "Work Deep Brief", "Eine kurze native Work-Reflexion direkt in Life RPG schreiben und speichern.", () => window.LifeRPGTalentContentV2?.open?.("work-debrief"), "native"),
       trainingAction("📋", "Schulorganisation", "Konferenzen, Administration und echte Orga-Zeit in Meine Woche erfassen.", () => openWeekLog(), "guided"),
       trainingAction("🗓️", "Meine Woche", "Öffne deinen Wochenplan und logge reale Organisationsarbeit.", () => app.showView?.("week"))
@@ -683,7 +682,7 @@
     if (source === "knowledge-practice-recall") return nativeSkill("memory-recall", Math.max(0, Math.min(8, Number(reward.metadata?.skillXP || 0))), source);
     if (source === "knowledge-practice-explain") return nativeSkill("learning-inquiry", Math.max(0, Math.min(6, Number(reward.metadata?.skillXP || 0))), source);
     if (source === "schulcockpit-completion") {
-      const map = {"lesson-prepared":"lesson-design-preparation","lesson-reflected":"teaching-facilitation","preparation-completed":"professional-organization","assessment-analyzed":"assessment-feedback"};
+      const map = {"lesson-prepared":"lesson-design-preparation","lesson-reflected":"assessment-feedback","preparation-completed":"professional-organization","assessment-analyzed":"assessment-feedback"};
       const id = map[reward.metadata?.bridgeType];
       if (id) return nativeSkill(id, Math.max(0, Math.min(4, Number(reward.metadata?.skillXP || 0))), source);
     }
@@ -1064,7 +1063,7 @@
   function skillProgressMarkup(item, info, compact = false) {
     const remaining = Math.max(0, Number(info.required || 0) - Number(info.intoLevel || 0));
     return `<section class="skill-training-progress-v314dz20 ${compact ? "is-compact-v314dz21" : ""}">
-      <div><span>${item.icon}</span><div><small>${esc(item.realm)} · LEVEL ${info.level}</small><strong>${formatXp(info.intoLevel)} / ${formatXp(info.required)} Skill XP</strong><p>${formatXp(remaining)} XP until Level ${info.level + 1} and another Talent Point contribution.</p></div></div>
+      <div><span>${item.icon}</span><div><small>SELECTED SKILL · ${esc(item.label)} · LV. ${info.level}</small><strong>${formatXp(info.intoLevel)} / ${formatXp(info.required)} Skill XP</strong><p>${formatXp(remaining)} XP until Level ${info.level + 1} and another Talent Point contribution.</p></div></div>
       <i><b style="width:${Number(info.percent || 0).toFixed(2)}%"></b></i>
     </section>`;
   }
@@ -1096,7 +1095,7 @@
     const actions = TRAINING_ACTIONS[skillId] || [];
     return `${skillProgressMarkup(item, info, inline)}
       ${japaneseStatusMarkup(item)}
-      <section class="skill-training-actions-v314dz20 ${inline ? "is-inline-v314dz21" : ""}"><p class="eyebrow">WAYS TO TRAIN THIS</p>
+      <section class="skill-training-actions-v314dz20 ${inline ? "is-inline-v314dz21" : ""}"><p class="eyebrow">TRAIN ${esc(item.label.toUpperCase())}</p><p class="skill-training-help-dz25">Diese Aktionen trainieren den oben ausgewählten Skill. Sie sind keine zusätzlichen Skills. Schulcockpit-Abschlüsse werden automatisch zugeordnet.</p>
         ${trainingActionsMarkup(skillId, actions, { inline })}
       </section>`;
   }
@@ -1407,7 +1406,7 @@
     }
     if (SKILL_BY_ID[activeTalentSkillId]?.realm !== activeTalentRealm) activeTalentSkillId = defaultSkillForRealm(activeTalentRealm, totals);
     const points = realmPointInfo(activeTalentRealm, totals);
-    head.innerHTML = `<div><p class="eyebrow">${esc(activeTalentRealm.toUpperCase())} · SKILLS</p><h3>Train toward your next point</h3><p>Only ${esc(activeTalentRealm)} Skills are shown here. Pick one to see actions immediately.</p></div><span>${points.available} pt${points.available === 1 ? "" : "s"} ready</span>`;
+    head.innerHTML = `<div><p class="eyebrow">${esc(activeTalentRealm.toUpperCase())} · SKILLS</p><h3>${esc(activeTalentRealm)} Skills</h3><p>Wähle einen der bestehenden Skills. Darunter erscheinen dessen Fortschritt und konkrete Trainingsaktionen — keine zweite Skill-Liste.</p></div><span>${points.available} pt${points.available === 1 ? "" : "s"} ready</span>`;
     list.innerHTML = skills.map(item => {
       const info = levelInfo(totals[item.id] || 0);
       const remaining = Math.max(0, Number(info.required || 0) - Number(info.intoLevel || 0));
@@ -1606,7 +1605,7 @@
   }
 
   function sourceLabel(source) {
-    return ({ time: "Focus & Time", habit: "Habit", "daily-checkin": "Daily Check-in", "journal-reflection": "Journal", book: "Library", game: "Games", quest: "Quest", sudoku: "Sudoku", "sudoku-replay": "Sudoku", nonogram: "Nonogram", "nonogram-replay": "Nonogram", "number-sense": "Number Sense", "number-sense-replay": "Number Sense", "memory-garden": "Memory Garden", "memory-garden-replay": "Memory Garden", "lexicon-calibration": "Lexicon Calibration", "lexicon-daily-word": "Daily Word", "lexicon-crossword": "Lexicon Lab", "kotoba-quick-review": "Kotoba / Quick Japanese", "kotoba-dungeon": "Kotoba Dungeon", "japanese-practice": "Japanese Practice", "weekly-review": "Weekly Review", "weekly-review-depth": "Weekly Review", "work-deep-brief": "Work Deep Brief", "steam-playtime": "Steam Playtime" })[source] || source || "Practice";
+    return ({ time: "Focus & Time", habit: "Habit", "daily-checkin": "Daily Check-in", "journal-reflection": "Journal", book: "Library", game: "Games", quest: "Quest", sudoku: "Sudoku", "sudoku-replay": "Sudoku", nonogram: "Nonogram", "nonogram-replay": "Nonogram", "number-sense": "Number Sense", "number-sense-replay": "Number Sense", "memory-garden": "Memory Garden", "memory-garden-replay": "Memory Garden", "lexicon-calibration": "Lexicon Calibration", "lexicon-daily-word": "Daily Word", "lexicon-crossword": "Lexicon Lab", "kotoba-quick-review": "Kotoba / Quick Japanese", "kotoba-dungeon": "Kotoba Dungeon", "japanese-practice": "Japanese Practice", "weekly-review": "Weekly Review", "weekly-review-depth": "Weekly Review", "work-deep-brief": "Work Deep Brief", "schulcockpit-completion": "Schulcockpit", "steam-playtime": "Steam Playtime" })[source] || source || "Practice";
   }
 
   function validSkillId(value) { return value && SKILL_BY_ID[value] ? value : null; }

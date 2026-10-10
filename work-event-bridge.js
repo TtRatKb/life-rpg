@@ -7,7 +7,7 @@
   const CONFIG = "life-rpg:schulcockpit-bridge:v1";
   const TYPES = Object.freeze({
     "lesson-prepared": {skill:"lesson-design-preparation", label:"Schulcockpit · Unterricht vorbereitet"},
-    "lesson-reflected": {skill:"teaching-facilitation", label:"Schulcockpit · Unterricht reflektiert"},
+    "lesson-reflected": {skill:"assessment-feedback", label:"Schulcockpit · Unterricht reflektiert"},
     "preparation-completed": {skill:"professional-organization", label:"Schulcockpit · Vorbereitung abgeschlossen"},
     "assessment-analyzed": {skill:"assessment-feedback", label:"Schulcockpit · Prüfungsanalyse abgeschlossen"}
   });
@@ -48,7 +48,7 @@
         const reward = prior ? {eventId:prior.id} : app.awardActivity({
           source:"schulcockpit-completion", sourceId:id, label:mapped.label,
           at:e.completedAt, realm:"Work", xp:3, realmXP:3, statXP:0,
-          coins:0, storyEnergyBase:0, skipAddOnRewards:true, progressionRelevant:true,
+          coins:2, storyEnergyBase:0.10, skipAddOnRewards:true, progressionRelevant:true,
           metadata:{bridgeType:e.type,skillId:mapped.skill,skillXP:4}
         });
         model().receipts[e.eventId] = {at:e.completedAt,rewardId:reward.eventId};
@@ -80,7 +80,7 @@
     if (!dialog) {
       dialog=document.createElement("dialog"); dialog.className="kp-dialog"; dialog.setAttribute("aria-labelledby","schoolBridgeTitle"); document.body.appendChild(dialog);
       dialog.innerHTML=`<header><h2 id="schoolBridgeTitle">Schulcockpit ↔ Life RPG</h2><button class="close-button" data-school-close aria-label="Schließen">×</button></header>
-        <p>Unterrichtsvorbereitung, Reflexion, erledigte Vorbereitung und Prüfungsanalyse werden als kleine Work-Skill-Fortschritte übernommen. <strong>Keine Unterrichtsminuten, keine Schülerdaten, keine zweite Zeitbelohnung.</strong></p>
+        <p>Unterrichtsvorbereitung, Reflexion, erledigte Materialorganisation und Prüfungsanalyse trainieren jeweils genau einen bestehenden Work-Skill. Neue Abschlüsse bringen etwas Character-/Work-XP, Skill-XP, Coins und Story Energy. Keine zweite Zeitbuchung. <strong>Keine Unterrichtsminuten, keine Schülerdaten, keine zweite Zeitbelohnung.</strong></p>
         <p>Auf demselben Browser funktioniert die lokale Verbindung. Für Mac, iPhone und iPad nutzt die optionale Cloud-Brücke dein bestehendes Google-/Firebase-Konto. Aktivierung und Versand erfolgen in Schulcockpit.</p>
         <div class="kp-actions"><button class="primary-button" data-school-enable>Lokale Verbindung aktivieren</button><button class="secondary-button" data-school-sync>Jetzt synchronisieren</button><a class="secondary-button" href="https://ttratkb.github.io/Schulcockpit/" target="_blank" rel="noopener">Schulcockpit öffnen ↗</a><button class="secondary-button" data-school-disable>Lokale Verbindung pausieren</button></div>
         <p data-school-status role="status"></p><p data-school-cloud-status role="status">Cloud-Verbindung wird geprüft …</p>
@@ -119,5 +119,5 @@
       else if(++tries>120)clearInterval(t);
     },1500);
   }
-  window.LifeRPGWorkBridge={version:"0.31.4dz24",open,ingest,syncLocal,valid,TYPES,_test:{valid,ingest,model,readLocal}};
+  window.LifeRPGWorkBridge={version:"0.31.4dz25",open,ingest,syncLocal,valid,TYPES,_test:{valid,ingest,model,readLocal}};
 })();

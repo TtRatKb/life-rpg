@@ -16,6 +16,15 @@
     other: { label: "Other", icon: "◇", multiplier: 0 }
   };
 
+  // Existing School receipts are derived from the reward ledger; they must NOT
+  // produce another reward or a second entry in this Activity history.
+  const SCHOOL_SKILLS = Object.freeze({
+    "lesson-prepared": "lesson-design-preparation",
+    "lesson-reflected": "assessment-feedback",
+    "preparation-completed": "professional-organization",
+    "assessment-analyzed": "assessment-feedback"
+  });
+
   const FILTERS = [
     ["all", "All"],
     ["time", "Time"],
@@ -202,14 +211,20 @@
     const hasMainReward = reward.xp || reward.storyEnergy || reward.coins;
     const rawReduced = reward.rawStoryEnergy > reward.storyEnergy + 0.001;
     const growth = [];
-    if (reward.realmXP) growth.push(`+${trim(reward.realmXP)} ${row.realm || "Realm"}${row.source === "kotoba-dungeon" ? " Realm" : ""} XP`);
+    const school = row.source === "schulcockpit-completion" && !row.duplicate;
+    if (reward.realmXP) growth.push(`+${trim(reward.realmXP)} ${row.realm || "Realm"}${school ? " Realm" : row.source === "kotoba-dungeon" ? " Realm" : ""} XP`);
+    if (school) {
+      const info = row.schoolSkill || {};
+      if (info.skillId && number(info.xp) > 0)
+        growth.push(`+${trim(info.xp)} ${info.label} Skill XP`);
+    }
     if (reward.statXP) growth.push(`+${trim(reward.statXP)} ${capabilityLabel(row.capability)}${row.source === "kotoba-dungeon" ? " Skill" : ""} XP`);
     const rewardMarkup = row.rewardKnown === false
       ? `<span class="activity-reward-pill-v314 muted">Reward unavailable</span>`
       : row.giftReward
         ? `<span class="activity-reward-pill-v314 gift">${esc(row.giftReward.icon || "🎁")} ${esc(row.giftReward.name || "Gift Find")}</span>`
         : hasMainReward
-          ? `${reward.xp ? `<span class="activity-reward-pill-v314 xp">+${trim(reward.xp)} ${row.source === "kotoba-dungeon" ? "Character XP" : "XP"}</span>` : ""}${reward.storyEnergy ? `<span class="activity-reward-pill-v314 energy">+${app.formatEnergy?.(reward.storyEnergy) ?? trim(reward.storyEnergy)} 🔥</span>` : ""}${reward.coins ? `<span class="activity-reward-pill-v314 coins">+${trim(reward.coins)} 🪙</span>` : ""}`
+          ? `${reward.xp ? `<span class="activity-reward-pill-v314 xp">+${trim(reward.xp)} ${row.source === "kotoba-dungeon" || school ? "Character XP" : "XP"}</span>` : ""}${reward.storyEnergy ? `<span class="activity-reward-pill-v314 energy">+${app.formatEnergy?.(reward.storyEnergy) ?? trim(reward.storyEnergy)} 🔥</span>` : ""}${reward.coins ? `<span class="activity-reward-pill-v314 coins">+${trim(reward.coins)} 🪙</span>` : ""}`
           : `<span class="activity-reward-pill-v314 muted">No direct reward</span>`;
     const flags = [];
     if (row.duplicate) flags.push("Already counted elsewhere");
@@ -455,13 +470,21 @@
     };
   }
 
+  function schoolSkillForEvent(event) {
+    if (event?.source !== "schulcockpit-completion" || event.duplicate) return null;
+    const id = SCHOOL_SKILLS[event.metadata?.bridgeType];
+    if (!id) return null;
+    const info = window.LifeRPGSkills?.getSkill?.(id);
+    return { skillId: id, label: info?.label || id, xp: Math.max(0, Math.min(4, number(event.metadata?.skillXP))) };
+  }
+
   function genericRewardRow(event) {
     const category = categoryForEvent(event);
     const meta = sourceMeta(event.source, category);
     const details = genericDetail(event);
     return {
       id: event.id, at: event.at, category, icon: meta.icon, sourceLabel: meta.label,
-      title: event.label || meta.label, detail: details,
+      title: event.label || meta.label, detail: details, schoolSkill: schoolSkillForEvent(event),
       reward: rewardFromEvent(event), rewardKnown: true, realm: event.realm || null, capability: event.capability || null, source: event.source,
       giftReward: event.source === "gift-find" ? { name: event.metadata?.giftName || "Gift Find", icon: event.metadata?.giftIcon || "🎁" } : null,
       duplicate: Boolean(event.duplicate), migrated: Boolean(event.migrated), why: genericWhy(event)
@@ -470,6 +493,10 @@
 
   function genericDetail(event) {
     const m = event.metadata || {};
+    if (event.source === "schulcockpit-completion") {
+      const label = schoolSkillForEvent(event)?.label || "Work";
+      return `${label} · Einmaliger Abschluss, keine zusätzlich erfundenen Arbeitsminuten`;
+    }
     if (event.source === "talent-v2-cache") return `Talent Tree permanent Reward Cache · Rank ${number(m.rank) || 1} · no XP`;
     if (event.source === "talent-v2-resonance") return `Talent Tree Resonance proc · Rank ${number(m.rank) || 1} · bonus Coins / Story Energy`;
     if (event.source === "talent-v2-special") return `Talent Tree Realm-special bonus · ${humanize(m.talentId || "special")} · Rank ${number(m.rank) || 1}`;
@@ -569,6 +596,7 @@
   function genericWhy(event) {
     const reward = rewardFromEvent(event);
     const bits = [];
+    if (event.source === "schulcockpit-completion") bits.push(`<p>Schulcockpit hat einen abgeschlossenen Arbeitsschritt gemeldet. Die angezeigten Character-/Work-/Skill-XP sind <strong>getrennte Fortschrittswerte</strong>, keine zusätzlichen Skills. Coins und Story Energy entsprechen dem tatsächlich gespeicherten Reward-Ereignis. Ältere Schulcockpit-Abschlüsse erhalten rückwirkend keine zusätzlichen Coins oder Story Energy. Keine Arbeitsminuten wurden durch diesen Abschluss erfunden.</p>`);
     if (event.source === "kotoba-dungeon") return dungeonRewardWhy(event);
     if (event.duplicate) bits.push(dedupeWhy(event));
     const streak = number(event.metadata?.dailyStreak);
@@ -676,6 +704,7 @@
       "sudoku-complete": ["🧩", "Sudoku"],
       "sudoku-solved": ["🧩", "Sudoku"],
       "kotoba-quest": ["🌸", "Kotoba Quest"],
+      "schulcockpit-completion": ["🏫", "Schulcockpit · Work"],
       "kotoba-dungeon": ["⚔", "Kotoba Dungeon"],
       "home-quick-action": ["🏠", "Haushalt · Schnell loggen"],
       "knowledge-workshop-writing": ["✦", "Knowledge · Schreiben"],
@@ -717,6 +746,7 @@
 
   function categoryForSource(source) {
     const value = String(source || "");
+    if (value === "schulcockpit-completion") return "quest";
     if (value === "home-quick-action") return "home";
     if (value.startsWith("knowledge-workshop-")) return "knowledge";
     if (value === "time") return "time";
