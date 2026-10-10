@@ -7,7 +7,7 @@
     return;
   }
 
-  const VERSION = "0.31.4dz34";
+  const VERSION = "0.31.4dz35";
   const SCHEMA = 1;
   const MAX_EVENTS = 6000;
   const HABIT_XP = { tiny: 3, low: 5, normal: 8, high: 12, boss: 18 };
@@ -791,7 +791,12 @@
       const skillId = useSpecializedJapaneseSkills(reward.at)
         ? japaneseSkillForKotobaReward(reward)
         : "language-learning";
-      return nativeSkill(skillId, 1.5, "kotoba-quick-review");
+      // Historical micro-reviews retain the exact previous 1.5 XP.
+      // Newly imported events carry a frozen, daily-capped skill award. 0 means
+      // the cap was reached; it must not fall back to 1.5 XP.
+      const skillXP = reward.metadata?.skillXPBalanceVersion === 1
+        ? Math.max(0, Math.min(3, Number(reward.metadata?.skillXP) || 0)) : 1.5;
+      return nativeSkill(skillId, skillXP, "kotoba-quick-review");
     }
     if (source === "japanese-practice") {
       const skillId = useSpecializedJapaneseSkills(reward.at)

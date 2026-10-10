@@ -4,7 +4,7 @@
   const app = window.LifeRPGApp;
   if (!app?.getState || !app?.awardActivity) return;
 
-  const VERSION = "0.31.4k";
+  const VERSION = "0.31.4dz35";
   const SCHEMA = 1;
   const SOURCE = "kotoba-quest";
   const LOOKBACK_MS = 30 * 24 * 60 * 60 * 1000;
@@ -13,6 +13,15 @@
   const MAX_PROCESSED_IDS = 1600;
   const DAILY_COIN_CAP = 75;
   const AUTO_SYNC_MIN_MS = 2 * 60 * 1000;
+  // DZ35: micro-reviews should train slowly, not level up an entire skill in one burst.
+  // Per-reward values are frozen in metadata: no retroactive XP changes after an update.
+  const JAPANESE_SKILL_DAILY_CAP = 16;
+  const JAPANESE_SKILL_PER_TRACK_CAP = 8;
+  const JAPANESE_SKILL_BASE = Object.freeze({
+    "vocab-review": .35, "grammar-review": .65, "particle-review": .5,
+    "vocab-lesson": 2.5, "grammar-lesson": 3, "particle-lesson": 2.5,
+    "mining-import": .25, "sentence-mining": 1, "reading": 1.5
+  });
 
   // Firebase web config is intentionally public client configuration. It grants no
   // access by itself; Kotoba's Firestore rules still require the signed-in owner.
@@ -311,6 +320,7 @@
 
       const rewardSpec = rewardForEvent(event, at);
       if (rewardSpec) {
+        const skillXP = kotobaSkillXP(event, at);
         const reward = app.awardActivity({
           source: SOURCE,
           sourceId: eventId,
@@ -335,7 +345,9 @@
             sessionId: String(event.sessionId || ""),
             rewardMultiplier: rewardSpec.multiplier,
             kotobaDailyIndex: rewardSpec.dailyIndex,
-            kotobaDailyCoinCap: DAILY_COIN_CAP
+            kotobaDailyCoinCap: DAILY_COIN_CAP,
+            skillXP,
+            skillXPBalanceVersion: 1
           }
         });
         if (reward?.eventId) rewarded += 1;
@@ -351,6 +363,32 @@
     }
     s.lastEventTimestamp = maxTimestamp;
     return rewarded;
+  }
+
+  function japaneseSkillTrack(event) {
+    const type = String(event?.type || "").toLowerCase();
+    const skill = String(event?.skill || "").toLowerCase();
+    if (type === "reading" || type === "sentence-mining") return "reading";
+    if (type === "grammar-review" || type === "grammar-lesson" || type === "particle-review" || type === "particle-lesson") {
+      return /listen/.test(skill) ? "listening" : /speak|production|output|form/.test(skill) ? "production" : "grammar";
+    }
+    return /listen/.test(skill) ? "listening" : /speak|production|output|de-jp/.test(skill) ? "production" : "vocabulary";
+  }
+  function kotobaSkillXP(event, at) {
+    const type = String(event?.type || "").toLowerCase();
+    const base = JAPANESE_SKILL_BASE[type] || 0;
+    if (!base) return 0;
+    const day = dateKey(at), track = japaneseSkillTrack(event);
+    let daily = 0, byTrack = 0;
+    for (const reward of rewardEvents()) {
+      if (!reward || reward.duplicate || reward.source !== SOURCE || dateKey(reward.at) !== day) continue;
+      // Old rewards stay at their historical 1.5 skill XP rather than being rewritten.
+      const xp = reward.metadata?.skillXPBalanceVersion === 1
+        ? Math.max(0, number(reward.metadata.skillXP)) : 1.5;
+      daily += xp;
+      if (japaneseSkillTrack({type:reward.metadata?.kotobaType, skill:reward.metadata?.skill}) === track) byTrack += xp;
+    }
+    return round2(Math.max(0, Math.min(base, JAPANESE_SKILL_DAILY_CAP - daily, JAPANESE_SKILL_PER_TRACK_CAP - byTrack)));
   }
 
   function rewardForEvent(event, at) {
@@ -526,6 +564,7 @@
     if (existing) return existing;
     const rewardSpec = rewardForEvent({ type }, at);
     if (!rewardSpec) return null;
+    const skillXP = kotobaSkillXP({ type, skill }, at);
     return app.awardActivity({
       source: SOURCE,
       sourceId: id,
@@ -547,7 +586,9 @@
         sessionId: String(sessionId || ""),
         rewardMultiplier: rewardSpec.multiplier,
         kotobaDailyIndex: rewardSpec.dailyIndex,
-        kotobaDailyCoinCap: DAILY_COIN_CAP
+        kotobaDailyCoinCap: DAILY_COIN_CAP,
+        skillXP,
+        skillXPBalanceVersion: 1
       }
     });
   }

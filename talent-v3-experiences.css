@@ -38,3 +38,24 @@ button.talent-v3-card{cursor:pointer}button.talent-v3-card:hover{border-color:#c
 .talent-v3-library-item:hover{background:#fff0f6;border-color:#c681a2}.talent-v3-library-item:focus-visible{outline:3px solid #c783a4;outline-offset:2px}
 .talent-v3-library-item>span:nth-child(2){display:flex;flex:1;min-width:0;flex-direction:column;gap:2px}.talent-v3-library-icon{font-weight:900;color:#a2597e;font-size:1.4rem;min-width:27px;text-align:center}
 .talent-v3-library-item small{font-size:.62rem;letter-spacing:.07em;color:#a06987;font-style:normal;font-weight:750}.talent-v3-library-item strong{font-size:.88rem}.talent-v3-library-item em{font-size:.72rem;color:#836c7b;font-style:normal;line-height:1.35}.talent-v3-library-item>b{font-weight:600;color:#a35c82}
+
+/* DZ35 · Takuzu has its own calm fullscreen puzzle surface. All selectors scoped. */
+.talent-v3-takuzu-window{position:fixed;inset:0;width:100vw;width:100dvw;height:100vh;height:100dvh;max-width:none;max-height:none;margin:0;padding:0;border:0;border-radius:0;overflow:auto;background:#fffaf7;color:#422c40}
+.talent-v3-takuzu-window::backdrop{background:#211522b3}
+.talent-v3-takuzu-shell{box-sizing:border-box;min-height:100%;max-width:920px;margin:0 auto;padding:clamp(12px,3vw,28px) clamp(15px,4vw,36px) calc(28px + env(safe-area-inset-bottom,0px))}
+.talent-v3-takuzu-shell>header{display:flex;justify-content:space-between;align-items:center;gap:18px;padding:4px 0 14px;border-bottom:1px solid #ead5df;margin-bottom:18px}
+.talent-v3-takuzu-shell>header>div{display:grid;gap:3px}.talent-v3-takuzu-shell>header small{color:#936b80;letter-spacing:.14em;font-size:.72rem;font-weight:750}.talent-v3-takuzu-shell>header strong{font:700 clamp(1.3rem,3vw,1.75rem)/1.1 Georgia,serif;color:#61324f}
+.talent-v3-takuzu-shell>header button{flex:none;width:42px;height:42px;border-radius:50%;border:1px solid #e0bfce;background:#fff5f9;color:#5d3451;cursor:pointer;font-size:1.1rem}
+#talentV3TakuzuBody h2{font:700 clamp(1.5rem,4vw,2.1rem)/1.15 Georgia,serif;color:#622f52;margin:0 0 8px}
+#talentV3TakuzuBody>.eyebrow{color:#a46888;font-size:.72rem;font-weight:750;letter-spacing:.09em}
+#talentV3TakuzuBody>.talent-v3-experience-sub{max-width:690px;margin:0 auto 16px;line-height:1.5;text-align:center;color:#786374}
+#talentV3TakuzuBody>.eyebrow,#talentV3TakuzuBody>h2{text-align:center}
+#talentV3TakuzuBody .talent-v3-tabbar,#talentV3TakuzuBody .talent-v3-bottom,#talentV3TakuzuBody .talent-v3-takuzu-tools{justify-content:center}
+#talentV3TakuzuBody .talent-v3-takuzu{width:min(100%,min(55dvh,500px));min-width:min(100%,280px);margin:14px auto 10px}
+#talentV3TakuzuBody .talent-v3-takuzu button{font-size:clamp(1.05rem,4.3vw,1.75rem)}
+#talentV3TakuzuBody .talent-v3-status{text-align:center;min-height:1.5em}
+#talentV3TakuzuBody .talent-v3-takuzu-tools{display:flex;flex-wrap:wrap;gap:8px;margin:14px auto}
+#talentV3TakuzuBody .talent-v3-takuzu-tools button{min-height:42px}
+#talentV3TakuzuBody button:disabled{opacity:.45;cursor:not-allowed}
+#talentV3TakuzuBody button:focus-visible,.talent-v3-takuzu-shell>header button:focus-visible{outline:3px solid #b77094;outline-offset:2px}
+@media(max-width:540px){#talentV3TakuzuBody .talent-v3-takuzu{width:min(100%,min(45dvh,360px));min-width:0}#talentV3TakuzuBody .talent-v3-takuzu-tools button{flex:1 1 40%}#talentV3TakuzuBody .talent-v3-bottom button{flex:1 1 40%}}

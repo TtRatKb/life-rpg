@@ -4,7 +4,7 @@
   const app = window.LifeRPGApp;
   const graph = window.LifeRPGTalentTreeGraph;
   if (!app?.getState || !app?.saveState || !graph?.isContentUnlocked) return;
-  const VERSION = "0.31.4da";
+  const VERSION = "0.31.4dz35";
   const safe = value => app.escapeHtml?.(String(value ?? "")) ?? String(value ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   const dayKey = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
   const datePlus = days => { const d = new Date(); d.setHours(12,0,0,0); d.setDate(d.getDate()+days); return dayKey(d); };
@@ -90,6 +90,7 @@
     {clues:["...1..","..0...","0.0...","......","0.....","0....0"],solution:["101100","100101","010011","101010","010101","011010"]},
     {clues:["..11..","0....0","......","...1.0","......",".0...0"],solution:["001101","010110","101001","110100","010011","101010"]}
   ];
+  const MAX_TAKUZU_HISTORY = 240; // tiny bounded history, never whole application state
   const ui = {kind:null,mode:"daily",schoolId:null,pantryOnly:false,pantryMax:30,paletteRGB:[128,128,128],paletteTouched:false,paletteRound:0,paletteScore:[]};
   function state() {
     const root = app.getState();
@@ -116,14 +117,36 @@
     el.innerHTML='<div class="talent-v3-experience-shell"><header><span class="talent-v3-experience-mark">✿ UNLOCKED CONTENT</span><button type="button" class="talent-v3-experience-close" data-v3-close aria-label="Close">×</button></header><div id="talentV3Body"></div></div>';
     document.body.appendChild(el);return el;
   }
-  const body=()=>document.getElementById("talentV3Body");
+  function ensureTakuzuDialog() {
+    let el = document.getElementById("talentV3TakuzuDialog");
+    if (el) return el;
+    el = document.createElement("dialog");
+    el.id = "talentV3TakuzuDialog";
+    el.className = "talent-v3-takuzu-window";
+    el.setAttribute("aria-label", "Takuzu · Binary Logic");
+    el.innerHTML = `<div class="talent-v3-takuzu-shell"><header><div><small>KNOWLEDGE · LOGIC</small><strong>01 Takuzu</strong></div><button type="button" data-v3-close aria-label="Close Takuzu">✕</button></header><div id="talentV3TakuzuBody"></div></div>`;
+    document.body.appendChild(el);
+    return el;
+  }
+  const body=()=>document.getElementById(ui.kind === "takuzu" ? "talentV3TakuzuBody" : "talentV3Body");
   const button=(action,text,cls="secondary-button")=>`<button type="button" class="${cls}" data-v3-action="${safe(action)}">${safe(text)}</button>`;
   const head=(label,title,subtitle)=>`<p class="eyebrow">${safe(label)}</p><h2>${safe(title)}</h2><p class="talent-v3-experience-sub">${safe(subtitle)}</p>`;
   function open(kind) {
     const def=definitions[kind];if(!def)return false;
     if(!has(def[0],kind)){graph.focusRealm?.(def[0]);return false;}
     ui.kind=kind;ui.schoolId=null;ui.mode="daily";ui.paletteTouched=false;ui.paletteRound=0;ui.paletteScore=[];
-    ensureDialog();render();const el=ensureDialog();if(!el.open) el.showModal?.();return true;
+    if (kind === "takuzu") {
+      const old = document.getElementById("talentV3Dialog");
+      if (old?.open) old.close();
+      const el = ensureTakuzuDialog();
+      render();
+      if (!el.open) el.showModal?.();
+    } else {
+      const old = document.getElementById("talentV3TakuzuDialog");
+      if (old?.open) old.close();
+      ensureDialog();render();const el=ensureDialog();if(!el.open) el.showModal?.();
+    }
+    return true;
   }
   function render() {if(!ui.kind)return;const renderers={"school-moments":renderSchool,"takuzu":renderTakuzu,"future-letter":renderLetters,"cozy-kitchen":renderKitchen,"palette-atelier":renderPalette};renderers[ui.kind]?.();}
   function renderSchool() {
@@ -143,19 +166,85 @@
   }
   function gameData(mode){const g=state().takuzu;return mode==="daily"?g.daily:g.practice;}
   function puzzleIndex(mode){if(mode==="daily")return dayKey().split("-").reduce((a,v)=>a*31+Number(v),0)%PUZZLES.length;return Math.max(0,Number(state().takuzu.practiceNumber||0))%PUZZLES.length;}
-  function takuzuSession(mode=ui.mode){const map=gameData(mode), key=mode==="daily"?dayKey():String(state().takuzu.practiceNumber||0);if(!map[key])map[key]={cells:Array(36).fill(null),completedAt:null};return {key,session:map[key],puzzle:PUZZLES[puzzleIndex(mode)]};}
+  function takuzuSession(mode=ui.mode){
+    const map=gameData(mode), key=mode==="daily"?dayKey():String(state().takuzu.practiceNumber||0);
+    if(!map[key])map[key]={cells:Array(36).fill(null),completedAt:null};
+    const session=map[key];
+    if(!Array.isArray(session.cells)||session.cells.length!==36)session.cells=Array(36).fill(null);
+    return {key,session,puzzle:PUZZLES[puzzleIndex(mode)]};
+  }
+  function validTakuzuSnapshot(cells){return Array.isArray(cells)&&cells.length===36&&cells.every(x=>x===null||x==="0"||x==="1");}
+  function takuzuHistory(session){
+    if(!Array.isArray(session.history))session.history=[];
+    // Older saves did not have undo data; never tamper with their existing cells.
+    session.history=session.history.filter(item=>Array.isArray(item)&&
+      (item[0]===-1?validTakuzuSnapshot(item.slice(1)):
+      Number.isInteger(item[0])&&item[0]>=0&&item[0]<36&&[null,"0","1"].includes(item[1]))).slice(-MAX_TAKUZU_HISTORY);
+    return session.history;
+  }
+  function pushTakuzuHistory(session, entry){
+    if(!Array.isArray(session.history))session.history=[];
+    session.history.push(entry);
+    if(session.history.length>MAX_TAKUZU_HISTORY)session.history.splice(0,session.history.length-MAX_TAKUZU_HISTORY);
+  }
   function validateTakuzu(values){const rows=Array.from({length:6},(_,r)=>values.slice(r*6,r*6+6).join(""));if(rows.some(x=>x.length!==6||/[^01]/.test(x)||x.match(/000|111/)||x.split("0").length-1!==3||x.split("1").length-1!==3)||new Set(rows).size!==6)return false;const cols=Array.from({length:6},(_,c)=>rows.map(row=>row[c]).join(""));return new Set(cols).size===6&&cols.every(x=>!x.match(/000|111/)&&x.split("0").length-1===3);}
   function renderTakuzu() {
     const {session,puzzle}=takuzuSession();const clues=puzzle.clues.join("");
-    body().innerHTML=head("KNOWLEDGE · LOGIC EXPANSION","Takuzu · Binary Logic","Fill each row and column with three 0s and three 1s. No three identical neighbors; no duplicate rows or columns. Tap a blank cell: empty → 0 → 1.")+
-      `<div class="talent-v3-tabbar">${button("takuzu-daily","Daily",ui.mode==="daily"?"primary-button":"secondary-button")}${button("takuzu-practice","Practice",ui.mode==="practice"?"primary-button":"secondary-button")}</div><div class="talent-v3-takuzu" role="group" aria-label="6 by 6 Takuzu puzzle">${Array.from({length:36},(_,i)=>`<button type="button" data-v3-cell="${i}" ${clues[i]!=="."||session.completedAt?"disabled":""} class="${clues[i]!=="."?"given":""}" aria-label="Row ${Math.floor(i/6)+1}, column ${i%6+1}, ${clues[i]!=="."?"given ":""}${session.cells[i]??(clues[i]==="."?"empty":clues[i])}">${safe(clues[i]!=="."?clues[i]:session.cells[i]??"·")}</button>`).join("")}</div>`+
-      `<p class="talent-v3-status" id="v3TakuzuStatus">${session.completedAt?"✓ Puzzle solved. Your saved board is available for viewing.":"Your grid saves after every move. You can check it whenever you're ready."}</p><div class="talent-v3-bottom">${button("takuzu-clear","Clear my entries")}${button("takuzu-check","Check puzzle","primary-button")}${ui.mode==="practice"?button("takuzu-next","New practice puzzle"):""}</div>`;
+    const history=session.completedAt?[]:takuzuHistory(session),checkpoint=validTakuzuSnapshot(session.checkpoint?.cells)?session.checkpoint:null;
+    body().innerHTML=head("KNOWLEDGE · BINARY LOGIC","Takuzu","Each row and column needs three 0s and three 1s. No three identical neighbors; no identical rows or columns. Tap empty → 0 → 1.")+
+      `<div class="talent-v3-tabbar" role="group" aria-label="Puzzle mode">${button("takuzu-daily","Daily",ui.mode==="daily"?"primary-button":"secondary-button")}${button("takuzu-practice","Practice",ui.mode==="practice"?"primary-button":"secondary-button")}</div>`+
+      `<div class="talent-v3-takuzu" role="group" aria-label="6 by 6 Takuzu puzzle">${Array.from({length:36},(_,i)=>`<button type="button" data-v3-cell="${i}" ${clues[i]!=="."||session.completedAt?"disabled":""} class="${clues[i]!=="."?"given":""}" aria-label="Row ${Math.floor(i/6)+1}, column ${i%6+1}, ${clues[i]!=="."?"given ":""}${session.cells[i]??(clues[i]==="."?"empty":clues[i])}">${safe(clues[i]!=="."?clues[i]:session.cells[i]??"·")}</button>`).join("")}</div>`+
+      `<p class="talent-v3-status" id="v3TakuzuStatus" aria-live="polite">${session.completedAt?"✓ Puzzle solved. Your board is saved.":`${history.length} Undo step${history.length===1?"":"s"}${checkpoint?" · ◈ Versuchspunkt gespeichert":""} · Board saves after every move.`}</p>`+
+      `<div class="talent-v3-takuzu-tools" role="group" aria-label="Undo and checkpoint">${button("takuzu-undo","↶ Undo"+(history.length?` (${history.length})`:""))}${button("takuzu-checkpoint","◈ Versuchspunkt setzen")}${button("takuzu-restore","↩ Zum Versuchspunkt")}</div>`+
+      `<div class="talent-v3-bottom">${button("takuzu-clear","Clear my entries")}${button("takuzu-check","Check puzzle","primary-button")}${ui.mode==="practice"?button("takuzu-next","New practice puzzle"):""}</div>`;
+    body().querySelector('[data-v3-action="takuzu-undo"]').disabled=Boolean(session.completedAt)||!history.length;
+    body().querySelector('[data-v3-action="takuzu-checkpoint"]').disabled=Boolean(session.completedAt);
+    body().querySelector('[data-v3-action="takuzu-restore"]').disabled=Boolean(session.completedAt)||!checkpoint;
+    body().querySelector('[data-v3-action="takuzu-check"]').disabled=Boolean(session.completedAt);
+    body().querySelector('[data-v3-action="takuzu-clear"]').disabled=Boolean(session.completedAt);
   }
-  function setCell(index){const {session,puzzle}=takuzuSession();if(session.completedAt||!Number.isInteger(index)||index<0||index>35||puzzle.clues.join("")[index]!==".")return;session.cells[index]=session.cells[index]===null?"0":session.cells[index]==="0"?"1":null;save("takuzu-cell");renderTakuzu();}
+  function setCell(index){
+    const {session,puzzle}=takuzuSession();
+    if(session.completedAt||!Number.isInteger(index)||index<0||index>35||puzzle.clues.join("")[index]!==".")return;
+    const previous=session.cells[index];
+    pushTakuzuHistory(session,[index,previous]);
+    session.cells[index]=previous===null?"0":previous==="0"?"1":null;
+    save("takuzu-cell");renderTakuzu();
+  }
+  function takuzuUndo(){
+    const {session}=takuzuSession();if(session.completedAt)return;
+    const entry=takuzuHistory(session).pop();if(!entry)return;
+    if(entry[0]===-1)session.cells=entry.slice(1);
+    else session.cells[entry[0]]=entry[1];
+    save("takuzu-undo");renderTakuzu();
+  }
+  function takuzuCheckpoint(){
+    const {session}=takuzuSession();if(session.completedAt)return;
+    session.checkpoint={cells:session.cells.slice(),at:Date.now()};
+    save("takuzu-checkpoint");renderTakuzu();
+    app.showToast?.("◈ Versuchspunkt gespeichert.");
+  }
+  function takuzuRestore(){
+    const {session}=takuzuSession();if(session.completedAt||!validTakuzuSnapshot(session.checkpoint?.cells))return;
+    if(session.cells.every((x,i)=>x===session.checkpoint.cells[i]))return;
+    // Atomic undo also lets the user undo the restore itself.
+    pushTakuzuHistory(session,[-1,...session.cells]);
+    session.cells=session.checkpoint.cells.slice();
+    save("takuzu-restore");renderTakuzu();
+    app.showToast?.("◈ Zurück zum Versuchspunkt. Undo bleibt verfügbar.");
+  }
+  function takuzuClear(){
+    const {session}=takuzuSession();if(session.completedAt||session.cells.every(x=>x===null))return;
+    if(!window.confirm("Clear your Takuzu entries? You can still Undo this step."))return;
+    pushTakuzuHistory(session,[-1,...session.cells]);session.cells=Array(36).fill(null);
+    save("takuzu-clear");renderTakuzu();
+  }
   function checkTakuzu(){const {key,session,puzzle}=takuzuSession();if(session.completedAt)return;const values=Array.from({length:36},(_,i)=>puzzle.clues.join("")[i]!=="."?puzzle.clues.join("")[i]:session.cells[i]);const status=document.getElementById("v3TakuzuStatus");if(values.some(x=>x===null)){if(status)status.textContent="There are still empty cells.";return;}if(!validateTakuzu(values)){if(status)status.textContent="One or more row/column rules are not met yet. Keep investigating.";return;}
-    // The published puzzle has one verified solution; this final check guards corrupt/modified puzzle data.
     if(values.join("")!==puzzle.solution.join("")){if(status)status.textContent="Some cells do not match this puzzle's solution yet.";return;}
-    session.completedAt=Date.now();const sourceId=`takuzu:${ui.mode}:${key}`;if(ui.mode==="daily"){award("talent-v3-takuzu",sourceId,"Takuzu · Daily","Knowledge",10,7);}else{const g=state().takuzu;g.practicePaid ||= {};const date=dayKey();const count=Number(g.practicePaid[date]||0);if(count<2){g.practicePaid[date]=count+1;award("talent-v3-takuzu",sourceId,"Takuzu · Practice","Knowledge",4,2);}}save("takuzu-solve");renderTakuzu();
+    session.completedAt=Date.now();
+    // Preserve the solved board, but don't keep unnecessary undo snapshots for every past puzzle.
+    delete session.history;delete session.checkpoint;
+    const sourceId=`takuzu:${ui.mode}:${key}`;if(ui.mode==="daily"){award("talent-v3-takuzu",sourceId,"Takuzu · Daily","Knowledge",10,7);}else{const g=state().takuzu;g.practicePaid ||= {};const date=dayKey();const count=Number(g.practicePaid[date]||0);if(count<2){g.practicePaid[date]=count+1;award("talent-v3-takuzu",sourceId,"Takuzu · Practice","Knowledge",4,2);}}save("takuzu-solve");renderTakuzu();
   }
   function renderLetters(){const letters=state().letters;const ready=letter=>dayKey()>=letter.unlockDate;body().innerHTML=head("HEALTH · LONG-TERM REFLECTION","Letters to Future Me","A small time capsule. Sealed letters live in your normal save; they do not require daily effort or give rewards for writing filler.")+
     `<div class="talent-v3-card"><label class="talent-v3-label">Title<input id="v3LetterTitle" type="text" maxlength="90" placeholder="Something future me should know"></label><label class="talent-v3-label">Write your letter<textarea id="v3LetterText" rows="6" maxlength="5000" placeholder="What is worth remembering, celebrating, or letting go of?"></textarea></label><label class="talent-v3-label">Open after<select id="v3LetterDelay"><option value="7">7 days</option><option value="30">30 days</option><option value="90">90 days</option></select></label>${button("letter-seal","Seal letter","primary-button")}</div><div class="talent-v3-cards">${letters.slice().reverse().map(letter=>`<article class="talent-v3-card"><strong>${safe(letter.title)}</strong><small>Written ${safe(letter.createdDate)} · ${ready(letter)?"Ready to open":"Sealed until "+safe(letter.unlockDate)}</small>${ready(letter)?`<p>${safe(letter.text).replace(/\n/g,"<br>")}</p>`:"<p>✉ Kept safe until your chosen date.</p>"}</article>`).join("")}</div>`;
@@ -176,7 +265,7 @@
   }
   function submitPalette(){const {key,session,puzzle}=paletteSession();if(session.finishedAt)return;if(!ui.paletteTouched){app.showToast?.("Mix at least one color channel before comparing.");return;}const target=puzzle[1][session.round],rgb=ui.paletteRGB.slice(),score=paletteScore(rgb,target);session.colors.push({rgb,score,target});session.round++;ui.paletteRGB=[128,128,128];ui.paletteTouched=false;if(session.round>=3){session.finishedAt=Date.now();if(ui.mode==="daily")award("talent-v3-palette",`palette:daily:${key}`,"Palette Atelier · Daily","Hobbies",9,6);else{const p=state().palette;p.practicePaid ||= {};const count=Number(p.practicePaid[dayKey()]||0);if(count<2){p.practicePaid[dayKey()]=count+1;award("talent-v3-palette",`palette:practice:${key}`,"Palette Atelier · Practice","Hobbies",4,2);}}}save("palette-round");renderPalette();}
   document.addEventListener("click", e=>{
-    const dlg=document.getElementById("talentV3Dialog");if(!dlg?.open||!dlg.contains(e.target))return;
+    const dlg=e.target.closest?.("#talentV3TakuzuDialog, #talentV3Dialog");if(!dlg?.open)return;
     if(e.target.closest("[data-v3-close]")){dlg.close();return;}
     const school=e.target.closest("[data-v3-school]");if(school){selectSchool(school.dataset.v3School);return;}
     const choice=e.target.closest("[data-v3-choice]");if(choice){chooseSchool(Number(choice.dataset.v3Choice));return;}
@@ -187,7 +276,10 @@
     if(action==="school-back"){ui.schoolId=null;renderSchool();}
     if(action==="save-school-note"){const entry=state().school[ui.schoolId];if(entry){entry.note=document.getElementById("v3SchoolNote")?.value.slice(0,1800)||"";save("school-note");app.showToast?.("Reflection saved.");}}
     if(action==="takuzu-daily"||action==="takuzu-practice"){ui.mode=action.endsWith("daily")?"daily":"practice";renderTakuzu();}
-    if(action==="takuzu-clear"){const s=takuzuSession().session;if(!s.completedAt){s.cells=Array(36).fill(null);save("takuzu-clear");renderTakuzu();}}
+    if(action==="takuzu-clear")takuzuClear();
+    if(action==="takuzu-undo")takuzuUndo();
+    if(action==="takuzu-checkpoint")takuzuCheckpoint();
+    if(action==="takuzu-restore")takuzuRestore();
     if(action==="takuzu-check")checkTakuzu();
     if(action==="takuzu-next"){state().takuzu.practiceNumber=Number(state().takuzu.practiceNumber||0)+1;save("takuzu-next");renderTakuzu();}
     if(action==="letter-seal")sealLetter();
@@ -195,6 +287,11 @@
     if(action==="palette-submit")submitPalette();
     if(action==="palette-reveal"){const p=paletteSession().puzzle[1][paletteSession().session.round];const hint=document.getElementById("v3PaletteHint");if(hint)hint.textContent=`Target RGB: ${hexToRgb(p).join(" / ")}. This is an accessibility aid, not a separate reward.`;}
     if(action==="palette-next"){ui.mode="practice";state().palette.practiceNumber=Number(state().palette.practiceNumber||0)+1;ui.paletteRGB=[128,128,128];save("palette-next");renderPalette();}
+  });
+  document.addEventListener("keydown",e=>{
+    if (!(e.metaKey||e.ctrlKey)||e.shiftKey||e.altKey||e.key.toLowerCase()!=="z")return;
+    if (!document.getElementById("talentV3TakuzuDialog")?.open)return;
+    e.preventDefault();takuzuUndo();
   });
   document.addEventListener("input",e=>{const dlg=document.getElementById("talentV3Dialog");if(!dlg?.open||!dlg.contains(e.target))return;const input=e.target.closest("[data-v3-rgb]");if(input){const index=Number(input.dataset.v3Rgb);ui.paletteRGB[index]=Math.min(255,Math.max(0,Number(input.value)||0));ui.paletteTouched=true;document.getElementById(`v3PaletteValue${index}`).textContent=String(ui.paletteRGB[index]);document.getElementById("v3PaletteMine").style.background=rgbToHex(ui.paletteRGB);}});
   document.addEventListener("change",e=>{const dlg=document.getElementById("talentV3Dialog");if(!dlg?.open||!dlg.contains(e.target))return;const ingr=e.target.closest("[data-v3-ingredient]");if(ingr){toggleKitchen("pantry",ingr.dataset.v3Ingredient);return;}if(e.target.id==="v3KitchenOnly"){ui.pantryOnly=e.target.checked;renderKitchen();}if(e.target.id==="v3KitchenMax"){ui.pantryMax=Number(e.target.value);renderKitchen();}});
@@ -279,5 +376,5 @@
   window.addEventListener("life-rpg:render", scheduleLibrary);
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", scheduleLibrary, {once:true});
   else scheduleLibrary();
-  window.LifeRPGTalentV3={version:VERSION,open,getStatus:id=>id==="takuzu"?{unlocked:has("Knowledge","takuzu"),dailySolved:Boolean(state().takuzu.daily[dayKey()]?.completedAt)}:id==="palette-atelier"?{unlocked:has("Hobbies","palette-atelier"),dailySolved:Boolean(state().palette.daily[dayKey()]?.finishedAt)}:null,_test:{validateTakuzu,puzzles:PUZZLES,paletteScore,scenarios:SCENARIOS,recipes:RECIPES}};
+  window.LifeRPGTalentV3={version:VERSION,open,getStatus:id=>id==="takuzu"?{unlocked:has("Knowledge","takuzu"),dailySolved:Boolean(state().takuzu.daily[dayKey()]?.completedAt)}:id==="palette-atelier"?{unlocked:has("Hobbies","palette-atelier"),dailySolved:Boolean(state().palette.daily[dayKey()]?.finishedAt)}:null,_test:{validateTakuzu,puzzles:PUZZLES,takuzuSession,takuzuUndo,takuzuCheckpoint,takuzuRestore,takuzuClear,paletteScore,scenarios:SCENARIOS,recipes:RECIPES}};
 })();
