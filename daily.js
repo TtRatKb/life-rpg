@@ -532,6 +532,13 @@
     els.swapSnooze?.addEventListener("click", snoozeSwapSuggestion);
 
     document.addEventListener("click", event => {
+      const holidayAction = event.target.closest?.("[data-daily-holiday]");
+      if (holidayAction) {
+        const goal = window.LifeRPGHoliday?.goalById?.(holidayAction.dataset.dailyHoliday);
+        if (goal?.linkedTodoistId) window.LifeRPGTodoist?.open?.();
+        else window.LifeRPGHoliday?.open?.();
+        return;
+      }
       const newBatch = event.target.closest?.("[data-daily-new-batch]");
       if (newBatch) {
         startNewBatch();
@@ -1112,6 +1119,18 @@
 
   function pickCardMarkup(pick) {
     const slot = SLOTS[pick.slot] || SLOTS.focus;
+
+    if (pick.sourceType === "holiday") {
+      const goal = window.LifeRPGHoliday?.goalById?.(pick.sourceId);
+      if (!goal) return unavailablePickMarkup(pick, slot, "This holiday goal has been removed. Swap it for something else.");
+      const done = Boolean(goal.doneAt);
+      return `<article class="daily-pick-v14 daily-holiday-card-v314dz23 ${slot.className} ${done ? "done" : ""}">
+        <div class="daily-pick-top-v14"><span class="daily-pick-icon-v14">🍁</span><div><small>${slot.kicker} · AUTUMN BREAK</small><strong>${slot.title}</strong></div>${done ? '<span class="daily-pick-done-v14">✓ Done</span>' : ''}</div>
+        <div class="daily-pick-quest-v14"><div class="daily-adventure-meta-v15"><span class="daily-realm-pill-v14">${goal.group === 'school' ? '📚 Work' : goal.group === 'space' || goal.group === 'digital' ? '🏡 Home' : '🌸 Joy'}</span><span class="daily-adventure-source-v15">~${Number(goal.minutes || 15)} min</span></div>
+        <h3>${esc(goal.title)}</h3><div class="daily-goal-v14"><span>✦</span><div><small>HOLIDAY FINISH LINE</small><strong>${esc(goal.title)}</strong></div></div><p class="daily-pick-reason-v14">${esc(pick.reason || 'A step toward a gentler start after the break.')}</p></div>
+        <div class="daily-pick-actions-v14"><button type="button" class="primary-button" data-daily-holiday="${escAttr(goal.id)}">${done ? 'Open holiday board' : goal.linkedTodoistId ? 'Open Todoist tasks' : 'Open & log on holiday board'}</button><button type="button" class="secondary-button" data-daily-swap="${escAttr(pick.slot)}">↻ Swap</button></div>
+      </article>`;
+    }
 
     if (pick.sourceType === "kotoba") {
       const completion = pickCompletion(pick);
@@ -1861,7 +1880,7 @@
     const games = eligibleGames();
     const kotoba = eligibleKotobaActivities();
     const japaneseMedia = eligibleJapanesePractice();
-    if (!quests.length && !adventures.length && !books.length && !games.length && !kotoba.length && !japaneseMedia.length) return [];
+    if (!quests.length && !adventures.length && !books.length && !games.length && !kotoba.length && !japaneseMedia.length && !window.LifeRPGHoliday?.eligibleForDaily?.().length) return [];
 
     const picked = [];
     const used = new Set();
@@ -2053,7 +2072,7 @@
         return true;
       };
       const push = (sourceType, item, baseScore) => {
-        if (!allowed(sourceType, item) || !sourceAllowedForSlot(sourceType, item, slot)) return;
+        if (!allowed(sourceType, item) || !sourceAllowedForSlot(sourceType, item, slot, checkIn)) return;
         const group = plannerGroup(sourceType, item);
         if (group && usedGroups.includes(group)) return; // never duplicate a recovery/activity family within a pick set
         const key = sourceKey(sourceType, item.id);
@@ -2072,6 +2091,7 @@
       games.forEach(game => push("game", game, scoreGame(game, slot, checkIn)));
       kotoba.forEach(item => push("kotoba", item, scoreKotoba(item, slot, checkIn)));
       japaneseMedia.forEach(item => push("japanese-media", item, scoreJapaneseMedia(item, slot, checkIn)));
+      (window.LifeRPGHoliday?.eligibleForDaily?.() || []).forEach(item => push("holiday", item, window.LifeRPGHoliday.scoreForDaily(item, slot, checkIn)));
       // Exclude duplicate Recovery care ONLY while a genuinely eligible leisure
       // alternative survives the current reroll/exclusion set. Otherwise a small
       // calming exercise remains a legitimate fallback.
@@ -2094,8 +2114,9 @@
     return best.score >= floor ? best : null;
   }
 
-  function sourceAllowedForSlot(type, item, slot) {
+  function sourceAllowedForSlot(type, item, slot, checkIn = todayRecord()?.checkIn || {}) {
     const role = SLOTS[slot]?.role || slot;
+    if (type === "holiday") return window.LifeRPGHoliday?.scoreForDaily?.(item, slot, checkIn) > -100;
     if (type === "quest") {
       const allowed = Array.isArray(item?.plannerRoles) ? item.plannerRoles : [];
       return !allowed.length || allowed.includes(role);
@@ -2135,6 +2156,7 @@
     if (type === "book") return bookRoleMeta(item?.role).realm;
     if (type === "game") return gameRoleMeta(item?.role).realm;
     if (type === "kotoba" || type === "japanese-media") return "Japanese";
+    if (type === "holiday") return item?.group === "school" ? "Work" : item?.group === "joy" ? "Hobbies" : item?.group === "recovery" ? "Recovery" : "Home";
     return String(item?.realm || (type === "adventure" ? "Hobbies" : ""));
   }
 
@@ -2259,10 +2281,16 @@
     if (type === "game") return sourceRealm(type, findGame(pick.sourceId));
     if (type === "adventure") return sourceRealm(type, findAdventure(pick.sourceId));
     if (type === "kotoba" || type === "japanese-media") return "Japanese";
+    if (type === "holiday") return window.LifeRPGHoliday?.goalById?.(pick.sourceId)?.group === "joy" ? "Hobbies" : window.LifeRPGHoliday?.goalById?.(pick.sourceId)?.group === "school" ? "Work" : "Home";
     return sourceRealm(type, findQuest(pick.sourceId));
   }
 
   function makePickFromCandidate(slot, candidate, checkIn, previous = null) {
+    if (candidate.sourceType === "holiday") return {
+      slot, sourceType: "holiday", sourceId: candidate.item.id,
+      reason: "A concrete goal from your active holiday board — without replacing time for recovery and hobbies.",
+      rerolls: Number(previous?.rerolls || 0), pickedAt: Date.now()
+    };
     if (candidate.sourceType === "kotoba") {
       return {
         slot, sourceType: "kotoba", sourceId: candidate.item.id, kotobaKind: candidate.item.kind, title: candidate.item.title,
@@ -3018,6 +3046,7 @@
   }
 
   function sourceItemForCandidate(type, id) {
+    if (type === "holiday") return window.LifeRPGHoliday?.goalById?.(id) || null;
     if (type === "quest") return findQuest(id);
     if (type === "game") return findGame(id);
     if (type === "book") return findBook(id);
@@ -3029,6 +3058,7 @@
 
   function swapOptionLabel(candidate, slotId) {
     const { sourceType: type, item } = candidate;
+    if (type === "holiday") return {icon: '🍁',title:item.title,meta:`Ferienziel · ~${item.minutes} min · ${item.priority === 'must' ? 'Wichtig' : 'Wunsch'}`};
     if (type === "quest") return { icon: realmIcon(item.realm), title: item.name, meta: `${item.realm || "Quest"} · ${sourceEffortLabel(type, item)} · ~${sourceEstimatedMinutes(type, item)} min` };
     if (type === "game") {
       const motivation = window.LifeRPGGames?.motivationMeta?.(item.motivation) || { icon: "🙂", label: "Okay" };
@@ -3330,6 +3360,10 @@
 
   function pickCompletion(pick) {
     if (!pick?.sourceId) return { done: false, progress: 0, progressText: "Not started" };
+    if (pick.sourceType === "holiday") {
+      const item = window.LifeRPGHoliday?.goalById?.(pick.sourceId);
+      return {done: Boolean(item?.doneAt), progress: item?.doneAt ? 1 : 0, progressText: item?.doneAt ? "Holiday goal done ✓" : "Open holiday goal"};
+    }
     const start = pickStartMs(pick);
     const type = pick.sourceType || "quest";
 
@@ -3712,6 +3746,7 @@
   }
 
   function sourceEstimatedMinutes(type, item) {
+    if (type === "holiday") return Math.max(5, Number(item?.minutes || 20));
     if (type === "quest") return estimatedMinutes(item);
     if (type === "game") return gameEstimatedMinutes(item || {}, gameSessionAmount(item || {}));
     if (type === "adventure") return Math.max(10, Number(item?.sessionMinutes || 30));
@@ -3726,6 +3761,7 @@
 
   function pickEstimatedMinutes(pick, item) {
     const type = pick?.sourceType || "quest";
+    if (type === "holiday") return Math.max(5, Number(item?.minutes || 20));
     if (type === "book") {
       const goal = pick.bookGoal || bookGoal(item || {}, pick.slot, todayRecord()?.checkIn || {});
       if (goal.type === "minutes") return Math.max(5, Number(goal.amount || 0));
@@ -3743,6 +3779,7 @@
   }
 
   function sourceEffortLabel(type, item) {
+    if (type === "holiday") return (item?.effort || 'medium') + ' effort';
     if (type === "quest") return planningEffortLabel(item);
     if (type === "adventure") {
       const energy = String(item?.energy || "medium").toLowerCase();

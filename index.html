@@ -51,6 +51,8 @@
   <link rel="stylesheet" href="knowledge-workshop.css?v=0.31.4do" />
   <link rel="stylesheet" href="dashboard-v2.css?v=0.31.4dz18" />
   <link rel="stylesheet" href="knowledge-practice.css?v=0.31.4dz22" />
+  <link rel="stylesheet" href="holiday-planner.css?v=0.31.4dz23" />
+  <link rel="stylesheet" href="todoist-sync.css?v=0.31.4dz23" />
 </head>
 <body>
   <section id="mobileCloudGate" class="mobile-cloud-gate-v251" data-state="checking" aria-live="polite" aria-label="Life RPG cloud sign in">
@@ -226,6 +228,7 @@
                 <button class="text-button" data-view-target="library" type="button">Library →</button>
                 <button class="text-button" data-view-target="games" type="button">Games →</button>
                 <button class="text-button" data-view-target="adventures" type="button">Adventures →</button>
+                <button class="text-button" data-view-target="breaks" type="button">🍁 Ferien-Board →</button>
                 <button class="text-button" data-view-target="quests" type="button">Quest Board →</button>
               </footer>
             </section>
@@ -288,7 +291,9 @@
               <span class="tiny-badge">Todoist</span>
             </div>
             <div id="externalTaskTodaySummary" class="external-task-summary"></div>
-            <button class="secondary-button external-task-button" id="externalTaskButton" type="button">Claim completed task</button>
+            <button class="secondary-button external-task-button" id="externalTaskButton" type="button">Manuell loggen</button>
+            <button class="secondary-button external-task-button" data-todoist-open type="button">Todoist verbinden ↗</button>
+            <p class="muted" style="font-size:.74rem">Synchronisierte Aufgaben bitte nicht zusätzlich manuell claimen.</p>
           </section>
 
           <section class="panel dashboard-growth-preview-v3 dashboard-context-card-v314au dashboard-growth-compact-v314au">
@@ -1366,6 +1371,8 @@
       <section id="view-meals" class="view meal-planner-view-v314dz7">
         <div id="mealPlannerPageV314dz7"></div>
       </section>
+      <!-- ADDITIVE VACATION BOARD: No existing Activity, Quests or Save sections changed. -->
+      <section id="view-breaks" class="view break-view"><div id="breakPlannerMount"></div></section>
 
             <!-- FOCUS / TIME / LIFE RHYTHM -->
       <section id="view-rhythm" class="view rhythm-view-v304">
@@ -1824,6 +1831,7 @@
       <button class="nav-button" data-view="journal"><span>🌸</span><small>Journal</small></button>
       <button class="nav-button" data-view="week"><span>▦</span><small>Meine Woche</small></button>
       <button class="nav-button" data-view="meals"><span>🍲</span><small>Essensplan</small></button>
+      <button class="nav-button" data-view="breaks"><span>🍁</span><small>Ferien & Auszeiten</small></button>
       <button class="nav-button" data-view="rhythm"><span>◷</span><small>Focus & Time</small></button>
       <button class="nav-button" data-view="activity"><span>≡</span><small>Activity</small></button>
       <button class="nav-button" data-view="quests"><span>☷</span><small>Quests</small></button>
@@ -3373,7 +3381,9 @@ League of Legends — PC" required></textarea></label>
   <script src="smart-action-router.js?v=0.31.4dz4"></script>
   <script src="smart-quests.js?v=0.31.0"></script>
   <script src="japanese-practice-library.js?v=0.31.4dz4"></script>
-  <script src="daily.js?v=0.31.4dz5"></script>
+  <script src="todoist-sync.js?v=0.31.4dz23"></script>
+  <script src="holiday-planner.js?v=0.31.4dz23"></script>
+  <script src="daily.js?v=0.31.4dz23"></script>
   <script src="data/year-journal-questions.js?v=0.31.4ar"></script>
   <script src="journal.js?v=0.31.4do"></script>
   <script src="relationship-memory.js?v=0.31.4cy"></script>
@@ -3409,7 +3419,7 @@ League of Legends — PC" required></textarea></label>
   <script src="sound-garden.js?v=0.31.4dz13"></script>
   <script src="sound-garden-library.js?v=0.31.4dz13"></script>
   <script type="module" src="cloud-save.js?v=0.31.4by"></script>
-  <script src="pwa.js?v=0.31.4dz16"></script>
+  <script src="pwa.js?v=0.31.4dz23"></script>
   <script src="life-hub-v314dk.js?v=0.31.4dz12"></script>
   <script src="creative-hub-v314dl.js?v=0.31.4dz19"></script>
   <script src="knowledge-workshop.js?v=0.31.4do"></script>

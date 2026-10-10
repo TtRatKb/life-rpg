@@ -1,0 +1,10 @@
+/* Todoist quick bridge · DZ23 */
+.todoist-dialog{width:min(760px,95vw);max-height:88dvh;overflow-y:auto;border-radius:22px;padding:24px}
+.todoist-header{display:flex;justify-content:space-between;gap:15px;align-items:start}.todoist-header h2{margin:0 0 13px}
+.todoist-connect,.todoist-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between;margin:10px 0}
+.todoist-connect{background:var(--panel-bg,#fff9f6);padding:10px;border-radius:11px}
+.todoist-dialog a{color:#9d6084;text-decoration:underline}
+.todoist-dialog form{border:1px solid #e7d6e0;padding:10px;border-radius:13px;margin:12px 0}
+.todoist-dialog label{display:flex;flex-direction:column;gap:5px;margin:9px 0}.todoist-dialog input:not([type=checkbox]),.todoist-dialog select{border:1px solid #dccbda;border-radius:9px;padding:9px;width:100%;background:#fff;color:#49344e}.todoist-dialog .todoist-remember{flex-direction:row;align-items:center;font-size:.82rem}
+.todoist-task-list{max-height:45vh;overflow-y:auto}.todoist-task{display:flex;gap:12px;align-items:center;justify-content:space-between;border-top:1px solid #eadce4;padding:10px 2px;flex-wrap:wrap}.todoist-task>div:first-child{flex:1 1 220px;min-width:0;display:grid;gap:3px}.todoist-task strong{font-size:.87rem;overflow-wrap:anywhere}.todoist-task small{font-size:.76rem;color:var(--text-muted,#947890)}.todoist-task>div:last-child{display:flex;gap:5px}.todoist-task button{font-size:.76rem;padding:7px}
+.todoist-reward-mode{border-radius:12px;padding:9px;background:var(--panel-bg,#fff8f7)}
