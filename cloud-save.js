@@ -29,7 +29,7 @@ const firebaseConfig = {
 const CLOUD_META_KEY = "lifeRpgCloudMetaV01";
 const LOCAL_ROLLBACK_KEY = "lifeRpgLocalRollbackV01";
 const SAVE_SCHEMA_VERSION = 7;
-const SAVE_DEBOUNCE_MS = 900;
+const SAVE_DEBOUNCE_MS = 1700; // Debounce cloud uploads only; local saving remains immediate.
 const CLOUD_STATE_FORMAT_GZIP = "gzip-base64-chunks-v1";
 const CLOUD_STATE_FORMAT_PLAIN = "json-base64-chunks-v1";
 const CLOUD_CHUNK_BYTE_LIMIT = 450000;
@@ -47,6 +47,10 @@ let cloudAuthSettled = false;
 let cloudReady = false;
 let knownRemoteRevision = null;
 let saveTimer = null;
+// A cloud transaction can take seconds on Safari/mobile. Never race two writes of
+// the same save revision. Queue one trailing sync for all edits made in flight.
+let cloudSaveInFlight = null;
+let cloudChangedDuringUpload = false;
 let applyingRemote = false;
 let pendingConflict = null;
 let conflictOpen = false;
@@ -276,6 +280,12 @@ async function reconcileWithCloud() {
 }
 
 function queueCloudSave(delay = SAVE_DEBOUNCE_MS) {
+  // Local persistence has already succeeded. Do not launch a second Firestore
+  // transaction while an earlier one is pending: batch into one trailing sync.
+  if (cloudSaveInFlight) {
+    cloudChangedDuringUpload = true;
+    return;
+  }
   clearTimeout(saveTimer);
   saveTimer = window.setTimeout(() => {
     saveToCloud().catch(error => {
@@ -292,15 +302,51 @@ async function saveToCloud({ force = false, backupRemote = false, reason = "auto
     return;
   }
 
+  if (cloudSaveInFlight) {
+    if (force || backupRemote) {
+      // Explicit restore/import/back-up writes must run after the current commit.
+      try { await cloudSaveInFlight; } catch { /* the explicit write will re-check the remote revision */ }
+      return saveToCloud({ force, backupRemote, reason });
+    }
+    cloudChangedDuringUpload = true;
+    return cloudSaveInFlight;
+  }
   clearTimeout(saveTimer);
+  saveTimer = null;
+
+  const operation = performCloudSave({ force, backupRemote, reason });
+  cloudSaveInFlight = operation;
+  try {
+    return await operation;
+  } finally {
+    cloudSaveInFlight = null;
+    if (cloudChangedDuringUpload && currentUser && cloudReady && !conflictOpen) {
+      cloudChangedDuringUpload = false;
+      setStatus("saving", "Local safe · cloud pending", "A newer change is saved locally and will sync next.");
+      queueCloudSave(150);
+    } else {
+      cloudChangedDuringUpload = false;
+    }
+  }
+}
+
+async function performCloudSave({ force = false, backupRemote = false, reason = "autosave" } = {}) {
   const candidate = cleanState(app.getState());
   const candidateFingerprint = fingerprint(candidate);
+  const meta = getCloudMeta();
+  // Frequent UI-state saves may be identical to the latest synced canonical
+  // state. Skip compression, chunk writes, revision growth and Firestore costs.
+  if (!force && knownRemoteRevision !== null &&
+      meta.lastSyncedRevision === knownRemoteRevision &&
+      meta.lastSyncedFingerprint === candidateFingerprint) {
+    setStatus("synced", "Synced", "Local and cloud save are already up to date.");
+    return;
+  }
+  setStatus("saving", "Local saved · cloud syncing", "Your progress is already saved in this browser. Updating your private cloud copy in the background.");
   const candidatePacked = await encodeCloudState(candidate);
   const ref = currentSaveRef();
   const deviceId = getDeviceId();
   const savedAtClient = new Date().toISOString();
-
-  setStatus("saving", "Saving…", "Writing the latest local progress to your private cloud save.");
 
   try {
     const result = await runTransaction(db, async transaction => {
@@ -331,16 +377,19 @@ async function saveToCloud({ force = false, backupRemote = false, reason = "auto
 
       let remoteChunkPayloads = null;
       if (shouldBackup && isChunkedRemote(remoteData)) {
-        remoteChunkPayloads = [];
-        for (let index = 0; index < remote.chunkCount; index += 1) {
-          const chunkSnap = await transaction.get(cloudChunkRef(ref, index));
+        // Read the old backup chunks concurrently. Sequential round-trips on
+        // mobile networks could otherwise keep "Saving" visible for seconds.
+        const chunkSnaps = await Promise.all(Array.from({ length: remote.chunkCount }, (_, index) =>
+          transaction.get(cloudChunkRef(ref, index))
+        ));
+        remoteChunkPayloads = chunkSnaps.map((chunkSnap, index) => {
           if (!chunkSnap.exists()) {
             const error = new Error(`Cloud save chunk ${index + 1}/${remote.chunkCount} is missing.`);
             error.code = "life-rpg/cloud-chunk-missing";
             throw error;
           }
-          remoteChunkPayloads.push(String(chunkSnap.data()?.data || ""));
-        }
+          return String(chunkSnap.data()?.data || "");
+        });
       }
 
       if (shouldBackup) {
@@ -439,6 +488,11 @@ async function manualSync() {
   setStatus("saving", "Checking…", "Comparing local and cloud progress.");
 
   try {
+    // A manual comparison must not read an older remote revision while an
+    // autosave transaction is still committing. Wait, then compare afresh.
+    if (cloudSaveInFlight) {
+      try { await cloudSaveInFlight; } catch { /* reconcile will surface the actual remote state */ }
+    }
     await reconcileWithCloud();
     if (!conflictOpen) app.showToast("Save sync checked.");
   } catch (error) {
@@ -529,7 +583,7 @@ function setStatus(state, title, detail) {
     const shortMap = {
       local: "Local",
       synced: "Synced",
-      saving: "Saving",
+      saving: "Cloud…",
       conflict: "Choose",
       error: "Local safe"
     };
@@ -582,16 +636,17 @@ async function hydrateRemoteSave(ref, data) {
     };
   }
 
-  const chunks = [];
-  for (let index = 0; index < meta.chunkCount; index += 1) {
-    const chunkSnap = await getDoc(cloudChunkRef(ref, index));
+  const chunkSnaps = await Promise.all(Array.from({ length: meta.chunkCount }, (_, index) =>
+    getDoc(cloudChunkRef(ref, index))
+  ));
+  const chunks = chunkSnaps.map((chunkSnap, index) => {
     if (!chunkSnap.exists()) {
       const error = new Error(`Cloud save chunk ${index + 1}/${meta.chunkCount} is missing.`);
       error.code = "life-rpg/cloud-chunk-missing";
       throw error;
     }
-    chunks.push(String(chunkSnap.data()?.data || ""));
-  }
+    return String(chunkSnap.data()?.data || "");
+  });
 
   return {
     ...meta,

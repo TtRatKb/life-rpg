@@ -1,4 +1,4 @@
-const CACHE_NAME = "life-rpg-v0314dz30-local-save-rescue";
+const CACHE_NAME = "life-rpg-v0314dz31-cloud-save-performance";
 const ASSET_CACHE_NAME = "life-rpg-assets-v6";
 const MAX_RUNTIME_ASSETS = 96;
 const CORE = [
@@ -159,7 +159,7 @@ const CORE = [
   "./weekly-review.css?v=0.31.4ag",
   "./weekly-review.js?v=0.31.4ag",
   "./manifest.webmanifest?v=0.30.3a",
-  "./pwa.js?v=0.31.4dz28",
+  "./pwa.js?v=0.31.4dz31",
   "./focus-dock.css?v=0.31.4dz16",
   "./focus-dock.js?v=0.31.4dz16",
   "./visual-performance.js?v=0.31.4bu",
@@ -213,7 +213,7 @@ const CORE = [
   "./activity-log.js?v=0.31.4dz26",
   "./kotoba-integration.js?v=0.31.4k",
   "./kotoba-quick-training.js?v=0.31.4dz20",
-  "./cloud-save.js?v=0.31.4dz24",
+  "./cloud-save.js?v=0.31.4dz31",
   "./assets/app-icon-192.png",
   "./assets/app-icon-512.png",
 ];
