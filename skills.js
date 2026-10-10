@@ -7,7 +7,7 @@
     return;
   }
 
-  const VERSION = "0.31.4dz29";
+  const VERSION = "0.31.4dz33";
   const SCHEMA = 1;
   const MAX_EVENTS = 6000;
   const HABIT_XP = { tiny: 3, low: 5, normal: 8, high: 12, boss: 18 };
@@ -47,9 +47,13 @@
     skill("personal-care", "Personal Care", "Health", "🫧", "Skincare, hair care and other intentional care routines."),
     skill("reflection-self-awareness", "Reflection & Self-Awareness", "Health", "🌙", "Checking in, noticing patterns and reflecting without turning it into a grade."),
 
-    skill("recovery-regulation", "Recovery & Regulation", "Recovery", "🌿", "Rest, breathing, meditation, body scans and deliberate down-regulation."),
+    skill("recovery-regulation", "Recovery & Regulation", "Recovery", "🌿", "Breathing, body scans, grounding and deliberate nervous-system down-regulation."),
+    skill("recovery-rest", "Rest & Recharging", "Recovery", "☾", "Quiet breaks, restorative pauses and genuinely protecting rest."),
+    skill("recovery-unwinding", "Leisure & Unwinding", "Recovery", "🫖", "Intentional work-free leisure: a cozy game, anime or music to wind down."),
 
-    skill("life-management", "Life Management", "Home", "🧺", "Household, paperwork, appointments, errands, laundry and practical life upkeep."),
+    skill("life-management", "Life Management", "Home", "🗂️", "Paperwork, appointments, personal administration and life logistics."),
+    skill("home-tidying", "Tidying & Organisation", "Home", "🧹", "Decluttering, room resets and creating usable living/work spaces."),
+    skill("home-routines", "Household Routines", "Home", "🧺", "Laundry, dishes, groceries and repeatable daily household maintenance."),
 
     skill("creative-expression", "Creative Expression", "Hobbies", "✍️", "Turning ideas into creative output across media."),
     skill("craft-making", "Craft & Making", "Hobbies", "🧶", "Making physical things and building hands-on craft practice."),
@@ -127,12 +131,12 @@
       trainingAction("🌸", "Kotoba Quick", "Listening-Runden aus bestätigten Kotoba-Reviews zählen ebenfalls hier.", () => window.LifeRPGKotobaQuickTraining?.startQuick?.(), "native")
     ],
     "japanese-reading-mining": [
-      trainingAction("📖", "Japanese Reading", "Japanese-markierte Bücher und Leselogging trainieren nach dem Update gezielt Reading & Comprehension.", () => app.showView?.("library")),
+      trainingAction("📖", "Japanese Reading", "Japanisch markierte Bücher und tatsächlich geloggte Seiten trainieren Reading. Kotoba-Story-Kapitel zählen erst, wenn Kotoba dafür echte Lese-Abschlussereignisse liefert.", () => app.showView?.("library")),
       trainingAction("✿", "Reading / Subtitle Habit", "Lege z. B. einen Manga-, NHK- oder Untertitel-Habit an und ordne ihn diesem Skill zu.", () => openHabitForSkill("japanese-reading-mining"))
     ],
     "japanese-speaking-production": [
-      trainingAction("話", "Kotoba Quick · Output", "Production-/Form-Runden aus Kotoba trainieren diesen Skill automatisch, sobald Kotoba sie bestätigt.", () => window.LifeRPGKotobaQuickTraining?.startQuick?.(), "native"),
-      trainingAction("✿", "Speaking / Shadowing Habit", "Lege einen wiederkehrenden Japanese-Habit an und ordne ihn diesem Skill zu.", () => openHabitForSkill("japanese-speaking-production"))
+      trainingAction("話", "Kotoba · produktive Antworten", "Nur echte japanische Eigenproduktion (z. B. Deutsch → Japanisch) zählt als Production; einfache Wiedererkennung ist kein Speaking.", () => window.LifeRPGKotobaQuickTraining?.startQuick?.(), "linked"),
+      trainingAction("✿", "Eigene Sprechpraxis", "Ein Habit für tatsächlich laut gesprochene Sätze oder Konversation. Echtes Audio-Shadowing folgt erst mit einem Kotoba-Abschlussereignis.", () => openHabitForSkill("japanese-speaking-production"), "guided")
     ],
     "movement-body-care": [
       trainingAction("🤸", "Guided Stretch", "Kurze angeleitete Bewegung statt einer offenen Aufgabe.", () => window.LifeRPGRecoveryStudio?.start?.("stretch10"), "native"),
@@ -150,13 +154,28 @@
       trainingAction("✍️", "Journal", "Reflexionen und Wochenrückblicke vertiefen den Skill.", () => app.showView?.("journal"))
     ],
     "recovery-regulation": [
-      trainingAction("🌿", "Recovery Studio", "Atmung, Body Scan, Ruhe oder sanfte Regulation.", () => window.LifeRPGRecoveryStudio?.open?.(), "native"),
-      trainingAction("◷", "Recovery loggen", "Bewusste Erholung als echte Aktivität erfassen.", () => app.showView?.("rhythm"), "guided")
+      trainingAction("🌿", "Recovery Studio · Atem & Body Scan", "Echte Atmung, Body Scan und Grounding-Sessions trainieren Regulation.", () => window.LifeRPGRecoveryStudio?.open?.(), "native"),
+      trainingAction("◷", "Ruhige Regulation loggen", "Echte Zeit für Atmung, Meditation oder bewusste Regulation erfassen.", () => app.showView?.("rhythm"), "guided")
+    ],
+    "recovery-rest": [
+      trainingAction("☾", "15-Minute Lie Down", "Eine echte, ruhige Erholungssession im Recovery Studio absolvieren.", () => window.LifeRPGRecoveryStudio?.start?.("lieDown15"), "native"),
+      trainingAction("◷", "Pause / Ruhe loggen", "Tatsächlich eingelegte Pause (Recovery → Rest oder Break) mit dem Zeitlog erfassen.", () => app.showView?.("rhythm"), "guided")
+    ],
+    "recovery-unwinding": [
+      trainingAction("🫖", "Feierabend-Stoppuhr", "Bewusst für dich spielen, Anime schauen oder Musik hören: kein Produktivitätsziel, einfach wirklich entspannen.", () => window.LifeRPGTime?.startClock?.({ categoryId: "recovery", subcategory: "Other recovery", label: "Intentional unwind · leisure" }), "guided"),
+      trainingAction("✿", "Unwinding-Habit", "Ein freiwilliges Habit für gezielte Auszeit statt noch mehr Aufgaben.", () => openHabitForSkill("recovery-unwinding"), "guided")
     ],
     "life-management": [
-      trainingAction("🏠", "Schnell loggen", "Haushalt erledigt? Direkt als Home Action erfassen.", () => window.LifeRPGLifeHub?.open?.(), "native"),
-      trainingAction("🍲", "Essensplan", "Planung und Vorratsorganisation als praktisches Life Management.", () => app.showView?.("meals")),
-      trainingAction("▦", "Meine Woche", "Termine und echte Adminzeit übersichtlich halten.", () => app.showView?.("week"))
+      trainingAction("🗂️", "Lebensorganisation loggen", "Papierkram, Termine und Besorgungen als echte Arbeit für den Alltag erfassen.", () => app.showView?.("rhythm"), "guided"),
+      trainingAction("▦", "Meine Woche", "Termine und deine tatsächliche Organisationszeit im Blick behalten.", () => app.showView?.("week"))
+    ],
+    "home-tidying": [
+      trainingAction("🧹", "10-Minute Clean", "Starte eine echte Aufräum-Session; auch 5 Minuten freie Stoppuhr zählen als Übung.", () => window.LifeRPGTime?.startClock?.({ categoryId: "life_admin", subcategory: "Household", label: "Home reset · 10-Minute Clean" }), "guided"),
+      trainingAction("✿", "Aufräum-Quest / Habit", "Regelmäßige Zimmer-Resets, Putzen und Ordnung auch über die bestehende Quest-Habit-Verknüpfung.", () => app.showView?.("quests"))
+    ],
+    "home-routines": [
+      trainingAction("🧺", "Haushalt schnell loggen", "Wäsche, Spülmaschine, Einkäufe und echte Routinen einmalig erfassen.", () => window.LifeRPGLifeHub?.open?.(), "native"),
+      trainingAction("◷", "Haushaltszeit loggen", "Z. B. Wäsche machen oder Haushaltsarbeiten als Life/Admin → Household loggen.", () => app.showView?.("rhythm"), "guided")
     ],
     "creative-expression": [
       trainingAction("✍️", "Drawing Studio", "Zeichnen und kreative Challenges trainieren den Skill.", () => window.LifeRPGCreativeHub?.enter?.("drawing"), "native"),
@@ -204,6 +223,7 @@
   function init() {
     ensureState();
     const japaneseSplitCreated = ensureJapaneseSkillSplitMigration();
+    const homeRecoverySplitCreated = ensureHomeRecoverySkillSplitMigration();
     injectNavigation();
     injectSkillsView();
     ensureTrainingDialog();
@@ -211,8 +231,12 @@
     injectHabitSkillField();
     observeTalentTrees();
     bind();
-    if (japaneseSplitCreated) app.saveState({ source: "skills-japanese-split-init", suppressUiRefresh: true });
-    reconcile({ persist: true, reason: "skills-init" });
+    // A rebuild already persists the migration alongside derived Skill XP.
+    // Avoid two full-save writes during startup on large DZ30/DZ31 saves.
+    const rebuilt = reconcile({ persist: true, reason: "skills-init" });
+    if (!rebuilt && (japaneseSplitCreated || homeRecoverySplitCreated)) {
+      app.saveState({ source: "skills-taxonomy-migration", suppressUiRefresh: true });
+    }
     bootstrapSkillFeedback();
     render();
     initialized = true;
@@ -243,6 +267,22 @@
     if (Number(model.migrations?.japaneseSkillSplitV1At || 0) > 0) return false;
     model.migrations.japaneseSkillSplitV1At = Date.now();
     return true;
+  }
+
+  // Only new real-world activity is classified into the expanded Home/Recovery
+  // specializations. All historical derived XP remains in the original Skills,
+  // preserving earned levels and Talent Points without copying event histories.
+  function ensureHomeRecoverySkillSplitMigration() {
+    const model = state();
+    if (Number(model.migrations?.homeRecoverySkillSplitV1At || 0) > 0) return false;
+    model.migrations.homeRecoverySkillSplitV1At = Date.now();
+    return true;
+  }
+
+  function specializedHomeRecoverySkill(oldId, newId, at) {
+    const split = Number(state().migrations?.homeRecoverySkillSplitV1At || 0);
+    const when = timestamp(at);
+    return split && when >= split ? newId : oldId;
   }
 
   function japaneseSkillSplitAt() {
@@ -547,11 +587,16 @@
     const games = Array.isArray(root.gameLibrary?.items) ? root.gameLibrary.items : [];
     const gameById = Object.fromEntries(games.map(item => [item.id, item]));
     const gamingTimeEntries = timeEntries.filter(entry => entry.categoryId === "gaming");
+    // When a deliberate unwind timer and a manually logged game session describe
+    // the same session, the player's Recovery intent wins the Skill-XP route.
+    // Steam imports are left alone because historical/approximate timestamps
+    // are not strong evidence for a duplicate live activity.
+    const unwindTimeEntries = timeEntries.filter(entry => entry.categoryId === "recovery" && /^intentional unwind\b|^unwinding\b/i.test(String(entry.label || "")));
     (root.gameLibrary?.logs || []).forEach(log => {
       const game = gameById[log?.gameId];
       const skillId = skillForGame(game);
       if (!game || !skillId) return;
-      if (!log.steamImported && isLikelyDuplicateMediaTime(log, gamingTimeEntries)) return;
+      if (!log.steamImported && isLikelyDuplicateMediaTime(log, [...gamingTimeEntries, ...unwindTimeEntries])) return;
       const minutes = Math.max(0, Number(log.minutes || 0));
       const override = Number(log.skillXpOverride);
       const xp = log.steamImported && Number.isFinite(override)
@@ -591,7 +636,7 @@
       if (!quest) return;
       if (nativeQuestRole(quest)) return;
       if (hasMatchingLinkedTime(log, linkedTimesByQuest[log.questId] || [])) return;
-      const mapped = skillForQuest(quest);
+      const mapped = skillForQuest(quest, log.at);
       if (!mapped?.skillId) return;
       const xp = questLogXp(log, quest, mapped);
       if (xp <= 0) return;
@@ -634,7 +679,7 @@
 
     if (entry.linkedQuestId) {
       const quest = app.getQuestById?.(entry.linkedQuestId);
-      const mapped = skillForQuest(quest);
+      const mapped = skillForQuest(quest, entry.endAt || entry.startAt || entry.createdAt);
       if (mapped?.skillId) return mapped.skillId;
     }
 
@@ -648,8 +693,10 @@
     const sub = String(entry.subcategory || "").toLowerCase();
     const label = String(entry.label || "").toLowerCase();
 
+    const occurredAt = entry.endAt || entry.startAt || entry.createdAt;
     if (label.includes("recovery studio")) {
       if (/neck|shoulder|stretch|yoga|mobility|walk/.test(label)) return "movement-body-care";
+      if (/lie down|quiet rest/.test(label)) return specializedHomeRecoverySkill("recovery-regulation", "recovery-rest", occurredAt);
       return "recovery-regulation";
     }
 
@@ -670,7 +717,11 @@
       return null;
     }
     if (category === "life_admin") {
-      if (["household", "appointments", "paperwork", "errands"].includes(sub)) return "life-management";
+      if (sub === "household") {
+        const tidying = /clean|tidy|declutter|sort|reset|aufräum|ordnung|putzen|entrümpel|aufr[aä]um/.test(label);
+        return specializedHomeRecoverySkill("life-management", tidying ? "home-tidying" : "home-routines", occurredAt);
+      }
+      if (["appointments", "paperwork", "errands"].includes(sub)) return "life-management";
       return null;
     }
     if (category === "hobby") {
@@ -689,7 +740,9 @@
     }
     if (category === "recovery") {
       if (sub === "walk") return "movement-body-care";
-      if (["break", "rest", "quiet time"].includes(sub)) return "recovery-regulation";
+      if (/^intentional unwind\b|^unwinding\b/i.test(entry.label || "")) return specializedHomeRecoverySkill("recovery-regulation", "recovery-unwinding", occurredAt);
+      if (["break", "rest"].includes(sub)) return specializedHomeRecoverySkill("recovery-regulation", "recovery-rest", occurredAt);
+      if (sub === "quiet time") return "recovery-regulation";
       return null;
     }
     return null;
@@ -705,7 +758,12 @@
       const id = map[reward.metadata?.bridgeType];
       if (id) return nativeSkill(id, Math.max(0, Math.min(16, Number(reward.metadata?.skillXP || 0))), source);
     }
-    if (source === "home-quick-action") return nativeSkill("life-management", Math.max(0, Number(reward.statXP ?? 1)), "home-quick-action");
+    if (source === "home-quick-action") {
+      const actionId = String(reward.metadata?.actionId || "");
+      const specialized = ["clear-kitchen", "clean-bathroom", "vacuum"].includes(actionId) ? "home-tidying"
+        : ["dishwasher", "hang-laundry", "put-away-laundry", "trash", "put-groceries", "change-sheets"].includes(actionId) ? "home-routines" : "life-management";
+      return nativeSkill(specializedHomeRecoverySkill("life-management", specialized, reward.at), Math.max(0, Number(reward.statXP ?? 1)), "home-quick-action");
+    }
     if (source === "sudoku-complete") return nativeSkill("logical-pattern-reasoning", 10, "sudoku");
     if (source === "sudoku-daily-replay") return nativeSkill("logical-pattern-reasoning", 8, "sudoku-replay");
     if (source === "nonogram-complete") return nativeSkill("logical-pattern-reasoning", 10, "nonogram");
@@ -766,7 +824,7 @@
     return "language-learning";
   }
 
-  function skillForQuest(quest) {
+  function skillForQuest(quest, at = null) {
     if (!quest) return null;
     const role = String(quest.systemRole || "").toLowerCase();
     const name = String(quest.name || "").toLowerCase();
@@ -774,9 +832,11 @@
     if (["bunpro-reviews", "bunpro-lesson", "shadowing", "manual-language"].includes(role)) return mappedQuest("language-learning");
     if (role === "explain-it-back" || role === "curiosity-dive") return mappedQuest("learning-inquiry");
     if (role === "craft-session" || role === "scrapbook-page") return mappedQuest("craft-making");
-    if (["recovery-meditation", "recovery-body-scan", "recovery-breathing", "recovery-lie-down", "fresh-air"].includes(role)) return mappedQuest("recovery-regulation");
+    if (role === "recovery-lie-down") return mappedQuest(specializedHomeRecoverySkill("recovery-regulation", "recovery-rest", at));
+    if (["recovery-meditation", "recovery-body-scan", "recovery-breathing", "fresh-air"].includes(role)) return mappedQuest("recovery-regulation");
     if (["recovery-stretch", "recovery-yoga", "mobility-break"].includes(role)) return mappedQuest("movement-body-care");
-    if (["clear-surface", "put-away-ten", "paper-pile", "laundry-cycle", "laundry-fold"].includes(role)) return mappedQuest("life-management");
+    if (["clear-surface", "put-away-ten", "paper-pile"].includes(role)) return mappedQuest(specializedHomeRecoverySkill("life-management", "home-tidying", at));
+    if (["laundry-cycle", "laundry-fold"].includes(role)) return mappedQuest(specializedHomeRecoverySkill("life-management", "home-routines", at));
     if (role === "focus-work") return mappedQuest("focus-concentration");
     if (role === "new-hairstyle" || role === "makeup-look") return mappedQuest("style-visual-design");
     if (role === "sudoku") return mappedQuest("logical-pattern-reasoning", { native: true });
@@ -787,9 +847,11 @@
     if (/focused work block|focus work/.test(name)) return mappedQuest("focus-concentration");
     if (/curiosity dive|explain it back|literature note|permanent note/.test(name)) return mappedQuest("learning-inquiry");
     if (/bunpro|grammar echo|grammar output|kanji|shadowing|subtitle scout|line miner|n3 practice|scene recap/.test(name)) return mappedQuest("language-learning");
-    if (/meditation|body scan|breathing|lie.down|real rest|fresh.air/.test(name)) return mappedQuest("recovery-regulation");
+    if (/lie.down|real rest|quiet rest/.test(name)) return mappedQuest(specializedHomeRecoverySkill("recovery-regulation", "recovery-rest", at));
+    if (/meditation|body scan|breathing|fresh.air/.test(name)) return mappedQuest("recovery-regulation");
     if (/walk|stretch|yoga|mobility/.test(name)) return mappedQuest("movement-body-care");
-    if (/room reset|10-minute clean|paper pile|laundry|clear one surface|put away|throw one thing|sort \/ declutter files/.test(name)) return mappedQuest("life-management");
+    if (/laundry|wäsche/.test(name)) return mappedQuest(specializedHomeRecoverySkill("life-management", "home-routines", at));
+    if (/room reset|10-minute clean|paper pile|clear one surface|put away|throw one thing|sort \/ declutter files/.test(name)) return mappedQuest(specializedHomeRecoverySkill("life-management", "home-tidying", at));
     if (/craft session|scrapbook/.test(name)) return mappedQuest("craft-making");
     if (/hairstyle|makeup look/.test(name)) return mappedQuest("style-visual-design");
     if (/songwriting|music composition|creative experiment|aesthetic build|250-word writing/.test(name)) return mappedQuest("creative-expression");
@@ -1478,11 +1540,15 @@
     if (/grading|correction|korrig|bewert/.test(name)) return "assessment-feedback";
     if (/teach|unterricht|vertretung/.test(name)) return "teaching-facilitation";
     if (/deep work|focus|fokus/.test(name)) return "focus-concentration";
-    if (/paper|papier|laundry|wäsche|clean|put away|declutter|aufräum|haushalt/.test(name)) return "life-management";
+    if (/laundry|wäsche|spülmaschine|geschirr|einkauf/.test(name)) return "home-routines";
+    if (/clean|put away|declutter|aufräum|haushalt|zimmer|schreibtisch|putzen/.test(name)) return "home-tidying";
+    if (/paper|papier|organisier|termin|bürokratie/.test(name)) return "life-management";
     if (/crochet|knit|sew|craft|bastel|häkel|strick/.test(name)) return "craft-making";
     if (/makeup|hair style|hairstyle|styling/.test(name)) return "style-visual-design";
     if (/game|gaming|read for fun|lesen.*spaß/.test(name)) return "recreation-play";
-    if (/meditat|breath|rest|ruhe|body scan/.test(name)) return "recovery-regulation";
+    if (/meditat|breath|body scan|grounding/.test(name)) return "recovery-regulation";
+    if (/ruhe|rest|pause|powernap|ausruhen/.test(name)) return "recovery-rest";
+    if (/unwind|abschalt|feierabend|entspannungszeit/.test(name)) return "recovery-unwinding";
     if (realm === "Japanese") return "language-learning";
     return null;
   }
