@@ -1,17 +1,17 @@
-const CACHE_NAME = "life-rpg-v0314dz23b-todoist-daily-actions";
+const CACHE_NAME = "life-rpg-v0314dz23c-tasks-page";
 const ASSET_CACHE_NAME = "life-rpg-assets-v6";
 const MAX_RUNTIME_ASSETS = 96;
 const CORE = [
-  "./todoist-sync.js?v=0.31.4dz23b",
-  "./todoist-sync.css?v=0.31.4dz23b",
-  "./holiday-planner.js?v=0.31.4dz23b",
+  "./todoist-sync.js?v=0.31.4dz23c",
+  "./todoist-sync.css?v=0.31.4dz23c",
+  "./holiday-planner.js?v=0.31.4dz23c",
   "./holiday-planner.css?v=0.31.4dz23",
   "./knowledge-practice.js?v=0.31.4dz22",
   "./knowledge-practice.css?v=0.31.4dz22",
   "./work-event-bridge.js?v=0.31.4dz22",
   "./",
   "./index.html",
-  "./life-hub-v314dk.js?v=0.31.4dz23a",
+  "./life-hub-v314dk.js?v=0.31.4dz23c",
   "./creative-hub-v314dl.js?v=0.31.4dz19",
   "./creative-hub-v314dl.css?v=0.31.4dz19",
   "./ui-chrome.css?v=0.31.4dz19",
@@ -153,7 +153,7 @@ const CORE = [
   "./weekly-review.css?v=0.31.4ag",
   "./weekly-review.js?v=0.31.4ag",
   "./manifest.webmanifest?v=0.30.3a",
-  "./pwa.js?v=0.31.4dz23b",
+  "./pwa.js?v=0.31.4dz23c",
   "./focus-dock.css?v=0.31.4dz16",
   "./focus-dock.js?v=0.31.4dz16",
   "./visual-performance.js?v=0.31.4bu",

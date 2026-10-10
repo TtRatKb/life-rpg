@@ -1,18 +1,39 @@
-/* Todoist quick bridge · DZ23 */
-.todoist-dialog{width:min(760px,95vw);max-height:88dvh;overflow-y:auto;border-radius:22px;padding:24px}
-.todoist-header{display:flex;justify-content:space-between;gap:15px;align-items:start}.todoist-header h2{margin:0 0 13px}
-.todoist-connect,.todoist-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between;margin:10px 0}
-.todoist-connect{background:var(--panel-bg,#fff9f6);padding:10px;border-radius:11px}
-.todoist-dialog a{color:#9d6084;text-decoration:underline}
-.todoist-dialog form{border:1px solid #e7d6e0;padding:10px;border-radius:13px;margin:12px 0}
-.todoist-dialog label{display:flex;flex-direction:column;gap:5px;margin:9px 0}.todoist-dialog input:not([type=checkbox]),.todoist-dialog select{border:1px solid #dccbda;border-radius:9px;padding:9px;width:100%;background:#fff;color:#49344e}.todoist-dialog .todoist-remember{flex-direction:row;align-items:center;font-size:.82rem}
-.todoist-task-list{max-height:45vh;overflow-y:auto}.todoist-task{display:flex;gap:12px;align-items:center;justify-content:space-between;border-top:1px solid #eadce4;padding:10px 2px;flex-wrap:wrap}.todoist-task>div:first-child{flex:1 1 220px;min-width:0;display:grid;gap:3px}.todoist-task strong{font-size:.87rem;overflow-wrap:anywhere}.todoist-task small{font-size:.76rem;color:var(--text-muted,#947890)}.todoist-task>div:last-child{display:flex;gap:5px}.todoist-task button{font-size:.76rem;padding:7px}
-.todoist-reward-mode{border-radius:12px;padding:9px;background:var(--panel-bg,#fff8f7)}
-
-/* DZ23b: task triage, date/project quick add */
-.todoist-add-details,.todoist-filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
-.todoist-add-form>strong{display:block;margin-bottom:8px}
-.todoist-filters{align-items:end}
-.todoist-task-list{max-height:48dvh;overflow:auto;scrollbar-gutter:stable}
-.todoist-task button:disabled{opacity:.65;cursor:default}
-@media(max-width:600px){.todoist-dialog{padding:16px;width:96vw}.todoist-task>div:last-child{width:100%}.todoist-task button{flex:1}}
+/* DZ23c — My Tasks: dedicated responsive Life RPG page, not an oversized dialog. */
+#view-tasks{width:100%;max-width:none}
+#todoistPageMount{width:100%;max-width:1260px;margin:0 auto;padding:0 0 60px;color:var(--text,#453447)}
+.todoist-page-title{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:25px 27px;margin:12px 0 16px;background:linear-gradient(120deg,#fff9f5,#fbeefa);border:1px solid #edd2e2;border-radius:24px}
+.todoist-page-title h1{font-family:Georgia,serif;font-size:clamp(1.65rem,3vw,2.5rem);margin:.18rem 0;color:#523249}
+.todoist-page-title p:not(.eyebrow){margin:0;color:#80697d;line-height:1.45}
+.todoist-page-status{display:flex;align-items:center;justify-content:flex-end;gap:9px;flex-wrap:wrap;max-width:300px}
+.todoist-page-status>span{font-size:.82rem;color:#846f81;font-weight:700}.todoist-page-status>span.is-connected{color:#498770}
+.todoist-page-status small{font-size:.73rem;color:#988497;width:100%;text-align:right}
+.todoist-page-error{color:#8b3c3c;border:1px solid #edb3b3;border-radius:12px;padding:12px;margin:12px 0;background:#fff0f0}
+.todoist-welcome,.todoist-panel,.todoist-overview>div{background:#fffaf8;border:1px solid #e8d4e0;border-radius:18px;padding:20px;margin-bottom:14px}
+.todoist-welcome h2{margin:0 0 9px}.todoist-welcome p{color:#80697d}
+.todoist-overview{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:15px}
+.todoist-overview>div{display:flex;flex-direction:column;gap:4px;margin:0;padding:15px 18px;background:#fdf1f7}.todoist-overview strong{font-size:1.7rem;line-height:1.1;color:#643c59;font-variant-numeric:tabular-nums}.todoist-overview span{font-size:.8rem;color:#80697d}
+.todoist-panel-heading{display:flex;align-items:baseline;justify-content:space-between;gap:15px;margin-bottom:13px;flex-wrap:wrap}.todoist-panel-heading h2{margin:0;font-size:1.1rem}.todoist-panel-heading>span{font-size:.76rem;color:#968094}
+.todoist-capture input[name=title]{width:100%;box-sizing:border-box;border:1px solid #e1cada;border-radius:13px;padding:13px 14px;background:white;color:#412f45;font-size:1rem}
+.todoist-add-details{display:grid;grid-template-columns:repeat(3,minmax(110px,1fr)) auto;align-items:end;gap:12px;margin-top:13px}
+#todoistPageMount label{font-size:.78rem;color:#796077;font-weight:650;display:flex;flex-direction:column;gap:5px}
+#todoistPageMount input:not([type=checkbox]),#todoistPageMount select{box-sizing:border-box;width:100%;min-width:0;background:#fff;border:1px solid #e1cada;border-radius:11px;padding:10px 9px;color:#49344e;font:inherit}
+#todoistPageMount button{cursor:pointer}
+.todoist-add-details button{min-height:42px;white-space:nowrap}
+.todoist-filters{display:grid;grid-template-columns:minmax(280px,2fr) minmax(155px,1fr) minmax(155px,1.2fr);gap:12px;align-items:end;margin-bottom:10px}
+.todoist-filter-tabs{display:flex;gap:4px;align-items:center;flex-wrap:wrap;background:#f6eaf1;border-radius:13px;padding:4px;align-self:end;min-height:41px}
+.todoist-filter-tabs button{flex:1;min-width:65px;border:0;border-radius:10px;background:transparent;padding:9px 10px;color:#765771;font-size:.8rem;font-weight:700;white-space:nowrap}
+.todoist-filter-tabs button.is-active{background:#fff;box-shadow:0 1px 4px #c69bad4d;color:#55314e}
+.todoist-list-summary{color:#856e81;font-size:.8rem;padding:8px 1px 11px;border-bottom:1px solid #eddee6}
+.todoist-date-heading{font-size:.82rem;text-transform:uppercase;letter-spacing:.08em;color:#986783;margin:18px 1px 5px}
+.todoist-task{display:flex;align-items:center;gap:12px;border-bottom:1px solid #f0e4ea;padding:11px 0;min-width:0}
+.todoist-task-body{flex:1;min-width:0}.todoist-task-body>strong{font-size:.91rem;font-weight:650;display:block;overflow-wrap:anywhere;line-height:1.4}.todoist-task-meta{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px;font-size:.74rem;color:#8e798b}.todoist-task-meta .is-overdue{color:#b35f54;font-weight:750}
+#todoistPageMount .todoist-check{flex:0 0 27px;width:27px;height:27px;border:2px solid #d5a1b9;background:#fff;border-radius:9px;font-weight:bold;color:#ac6d8e;font-size:.9rem;padding:0}
+#todoistPageMount .todoist-check:hover{background:#f5dce8}
+#todoistPageMount .todoist-holiday-link{flex-shrink:0;border:1px solid #e5cfdb;background:#fff9f9;color:#855e7c;border-radius:10px;padding:7px 10px;font-size:.76rem}
+#todoistPageMount .todoist-holiday-link:disabled{opacity:.5}
+.todoist-empty{padding:28px 12px;text-align:center;color:#947f91}.todoist-more{display:block;margin:15px auto 3px}
+.todoist-advanced{padding:0;overflow:hidden}.todoist-settings-toggle{width:100%;display:flex;justify-content:space-between;align-items:center;border:0;background:transparent;color:#6e4768;font-size:.92rem;font-weight:750;text-align:left;padding:17px 21px}
+.todoist-settings-card{border-top:1px solid #eee0e7;padding:18px 21px 21px;display:grid;gap:13px}.todoist-settings-head p,.todoist-settings-footnote{color:#806e7c;font-size:.8rem;margin:5px 0}.todoist-connect{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}.todoist-connect a{color:#985b80;text-decoration:underline;font-size:.82rem}
+#todoistPageMount .todoist-inline-check{flex-direction:row;align-items:center;gap:8px}.todoist-connect-form{display:flex;align-items:end;gap:12px;flex-wrap:wrap}.todoist-connect-form label:first-child{flex:1;min-width:220px}.todoist-connect-form button{align-self:end}
+@media(max-width:900px){.todoist-filters{grid-template-columns:1fr 1fr}.todoist-filter-tabs{grid-column:1/-1}.todoist-add-details{grid-template-columns:repeat(2,minmax(100px,1fr))}.todoist-page-title{padding:19px}}
+@media(max-width:600px){.todoist-page-title{flex-direction:column;align-items:stretch;gap:14px;border-radius:17px;padding:18px}.todoist-page-status{justify-content:flex-start;max-width:none}.todoist-page-status small{text-align:left}.todoist-overview{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.todoist-overview>div{padding:12px}.todoist-panel{padding:15px}.todoist-filters{grid-template-columns:1fr}.todoist-filter-tabs{grid-column:auto;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}.todoist-filter-tabs button{min-width:0;white-space:normal}.todoist-add-details{grid-template-columns:1fr 1fr}.todoist-add-details button{grid-column:1/-1}.todoist-task{gap:9px}.todoist-task-body>strong{font-size:.85rem}#todoistPageMount .todoist-holiday-link{font-size:.7rem;padding:7px}.todoist-settings-card{padding:15px}}
