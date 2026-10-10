@@ -1,4 +1,4 @@
-const CACHE_NAME = "life-rpg-v0314dz23-autumn-break-and-todoist";
+const CACHE_NAME = "life-rpg-v0314dz23a-autumn-break-navigation-fix";
 const ASSET_CACHE_NAME = "life-rpg-assets-v6";
 const MAX_RUNTIME_ASSETS = 96;
 const CORE = [
@@ -11,7 +11,7 @@ const CORE = [
   "./work-event-bridge.js?v=0.31.4dz22",
   "./",
   "./index.html",
-  "./life-hub-v314dk.js?v=0.31.4dz12",
+  "./life-hub-v314dk.js?v=0.31.4dz23a",
   "./creative-hub-v314dl.js?v=0.31.4dz19",
   "./creative-hub-v314dl.css?v=0.31.4dz19",
   "./ui-chrome.css?v=0.31.4dz19",
@@ -153,7 +153,7 @@ const CORE = [
   "./weekly-review.css?v=0.31.4ag",
   "./weekly-review.js?v=0.31.4ag",
   "./manifest.webmanifest?v=0.30.3a",
-  "./pwa.js?v=0.31.4dz23",
+  "./pwa.js?v=0.31.4dz23a",
   "./focus-dock.css?v=0.31.4dz16",
   "./focus-dock.js?v=0.31.4dz16",
   "./visual-performance.js?v=0.31.4bu",
