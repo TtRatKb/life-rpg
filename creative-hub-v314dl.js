@@ -8,7 +8,7 @@
   const PaintingStore=window.LifeRPGColoringStorage||null;
   const coloringPreviewUrls=new Map();
   const ID={coloring:"LifeRPGColoringStudioBridge",drawing:"LifeRPGDrawingStudioBridge"};
-  const FRAMES={coloring:"coloring-studio.html?embedded=1&v=0.31.4dz2",drawing:"drawing-studio.html?embedded=1&v=0.31.4dl"};
+  const FRAMES={coloring:"coloring-studio.html?embedded=1&v=0.31.4dz34",drawing:"drawing-studio.html?embedded=1&v=0.31.4dl"};
   const modes={coloring:"gallery",drawing:"gallery"};
   const selected={coloring:null,drawing:null};
   let drawingFilter="all";
@@ -94,6 +94,21 @@
     const item=event.target.closest("[data-creative-item]");if(item){const kind=item.closest(".creative-hub-view")?.id?.replace("view-","");if(kind)openItem(kind,item.dataset.creativeItem);}
   });
   window.addEventListener("life-rpg:view-changed",e=>{const id=e.detail?.view;if(ID[id]){if(!frame(id)?.dataset.creativeLoading)load(id);if(modes[id]==="gallery")render(id);else if(modes[id]==="editor")setCreativeFocus(true);}else{setCreativeFocus(false);for(const kind of Object.keys(ID))if(modes[kind]==="editor")suspend(kind);}});
+  // DZ34: Accept only activity intervals emitted by OUR same-origin Coloring iframe.
+  // Never award on the existence of a picture or mere open time.
+  window.addEventListener('message',event=>{
+    if(event.origin!==location.origin || event.source!==frame('coloring')?.contentWindow) return;
+    const msg=event.data;
+    if(msg?.type!=='life-rpg:coloring-active-dz34')return;
+    const result=window.LifeRPGTime?.logActiveIntervals?.(msg);
+    if(result?.ok && !result.alreadyLogged){
+      const mins=Math.round(Number(result.entry?.durationSeconds||0)/6)/10;
+      app.showToast?.(`🎨 ${mins} Min. aktives Ausmalen · Recovery-Skill trainiert`);
+    }else if(result?.reason){
+      console.warn('Coloring activity not logged:',result.reason);
+      app.showToast?.(`Ausmalzeit nicht geloggt: ${result.reason}`);
+    }
+  });
   window.addEventListener("life-rpg:chrome-change",syncFocusButtons);
   window.addEventListener("focus",()=>{for(const kind of Object.keys(ID))if(modes[kind]==="gallery")render(kind);});
   window.addEventListener("life-rpg:talent-content-v2-change",()=>{if(modes.coloring==="gallery")render("coloring");});
@@ -101,5 +116,5 @@
   window.addEventListener("pagehide",()=>{for(const kind of Object.keys(ID))suspend(kind);});
   function init(){build();for(const kind of Object.keys(ID))if(document.getElementById(`view-${kind}`)?.classList.contains("active"))load(kind);}
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init,{once:true});else init();
-  window.LifeRPGCreativeHub={version:"0.31.4dz19",enter,gallery,render,openItem,_test:{unlocked,cardOwned,coloringMeta,completedDrawing,modes}};
+  window.LifeRPGCreativeHub={version:"0.31.4dz34",enter,gallery,render,openItem,_test:{unlocked,cardOwned,coloringMeta,completedDrawing,modes}};
 })();

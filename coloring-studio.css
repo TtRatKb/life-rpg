@@ -175,3 +175,7 @@ button.is-active { background: #f7d9e8; border-color: rgba(166, 70, 115, 0.38); 
 .card-button.is-locked .card-thumb{filter:grayscale(1)}
 /* Keep the transparent black ink on white paper while the paint canvas stays below. */
 #canvasStage{background:#fff}
+
+/* DZ34: lightweight coloring recovery clock; no new save payload. */
+.color-recovery-time-dz34{margin-left:auto;padding:7px 10px;border-radius:999px;border:1px solid #e5cddb;background:#fff8fc;color:#76516e;font-weight:750;font-size:.74rem;white-space:nowrap}
+@media(max-width:550px){.color-recovery-time-dz34{font-size:.66rem;padding:5px 7px}}

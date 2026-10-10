@@ -629,6 +629,49 @@
     return { ok: true, entry: { ...entry } };
   }
 
+  // DZ34: Sparse real interaction intervals from the same-origin Coloring Studio.
+  // This is a *time log*, not a second coloring reward. Activity is measured in
+  // the editor, short idle periods are excluded, and all spans are preserved.
+  function logActiveIntervals(options = {}) {
+    const ref = clean(options.sourceRef).slice(0, 135);
+    if (!/^coloring:[a-zA-Z0-9_-]{8,100}$/.test(ref)) return {ok:false,reason:"Invalid coloring session reference."};
+    const prior=state().entries.find(item=>item.weekPlannerRef===ref);
+    if (prior) return {ok:true,alreadyLogged:true,entry:{...prior}};
+    const raw=options.intervals;
+    if (!Array.isArray(raw) || !raw.length || raw.length>120) return {ok:false,reason:"Invalid coloring activity intervals."};
+    const now=Date.now(), spans=[];
+    for(const row of raw){
+      const a=Number(row?.[0]),b=Number(row?.[1]);
+      if(!Number.isFinite(a)||!Number.isFinite(b)||a<946684800000||b>now+1500||b<=a||b-a>7200000)
+        return {ok:false,reason:"Invalid coloring activity time."};
+      if(spans.length&&a<spans[spans.length-1].end) return {ok:false,reason:"Overlapping coloring segments."};
+      spans.push({start:a,end:b});
+    }
+    const seconds=spans.reduce((n,row)=>n+(row.end-row.start)/1000,0);
+    if(seconds<10 || seconds>MAX_ACTIVE_HOURS*3600)return {ok:false,reason:"Not enough active painting time."};
+    const active=state().active;
+    if(active){
+      const activeAt=Date.parse(active.startedAt||"");
+      if(Number.isFinite(activeAt)&&spans.some(s=>s.end>activeAt)) return {ok:false,reason:"An active timer is already running. Finish it before coloring."};
+    }
+    for(const part of spans){
+      const overlap=findOverlap(new Date(part.start),new Date(part.end));
+      if(overlap) return {ok:false,reason:`Coloring time overlaps another log: ${overlap.label}.`};
+    }
+    const workIntervals=spans.map(s=>({startAt:new Date(s.start).toISOString(),endAt:new Date(s.end).toISOString()}));
+    const entry=makeEntry({
+      startAt:workIntervals[0].startAt,endAt:workIntervals.at(-1).endAt,
+      minutes:seconds/60,durationSeconds:Math.round(seconds),precise:true,workIntervals,
+      manualDeductionSeconds:0,categoryId:"recovery",subcategory:"Other recovery",
+      label:"Intentional unwind · coloring",mode:"manual"
+    });
+    entry.weekPlannerRef=ref;
+    addEntry(entry,{reward:true}); // Recovery's multiplier is zero; canonical Skill XP derives once from this entry.
+    app.saveState({source:"coloring-recovery-time"});
+    app.renderAll?.();render();dispatchChange();
+    return {ok:true,entry:{...entry}};
+  }
+
   // Week V2 batch API: canonical time ledger + one reward recalculation/save per day.
   // Never grants rewards for plans or for a duplicate / overlapping time block.
   function logWeekBatch(specs = []) {
@@ -1103,6 +1146,7 @@
     getWeekSummary: () => ({ ...weekSummary() }),
     getEntries: () => state().entries.map(entry => ({ ...entry })),
     logInterval,
+    logActiveIntervals,
     logWeekBatch,
     removeWeekEntries,
     getActive: () => state().active ? { ...state().active } : null,

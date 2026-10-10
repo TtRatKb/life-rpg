@@ -1,5 +1,5 @@
 (() => {
-  const VERSION = '0.31.4dz2';
+  const VERSION = '0.31.4dz34';
   const STORAGE_PREFIX = 'lifeRpgColoringStudio';
   const PaintingStore = window.LifeRPGColoringStorage || null;
   const EMBEDDED = window.parent !== window && new URLSearchParams(location.search).get('embedded') === '1';
@@ -89,6 +89,65 @@
     redoStack: []
   };
 
+  // DZ34: Keep painting files in IndexedDB; only small confirmed time intervals
+  // travel to the main Life RPG time ledger. Never store artwork in the RPG save.
+  const paintingSession = {
+    id: `coloring-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,10)}`,
+    seq: 0, cardId: null, lastInput: 0, lastTick: 0, intervals: [], reportedMs: 0
+  };
+  const PAINT_IDLE_GRACE_MS = 15000;
+  function paintingVisible() {
+    if (document.hidden || !state.currentCard || !state.isLineArtReady) return false;
+    if (!EMBEDDED) return false;
+    try {
+      const frame=window.frameElement;
+      return Boolean(frame && !frame.hidden && frame.getClientRects().length && frame.closest('.active') && !frame.closest('[hidden]'));
+    } catch { return false; }
+  }
+  function notePaintingInput() {
+    if (!paintingVisible()) return;
+    const now=Date.now();
+    if (!paintingSession.cardId || paintingSession.cardId!==state.currentCard.id) {
+      flushPaintingActivity(); paintingSession.cardId=state.currentCard.id; paintingSession.reportedMs=0;
+    }
+    paintingSession.lastInput=now;
+    if (!paintingSession.lastTick) paintingSession.lastTick=now;
+  }
+  function tickPaintingActivity() {
+    const now=Date.now();
+    if (!paintingVisible() || !paintingSession.lastInput){paintingSession.lastTick=now;return;}
+    const end=Math.min(now,paintingSession.lastInput+PAINT_IDLE_GRACE_MS);
+    const start=Math.max(paintingSession.lastTick||end-1000,paintingSession.lastInput);
+    if (end>start){
+      const last=paintingSession.intervals.at(-1);
+      if(last && start-last[1]<1500) last[1]=end;
+      else paintingSession.intervals.push([start,end]);
+    }
+    paintingSession.lastTick=now;
+    const clock=document.getElementById('colorRecoveryClock');
+    if(clock){
+      const total=Math.round((paintingSession.reportedMs+paintingSession.intervals.reduce((n,r)=>n+r[1]-r[0],0))/1000);
+      clock.textContent=`🎨 Ausmalzeit ${Math.floor(total/60)}:${String(total%60).padStart(2,'0')}`;
+    }
+    if(paintingSession.intervals.reduce((n,r)=>n+r[1]-r[0],0)>=300000 || paintingSession.intervals.length>=100)
+      flushPaintingActivity();
+  }
+  function flushPaintingActivity() {
+    if(!EMBEDDED) return;
+    const intervals=paintingSession.intervals;
+    paintingSession.intervals=[];
+    paintingSession.lastInput=0;
+    paintingSession.lastTick=0;
+    const batchMs=intervals.reduce((n,r)=>n+r[1]-r[0],0);
+    if(batchMs<10000) return;
+    paintingSession.reportedMs+=batchMs;
+    const ref=`coloring:${paintingSession.id}-${(++paintingSession.seq).toString(36)}`;
+    try {window.parent.postMessage({type:'life-rpg:coloring-active-dz34',sourceRef:ref,intervals},location.origin);}
+    catch(error){console.warn('Could not record coloring recovery time',error);}
+  }
+  setInterval(tickPaintingActivity,1000);
+  document.addEventListener('visibilitychange',()=>{if(document.hidden){tickPaintingActivity();flushPaintingActivity();}});
+
   const els = {};
   let ctx;
   let cardLoadToken = 0;
@@ -115,7 +174,7 @@
     updateSavePill('ready', 'Ready');
     if (!EMBEDDED) await loadCard(state.currentCard);
     window.addEventListener('resize', handleResize);
-    window.addEventListener('pagehide', () => { flushPainting(); });
+    window.addEventListener('pagehide', () => { tickPaintingActivity(); flushPaintingActivity(); flushPainting(); });
   }
 
   function bindElements() {
@@ -499,8 +558,7 @@
     }
     if (state.activeTool === 'bucket') {
       pushUndoState();
-      floodFill(point.x, point.y);
-      scheduleSave();
+      if (floodFill(point.x, point.y)) { notePaintingInput(); scheduleSave(); }
       return;
     }
     if (state.activeTool === 'hand' || event.button === 1 || event.altKey) {
@@ -513,6 +571,7 @@
     state.lastPoint = point;
     pushUndoState();
     stampAt(point, true);
+    notePaintingInput();
   }
 
   function onPointerMove(event) {
@@ -537,6 +596,7 @@
     const point = screenToCanvas(event.clientX, event.clientY);
     if (!point || !state.lastPoint) return;
     drawSegment(state.lastPoint, point);
+    notePaintingInput();
     state.lastPoint = point;
   }
 
@@ -765,6 +825,7 @@
       stack.push([cx + 1, cy], [cx - 1, cy], [cx, cy + 1], [cx, cy - 1]);
     }
     ctx.putImageData(paintData, 0, 0);
+    return true;
   }
 
   function isBarrier(lineData, idx) {
@@ -840,6 +901,8 @@
   }
 
   async function flushPainting() {
+    tickPaintingActivity();
+    flushPaintingActivity();
     if (state.saveTimer && state.isLineArtReady) {
       clearTimeout(state.saveTimer);
       state.saveTimer = null;

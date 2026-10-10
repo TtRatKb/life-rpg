@@ -61,3 +61,10 @@
 @media(max-width:620px){.sgl-shell{border-radius:20px;min-height:calc(100vh - 92px)}.sgl-page-head{padding:22px 18px 18px;align-items:flex-start;flex-direction:column}.sgl-page-head .primary-button{width:100%}.sgl-toolbar{margin:14px 14px 0;grid-template-columns:1fr}.sgl-toolbar .sgl-spotify-state{grid-column:auto}.sgl-panel{margin:14px;padding:14px}.sgl-artist-grid{grid-template-columns:1fr}.sgl-detail-head{grid-template-columns:78px 1fr}.sgl-detail-image{width:78px;height:78px}.sgl-detail-head h2{font-size:1.55rem}.sgl-track{grid-template-columns:36px 1fr}.sgl-track-actions{grid-column:1/-1}.sgl-track-actions .secondary-button{flex:1}.sgl-add-form{flex-direction:column}.sgl-add-form>*{width:100%}.sgl-info{margin:14px}.sgl-credit{margin:0 14px 20px}}
 .sgl-heard-button{border:0;background:transparent;color:#7b5870;text-decoration:underline;text-underline-offset:2px;padding:7px 3px;font:inherit;font-size:.7rem;font-weight:750;cursor:pointer;white-space:nowrap}.sgl-heard-button:hover{color:#4f6f5b}
 @media(max-width:620px){.sgl-heard-button{flex:1;text-align:left}}
+
+/* DZ34: gentle, optional music recovery time without playback assumptions */
+.sg-music-recovery-dz34{display:grid;justify-items:start;gap:.4rem;margin-top:1rem;padding:.9rem 1rem;border:1px solid #e9cedd;border-radius:15px;background:#fff7fa;color:#56384e}
+.sg-music-recovery-dz34 strong{font-size:.86rem}
+.sg-music-recovery-dz34 p{margin:0;color:#846878;line-height:1.45;font-size:.78rem}
+.sg-music-recovery-dz34 button{margin-top:.25rem}
+.sg-music-recovery-dz34 button:disabled{opacity:.5;cursor:not-allowed}

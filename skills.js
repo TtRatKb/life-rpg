@@ -7,7 +7,7 @@
     return;
   }
 
-  const VERSION = "0.31.4dz33";
+  const VERSION = "0.31.4dz34";
   const SCHEMA = 1;
   const MAX_EVENTS = 6000;
   const HABIT_XP = { tiny: 3, low: 5, normal: 8, high: 12, boss: 18 };
@@ -162,6 +162,8 @@
       trainingAction("◷", "Pause / Ruhe loggen", "Tatsächlich eingelegte Pause (Recovery → Rest oder Break) mit dem Zeitlog erfassen.", () => app.showView?.("rhythm"), "guided")
     ],
     "recovery-unwinding": [
+      trainingAction("🎨", "Coloring Studio · Ruhe durch Ausmalen", "Aktive Malzeit trainiert Leisure & Unwinding. Zeichen-Challenges bleiben Creative Expression.", () => window.LifeRPGCreativeHub?.enter?.("coloring"), "native"),
+      trainingAction("♫", "Musik bewusst genießen", "Starte deine Musik-Auszeit im Sound Garden und logge die echte Hörzeit mit dem Recovery-Timer.", () => window.LifeRPGSoundGarden?.open?.(), "native"),
       trainingAction("🫖", "Feierabend-Stoppuhr", "Bewusst für dich spielen, Anime schauen oder Musik hören: kein Produktivitätsziel, einfach wirklich entspannen.", () => window.LifeRPGTime?.startClock?.({ categoryId: "recovery", subcategory: "Other recovery", label: "Intentional unwind · leisure" }), "guided"),
       trainingAction("✿", "Unwinding-Habit", "Ein freiwilliges Habit für gezielte Auszeit statt noch mehr Aufgaben.", () => openHabitForSkill("recovery-unwinding"), "guided")
     ],
@@ -191,8 +193,7 @@
     ],
     "recreation-play": [
       trainingAction("🎮", "Games", "Spielen zählt als echte Recreation.", () => app.showView?.("games")),
-      trainingAction("📖", "Library", "For-fun Reading trainiert Recreation & Play.", () => app.showView?.("library")),
-      trainingAction("🎨", "Coloring Studio", "Freies Ausmalen ist ebenfalls legitime Spiel-/Hobbyzeit.", () => window.LifeRPGCreativeHub?.enter?.("coloring"))
+      trainingAction("📖", "Library", "For-fun Reading trainiert Recreation & Play.", () => app.showView?.("library"))
     ]
   };
 
