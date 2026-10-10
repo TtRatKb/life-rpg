@@ -532,6 +532,7 @@
     els.swapSnooze?.addEventListener("click", snoozeSwapSuggestion);
 
     document.addEventListener("click", event => {
+      if (event.target.closest?.("[data-daily-todoist]")) {window.LifeRPGTodoist?.open?.();return;}
       const holidayAction = event.target.closest?.("[data-daily-holiday]");
       if (holidayAction) {
         const goal = window.LifeRPGHoliday?.goalById?.(holidayAction.dataset.dailyHoliday);
@@ -1120,6 +1121,15 @@
   function pickCardMarkup(pick) {
     const slot = SLOTS[pick.slot] || SLOTS.focus;
 
+    if (pick.sourceType === "todoist") {
+      const task=window.LifeRPGTodoist?.getTask?.(pick.sourceId);
+      const completion=pickCompletion(pick),done=completion.done;
+      if(!task && !done)return unavailablePickMarkup(pick,slot,"Todoist is not connected or the task has changed. Connect or swap this suggestion.");
+      return `<article class="daily-pick-v14 ${slot.className} ${done?'done':''}">
+        <div class="daily-pick-top-v14"><span class="daily-pick-icon-v14">☑</span><div><small>${slot.kicker} · TODOIST</small><strong>${slot.title}</strong></div>${done?'<span class="daily-pick-done-v14">✓ Done</span>':''}</div>
+        <div class="daily-pick-quest-v14"><h3>${esc(task?.content||'Todoist-Aufgabe abgeschlossen')}</h3><p class="daily-pick-reason-v14">${esc(pick.reason||'A task already on your list.')}</p></div>
+        <div class="daily-pick-actions-v14"><button class="primary-button" data-daily-todoist type="button">${done?'Todoist öffnen':'Aufgabe in Todoist öffnen & erledigen'}</button><button class="secondary-button" data-daily-swap="${escAttr(pick.slot)}" type="button">↻ Swap</button></div></article>`;
+    }
     if (pick.sourceType === "holiday") {
       const goal = window.LifeRPGHoliday?.goalById?.(pick.sourceId);
       if (!goal) return unavailablePickMarkup(pick, slot, "This holiday goal has been removed. Swap it for something else.");
@@ -1880,7 +1890,7 @@
     const games = eligibleGames();
     const kotoba = eligibleKotobaActivities();
     const japaneseMedia = eligibleJapanesePractice();
-    if (!quests.length && !adventures.length && !books.length && !games.length && !kotoba.length && !japaneseMedia.length && !window.LifeRPGHoliday?.eligibleForDaily?.().length) return [];
+    if (!quests.length && !adventures.length && !books.length && !games.length && !kotoba.length && !japaneseMedia.length && !window.LifeRPGHoliday?.eligibleForDaily?.().length && !window.LifeRPGTodoist?.eligibleForDaily?.().length) return [];
 
     const picked = [];
     const used = new Set();
@@ -2092,6 +2102,7 @@
       kotoba.forEach(item => push("kotoba", item, scoreKotoba(item, slot, checkIn)));
       japaneseMedia.forEach(item => push("japanese-media", item, scoreJapaneseMedia(item, slot, checkIn)));
       (window.LifeRPGHoliday?.eligibleForDaily?.() || []).forEach(item => push("holiday", item, window.LifeRPGHoliday.scoreForDaily(item, slot, checkIn)));
+      (window.LifeRPGTodoist?.eligibleForDaily?.() || []).forEach(item => push("todoist", item, window.LifeRPGTodoist.scoreForDaily(item, slot, checkIn)));
       // Exclude duplicate Recovery care ONLY while a genuinely eligible leisure
       // alternative survives the current reroll/exclusion set. Otherwise a small
       // calming exercise remains a legitimate fallback.
@@ -2117,6 +2128,7 @@
   function sourceAllowedForSlot(type, item, slot, checkIn = todayRecord()?.checkIn || {}) {
     const role = SLOTS[slot]?.role || slot;
     if (type === "holiday") return window.LifeRPGHoliday?.scoreForDaily?.(item, slot, checkIn) > -100;
+    if (type === "todoist") return window.LifeRPGTodoist?.scoreForDaily?.(item, slot, checkIn) > -100;
     if (type === "quest") {
       const allowed = Array.isArray(item?.plannerRoles) ? item.plannerRoles : [];
       return !allowed.length || allowed.includes(role);
@@ -2156,6 +2168,7 @@
     if (type === "book") return bookRoleMeta(item?.role).realm;
     if (type === "game") return gameRoleMeta(item?.role).realm;
     if (type === "kotoba" || type === "japanese-media") return "Japanese";
+    if (type === "todoist") return window.LifeRPGTodoist?.groupForTask?.(item) === "school" ? "Work" : window.LifeRPGTodoist?.groupForTask?.(item) === "joy" ? "Hobbies" : "Home";
     if (type === "holiday") return item?.group === "school" ? "Work" : item?.group === "joy" ? "Hobbies" : item?.group === "recovery" ? "Recovery" : "Home";
     return String(item?.realm || (type === "adventure" ? "Hobbies" : ""));
   }
@@ -2281,11 +2294,13 @@
     if (type === "game") return sourceRealm(type, findGame(pick.sourceId));
     if (type === "adventure") return sourceRealm(type, findAdventure(pick.sourceId));
     if (type === "kotoba" || type === "japanese-media") return "Japanese";
+    if (type === "todoist") return sourceRealm(type, window.LifeRPGTodoist?.getTask?.(pick.sourceId));
     if (type === "holiday") return window.LifeRPGHoliday?.goalById?.(pick.sourceId)?.group === "joy" ? "Hobbies" : window.LifeRPGHoliday?.goalById?.(pick.sourceId)?.group === "school" ? "Work" : "Home";
     return sourceRealm(type, findQuest(pick.sourceId));
   }
 
   function makePickFromCandidate(slot, candidate, checkIn, previous = null) {
+    if (candidate.sourceType === "todoist") return {slot,sourceType:"todoist",sourceId:candidate.item.id,reason:"Eine konkrete fällige Todoist-Aufgabe – ohne den Freizeit-Slot zu verdrängen.",rerolls:Number(previous?.rerolls||0),pickedAt:Date.now()};
     if (candidate.sourceType === "holiday") return {
       slot, sourceType: "holiday", sourceId: candidate.item.id,
       reason: "A concrete goal from your active holiday board — without replacing time for recovery and hobbies.",
@@ -3046,6 +3061,7 @@
   }
 
   function sourceItemForCandidate(type, id) {
+    if (type === "todoist") return window.LifeRPGTodoist?.getTask?.(id) || null;
     if (type === "holiday") return window.LifeRPGHoliday?.goalById?.(id) || null;
     if (type === "quest") return findQuest(id);
     if (type === "game") return findGame(id);
@@ -3058,6 +3074,7 @@
 
   function swapOptionLabel(candidate, slotId) {
     const { sourceType: type, item } = candidate;
+    if (type === "todoist") return {icon:"☑",title:item.content,meta:`Todoist · ~${window.LifeRPGTodoist?.estimatedMinutes?.(item)||20} min · ${item.due?.date||""}`};
     if (type === "holiday") return {icon: '🍁',title:item.title,meta:`Ferienziel · ~${item.minutes} min · ${item.priority === 'must' ? 'Wichtig' : 'Wunsch'}`};
     if (type === "quest") return { icon: realmIcon(item.realm), title: item.name, meta: `${item.realm || "Quest"} · ${sourceEffortLabel(type, item)} · ~${sourceEstimatedMinutes(type, item)} min` };
     if (type === "game") {
@@ -3360,6 +3377,7 @@
 
   function pickCompletion(pick) {
     if (!pick?.sourceId) return { done: false, progress: 0, progressText: "Not started" };
+    if (pick.sourceType === "todoist") {const done=window.LifeRPGTodoist?.isCompleted?.(pick.sourceId);return {done:Boolean(done),progress:done?1:0,progressText:done?"Todoist erledigt ✓":"Todoist-Aufgabe öffnen"};}
     if (pick.sourceType === "holiday") {
       const item = window.LifeRPGHoliday?.goalById?.(pick.sourceId);
       return {done: Boolean(item?.doneAt), progress: item?.doneAt ? 1 : 0, progressText: item?.doneAt ? "Holiday goal done ✓" : "Open holiday goal"};
@@ -3746,6 +3764,7 @@
   }
 
   function sourceEstimatedMinutes(type, item) {
+    if (type === "todoist") return window.LifeRPGTodoist?.estimatedMinutes?.(item) || 20;
     if (type === "holiday") return Math.max(5, Number(item?.minutes || 20));
     if (type === "quest") return estimatedMinutes(item);
     if (type === "game") return gameEstimatedMinutes(item || {}, gameSessionAmount(item || {}));
@@ -3761,6 +3780,7 @@
 
   function pickEstimatedMinutes(pick, item) {
     const type = pick?.sourceType || "quest";
+    if (type === "todoist") return window.LifeRPGTodoist?.estimatedMinutes?.(item) || 20;
     if (type === "holiday") return Math.max(5, Number(item?.minutes || 20));
     if (type === "book") {
       const goal = pick.bookGoal || bookGoal(item || {}, pick.slot, todayRecord()?.checkIn || {});
@@ -3779,6 +3799,7 @@
   }
 
   function sourceEffortLabel(type, item) {
+    if (type === "todoist") return (window.LifeRPGTodoist?.estimatedMinutes?.(item)||20)<=20 ? "Low effort" : "Medium effort";
     if (type === "holiday") return (item?.effort || 'medium') + ' effort';
     if (type === "quest") return planningEffortLabel(item);
     if (type === "adventure") {

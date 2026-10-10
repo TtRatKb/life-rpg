@@ -1,4 +1,4 @@
-/* Life RPG · DZ23 · Ferien & Auszeiten. Standalone additive state: NEVER rewrites saves. */
+/* Life RPG · DZ23b · Ferien & Auszeiten. Standalone additive state: NEVER rewrites saves. */
 (() => {
   'use strict';
   const app = window.LifeRPGApp;
@@ -72,7 +72,16 @@
   function persist(source) {const ok=app.saveState({source,suppressUiRefresh:true});if(ok){render();window.LifeRPGDaily?.render?.();}return ok;}
   function normalize(raw) {return {id:uid(),title:String(raw.title||'').trim().slice(0,140),group:GROUPS[raw.group]?raw.group:'joy',priority:PRIORITY[raw.priority]?raw.priority:'want',minutes:Math.max(5,Math.min(240,Math.round(Number(raw.minutes)||20))),effort:['low','medium','high'].includes(raw.effort)?raw.effort:'medium',doneAt:'',linkedTodoistId:String(raw.linkedTodoistId||'').slice(0,40)};}
   function add(raw) {const b=active();if(!b)return null;const item=normalize(raw);if(!item.title)return null;b.goals.push(item);persist('break-goal-add');return item;}
-  function linkTodoist(task) {const b=active();if(!b || !task?.id)return null;const existing=b.goals.find(g=>g.linkedTodoistId===String(task.id));if(existing)return existing;return add({title:task.content||task.title||'Todoist-Aufgabe',group:task.group||'school',priority:'want',minutes:task.minutes||20,effort:'medium',linkedTodoistId:String(task.id)});}
+  function linkTodoist(task) {
+    const b=active();if(!b || !task?.id)return null;
+    const tid=String(task.id), title=String(task.content||task.title||'Todoist-Aufgabe').trim();
+    const existing=b.goals.find(g=>g.linkedTodoistId===tid);if(existing)return existing;
+    // Reuse an identical unfinished holiday seed, rather than cloning the same
+    // chore twice. Preserve the player's chosen priority, effort, and progress.
+    const match=b.goals.find(g=>!g.linkedTodoistId&&!g.doneAt&&g.title.trim().toLowerCase()===title.toLowerCase());
+    if(match){match.linkedTodoistId=tid;persist('break-goal-todoist-linked');return match;}
+    return add({title,group:task.group||'school',priority:'want',minutes:task.minutes||20,effort:'medium',linkedTodoistId:tid});
+  }
   function isDone(g) {return Boolean(g?.doneAt);}
   function markDone(id,{fromTodoist=false,at=null}={}) {
     const g=goalById(id);if(!g || g.doneAt)return false;

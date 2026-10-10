@@ -8,3 +8,11 @@
 .todoist-dialog label{display:flex;flex-direction:column;gap:5px;margin:9px 0}.todoist-dialog input:not([type=checkbox]),.todoist-dialog select{border:1px solid #dccbda;border-radius:9px;padding:9px;width:100%;background:#fff;color:#49344e}.todoist-dialog .todoist-remember{flex-direction:row;align-items:center;font-size:.82rem}
 .todoist-task-list{max-height:45vh;overflow-y:auto}.todoist-task{display:flex;gap:12px;align-items:center;justify-content:space-between;border-top:1px solid #eadce4;padding:10px 2px;flex-wrap:wrap}.todoist-task>div:first-child{flex:1 1 220px;min-width:0;display:grid;gap:3px}.todoist-task strong{font-size:.87rem;overflow-wrap:anywhere}.todoist-task small{font-size:.76rem;color:var(--text-muted,#947890)}.todoist-task>div:last-child{display:flex;gap:5px}.todoist-task button{font-size:.76rem;padding:7px}
 .todoist-reward-mode{border-radius:12px;padding:9px;background:var(--panel-bg,#fff8f7)}
+
+/* DZ23b: task triage, date/project quick add */
+.todoist-add-details,.todoist-filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.todoist-add-form>strong{display:block;margin-bottom:8px}
+.todoist-filters{align-items:end}
+.todoist-task-list{max-height:48dvh;overflow:auto;scrollbar-gutter:stable}
+.todoist-task button:disabled{opacity:.65;cursor:default}
+@media(max-width:600px){.todoist-dialog{padding:16px;width:96vw}.todoist-task>div:last-child{width:100%}.todoist-task button{flex:1}}
