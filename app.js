@@ -2218,7 +2218,7 @@
   function renderRealmCards() {
     els.realmCards.innerHTML = Object.entries(state.realms)
       .map(([realm, xp]) => {
-        const info = realmRankInfo(xp);
+        const info = window.LifeRPGSkills?.getEffectiveRealmRankInfo?.(realm) || realmRankInfo(xp);
         return `
           <article class="realm-card">
             <div class="realm-card-heading-v181">
@@ -2226,7 +2226,7 @@
               <strong>Rank ${info.level}</strong>
             </div>
             <div class="progress"><span style="width:${info.percent}%"></span></div>
-            <small>${info.intoLevel} / ${info.required} XP to next rank</small>
+            <small>${info.blocked ? escapeHtml(info.nextLabel) : `${info.intoLevel} / ${info.required} XP to next rank${info.requirement?.needed ? ` · ${escapeHtml(info.requirement.label)}` : ""}`}</small>
           </article>
         `;
       })
@@ -3470,7 +3470,12 @@
       return Number.isFinite(n) && n > 0 ? calculateQuestReward(quest, n) : null;
     },
     getCapabilityInfo: key => statLevelInfo(state.stats?.[key] || 0),
-    getRealmRankInfo: realm => realmRankInfo(state.realms?.[realm] || 0),
+    getRawRealmRankInfo: realm => realmRankInfo(state.realms?.[realm] || 0),
+    // Existing story milestones continue using legacy XP-based prerequisites;
+    // visible Realm rank and future Talent Points follow Skill breadth gates.
+    getLegacyRealmRankInfo: realm => realmRankInfo(state.realms?.[realm] || 0),
+    getRealmRankInfo: realm => window.LifeRPGSkills?.getEffectiveRealmRankInfo?.(realm)
+      || realmRankInfo(state.realms?.[realm] || 0),
     getProgressionSnapshot,
     getProfileAge: () => {
       const birthDate = String(state.profile?.birthDate || "");

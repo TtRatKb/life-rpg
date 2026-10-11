@@ -7,7 +7,7 @@
     return;
   }
 
-  const VERSION = "0.31.4dz37";
+  const VERSION = "0.31.4dz38";
   const SCHEMA = 1;
   const MAX_EVENTS = 6000;
   const HABIT_XP = { tiny: 3, low: 5, normal: 8, high: 12, boss: 18 };
@@ -35,7 +35,7 @@
     skill("language-expression", "Language & Expression", "Knowledge", "⌗", "Vocabulary, precise language and expressive range."),
     skill("learning-inquiry", "Learning & Inquiry", "Knowledge", "🔎", "Studying, researching, explaining and following real curiosity."),
 
-    skill("language-learning", "Japanese Foundations", "Japanese", "あ", "Your existing broad Japanese practice and legacy progress stay here."),
+    skill("language-learning", "Japanese Foundations · Archive", "Japanese", "あ", "Historical broad Japanese practice is preserved here, but this is no longer an active Skill."),
     skill("japanese-vocabulary-kanji", "Vocabulary & Kanji", "Japanese", "語", "Words, meanings, readings and kanji recognition through real Japanese study."),
     skill("japanese-grammar-particles", "Grammar & Particles", "Japanese", "文", "Grammar patterns, particles and sentence structure."),
     skill("japanese-listening-comprehension", "Listening & Comprehension", "Japanese", "耳", "Understanding spoken Japanese in reviews and real media."),
@@ -62,7 +62,10 @@
   ];
 
   const SKILL_BY_ID = Object.fromEntries(SKILLS.map(item => [item.id, item]));
-  const SKILLS_BY_REALM = Object.fromEntries(Object.keys(REALMS).map(realm => [realm, SKILLS.filter(item => item.realm === realm)]));
+  // Keep the old ID for the event ledger and already-earned points. The old
+  // catch-all is not a sixth trainable Japanese Skill or a breadth requirement.
+  SKILL_BY_ID["language-learning"].legacy = true;
+  const SKILLS_BY_REALM = Object.fromEntries(Object.keys(REALMS).map(realm => [realm, SKILLS.filter(item => item.realm === realm && !item.legacy)]));
 
   const TRAINING_ACTIONS = {
     "teaching-facilitation": [
@@ -232,11 +235,13 @@
     injectHabitSkillField();
     observeTalentTrees();
     bind();
-    // A rebuild already persists the migration alongside derived Skill XP.
-    // Avoid two full-save writes during startup on large DZ30/DZ31 saves.
-    const rebuilt = reconcile({ persist: true, reason: "skills-init" });
-    if (!rebuilt && (japaneseSplitCreated || homeRecoverySplitCreated)) {
-      app.saveState({ source: "skills-taxonomy-migration", suppressUiRefresh: true });
+    // Rebuild the canonical event ledger before we snapshot historical point
+    // entitlements; never award or discard points based on incomplete events.
+    const rebuilt = reconcile({ persist: false, reason: "skills-init" });
+    const breadthMigrated = ensureRealmBreadthMigration();
+    if (breadthMigrated || rebuilt || japaneseSplitCreated || homeRecoverySplitCreated) {
+      // One save on startup for a migration, never one save per step.
+      app.saveState({ source: "skills-rank-migration", suppressUiRefresh: true });
     }
     bootstrapSkillFeedback();
     render();
@@ -294,6 +299,12 @@
     const split = japaneseSkillSplitAt();
     const when = timestamp(at);
     return Boolean(split && when && when >= split);
+  }
+
+  function useRankBreadthTaxonomy(at) {
+    const migratedAt = Number(state().rankBreadthV1?.at || 0);
+    const when = timestamp(at);
+    return Boolean(migratedAt && when && when >= migratedAt);
   }
 
   function defaults() {
@@ -595,7 +606,7 @@
     const unwindTimeEntries = timeEntries.filter(entry => entry.categoryId === "recovery" && /^intentional unwind\b|^unwinding\b/i.test(String(entry.label || "")));
     (root.gameLibrary?.logs || []).forEach(log => {
       const game = gameById[log?.gameId];
-      const skillId = skillForGame(game);
+      const skillId = skillForGame(game, log.at || log.createdAt);
       if (!game || !skillId) return;
       if (!log.steamImported && isLikelyDuplicateMediaTime(log, [...gamingTimeEntries, ...unwindTimeEntries])) return;
       const minutes = Math.max(0, Number(log.minutes || 0));
@@ -686,7 +697,7 @@
 
     if (entry.linkedAdventureId) {
       const adventure = (app.getState().sideAdventures?.items || []).find(item => item?.id === entry.linkedAdventureId);
-      const mapped = skillForAdventure(adventure);
+      const mapped = skillForAdventure(adventure, entry.endAt || entry.startAt || entry.createdAt);
       if (mapped) return mapped;
     }
 
@@ -786,7 +797,7 @@
       const tier = Math.max(1, Number(reward.metadata?.reachedTier || 1));
       return nativeSkill("professional-organization", Math.min(12, 4 + (tier - 1) * 3), "work-deep-brief");
     }
-    if (source === "kotoba-dungeon") return nativeSkill("language-learning", Math.max(1, Math.min(12, Number(reward.realmXP || reward.xp || 4))), "kotoba-dungeon");
+    if (source === "kotoba-dungeon") return nativeSkill(useRankBreadthTaxonomy(reward.at) ? "japanese-vocabulary-kanji" : "language-learning", Math.max(1, Math.min(12, Number(reward.realmXP || reward.xp || 4))), "kotoba-dungeon");
     if (source === "kotoba-quest" || /^Kotoba(?: Quick)?\b/i.test(label) || /kotoba quick/i.test(label)) {
       const skillId = useSpecializedJapaneseSkills(reward.at)
         ? japaneseSkillForKotobaReward(reward)
@@ -827,7 +838,9 @@
       if (/production|speak|output|de-jp/.test(subskill)) return "japanese-speaking-production";
       return "japanese-vocabulary-kanji";
     }
-    return "language-learning";
+    // Unclassified external Kotoba events must not pretend to train a sixth
+    // Japanese Skill. Vocabulary is the conservative default for old mixed SRS.
+    return useRankBreadthTaxonomy(reward.at) ? "japanese-vocabulary-kanji" : "language-learning";
   }
 
   function skillForQuest(quest, at = null) {
@@ -835,7 +848,13 @@
     const role = String(quest.systemRole || "").toLowerCase();
     const name = String(quest.name || "").toLowerCase();
 
-    if (["bunpro-reviews", "bunpro-lesson", "shadowing", "manual-language"].includes(role)) return mappedQuest("language-learning");
+    if (["bunpro-reviews", "bunpro-lesson", "shadowing", "manual-language"].includes(role)) {
+      if (!useRankBreadthTaxonomy(at)) return mappedQuest("language-learning");
+      if (role === "manual-language") return null; // unspecified practice must be assigned explicitly
+      if (role === "bunpro-reviews" || role === "bunpro-lesson") return mappedQuest("japanese-grammar-particles");
+      if (role === "shadowing") return mappedQuest("japanese-speaking-production");
+      return mappedQuest("japanese-vocabulary-kanji");
+    }
     if (role === "explain-it-back" || role === "curiosity-dive") return mappedQuest("learning-inquiry");
     if (role === "craft-session" || role === "scrapbook-page") return mappedQuest("craft-making");
     if (role === "recovery-lie-down") return mappedQuest(specializedHomeRecoverySkill("recovery-regulation", "recovery-rest", at));
@@ -852,7 +871,14 @@
     if (/work desk reset/.test(name)) return mappedQuest("professional-organization");
     if (/focused work block|focus work/.test(name)) return mappedQuest("focus-concentration");
     if (/curiosity dive|explain it back|literature note|permanent note/.test(name)) return mappedQuest("learning-inquiry");
-    if (/bunpro|grammar echo|grammar output|kanji|shadowing|subtitle scout|line miner|n3 practice|scene recap/.test(name)) return mappedQuest("language-learning");
+    if (/bunpro|grammar echo|grammar output|kanji|shadowing|subtitle scout|line miner|n3 practice|scene recap/.test(name)) {
+      if (!useRankBreadthTaxonomy(at)) return mappedQuest("language-learning");
+      if (/n3 practice/.test(name)) return null; // too broad to claim a particular ability
+      if (/bunpro|grammar/.test(name)) return mappedQuest("japanese-grammar-particles");
+      if (/subtitle scout|line miner|scene recap/.test(name)) return mappedQuest("japanese-reading-mining");
+      if (/shadowing/.test(name)) return mappedQuest("japanese-speaking-production");
+      return mappedQuest("japanese-vocabulary-kanji");
+    }
     if (/lie.down|real rest|quiet rest/.test(name)) return mappedQuest(specializedHomeRecoverySkill("recovery-regulation", "recovery-rest", at));
     if (/meditation|body scan|breathing|fresh.air/.test(name)) return mappedQuest("recovery-regulation");
     if (/walk|stretch|yoga|mobility/.test(name)) return mappedQuest("movement-body-care");
@@ -868,12 +894,12 @@
   function mappedQuest(skillId, extra = {}) { return { skillId, ...extra }; }
   function nativeQuestRole(quest) { return Boolean(skillForQuest(quest)?.native); }
 
-  function skillForAdventure(item) {
+  function skillForAdventure(item, at = null) {
     if (!item) return null;
     const realm = String(item.realm || "");
     const kind = String(item.kind || "").toLowerCase();
     if (realm === "Knowledge") return "learning-inquiry";
-    if (realm === "Japanese") return "language-learning";
+    if (realm === "Japanese") return useRankBreadthTaxonomy(at) ? null : "language-learning"; // generic projects don't prove reading
     if (realm === "Home") return "life-management";
     if (realm === "Hobbies") {
       if (/creative/.test(kind)) return "creative-expression";
@@ -886,13 +912,13 @@
     const role = String(book?.role || "").toLowerCase();
     if (role === "fun") return "recreation-play";
     if (role === "knowledge" || role === "growth") return "learning-inquiry";
-    if (role === "japanese") return useSpecializedJapaneseSkills(at) ? "japanese-reading-mining" : "language-learning";
+    if (role === "japanese") return useRankBreadthTaxonomy(at) ? null : "language-learning"; // game completion alone isn't a reading exercise
     return null;
   }
 
-  function skillForGame(game) {
+  function skillForGame(game, at = null) {
     const role = String(game?.role || "fun").toLowerCase();
-    if (role === "japanese") return "language-learning";
+    if (role === "japanese") return useRankBreadthTaxonomy(at) ? null : "language-learning"; // game completion alone isn't a reading exercise
     if (["fun", "social", "challenge"].includes(role)) return "recreation-play";
     return null;
   }
@@ -1223,20 +1249,96 @@
     return Math.max(0, l - 1) + Math.floor(l / 5);
   }
 
+  let cachedTotalsEvents = null;
+  let cachedTotalsLength = -1;
+  let cachedTotals = null;
   function totalsBySkill() {
+    const events = state().events;
+    // Canonical reconcile replaces the events array. Reuse its totals until
+    // that happens instead of scanning up to 6000 logs for every rank card.
+    if (events === cachedTotalsEvents && events.length === cachedTotalsLength && cachedTotals) return cachedTotals;
     const totals = Object.fromEntries(SKILLS.map(item => [item.id, 0]));
-    state().events.forEach(event => {
+    events.forEach(event => {
       if (!validSkillId(event.skillId)) return;
       totals[event.skillId] = round2(Number(totals[event.skillId] || 0) + Number(event.xp || 0));
     });
+    cachedTotalsEvents = events;
+    cachedTotalsLength = events.length;
+    cachedTotals = totals;
     return totals;
   }
 
-  function realmRankPointInfo(realm) {
-    const rank = Math.max(1, Math.floor(Number(app.getRealmRankInfo?.(realm)?.level || 1)));
-    // Current trees cost 14–18 points. One point per Realm rank-up keeps Realm
-    // progression meaningful without instantly completing a tree.
+  // New Realm ranks require BOTH realm XP and a spread of genuinely trained
+  // Skills. Do not change raw realm XP or the pre-existing reward ledger.
+  function rankBreadthRequirement(realm, rank, totals = totalsBySkill()) {
+    const skills = SKILLS_BY_REALM[realm] || [];
+    const levels = skills.map(item => levelInfo(totals[item.id] || 0).level);
+    const count = levels.length;
+    if (!count || rank <= 3) return { needed: 0, met: 0, targetLevel: 1, label: "Realm-XP" };
+    const targetLevel = rank >= 10 ? 3 + Math.floor((rank - 10) / 3) : rank >= 7 ? 3 : 2;
+    const needed = rank >= 10 ? count : rank >= 7 ? Math.ceil(count * 0.8) : Math.ceil(count * 0.5);
+    const met = levels.filter(n => n >= targetLevel).length;
+    return { needed, met, targetLevel, label: `${met}/${needed} Skills auf Lv. ${targetLevel}`, skillCount: count };
+  }
+
+  function effectiveRealmRankInfo(realm, totals = totalsBySkill()) {
+    const raw = app.getRawRealmRankInfo?.(realm) || { ...(app.getRealmRankInfo?.(realm) || {}), level: 1 };
+    const rawRank = Math.max(1, Math.floor(Number(raw.level || 1)));
+    let level = 1;
+    while (level < rawRank && level < 999) {
+      const next = rankBreadthRequirement(realm, level + 1, totals);
+      if (next.needed && next.met < next.needed) break;
+      level++;
+    }
+    const requirement = rankBreadthRequirement(realm, level + 1, totals);
+    const blocked = rawRank > level;
+    return {
+      ...raw,
+      level,
+      rawRank,
+      blocked,
+      requirement,
+      percent: blocked && requirement.needed ? Math.round(requirement.met / requirement.needed * 100) : raw.percent,
+      nextLabel: blocked
+        ? `${requirement.label} · nächste Rank-Stufe durch Skill-Vielseitigkeit`
+        : requirement.needed
+          ? `${requirement.label} für Rank ${level + 1} · zusätzlich Realm-XP sammeln`
+          : "Realm-XP bis zum nächsten Rank sammeln"
+    };
+  }
+
+  function realmRankPointInfo(realm, totals = totalsBySkill()) {
+    const rank = effectiveRealmRankInfo(realm, totals).level;
     return { rank, points: Math.max(0, rank - 1) };
+  }
+
+  // A one-time, fixed, per-Realm legacy credit safeguards all points earned
+  // under the previous XP-only rank system (and the Foundation archive).
+  // It is deliberately NOT recomputed later, so no points are farmed by reload.
+  function ensureRealmBreadthMigration() {
+    const model = state();
+    if (model.rankBreadthV1?.at) return false;
+    const totals = totalsBySkill();
+    const credits = {}, oldRanks = {}, oldEarned = {};
+    for (const realm of Object.keys(REALMS)) {
+      const previousSkills = SKILLS.filter(item => item.realm === realm);
+      const oldLevels = previousSkills.map(item => levelInfo(totals[item.id] || 0).level);
+      const oldAtLeast = n => oldLevels.filter(x => x >= n).length;
+      const oldBreadth = previousSkills.length < 3 ? 0
+        : (oldAtLeast(3) >= 3 ? 2 : 0)
+          + (oldAtLeast(6) >= 3 && oldAtLeast(3) >= 4 ? 3 : 0)
+          + (oldAtLeast(10) >= Math.ceil(previousSkills.length * 0.7) ? 5 : 0);
+      const oldRank = Math.max(1, Math.floor(Number(app.getRawRealmRankInfo?.(realm)?.level || 1)));
+      const oldTotal = previousSkills.reduce((sum, item) => sum + pointsFromSkillLevel(levelInfo(totals[item.id] || 0).level), 0)
+        + oldRank - 1 + oldBreadth;
+      const newTotal = (SKILLS_BY_REALM[realm] || []).reduce((sum, item) => sum + pointsFromSkillLevel(levelInfo(totals[item.id] || 0).level), 0)
+        + realmRankPointInfo(realm, totals).points + breadthPointInfo(realm, totals).points;
+      credits[realm] = Math.max(0, oldTotal - newTotal);
+      oldRanks[realm] = oldRank;
+      oldEarned[realm] = oldTotal;
+    }
+    model.rankBreadthV1 = { at: Date.now(), credits, oldRanks, oldEarned };
+    return true;
   }
 
   function breadthPointInfo(realm, totals = totalsBySkill()) {
@@ -1257,8 +1359,9 @@
 
   function realmPointInfo(realm, totals = totalsBySkill()) {
     const earnedFromSkills = (SKILLS_BY_REALM[realm] || []).reduce((sum, item) => sum + pointsFromSkillLevel(levelInfo(totals[item.id] || 0).level), 0);
-    const rankInfo = realmRankPointInfo(realm);
+    const rankInfo = realmRankPointInfo(realm, totals);
     const breadthInfo = breadthPointInfo(realm, totals);
+    const legacyCredit = Math.max(0, Number(state().rankBreadthV1?.credits?.[realm] || 0));
     const bonus = Math.max(0, Number(state().realmBonusPoints?.[realm] || 0));
     const baseSpent = Math.max(0, Number(state().spentPointsByRealm?.[realm] || 0));
     // V2 core ranks live in spentPointsByRealm. Permanent AO/AP content and
@@ -1267,7 +1370,7 @@
     // into the core ledger.
     const externalSpent = Math.max(0, Number(window.LifeRPGTalentTreeGraph?.extraSpent?.(realm) || 0));
     const spent = baseSpent + externalSpent;
-    const earned = earnedFromSkills + rankInfo.points + breadthInfo.points + bonus;
+    const earned = earnedFromSkills + rankInfo.points + breadthInfo.points + legacyCredit + bonus;
     return {
       earned,
       spent,
@@ -1277,6 +1380,7 @@
       realmRank: rankInfo.rank,
       breadth: breadthInfo.points,
       breadthMilestones: breadthInfo,
+      legacyCredit,
       bonus
     };
   }
@@ -1775,10 +1879,12 @@
       `${points.earnedFromSkills} from Skill levels`,
       `${points.earnedFromRealmRank} from Realm ranks`,
       points.breadth ? `${points.breadth} from breadth` : null,
+      points.legacyCredit ? `${points.legacyCredit} protected legacy` : null,
       points.bonus ? `${points.bonus} bonus` : null
     ].filter(Boolean);
 
-    return `<div class="skills-talent-meta-main-v314ah"><span>${REALMS[realm]?.icon || "✦"}</span><div><small>${esc(realm.toUpperCase())} TREE</small><strong>${points.available} available · ${points.spent} spent${progress.totalCost ? ` · ${progress.totalCost} pts full tree` : ""}</strong><em>${esc(nextCopy)}</em></div></div><div class="skills-point-source-v314ah"><span>${sourceBits.map(esc).join(" · ")}</span><small>Realm Rank ${points.realmRank} · free respec</small></div>`;
+    const rank = effectiveRealmRankInfo(realm);
+    return `<div class="skills-talent-meta-main-v314ah"><span>${REALMS[realm]?.icon || "✦"}</span><div><small>${esc(realm.toUpperCase())} TREE</small><strong>${points.available} available · ${points.spent} spent${progress.totalCost ? ` · ${progress.totalCost} pts full tree` : ""}</strong><em>${esc(nextCopy)}</em><em>${esc(rank.nextLabel)}</em></div></div><div class="skills-point-source-v314ah"><span>${sourceBits.map(esc).join(" · ")}</span><small>Realm Rank ${points.realmRank} · free respec</small></div>`;
   }
 
   function decorateTreeStates(section, realm) {
@@ -1883,9 +1989,11 @@
         `${points.earnedFromSkills} skill`,
         `${points.earnedFromRealmRank} rank`,
         points.breadth ? `${points.breadth} breadth` : null,
+        points.legacyCredit ? `${points.legacyCredit} protected` : null,
         points.bonus ? `${points.bonus} bonus` : null
       ].filter(Boolean).join(" · ");
-      return `<section class="skills-realm-v314aa"><header><div><span>${meta.icon}</span><div><small>REALM · RANK ${rank?.level || 1}</small><h2>${esc(meta.label)}</h2></div></div><div class="skills-points-v314aa"><strong>${points.available}</strong><span>point${points.available === 1 ? "" : "s"} available · ${points.spent} spent</span><small>${esc(sourceLine)}</small><button class="skills-realm-tree-link-v314ah" type="button" data-skill-tree-tab="${escAttr(realm)}">Open ${esc(realm)} tree ↑</button></div></header><div class="skills-card-grid-v314aa">${cards}</div></section>`;
+      const rankHint = rank?.nextLabel || "Realm-XP sammeln";
+      return `<section class="skills-realm-v314aa"><header><div><span>${meta.icon}</span><div><small>REALM · RANK ${rank?.level || 1}${rank?.blocked ? ` · XP-Rank ${rank.rawRank}` : ""}</small><h2>${esc(meta.label)}</h2><p class="panel-subcopy">${esc(rankHint)}</p></div></div><div class="skills-points-v314aa"><strong>${points.available}</strong><span>point${points.available === 1 ? "" : "s"} available · ${points.spent} spent</span><small>${esc(sourceLine)}</small><button class="skills-realm-tree-link-v314ah" type="button" data-skill-tree-tab="${escAttr(realm)}">Open ${esc(realm)} tree ↑</button></div></header><div class="skills-card-grid-v314aa">${cards}</div></section>`;
     }).join("");
   }
 
@@ -1947,7 +2055,9 @@
 
   window.LifeRPGSkills = {
     version: VERSION,
-    registry: SKILLS.map(item => ({ ...item })),
+    registry: SKILLS.filter(item => !item.legacy).map(item => ({ ...item })),
+    getEffectiveRealmRankInfo: realm => ({ ...effectiveRealmRankInfo(realm) }),
+    getHistoricalJapaneseFoundation: () => ({ totalXP: totalsBySkill()["language-learning"] || 0, level: levelInfo(totalsBySkill()["language-learning"] || 0).level }),
     getSkill: id => SKILL_BY_ID[id] ? { ...SKILL_BY_ID[id] } : null,
     getTotals: () => ({ ...totalsBySkill() }),
     getLevelInfo: id => levelInfo(totalsBySkill()[id] || 0),
@@ -1963,5 +2073,8 @@
     openTrainingGuide,
     open: () => { openSkillsView(); render(); }
   };
+  // App's first dashboard render runs before Skills loads. Refresh once after
+  // registration so its Realm cards show the breadth-gated ranks immediately.
+  window.setTimeout(() => app.renderAll?.(), 0);
 })();
 

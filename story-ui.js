@@ -841,7 +841,7 @@
 
     let value = 0;
     if (type === "capability") value = Number(app.getCapabilityInfo?.(key)?.level || 1);
-    else if (type === "realmRank") value = Number(app.getRealmRankInfo?.(key)?.level || 1);
+    else if (type === "realmRank") value = Number(app.getLegacyRealmRankInfo?.(key)?.level || 1);
     else return true;
 
     if (requirement.min != null && value < Number(requirement.min)) return false;
@@ -1258,8 +1258,8 @@
     if (!option || !gateState) return { met: false, detail: "" };
 
     if (option.type === "realmAdvance") {
-      const baseline = Number(gateState.baselineRealmRanks?.[option.realm] || app.getRealmRankInfo?.(option.realm)?.level || 1);
-      const current = Number(app.getRealmRankInfo?.(option.realm)?.level || 1);
+      const baseline = Number(gateState.baselineRealmRanks?.[option.realm] || app.getLegacyRealmRankInfo?.(option.realm)?.level || 1);
+      const current = Number(app.getLegacyRealmRankInfo?.(option.realm)?.level || 1);
       return { met: current > baseline, detail: `Rank ${current} · target ${baseline + 1}` };
     }
 
@@ -1349,7 +1349,7 @@
         const current = Number(app.getCapabilityInfo?.(key)?.level || 1);
         detail = requirement.min != null ? `Level ${current} · target ${Number(requirement.min)}` : `Level ${current}`;
       } else if (type === "realmRank" && key) {
-        const current = Number(app.getRealmRankInfo?.(key)?.level || 1);
+        const current = Number(app.getLegacyRealmRankInfo?.(key)?.level || 1);
         detail = requirement.min != null ? `Rank ${current} · target ${Number(requirement.min)}` : `Rank ${current}`;
       }
       return {
