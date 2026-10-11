@@ -7,7 +7,7 @@
     return;
   }
 
-  const VERSION = "0.31.4dz38";
+  const VERSION = "0.31.4dz39";
   const SCHEMA = 1;
   const MAX_EVENTS = 6000;
   const HABIT_XP = { tiny: 3, low: 5, normal: 8, high: 12, boss: 18 };
@@ -217,6 +217,12 @@
   let feedbackRenderKey = "";
   let feedbackPositionObserver = null;
 
+  // Initialize cache state before init(): the initial reconcile and breadth
+  // migration call totalsBySkill synchronously. Declaring these later caused
+  // a TDZ ReferenceError and left the entire Skills and Talent Tree UI blank.
+  let cachedTotalsEvents = null;
+  let cachedTotalsLength = -1;
+  let cachedTotals = null;
 
   init();
 
@@ -1249,9 +1255,6 @@
     return Math.max(0, l - 1) + Math.floor(l / 5);
   }
 
-  let cachedTotalsEvents = null;
-  let cachedTotalsLength = -1;
-  let cachedTotals = null;
   function totalsBySkill() {
     const events = state().events;
     // Canonical reconcile replaces the events array. Reuse its totals until
