@@ -38,9 +38,9 @@
     skill("language-learning", "Japanese Foundations · Archive", "Japanese", "あ", "Historical broad Japanese practice is preserved here, but this is no longer an active Skill."),
     skill("japanese-vocabulary-kanji", "Vocabulary & Kanji", "Japanese", "語", "Words, meanings, readings and kanji recognition through real Japanese study."),
     skill("japanese-grammar-particles", "Grammar & Particles", "Japanese", "文", "Grammar patterns, particles and sentence structure."),
-    skill("japanese-listening-comprehension", "Listening & Comprehension", "Japanese", "耳", "Understanding spoken Japanese in reviews and real media."),
+    skill("japanese-listening-comprehension", "Listening & Comprehension", "Japanese", "耳", "Dedicated listening sessions and spoken-media comprehension (not vocabulary-card reviews)."),
     skill("japanese-reading-mining", "Reading & Comprehension", "Japanese", "読", "Reading Japanese in books, subtitles and contextual sentences."),
-    skill("japanese-speaking-production", "Speaking & Production", "Japanese", "話", "Active recall, sentence production, shadowing and spoken output."),
+    skill("japanese-speaking-production", "Speaking & Production", "Japanese", "話", "Dedicated writing, sentence production, shadowing and speaking sessions (not vocabulary-card reviews)."),
 
     skill("movement-body-care", "Movement & Body Care", "Health", "🤸", "Walking, mobility, stretching, yoga and gentle physical care."),
     skill("physical-vitality", "Physical Vitality", "Health", "🏋️", "Workout, gym and sport practice when it genuinely happens."),
@@ -132,7 +132,7 @@
     ],
     "japanese-listening-comprehension": [
       trainingAction("耳", "Listening Practice", "Starte ein gespeichertes Anime-/Video-/Podcast-Material aus deiner Japanese Practice Library.", () => openJapanesePractice("listening")),
-      trainingAction("🌸", "Kotoba Quick", "Listening-Runden aus bestätigten Kotoba-Reviews zählen ebenfalls hier.", () => window.LifeRPGKotobaQuickTraining?.startQuick?.(), "native")
+      trainingAction("🎧", "Kotoba Listening Lab", "Nur eigenständiges Listening-Training aus dem Listening Lab zählt hier. Vokabel-Audio bleibt Vocabulary.", () => window.open?.("https://ttratkb.github.io/kotoba-quest/cloud.html", "_blank", "noopener"), "linked")
     ],
     "japanese-reading-mining": [
       trainingAction("🌸", "DynaRiot Japanese Extras", "Japanische Extras mit Furigana lesen und eine Verständnisfrage beantworten. Ein neuer täglicher Abschluss gibt Reading-Skill-XP; Archivansichten zahlen nicht erneut.", () => window.LifeRPGTalentRewardStudios?.open?.("dynariot-japanese"), "native"),
@@ -140,7 +140,7 @@
       trainingAction("✿", "Reading / Subtitle Habit", "Lege z. B. einen Manga-, NHK- oder Untertitel-Habit an und ordne ihn diesem Skill zu.", () => openHabitForSkill("japanese-reading-mining"))
     ],
     "japanese-speaking-production": [
-      trainingAction("話", "Kotoba · produktive Antworten", "Nur echte japanische Eigenproduktion (z. B. Deutsch → Japanisch) zählt als Production; einfache Wiedererkennung ist kein Speaking.", () => window.LifeRPGKotobaQuickTraining?.startQuick?.(), "linked"),
+      trainingAction("話", "Kotoba Production Lab", "Echte Übungen im Production Lab zählen hier. Selbst getippte Vokabelantworten gehören zu Vocabulary & Kanji.", () => window.open?.("https://ttratkb.github.io/kotoba-quest/cloud.html", "_blank", "noopener"), "linked"),
       trainingAction("✿", "Eigene Sprechpraxis", "Ein Habit für tatsächlich laut gesprochene Sätze oder Konversation. Echtes Audio-Shadowing folgt erst mit einem Kotoba-Abschlussereignis.", () => openHabitForSkill("japanese-speaking-production"), "guided")
     ],
     "movement-body-care": [
@@ -854,8 +854,9 @@
       return "japanese-grammar-particles";
     }
     if (type === "vocab-review" || type === "vocab-lesson") {
-      if (/listen/.test(subskill)) return "japanese-listening-comprehension";
-      if (/production|speak|output|de-jp/.test(subskill)) return "japanese-speaking-production";
+      // Reading/listening and typed recall are directions of VOCABULARY SRS.
+      // Only explicitly completed Listening/Production Lab sessions train
+      // their own specialized skills. This also corrects old ledger rows on rebuild.
       return "japanese-vocabulary-kanji";
     }
     // Unclassified external Kotoba events must not pretend to train a sixth

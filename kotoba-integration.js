@@ -4,7 +4,7 @@
   const app = window.LifeRPGApp;
   if (!app?.getState || !app?.awardActivity) return;
 
-  const VERSION = "0.31.4dz46";
+  const VERSION = "0.31.4dz47";
   const SCHEMA = 1;
   const SOURCE = "kotoba-quest";
   const LOOKBACK_MS = 30 * 24 * 60 * 60 * 1000;
@@ -27,6 +27,7 @@
     "listening-practice": 2.5, "comprehension-practice": 3, "listening-mining": .5, "n4-placement-block": 3.5,
     "speaking-practice": 2.0, "production-practice": 2.5,
     "vocab-placement-batch": 1.5,
+    "kanji-placement-item": .6,
     "kanji-placement": 2.2, "kanji-placement-complete": 3,
     "kanji-component-lesson": 1.5, "kanji-lesson": 4,
     "kanji-mnemonic": 2.5, "kanji-review": .65
@@ -61,6 +62,7 @@
     "speaking-practice": { xp: 5, realmXP: 5, statXP: 4, coins: 3, story: .08, label: "Production Lab · Shadowing" },
     "production-practice": { xp: 6, realmXP: 6, statXP: 5, coins: 4, story: .09, label: "Production Lab · Writing" },
     "vocab-placement-batch": { xp: 5, realmXP: 5, statXP: 4, coins: 3, story: .07, label: "Vokabel-Einstufung · 5 Wörter" },
+    "kanji-placement-item": { xp: 2, realmXP: 2, statXP: 2, coins: 1, story: .03, label: "Kanji-Einstufung · 1 Zeichen" },
     "kanji-placement": { xp: 11, realmXP: 11, statXP: 8, coins: 6, story: .13, label: "Kanji-Einstufung · 10 Zeichen" },
     "kanji-placement-complete": { xp: 15, realmXP: 15, statXP: 10, coins: 8, story: .20, label: "Kanji-Einstufung abgeschlossen" },
     "kanji-component-lesson": { xp: 6, realmXP: 6, statXP: 5, coins: 3, story: .09, label: "Kanji-Baustein gelernt" },
@@ -440,7 +442,7 @@
   // ids can change if a learner resets a pilot path. Do not reward the same
   // mnemonic, first lesson or placement block twice.
   const ONE_TIME_TYPES = new Set([
-    "vocab-placement-batch", "kanji-placement", "kanji-placement-complete",
+    "vocab-placement-batch", "kanji-placement-item", "kanji-placement", "kanji-placement-complete",
     "kanji-component-lesson", "kanji-lesson", "kanji-mnemonic"
   ]);
   function previousOneTimeReward(event) {
@@ -464,7 +466,10 @@
     if (type === "grammar-review" || type === "grammar-lesson" || type === "particle-review" || type === "particle-lesson") {
       return /listen/.test(skill) ? "listening" : /speak|production|output|form/.test(skill) ? "production" : "grammar";
     }
-    return /listen/.test(skill) ? "listening" : /speak|production|output|de-jp/.test(skill) ? "production" : "vocabulary";
+    // Vocabulary SRS tests vocabulary regardless of answer direction or whether
+    // the word is spoken aloud. Listening / Production are their own labs.
+    if (type === "vocab-review" || type === "vocab-lesson") return "vocabulary";
+    return "vocabulary";
   }
   function kotobaSkillXP(event, at) {
     const type = String(event?.type || "").toLowerCase();
@@ -500,6 +505,11 @@
     if (type==='n4-placement-block' && Number(event.metadata?.total)<1) return null;
     if (type === "vocab-placement-batch" &&
         !(Number(event.metadata?.count) >= 1 && Number(event.metadata?.count) <= 5)) return null;
+    if (type === "kanji-placement-item" &&
+        !(String(event.metadata?.kind) === "kanji" && Number(event.metadata?.count) === 1 &&
+          Number(event.metadata?.total) === 1 && String(event.itemId || "").startsWith("kqk-"))) return null;
+    // Retain legacy ten-kanji milestones already emitted under DZ46, but DZ47
+    // creates new individual events instead of new milestone events.
     if (type === "kanji-placement" &&
         !(Number(event.metadata?.count) === 10 && Number(event.metadata?.total) === 10)) return null;
     if (type === "kanji-placement-complete" && Number(event.metadata?.total) < 10) return null;
