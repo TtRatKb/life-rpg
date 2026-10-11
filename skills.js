@@ -7,7 +7,7 @@
     return;
   }
 
-  const VERSION = "0.31.4dz35";
+  const VERSION = "0.31.4dz37";
   const SCHEMA = 1;
   const MAX_EVENTS = 6000;
   const HABIT_XP = { tiny: 3, low: 5, normal: 8, high: 12, boss: 18 };
@@ -1012,7 +1012,8 @@
   function captureSkillFeedback(beforeEvents, afterEvents, reason) {
     const feed = feedbackState();
     if (!Number(feed.bootstrappedAt || 0)) return;
-    if (reason === "skills-manual-rebuild") return;
+    // Rebuilding on boot/cloud recovery/migration is NOT a new activity.
+    if (["skills-manual-rebuild", "skills-api-rebuild", "skills-init", "skills-taxonomy-migration", "skills-open"].includes(reason) || !beforeEvents.length) return;
     const beforeIds = new Set(beforeEvents.map(e => String(e.id || "")));
     const now = Date.now();
     const newEvents = afterEvents.filter(event =>
@@ -1028,12 +1029,17 @@
     const skillIds = [...new Set(newEvents.map(e => e.skillId))];
     for (const id of skillIds) {
       const oldXp = beforeTotal[id], newXp = afterTotal[id];
-      if (!(newXp > oldXp + 0.001)) continue;
+      const confirmedXP = round2(newEvents.filter(e => e.skillId === id).reduce((sum, e) => sum + Number(e.xp || 0), 0));
+      const actualDelta = round2(newXp - oldXp);
+      // Old events may reappear after a cloud rebuild or after event pruning.
+      // Show ONLY the real new-event XP, never the entire reconstructed skill.
+      if (!(actualDelta > 0.001) || !(confirmedXP > 0.001)) continue;
+      const gained = round2(Math.min(actualDelta, confirmedXP));
       const meta = SKILL_BY_ID[id];
-      const before = levelInfo(oldXp), after = levelInfo(newXp);
+      const before = levelInfo(Math.max(0, newXp - gained)), after = levelInfo(newXp);
       enqueueSkillXP({ id, realm: meta.realm, label: meta.label, icon: meta.icon,
-        gained: round2(newXp - oldXp), before, after });
-      if (after.level > before.level) {
+        gained, before, after });
+      if (after.level > before.level && realmPointInfo(meta.realm).available > 0) {
         const key = `skill:${id}:lv${after.level}`;
         if (!feed.pending.some(note => note.id === key)) {
           feed.pending.unshift({ id: key, kind: "level", skillId: id, realm: meta.realm,
@@ -1117,7 +1123,7 @@
     root.innerHTML = `<div class="skill-xp-top-dz29"><span aria-hidden="true">${esc(next.icon)}</span><div><small>${leveled ? "✦ SKILL LEVEL UP" : "SKILL GROWTH"} · ${esc(next.realm)}</small><strong>${esc(next.label)}</strong></div><b>+${formatXp(next.gained)} XP</b></div>
       <div class="skill-xp-label-dz29"><span class="skill-xp-level-dz29">Level ${next.before.level}</span><span>${formatXp(next.before.intoLevel)} / ${formatXp(next.before.required)}</span></div>
       <div class="skill-xp-track-dz29"><i style="width:${next.before.percent.toFixed(2)}%"></i></div>
-      ${leveled ? `<p class="skill-xp-celebrate-dz29">✦ Level ${next.after.level} erreicht · Talentpunkt verdient!</p>` : `<p>Dein Skill wird stärker.</p>`}`;
+      ${leveled ? `<p class="skill-xp-celebrate-dz29">✦ Level ${next.after.level} erreicht!</p>` : `<p>Dein Skill wird stärker.</p>`}`;
     root.hidden = false;
     repositionSkillFeedback();
     const bar = root.querySelector(".skill-xp-track-dz29 i");
@@ -1146,13 +1152,19 @@
     const root = document.getElementById("skillPointNoticeDz29");
     if (!root) return;
     const feed = feedbackState();
+    // Talent points are spendable Realm points, not lifetime Level-Ups.
+    // Drop stale reminders immediately when the user has already spent them.
+    const availableByRealm = Object.fromEntries(Object.keys(REALMS).map(realm => [realm, realmPointInfo(realm).available]));
+    feed.pending = feed.pending.filter(item => item?.kind === "unspent"
+      ? Object.values(availableByRealm).some(n => n > 0)
+      : Boolean(item?.realm && availableByRealm[item.realm] > 0));
     const first = feed.pending[0];
-    const key = first ? `${first.id}:${feed.pending.length}:${Object.keys(REALMS).map(realm => realmPointInfo(realm).available).join(",")}` : "none";
+    const key = first ? `${first.id}:${feed.pending.length}:${Object.values(availableByRealm).join(",")}` : "none";
     if (key === feedbackRenderKey) return;
     feedbackRenderKey = key;
     if (!first) { root.hidden = true; root.innerHTML = ""; return; }
     const skill = SKILL_BY_ID[first.skillId];
-    const count = first.realm ? realmPointInfo(first.realm).available : Object.keys(REALMS).reduce((sum, realm) => sum + realmPointInfo(realm).available, 0);
+    const count = first.realm ? availableByRealm[first.realm] : Object.values(availableByRealm).reduce((a,b)=>a+b,0);
     const detail = first.kind === "level"
       ? `${esc(skill?.label || "Skill")} · Lv. ${first.from} → ${first.to}`
       : "Bereits erspielte Talentpunkte warten auf dich";
@@ -1169,6 +1181,10 @@
     const feed = feedbackState();
     const item = feed.pending.shift();
     if (!item) return;
+    // A single explicit decision acknowledges the current batch. Opening the
+    // talent tree or choosing Later must close the entire small dock, rather
+    // than immediately replacing it with another already-earned notice.
+    feed.pending = [];
     feedbackRenderKey = "";
     app.saveState({ source: "skills-feedback-dismiss", suppressUiRefresh: true });
     if (action === "tree") {

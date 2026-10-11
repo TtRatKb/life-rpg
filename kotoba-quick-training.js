@@ -5,7 +5,7 @@
   const integration = window.LifeRPGKotobaIntegration;
   if (!app?.getState || !app?.saveState || !integration) return;
 
-  const VERSION = "0.31.4dz20";
+  const VERSION = "0.31.4dz37";
   const REQUEST_TYPE = "life-rpg:kotoba-request";
   const RESPONSE_TYPE = "kotoba:life-rpg-response";
   const REQUEST_TIMEOUT_MS = 18000;
@@ -141,9 +141,11 @@
   async function startOrResume(mode) {
     if (!state().enabled) throw new Error("Connect Kotoba Quest first.");
     const existing=activeSession();
-    if (existing) { await ensureLiveBridge(); openDialog(); renderSession(); return; }
+    setDialogLoading(mode === "quick" ? "Quick Japanese" : "Tiny Japanese");
+    openDialog();
+    if (existing) { await ensureLiveBridge(); renderSession(); return; }
     const requested = mode === "quick" ? 10 : 5;
-    await ensureLiveBridge(); setDialogLoading(mode === "quick" ? "Quick Japanese" : "Tiny Japanese"); openDialog();
+    await ensureLiveBridge();
     const created = await requestBridge("create-mixed-session", { limit:requested, sessionId:makeId("lr-kotoba-session") });
     if (!created?.tasks?.length) {
       closeDialog(); await integration.syncNow?.().catch(() => {}); app.showToast?.("🌸 Kotoba has no due reviews right now."); return;
@@ -161,6 +163,7 @@
   }
 
   function setDialogLoading(title) {
+    if(els.end){els.end.textContent="End session";els.end.onclick=null;}
     if (els.title) els.title.textContent=title;
     if (els.progress) els.progress.innerHTML="Connecting to Kotoba's review engine…";
     if (els.question) els.question.innerHTML='<div class="kotoba-quick-loading-v314j">Loading your real due Kotoba reviews…</div>';
@@ -390,7 +393,17 @@
 
   function requestBridge(action,payload={},timeout=REQUEST_TIMEOUT_MS){if(!bridgeFrame?.contentWindow)return Promise.reject(new Error("Kotoba live bridge is not loaded."));const requestId=makeId("lr-kq-request");return new Promise((resolve,reject)=>{const timer=setTimeout(()=>{pending.delete(requestId);reject(new Error("Kotoba did not answer the Quick Japanese request in time."));},timeout);pending.set(requestId,{resolve,reject,timer});bridgeFrame.contentWindow.postMessage({type:REQUEST_TYPE,requestId,action,payload},location.origin);});}
   function onBridgeMessage(event){if(event.origin!==location.origin||event.source!==bridgeFrame?.contentWindow)return;const message=event.data;if(!message||message.type!==RESPONSE_TYPE||!message.requestId)return;const row=pending.get(String(message.requestId));if(!row)return;clearTimeout(row.timer);pending.delete(String(message.requestId));if(message.ok)row.resolve(message.result);else row.reject(new Error(String(message.error||"Kotoba live bridge failed.")));}
-  function handleError(error){console.error("Kotoba Quick Japanese failed",error);setFeedback("bad",friendlyError(error));app.showToast?.(friendlyError(error));if(els.check)els.check.disabled=false;if(els.input)els.input.disabled=false;}
+  function handleError(error){
+    console.error("Kotoba Quick Japanese failed",error);
+    const text=friendlyError(error);
+    if(els.dialog?.open){
+      if(els.progress)els.progress.textContent="In-App-Verbindung derzeit nicht verfügbar";
+      if(els.question)els.question.innerHTML=`<div class="kotoba-quick-loading-v314j"><strong>Die Kotoba-Bridge konnte nicht gestartet werden.</strong><p>${escapeHtml(text)}</p><p>Du kannst die Reviews direkt in Kotoba Quest machen. Nach dem nächsten Sync zählen sie trotzdem für deinen Tagesplan.</p><a class="primary-button" href="https://ttratkb.github.io/kotoba-quest/" target="_blank" rel="noopener noreferrer">↗ Kotoba Quest öffnen</a></div>`;
+      els.form?.classList.add("hidden");els.feedback?.classList.add("hidden");els.next?.classList.add("hidden");
+      if(els.end){els.end.textContent="Schließen";els.end.onclick=closeDialog;}
+    }
+    app.showToast?.(text);if(els.check)els.check.disabled=false;if(els.input)els.input.disabled=false;
+  }
   function friendlyError(error){return String(error?.message||error||"Quick Japanese failed.").slice(0,320);}
   function makeId(prefix){try{return`${prefix}-${crypto.randomUUID()}`;}catch{return`${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,10)}`;}}
   function sleep(ms){return new Promise(resolve=>setTimeout(resolve,ms));}

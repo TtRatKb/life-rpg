@@ -4,7 +4,7 @@
   const app = window.LifeRPGApp;
   if (!app?.getState || !app?.awardActivity) return;
 
-  const VERSION = "0.31.4dz35";
+  const VERSION = "0.31.4dz37";
   const SCHEMA = 1;
   const SOURCE = "kotoba-quest";
   const LOOKBACK_MS = 30 * 24 * 60 * 60 * 1000;
@@ -50,6 +50,7 @@
   let firebase = null;
   let syncInFlight = null;
   let initialized = false;
+  let lastForegroundSyncAttempt = 0;
   const els = {};
 
   init();
@@ -65,7 +66,13 @@
     window.addEventListener("life-rpg:render", render);
     window.addEventListener("online", () => maybeAutoSync("online", true));
     document.addEventListener("visibilitychange", () => {
-      if (document.visibilityState === "visible") maybeAutoSync("visible");
+      // On returning from Kotoba Quest, refresh its SRS completions without
+      // waiting for the normal 2-minute cadence. Throttle rapid tab switching
+      // so this does not cause repetitive full save/cloud writes.
+      if (document.visibilityState === "visible" && Date.now() - lastForegroundSyncAttempt > 15000) {
+        lastForegroundSyncAttempt = Date.now();
+        maybeAutoSync("visible", true);
+      }
     });
 
     if (state().enabled) window.setTimeout(() => maybeAutoSync("startup", true), 900);

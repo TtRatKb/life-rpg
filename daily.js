@@ -643,9 +643,17 @@
         return;
       }
 
+      const externalKotoba = event.target.closest?.("[data-daily-kotoba-external]");
+      if (externalKotoba) {
+        openKotobaExternal();
+        return;
+      }
+
       const kotoba = event.target.closest?.("[data-daily-kotoba]");
       if (kotoba) {
-        startKotobaDaily(kotoba.dataset.dailyKotoba);
+        startKotobaDaily(kotoba.dataset.dailyKotoba).catch(error => {
+          app.showToast?.(`Quick Study: ${String(error?.message || error)} · Öffne ggf. Kotoba Quest.`);
+        });
         return;
       }
 
@@ -1153,9 +1161,10 @@
             <div class="daily-adventure-meta-v15"><span class="daily-realm-pill-v14">あ Japanese</span><span class="daily-action-ready-v314dz4">✓ ACTION READY</span><span class="daily-adventure-source-v15">🌸 Kotoba Quest</span><span class="daily-adventure-source-v15">~${formatNumber(pick.minutes || 15)} min</span></div>
             <h3>${esc(pick.title || (reviews ? "Kotoba Quick Study" : "Kotoba Dungeon · 1 run"))}</h3>
             <div class="daily-goal-v14"><span>✦</span><div><small>WHAT COUNTS AS DONE</small><strong>${reviews ? `${formatNumber(pick.amount || 5)} real due Kotoba reviews` : "Complete 1 Dungeon run"}</strong></div></div>
+            ${reviews ? `<p class="daily-kotoba-progress-v314dz37" aria-live="polite">🌸 ${esc(completion.progressText)}</p>` : ""}
             <p class="daily-pick-reason-v14"><b>Why this today?</b> ${esc(pick.reason || "This is ready to start directly.")}</p>
           </div>
-          <div class="daily-pick-actions-v14"><button class="primary-button" data-daily-kotoba="${reviews ? "reviews" : "dungeon"}" type="button">${done ? (reviews ? "Review again" : "Run another Dungeon") : reviews ? "🌸 Start in Kotoba" : "⚔ Open Dungeon"}</button><button class="secondary-button" data-daily-swap="${escAttr(pick.slot)}" type="button">↻ Swap</button></div>
+          <div class="daily-pick-actions-v14"><button class="primary-button" data-daily-kotoba="${reviews ? "reviews" : "dungeon"}" type="button">${done ? (reviews ? "Weitere Reviews" : "Run another Dungeon") : reviews ? "🌸 In Life RPG üben" : "⚔ Open Dungeon"}</button>${reviews ? `<button class="secondary-button" data-daily-kotoba-external type="button">↗ Kotoba Quest</button>` : ""}<button class="secondary-button" data-daily-swap="${escAttr(pick.slot)}" type="button">↻ Swap</button></div>
         </article>`;
     }
 
@@ -3195,15 +3204,23 @@
     planner.rerollMemory[key] = current;
   }
 
-  function startKotobaDaily(kind) {
+  function openKotobaExternal() {
+    // External fallback stays a deliberate button, avoiding popup blockers.
+    window.open("https://ttratkb.github.io/kotoba-quest/", "_blank", "noopener");
+  }
+
+  async function startKotobaDaily(kind) {
     if (kind === "reviews") {
       const state = app.getState().integrations?.kotoba || {};
       const counts = state.dueSnapshot?.counts || {};
       const total = Math.max(0, Number(counts.vocabularyCore || 0)) + Math.max(0, Number(counts.vocabularyMining || 0)) + Math.max(0, Number(counts.grammar || 0)) + Math.max(0, Number(counts.particles || 0));
       const active = state.quickSession?.status === "active";
-      if (active || total <= 5) window.LifeRPGKotobaQuickTraining?.startTiny?.();
-      else window.LifeRPGKotobaQuickTraining?.startQuick?.();
-      return;
+      const quick = window.LifeRPGKotobaQuickTraining;
+      if (!quick?.startQuick || !quick?.startTiny) throw new Error("In-App Kotoba Quick ist nicht geladen");
+      // Up to ten real SRS commits. A partially active session always resumes.
+      // The bridge itself displays a usable error if its other app is missing.
+      if (active || total > 5) return quick.startQuick();
+      return quick.startTiny();
     }
     const url = window.LifeRPGKotobaDungeonBridge?.link?.() || "https://ttratkb.github.io/kotoba-quest/dungeon.html";
     window.open(url, "_blank", "noopener");
@@ -3375,6 +3392,30 @@
     return Number.isFinite(parsed) ? parsed : 0;
   }
 
+  function localDayStart() {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return today.getTime();
+  }
+
+  function kotobaCompletedReviewCountSince(start) {
+    const events = app.getState().rewardLedger?.events || [];
+    const confirmed = new Set();
+    for (const reward of events) {
+      if (!reward || reward.duplicate || reward.source !== "kotoba-quest") continue;
+      if (timeFromValue(reward.at) < start) continue;
+      if (!["vocab-review", "grammar-review", "particle-review"].includes(String(reward.metadata?.kotobaType || ""))) continue;
+      const rawId = String(reward.sourceId || reward.metadata?.kotobaEventId || reward.id || "");
+      if (!rawId) continue;
+      // Life RPG's two vocabulary directions correspond to ONE Kotoba SRS
+      // commit. Never count them twice towards a 'six reviews' plan.
+      const id = reward.metadata?.origin === "life-rpg" && reward.metadata?.kotobaType === "vocab-review"
+        ? rawId.replace(/:(listening|production)$/, "") : rawId;
+      confirmed.add(id);
+    }
+    return confirmed.size;
+  }
+
   function pickCompletion(pick) {
     if (!pick?.sourceId) return { done: false, progress: 0, progressText: "Not started" };
     if (pick.sourceType === "todoist") {const done=window.LifeRPGTodoist?.isCompleted?.(pick.sourceId);return {done:Boolean(done),progress:done?1:0,progressText:done?"Todoist erledigt ✓":"Todoist-Aufgabe öffnen"};}
@@ -3387,9 +3428,12 @@
 
     if (type === "kotoba") {
       if (pick.kotobaKind === "reviews") {
-        const session = app.getState().integrations?.kotoba?.quickSession;
-        const completedAt = Number(session?.completedAt || 0);
-        return { done: session?.status === "completed" && completedAt >= start, progress: 0, progressText: session?.status === "completed" && completedAt >= start ? "Kotoba reviews completed ✓" : "Ready in Kotoba Quick Study" };
+        // A Daily plan follows actual confirmed Kotoba SRS work, irrespective of
+        // whether it happened in this app or directly inside Kotoba Quest.
+        const required = Math.max(1, Math.min(10, Math.floor(Number(pick.amount || 5))));
+        const progress = kotobaCompletedReviewCountSince(localDayStart());
+        const done = progress >= required;
+        return { done, progress, progressText: `${Math.min(required, progress)}/${required} Kotoba-Reviews bestätigt${done ? " ✓" : ""}` };
       }
       const event = (app.getState().rewardLedger?.events || []).find(item => item?.source === "kotoba-dungeon" && timeFromValue(item.at) >= start);
       return { done: Boolean(event), progress: event ? 1 : 0, progressText: event ? "Dungeon run completed ✓" : "1 Dungeon run" };
