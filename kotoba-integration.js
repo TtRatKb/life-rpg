@@ -4,7 +4,7 @@
   const app = window.LifeRPGApp;
   if (!app?.getState || !app?.awardActivity) return;
 
-  const VERSION = "0.31.4dz42";
+  const VERSION = "0.31.4dz46";
   const SCHEMA = 1;
   const SOURCE = "kotoba-quest";
   const LOOKBACK_MS = 30 * 24 * 60 * 60 * 1000;
@@ -17,12 +17,19 @@
   // Per-reward values are frozen in metadata: no retroactive XP changes after an update.
   const JAPANESE_SKILL_DAILY_CAP = 16;
   const JAPANESE_SKILL_PER_TRACK_CAP = 8;
+  // Kanji lessons demand active mnemonic construction. Give them their own
+  // capped skill-XP budget; otherwise vocab reviews could exhaust it first.
+  const KANJI_SKILL_DAILY_CAP = 32;
   const JAPANESE_SKILL_BASE = Object.freeze({
     "vocab-review": .35, "grammar-review": .65, "particle-review": .5,
     "vocab-lesson": 2.5, "grammar-lesson": 3, "particle-lesson": 2.5,
     "mining-import": .25, "sentence-mining": 1, "reading": 1.5,
     "listening-practice": 2.5, "comprehension-practice": 3, "listening-mining": .5, "n4-placement-block": 3.5,
-    "speaking-practice": 2.0, "production-practice": 2.5
+    "speaking-practice": 2.0, "production-practice": 2.5,
+    "vocab-placement-batch": 1.5,
+    "kanji-placement": 2.2, "kanji-placement-complete": 3,
+    "kanji-component-lesson": 1.5, "kanji-lesson": 4,
+    "kanji-mnemonic": 2.5, "kanji-review": .65
   });
 
   // Firebase web config is intentionally public client configuration. It grants no
@@ -52,7 +59,14 @@
     "listening-mining": { xp: 2, realmXP: 2, statXP: 2, coins: 1, story: .02, label: "Listening Lab · Mining" },
     "n4-placement-block": { xp: 6, realmXP: 6, statXP: 5, coins: 4, story: .10, label: "N4 · Einstufungsblock" },
     "speaking-practice": { xp: 5, realmXP: 5, statXP: 4, coins: 3, story: .08, label: "Production Lab · Shadowing" },
-    "production-practice": { xp: 6, realmXP: 6, statXP: 5, coins: 4, story: .09, label: "Production Lab · Writing" }
+    "production-practice": { xp: 6, realmXP: 6, statXP: 5, coins: 4, story: .09, label: "Production Lab · Writing" },
+    "vocab-placement-batch": { xp: 5, realmXP: 5, statXP: 4, coins: 3, story: .07, label: "Vokabel-Einstufung · 5 Wörter" },
+    "kanji-placement": { xp: 11, realmXP: 11, statXP: 8, coins: 6, story: .13, label: "Kanji-Einstufung · 10 Zeichen" },
+    "kanji-placement-complete": { xp: 15, realmXP: 15, statXP: 10, coins: 8, story: .20, label: "Kanji-Einstufung abgeschlossen" },
+    "kanji-component-lesson": { xp: 6, realmXP: 6, statXP: 5, coins: 3, story: .09, label: "Kanji-Baustein gelernt" },
+    "kanji-lesson": { xp: 15, realmXP: 15, statXP: 12, coins: 8, story: .22, label: "Neues Kanji aktiv erarbeitet" },
+    "kanji-mnemonic": { xp: 8, realmXP: 8, statXP: 7, coins: 4, story: .10, label: "Kanji-Mnemonic erstellt" },
+    "kanji-review": { xp: 3, realmXP: 3, statXP: 2, coins: 1, story: .04, label: "Kanji/Baustein · SRS-Review" }
   };
 
   let firebasePromise = null;
@@ -372,7 +386,7 @@
       }
 
       const rewardSpec = rewardForEvent(event, at);
-      if (rewardSpec) {
+      if (rewardSpec && !previousOneTimeReward(event)) {
         const skillXP = kotobaSkillXP(event, at);
         const reward = app.awardActivity({
           source: SOURCE,
@@ -400,7 +414,7 @@
             kotobaDailyIndex: rewardSpec.dailyIndex,
             kotobaDailyCoinCap: DAILY_COIN_CAP,
             skillXP,
-            skillXPBalanceVersion: 1,
+            skillXPBalanceVersion: String(event.type || "").startsWith("kanji-") ? 2 : 1,
             // Only compact activity statistics; never transcripts or learner vocabulary.
             confirmedMinutes:Math.min(20,Math.max(0,number(event.metadata?.minutes))),
             correct:Math.min(20,Math.max(0,number(event.metadata?.correct))),
@@ -422,9 +436,26 @@
     return rewarded;
   }
 
+  // Kotoba emits a stable item id for one-off activities, but cloud event
+  // ids can change if a learner resets a pilot path. Do not reward the same
+  // mnemonic, first lesson or placement block twice.
+  const ONE_TIME_TYPES = new Set([
+    "vocab-placement-batch", "kanji-placement", "kanji-placement-complete",
+    "kanji-component-lesson", "kanji-lesson", "kanji-mnemonic"
+  ]);
+  function previousOneTimeReward(event) {
+    const type = String(event?.type || "");
+    const itemId = String(event?.itemId || "");
+    if (!ONE_TIME_TYPES.has(type) || !itemId) return false;
+    return rewardEvents().some(row => row?.source === SOURCE && !row?.duplicate &&
+      row?.metadata?.kotobaType === type && String(row?.metadata?.itemId || "") === itemId);
+  }
+
   function japaneseSkillTrack(event) {
     const type = String(event?.type || "").toLowerCase();
     const skill = String(event?.skill || "").toLowerCase();
+    if (type.startsWith("kanji-")) return "kanji";
+    if (type === "vocab-placement-batch") return "vocabulary";
     if (type === "reading" || type === "sentence-mining") return "reading";
     if (type === "listening-practice" || type === "comprehension-practice") return "listening";
     if (type === "speaking-practice" || type === "production-practice") return "production";
@@ -451,9 +482,13 @@
       // Old rewards stay at their historical 1.5 skill XP rather than being rewritten.
       const xp = reward.metadata?.skillXPBalanceVersion === 1
         ? Math.max(0, number(reward.metadata.skillXP)) : 1.5;
+      const previousTrack = japaneseSkillTrack({type:reward.metadata?.kotobaType, skill:reward.metadata?.skill});
+      if (previousTrack === "kanji" && track !== "kanji") continue;
+      if (previousTrack !== "kanji" && track === "kanji") continue;
       daily += xp;
-      if (japaneseSkillTrack({type:reward.metadata?.kotobaType, skill:reward.metadata?.skill}) === track) byTrack += xp;
+      if (previousTrack === track) byTrack += xp;
     }
+    if (track === "kanji") return round2(Math.max(0, Math.min(base, KANJI_SKILL_DAILY_CAP - daily)));
     return round2(Math.max(0, Math.min(base, JAPANESE_SKILL_DAILY_CAP - daily, JAPANESE_SKILL_PER_TRACK_CAP - byTrack)));
   }
 
@@ -463,6 +498,14 @@
     if (!base) return null;
     if (type==='listening-practice' && event.metadata?.confirmed !== true) return null;
     if (type==='n4-placement-block' && Number(event.metadata?.total)<1) return null;
+    if (type === "vocab-placement-batch" &&
+        !(Number(event.metadata?.count) >= 1 && Number(event.metadata?.count) <= 5)) return null;
+    if (type === "kanji-placement" &&
+        !(Number(event.metadata?.count) === 10 && Number(event.metadata?.total) === 10)) return null;
+    if (type === "kanji-placement-complete" && Number(event.metadata?.total) < 10) return null;
+    if (type === "kanji-lesson" && String(event.metadata?.kind) !== "kanji") return null;
+    if (type === "kanji-component-lesson" && String(event.metadata?.kind) !== "component") return null;
+    if (type === "kanji-mnemonic" && String(event.metadata?.kind) !== "kanji") return null;
     if (type==='production-practice' && String(event.metadata?.mode)!=='writing') return null;
     if (type==='speaking-practice' && String(event.metadata?.mode)!=='shadowing') return null;
     // Listening time is explicitly confirmed in Kotoba (not inferred from YouTube).

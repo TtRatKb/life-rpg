@@ -123,7 +123,8 @@
     ],
     "japanese-vocabulary-kanji": [
       trainingAction("語", "Kotoba Quick", "Neue bestätigte Vocabulary-Reviews aus Kotoba werden diesem Skill zugeordnet.", () => window.LifeRPGKotobaQuickTraining?.startQuick?.(), "native"),
-      trainingAction("⛏", "Vocabulary Mining", "Öffne deine Japanese Practice Library. Neue Mining-Sessions trainieren Vocabulary & Kanji gezielt.", () => openJapanesePractice("mining"))
+      trainingAction("⛏", "Vocabulary Mining", "Öffne deine Japanese Practice Library. Neue Mining-Sessions trainieren Vocabulary & Kanji gezielt.", () => openJapanesePractice("mining")),
+      trainingAction("漢", "Kanji-Pfad · Kotoba", "Kanji-Placement, Kanji-Lektionen mit Mnemonics und SRS-Reviews trainieren Vocabulary & Kanji gezielt.", () => window.open?.("https://ttratkb.github.io/kotoba-quest/cloud.html", "_blank", "noopener"), "linked")
     ],
     "japanese-grammar-particles": [
       trainingAction("文", "Kotoba Quick", "Bestätigte Grammar- und Particle-Reviews trainieren gezielt diesen Skill.", () => window.LifeRPGKotobaQuickTraining?.startQuick?.(), "native"),
@@ -817,8 +818,10 @@
       // Historical micro-reviews retain the exact previous 1.5 XP.
       // Newly imported events carry a frozen, daily-capped skill award. 0 means
       // the cap was reached; it must not fall back to 1.5 XP.
-      const skillXP = reward.metadata?.skillXPBalanceVersion === 1
-        ? Math.max(0, Math.min(3, Number(reward.metadata?.skillXP) || 0)) : 1.5;
+      const version = Number(reward.metadata?.skillXPBalanceVersion || 0);
+      const skillXP = version === 2
+        ? Math.max(0, Math.min(8, Number(reward.metadata?.skillXP) || 0))
+        : version === 1 ? Math.max(0, Math.min(3, Number(reward.metadata?.skillXP) || 0)) : 1.5;
       return nativeSkill(skillId, skillXP, "kotoba-quick-review");
     }
     if (source === "japanese-practice") {
@@ -837,6 +840,7 @@
     const type = String(reward?.metadata?.kotobaType || "").toLowerCase();
     const subskill = String(reward?.metadata?.skill || "").toLowerCase();
 
+    if (type.startsWith("kanji-") || type === "vocab-placement-batch") return "japanese-vocabulary-kanji";
     if (type === "listening-practice" || type === "comprehension-practice") return "japanese-listening-comprehension";
     if (type === "speaking-practice" || type === "production-practice") return "japanese-speaking-production";
     if (type === "n4-placement-block") return "japanese-grammar-particles";
