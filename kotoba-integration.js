@@ -4,7 +4,7 @@
   const app = window.LifeRPGApp;
   if (!app?.getState || !app?.awardActivity) return;
 
-  const VERSION = "0.31.4dz37";
+  const VERSION = "0.31.4dz41";
   const SCHEMA = 1;
   const SOURCE = "kotoba-quest";
   const LOOKBACK_MS = 30 * 24 * 60 * 60 * 1000;
@@ -20,7 +20,8 @@
   const JAPANESE_SKILL_BASE = Object.freeze({
     "vocab-review": .35, "grammar-review": .65, "particle-review": .5,
     "vocab-lesson": 2.5, "grammar-lesson": 3, "particle-lesson": 2.5,
-    "mining-import": .25, "sentence-mining": 1, "reading": 1.5
+    "mining-import": .25, "sentence-mining": 1, "reading": 1.5,
+    "listening-practice": 2.5, "comprehension-practice": 3, "listening-mining": .5, "n4-placement-block": 3.5
   });
 
   // Firebase web config is intentionally public client configuration. It grants no
@@ -43,7 +44,12 @@
     "particle-lesson":{ xp: 8, realmXP: 8, statXP: 6, coins: 4, story: 0.12, label: "Particle lesson" },
     "mining-import":  { xp: 2, realmXP: 2, statXP: 1, coins: 0, story: 0.02, label: "Vocabulary mining" },
     "sentence-mining":{ xp: 3, realmXP: 3, statXP: 2, coins: 1, story: 0.04, label: "Sentence mining" },
-    "reading":        { xp: 4, realmXP: 4, statXP: 3, coins: 2, story: 0.06, label: "Japanese reading" }
+    "reading":        { xp: 4, realmXP: 4, statXP: 3, coins: 2, story: 0.06, label: "Japanese reading" },
+    // Listening = user-confirmed exposure, not measured YouTube playback.
+    "listening-practice": { xp: 5, realmXP: 5, statXP: 4, coins: 3, story: .09, label: "Listening Lab · Hörzeit bestätigt" },
+    "comprehension-practice": { xp: 5, realmXP: 5, statXP: 4, coins: 3, story: .08, label: "Listening Lab · Verständnisfragen" },
+    "listening-mining": { xp: 2, realmXP: 2, statXP: 2, coins: 1, story: .02, label: "Listening Lab · Mining" },
+    "n4-placement-block": { xp: 6, realmXP: 6, statXP: 5, coins: 4, story: .10, label: "N4 · Einstufungsblock" }
   };
 
   let firebasePromise = null;
@@ -244,6 +250,10 @@
       s.kotobaUid = user.uid;
 
       await fetchDueSnapshot(fb, user.uid);
+      // Vocab status is owner-only and kept in a separate IndexedDB database,
+      // never duplicated in our compressed Life RPG save or reward ledger.
+      try { await fetchKotobaLexicon(fb, user.uid); }
+      catch (e) { console.warn('Kotoba vocabulary read-only sync delayed', e); }
       const imported = initialConnection ? 0 : await importNewEvents(fb, user.uid);
       s.lastSyncAt = Date.now();
       s.lastError = "";
@@ -271,6 +281,39 @@
     const row = await fb.fsMod.getDoc(ref);
     const s = state();
     s.dueSnapshot = row.exists() ? normalizeSnapshot(row.data()) : null;
+  }
+
+  let lastLexiconSyncedAt = 0;
+  let lastLexiconUid = '';
+  async function fetchKotobaLexicon(fb, uid) {
+    if (uid !== lastLexiconUid) { lastLexiconUid = uid; lastLexiconSyncedAt = 0; }
+    window.LifeRPGJapaneseExtraReading?.setConnectedAccount?.(uid);
+    const manifestRef = fb.fsMod.doc(fb.db, 'users', uid, 'bridgeState', 'lexicon');
+    const snap = await fb.fsMod.getDoc(manifestRef);
+    if (!snap.exists()) return false; // Kotoba version prior to DZ41
+    const meta = snap.data() || {};
+    const at = Number(meta.syncedAt) || 0;
+    const count = Number(meta.chunkCount) || 0;
+    if (!at || at <= lastLexiconSyncedAt || count < 7 || count > 30) return false;
+    const docs = await Promise.all(Array.from({length:count},(_,i)=>fb.fsMod.getDoc(
+      fb.fsMod.doc(fb.db, 'users', uid, 'bridgeState', `lexiconChunk-${i}`)
+    )));
+    if (!meta.revision || docs.some((doc,i)=>!doc.exists() || Number(doc.data()?.index)!==i || doc.data()?.revision!==meta.revision)) return false;
+    const words=docs.flatMap(doc=>Array.isArray(doc.data().rows)?doc.data().rows:[]).map(row=>({
+      word:String(row?.[0]||''), reading:String(row?.[1]||''),
+      sourceType:row?.[2]==='mining'?'mining':'core',
+      level:Number(row?.[3])||0, stage:Number(row?.[4])||0,
+      meanings:Array.isArray(row?.[5])?row[5].slice(0,3).map(String):[]
+    }));
+    if(words.length!==Number(meta.wordCount)) return false;
+    const bridge=window.LifeRPGJapaneseExtraReading;
+    if (typeof bridge?.receiveCloudLexicon !== 'function') return false;
+    const result=await bridge.receiveCloudLexicon({at,words,isComplete:true,version:1,uid});
+    if(result) {
+      lastLexiconSyncedAt=at;
+      window.dispatchEvent(new CustomEvent('life-rpg:kotoba-lexicon-updated',{detail:{count:words.length,at}}));
+    }
+    return Boolean(result);
   }
 
   async function importNewEvents(fb, uid) {
@@ -354,7 +397,11 @@
             kotobaDailyIndex: rewardSpec.dailyIndex,
             kotobaDailyCoinCap: DAILY_COIN_CAP,
             skillXP,
-            skillXPBalanceVersion: 1
+            skillXPBalanceVersion: 1,
+            // Only compact activity statistics; never transcripts or learner vocabulary.
+            confirmedMinutes:Math.min(20,Math.max(0,number(event.metadata?.minutes))),
+            correct:Math.min(20,Math.max(0,number(event.metadata?.correct))),
+            total:Math.min(20,Math.max(0,number(event.metadata?.total)))
           }
         });
         if (reward?.eventId) rewarded += 1;
@@ -376,6 +423,9 @@
     const type = String(event?.type || "").toLowerCase();
     const skill = String(event?.skill || "").toLowerCase();
     if (type === "reading" || type === "sentence-mining") return "reading";
+    if (type === "listening-practice" || type === "comprehension-practice") return "listening";
+    if (type === "n4-placement-block") return "grammar";
+    if (type === "listening-mining") return "vocabulary";
     if (type === "grammar-review" || type === "grammar-lesson" || type === "particle-review" || type === "particle-lesson") {
       return /listen/.test(skill) ? "listening" : /speak|production|output|form/.test(skill) ? "production" : "grammar";
     }
@@ -383,7 +433,10 @@
   }
   function kotobaSkillXP(event, at) {
     const type = String(event?.type || "").toLowerCase();
-    const base = JAPANESE_SKILL_BASE[type] || 0;
+    let base = JAPANESE_SKILL_BASE[type] || 0;
+    if (type === 'listening-practice') base = Math.min(3, Math.max(.5, Math.max(0, number(event.metadata?.minutes)) * .3));
+    if (type === 'comprehension-practice') base = Math.max(.5, 3 * Math.min(1,number(event.metadata?.correct)/Math.max(1,number(event.metadata?.total))));
+    if (type === 'n4-placement-block') base = Math.min(4, Math.max(.5,number(event.metadata?.total) * .45));
     if (!base) return 0;
     const day = dateKey(at), track = japaneseSkillTrack(event);
     let daily = 0, byTrack = 0;
@@ -402,17 +455,34 @@
     const type = String(event.type || "");
     const base = REWARDS[type];
     if (!base) return null;
+    if (type==='listening-practice' && event.metadata?.confirmed !== true) return null;
+    if (type==='n4-placement-block' && Number(event.metadata?.total)<1) return null;
+    // Listening time is explicitly confirmed in Kotoba (not inferred from YouTube).
+    // Scale rewards moderately with that confirmed lesson duration.
+    let tuned=base;
+    if (type==='listening-practice') {
+      const mins=Math.min(20,Math.max(0,number(event.metadata?.minutes)));
+      if (mins<1) return null;
+      tuned={...base, xp:Math.max(2,Math.round(mins*.8)), realmXP:Math.max(2,Math.round(mins*.8)),
+        statXP:Math.max(1,Math.round(mins*.65)), coins:Math.max(1,Math.round(mins*.4)),story:round2(.02+mins*.009)};
+    }
+    if (type==='comprehension-practice') {
+      const questions=Math.max(1,number(event.metadata?.total));
+      const success=Math.max(0,Math.min(1,number(event.metadata?.correct)/questions));
+      tuned={...base,xp:Math.max(2,Math.round(3+4*success)), realmXP:Math.max(2,Math.round(3+4*success)),
+        statXP:Math.max(1,Math.round(2+4*success)),coins:Math.max(1,Math.round(2+3*success))};
+    }
     const dailyIndex = existingKotobaRewardCount(at);
     const multiplier = dailyMultiplier(dailyIndex);
     const coinsAlready = existingKotobaCoins(at);
     const coinRoom = Math.max(0, DAILY_COIN_CAP - coinsAlready);
-    const scaledCoins = Math.max(0, Math.round(base.coins * multiplier));
+    const scaledCoins = Math.max(0, Math.round(tuned.coins * multiplier));
     return {
-      xp: scaled(base.xp, multiplier),
-      realmXP: scaled(base.realmXP, multiplier),
-      statXP: scaled(base.statXP, multiplier),
+      xp: scaled(tuned.xp, multiplier),
+      realmXP: scaled(tuned.realmXP, multiplier),
+      statXP: scaled(tuned.statXP, multiplier),
       coins: Math.min(coinRoom, scaledCoins),
-      story: round2(base.story * multiplier),
+      story: round2(tuned.story * multiplier),
       multiplier,
       dailyIndex: dailyIndex + 1,
       label: base.label

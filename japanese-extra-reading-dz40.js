@@ -69,7 +69,7 @@
     ["おにぎり","おにぎり","Reisball"],["ドア","どあ","Tür"],["ごめん","ごめん","Entschuldigung"]
   ];
   const TOKENS = ENTRIES.map(([surface, reading, meaning, lemma]) => ({surface, reading, meaning, lemma: lemma || surface})).sort((a,b)=>b.surface.length-a.surface.length);
-  let lexicon = null, importAt = 0, draft = [], activeToken = null, renderSeq = 0;
+  let lexicon = null, importAt = 0, draft = [], activeToken = null, renderSeq = 0, connectedUid = '';
   let dbPromise;
   function openDb() {
     if (!('indexedDB' in window)) return Promise.reject(new Error('IndexedDB nicht verfügbar'));
@@ -122,7 +122,7 @@
   }
   const tokenMap=new Map();
   function render(text){tokenMap.clear();return annotated(text);}
-  function toolbar(){const source=lexicon?`Kotoba-Stand vom ${new Date(importAt).toLocaleDateString('de-DE')}`:'Kotoba-Lernstand noch nicht geladen';return `<div class="jex-tools"><span id="jexStatus">${ESC(source)}</span><label class="jex-import-button">Kotoba-Sicherung lesen<input type="file" id="jexImport" accept=".json,application/json" hidden /></label><button type="button" data-jex-furigana aria-pressed="true">Furigana an</button><button type="button" data-jex-drafts>Mining-Merkliste</button></div><div id="jexWordDetail" class="jex-detail hidden" aria-live="polite"></div>`;}
+  function toolbar(){const source=lexicon?`Kotoba synchronisiert · ${new Date(importAt).toLocaleString('de-DE')}`:'Kotoba-Status wird bei der nächsten Verbindung geladen';return `<div class="jex-tools"><span id="jexStatus">${ESC(source)}</span><label class="jex-import-button" title="Optionaler Notfall-Import">Backup-Import (optional)<input type="file" id="jexImport" accept=".json,application/json" hidden /></label><button type="button" data-jex-furigana aria-pressed="true">Furigana an</button><button type="button" data-jex-drafts>Mining-Merkliste</button></div><div id="jexWordDetail" class="jex-detail hidden" aria-live="polite"></div>`;}
   function details(token){
     const st=lookup(token);const core=st.item?.sourceType==='core';
     const title=st.item?.meanings?.length?st.item.meanings.join(' · '):token.meaning;
@@ -141,6 +141,26 @@
     const compact={version:1,at:Date.now(),isComplete:true,words};
     await dbWrite('kotoba-lexicon',compact);lexicon=compact;importAt=compact.at;
     return words.length;
+  }
+  function setConnectedAccount(uid) {
+    const next=String(uid||'');
+    if(!next || connectedUid===next)return;
+    connectedUid=next;
+    if(lexicon?.uid && lexicon.uid!==next){lexicon=null;importAt=0;rerender();}
+  }
+  async function receiveCloudLexicon(snapshot){
+    if(!snapshot?.uid || String(snapshot.uid)!==connectedUid)return false;
+    const rows=Array.isArray(snapshot?.words)?snapshot.words:[];
+    const core=rows.filter(w=>w?.sourceType==='core');
+    // Fail safely if this is a partial upload, or the expected full Core 2000 is missing.
+    if(!snapshot?.isComplete||core.length<1900||core.length>2300||new Set(core.map(w=>`${norm(w.word)}|${norm(w.reading)}`)).size<1800)return false;
+    const compact={version:1,at:Number(snapshot.at)||Date.now(),uid:connectedUid,isComplete:true,
+      words:rows.map(w=>({word:norm(w.word),reading:norm(w.reading),sourceType:w.sourceType==='mining'?'mining':'core',
+      level:Math.max(0,Number(w.level)||0),stage:Math.max(0,Math.min(9,Number(w.stage)||0)),
+      meanings:(Array.isArray(w.meanings)?w.meanings:[]).slice(0,3).map(x=>String(x).slice(0,100))}))};
+    if(importAt>=compact.at && lexicon?.isComplete)return true;
+    await dbWrite('kotoba-lexicon',compact);
+    lexicon=compact;importAt=compact.at;rerender();return true;
   }
   async function getDrafts(){try{return (await dbRead('mining-drafts'))||[];}catch{return draft;}}
   async function addDraft(token){
@@ -171,6 +191,10 @@
     });
   }
   bind();
-  Promise.all([dbRead('kotoba-lexicon'),getDrafts()]).then(([snap,list])=>{if(snap?.isComplete && Array.isArray(snap.words)){lexicon=snap;importAt=snap.at||0;rerender();}draft=list||[];}).catch(()=>{});
-  window.LifeRPGJapaneseExtraReading={render,toolbar,lookup,importBackup,getDrafts,ready:()=>Boolean(lexicon?.isComplete),_test:{tokens:TOKENS,annotated}};
+  Promise.all([dbRead('kotoba-lexicon'),getDrafts()]).then(([snap,list])=>{
+    if(snap?.isComplete && Array.isArray(snap.words) && (!connectedUid||!snap.uid||snap.uid===connectedUid)){
+      if(!lexicon || Number(snap.at)>importAt){lexicon=snap;importAt=snap.at||0;rerender();}
+    }draft=list||[];
+  }).catch(()=>{});
+  window.LifeRPGJapaneseExtraReading={render,toolbar,lookup,importBackup,getDrafts,receiveCloudLexicon,setConnectedAccount,ready:()=>Boolean(lexicon?.isComplete),_test:{tokens:TOKENS,annotated}};
 })();

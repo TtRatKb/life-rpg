@@ -1,4 +1,4 @@
-const CACHE_NAME = "life-rpg-v0314dz40-japanese-reading";
+const CACHE_NAME = "life-rpg-v0.31.4dz41-kotoba-study";
 const ASSET_CACHE_NAME = "life-rpg-assets-v6";
 const MAX_RUNTIME_ASSETS = 96;
 const CORE = [
@@ -46,7 +46,7 @@ const CORE = [
   "./talent-content-v2.css?v=0.31.4ar",
   "./logic-expansion.css?v=0.31.4ar",
   "./dreamscape.css?v=0.31.4cx",
-  "./skills.js?v=0.31.4dz40",
+  "./skills.js?v=0.31.4dz41",
   "./skill-feedback-dz29.css?v=0.31.4dz29",
   "./talent-v2.js?v=0.31.4bz",
   "./talent-tree-v2-graph.js?v=0.31.4du",
@@ -60,7 +60,7 @@ const CORE = [
   "./social-delivery.css?v=0.31.4dc",
   "./living-world-v3.css?v=0.31.4db",
   "./talent-reward-studios.js?v=0.31.4dz40",
-  "./japanese-extra-reading-dz40.js?v=0.31.4dz40",
+  "./japanese-extra-reading-dz40.js?v=0.31.4dz41",
   "./japanese-extra-reading-dz40.css?v=0.31.4dz40",
   "./coloring-studio.html?v=0.31.4dz34",
   "./coloring-studio.html?embedded=1&v=0.31.4dz34",
@@ -214,7 +214,7 @@ const CORE = [
   "./shop.js?v=0.31.4dz14",
   "./achievements.js?v=0.31.0",
   "./activity-log.js?v=0.31.4dz26",
-  "./kotoba-integration.js?v=0.31.4dz37",
+  "./kotoba-integration.js?v=0.31.4dz41",
   "./kotoba-quick-training.js?v=0.31.4dz37",
   "./cloud-save.js?v=0.31.4dz31",
   "./assets/app-icon-192.png",

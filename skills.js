@@ -837,6 +837,9 @@
     const type = String(reward?.metadata?.kotobaType || "").toLowerCase();
     const subskill = String(reward?.metadata?.skill || "").toLowerCase();
 
+    if (type === "listening-practice" || type === "comprehension-practice") return "japanese-listening-comprehension";
+    if (type === "n4-placement-block") return "japanese-grammar-particles";
+    if (type === "listening-mining") return "japanese-vocabulary-kanji";
     if (type === "mining-import") return "japanese-vocabulary-kanji";
     if (["sentence-mining", "reading"].includes(type)) return "japanese-reading-mining";
     if (type === "particle-review" || type === "particle-lesson") return "japanese-grammar-particles";
