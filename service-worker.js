@@ -1,4 +1,4 @@
-const CACHE_NAME = "life-rpg-v0.31.4dz44-HEALTH-JOURNAL-BRIDGE";
+const CACHE_NAME = "life-rpg-v0.31.4dz45-MOBILE-CLOUD-GATE-FIX";
 const ASSET_CACHE_NAME = "life-rpg-assets-v6";
 const MAX_RUNTIME_ASSETS = 96;
 const CORE = [
@@ -218,7 +218,8 @@ const CORE = [
   "./activity-log.js?v=0.31.4dz26",
   "./kotoba-integration.js?v=0.31.4dz42",
   "./kotoba-quick-training.js?v=0.31.4dz37",
-  "./cloud-save.js?v=0.31.4dz31",
+  "./cloud-save.js?v=0.31.4dz45",
+  "./mobile-cloud-gate-dz45.js?v=0.31.4dz45",
   "./assets/app-icon-192.png",
   "./assets/app-icon-512.png",
 ];

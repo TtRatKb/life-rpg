@@ -56,6 +56,20 @@ let pendingConflict = null;
 let conflictOpen = false;
 let lastCloudSavedAtClient = null;
 
+// A user may explicitly open a mobile device in LOCAL-only mode if Firebase
+// cannot complete authentication/reconciliation. No cloud writes or restores
+// are permitted for the remainder of that page session.
+function isLocalOnly() { return window.LifeRPGCloudLocalOnly === true; }
+window.LifeRPGCloudActions = {
+  signIn: () => signIn(),
+  enterLocalMode: () => {
+    window.LifeRPGCloudLocalOnly = true;
+    cloudReady = false;
+    clearTimeout(saveTimer);
+    setStatus("local", "Local only · this session", "Cloud restore/uploads paused. Reload to reconnect safely.");
+  }
+};
+
 // DZ24 read-only status for the optional Schoolcockpit bridge. The bridge is
 // strictly paused until the existing cloud-save reconciles or the user resolves
 // a save conflict. It must never write the main save document itself.
@@ -117,6 +131,10 @@ async function initCloudSave() {
     }
 
     renderSignedIn(user);
+    if (isLocalOnly()) {
+      setStatus("local", "Local only · this session", "Cloud restore/uploads paused. Reload to reconnect safely.");
+      return;
+    }
     setStatus("saving", "Checking cloud…", "Comparing this device with your cloud save before anything is overwritten.");
 
     try {
@@ -128,7 +146,7 @@ async function initCloudSave() {
   });
 
   window.addEventListener("life-rpg:state-persisted", () => {
-    if (applyingRemote || !currentUser || !cloudReady || conflictOpen) return;
+    if (isLocalOnly() || applyingRemote || !currentUser || !cloudReady || conflictOpen) return;
     queueCloudSave();
   });
 }
@@ -157,7 +175,7 @@ function bindUI() {
   });
 
   window.addEventListener("online", () => {
-    if (currentUser && cloudReady && !conflictOpen) queueCloudSave(150);
+    if (!isLocalOnly() && currentUser && cloudReady && !conflictOpen) queueCloudSave(150);
   });
 
   window.addEventListener("offline", () => {
@@ -217,10 +235,12 @@ function renderSignedIn(user) {
 }
 
 async function reconcileWithCloud() {
-  if (!currentUser) return;
+  if (isLocalOnly() || !currentUser) return;
 
+  const expectedUid = currentUser.uid;
   const ref = currentSaveRef();
   const snap = await getDoc(ref);
+  if (isLocalOnly() || currentUser?.uid !== expectedUid) return;
   const localState = cleanState(app.getState());
   const localFingerprint = fingerprint(localState);
   const meta = getCloudMeta();
@@ -233,6 +253,7 @@ async function reconcileWithCloud() {
   }
 
   const remote = await hydrateRemoteSave(ref, snap.data());
+  if (isLocalOnly() || currentUser?.uid !== expectedUid) return;
   const remoteFingerprint = fingerprint(remote.state);
   lastCloudSavedAtClient = remote.savedAtClient || null;
 
@@ -296,7 +317,7 @@ function queueCloudSave(delay = SAVE_DEBOUNCE_MS) {
 }
 
 async function saveToCloud({ force = false, backupRemote = false, reason = "autosave" } = {}) {
-  if (!currentUser || (!cloudReady && !force) || conflictOpen) return;
+  if (isLocalOnly() || !currentUser || (!cloudReady && !force) || conflictOpen) return;
   if (!navigator.onLine) {
     setStatus("saving", "Local safe · offline", "Changes are saved locally and will sync when this device is online again.");
     return;
@@ -483,7 +504,7 @@ async function performCloudSave({ force = false, backupRemote = false, reason = 
 }
 
 async function manualSync() {
-  if (!currentUser) return;
+  if (isLocalOnly() || !currentUser) return;
   els.syncButton.disabled = true;
   setStatus("saving", "Checking…", "Comparing local and cloud progress.");
 
@@ -594,6 +615,10 @@ function setStatus(state, title, detail) {
   if (els.cloudSaveDetail) els.cloudSaveDetail.textContent = detail;
   if (els.helpText && detail) els.helpText.textContent = detail;
   if (els.cloudLastSync) els.cloudLastSync.textContent = lastCloudSavedAtClient ? formatDateTime(lastCloudSavedAtClient) : "—";
+  document.dispatchEvent(new CustomEvent("life-rpg:cloud-status", { detail: {
+    state, title, detail, authSettled: cloudAuthSettled, uid: currentUser?.uid || null,
+    ready: Boolean(currentUser && cloudReady && !conflictOpen), conflict: conflictOpen
+  } }));
 }
 
 function currentSaveRef() {
