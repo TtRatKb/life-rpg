@@ -534,3 +534,34 @@
 
 /* CW · transparent, testable Dream Thread gates. */
 .dream-prereqs-v314cw{display:grid;gap:5px;padding:10px 12px;margin:7px 0 13px;list-style:none;border-radius:12px;background:rgba(255,255,255,.38)}.dream-prereqs-v314cw li{font-size:.73rem;line-height:1.4}.dream-prereqs-v314cw .is-met{color:#497c68}.dream-prereqs-v314cw .is-missing{color:#7c657a}
+
+/* DZ48: clearly separated Japanese branches, not a fake single unlock chain. */
+.ja-talent-path-dz48 { display:flex;align-items:center;gap:9px;margin:13px 0 7px;padding:10px 12px;border:1px solid rgba(176,114,155,.24);border-radius:13px;background:linear-gradient(110deg,rgba(246,220,235,.76),rgba(255,249,241,.86));color:#734563; }
+.ja-talent-path-dz48 span {font-size:1.15rem;flex:0 0 24px;text-align:center;}
+.ja-talent-path-dz48 strong {font-size:.67rem;letter-spacing:.06em;line-height:1.4;}
+.ja-talent-path-dz48 small {margin-left:auto;text-align:right;font-size:.59rem;color:#927088;line-height:1.3;}
+@media(max-width:580px){.ja-talent-path-dz48{flex-wrap:wrap;gap:6px}.ja-talent-path-dz48 small{flex-basis:100%;margin-left:33px;text-align:left}}
+
+/* DZ48 desktop Japanese tree: five actual independent branches, displayed as
+   a readable Study Atlas instead of a very tall single narrow column. */
+#talentV2JapaneseTree .ja-talent-tile-dz48 { min-width:0;display:flex;flex-direction:column;gap:8px; }
+#talentV2JapaneseTree .ja-talent-tile-dz48 > .talent-v3-node { flex:1; }
+#talentV2JapaneseTree .ja-talent-path-dz48 {margin:0;min-height:36px;}
+@media (min-width:1181px) {
+  #talentV2JapaneseTree .talent-v3-branches{grid-template-columns:repeat(3,minmax(0,1fr));}
+  #talentV2JapaneseTree .talent-v3-branch.is-reward{grid-column:1;grid-row:1;}
+  #talentV2JapaneseTree .talent-v3-branch.is-core{grid-column:2;grid-row:1;}
+  #talentV2JapaneseTree .talent-v3-branch.is-dream{grid-column:3;grid-row:1;}
+  #talentV2JapaneseTree .talent-v3-branch.is-content{grid-column:1/-1;grid-row:2;max-width:none;width:100%;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-content:start;gap:13px;}
+  #talentV2JapaneseTree .talent-v3-branch.is-content > header,
+  #talentV2JapaneseTree .talent-v3-branch.is-content > .talent-v3-content-origin{grid-column:1/-1;}
+}
+@media (min-width:721px) and (max-width:1180px) {
+  #talentV2JapaneseTree .talent-v3-branch.is-content {grid-column:1/-1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;}
+  #talentV2JapaneseTree .talent-v3-branch.is-content > header,
+  #talentV2JapaneseTree .talent-v3-branch.is-content > .talent-v3-content-origin {grid-column:1/-1;}
+}
+@media (max-width:720px) {
+  #talentV2JapaneseTree .talent-v3-branch.is-content {display:grid;gap:12px;}
+  #talentV2JapaneseTree .ja-talent-tile-dz48{width:100%;}
+}

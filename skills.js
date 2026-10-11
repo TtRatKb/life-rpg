@@ -124,24 +124,29 @@
     "japanese-vocabulary-kanji": [
       trainingAction("語", "Kotoba Quick", "Neue bestätigte Vocabulary-Reviews aus Kotoba werden diesem Skill zugeordnet.", () => window.LifeRPGKotobaQuickTraining?.startQuick?.(), "native"),
       trainingAction("⛏", "Vocabulary Mining", "Öffne deine Japanese Practice Library. Neue Mining-Sessions trainieren Vocabulary & Kanji gezielt.", () => openJapanesePractice("mining")),
-      trainingAction("漢", "Kanji-Pfad · Kotoba", "Kanji-Placement, Kanji-Lektionen mit Mnemonics und SRS-Reviews trainieren Vocabulary & Kanji gezielt.", () => window.open?.("https://ttratkb.github.io/kotoba-quest/cloud.html", "_blank", "noopener"), "linked")
+      trainingAction("漢", "Kanji-Pfad · Kotoba", "Kanji-Placement, Kanji-Lektionen mit Mnemonics und SRS-Reviews trainieren Vocabulary & Kanji gezielt.", () => window.open?.("https://ttratkb.github.io/kotoba-quest/cloud.html", "_blank", "noopener"), "linked"),
+      trainingAction("🌱", "Kanji Memory Garden", "Kanji + Lesung aus dem Gedächtnis abrufen: Dein neuer Japanese-Talentpfad, wenn du ihn freigeschaltet hast.", () => window.LifeRPGJapaneseAtlasDZ48?.open?.("kanji"), "native")
     ],
     "japanese-grammar-particles": [
       trainingAction("文", "Kotoba Quick", "Bestätigte Grammar- und Particle-Reviews trainieren gezielt diesen Skill.", () => window.LifeRPGKotobaQuickTraining?.startQuick?.(), "native"),
-      trainingAction("🌸", "Kotoba Status", "Sieh direkt, wie viele Grammar- und Particle-Reviews gerade fällig sind.", () => openKotobaPanel())
+      trainingAction("🌸", "Kotoba Status", "Sieh direkt, wie viele Grammar- und Particle-Reviews gerade fällig sind.", () => openKotobaPanel()),
+      trainingAction("文", "Grammar Pattern Lab", "Japanische Lücken- und Kontextfragen mit Erklärungen, freischaltbar im Japanese-Talentbaum.", () => window.LifeRPGJapaneseAtlasDZ48?.open?.("grammar"), "native")
     ],
     "japanese-listening-comprehension": [
       trainingAction("耳", "Listening Practice", "Starte ein gespeichertes Anime-/Video-/Podcast-Material aus deiner Japanese Practice Library.", () => openJapanesePractice("listening")),
-      trainingAction("🎧", "Kotoba Listening Lab", "Nur eigenständiges Listening-Training aus dem Listening Lab zählt hier. Vokabel-Audio bleibt Vocabulary.", () => window.open?.("https://ttratkb.github.io/kotoba-quest/cloud.html", "_blank", "noopener"), "linked")
+      trainingAction("🎧", "Kotoba Listening Lab", "Nur eigenständiges Listening-Training aus dem Listening Lab zählt hier. Vokabel-Audio bleibt Vocabulary.", () => window.open?.("https://ttratkb.github.io/kotoba-quest/cloud.html", "_blank", "noopener"), "linked"),
+      trainingAction("耳", "Listening Window", "Kurze eigene Hörverständnisübungen mit japanischer Geräte-Sprachausgabe; kein umetikettiertes Vocabulary.", () => window.LifeRPGJapaneseAtlasDZ48?.open?.("listening"), "native")
     ],
     "japanese-reading-mining": [
       trainingAction("🌸", "DynaRiot Japanese Extras", "Japanische Extras mit Furigana lesen und eine Verständnisfrage beantworten. Ein neuer täglicher Abschluss gibt Reading-Skill-XP; Archivansichten zahlen nicht erneut.", () => window.LifeRPGTalentRewardStudios?.open?.("dynariot-japanese"), "native"),
       trainingAction("📖", "Japanese Reading", "Japanisch markierte Bücher und tatsächlich geloggte Seiten trainieren Reading. Kotoba-Story-Kapitel zählen erst, wenn Kotoba dafür echte Lese-Abschlussereignisse liefert.", () => app.showView?.("library")),
-      trainingAction("✿", "Reading / Subtitle Habit", "Lege z. B. einen Manga-, NHK- oder Untertitel-Habit an und ordne ihn diesem Skill zu.", () => openHabitForSkill("japanese-reading-mining"))
+      trainingAction("✿", "Reading / Subtitle Habit", "Lege z. B. einen Manga-, NHK- oder Untertitel-Habit an und ordne ihn diesem Skill zu.", () => openHabitForSkill("japanese-reading-mining")),
+      trainingAction("読", "Reading Café", "Kurze japanische Alltagstexte mit echter Verständnisfrage und Erklärung, aus dem Japanese-Talentbaum.", () => window.LifeRPGJapaneseAtlasDZ48?.open?.("reading"), "native")
     ],
     "japanese-speaking-production": [
       trainingAction("話", "Kotoba Production Lab", "Echte Übungen im Production Lab zählen hier. Selbst getippte Vokabelantworten gehören zu Vocabulary & Kanji.", () => window.open?.("https://ttratkb.github.io/kotoba-quest/cloud.html", "_blank", "noopener"), "linked"),
-      trainingAction("✿", "Eigene Sprechpraxis", "Ein Habit für tatsächlich laut gesprochene Sätze oder Konversation. Echtes Audio-Shadowing folgt erst mit einem Kotoba-Abschlussereignis.", () => openHabitForSkill("japanese-speaking-production"), "guided")
+      trainingAction("✿", "Eigene Sprechpraxis", "Ein Habit für tatsächlich laut gesprochene Sätze oder Konversation. Echtes Audio-Shadowing folgt erst mit einem Kotoba-Abschlussereignis.", () => openHabitForSkill("japanese-speaking-production"), "guided"),
+      trainingAction("話", "Conversation Studio", "Formuliere selbst einen japanischen Satz und vergleiche ihn anschließend mit einem Modell; unabhängig von Vocabulary-Reviews.", () => window.LifeRPGJapaneseAtlasDZ48?.open?.("speaking"), "native")
     ],
     "movement-body-care": [
       trainingAction("🤸", "Guided Stretch", "Kurze angeleitete Bewegung statt einer offenen Aufgabe.", () => window.LifeRPGRecoveryStudio?.start?.("stretch10"), "native"),
@@ -809,6 +814,19 @@
     if (source === "talent-content-v2" && String(reward.metadata?.contentId || "") === "work-debrief") {
       const tier = Math.max(1, Number(reward.metadata?.reachedTier || 1));
       return nativeSkill("professional-organization", Math.min(12, 4 + (tier - 1) * 3), "work-deep-brief");
+    }
+    if (source === "japanese-atlas-dz48" && reward.metadata?.japaneseAtlasDZ48 === true) {
+      // Real, independently completed Study Atlas activities. Never infer a
+      // Listening/Production skill from the direction of a Kotoba vocab card.
+      const modeSkills = {
+        kanji: "japanese-vocabulary-kanji",
+        grammar: "japanese-grammar-particles",
+        reading: "japanese-reading-mining",
+        listening: "japanese-listening-comprehension",
+        speaking: "japanese-speaking-production"
+      };
+      const id = modeSkills[String(reward.metadata?.practiceMode || "")];
+      if (id) return nativeSkill(id, Math.max(0, Math.min(5, Number(reward.metadata?.skillXP || 0))), "japanese-atlas-dz48");
     }
     if (source === "kotoba-dungeon") return nativeSkill(useRankBreadthTaxonomy(reward.at) ? "japanese-vocabulary-kanji" : "language-learning", Math.max(1, Math.min(12, Number(reward.realmXP || reward.xp || 4))), "kotoba-dungeon");
     if (source === "kotoba-quest" || /^Kotoba(?: Quick)?\b/i.test(label) || /kotoba quick/i.test(label)) {

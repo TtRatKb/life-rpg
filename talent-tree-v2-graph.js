@@ -12,7 +12,7 @@
     return;
   }
 
-  const VERSION = "0.31.4du";
+  const VERSION = "0.31.4dz48";
   const SCHEMA = 7;
   const REALMS = ["Work", "Knowledge", "Japanese", "Health", "Recovery", "Home", "Hobbies"];
 
@@ -63,18 +63,33 @@
     Japanese: {
       icon: "🌸",
       special: { id: "immersion-echo", icon: "🎧", title: "Immersion Echo", max: 3 },
-      subtitle: "Open character-driven Japanese content immediately, then expand the pool or branch into speaking practice.",
+      subtitle: "A growing Japanese Study Atlas: five independent paths for real Kanji, Grammar, Reading, Listening and Production practice. Every rank opens three new challenges.",
       dream: { title: "Between Words", copy: "language, repeated phrases, and things that become easier to say softly" },
       content: [
         rankedContent("dynariot-japanese", "🌸", "DynaRiot Japanese Extras", 3,
-          "Rank I: 8 character cards. Rank II: 16. Rank III: 24 fully written Japanese cards with comprehension and archive. One real new pool per rank; non-canon and spoiler-safe.",
+          "Rank I: 8 character cards. Rank II: 16. Rank III: 24 written Japanese cards with comprehension and archive. Non-canon and spoiler-safe.",
           {}, "Open DynaRiot Extras", () => window.LifeRPGTalentRewardStudios?.open?.("dynariot-japanese")),
-        planned("shadowing-sprint", "🎙️", "Guided Shadowing · Redesign",
-          "The old bring-your-own-audio timer was retired. A replacement must include playable Japanese audio, short clips, a transcript and actual echo/shadowing steps before it can cost a point.",
-          { content: "dynariot-japanese", contentRank: 1 }),
-        linkedContent("japanese-moments", "あ", "Everyday Japanese · Companion Moments", 1,
-          "Three character-driven household conversations about speaking naturally and asking for help, not an empty shadowing timer. The scene is the reward; never purchases affection or Main Story progress.",
-          { content: "dynariot-japanese", story: "SC_011" }, "Open Everyday Japanese", () => window.LifeRPGCompanionMoments?.open?.("Japanese"))
+        { ...rankedContent("japanese-atlas-kanji", "漢", "Kanji Memory Garden", 3,
+          "Independent Kanji path · I/II/III: 3/6/9 meaning + reading recall cards with a mnemonic cue. Your actual new Kanji lessons and SRS still live in Kotoba Quest.",
+          {}, "Open Kanji Garden", () => window.LifeRPGJapaneseAtlasDZ48?.open?.("kanji")), group:"kanji" },
+        { ...rankedContent("japanese-atlas-grammar", "文", "Grammar Pattern Lab", 3,
+          "Independent Grammar path · I/II/III: 3/6/9 fill-the-gap questions with explanations, progressing from N4-ish to N3-ish examples.",
+          {}, "Open Grammar Lab", () => window.LifeRPGJapaneseAtlasDZ48?.open?.("grammar")), group:"grammar" },
+        { ...rankedContent("japanese-atlas-reading", "読", "Reading Café", 3,
+          "Independent Reading path · I/II/III: 3/6/9 short Japanese texts with real comprehension choices, from easy everyday notes to contextual passages.",
+          {}, "Open Reading Café", () => window.LifeRPGJapaneseAtlasDZ48?.open?.("reading")), group:"reading" },
+        { ...rankedContent("japanese-atlas-listening", "耳", "Listening Window · Japanese TTS", 3,
+          "Independent Listening path · I/II/III: 3/6/9 short audio comprehension prompts. Uses your device's Japanese speech voice; requires audio playback for its Listening rewards.",
+          {}, "Open Listening Window", () => window.LifeRPGJapaneseAtlasDZ48?.open?.("listening")), group:"listening" },
+        { ...rankedContent("japanese-atlas-speaking", "話", "Conversation Studio", 3,
+          "Independent Production path · I/II/III: 3/6/9 real-life situations. Make your own Japanese response aloud or in writing, then compare to a model answer; no fake auto-grading.",
+          {}, "Open Conversation Studio", () => window.LifeRPGJapaneseAtlasDZ48?.open?.("speaking")), group:"speaking" },
+        { ...planned("shadowing-sprint", "🎙️", "Recorded Shadowing · Future",
+          "A real recorded-audio shadowing feature with replayable clips, transcripts and actual echoing belongs in Kotoba Quest. A silent timer cannot be bought as content.",
+          { content: "japanese-atlas-listening", contentRank: 1 }), group:"future" },
+        { ...linkedContent("japanese-moments", "あ", "Everyday Japanese · Companion Moments", 1,
+          "Three character-driven household conversations about speaking naturally and asking for help. No empty timer, no locked Main Story progress.",
+          { content: "dynariot-japanese", story: "SC_011" }, "Open Everyday Japanese", () => window.LifeRPGCompanionMoments?.open?.("Japanese")), group:"story" }
       ]
     },
     Health: {
@@ -645,7 +660,15 @@
       copy: specialCopy(realm)
     });
 
-    const contentNodes = meta.content.map((item, index) => contentNode(realm, item, index)).join("");
+    const contentNodes = meta.content.map((item, index) => {
+      if (realm !== "Japanese") return contentNode(realm, item, index);
+      const group = item.group || "extras";
+      const titles = { extras:"CHARACTER READING", kanji:"KANJI & RECALL",grammar:"GRAMMAR",reading:"READING",listening:"LISTENING",speaking:"SPEAKING / PRODUCTION",future:"FUTURE AUDIO",story:"COMPANION STORIES" };
+      const heading = `<div class="ja-talent-path-dz48" role="heading" aria-level="4"><span>${item.icon}</span><strong>${esc(titles[group] || group)}</strong><small>${item.rankable ? "Independent branch · 3 ranks" : "Additional content"}</small></div>`;
+      // Each Japanese talent is a separate path tile, not an implied linear
+      // chain. Individual prerequisites are still enforced by prereqStatus.
+      return `<div class="ja-talent-tile-dz48">${heading}${contentNode(realm,item,0)}</div>`;
+    }).join("");
     const dreamNodes = dreamBranchNodes(realm);
 
     section.innerHTML = `
