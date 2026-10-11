@@ -1,0 +1,29 @@
+/* DZ44: lightweight health view, responsive and no additional artwork/media. */
+.health-bridge-view {max-width:1150px;margin:0 auto;}
+.health-bridge-header {display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px;}
+.health-bridge-header p{max-width:760px;}
+.health-bridge-controls {display:flex;gap:9px;align-items:center;flex-wrap:wrap;}
+.health-bridge-controls button{padding:9px 14px;border-radius:12px;}
+.health-bridge-grid {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin:16px 0;}
+.health-bridge-metric {background:rgba(194,129,164,.075);border:1px solid rgba(166,113,148,.22);border-radius:17px;padding:15px;min-width:0;}
+.health-bridge-metric small{color:var(--muted,#806d80);font-size:.86em;display:block;margin-bottom:8px;}
+.health-bridge-metric strong{display:block;font-size:clamp(1.2rem,2.6vw,2rem);line-height:1.2;overflow-wrap:anywhere;}
+.health-bridge-source {font-size:.85rem;color:var(--muted,#806d80);margin-bottom:12px;}
+.health-bridge-columns {display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+.health-bridge-columns .panel{margin:0;}
+.health-bridge-form {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}
+.health-bridge-form label{display:grid;gap:5px;font-size:.85rem;min-width:0;}
+.health-bridge-form input{width:100%;min-width:0;padding:10px 11px;border:1px solid rgba(145,113,134,.3);border-radius:11px;color:inherit;background:rgba(255,255,255,.65);}
+.health-bridge-form button{grid-column:1/-1;justify-self:start;}
+.health-bridge-status {border-radius:12px;padding:10px 13px;background:rgba(157,120,157,.1);margin:14px 0;}
+.health-bridge-status[data-level=error]{background:rgba(191,86,100,.12);}
+.health-bridge-status[data-level=success]{background:rgba(106,162,116,.12);}
+.health-week-steps {display:flex;gap:8px;align-items:end;min-height:125px;margin:15px 0 4px;justify-content:space-around;}
+.health-week-day {display:flex;flex-direction:column;justify-content:end;align-items:center;gap:7px;min-width:20px;flex:1;}
+.health-week-bar {background:linear-gradient(180deg,#d99abe,#a779ad);width:clamp(14px,35%,40px);max-height:82px;border-radius:7px 7px 2px 2px;}
+.health-week-day small {color:var(--muted,#806d80)}
+.health-bridge-help code{word-break:break-word;font-size:.82rem;}
+.health-bridge-help details{margin-top:11px;}
+.health-bridge-help summary{cursor:pointer;font-weight:600;}
+@media(max-width:930px){.health-bridge-grid{grid-template-columns:repeat(2,minmax(0,1fr));}.health-bridge-columns{grid-template-columns:1fr;}}
+@media(max-width:410px){.health-bridge-grid{gap:8px}.health-bridge-metric{padding:11px}.health-bridge-form{gap:7px}.health-bridge-metric strong{font-size:1.25rem;}}

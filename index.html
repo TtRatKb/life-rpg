@@ -15,6 +15,7 @@
   <link rel="apple-touch-icon" href="assets/app-icon-180.png?v=0.30.3a" />
   <link rel="icon" type="image/png" sizes="192x192" href="assets/app-icon-192.png?v=0.30.3a" />
   <link rel="stylesheet" href="styles.css?v=0.31.4dz43" />
+  <link rel="stylesheet" href="health-bridge-dz44.css?v=0.31.4dz44" />
   <link rel="stylesheet" href="play-qol-dz28.css?v=0.31.4dz28" />
   <link rel="stylesheet" href="ui-chrome.css?v=0.31.4dz19" />
   <link rel="stylesheet" href="my-week.css?v=0.31.4cu" />
@@ -1827,12 +1828,83 @@
         </section>
       </section>
 
+      <!-- DZ44: Apple Health daily import is separate from the game save. -->
+      <section id="view-healthsync" class="view health-bridge-view" aria-labelledby="healthBridgeHeading">
+        <section class="panel">
+          <div class="health-bridge-header">
+            <div>
+              <p class="eyebrow">HEALTH · YOUR EVERYDAY LIFE</p>
+              <h2 id="healthBridgeHeading">✿ Health Journal</h2>
+              <p class="muted">Bewegung, Ernährung und Training – ohne Diät- oder Kalorienzwang. Deine Daten bleiben getrennt von deinem Life-RPG-Spielstand.</p>
+            </div>
+            <button class="secondary-button" id="healthRefresh" type="button">↻ Health-Abgleich</button>
+          </div>
+          <div class="health-bridge-controls">
+            <button class="secondary-button" id="healthPrevDay" type="button" aria-label="Vorheriger Tag">‹</button>
+            <strong id="healthSelectedDate">Heute</strong>
+            <button class="secondary-button" id="healthNextDay" type="button" aria-label="Nächster Tag">›</button>
+          </div>
+          <div id="healthBridgeStatus" class="health-bridge-status" role="status" aria-live="polite">Health-Speicher wird geladen …</div>
+          <div class="health-bridge-source" id="healthTodaySource">Noch kein Import</div>
+          <div class="health-bridge-grid">
+            <div class="health-bridge-metric"><small>👟 Schritte</small><strong id="healthSteps">—</strong></div>
+            <div class="health-bridge-metric"><small>🔥 Bewegungsenergie</small><strong id="healthActiveKcal">—</strong></div>
+            <div class="health-bridge-metric"><small>🏃 Trainingsminuten <span title="Nur bei verfügbarer Importquelle">*</span></small><strong id="healthExerciseMin">—</strong></div>
+            <div class="health-bridge-metric"><small>🧍 Stehstunden <span title="Nur bei verfügbarer Importquelle">*</span></small><strong id="healthStandHours">—</strong></div>
+          </div>
+          <div class="health-bridge-columns">
+            <section class="panel" aria-labelledby="healthWeekHeading">
+              <h3 id="healthWeekHeading">Schritte · 7-Tage-Verlauf</h3>
+              <div id="healthWeekSteps" class="health-week-steps" aria-label="Schritte der letzten sieben Tage"></div>
+              <p class="muted">Importierte Tageswerte, kein zusätzlicher Fitness-Reward. * Nicht alle Apple-Ringdaten sind über Kurzbefehle verfügbar.</p>
+            </section>
+            <section class="panel" aria-labelledby="healthNutritionHeading">
+              <h3 id="healthNutritionHeading">Essen, Trinken & Workouts</h3>
+              <p class="muted">Freiwillige Tageszusammenfassung, manuell eingetragen. Keine Gewichts- oder Kalorienziele.</p>
+              <div class="health-bridge-grid" style="grid-template-columns:repeat(2,minmax(0,1fr))">
+                <div class="health-bridge-metric"><small>Protein</small><strong id="healthProtein">—</strong></div>
+                <div class="health-bridge-metric"><small>Wasser</small><strong id="healthWater">—</strong></div>
+                <div class="health-bridge-metric"><small>Energie aus Essen</small><strong id="healthCalories">—</strong></div>
+                <div class="health-bridge-metric"><small>Workout-Zeit</small><strong id="healthWorkout">—</strong></div>
+              </div>
+            </section>
+          </div>
+        </section>
+        <section class="panel">
+          <h3>Persönliche Tageswerte ergänzen</h3>
+          <p class="muted">Trage nur ein, was du tatsächlich weißt. Fehlende Werte bleiben offen, nicht automatisch null. Werte werden nicht mit Health zurückgeschrieben.</p>
+          <form id="healthNutritionForm" class="health-bridge-form">
+            <label>Protein (g)<input name="proteinG" type="number" min="0" max="500" step="0.1" inputmode="decimal" placeholder="optional" /></label>
+            <label>Wasser (ml)<input name="waterMl" type="number" min="0" max="15000" step="1" inputmode="decimal" placeholder="optional" /></label>
+            <label>Kohlenhydrate (g)<input name="carbsG" type="number" min="0" max="1500" step="0.1" inputmode="decimal" placeholder="optional" /></label>
+            <label>Fett (g)<input name="fatG" type="number" min="0" max="500" step="0.1" inputmode="decimal" placeholder="optional" /></label>
+            <label>Ballaststoffe (g)<input name="fiberG" type="number" min="0" max="200" step="0.1" inputmode="decimal" placeholder="optional" /></label>
+            <label>Kalorien (optional)<input name="caloriesKcal" type="number" min="0" max="15000" step="1" inputmode="decimal" placeholder="optional" /></label>
+            <label>Vitamin C (mg)<input name="vitaminCMg" type="number" min="0" max="5000" step="0.1" inputmode="decimal" placeholder="nur bei bekanntem Wert" /></label>
+            <label>Vitamin D (µg)<input name="vitaminDUg" type="number" min="0" max="1000" step="0.1" inputmode="decimal" placeholder="nur bei bekanntem Wert" /></label>
+            <label>Workout-Minuten (manuell)<input name="workoutMin" type="number" min="0" max="1440" step="1" inputmode="numeric" placeholder="optional" /></label>
+            <button class="primary-button" type="submit">Tageswerte speichern</button>
+          </form>
+        </section>
+        <section class="panel health-bridge-help">
+          <h3>Apple Health verbinden – ohne weitere App</h3>
+          <p>Ein iPhone-Kurzbefehl übergibt eine Tageszusammenfassung an Life RPG. Kein Zugriff auf deine gesamte Health-Datenbank, keine Fotos oder medizinischen Dokumente. Weitere Tageswerte wie <code>proteinG</code> oder <code>waterMl</code> sind optional möglich, falls du sie bereits in Apple Health protokollierst.</p>
+          <p><strong>Importformat für Kurzbefehle:</strong> <code>https://ttratkb.github.io/life-rpg/#lr-health=2026-10-11;steps=7500;activeKcal=240</code></p>
+          <button class="secondary-button" id="healthCopyPrefix" type="button">Import-Link-Anfang kopieren</button>
+          <p class="muted">Das Datum und die Werte müssen im Kurzbefehl durch deine tatsächlichen Health-Daten ersetzt werden. Öffne die erzeugte Adresse auf dem iPhone, auf dem du in Life RPG mit demselben Google-Konto angemeldet bist. Die Werte landen in einer separaten Firebase-Collection.</p>
+          <p>Wenn du lieber Dateien verwendest, kannst du eine selbst erstellte Health-Tagesdatei als JSON importieren:</p>
+          <input type="file" id="healthImportJson" accept="application/json,.json" aria-label="Health-Tagesdaten als JSON importieren" />
+          <details><summary>Datenschutz und Grenzen</summary><p>Importe werden nur auf diesem Gerät in IndexedDB und nach Google-Anmeldung unter deinem eigenen Firebase-Nutzerkonto gespeichert. Der Einmal-Link wird nach dem Öffnen aus der Browser-Adresszeile entfernt. Er kann vor dem Öffnen dennoch im Verlauf oder in Kurzbefehlen stehen; deshalb werden nur aggregierte Tageswerte übertragen. Apple-Ringe, Workout-Ereignisse, individuelle Lebensmittel und Supplemente werden durch diesen Basis-Kurzbefehl nicht automatisch ausgelesen. Keine automatisch erzeugten XP.</p></details>
+        </section>
+      </section>
+
     </main>
 
     <nav class="bottom-nav" aria-label="Primary navigation">
       <div class="nav-section-label">ALLTAG</div>
       <button class="nav-button active" data-view="basecamp"><span>⌂</span><small>Dashboard</small></button>
       <button class="nav-button" data-view="habits" data-habit-date-mode="today"><span>❀</span><small>Habits</small></button>
+      <button class="nav-button" data-view="healthsync"><span>♡</span><small>Health Journal</small></button>
       <button class="nav-button" data-view="journal"><span>🌸</span><small>Journal</small></button>
       <button class="nav-button" data-view="week"><span>▦</span><small>Meine Woche</small></button>
       <button class="nav-button" data-view="meals"><span>🍲</span><small>Essensplan</small></button>
@@ -3437,8 +3509,9 @@ League of Legends — PC" required></textarea></label>
   <script src="sound-garden.js?v=0.31.4dz43"></script>
   <script src="sound-garden-library.js?v=0.31.4dz13"></script>
   <script type="module" src="cloud-save.js?v=0.31.4dz31"></script>
+  <script type="module" src="health-bridge-dz44.js?v=0.31.4dz44"></script>
   <script src="pwa.js?v=0.31.4dz33"></script>
-  <script src="life-hub-v314dk.js?v=0.31.4dz23c"></script>
+  <script src="life-hub-v314dk.js?v=0.31.4dz44"></script>
   <script src="creative-hub-v314dl.js?v=0.31.4dz34"></script>
   <script src="knowledge-workshop.js?v=0.31.4do"></script>
   <script src="knowledge-practice.js?v=0.31.4dz22"></script>

@@ -1,4 +1,4 @@
-const CACHE_NAME = "life-rpg-v0.31.4dz43-ULTRAWIDE-STEAM-MUSIC";
+const CACHE_NAME = "life-rpg-v0.31.4dz44-HEALTH-JOURNAL-BRIDGE";
 const ASSET_CACHE_NAME = "life-rpg-assets-v6";
 const MAX_RUNTIME_ASSETS = 96;
 const CORE = [
@@ -10,6 +10,8 @@ const CORE = [
   "./knowledge-practice.css?v=0.31.4dz22",
   "./work-event-bridge.js?v=0.31.4dz27",
   "./work-event-cloud.js?v=0.31.4dz24",
+  "./health-bridge-dz44.js?v=0.31.4dz44",
+  "./health-bridge-dz44.css?v=0.31.4dz44",
   "./",
   "./index.html",
   "./habit-quest-link-dz32.css?v=0.31.4dz32",
@@ -17,7 +19,7 @@ const CORE = [
   "./nonogram.js?v=0.31.4dz28",
   "./sudoku.js?v=0.31.4dz28",
   "./focus-dock.js?v=0.31.4dz28",
-  "./life-hub-v314dk.js?v=0.31.4dz23c",
+  "./life-hub-v314dk.js?v=0.31.4dz44",
   "./creative-hub-v314dl.js?v=0.31.4dz34",
   "./creative-hub-v314dl.css?v=0.31.4dz19",
   "./ui-chrome.css?v=0.31.4dz19",
