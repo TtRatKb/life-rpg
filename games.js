@@ -130,6 +130,7 @@
     progress: byId("gameProgress"),
     gameType: byId("gameType"),
     steamAppIdInput: byId("gameSteamAppId"),
+    steamSource: byId("gameSteamSourceDz43"),
     steamPlaytimeHours: byId("gameSteamPlaytimeHours"),
     steamGameSpoilerMode: byId("gameSteamSpoilerMode"),
     genreChips: byId("gameGenreChips"),
@@ -190,6 +191,8 @@
     goalGameId: byId("gameGoalGameId"),
     goalTitle: byId("gameGoalDialogTitle"),
     goalInput: byId("gameGoalText"),
+    manualSteamGoalWrap: byId("gameManualSteamAchievementWrapDz43"),
+    manualSteamGoal: byId("gameManualSteamAchievementDz43"),
     goalClose: byId("gameGoalClose"),
     goalCancel: byId("gameGoalCancel"),
 
@@ -253,6 +256,7 @@
     els.customUnit?.addEventListener("input", () => { renderTrackingFormState(); renderGamePreview(); });
     els.sessionAmount?.addEventListener("input", renderGamePreview);
     els.steamAppIdInput?.addEventListener("input", () => { pendingSteamAchievements = []; renderSteamSection(); });
+    els.steamSource?.addEventListener("change", renderSteamSection);
     els.steamGameSpoilerMode?.addEventListener("change", renderSteamAchievements);
     [els.title, els.platform, els.statusField, els.role, els.minutes, els.progress].forEach(input => input?.addEventListener("input", renderGamePreview));
     els.statusField?.addEventListener("change", renderGameFormState);
@@ -923,7 +927,7 @@
                 <span class="game-role-chip-v17">${game.owned ? "✓ Owned" : "🛍 Shop"}</span>
                 <span class="game-type-chip-v305">${typeMeta.icon} ${esc(typeMeta.label)}</span>
                 <span class="game-tracking-chip-v312">${tracking.icon} ${esc(tracking.label)}</span>
-                ${game.steamAppId ? `<span class="game-steam-chip-v312">Steam · ${esc(game.steamAppId)}</span>` : ""}
+                ${game.steamSource === "family-manual" ? `<span class="game-steam-chip-v312">👪 Steam Family · manual</span>` : game.steamAppId ? `<span class="game-steam-chip-v312">Steam · ${esc(game.steamAppId)}</span>` : ""}
                 ${game.platform ? `<span class="game-platform-chip-v17">${esc(game.platform)}</span>` : ""}
               </div>
               <h3>${esc(game.title)}</h3>
@@ -947,7 +951,7 @@
             <small>Daily Plan uses this heavily when choosing what to play.</small>
           </div>
 
-          ${game.steamAppId ? steamSyncMarkup(game) : ""}
+          ${game.steamSource === "family-manual" ? `<p class="game-field-hint-v17">👪 Family game: Steam sync is paused for this title. Log play sessions and achievements manually.</p>` : game.steamAppId ? steamSyncMarkup(game) : ""}
 
           ${progress === null ? "" : `
             <div class="game-progress-v17">
@@ -973,7 +977,7 @@
           <div class="game-card-actions-v17">
             ${active ? `<button class="primary-button" data-game-quick-log="${escAttr(game.id)}" data-game-amount="${Number(sessionAmount)}" type="button">${esc(playButtonLabel(game, sessionAmount))}</button>` : ""}
             ${game.status === "backlog" ? `<button class="primary-button" data-game-quick-log="${escAttr(game.id)}" data-game-amount="${Number(sessionAmount)}" data-game-preserve-backlog="true" type="button">${esc(playButtonLabel(game, sessionAmount).replace(/^▶ /, "▶ Try · "))}</button>` : ""}
-            ${game.steamAppId ? `<button class="secondary-button game-steam-sync-button-v314t" data-game-steam-sync="${escAttr(game.id)}" type="button" ${steamSyncInFlight.has(game.id) ? "disabled" : ""}>${steamSyncInFlight.has(game.id) ? "Syncing Steam…" : steamConnectionReady() ? "↻ Sync Steam" : "⚙ Set up Steam"}</button>` : ""}
+            ${game.steamAppId && game.steamSource !== "family-manual" ? `<button class="secondary-button game-steam-sync-button-v314t" data-game-steam-sync="${escAttr(game.id)}" type="button" ${steamSyncInFlight.has(game.id) ? "disabled" : ""}>${steamSyncInFlight.has(game.id) ? "Syncing Steam…" : steamConnectionReady() ? "↻ Sync Steam" : "⚙ Set up Steam"}</button>` : ""}
             ${steamPlaytimeBaselineReviewNeeded(game) ? `<button class="text-button game-steam-baseline-review-v314bf" data-game-steam-baseline-repair="${escAttr(game.id)}" type="button">Repair playtime baseline…</button>` : ""}
             <button class="secondary-button" data-game-log="${escAttr(game.id)}" type="button">Log session</button>
             <button class="text-button" data-game-edit="${escAttr(game.id)}" type="button">Edit details</button>
@@ -983,7 +987,7 @@
   }
 
   function goalMarkup(game, goal) {
-    const steamState = goal.source === "steam" ? (goal.importedAlreadyUnlocked ? " · Historical" : goal.steamAutoImported && goal.done ? " · Synced" : "") : "";
+    const steamState = goal.source === "steam" ? (goal.steamFamilyManual ? " · Family manual" : goal.importedAlreadyUnlocked ? " · Historical" : goal.steamAutoImported && goal.done ? " · Synced" : "") : "";
     const rarity = goal.source === "steam" ? steamRarity(goal.globalPercent) : null;
     const protectedSteam = goal.source === "steam" && steamSpoilerProtected(goal, game);
     const source = goal.source === "steam"
@@ -994,7 +998,7 @@
     const detail = goal.source === "steam" && safeDescription ? `<small class="game-goal-detail-v312">${esc(safeDescription)}</small>` : "";
     return `
       <div class="game-goal-row-v17 ${goal.done ? "done" : ""}">
-        ${goal.source === "steam"
+        ${goal.source === "steam" && game.steamSource !== "family-manual"
           ? `<span class="game-goal-check-v17 game-goal-steam-state-v314x" aria-label="Steam achievement sync state">${goal.done ? "✓" : "↻"}</span>`
           : `<button class="game-goal-check-v17" data-game-id="${escAttr(game.id)}" data-game-goal-toggle="${escAttr(goal.id)}" type="button" aria-label="${goal.done ? "Reopen" : "Complete"} goal">${goal.done ? "✓" : ""}</button>`}
         <span><b>${esc(displayText)}</b>${source}${detail}</span>
@@ -1026,6 +1030,7 @@
     if (els.progress) els.progress.value = String(game?.progress || 0);
     if (els.gameType) els.gameType.value = GAME_TYPES[game?.gameType] ? game.gameType : "auto";
     if (els.steamAppIdInput) els.steamAppIdInput.value = game?.steamAppId || "";
+    if (els.steamSource) els.steamSource.value = game?.steamSource === "family-manual" ? "family-manual" : "normal";
     if (els.steamPlaytimeHours) els.steamPlaytimeHours.value = Number(game?.steamPlaytimeMinutes || 0) > 0 ? (Number(game.steamPlaytimeMinutes) / 60).toFixed(1) : "";
     if (els.steamGameSpoilerMode) els.steamGameSpoilerMode.value = ["strict", "steam-hidden", "off"].includes(game?.steamSpoilerMode) ? game.steamSpoilerMode : "inherit";
     if (els.goalsSeed) els.goalsSeed.value = "";
@@ -1281,6 +1286,7 @@
       catalogId: String(metadata.id || existing?.catalogId || ""),
       steamAppId: String(els.steamAppIdInput?.value || metadata.steamAppId || existing?.steamAppId || "").replace(/\D/g, "").slice(0, 12),
       steamSpoilerMode: ["strict", "steam-hidden", "off"].includes(els.steamGameSpoilerMode?.value) ? els.steamGameSpoilerMode.value : "inherit",
+      steamSource: els.steamSource?.value === "family-manual" ? "family-manual" : "normal",
       catalogUpdatedAt: metadata.id ? now : (existing?.catalogUpdatedAt || null),
       goals: [...(existing?.goals || []), ...newGoals],
       notes: String(els.notes?.value || "").trim(),
@@ -1677,6 +1683,7 @@
     els.goalForm.reset();
     if (els.goalGameId) els.goalGameId.value = game.id;
     if (els.goalTitle) els.goalTitle.textContent = `Add a goal for ${game.title}`;
+    els.manualSteamGoalWrap?.classList.toggle("hidden", game.steamSource !== "family-manual");
     els.goalDialog.showModal();
     requestAnimationFrame(() => els.goalInput?.focus());
   }
@@ -1687,7 +1694,8 @@
     const game = findGame(els.goalGameId?.value || "");
     const text = String(els.goalInput?.value || "").trim();
     if (!game || !text) return;
-    game.goals.push({ id: makeId("goal"), text, done: false, createdAt: Date.now(), completedAt: null });
+    game.goals.push({ id: makeId("goal"), text, done: false, createdAt: Date.now(), completedAt: null,
+      ...(game.steamSource === "family-manual" && els.manualSteamGoal?.checked ? { source: "steam", steamFamilyManual: true } : {}) });
     game.updatedAt = Date.now();
     persist("game-goal-add");
     closeGoalDialog();
@@ -1701,7 +1709,7 @@
     const game = findGame(gameId);
     const goal = game?.goals.find(item => item.id === goalId);
     if (!game || !goal) return;
-    if (goal.source === "steam") {
+    if (goal.source === "steam" && game.steamSource !== "family-manual") {
       showToast("Steam goal syncs automatically", "Play on Steam and use Sync Steam; Life RPG will complete and reward this achievement from Steam's real unlock state.");
       return;
     }
@@ -1730,7 +1738,7 @@
         coins: 30,
         storyEnergyBase: 0.8,
         progressionRelevant: true,
-        metadata: { gameGoal: true }
+        metadata: { gameGoal: true, steamFamilyManual: game.steamSource === "family-manual", steamAchievement: goal.source === "steam" }
       }) || null;
       goal.rewardEventId = goalReward?.eventId || `local-goal-${Date.now()}`;
       goal.rewardStoryEnergy = Number(goalReward?.storyEnergy || 0);
@@ -2148,7 +2156,7 @@
       openSteamSettingsPanel({ focusFirstMissing: true });
       return;
     }
-    const targets = model().items.filter(game => game.steamAppId);
+    const targets = model().items.filter(game => game.steamAppId && game.steamSource !== "family-manual");
     if (!targets.length) {
       showToast("No Steam games yet", "Add or edit a game with a Steam App ID first.");
       return;
@@ -2285,7 +2293,10 @@
         ? `Steam detected. Load the real achievements${steamSettings().steamId ? " plus your current unlock state" : ""}.`
         : "Steam detected. Configure the free Steam Worker once in Settings, then load the real achievements here.";
     }
-    if (els.steamLoad) els.steamLoad.disabled = !configured;
+    if (els.steamLoad) els.steamLoad.disabled = !configured || els.steamSource?.value === "family-manual";
+    if (els.steamSource?.value === "family-manual" && els.steamStatus) {
+      els.steamStatus.textContent = "Steam Family (manual): add achievement names as Game Goals; tick them when earned. No Steam overwrite.";
+    }
     renderSteamAchievements();
   }
 
@@ -2503,6 +2514,14 @@
     }
 
     if (importedMinutes > 0) {
+      // The Steam total alone cannot date playtime. Only a same-day baseline,
+      // a Steam last-played timestamp within this interval, and a same-day sync
+      // make this interval eligible for automatic Daily Plan progress.
+      const todayStart = new Date(syncedAt);
+      todayStart.setHours(0, 0, 0, 0);
+      const reliableDay = priorAt >= todayStart.getTime()
+        && remoteLastPlayedAt >= priorAt && remoteLastPlayedAt <= syncedAt + 60000
+        && syncedAt >= todayStart.getTime();
       model().logs.push({
         id: makeId("glog-steam"),
         gameId: game.id,
@@ -2521,6 +2540,7 @@
         steamRemoteDeltaMinutes: remoteDelta,
         steamManualCoveredMinutes: coveredMinutes,
         steamLastPlayedAt: remoteLastPlayedAt || 0,
+        steamDailyVerified: reliableDay,
         skillXpOverride: importedSkillXp,
         skillId: steamPlaytimeSkillId(game),
         dateUncertain: true,
@@ -2767,6 +2787,7 @@
 
     for (const game of model().items) {
       if (onlyAppId && String(game.steamAppId || "") !== String(onlyAppId)) continue;
+      if (game.steamSource === "family-manual") continue;
       const remote = byAppId.get(String(game.steamAppId || ""));
       if (!remote) continue;
 
@@ -3088,6 +3109,7 @@
   }
 
   function processSteamAchievementSync(game, steamItems, data, syncedAt = Date.now(), { silent = true, source = "sync", playtimeResult = null } = {}) {
+    if (game?.steamSource === "family-manual") return { changed: false, unavailable: true, skippedFamily: true };
     if (!game?.steamAppId || !Array.isArray(steamItems)) return { changed: false, baseline: false, unlocked: [], historicalImported: 0, matchedGoals: 0, returned: 0 };
     const sync = steamSyncState(game);
     const playerAvailable = data?.playerAvailable === true;
@@ -3237,6 +3259,10 @@
   async function syncSteamGameById(gameId, { force = false, silent = false, reason = "manual", includeLibrary = true, deferRender = false } = {}) {
     const game = findGame(gameId);
     if (!game?.steamAppId) return null;
+    if (game.steamSource === "family-manual") {
+      if (!silent) showToast("Steam Family · manual", "This game's Steam sync is disabled. Use Log session or mark achievements manually.");
+      return null;
+    }
     const settings = steamSettings();
     if (!steamConnectionReady()) {
       if (!silent) {
@@ -3288,7 +3314,7 @@
     if (!settings.workerUrl || !settings.steamId || !navigator.onLine) return;
     const now = Date.now();
     const games = model().items
-      .filter(game => game.steamAppId && (!game.steamAchievementSync?.lastSyncAt || now - Number(game.steamAchievementSync.lastSyncAt) >= STEAM_AUTO_SYNC_STALE_MS))
+      .filter(game => game.steamAppId && game.steamSource !== "family-manual" && (!game.steamAchievementSync?.lastSyncAt || now - Number(game.steamAchievementSync.lastSyncAt) >= STEAM_AUTO_SYNC_STALE_MS))
       .sort((a, b) => Math.max(effectiveGameLastPlayedAt(b), Number(b.updatedAt || 0)) - Math.max(effectiveGameLastPlayedAt(a), Number(a.updatedAt || 0)));
     if (games.length) await syncSteamLibrary({ silent: true });
     for (const game of games) {

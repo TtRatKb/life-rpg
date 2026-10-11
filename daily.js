@@ -3466,6 +3466,7 @@
       const mode = goal.trackingMode || gameTrackingMeta(game).mode;
       const amount = gameLogs(pick.sourceId)
         .filter(log => timeFromValue(log.at) >= start)
+        .filter(log => !log.steamImported || (log.steamDailyVerified === true && Number(log.steamIntervalStartAt || 0) >= start))
         .filter(log => (log.trackingMode || "minutes") === mode)
         .reduce((sum, log) => sum + Math.max(0, Number(log.amount || (mode === "minutes" ? log.minutes : 0) || 0)), 0);
       return { done: amount >= Number(goal.amount || 0), progress: amount, progressText: `${gameAmountLabel(game, amount)} / ${gameAmountLabel(game, goal.amount || 0)}` };

@@ -17581,3 +17581,13 @@ body.training-focus-active-v314o > *:not(#trainingFocusView):not(.toast):not(.ac
 .recovery-timer-toggle-dz36{margin-top:10px;background:#fff5f8!important;color:#543048!important}
 .recovery-media-credit-dz36{font-size:.68rem!important;word-break:break-word}
 @media(max-width:480px){.recovery-media-panel-dz36{padding:12px}.recovery-video-stage-dz36{min-height:170px}}
+
+/* DZ43 · Ultrawide readability. CSS-only: reacts to viewport width without reload. */
+@media (min-width: 1850px) and (min-height: 700px) {
+  html { font-size: 112.5%; }
+  .app-shell > main { width: min(1820px, 100%); }
+  .app-shell { padding-right: clamp(32px, 2.4vw, 70px); padding-left: calc(224px + clamp(32px, 2.4vw, 70px)); }
+  .app-shell .muted, .app-shell .lead, .app-shell p { line-height: 1.55; }
+  .app-shell button, .app-shell input, .app-shell select, .app-shell textarea { font-size: max(0.95rem, 14px); }
+  .app-shell small, .app-shell .eyebrow { font-size: max(.78rem, 13px); }
+}

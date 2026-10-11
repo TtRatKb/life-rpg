@@ -6,7 +6,7 @@
   'use strict';
   const app = window.LifeRPGApp;
   if (!app?.getState || !app?.saveState || !app?.awardActivity) return;
-  const VERSION = '0.31.4dz34';
+  const VERSION = '0.31.4dz43';
   const Spotify = window.LifeRPGSpotifyBridge;
   const ALIASES = {'hanabie':['HANABIE.','花冷え。','花冷え','HANABIE']};
   const PLAYLIST = 'https://open.spotify.com/playlist/6aD4oA94t1SpI10OpTrsVl';
@@ -29,6 +29,41 @@
   const sourceLink = track => /^https:\/\/(?:music\.apple\.com|itunes\.apple\.com)\//.test(track?.storeUrl || '') ? track.storeUrl : '';
   const spotifySearch = track => `https://open.spotify.com/search/${encodeURIComponent(`${track.artist} ${track.title}`)}`;
   let busy = false, status = '', preview = null, dialog = null, embeddedId = '', artistSampleId = '';
+  // DZ43: voluntary, playback-driven Spotify recovery. This is deliberately
+  // session-only state, not copied into the cloud save or a second reward log.
+  let spotifyRecoveryArmed = false;
+  let spotifyRecoveryTimerId = '';
+  const recoveryTimerLabel = 'Intentional unwind · music listening';
+  function spotifyPlaybackRunning() {
+    const state = Spotify?.state?.();
+    return Boolean(state?.connected && state.ready && state.lastPlayback?.track_window?.current_track && !state.lastPlayback.paused);
+  }
+  function reconcileSpotifyRecovery() {
+    if (!spotifyRecoveryArmed) return;
+    const timer = window.LifeRPGTime;
+    if (!timer?.startClock) return;
+    const active = timer.getActive?.();
+    const ownsTimer = Boolean(active && active.id === spotifyRecoveryTimerId && active.categoryId === 'recovery');
+    if (active && !ownsTimer) { spotifyRecoveryArmed = false; spotifyRecoveryTimerId = ''; return; }
+    if (spotifyPlaybackRunning()) {
+      if (!active) {
+        timer.startClock({categoryId:'recovery',subcategory:'Other recovery',label:recoveryTimerLabel});
+        spotifyRecoveryTimerId = timer.getActive?.()?.id || '';
+      } else if (ownsTimer && active.pausedAt) timer.resumeActive?.();
+    } else if (ownsTimer && !active.pausedAt) timer.pauseActive?.();
+  }
+  function finishSpotifyRecovery() {
+    const active = window.LifeRPGTime?.getActive?.();
+    const ownsTimer = Boolean(active && active.id === spotifyRecoveryTimerId);
+    spotifyRecoveryArmed = false; spotifyRecoveryTimerId = '';
+    if (ownsTimer) {
+      // Pause before finishing: no wall-clock time after playback stops.
+      if (!active.pausedAt) window.LifeRPGTime?.pauseActive?.();
+      return window.LifeRPGTime?.finishActive?.();
+    }
+    return null;
+  }
+
   const spotifyActive = () => Boolean(Spotify?.state().connected);
   const variants = a => [a.name, ...(ALIASES[a.key] || [])];
   const aliasMatch = (name, a) => variants(a).some(v => (norm(v) && norm(name) && norm(v) === norm(name)) || (v === name));
@@ -703,16 +738,25 @@ async function spotifyArtistOptions(a) {
         const timer=window.LifeRPGTime;
         if(!timer?.startClock)return tell('Zeiterfassung momentan nicht verfügbar.');
         if(timer.getActive?.())return tell('Es läuft bereits ein Timer. Bitte ihn zuerst beenden.');
-        timer.startClock({categoryId:'recovery',subcategory:'Other recovery',label:'Intentional unwind · music listening'});
-        tell('♫ Musik-Auszeit läuft im normalen Timer. Stoppe ihn nach dem Hören zum Loggen.');
+        // Premium browser playback has real play/pause events; external sources do not.
+        if(spotifyActive()) {
+          spotifyRecoveryArmed=true;
+          reconcileSpotifyRecovery();
+          tell(spotifyPlaybackRunning() ? '♫ Spotify läuft · Recovery-Zeit zählt nur während der Wiedergabe.' : '♫ Bereit: Starte einen Song hier im Life RPG. Die Recovery-Zeit beginnt mit der tatsächlichen Spotify-Wiedergabe.');
+        } else {
+          timer.startClock({categoryId:'recovery',subcategory:'Other recovery',label:recoveryTimerLabel});
+          tell('Für externe Musik ist nur die manuelle Auszeit möglich. Spotify Premium ermöglicht automatische Play/Pause-Erkennung.');
+        }
       }
       else if(action==='finish-listening'){
-        const active=window.LifeRPGTime?.getActive?.();
-        if(active?.categoryId==='recovery' && /^Intentional unwind · music listening/.test(active.label||'')){
-          const result=window.LifeRPGTime.finishActive();
-          if(result?.ok)tell('♫ Musik-Auszeit gespeichert · Leisure & Unwinding trainiert.');
-          else tell(result?.reason||'Musik-Auszeit konnte nicht beendet werden.');
+        let result=null;
+        if(spotifyRecoveryArmed || spotifyRecoveryTimerId) result=finishSpotifyRecovery();
+        else {
+          const active=window.LifeRPGTime?.getActive?.();
+          if(active?.categoryId==='recovery' && /^Intentional unwind · music listening/.test(active.label||'')) result=window.LifeRPGTime.finishActive();
         }
+        if(result?.ok)tell('♫ Musik-Auszeit gespeichert · Leisure & Unwinding trainiert.');
+        else tell(result?.reason||'Musik-Auszeit beendet · noch keine abspielbare Hörzeit geloggt.');
       }
       else if(action==='play')playCurrent();
       else if(action==='addplaylist')addCurrentToPlaylist();
@@ -744,9 +788,9 @@ async function spotifyArtistOptions(a) {
     const playable=Boolean(spotifyActive() && t?.spotifyTrackId);
     const current=t?`<div class="sg-song"><small>${complete?'EXTRA DISCOVERY':'TODAY’S DISCOVERY'} · ${esc(t.album||'Song')}</small><h3>${esc(t.title)}</h3><p>${esc(t.artist)}</p>${playable?`<div class="sg-song-links"><button type="button" class="primary-button" data-sg="play" id="sgPlayInside">▶ Hier im Life RPG abspielen</button><button type="button" class="secondary-button" data-sg="addplaylist" id="sgPlaylistAdd" ${m.savedToPlaylist[t.spotifyTrackId]?'disabled':''}>${m.savedToPlaylist[t.spotifyTrackId]?'✓ In Playlist übernommen':'♡ Zur Playlist hinzufügen'}</button><button type="button" class="sg-text-button" data-sg="spotify">Bei Spotify ansehen ↗</button></div><p class="sg-hint">Offizieller Spotify-Player unten. Du kannst die Wiedergabe hier oder über das kleine Sound-Garden-Dock steuern. Falls der Browser den Premium-Player blockiert, nutze den eingebetteten Player.</p>`:`<div class="sg-song-links"><button type="button" class="primary-button" data-sg="spotify">♫ In Spotify suchen ↗</button><button type="button" class="secondary-button" data-sg="playlist">Meine Playlist ↗</button>${sourceLink(t)?'<button type="button" class="sg-text-button" data-sg="apple">Katalogeintrag ↗</button>':''}</div><p class="sg-hint">${spotifyActive()?'Dieser ältere Vorschlag hat noch keine Spotify-Track-ID. Bitte einen neuen Spotify-Song vorschlagen.':'Direkte Vollwiedergabe benötigt eine funktionierende Spotify-Premium-Verbindung. Apple-Katalogvorschläge enthalten keinen abspielbaren Vollsong. Du kannst den Song extern öffnen und Musik-Auszeit unabhängig davon loggen.'}</p>`}<div class="sg-choices"><button type="button" data-sg="rate" data-value="liked">♡ Gefällt mir</button><button type="button" data-sg="rate" data-value="maybe">☆ Vielleicht</button><button type="button" data-sg="rate" data-value="disliked">✕ Nicht meins</button><button type="button" data-sg="rate" data-value="known">✓ Kenne ich schon</button></div><button type="button" class="sg-text-button" data-sg="rate" data-value="skip">Anderen Song zeigen ↻</button></div>`:'';
     const activeListening=window.LifeRPGTime?.getActive?.();
-    const listeningNow=activeListening?.categoryId==='recovery' && /^Intentional unwind · music listening/.test(activeListening?.label||'');
-    const musicRecovery=`<div class="sg-music-recovery-dz34"><strong>☾ Musik als Recovery</strong><p>Deine eigene Musik bewusst genießen – auch außerhalb von Life RPG. Die Zeit wird erst beim Stoppen geloggt, nicht durch einen Songvorschlag oder einen Play-Klick.</p><button type="button" class="secondary-button" data-sg="${listeningNow?'finish-listening':'listen-recovery'}" ${activeListening&&!listeningNow?'disabled title="Anderer Timer läuft"':''}>${listeningNow?'■ Musik-Auszeit stoppen & loggen':'♫ Musik-Auszeit starten'}</button></div>`;
-    $('sgDaily').innerHTML=`<section class="sg-panel sg-discovery"><div class="sg-section-heading"><h3>♫ Discover a Song</h3><span class="sg-badge ${complete?'done':''}">${complete?'✓ Daily geschafft':'Optional Daily'}</span></div>${current||`<div class="sg-idle"><p>${complete?'Deine heutige Song-Entdeckung ist abgeschlossen. Du kannst trotzdem weiterstöbern.':'Ein neuer Song aus deinem Artist-Pool wartet auf dich.'}</p><button class="primary-button" data-sg="new" type="button" ${busy?'disabled':''}>${busy?'Suche läuft …':complete?'Weitere Entdeckung →':'Song vorschlagen ✦'}</button></div>`}<p class="sg-hint">Nur deine bewusste Bewertung wird in Life RPG erfasst – keine Spotify-Wiedergabe oder Streamzahl. „Kenne ich schon“ ersetzt den Titel, ohne die Daily abzuhaken.</p>${musicRecovery}</section>`;
+    const listeningNow=spotifyRecoveryArmed || (activeListening?.categoryId==='recovery' && /^Intentional unwind · music listening/.test(activeListening?.label||''));
+    const musicRecovery=`<div class="sg-music-recovery-dz34"><strong>☾ Musik als Recovery</strong><p>${spotifyActive()?'Mit dem offiziellen Spotify-Player Musik hier starten: Nur Wiedergabezeit zählt, Pause stoppt die Uhr. Spotify Premium erforderlich.':'Ohne Spotify Premium kann Life RPG externe Wiedergabe nicht erkennen. Du kannst Musik dennoch optional manuell zeitlich erfassen.'}</p><button type="button" class="secondary-button" data-sg="${listeningNow?'finish-listening':'listen-recovery'}" ${activeListening&&!listeningNow?'disabled title="Anderer Timer läuft"':''}>${listeningNow?'■ Musik-Auszeit abschließen':spotifyActive()?'▶ Spotify-Hörzeit erfassen':'♫ Manuelle Auszeit (optional)'}</button>${spotifyRecoveryArmed?`<small>${spotifyPlaybackRunning()?'♫ Spotify spielt – Zeit läuft':'Ⅱ Warten auf Spotify-Wiedergabe / pausiert'}</small>`:''}</div>`;
+    $('sgDaily').innerHTML=`<section class="sg-panel sg-discovery"><div class="sg-section-heading"><h3>♫ Discover a Song</h3><span class="sg-badge ${complete?'done':''}">${complete?'✓ Daily geschafft':'Optional Daily'}</span></div>${current||`<div class="sg-idle"><p>${complete?'Deine heutige Song-Entdeckung ist abgeschlossen. Du kannst trotzdem weiterstöbern.':'Ein neuer Song aus deinem Artist-Pool wartet auf dich.'}</p><button class="primary-button" data-sg="new" type="button" ${busy?'disabled':''}>${busy?'Suche läuft …':complete?'Weitere Entdeckung →':'Song vorschlagen ✦'}</button></div>`}<p class="sg-hint">Die Song-Entdeckung zählt nur durch deine Bewertung. Musik-Recovery zählt separat und nur nach ausdrücklicher Aktivierung; keine Streamzählung.</p>${musicRecovery}</section>`;
     updateEmbed(t);
     $('sgHistoryCount').textContent=`${m.history.length} bewertet`;
     $('sgHistory').innerHTML=m.history.length?m.history.slice(0,14).map(h=>`<div><span><b>${esc(h.title)}</b><small>${esc(h.artist)}</small></span><em>${esc({liked:'♡ Gefällt mir',maybe:'☆ Vielleicht',disliked:'✕ Nicht meins',known:'✓ Bekannt',skip:'Übersprungen'}[h.status]||h.status)}</em></div>`).join(''):'<p class="sg-empty">Hier erscheinen deine bewerteten Entdeckungen.</p>';
@@ -756,6 +800,7 @@ async function spotifyArtistOptions(a) {
   // Late init: DailyLife renders before this script by design.
   window.LifeRPGDailyLife?.render?.();
   window.addEventListener('life-rpg:state-saved',()=>{if(dialog?.open)render();});
-  window.addEventListener('life-rpg:spotify-change',()=>{if(dialog)render();});
+  window.addEventListener('life-rpg:spotify-change',()=>{reconcileSpotifyRecovery();if(dialog)render();});
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)reconcileSpotifyRecovery();});
   Spotify?.ready?.then(()=>{const m=data(); if(spotifyActive() && m.current && !m.current.spotifyTrackId){m.current=null;save('spotify-source-change');status='Spotify verbunden. Bitte einen neuen Song direkt aus Spotify vorschlagen.';} if(dialog)render();});
 })();

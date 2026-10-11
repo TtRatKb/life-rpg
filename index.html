@@ -14,7 +14,7 @@
   <link rel="manifest" href="manifest.webmanifest?v=0.30.3a" />
   <link rel="apple-touch-icon" href="assets/app-icon-180.png?v=0.30.3a" />
   <link rel="icon" type="image/png" sizes="192x192" href="assets/app-icon-192.png?v=0.30.3a" />
-  <link rel="stylesheet" href="styles.css?v=0.31.4dz36" />
+  <link rel="stylesheet" href="styles.css?v=0.31.4dz43" />
   <link rel="stylesheet" href="play-qol-dz28.css?v=0.31.4dz28" />
   <link rel="stylesheet" href="ui-chrome.css?v=0.31.4dz19" />
   <link rel="stylesheet" href="my-week.css?v=0.31.4cu" />
@@ -2184,6 +2184,13 @@ League of Legends — PC" required></textarea></label>
         <label>Steam App ID <span class="optional-label-v16">optional · auto-filled when found</span>
           <input id="gameSteamAppId" inputmode="numeric" maxlength="12" placeholder="e.g. 413150" />
         </label>
+        <label>Steam sync source
+          <select id="gameSteamSourceDz43">
+            <option value="normal">Owned / Steam API · automatic</option>
+            <option value="family-manual">Steam Family · manual time & achievements</option>
+          </select>
+          <small class="game-field-hint-v17">Family games are not reliably listed as owned. Manual mode never overwrites your time or achievements during Steam sync.</small>
+        </label>
         <label>Steam total playtime <span class="optional-label-v16">hours · manual fallback</span>
           <input id="gameSteamPlaytimeHours" type="text" inputmode="decimal" maxlength="10" placeholder="e.g. 25.4" />
           <small class="game-field-hint-v17">Use Steam's decimal-hour value. The first manual value becomes a reward-free baseline; later higher totals log only the new difference.</small>
@@ -2286,6 +2293,7 @@ League of Legends — PC" required></textarea></label>
         <button class="close-button" id="gameGoalClose" type="button" aria-label="Close">×</button>
       </div>
       <label>What do you actually want to achieve?<input id="gameGoalText" maxlength="180" placeholder="Complete the Community Center" required /></label>
+      <label class="library-check-v16 hidden" id="gameManualSteamAchievementWrapDz43"><input id="gameManualSteamAchievementDz43" type="checkbox" /><span><strong>Steam Family achievement (manual)</strong><small>Mark an earned achievement yourself; Steam will not overwrite it or automatically reward it again.</small></span></label>
       <p class="muted">This does not need to be an official achievement. It only needs to matter to you.</p>
       <menu><button class="secondary-button" id="gameGoalCancel" type="button">Cancel</button><button class="primary-button" type="submit">Add goal</button></menu>
     </form>
@@ -3370,7 +3378,7 @@ League of Legends — PC" required></textarea></label>
   <script src="adventures.js?v=0.31.4ag"></script>
   <script src="adventure-workspace.js?v=0.31.4c"></script>
   <script src="library.js?v=0.31.4ag"></script>
-  <script src="games.js?v=0.31.4dz14"></script>
+  <script src="games.js?v=0.31.4dz43"></script>
   <script src="time.js?v=0.31.4dz34"></script>
   <script src="my-week.js?v=0.31.4cu"></script>
   <script src="universal-timers.js?v=0.31.4cr"></script>
@@ -3392,7 +3400,7 @@ League of Legends — PC" required></textarea></label>
   <script src="japanese-practice-library.js?v=0.31.4dz4"></script>
   <script src="todoist-sync.js?v=0.31.4dz28"></script>
   <script src="holiday-planner.js?v=0.31.4dz28"></script>
-  <script src="daily.js?v=0.31.4dz37"></script>
+  <script src="daily.js?v=0.31.4dz43"></script>
   <script src="data/year-journal-questions.js?v=0.31.4ar"></script>
   <script src="journal.js?v=0.31.4do"></script>
   <script src="relationship-memory.js?v=0.31.4cy"></script>
@@ -3426,7 +3434,7 @@ League of Legends — PC" required></textarea></label>
 
   <script src="daily-life-v314cv.js?v=0.31.4dv"></script>
   <script src="sound-garden-spotify.js?v=0.31.4dy"></script>
-  <script src="sound-garden.js?v=0.31.4dz34"></script>
+  <script src="sound-garden.js?v=0.31.4dz43"></script>
   <script src="sound-garden-library.js?v=0.31.4dz13"></script>
   <script type="module" src="cloud-save.js?v=0.31.4dz31"></script>
   <script src="pwa.js?v=0.31.4dz33"></script>
