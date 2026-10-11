@@ -229,6 +229,7 @@
   let homeExcluded = new Map();
   let homeWheelRotation = 0;
   let activeJapaneseCardId = null;
+  let activeJapaneseArchiveMode = false;
   let coloring = null;
   let idbPromise = null;
   let saveTimer = null;
@@ -690,6 +691,7 @@
     const card = JAPANESE_CARDS.find(item => item.id === id);
     if (!card) return;
     activeJapaneseCardId = id;
+    activeJapaneseArchiveMode = archiveMode;
     const daily = state().japanese.daily;
     const isTodayCard = daily.dateKey === dateKey() && daily.cardId === id;
     const selected = isTodayCard ? daily.selected : null;
@@ -706,7 +708,8 @@
       </header>
       <article class="jp-extra-card-v314as">
         <div class="jp-extra-meta-v314as"><span>${card.icon}</span><div><small>${esc(card.type)}</small><strong>${esc(card.title)}</strong></div>${collected ? "<b>COLLECTED</b>" : ""}</div>
-        <div class="jp-extra-text-v314as">${esc(card.jp).replace(/\n/g,"<br>")}</div>
+        <div class="jp-extra-text-v314as">${window.LifeRPGJapaneseExtraReading?.render?.(card.jp) || esc(card.jp).replace(/\n/g,"<br>")}</div>
+        ${window.LifeRPGJapaneseExtraReading?.toolbar?.() || ""}
         <section class="jp-extra-question-v314as">
           <small>QUICK COMPREHENSION</small><h3>${esc(card.question)}</h3>
           <div class="jp-extra-options-v314as">${card.options.map((option, index) => `<button type="button" class="${selected === index ? "is-selected" : ""} ${checked && index === card.correct ? "is-correct" : ""} ${checked && selected === index && index !== card.correct ? "is-wrong" : ""}" data-jp-answer="${index}" ${archiveMode ? "disabled" : ""}>${String.fromCharCode(65+index)}. ${esc(option)}</button>`).join("")}</div>
@@ -756,7 +759,7 @@
       coins: 8,
       storyEnergyBase: .20,
       progressionRelevant: true,
-      metadata: { talentRewardStudio: true, contentId: "dynariot-japanese", cardId: card.id }
+      metadata: { talentRewardStudio: true, contentId: "dynariot-japanese", cardId: card.id, japaneseReadingRewardV1: true, skillXP: daily.selected === card.correct ? 4 : 2 }
     });
     daily.rewardEventId = reward?.eventId || null;
     save("japanese-complete");
@@ -1543,6 +1546,8 @@
     open,
     cards: JAPANESE_CARDS,
     coloringPages: COLORING_PAGES,
-    collectDrawingRewards: processDrawingRewardQueue
+    collectDrawingRewards: processDrawingRewardQueue,
+    currentJapaneseExtra: () => activeJapaneseCardId,
+    rerenderJapaneseExtra: () => { if (activeJapaneseCardId) renderJapaneseCard(activeJapaneseCardId, activeJapaneseArchiveMode); }
   };
 })();

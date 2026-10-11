@@ -134,6 +134,7 @@
       trainingAction("🌸", "Kotoba Quick", "Listening-Runden aus bestätigten Kotoba-Reviews zählen ebenfalls hier.", () => window.LifeRPGKotobaQuickTraining?.startQuick?.(), "native")
     ],
     "japanese-reading-mining": [
+      trainingAction("🌸", "DynaRiot Japanese Extras", "Japanische Extras mit Furigana lesen und eine Verständnisfrage beantworten. Ein neuer täglicher Abschluss gibt Reading-Skill-XP; Archivansichten zahlen nicht erneut.", () => window.LifeRPGTalentRewardStudios?.open?.("dynariot-japanese"), "native"),
       trainingAction("📖", "Japanese Reading", "Japanisch markierte Bücher und tatsächlich geloggte Seiten trainieren Reading. Kotoba-Story-Kapitel zählen erst, wenn Kotoba dafür echte Lese-Abschlussereignisse liefert.", () => app.showView?.("library")),
       trainingAction("✿", "Reading / Subtitle Habit", "Lege z. B. einen Manga-, NHK- oder Untertitel-Habit an und ordne ihn diesem Skill zu.", () => openHabitForSkill("japanese-reading-mining"))
     ],
@@ -769,6 +770,11 @@
   function skillForRewardEvent(reward) {
     const source = String(reward.source || "");
     const label = String(reward.label || "");
+    // Only DZ40+ completed comprehension cards earn this specialized Skill XP.
+    // Historical Japanese Extras must not gain retroactive levels on rebuild.
+    if (source === "talent-reward-studios" && reward.metadata?.contentId === "dynariot-japanese" && reward.metadata?.japaneseReadingRewardV1 === true) {
+      return nativeSkill("japanese-reading-mining", Math.max(0, Math.min(4, Number(reward.metadata?.skillXP || 0))), "dynariot-japanese-reading");
+    }
     if (source === "knowledge-practice-recall") return nativeSkill("memory-recall", Math.max(0, Math.min(8, Number(reward.metadata?.skillXP || 0))), source);
     if (source === "knowledge-practice-explain") return nativeSkill("learning-inquiry", Math.max(0, Math.min(6, Number(reward.metadata?.skillXP || 0))), source);
     if (source === "schulcockpit-completion") {

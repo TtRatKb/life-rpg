@@ -1,0 +1,25 @@
+/* DZ40: DynaRiot Japanese Extras reading and Kotoba reference. */
+.jex-tools{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:9px 2px;font-size:.68rem;color:#79536b}
+.jex-tools>span{margin-right:auto;line-height:1.4;max-width:100%}
+.jex-tools button,.jex-import-button,.jex-detail button{border:1px solid #ddbdcb;border-radius:999px;background:#fffafc;color:#753f5e;padding:7px 11px;font:inherit;font-size:.68rem;cursor:pointer;white-space:normal}
+.jex-import-button{display:inline-flex;align-items:center}
+.jp-extra-text-v314as .jex-token{appearance:none;padding:0 2px;border:0;border-bottom:1px dotted rgba(89,50,76,.3);background:transparent;border-radius:3px;color:inherit;cursor:pointer;line-height:inherit;font-size:inherit;letter-spacing:inherit;display:inline;vertical-align:baseline;text-align:inherit}
+.jp-extra-text-v314as ruby{ruby-align:center;ruby-position:over;white-space:nowrap}
+.jp-extra-text-v314as rt{font-size:.56em;font-weight:500;line-height:1.1;color:#9b6382}
+.jp-extra-text-v314as .jex-token.jex-guru{background:rgba(91,171,112,.15)}
+.jp-extra-text-v314as .jex-token.jex-learning{background:rgba(230,179,93,.17)}
+.jp-extra-text-v314as .jex-token.jex-new{background:rgba(195,110,141,.11)}
+.jp-extra-text-v314as .jex-token.jex-outside{background:rgba(161,141,203,.16)}
+.jp-extra-text-v314as .jex-token:hover,.jp-extra-text-v314as .jex-token:focus-visible{outline:2px solid #c77b9f;outline-offset:2px;background:#fff0f5}
+.jp-extra-text-v314as .jex-linebreak{display:block;height:0}
+.jp-extra-card-v314as.jex-no-furigana rt{visibility:hidden}
+.jex-detail{margin:7px 0 15px;border:1px solid #e9c9d9;border-radius:14px;background:#fffbff;padding:12px 14px;box-shadow:0 8px 19px rgba(77,43,62,.06);color:#56374b;font-size:.77rem}
+.jex-detail.hidden{display:none}
+.jex-detail-head{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.jex-detail-head strong{font-size:1rem}.jex-detail-head small{font-size:.7rem;color:#8d6580}
+.jex-detail-head span{border-radius:999px;background:rgba(114,97,130,.07);padding:5px 9px;font-size:.68rem}
+.jex-detail-head .jex-guru{background:#e3f5e7;color:#356143}.jex-detail-head .jex-learning{background:#fff1d9;color:#755426}
+.jex-detail p{margin:7px 0}.jex-detail .jex-muted{color:#856d7b;font-size:.7rem}
+.jex-detail-actions{display:flex;gap:9px;flex-wrap:wrap;align-items:center}
+.jex-draft-list{white-space:pre-wrap;overflow-wrap:anywhere;max-height:150px;overflow:auto;padding:9px;background:#f8f1f6;border-radius:9px;font-size:.68rem}
+@media(max-width:550px){.jex-tools{font-size:.65rem}.jp-extra-text-v314as{padding:12px 10px;font-size:1rem;line-height:2.2}.jp-extra-text-v314as rt{font-size:.58em}}
