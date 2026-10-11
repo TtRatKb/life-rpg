@@ -838,6 +838,7 @@
     const subskill = String(reward?.metadata?.skill || "").toLowerCase();
 
     if (type === "listening-practice" || type === "comprehension-practice") return "japanese-listening-comprehension";
+    if (type === "speaking-practice" || type === "production-practice") return "japanese-speaking-production";
     if (type === "n4-placement-block") return "japanese-grammar-particles";
     if (type === "listening-mining") return "japanese-vocabulary-kanji";
     if (type === "mining-import") return "japanese-vocabulary-kanji";

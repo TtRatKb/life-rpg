@@ -1,4 +1,4 @@
-const CACHE_NAME = "life-rpg-v0.31.4dz41-kotoba-study";
+const CACHE_NAME = "life-rpg-v0.31.4dz42-kotoba-production";
 const ASSET_CACHE_NAME = "life-rpg-assets-v6";
 const MAX_RUNTIME_ASSETS = 96;
 const CORE = [
@@ -46,7 +46,7 @@ const CORE = [
   "./talent-content-v2.css?v=0.31.4ar",
   "./logic-expansion.css?v=0.31.4ar",
   "./dreamscape.css?v=0.31.4cx",
-  "./skills.js?v=0.31.4dz41",
+  "./skills.js?v=0.31.4dz42",
   "./skill-feedback-dz29.css?v=0.31.4dz29",
   "./talent-v2.js?v=0.31.4bz",
   "./talent-tree-v2-graph.js?v=0.31.4du",
@@ -214,7 +214,7 @@ const CORE = [
   "./shop.js?v=0.31.4dz14",
   "./achievements.js?v=0.31.0",
   "./activity-log.js?v=0.31.4dz26",
-  "./kotoba-integration.js?v=0.31.4dz41",
+  "./kotoba-integration.js?v=0.31.4dz42",
   "./kotoba-quick-training.js?v=0.31.4dz37",
   "./cloud-save.js?v=0.31.4dz31",
   "./assets/app-icon-192.png",

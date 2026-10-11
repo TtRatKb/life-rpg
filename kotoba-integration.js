@@ -4,7 +4,7 @@
   const app = window.LifeRPGApp;
   if (!app?.getState || !app?.awardActivity) return;
 
-  const VERSION = "0.31.4dz41";
+  const VERSION = "0.31.4dz42";
   const SCHEMA = 1;
   const SOURCE = "kotoba-quest";
   const LOOKBACK_MS = 30 * 24 * 60 * 60 * 1000;
@@ -21,7 +21,8 @@
     "vocab-review": .35, "grammar-review": .65, "particle-review": .5,
     "vocab-lesson": 2.5, "grammar-lesson": 3, "particle-lesson": 2.5,
     "mining-import": .25, "sentence-mining": 1, "reading": 1.5,
-    "listening-practice": 2.5, "comprehension-practice": 3, "listening-mining": .5, "n4-placement-block": 3.5
+    "listening-practice": 2.5, "comprehension-practice": 3, "listening-mining": .5, "n4-placement-block": 3.5,
+    "speaking-practice": 2.0, "production-practice": 2.5
   });
 
   // Firebase web config is intentionally public client configuration. It grants no
@@ -49,7 +50,9 @@
     "listening-practice": { xp: 5, realmXP: 5, statXP: 4, coins: 3, story: .09, label: "Listening Lab · Hörzeit bestätigt" },
     "comprehension-practice": { xp: 5, realmXP: 5, statXP: 4, coins: 3, story: .08, label: "Listening Lab · Verständnisfragen" },
     "listening-mining": { xp: 2, realmXP: 2, statXP: 2, coins: 1, story: .02, label: "Listening Lab · Mining" },
-    "n4-placement-block": { xp: 6, realmXP: 6, statXP: 5, coins: 4, story: .10, label: "N4 · Einstufungsblock" }
+    "n4-placement-block": { xp: 6, realmXP: 6, statXP: 5, coins: 4, story: .10, label: "N4 · Einstufungsblock" },
+    "speaking-practice": { xp: 5, realmXP: 5, statXP: 4, coins: 3, story: .08, label: "Production Lab · Shadowing" },
+    "production-practice": { xp: 6, realmXP: 6, statXP: 5, coins: 4, story: .09, label: "Production Lab · Writing" }
   };
 
   let firebasePromise = null;
@@ -424,6 +427,7 @@
     const skill = String(event?.skill || "").toLowerCase();
     if (type === "reading" || type === "sentence-mining") return "reading";
     if (type === "listening-practice" || type === "comprehension-practice") return "listening";
+    if (type === "speaking-practice" || type === "production-practice") return "production";
     if (type === "n4-placement-block") return "grammar";
     if (type === "listening-mining") return "vocabulary";
     if (type === "grammar-review" || type === "grammar-lesson" || type === "particle-review" || type === "particle-lesson") {
@@ -437,6 +441,8 @@
     if (type === 'listening-practice') base = Math.min(3, Math.max(.5, Math.max(0, number(event.metadata?.minutes)) * .3));
     if (type === 'comprehension-practice') base = Math.max(.5, 3 * Math.min(1,number(event.metadata?.correct)/Math.max(1,number(event.metadata?.total))));
     if (type === 'n4-placement-block') base = Math.min(4, Math.max(.5,number(event.metadata?.total) * .45));
+    if (type === 'speaking-practice') base = Math.min(2.5, Math.max(.5,number(event.metadata?.score) * .025));
+    if (type === 'production-practice') base = Math.min(3, Math.max(.5,number(event.metadata?.score) * .03));
     if (!base) return 0;
     const day = dateKey(at), track = japaneseSkillTrack(event);
     let daily = 0, byTrack = 0;
@@ -457,6 +463,8 @@
     if (!base) return null;
     if (type==='listening-practice' && event.metadata?.confirmed !== true) return null;
     if (type==='n4-placement-block' && Number(event.metadata?.total)<1) return null;
+    if (type==='production-practice' && String(event.metadata?.mode)!=='writing') return null;
+    if (type==='speaking-practice' && String(event.metadata?.mode)!=='shadowing') return null;
     // Listening time is explicitly confirmed in Kotoba (not inferred from YouTube).
     // Scale rewards moderately with that confirmed lesson duration.
     let tuned=base;
