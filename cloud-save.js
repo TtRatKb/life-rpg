@@ -160,7 +160,7 @@ function bindUI() {
   els.importFile?.addEventListener("change", importSaveFromFile);
 
   els.statusButton?.addEventListener("click", () => {
-    app.showView("growth");
+    app.showView("settings");
     window.setTimeout(() => byId("savePanel")?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
   });
 

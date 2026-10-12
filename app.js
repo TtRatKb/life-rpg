@@ -1784,6 +1784,7 @@
   }
 
   function showView(viewName) {
+    if (!viewName || byId(`view-${viewName}`)?.classList.contains("active")) return;
     document.querySelectorAll(".view").forEach(view => view.classList.remove("active"));
     document.querySelectorAll(".nav-button").forEach(button => button.classList.remove("active"));
 
@@ -1791,7 +1792,7 @@
     document.querySelector(`.nav-button[data-view="${viewName}"]`)?.classList.add("active");
     window.dispatchEvent(new CustomEvent("life-rpg:view-changed", {detail:{view:viewName}}));
 
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    window.scrollTo({ top: 0, behavior: "instant" });
   }
 
   function bindActions() {

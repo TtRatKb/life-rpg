@@ -436,6 +436,21 @@
       next.focus();
     });
 
+    // A purchased node often rerenders the full tree, which can change the
+    // browser scroll anchor. Keep the viewport where the player bought it.
+    document.addEventListener("click", event => {
+      if (!document.getElementById("view-skills")?.classList.contains("active")) return;
+      if (!event.target.closest?.("[data-talent-v2-buy], [data-talent-v3-core], [data-talent-v3-content]")) return;
+      const y = window.scrollY;
+      const restore = () => {
+        if (document.getElementById("view-skills")?.classList.contains("active"))
+          window.scrollTo({top:y,behavior:"instant"});
+      };
+      requestAnimationFrame(restore);
+      window.setTimeout(restore, 90);
+      window.setTimeout(restore, 240);
+    }, true);
+
     document.addEventListener("click", event => {
       const habitAction = event.target.closest?.("[data-habit-edit], #addHabitButton, #addHabitButtonSecondary, #habitEmptyCreate");
       if (!habitAction) return;
@@ -1351,6 +1366,7 @@
 
   function enqueueSkillXP(entry) {
     if (skillFeedbackQueue.length > 8) skillFeedbackQueue.shift();
+    if (!document.getElementById("view-skills")?.classList.contains("active")) return;
     skillFeedbackQueue.push(entry);
     if (!feedbackCurrent) showNextSkillXP();
   }
@@ -2103,8 +2119,16 @@
       points.bonus ? `${points.bonus} bonus` : null
     ].filter(Boolean);
 
+    // Read-only point audit: based on current Skill ledger; never grants XP.
+    const sourceTotals = totalsBySkill();
+    const skillSources = (SKILLS_BY_REALM[realm] || []).map(item => {
+      const level = levelInfo(sourceTotals[item.id] || 0).level;
+      const pts = pointsFromSkillLevel(level);
+      return `<div class="qol-points-row"><span>${esc(item.icon)} ${esc(item.label)} · Lv. ${level}</span><strong>${pts} P.</strong></div>`;
+    }).join("");
+    const auditDetail = `<details class="qol-points-details"><summary>Woher kommen meine ${points.earned} Punkte?</summary><div class="qol-points-breakdown">${skillSources}<div class="qol-points-row"><span>Realm-Ränge (bis ${points.realmRank})</span><strong>${points.earnedFromRealmRank} P.</strong></div><div class="qol-points-row"><span>Vielseitigkeits-Meilensteine</span><strong>${points.breadth} P.</strong></div><div class="qol-points-row"><span>Geschütztes historisches Guthaben</span><strong>${points.legacyCredit} P.</strong></div><div class="qol-points-row"><span>Bonus / Journey-Zuweisungen</span><strong>${points.bonus} P.</strong></div><div class="qol-points-row qol-points-total"><span>${points.earned} insgesamt · ${points.spent} ausgegeben</span><strong>${points.available} übrig</strong></div></div><p>Talentpunkte kommen aus mehreren erreichten Stufen, nicht direkt pro geloggter Tätigkeit. Einzelne neue XP stehen unter Activity & Rewards. Ein historischer Rebuild kann mehrere zuvor verdeckte Punkte sichtbar machen.</p></details>`;
     const rank = effectiveRealmRankInfo(realm);
-    return `<div class="skills-talent-meta-main-v314ah"><span>${REALMS[realm]?.icon || "✦"}</span><div><small>${esc(realm.toUpperCase())} TREE</small><strong>${points.available} available · ${points.spent} spent${progress.totalCost ? ` · ${progress.totalCost} pts full tree` : ""}</strong><em>${esc(nextCopy)}</em><em>${esc(rank.nextLabel)}</em></div></div><div class="skills-point-source-v314ah"><span>${sourceBits.map(esc).join(" · ")}</span><small>Realm Rank ${points.realmRank} · free respec</small></div>`;
+    return `<div class="skills-talent-meta-main-v314ah"><span>${REALMS[realm]?.icon || "✦"}</span><div><small>${esc(realm.toUpperCase())} TREE</small><strong>${points.available} available · ${points.spent} spent${progress.totalCost ? ` · ${progress.totalCost} pts full tree` : ""}</strong><em>${esc(nextCopy)}</em><em>${esc(rank.nextLabel)}</em></div></div><div class="skills-point-source-v314ah"><span>${sourceBits.map(esc).join(" · ")}</span><small>Realm Rank ${points.realmRank} · free respec</small>${auditDetail}</div>`;
   }
 
   function decorateTreeStates(section, realm) {

@@ -11,6 +11,8 @@
   <meta name="application-name" content="Life RPG" />
   <meta name="format-detection" content="telephone=no" />
   <title>Life RPG — Base Camp</title>
+  <script>document.documentElement.classList.add('life-rpg-hydrating');window.setTimeout(()=>document.documentElement.classList.remove('life-rpg-hydrating'),7000);</script>
+  <style>html.life-rpg-hydrating .bottom-nav,html.life-rpg-hydrating #view-basecamp{visibility:hidden}</style>
   <link rel="manifest" href="manifest.webmanifest?v=0.30.3a" />
   <link rel="apple-touch-icon" href="assets/app-icon-180.png?v=0.30.3a" />
   <link rel="icon" type="image/png" sizes="192x192" href="assets/app-icon-192.png?v=0.30.3a" />
@@ -59,6 +61,7 @@
   <link rel="stylesheet" href="knowledge-practice.css?v=0.31.4dz22" />
   <link rel="stylesheet" href="holiday-planner.css?v=0.31.4dz23d" />
   <link rel="stylesheet" href="todoist-sync.css?v=0.31.4dz28" />
+  <link rel="stylesheet" href="qol-dz50c.css?v=0.31.4dz50c" />
 </head>
 <body>
   <section id="mobileCloudGate" class="mobile-cloud-gate-v251" data-state="checking" aria-live="polite" aria-label="Life RPG cloud sign in">
@@ -88,18 +91,18 @@
       </button>
 
       <div class="top-resources" aria-label="Character resources">
-        <div class="resource-pill">
+        <button class="resource-pill qol-resource-route" data-view-target="growth" type="button" aria-label="Growth and Realms öffnen">
           <span>Lv.</span>
           <strong id="levelValue">1</strong>
-        </div>
-        <div class="resource-pill story">
+        </button>
+        <button class="resource-pill story qol-resource-route" data-view-target="story" type="button" aria-label="Story öffnen">
           <span>🔥</span>
           <strong id="storyEnergyValue">0</strong>
-        </div>
-        <div class="resource-pill coins coin-wallet-pill-v306" title="1 Coin = 1 cent of reward value">
+        </button>
+        <button class="resource-pill coins coin-wallet-pill-v306 qol-resource-route" data-view-target="shop" type="button" title="Reward Shop öffnen · 1 Coin = 1 Cent">
           <span>🪙</span>
           <span class="coin-wallet-copy-v306"><strong id="coinsValue">0</strong><small id="coinsMoneyValue">€0.00</small></span>
-        </div>
+        </button>
         <button class="resource-pill cloud-resource-button" id="cloudStatusButton" data-view-target="settings" type="button" aria-label="Open cloud save settings">
           <span>☁️</span>
           <strong id="cloudStatusShort">Local</strong>
@@ -3439,14 +3442,14 @@ League of Legends — PC" required></textarea></label>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <script src="data/quests.js?v=0.31.4dz4"></script>
+  <script src="data/quests.js?v=0.31.4dz50c"></script>
   <script src="story-engine.js?v=0.31.4dz16"></script>
   <script src="modal-manager.js?v=0.31.4d"></script>
   <script src="training-focus.js?v=0.31.4o"></script>
   <script src="visual-performance.js?v=0.31.4bu"></script>
   <script src="coloring-storage-v2.js?v=0.31.4dz2"></script>
   <script src="pako.min.js?v=0.31.4dz30"></script>
-  <script src="app.js?v=0.31.4dz50a"></script>
+  <script src="app.js?v=0.31.4dz50c"></script>
   <script src="ui-chrome.js?v=0.31.4dz19"></script>
   <script src="meal-planner.js?v=0.31.4dz12"></script>
   <script src="daily-streaks.js?v=0.31.4z"></script>
@@ -3457,7 +3460,7 @@ League of Legends — PC" required></textarea></label>
   <script src="library.js?v=0.31.4ag"></script>
   <script src="games.js?v=0.31.4dz43"></script>
   <script src="time.js?v=0.31.4dz34"></script>
-  <script src="my-week.js?v=0.31.4cu"></script>
+  <script src="my-week.js?v=0.31.4dz50c"></script>
   <script src="universal-timers.js?v=0.31.4cr"></script>
   <script src="inspirations.js?v=0.31.4c"></script>
   <script src="data/sudoku-levels.js?v=0.31.4h"></script>
@@ -3493,7 +3496,7 @@ League of Legends — PC" required></textarea></label>
 
   <!-- Progression modules are loaded statically and in dependency order.
        This avoids the dynamic-loader races that caused intermittent dead UI. -->
-  <script src="skills.js?v=0.31.4dz50a"></script>
+  <script src="skills.js?v=0.31.4dz50c"></script>
   <script src="talent-v2.js?v=0.31.4bz"></script>
   <script src="talent-tree-v2-graph.js?v=0.31.4dz48"></script>
   <script src="japanese-atlas-dz48.js?v=0.31.4dz48"></script>
@@ -3515,19 +3518,18 @@ League of Legends — PC" required></textarea></label>
   <script src="sound-garden.js?v=0.31.4dz43"></script>
   <script src="sound-garden-library.js?v=0.31.4dz13"></script>
   <script src="mobile-cloud-gate-dz45.js?v=0.31.4dz45"></script>
-  <script type="module" src="cloud-save.js?v=0.31.4dz45"></script>
+  <script type="module" src="cloud-save.js?v=0.31.4dz50c"></script>
   <script type="module" src="health-bridge-dz44.js?v=0.31.4dz44"></script>
-  <script src="pwa.js?v=0.31.4dz50a"></script>
-  <script src="life-hub-v314dk.js?v=0.31.4dz50b"></script>
-  <script src="creative-hub-v314dl.js?v=0.31.4dz34"></script>
+  <script src="pwa.js?v=0.31.4dz50c"></script>
+  <script src="life-hub-v314dk.js?v=0.31.4dz50c"></script>
+  <script src="creative-hub-v314dl.js?v=0.31.4dz50c"></script>
   <script src="knowledge-workshop.js?v=0.31.4do"></script>
   <script src="knowledge-practice.js?v=0.31.4dz22"></script>
   <script src="work-event-bridge.js?v=0.31.4dz49"></script>
   <script type="module" src="work-event-cloud.js?v=0.31.4dz49"></script>
   <script src="dashboard-v2.js?v=0.31.4dz20"></script>
+  <script>window.addEventListener('DOMContentLoaded',()=>{requestAnimationFrame(()=>requestAnimationFrame(()=>document.documentElement.classList.remove('life-rpg-hydrating')));},{once:true});</script>
 </body>
 </html>
 
-<!-- Release note added by automation -->
-<a href="RELEASE_NOTES_V0.31.4bj.md">RELEASE_NOTES_V0.31.4bj.md</a>
 

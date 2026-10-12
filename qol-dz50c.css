@@ -1,0 +1,27 @@
+/* Life RPG DZ50c — shared quick actions, navigation, responsive layout. Pure presentation. */
+.qol-resource-route {cursor:pointer; font:inherit; appearance:none; -webkit-appearance:none; text-align:inherit;}
+.qol-resource-route:hover, .cloud-resource-button:hover {filter:brightness(1.035);box-shadow:0 0 0 2px rgba(189,111,155,.23),0 5px 18px rgba(78,38,66,.1);}
+.qol-resource-route:focus-visible, .cloud-resource-button:focus-visible {outline:3px solid #b77fa5;outline-offset:3px;}
+/* The old fixed bottom-left logger overlapped Luca's sidebar profile. */
+#lifeQuickLauncher {display:none !important;}
+.focus-dock-launcher>.focus-dock-launch-options {max-height:min(65dvh,520px);overflow-y:auto;min-width:min(250px,calc(100vw - 32px));}
+.focus-dock-launcher .focus-dock-launch-options [data-launch-route] {font-weight:730;color:#774363;background:#fcf0f6;}
+@media (min-width:1740px) {
+  .app-shell>main {width:min(95%,2200px);max-width:2200px;}
+  .app-shell {padding-right:clamp(26px,2.2vw,66px);}
+  #view-basecamp.dashboard-v2-active-v314dz17 .dashboard-focus-grid-v314au {grid-template-columns:minmax(0,1.42fr) minmax(380px,.58fr);}
+  .life-hub-route-grid {grid-template-columns:repeat(auto-fit,minmax(245px,1fr));}
+}
+@media(max-width:720px){
+  .qol-resource-route {min-width:0;}
+  .focus-dock-launcher {bottom:calc(env(safe-area-inset-bottom,0px) + 81px);}
+  .focus-dock-launcher .focus-dock-launch-options {max-height:50dvh;}
+}
+
+.qol-points-details {margin-top:10px;border:1px solid #e8cddd;border-radius:12px;background:#fffafc;padding:10px;color:#684a5e;max-width:100%;}
+.qol-points-details summary {cursor:pointer;font-weight:750;font-size:.82rem;}
+.qol-points-breakdown {margin-top:9px;display:grid;gap:3px;}
+.qol-points-row {display:flex;justify-content:space-between;gap:12px;padding:5px 0;border-bottom:1px solid #f1e3ea;font-size:.75rem;}
+.qol-points-row strong {white-space:nowrap;}
+.qol-points-total {font-weight:750;border-bottom:0;}
+.qol-points-details p {font-size:.72rem;line-height:1.5;color:#876d7d;margin:9px 0 0;}
