@@ -220,11 +220,11 @@
     const growth = [];
     const school = row.source === "schulcockpit-completion" && !row.duplicate;
     if (reward.realmXP) growth.push(`+${trim(reward.realmXP)} ${row.realm || "Realm"}${school ? " Realm" : row.source === "kotoba-dungeon" ? " Realm" : ""} XP`);
-    if (school) {
-      const info = row.schoolSkill || {};
-      if (info.skillId && number(info.xp) > 0)
-        growth.push(`+${trim(info.xp)} ${info.label} Skill XP`);
-    }
+    // Canonical Skill event ledger: same transaction, no invented second reward.
+    // Also works for generated rows (quests, habits, time, book/game logs).
+    const skill = skillPracticeForRow(row);
+    if (skill?.skillId && number(skill.xp) > 0)
+      growth.push(`+${trim(skill.xp)} ${skill.label} Skill XP`);
     if (reward.statXP) growth.push(`+${trim(reward.statXP)} ${capabilityLabel(row.capability)}${row.source === "kotoba-dungeon" ? " Skill" : ""} XP`);
     const rewardMarkup = row.rewardKnown === false
       ? `<span class="activity-reward-pill-v314 muted">Reward unavailable</span>`
@@ -278,7 +278,7 @@
       const habit = habits.find(item => item.id === log.habitId);
       const event = takeEvent(log.rewardEventId, "habit", `${log.habitId}:${log.date}`);
       rows.push({
-        id: `habit-${log.id || log.habitId}-${log.date}`,
+        id: `habit-${log.id || log.habitId}-${log.date}`, skillEventId: `habit:${log.id || `${log.habitId}:${log.date || log.timestamp}`}`, rewardEventId: event?.id || null,
         at: log.loggedAt || (log.timestamp ? new Date(log.timestamp).toISOString() : `${key}T12:00:00`),
         category: "habit", icon: "❀", sourceLabel: "Habit",
         title: habit?.name || event?.label || "Habit completed",
@@ -297,7 +297,7 @@
       const units = number(log.units);
       const unitLabel = quest?.unitLabel || "units";
       rows.push({
-        id: `quest-${log.id || log.rewardEventId || Math.random()}`,
+        id: `quest-${log.id || log.rewardEventId || Math.random()}`, skillEventId: `quest:${log.id || `${log.questId}:${log.at}`}`, rewardEventId: event?.id || null,
         at: log.at || event?.at || `${key}T12:00:00`, category: "quest", icon: "☷", sourceLabel: "Quest",
         title: log.questName || quest?.name || event?.label || "Quest progress",
         detail: log.nativeActionKey
@@ -313,7 +313,7 @@
     (root.externalCompletionLog || []).filter(log => dateKey(new Date(log.at || 0)) === key).forEach(log => {
       const event = takeEvent(log.rewardEventId, "external", log.id || null);
       rows.push({
-        id: `external-${log.id || log.rewardEventId || Math.random()}`, at: log.at || event?.at || `${key}T12:00:00`,
+        id: `external-${log.id || log.rewardEventId || Math.random()}`, rewardEventId: event?.id || null, at: log.at || event?.at || `${key}T12:00:00`,
         category: "quest", icon: "✓", sourceLabel: "Quick log", title: log.name || event?.label || "Quick action",
         detail: log.realm ? `${log.realm} · quick completion` : "Quick completion",
         reward: event ? rewardFromEvent(event) : rewardFromLog(log), rewardKnown: Boolean(event || hasRewardFields(log)),
@@ -348,7 +348,7 @@
       if (number(log.minutes)) detailBits.push(formatDuration(log.minutes));
       if (log.chapter) detailBits.push("chapter logged");
       rows.push({
-        id: `book-${log.id || Math.random()}`, at: toIso(log.at) || event?.at || `${key}T12:00:00`, category: "library", icon: "📚", sourceLabel: "Reading",
+        id: `book-${log.id || Math.random()}`, skillEventId: `book:${log.id || `${book?.id}:${log.at || log.createdAt}`}`, rewardEventId: event?.id || null, at: toIso(log.at) || event?.at || `${key}T12:00:00`, category: "library", icon: "📚", sourceLabel: "Reading",
         title: book?.title || event?.label || "Reading session", detail: detailBits.join(" · ") || "Reading progress logged",
         reward: event ? rewardFromEvent(event) : rewardFromLog(log), rewardKnown: Boolean(event || hasRewardFields(log)), realm: event?.realm || null, capability: event?.capability || "knowledge",
         duplicate: Boolean(event?.duplicate || log.deduped), migrated: Boolean(event?.migrated), why: event?.duplicate ? dedupeWhy(event) : null
@@ -369,7 +369,7 @@
         ? `${formatDuration(number(log.minutes))} newly detected since the previous Steam baseline${covered ? ` · ${formatDuration(covered)} of the Steam delta was already covered by local logs` : ""}${skillXp ? ` · +${trim(skillXp)} Skill XP` : ""} · sync interval, not an exact session timestamp`
         : `${amount ? `${trim(amount)} ${amount === 1 ? singularUnit(unit) : unit}` : "Session"}${number(log.minutes) && log.trackingMode !== "minutes" ? ` · ${formatDuration(log.minutes)} real time` : ""}`;
       rows.push({
-        id: `game-${log.id || Math.random()}`, at: toIso(log.at) || event?.at || `${key}T12:00:00`, category: "library", icon: "🎮", sourceLabel: steamImported ? "Steam playtime" : "Game session",
+        id: `game-${log.id || Math.random()}`, skillEventId: `${steamImported ? "steam-playtime" : "game"}:${log.id || `${game?.id}:${log.at || log.createdAt}`}`, rewardEventId: event?.id || null, at: toIso(log.at) || event?.at || `${key}T12:00:00`, category: "library", icon: "🎮", sourceLabel: steamImported ? "Steam playtime" : "Game session",
         title: game?.title || event?.label || "Game session", detail,
         reward: event ? rewardFromEvent(event) : rewardFromLog(log), rewardKnown: Boolean(event || hasRewardFields(log)), realm: event?.realm || (steamImported ? ((game?.role === "japanese") ? "Japanese" : "Hobbies") : null), capability: event?.capability || null,
         duplicate: Boolean(event?.duplicate || log.deduped), migrated: Boolean(event?.migrated), why: event?.duplicate ? dedupeWhy(event) : steamImported ? steamPlaytimeWhy(event, log, game) : gameSessionWhy(event, log)
@@ -385,7 +385,7 @@
         ? `Step · ${log.roadmapStepLabel}${number(log.elapsedMinutes) ? ` · ${formatDuration(log.elapsedMinutes)}` : ""}`
         : `${trim(number(log.progressBefore))}% → ${trim(number(log.progressAfter))}%`;
       rows.push({
-        id: `adventure-${log.id || Math.random()}`, at: toIso(log.at) || event?.at || `${key}T12:00:00`, category: "adventure", icon: "✧", sourceLabel: "Side Adventure",
+        id: `adventure-${log.id || Math.random()}`, rewardEventId: event?.id || null, at: toIso(log.at) || event?.at || `${key}T12:00:00`, category: "adventure", icon: "✧", sourceLabel: "Side Adventure",
         title: adventure?.name || event?.label || "Adventure progress", detail,
         reward: event ? rewardFromEvent(event) : rewardFromLog(log), rewardKnown: Boolean(event || hasRewardFields(log)), realm: event?.realm || adventure?.realm || null, capability: event?.capability || null,
         duplicate: Boolean(event?.duplicate || log.deduped), migrated: Boolean(event?.migrated), why: event?.duplicate ? dedupeWhy(event) : null
@@ -417,11 +417,11 @@
       const event = takeEvent(log.rewardEventId, "home-quick-action", log.id);
       const linked = Boolean(log.linkedRewardEventId);
       rows.push({
-        id: `home-quick-${log.id}`, at: log.at, category: "home", icon: "🏠", source: "home-quick-action", sourceLabel: "Haushalt · Schnell loggen",
+        id: `home-quick-${log.id}`, rewardEventId: event?.id || null, at: log.at, category: "home", icon: "🏠", source: "home-quick-action", sourceLabel: "Haushalt · Schnell loggen",
         title: log.label || "Haushaltsaufgabe", detail: linked ? "Erledigt · bereits über Quest/Timer belohnt" : "Erledigt · nach Bedarf · keine geschätzten Minuten",
         reward: event ? rewardFromEvent(event) : (linked ? emptyReward() : rewardFromLog(log.reward || {})),
         rewardKnown: true, realm: "Home", capability: "wellbeing", duplicate: linked || Boolean(event?.duplicate), migrated: false,
-        why: linked ? `<p>Diese Tätigkeit wurde erfasst, aber der direkte Reward war bereits durch den zugehörigen Quest-/Timer-Eintrag gutgeschrieben. Kein zweiter Payout.</p>` : `<p>Haushaltsaktion nach Bedarf. Die ersten vier Home-Quick-Actions des Tages erhalten 2 Character/Home XP; weitere echte Aktionen je 1 XP. Dazu kommen 1 Skill XP, 1 Coin und eine kleine, durch die allgemeine Story-Energy-Kurve begrenzte Energy-Basis. Es werden keine Arbeitsminuten angenommen. Die tatsächlichen Auszahlungen stehen im Reward Ledger.</p>`
+        why: linked ? `<p>Diese Tätigkeit wurde erfasst, aber der direkte Reward war bereits durch den zugehörigen Quest-/Timer-Eintrag gutgeschrieben. Kein zweiter Payout.</p>` : `<p>Haushaltsaktion nach Bedarf. Die ersten vier Home-Quick-Actions des Tages erhalten 2 Character/Home XP; weitere echte Aktionen je 1 XP. Neue abgeschlossene Home-Quick-Actions trainieren seit DZ50 den passenden Home-Skill mit 4 Skill-XP, ältere Einträge behalten ihre ursprünglichen Werte. Dazu kommen 1 Coin und eine kleine Energy-Basis. Es werden keine Minuten erfunden.</p>`
       });
     });
 
@@ -470,7 +470,7 @@
     }
     if (!event && !entry.reward) why += `<p>No exact reward transaction is attached to this older time log, so Life RPG does not invent one.</p>`;
     return {
-      id: `time-${entry.id}`, at: entry.endAt || entry.startAt || `${key}T12:00:00`, category: "time", icon: meta.icon,
+      id: `time-${entry.id}`, skillEventId: `time:${entry.id}`, rewardEventId: event?.id || null, at: entry.endAt || entry.startAt || `${key}T12:00:00`, category: "time", icon: meta.icon,
       sourceLabel: entry.mode === "focus" ? "Focus time" : "Time log", title: entry.label || meta.label, detail,
       reward, rewardKnown: Boolean(event || entry.reward), realm: event?.realm || null, capability: event?.capability || null,
       duplicate: Boolean(event?.duplicate), migrated: Boolean(event?.migrated), why
@@ -485,12 +485,35 @@
     return { skillId: id, label: info?.label || id, xp: Math.max(0, Math.min(16, number(event.metadata?.skillXP))) };
   }
 
+  function skillPracticeForRow(row) {
+    if (row?.duplicate) return null;
+    const eventId = String(row?.rewardEventId || row?.id || "");
+    const exact = `reward:${eventId}`;
+    const derived = app.getState()?.skills?.events || [];
+    let record = derived.find(item => item?.id === exact);
+    if (!record && row?.skillEventId) record = derived.find(item => item?.id === row.skillEventId);
+    if (!record) {
+      const local = String(row?.id || "");
+      const prefixes = { "quest-":"quest:", "habit-":"habit:", "time-":"time:", "book-":"book:", "game-":"game:", "adventure-":"adventure:", "home-quick-":"reward:" };
+      for (const [prefix, eventPrefix] of Object.entries(prefixes)) {
+        if (!local.startsWith(prefix)) continue;
+        const candidate = eventPrefix + local.slice(prefix.length);
+        record = derived.find(item => item?.id === candidate) || null;
+        if (record) break;
+      }
+    }
+    if (!record && row?.schoolSkill) return row.schoolSkill;
+    if (!record) return null;
+    const skill = window.LifeRPGSkills?.getSkill?.(record.skillId);
+    return { skillId: record.skillId, xp: record.xp, label: skill?.label || record.skillId };
+  }
+
   function genericRewardRow(event) {
     const category = categoryForEvent(event);
     const meta = sourceMeta(event.source, category);
     const details = genericDetail(event);
     return {
-      id: event.id, at: event.at, category, icon: meta.icon, sourceLabel: meta.label,
+      id: event.id, rewardEventId: event.id, at: event.at, category, icon: meta.icon, sourceLabel: meta.label,
       title: event.label || meta.label, detail: details, schoolSkill: schoolSkillForEvent(event),
       reward: rewardFromEvent(event), rewardKnown: true, realm: event.realm || null, capability: event.capability || null, source: event.source,
       giftReward: event.source === "gift-find" ? { name: event.metadata?.giftName || "Gift Find", icon: event.metadata?.giftIcon || "🎁" } : null,

@@ -7,7 +7,7 @@
     return;
   }
 
-  const VERSION = "0.31.4dz39";
+  const VERSION = "0.31.4dz50";
   const SCHEMA = 1;
   const MAX_EVENTS = 6000;
   const HABIT_XP = { tiny: 3, low: 5, normal: 8, high: 12, boss: 18 };
@@ -182,11 +182,13 @@
       trainingAction("▦", "Meine Woche", "Termine und deine tatsächliche Organisationszeit im Blick behalten.", () => app.showView?.("week"))
     ],
     "home-tidying": [
-      trainingAction("🧹", "10-Minute Clean", "Starte eine echte Aufräum-Session; auch 5 Minuten freie Stoppuhr zählen als Übung.", () => window.LifeRPGTime?.startClock?.({ categoryId: "life_admin", subcategory: "Household", label: "Home reset · 10-Minute Clean" }), "guided"),
+      trainingAction("🧹", "10-Minute Clean", "Reinige einen klar abgegrenzten Bereich. Der echte Timer oder Quest-Log trainiert Tidying & Organisation.", () => window.LifeRPGTime?.startClock?.({ categoryId: "life_admin", subcategory: "Household", label: "Home reset · 10-Minute Clean" }), "guided"),
+      trainingAction("🛏️", "15-Minute Room Reset", "Bringe ein Zimmer wieder in einen benutzbaren Grundzustand: eigener Quest, derselbe passende Tidying-Skill.", () => app.showView?.("quests"), "linked"),
+      trainingAction("🧽", "Clear Surface / Put Away / Bathroom / Vacuum", "Kleine Ordnungsschritte und gründlicheres Putzen trainieren denselben Skill — auch per Home-Schnelllog.", () => window.LifeRPGLifeHub?.open?.(), "native"),
       trainingAction("✿", "Aufräum-Quest / Habit", "Regelmäßige Zimmer-Resets, Putzen und Ordnung auch über die bestehende Quest-Habit-Verknüpfung.", () => app.showView?.("quests"))
     ],
     "home-routines": [
-      trainingAction("🧺", "Haushalt schnell loggen", "Wäsche, Spülmaschine, Einkäufe und echte Routinen einmalig erfassen.", () => window.LifeRPGLifeHub?.open?.(), "native"),
+      trainingAction("🧺", "Haushalt schnell loggen", "Wäsche, Spülmaschine, Einkäufe, Müll und Bettwäsche trainieren Household Routines.", () => window.LifeRPGLifeHub?.open?.(), "native"),
       trainingAction("◷", "Haushaltszeit loggen", "Z. B. Wäsche machen oder Haushaltsarbeiten als Life/Admin → Household loggen.", () => app.showView?.("rhythm"), "guided")
     ],
     "creative-expression": [
@@ -202,6 +204,7 @@
       trainingAction("💄", "Style-Habit", "Makeup/Hair/Styling-Habits können diesem Skill zugeordnet werden.", () => app.showView?.("habits"))
     ],
     "recreation-play": [
+      trainingAction("♫", "Discover a Song · Sound Garden", "Neue Artists entdecken und Songs bewusst einordnen trainiert Recreation & Play; bloßes Streamen vergütet nichts.", () => window.LifeRPGSoundGarden?.open?.(), "native"),
       trainingAction("🎮", "Games", "Spielen zählt als echte Recreation.", () => app.showView?.("games")),
       trainingAction("📖", "Library", "For-fun Reading trainiert Recreation & Play.", () => app.showView?.("library"))
     ]
@@ -238,6 +241,7 @@
   }
 
   function init() {
+    const coverageMigrationNeeded = !Number(app.getState()?.skills?.migrations?.activityCoverageDZ50At || 0);
     ensureState();
     const japaneseSplitCreated = ensureJapaneseSkillSplitMigration();
     const homeRecoverySplitCreated = ensureHomeRecoverySkillSplitMigration();
@@ -252,7 +256,7 @@
     // entitlements; never award or discard points based on incomplete events.
     const rebuilt = reconcile({ persist: false, reason: "skills-init" });
     const breadthMigrated = ensureRealmBreadthMigration();
-    if (breadthMigrated || rebuilt || japaneseSplitCreated || homeRecoverySplitCreated) {
+    if (breadthMigrated || rebuilt || japaneseSplitCreated || homeRecoverySplitCreated || coverageMigrationNeeded) {
       // One save on startup for a migration, never one save per step.
       app.saveState({ source: "skills-rank-migration", suppressUiRefresh: true });
     }
@@ -278,6 +282,10 @@
       model.realmBonusPoints[realm] = Math.max(0, Number(model.realmBonusPoints[realm] || 0));
     });
     model.migrations.derivedLocalPracticeV1 = true;
+    // From this update onwards, rewarded future activities with a known Realm
+    // also get a conservative Skill fallback. Do NOT retroactively assign
+    // thousands of historical story/talent bonus transactions on first load.
+    if (!Number(model.migrations.activityCoverageDZ50At || 0)) model.migrations.activityCoverageDZ50At = Date.now();
     return model;
   }
 
@@ -508,6 +516,11 @@
     // Character/Realm reward may have streak/diminishing modifiers; Skill XP never does.
     (root.rewardLedger?.events || []).forEach(reward => {
       if (!reward || reward.duplicate) return;
+      // A real-world timed Adventure is already represented by its canonical
+      // timer event. Do not pay Skill XP for its companion Adventure reward.
+      if (reward.source === "adventure" && timeEntries.some(entry =>
+        entry?.linkedAdventureId && String(entry.linkedAdventureId) === String(reward.sourceId) &&
+        Math.abs(timestamp(entry.endAt || entry.startAt) - timestamp(reward.at)) < 20 * 60 * 1000)) return;
       const native = skillForRewardEvent(reward);
       if (!native) return;
       if (reward.id) claimedRewardIds.add(reward.id);
@@ -523,12 +536,14 @@
       });
     });
 
-    // Habits are explicit user-owned practice. Unmapped habits intentionally earn no Skill XP.
+    // User-selected skills take priority. Otherwise derive a stable mapping
+    // from the habit name and Realm. Never silently persist/replace the user's
+    // explicit selection; legacy unmapped completions can be rebuilt safely.
     const habits = Array.isArray(root.habits?.items) ? root.habits.items : [];
     const habitById = Object.fromEntries(habits.map(item => [item.id, item]));
     (root.habits?.completions || []).forEach(log => {
       const habit = habitById[log?.habitId];
-      const skillId = validSkillId(habit?.skillId);
+      const skillId = validSkillId(habit?.skillId) || suggestHabitSkill(habit) || defaultSkillForRealm(habit?.realm);
       if (!habit || !skillId) return;
       addDerived(events, {
         id: `habit:${log.id || `${habit.id}:${log.date || log.timestamp}`}`,
@@ -728,18 +743,18 @@
     if (category === "school") {
       if (sub === "teaching" || sub === "substitution") return "teaching-facilitation";
       if (sub === "conference / meeting" || sub === "school admin") return "professional-organization";
-      return null;
+      return skillForActivityText(label, "Work") || "professional-organization";
     }
     if (category === "work_home") {
       if (sub === "lesson planning" || sub === "preparation") return "lesson-design-preparation";
       if (sub === "grading / corrections") return "assessment-feedback";
       if (sub === "admin") return "professional-organization";
-      return null;
+      return skillForActivityText(label, "Work") || "lesson-design-preparation";
     }
     if (category === "focus") {
       if (sub === "deep work") return "focus-concentration";
       if (sub === "study") return "learning-inquiry";
-      return null;
+      return "focus-concentration";
     }
     if (category === "life_admin") {
       if (sub === "household") {
@@ -747,30 +762,31 @@
         return specializedHomeRecoverySkill("life-management", tidying ? "home-tidying" : "home-routines", occurredAt);
       }
       if (["appointments", "paperwork", "errands"].includes(sub)) return "life-management";
-      return null;
+      return skillForActivityText(label, "Home") || "life-management";
     }
     if (category === "hobby") {
       if (sub === "craft") return "craft-making";
       if (sub === "creative" || sub === "music") return "creative-expression";
-      return null;
+      return skillForActivityText(label, "Hobbies") || "recreation-play";
     }
     if (category === "gaming") {
       if (sub === "solo" || sub === "social") return "recreation-play";
-      return null;
+      return "recreation-play";
     }
     if (category === "reading") {
       if (sub === "knowledge") return "learning-inquiry";
       if (sub === "for fun") return "recreation-play";
-      return null;
+      return "learning-inquiry";
     }
     if (category === "recovery") {
       if (sub === "walk") return "movement-body-care";
       if (/^intentional unwind\b|^unwinding\b/i.test(entry.label || "")) return specializedHomeRecoverySkill("recovery-regulation", "recovery-unwinding", occurredAt);
       if (["break", "rest"].includes(sub)) return specializedHomeRecoverySkill("recovery-regulation", "recovery-rest", occurredAt);
       if (sub === "quiet time") return "recovery-regulation";
-      return null;
+      return specializedHomeRecoverySkill("recovery-regulation", "recovery-rest", occurredAt);
     }
-    return null;
+    const realm = String(entry.realm || "");
+    return skillForActivityText(`${sub} ${label}`, realm) || defaultSkillForRealm(realm);
   }
 
   function skillForRewardEvent(reward) {
@@ -781,6 +797,49 @@
     if (source === "talent-reward-studios" && reward.metadata?.contentId === "dynariot-japanese" && reward.metadata?.japaneseReadingRewardV1 === true) {
       return nativeSkill("japanese-reading-mining", Math.max(0, Math.min(4, Number(reward.metadata?.skillXP || 0))), "dynariot-japanese-reading");
     }
+    // Concrete one-off reward sources which previously appeared in the Activity
+    // Log without ever reaching the Skills ledger. Never count a stream/click.
+    if (source === "sound-garden-artist") return nativeSkill("recreation-play", 3, source);
+    if (source === "sound-garden-reflection") return nativeSkill("recreation-play", 5, source);
+    if (source === "recovery-studio") {
+      const session = String(reward.metadata?.sessionId || reward.label || "").toLowerCase();
+      const id = /stretch|yoga|mobility|walk/.test(session) ? "movement-body-care"
+        : /lie.?down|rest|nap|pause|quiet/.test(session) ? specializedHomeRecoverySkill("recovery-regulation", "recovery-rest", reward.at)
+        : "recovery-regulation";
+      return nativeSkill(id, timeXp(Math.max(1, Number(reward.metadata?.sessionMinutes || 10))), source);
+    }
+    if (source === "stewardship") {
+      const type = String(reward.metadata?.type || "");
+      const id = ({book:"learning-inquiry",game:"recreation-play",gameDetails:"recreation-play",gameSteam:"recreation-play",
+        habit:"life-management",adventure:"life-management"})[type] || "life-management";
+      return nativeSkill(id, Number(reward.xp || 0) > 0 ? 1 : 0, source);
+    }
+    if (source === "external") {
+      const id = skillForActivityText(label, reward.realm) || defaultSkillForRealm(reward.realm);
+      const effort = String(reward.metadata?.effort || "Normal").toLowerCase();
+      return id ? nativeSkill(id, /boss/.test(effort) ? 12 : /low/.test(effort) ? 5 : 8, source) : null;
+    }
+    if (source === "todoist-completion") {
+      const text = `${label} ${reward.metadata?.type || ""}`.toLowerCase();
+      const realm = reward.realm || "Home";
+      const id = skillForActivityText(text, realm) || defaultSkillForRealm(realm);
+      return nativeSkill(id, 3, source);
+    }
+    if (["knowledge-workshop-writing", "knowledge-workshop-connection", "knowledge-curiosity-explored", "adventure-output"].includes(source))
+      return nativeSkill("learning-inquiry", Math.min(8, Math.max(2, Number(reward.metadata?.skillXP || 4))), source);
+    if (["word-lab-complete", "lexicon-daily-word"].includes(source)) return nativeSkill("language-expression", 7, source);
+    if (["logic-unlock-complete", "sudoku-journey-solved", "sudoku-practice-solved", "sudoku-replay-solved"].includes(source))
+      return nativeSkill("logical-pattern-reasoning", 8, source);
+    if (["game-finish", "game-goal", "steam-achievement", "book-finish", "finish-book"].includes(source)) {
+      const isBook = /book/.test(source);
+      const obj = isBook ? (app.getState().bookLibrary?.items || []).find(item => String(item.id) === String(reward.sourceId)) :
+        (app.getState().gameLibrary?.items || []).find(item => String(item.id) === String(reward.sourceId));
+      const id = isBook ? (skillForBook(obj, reward.at) || "recreation-play") : (skillForGame(obj, reward.at) || "recreation-play");
+      return nativeSkill(id, 7, source);
+    }
+    if (["inspiration-tried", "curiosity-researched", "explain-it-back-complete"].includes(source))
+      return nativeSkill("learning-inquiry", 6, source);
+    if (source === "daily-batch-clear") return nativeSkill("reflection-self-awareness", 3, source);
     if (source === "knowledge-practice-recall") return nativeSkill("memory-recall", Math.max(0, Math.min(8, Number(reward.metadata?.skillXP || 0))), source);
     if (source === "knowledge-practice-explain") return nativeSkill("learning-inquiry", Math.max(0, Math.min(6, Number(reward.metadata?.skillXP || 0))), source);
     if (source === "schulcockpit-completion") {
@@ -792,7 +851,10 @@
       const actionId = String(reward.metadata?.actionId || "");
       const specialized = ["clear-kitchen", "clean-bathroom", "vacuum"].includes(actionId) ? "home-tidying"
         : ["dishwasher", "hang-laundry", "put-away-laundry", "trash", "put-groceries", "change-sheets"].includes(actionId) ? "home-routines" : "life-management";
-      return nativeSkill(specializedHomeRecoverySkill("life-management", specialized, reward.at), Math.max(0, Number(reward.statXP ?? 1)), "home-quick-action");
+      const afterCoverage = timestamp(reward.at) >= Number(state().migrations?.activityCoverageDZ50At || Infinity);
+      // Preserve historical one-XP bookkeeping; new real household actions
+      // get meaningful but smaller Skill progress than a timed 10-minute Quest.
+      return nativeSkill(specializedHomeRecoverySkill("life-management", specialized, reward.at), afterCoverage ? 4 : Math.max(0, Number(reward.statXP ?? 1)), "home-quick-action");
     }
     if (source === "sudoku-complete") return nativeSkill("logical-pattern-reasoning", 10, "sudoku");
     if (source === "sudoku-daily-replay") return nativeSkill("logical-pattern-reasoning", 8, "sudoku-replay");
@@ -849,6 +911,25 @@
       const minutes = Math.max(5, Number(reward.metadata?.minutes || 15));
       return nativeSkill(skillId, timeXp(minutes), "japanese-practice");
     }
+    // An Adventure session is a logged real action, not merely an opened page.
+    // Its Skill depends on the project's own Realm, type, and description.
+    if (source === "adventure" || source === "adventure-finish") {
+      const item = (app.getState().sideAdventures?.items || []).find(x => String(x.id) === String(reward.sourceId));
+      const id = skillForAdventure(item, reward.at) || skillForActivityText(label, reward.realm) || defaultSkillForRealm(reward.realm);
+      return id ? nativeSkill(id, source === "adventure-finish" ? 8 : timeXp(Math.max(10, Number(reward.metadata?.minutes || 30))), source) : null;
+    }
+    // Explicitly exclude bookkeeping, achievement unlocks, talent passive
+    // payouts and source types which have canonical logs elsewhere.
+    if (["quest", "habit", "time", "daily-checkin", "journal-reflection-base", "journal-reflection-field-effort", "journal-reflection-effort", "journal-day-edit", "habit-daypart-clear", "weekly-review-complete", "achievement", "achievement-legacy", "talent-v2-cache", "talent-v2-resonance", "talent-v2-special"].includes(source)
+      || /(?:-talent-bonus|-talent-unlock|^gift-find$)/.test(source) || reward.progressionRelevant === false) return null;
+    // For NEW real rewards in the future, use the Realm as a safety net until
+    // the exact source is classified; do not fabricate retroactive Skill XP.
+    const from = Number(state().migrations?.activityCoverageDZ50At || 0);
+    if (timestamp(reward.at) >= from && (Number(reward.xp || 0) > 0 || Number(reward.realmXP || 0) > 0)) {
+      const skillId = skillForActivityText(label, reward.realm) || defaultSkillForRealm(reward.realm) ||
+        (/^story-|^social-/.test(source) ? "recreation-play" : null);
+      if (skillId) return nativeSkill(skillId, Math.max(1, Math.min(6, Number(reward.statXP || 3))), `${source}-skill`);
+    }
     return null;
   }
 
@@ -882,6 +963,41 @@
     return useRankBreadthTaxonomy(reward.at) ? "japanese-vocabulary-kanji" : "language-learning";
   }
 
+  // All unambiguous everyday activities use one shared classifier. A generic
+  // Realm fallback means custom Quests/Habits still grow *a* Skill, without
+  // claiming that vocabulary-card audio constitutes Listening or Production.
+  function defaultSkillForRealm(realm) {
+    return ({Work:"professional-organization", Knowledge:"learning-inquiry", Japanese:"japanese-vocabulary-kanji",
+      Health:"reflection-self-awareness", Recovery:"recovery-rest", Home:"life-management", Hobbies:"recreation-play"})[realm] || null;
+  }
+  function skillForActivityText(value, realm) {
+    const text = String(value || "").toLowerCase();
+    if (/kanji|vocab|wortschatz|vokabel|kotoba/.test(text)) return "japanese-vocabulary-kanji";
+    if (/bunpro|japan.*grammar|particles?|grammatik/.test(text) && realm === "Japanese") return "japanese-grammar-particles";
+    if (/shadowing|conversation|japan.*speaking|japan.*writing/.test(text) && realm === "Japanese") return "japanese-speaking-production";
+    if (/reading|manga|subtitle|line miner/.test(text) && realm === "Japanese") return "japanese-reading-mining";
+    if (/listen.*lab|listening practice/.test(text) && realm === "Japanese") return "japanese-listening-comprehension";
+    if (/grading|marking|correction|korrig|bewert|assessment/.test(text) && realm === "Work") return "assessment-feedback";
+    if (/lesson|prep|planung|unterricht.*vorbereit/.test(text) && realm === "Work") return "lesson-design-preparation";
+    if (/teaching|vertretung|unterricht/.test(text) && realm === "Work") return "teaching-facilitation";
+    if (/focus|deep work|konzentration/.test(text)) return "focus-concentration";
+    if (/clear|clean|tidy|declutter|room reset|zimmer|aufräum|put away|sort|vacuum|staubsaug|bad putz|oberfläche|ordnung/.test(text) && realm === "Home") return "home-tidying";
+    if (/laundry|wäsche|wasch|fold|geschirr|spül|kitchen|küche|müll|trash|grocer|einkauf|bettwäsche|household|haushalt/.test(text) && realm === "Home") return "home-routines";
+    if (/papier|paperwork|termine|appointment|admin|bürokratie|antrag/.test(text) && realm === "Home") return "life-management";
+    if (/gym|workout|strength|fitness|sport|training/.test(text) && realm === "Health") return "physical-vitality";
+    if (/walk|yoga|stretch|mobility|spazier|beweg/.test(text)) return "movement-body-care";
+    if (/skin|hair care|skincare|zähne|dental|pflege/.test(text) && realm === "Health") return "personal-care";
+    if (/meditat|breath|atmen|body scan|grounding/.test(text)) return "recovery-regulation";
+    if (/lie.down|rest|powernap|pause|ausruhen/.test(text) && realm === "Recovery") return "recovery-rest";
+    if (/music|song|play|gaming|anime|film|book|buch|lesen|serie/.test(text) && ["Hobbies","Recovery"].includes(realm))
+      return realm === "Recovery" ? "recovery-unwinding" : "recreation-play";
+    if (/drawing|write|schreib|design|composition|creative|art|kunst/.test(text) && realm === "Hobbies") return "creative-expression";
+    if (/craft|bastel|knit|sew|häkel|strick/.test(text) && realm === "Hobbies") return "craft-making";
+    if (/memory|recall|merken/.test(text) && realm === "Knowledge") return "memory-recall";
+    if (/puzzle|logic|sudoku|nonogram|number|mathe/.test(text) && realm === "Knowledge") return "logical-pattern-reasoning";
+    return null;
+  }
+
   function skillForQuest(quest, at = null) {
     if (!quest) return null;
     const role = String(quest.systemRole || "").toLowerCase();
@@ -889,7 +1005,7 @@
 
     if (["bunpro-reviews", "bunpro-lesson", "shadowing", "manual-language"].includes(role)) {
       if (!useRankBreadthTaxonomy(at)) return mappedQuest("language-learning");
-      if (role === "manual-language") return null; // unspecified practice must be assigned explicitly
+      if (role === "manual-language") return mappedQuest(skillForActivityText(name, "Japanese") || "japanese-vocabulary-kanji");
       if (role === "bunpro-reviews" || role === "bunpro-lesson") return mappedQuest("japanese-grammar-particles");
       if (role === "shadowing") return mappedQuest("japanese-speaking-production");
       return mappedQuest("japanese-vocabulary-kanji");
@@ -912,7 +1028,7 @@
     if (/curiosity dive|explain it back|literature note|permanent note/.test(name)) return mappedQuest("learning-inquiry");
     if (/bunpro|grammar echo|grammar output|kanji|shadowing|subtitle scout|line miner|n3 practice|scene recap/.test(name)) {
       if (!useRankBreadthTaxonomy(at)) return mappedQuest("language-learning");
-      if (/n3 practice/.test(name)) return null; // too broad to claim a particular ability
+      if (/n3 practice/.test(name)) return mappedQuest("japanese-grammar-particles"); // archived legacy broad practice
       if (/bunpro|grammar/.test(name)) return mappedQuest("japanese-grammar-particles");
       if (/subtitle scout|line miner|scene recap/.test(name)) return mappedQuest("japanese-reading-mining");
       if (/shadowing/.test(name)) return mappedQuest("japanese-speaking-production");
@@ -927,7 +1043,10 @@
     if (/hairstyle|makeup look/.test(name)) return mappedQuest("style-visual-design");
     if (/songwriting|music composition|creative experiment|aesthetic build|250-word writing/.test(name)) return mappedQuest("creative-expression");
     if (/intentional gaming|comfort episode|music reset/.test(name)) return mappedQuest("recreation-play");
-    return null;
+    // Dynamic/user-added Quests are still real effort. Use their own Realm and
+    // wording, not the first unrelated linked passive bonus.
+    const fallback = skillForActivityText(name, quest.realm) || defaultSkillForRealm(quest.realm);
+    return fallback ? mappedQuest(fallback) : null;
   }
 
   function mappedQuest(skillId, extra = {}) { return { skillId, ...extra }; }
@@ -938,28 +1057,28 @@
     const realm = String(item.realm || "");
     const kind = String(item.kind || "").toLowerCase();
     if (realm === "Knowledge") return "learning-inquiry";
-    if (realm === "Japanese") return useRankBreadthTaxonomy(at) ? null : "language-learning"; // generic projects don't prove reading
-    if (realm === "Home") return "life-management";
+    if (realm === "Japanese") return skillForActivityText(`${item.name || ""} ${kind}`, realm) || "japanese-vocabulary-kanji";
+    if (realm === "Home") return skillForActivityText(`${item.name || ""} ${kind}`, realm) || "life-management";
     if (realm === "Hobbies") {
-      if (/creative/.test(kind)) return "creative-expression";
-      if (/craft|skill/.test(kind)) return "craft-making";
+      if (/creative|art|writing|music.*creat/.test(kind)) return "creative-expression";
+      if (/craft|skill|diy/.test(kind)) return "craft-making";
     }
-    return null;
+    return skillForActivityText(`${item.name || ""} ${kind}`, realm) || defaultSkillForRealm(realm);
   }
 
   function skillForBook(book, at) {
     const role = String(book?.role || "").toLowerCase();
     if (role === "fun") return "recreation-play";
     if (role === "knowledge" || role === "growth") return "learning-inquiry";
-    if (role === "japanese") return useRankBreadthTaxonomy(at) ? null : "language-learning"; // game completion alone isn't a reading exercise
-    return null;
+    if (role === "japanese") return "japanese-reading-mining"; // explicitly Japanese-reading book
+    return "recreation-play";
   }
 
   function skillForGame(game, at = null) {
     const role = String(game?.role || "fun").toLowerCase();
-    if (role === "japanese") return useRankBreadthTaxonomy(at) ? null : "language-learning"; // game completion alone isn't a reading exercise
+    if (role === "japanese") return "recreation-play"; // game time alone does not prove a language subskill
     if (["fun", "social", "challenge"].includes(role)) return "recreation-play";
-    return null;
+    return "recreation-play";
   }
 
   function questLogXp(log, quest, mapped) {
@@ -1711,8 +1830,8 @@
     if (/meditat|breath|body scan|grounding/.test(name)) return "recovery-regulation";
     if (/ruhe|rest|pause|powernap|ausruhen/.test(name)) return "recovery-rest";
     if (/unwind|abschalt|feierabend|entspannungszeit/.test(name)) return "recovery-unwinding";
-    if (realm === "Japanese") return "language-learning";
-    return null;
+    if (realm === "Japanese") return "japanese-vocabulary-kanji";
+    return skillForActivityText(name, realm) || defaultSkillForRealm(realm);
   }
 
   function saveHabitMapping(habitId) {
