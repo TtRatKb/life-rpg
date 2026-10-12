@@ -236,6 +236,9 @@
     const flags = [];
     if (row.duplicate) flags.push("Already counted elsewhere");
     if (row.migrated) flags.push("Migrated history");
+    if (window.LifeRPGSkills && !row.duplicate && !skill &&
+        (row.source === "external" || ["time", "habit", "quest"].includes(row.category)))
+      flags.push("Skill not identifiable · choose a concrete Skill for future free-text actions");
     if (rawReduced && row.source !== "kotoba-dungeon") flags.push(`${app.formatEnergy?.(reward.rawStoryEnergy) ?? trim(reward.rawStoryEnergy)} 🔥 base before diminishing returns`);
     if (row.source === "kotoba-dungeon" && !reward.rawStoryEnergy) flags.push("Story Energy: Rest gesammelt");
     if (row.source === "kotoba-dungeon" && rawReduced) flags.push(`Story Energy: ${reward.rawStoryEnergy.toFixed(2)} Basis → ${reward.storyEnergy.toFixed(2)} erhalten`);
@@ -315,7 +318,7 @@
       rows.push({
         id: `external-${log.id || log.rewardEventId || Math.random()}`, rewardEventId: event?.id || null, at: log.at || event?.at || `${key}T12:00:00`,
         category: "quest", icon: "✓", sourceLabel: "Quick log", title: log.name || event?.label || "Quick action",
-        detail: log.realm ? `${log.realm} · quick completion` : "Quick completion",
+        detail: log.realm ? `${log.realm} · quick completion${log.skillId ? " · Skill explicitly selected" : ""}` : "Quick completion",
         reward: event ? rewardFromEvent(event) : rewardFromLog(log), rewardKnown: Boolean(event || hasRewardFields(log)),
         realm: event?.realm || log.realm || null, capability: event?.capability || log.stat || null,
         duplicate: Boolean(event?.duplicate || log.deduped), migrated: Boolean(event?.migrated), why: event?.duplicate ? dedupeWhy(event) : null
@@ -491,6 +494,15 @@
     const exact = `reward:${eventId}`;
     const derived = app.getState()?.skills?.events || [];
     let record = derived.find(item => item?.id === exact);
+    if (!record && String(row?.id || "").startsWith("journal-")) {
+      const date = String(row.id).slice("journal-".length);
+      const fields = derived.filter(item => String(item?.id || "").startsWith(`journal:${date}:`));
+      if (fields.length) {
+        const skill = window.LifeRPGSkills?.getSkill?.("reflection-self-awareness");
+        return {skillId:"reflection-self-awareness", label:skill?.label || "Reflection & Self-Awareness",
+          xp:fields.reduce((sum, event) => sum + number(event.xp), 0)};
+      }
+    }
     if (!record && row?.skillEventId) record = derived.find(item => item?.id === row.skillEventId);
     if (!record) {
       const local = String(row?.id || "");
@@ -513,7 +525,9 @@
     const meta = sourceMeta(event.source, category);
     const details = genericDetail(event);
     return {
-      id: event.id, rewardEventId: event.id, at: event.at, category, icon: meta.icon, sourceLabel: meta.label,
+      id: event.id, rewardEventId: event.id,
+      ...(event.source === "daily-checkin" ? {skillEventId:`checkin:${dateKey(new Date(event.at || 0))}`} : {}),
+      at: event.at, category, icon: meta.icon, sourceLabel: meta.label,
       title: event.label || meta.label, detail: details, schoolSkill: schoolSkillForEvent(event),
       reward: rewardFromEvent(event), rewardKnown: true, realm: event.realm || null, capability: event.capability || null, source: event.source,
       giftReward: event.source === "gift-find" ? { name: event.metadata?.giftName || "Gift Find", icon: event.metadata?.giftIcon || "🎁" } : null,

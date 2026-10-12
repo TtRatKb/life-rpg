@@ -7,7 +7,7 @@
     return;
   }
 
-  const VERSION = "0.31.4dz50";
+  const VERSION = "0.31.4dz50a";
   const SCHEMA = 1;
   const MAX_EVENTS = 6000;
   const HABIT_XP = { tiny: 3, low: 5, normal: 8, high: 12, boss: 18 };
@@ -514,8 +514,13 @@
 
     // Native activities are canonical through their own reward event. Their normal
     // Character/Realm reward may have streak/diminishing modifiers; Skill XP never does.
+    const seenRewardIds = new Set();
     (root.rewardLedger?.events || []).forEach(reward => {
       if (!reward || reward.duplicate) return;
+      // Cloud merges can surface an identical canonical ledger ID twice.
+      // Treat it as one practice event even when both rows are non-duplicate.
+      if (reward.id && seenRewardIds.has(String(reward.id))) return;
+      if (reward.id) seenRewardIds.add(String(reward.id));
       // A real-world timed Adventure is already represented by its canonical
       // timer event. Do not pay Skill XP for its companion Adventure reward.
       if (reward.source === "adventure" && timeEntries.some(entry =>
@@ -692,9 +697,16 @@
       });
     });
 
-    // Stable ordering makes rebuilds deterministic and keeps save diffs small.
+    // A repeated canonical ID (for example two copies of the same imported
+    // time log after a cloud merge) must never create a second Skill payout.
+    // Do not change any underlying logged event or other reward currencies.
+    const seenPracticeIds = new Set();
     return events
-      .filter(event => event.xp > 0 && validSkillId(event.skillId))
+      .filter(event => {
+        if (!(event.xp > 0 && validSkillId(event.skillId)) || seenPracticeIds.has(event.id)) return false;
+        seenPracticeIds.add(event.id);
+        return true;
+      })
       .sort((a, b) => eventTime(a) - eventTime(b) || String(a.id).localeCompare(String(b.id)));
   }
 
@@ -792,6 +804,14 @@
   function skillForRewardEvent(reward) {
     const source = String(reward.source || "");
     const label = String(reward.label || "");
+    // A payout explicitly marked non-progression is not a second learning
+    // session. Stewardship is the one deliberate exception: cataloguing an
+    // item is a distinct, one-time act, even though its tiny coin/XP reward
+    // is non-progression for the main reward engine.
+    if (reward.progressionRelevant === false && source !== "stewardship") return null;
+    // Ledger rows derived from their own canonical logs must never be
+    // projected a second time via the generic source/Realm fallback.
+    if (["steam-playtime", "library", "game", "timer"].includes(source)) return null;
     // Only DZ40+ completed comprehension cards earn this specialized Skill XP.
     // Historical Japanese Extras must not gain retroactive levels on rebuild.
     if (source === "talent-reward-studios" && reward.metadata?.contentId === "dynariot-japanese" && reward.metadata?.japaneseReadingRewardV1 === true) {
@@ -815,7 +835,9 @@
       return nativeSkill(id, Number(reward.xp || 0) > 0 ? 1 : 0, source);
     }
     if (source === "external") {
-      const id = skillForActivityText(label, reward.realm) || defaultSkillForRealm(reward.realm);
+      const chosen = validSkillId(reward.metadata?.skillId);
+      const id = chosen && SKILL_BY_ID[chosen]?.realm === reward.realm && !SKILL_BY_ID[chosen]?.legacy
+        ? chosen : (skillForActivityText(label, reward.realm) || defaultSkillForRealm(reward.realm));
       const effort = String(reward.metadata?.effort || "Normal").toLowerCase();
       return id ? nativeSkill(id, /boss/.test(effort) ? 12 : /low/.test(effort) ? 5 : 8, source) : null;
     }
@@ -825,12 +847,39 @@
       const id = skillForActivityText(text, realm) || defaultSkillForRealm(realm);
       return nativeSkill(id, 3, source);
     }
-    if (["knowledge-workshop-writing", "knowledge-workshop-connection", "knowledge-curiosity-explored", "adventure-output"].includes(source))
+    if (source === "knowledge-workshop-time") {
+      // These are verified active-editor thresholds, suppressed by the
+      // Workshop itself while a Focus Dock timer is running. Do not use the
+      // *cumulative* eligibleSeconds as a new session or award the same time
+      // through a second source.
+      return nativeSkill("learning-inquiry", Math.min(8, Math.max(0, Number(reward.xp || 0))), source);
+    }
+    if (source === "adventure-output") {
+      // Saved notes/decisions/materials are concrete work on a particular
+      // project. Use that project's Realm/kind, not generic Knowledge XP
+      // for a Home, craft, styling or other Adventure.
+      const item = (app.getState().sideAdventures?.items || []).find(x =>
+        String(x.id) === String(reward.metadata?.adventureId || ""));
+      const id = skillForAdventure(item, reward.at) ||
+        skillForActivityText(label, reward.realm) || defaultSkillForRealm(reward.realm);
+      return id ? nativeSkill(id, Math.min(8, Math.max(2, Number(reward.metadata?.skillXP || 4))), source) : null;
+    }
+    if (["knowledge-workshop-writing", "knowledge-workshop-connection", "knowledge-curiosity-explored"].includes(source))
       return nativeSkill("learning-inquiry", Math.min(8, Math.max(2, Number(reward.metadata?.skillXP || 4))), source);
     if (["word-lab-complete", "lexicon-daily-word"].includes(source)) return nativeSkill("language-expression", 7, source);
     if (["logic-unlock-complete", "sudoku-journey-solved", "sudoku-practice-solved", "sudoku-replay-solved"].includes(source))
       return nativeSkill("logical-pattern-reasoning", 8, source);
     if (["game-finish", "game-goal", "steam-achievement", "book-finish", "finish-book"].includes(source)) {
+      // Finishing as part of a logged last session is a milestone *bonus*
+      // on that already represented reading/gaming effort, not an extra
+      // concrete practice event. Standalone finished-status events can still
+      // train the relevant Skill when no session exists.
+      if (["game-finish", "book-finish", "finish-book"].includes(source)) {
+        const list = /book/.test(source) ? app.getState().bookLibrary?.logs : app.getState().gameLibrary?.logs;
+        const idKey = /book/.test(source) ? "bookId" : "gameId";
+        if ((list || []).some(log => String(log?.[idKey]) === String(reward.sourceId) &&
+            Math.abs(timestamp(log.at || log.createdAt) - timestamp(reward.at)) <= 2 * 60 * 1000)) return null;
+      }
       const isBook = /book/.test(source);
       const obj = isBook ? (app.getState().bookLibrary?.items || []).find(item => String(item.id) === String(reward.sourceId)) :
         (app.getState().gameLibrary?.items || []).find(item => String(item.id) === String(reward.sourceId));
@@ -839,7 +888,6 @@
     }
     if (["inspiration-tried", "curiosity-researched", "explain-it-back-complete"].includes(source))
       return nativeSkill("learning-inquiry", 6, source);
-    if (source === "daily-batch-clear") return nativeSkill("reflection-self-awareness", 3, source);
     if (source === "knowledge-practice-recall") return nativeSkill("memory-recall", Math.max(0, Math.min(8, Number(reward.metadata?.skillXP || 0))), source);
     if (source === "knowledge-practice-explain") return nativeSkill("learning-inquiry", Math.max(0, Math.min(6, Number(reward.metadata?.skillXP || 0))), source);
     if (source === "schulcockpit-completion") {
@@ -850,7 +898,8 @@
     if (source === "home-quick-action") {
       const actionId = String(reward.metadata?.actionId || "");
       const specialized = ["clear-kitchen", "clean-bathroom", "vacuum"].includes(actionId) ? "home-tidying"
-        : ["dishwasher", "hang-laundry", "put-away-laundry", "trash", "put-groceries", "change-sheets"].includes(actionId) ? "home-routines" : "life-management";
+        : ["dishwasher", "hang-laundry", "put-away-laundry", "trash", "put-groceries", "change-sheets"].includes(actionId) ? "home-routines"
+        : (skillForActivityText(label, "Home") || "life-management");
       const afterCoverage = timestamp(reward.at) >= Number(state().migrations?.activityCoverageDZ50At || Infinity);
       // Preserve historical one-XP bookkeeping; new real household actions
       // get meaningful but smaller Skill progress than a timed 10-minute Quest.
@@ -873,6 +922,14 @@
     if (source === "lexicon-lab-complete") return nativeSkill("language-expression", 10, "lexicon-crossword");
     if (source === "weekly-review-base") return nativeSkill("reflection-self-awareness", Math.max(0, Number(reward.metadata?.skillXP || 6)), "weekly-review");
     if (source === "weekly-review-field-depth") return nativeSkill("reflection-self-awareness", Math.max(0, Number(reward.metadata?.skillXP || 0)), "weekly-review-depth");
+    if (source === "talent-content-v2" && reward.metadata?.timeEntryId) {
+      // A talent timer's completion bonus belongs to its real time ledger;
+      // no second Skill XP stream for the same completed time interval.
+      return null;
+    }
+    if (source === "talent-content-v2" && String(reward.metadata?.contentId || "") === "shadowing-sprint") {
+      return nativeSkill(useSpecializedJapaneseSkills(reward.at) ? "japanese-speaking-production" : "language-learning", 5, "shadowing-sprint");
+    }
     if (source === "talent-content-v2" && String(reward.metadata?.contentId || "") === "work-debrief") {
       const tier = Math.max(1, Number(reward.metadata?.reachedTier || 1));
       return nativeSkill("professional-organization", Math.min(12, 4 + (tier - 1) * 3), "work-deep-brief");
@@ -914,20 +971,27 @@
     // An Adventure session is a logged real action, not merely an opened page.
     // Its Skill depends on the project's own Realm, type, and description.
     if (source === "adventure" || source === "adventure-finish") {
+      // A finish triggered by an already-counted Adventure timer is a
+      // completion milestone, not another block of practice.
+      if (source === "adventure-finish" && (app.getState().timeTracking?.entries || []).some(entry =>
+        String(entry?.linkedAdventureId || "") === String(reward.sourceId) &&
+        Math.abs(timestamp(entry.endAt || entry.startAt) - timestamp(reward.at)) < 2 * 60 * 1000)) return null;
       const item = (app.getState().sideAdventures?.items || []).find(x => String(x.id) === String(reward.sourceId));
       const id = skillForAdventure(item, reward.at) || skillForActivityText(label, reward.realm) || defaultSkillForRealm(reward.realm);
       return id ? nativeSkill(id, source === "adventure-finish" ? 8 : timeXp(Math.max(10, Number(reward.metadata?.minutes || 30))), source) : null;
     }
     // Explicitly exclude bookkeeping, achievement unlocks, talent passive
     // payouts and source types which have canonical logs elsewhere.
-    if (["quest", "habit", "time", "daily-checkin", "journal-reflection-base", "journal-reflection-field-effort", "journal-reflection-effort", "journal-day-edit", "habit-daypart-clear", "weekly-review-complete", "achievement", "achievement-legacy", "talent-v2-cache", "talent-v2-resonance", "talent-v2-special"].includes(source)
+    if (["quest", "habit", "time", "steam-playtime", "library", "game", "daily-checkin", "journal-reflection-base", "journal-reflection-field-effort", "journal-reflection-effort", "journal-day-edit", "habit-daypart-clear", "weekly-review-complete", "achievement", "achievement-legacy", "talent-v2-cache", "talent-v2-resonance", "talent-v2-special"].includes(source)
       || /(?:-talent-bonus|-talent-unlock|^gift-find$)/.test(source) || reward.progressionRelevant === false) return null;
-    // For NEW real rewards in the future, use the Realm as a safety net until
-    // the exact source is classified; do not fabricate retroactive Skill XP.
+    // Newly introduced sources do not automatically train some arbitrary
+    // default Skill merely because they carry a Realm. Only infer from clear
+    // completion wording; talent/story/social passives are never Skill work.
+    // Unknown free-text effort can use the explicit Skill selector instead.
     const from = Number(state().migrations?.activityCoverageDZ50At || 0);
-    if (timestamp(reward.at) >= from && (Number(reward.xp || 0) > 0 || Number(reward.realmXP || 0) > 0)) {
-      const skillId = skillForActivityText(label, reward.realm) || defaultSkillForRealm(reward.realm) ||
-        (/^story-|^social-/.test(source) ? "recreation-play" : null);
+    if (timestamp(reward.at) >= from && !/^(?:talent-|story-|social-)/.test(source) &&
+        (Number(reward.xp || 0) > 0 || Number(reward.realmXP || 0) > 0)) {
+      const skillId = skillForActivityText(label, reward.realm);
       if (skillId) return nativeSkill(skillId, Math.max(1, Math.min(6, Number(reward.statXP || 3))), `${source}-skill`);
     }
     return null;
@@ -981,7 +1045,7 @@
     if (/lesson|prep|planung|unterricht.*vorbereit/.test(text) && realm === "Work") return "lesson-design-preparation";
     if (/teaching|vertretung|unterricht/.test(text) && realm === "Work") return "teaching-facilitation";
     if (/focus|deep work|konzentration/.test(text)) return "focus-concentration";
-    if (/clear|clean|tidy|declutter|room reset|zimmer|aufräum|put away|sort|vacuum|staubsaug|bad putz|oberfläche|ordnung/.test(text) && realm === "Home") return "home-tidying";
+    if (/\bclear(?:ing|ed)?\b|clean|tidy|declutter|room reset|zimmer|aufräum|put away|sort|vacuum|staubsaug|bad putz|oberfläche|ordnung/.test(text) && realm === "Home") return "home-tidying";
     if (/laundry|wäsche|wasch|fold|geschirr|spül|kitchen|küche|müll|trash|grocer|einkauf|bettwäsche|household|haushalt/.test(text) && realm === "Home") return "home-routines";
     if (/papier|paperwork|termine|appointment|admin|bürokratie|antrag/.test(text) && realm === "Home") return "life-management";
     if (/gym|workout|strength|fitness|sport|training/.test(text) && realm === "Health") return "physical-vitality";
@@ -1071,6 +1135,7 @@
     if (role === "fun") return "recreation-play";
     if (role === "knowledge" || role === "growth") return "learning-inquiry";
     if (role === "japanese") return "japanese-reading-mining"; // explicitly Japanese-reading book
+    if (role === "work") return "learning-inquiry"; // professional reading is real study, not leisure
     return "recreation-play";
   }
 

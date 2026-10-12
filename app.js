@@ -1085,6 +1085,7 @@
     externalTaskName: byId("externalTaskName"),
     externalTaskEffort: byId("externalTaskEffort"),
     externalTaskRealm: byId("externalTaskRealm"),
+    externalTaskSkill: byId("externalTaskSkill"),
     externalTaskPreview: byId("externalTaskPreview"),
     externalTaskChainStatus: byId("externalTaskChainStatus"),
 
@@ -1868,7 +1869,7 @@
 
     byId("externalTaskButton")?.addEventListener("click", openExternalTaskDialog);
     els.externalTaskEffort?.addEventListener("change", updateExternalTaskPreview);
-    els.externalTaskRealm?.addEventListener("change", updateExternalTaskPreview);
+    els.externalTaskRealm?.addEventListener("change", () => { populateExternalTaskSkills(); updateExternalTaskPreview(); });
     byId("confirmExternalTaskButton")?.addEventListener("click", event => {
       event.preventDefault();
       if (!els.externalTaskForm?.reportValidity()) return;
@@ -2665,6 +2666,7 @@
     els.externalTaskName.value = "";
     els.externalTaskEffort.value = "Normal";
     els.externalTaskRealm.value = "Work";
+    populateExternalTaskSkills();
     if (els.externalTaskChainStatus) {
       els.externalTaskChainStatus.textContent = "";
       els.externalTaskChainStatus.classList.add("hidden");
@@ -2677,6 +2679,18 @@
     if (!els.externalTaskChainStatus || !reward) return;
     els.externalTaskChainStatus.textContent = `✓ ${label} saved · +${formatEnergy(reward.storyEnergy)} 🔥 · +${reward.xp} XP · +${reward.coins} 🪙. Ready for another.`;
     els.externalTaskChainStatus.classList.remove("hidden");
+  }
+
+  function populateExternalTaskSkills() {
+    const field = els.externalTaskSkill;
+    if (!field) return;
+    const realm = els.externalTaskRealm?.value || "Work";
+    const options = window.LifeRPGSkills?.registry || [];
+    const keep = field.value;
+    field.replaceChildren(new Option("Automatically from task/Realm", ""));
+    options.filter(skill => skill.realm === realm && !skill.legacy).forEach(skill =>
+      field.add(new Option(skill.label, skill.id)));
+    field.value = options.some(skill => skill.id === keep && skill.realm === realm) ? keep : "";
   }
 
   function externalTaskStatForRealm(realm) {
@@ -2737,6 +2751,8 @@
     const baseReward = calculateExternalTaskReward(effort, realm);
     const label = els.externalTaskName?.value.trim() || `${effort} external task`;
     const sourceId = `external-${Date.now()}`;
+    const chosenSkill = (window.LifeRPGSkills?.registry || []).find(skill =>
+      skill.id === els.externalTaskSkill?.value && skill.realm === realm && !skill.legacy)?.id || null;
     const reward = awardActivity({
       source: "external",
       sourceId,
@@ -2748,7 +2764,7 @@
       statXP: baseReward.statXP,
       coins: baseReward.coins,
       storyEnergyBase: baseReward.storyEnergyBase,
-      metadata: { effort }
+      metadata: { effort, ...(chosenSkill ? {skillId:chosenSkill} : {}) }
     });
 
     state.externalCompletionLog.push({
@@ -2756,6 +2772,7 @@
       name: label,
       effort,
       realm,
+      ...(chosenSkill ? {skillId:chosenSkill} : {}),
       xp: reward.xp,
       stat,
       statXP: reward.statXP,
