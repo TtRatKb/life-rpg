@@ -1,4 +1,4 @@
-/* DZ27: scope-aware school completion transport (same-origin + optional private Firestore) — no time import. */
+/* DZ49: scope-aware school completion transport (same-origin + optional private Firestore) — no time import. */
 (() => {
   "use strict";
   const app = window.LifeRPGApp;
@@ -10,7 +10,13 @@
     "lesson-reflected": {skill:"assessment-feedback", label:"Schulcockpit · Unterricht reflektiert"},
     "preparation-completed": {skill:"professional-organization", label:"Schulcockpit · Vorbereitung abgeschlossen"},
     "assessment-analyzed": {skill:"assessment-feedback", label:"Schulcockpit · Prüfungsanalyse abgeschlossen"},
-    "sequence-planned": {skill:"lesson-design-preparation", label:"Schulcockpit · Reihenplanung abgeschlossen"}
+    "sequence-planned": {skill:"lesson-design-preparation", label:"Schulcockpit · Reihenplanung abgeschlossen"},
+    "assessment-filed": {skill:"lesson-design-preparation",label:"Schulcockpit · Klausurmaterial hinterlegt"},
+    "assessment-corrected": {skill:"assessment-feedback",label:"Schulcockpit · 1 Klassenarbeit korrigiert"},
+    "assessment-makeup-scheduled": {skill:"professional-organization",label:"Schulcockpit · Nachschreibtermin geplant"},
+    "assessment-makeup-written": {skill:"professional-organization",label:"Schulcockpit · Nachschreiber erledigt"},
+    "assessment-competency-raster": {skill:"assessment-feedback",label:"Schulcockpit · Kompetenzbögen erstellt"},
+    "assessment-returned": {skill:"assessment-feedback",label:"Schulcockpit · Klassenarbeit zurückgegeben"}
   });
   // The award engine already applies the global Story Energy diminishing curve.
   // No minutes are supplied and no second time entry is created.
@@ -21,9 +27,18 @@
     "assessment-analyzed": {substantial:[9,9,10,10,.35],extended:[11,11,12,12,.42]},
     "sequence-planned": {substantial:[12,12,14,14,.45],extended:[15,15,16,18,.55]}
   });
+  const EXAM_REWARDS=Object.freeze({
+    "assessment-filed":[10,10,12,10,.32],
+    "assessment-corrected":[3,3,3,2,.09],
+    "assessment-makeup-scheduled":[2,2,3,2,.08],
+    "assessment-makeup-written":[3,3,3,2,.10],
+    "assessment-competency-raster":[10,10,11,10,.34],
+    "assessment-returned":[6,6,7,6,.25]
+  });
   const LEGACY = [3,3,4,2,.10];
-  const BAND_NAMES = {brief:"Kleiner Abschluss",standard:"Ausgearbeiteter Schritt",substantial:"Größeres Arbeitspaket",extended:"Umfangreicher Abschluss"};
+  const BAND_NAMES = {brief:"Kleiner Abschluss",standard:"Ausgearbeiteter Schritt",substantial:"Größeres Arbeitspaket",extended:"Umfangreicher Abschluss",exam:"Prüfungsarbeitsschritt"};
   function rewardProfile(e) {
+    if (e.rewardSchema === 3 && Object.hasOwn(EXAM_REWARDS,e.type)) return {band:"exam",data:EXAM_REWARDS[e.type]};
     if (e.rewardSchema !== 2) return {band:"legacy",data:LEGACY};
     const permitted=REWARDS[e.type]||{};
     // Invalid or unexpected bands cannot inflate an award.
@@ -48,7 +63,10 @@
   function valid(e) {
     return e && e.schema === 1 && e.source === "schulcockpit" && !!TYPES[e.type] &&
       typeof e.eventId === "string" && e.eventId.startsWith(`${e.type}:`) &&
-      /^(lesson-prepared|lesson-reflected|preparation-completed|assessment-analyzed|sequence-planned):[a-zA-Z0-9_-]{1,120}$/.test(e.eventId) &&
+      /^(lesson-prepared|lesson-reflected|preparation-completed|assessment-analyzed|sequence-planned|assessment-filed|assessment-corrected|assessment-makeup-scheduled|assessment-makeup-written|assessment-competency-raster|assessment-returned):[a-zA-Z0-9_-]{1,120}(?::[a-zA-Z0-9_-]{1,120})?$/.test(e.eventId) &&
+      (e.type==="assessment-corrected" ? /^assessment-corrected:assess-[a-zA-Z0-9_-]{1,110}:(?:[1-9]|[1-5][0-9]|60)$/.test(e.eventId) :
+       e.type.startsWith("assessment-makeup-") ? /^assessment-makeup-(?:scheduled|written):assess-[a-zA-Z0-9_-]{1,110}:makeup-[a-zA-Z0-9_-]{1,110}$/.test(e.eventId) :
+       e.eventId.slice(e.type.length+1).indexOf(":")===-1) &&
       typeof e.completedAt === "string" && Number.isFinite(Date.parse(e.completedAt)) &&
       Date.parse(e.completedAt) <= Date.now() + 60000;
   }
@@ -71,7 +89,7 @@
           at:e.completedAt, realm:"Work", xp:charXp, realmXP:realmXp, statXP:0,
           coins, storyEnergyBase:energy, skipAddOnRewards:true, progressionRelevant:true,
           metadata:{bridgeType:e.type,skillId:mapped.skill,skillXP:skillXp,effortBand:profile.band,
-            effortLabel:BAND_NAMES[profile.band]||"Bisheriger Abschluss",rewardSchema:e.rewardSchema===2?2:1}
+            effortLabel:BAND_NAMES[profile.band]||"Bisheriger Abschluss",rewardSchema:e.rewardSchema===3?3:e.rewardSchema===2?2:1}
         });
         model().receipts[e.eventId] = {at:e.completedAt,rewardId:reward.eventId};
         count++;
@@ -106,7 +124,7 @@
     if (!dialog) {
       dialog=document.createElement("dialog"); dialog.className="kp-dialog"; dialog.setAttribute("aria-labelledby","schoolBridgeTitle"); document.body.appendChild(dialog);
       dialog.innerHTML=`<header><h2 id="schoolBridgeTitle">Schulcockpit ↔ Life RPG</h2><button class="close-button" data-school-close aria-label="Schließen">×</button></header>
-        <p>Unterrichts- und Reihenplanung, Reflexion, erledigte Materialorganisation und Prüfungsanalyse trainieren jeweils genau einen bestehenden Work-Skill. Neue Abschlüsse bringen etwas Character-/Work-XP, Skill-XP, Coins und Story Energy. Keine zweite Zeitbuchung. <strong>Keine Unterrichtsminuten, keine Schülerdaten, keine zweite Zeitbelohnung.</strong></p>
+        <p>Unterrichts- und Reihenplanung, Reflexion, Klausurkorrekturen pro Arbeit, Kompetenzbögen, Nachschreiber und Rückgabe trainieren jeweils genau einen bestehenden Work-Skill. Neue Abschlüsse bringen etwas Character-/Work-XP, Skill-XP, Coins und Story Energy. Keine zweite Zeitbuchung. <strong>Keine Unterrichtsminuten, keine Schülerdaten, keine zweite Zeitbelohnung.</strong></p>
         <p>Auf demselben Browser funktioniert die lokale Verbindung. Für Mac, iPhone und iPad nutzt die optionale Cloud-Brücke dein bestehendes Google-/Firebase-Konto. Aktivierung und Versand erfolgen in Schulcockpit.</p>
         <div class="kp-actions"><button class="primary-button" data-school-enable>Lokale Verbindung aktivieren</button><button class="secondary-button" data-school-sync>Jetzt synchronisieren</button><a class="secondary-button" href="https://ttratkb.github.io/Schulcockpit/" target="_blank" rel="noopener">Schulcockpit öffnen ↗</a><button class="secondary-button" data-school-disable>Lokale Verbindung pausieren</button></div>
         <p data-school-status role="status"></p><p data-school-cloud-status role="status">Cloud-Verbindung wird geprüft …</p>
@@ -145,5 +163,5 @@
       else if(++tries>120)clearInterval(t);
     },1500);
   }
-  window.LifeRPGWorkBridge={version:"0.31.4dz27",open,ingest,syncLocal,valid,TYPES,_test:{valid,ingest,model,readLocal,rewardProfile}};
+  window.LifeRPGWorkBridge={version:"0.31.4dz49",open,ingest,syncLocal,valid,TYPES,_test:{valid,ingest,model,readLocal,rewardProfile}};
 })();

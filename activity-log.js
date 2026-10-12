@@ -23,7 +23,13 @@
     "lesson-reflected": "assessment-feedback",
     "preparation-completed": "professional-organization",
     "assessment-analyzed": "assessment-feedback",
-    "sequence-planned": "lesson-design-preparation"
+    "sequence-planned": "lesson-design-preparation",
+    "assessment-filed": "lesson-design-preparation",
+    "assessment-corrected": "assessment-feedback",
+    "assessment-makeup-scheduled": "professional-organization",
+    "assessment-makeup-written": "professional-organization",
+    "assessment-competency-raster": "assessment-feedback",
+    "assessment-returned": "assessment-feedback"
   });
 
   const FILTERS = [
@@ -597,7 +603,7 @@
   function genericWhy(event) {
     const reward = rewardFromEvent(event);
     const bits = [];
-    if (event.source === "schulcockpit-completion") bits.push(`<p>Schulcockpit hat einen abgeschlossenen Arbeitsschritt gemeldet. Die Aufwandsstufe wird bei Abschluss aus dem Umfang der gespeicherten Arbeit im Schulcockpit bestimmt, ohne Inhalte zu übertragen. Die angezeigten Character-/Work-/Skill-XP sind <strong>getrennte Fortschrittswerte</strong>, keine zusätzlichen Skills. Coins und Story Energy entsprechen dem tatsächlich gespeicherten Reward-Ereignis. Ältere Schulcockpit-Abschlüsse erhalten rückwirkend keine zusätzlichen Coins oder Story Energy. Keine Arbeitsminuten wurden durch diesen Abschluss erfunden.</p>`);
+    if (event.source === "schulcockpit-completion") bits.push(`<p>Schulcockpit hat einen abgeschlossenen Arbeitsschritt gemeldet. Bei größeren Planungsabschlüssen wird eine grobe Aufwandsstufe verwendet. Klausurkorrekturen werden pro korrigierter Arbeit belohnt; Nachschreiber und Kompetenzbögen sind separate Abschlüsse, ohne Inhalte zu übertragen. Die angezeigten Character-/Work-/Skill-XP sind <strong>getrennte Fortschrittswerte</strong>, keine zusätzlichen Skills. Coins und Story Energy entsprechen dem tatsächlich gespeicherten Reward-Ereignis. Ältere Schulcockpit-Abschlüsse erhalten rückwirkend keine zusätzlichen Coins oder Story Energy. Keine Arbeitsminuten wurden durch diesen Abschluss erfunden.</p>`);
     if (event.source === "kotoba-dungeon") return dungeonRewardWhy(event);
     if (event.duplicate) bits.push(dedupeWhy(event));
     const streak = number(event.metadata?.dailyStreak);

@@ -784,7 +784,7 @@
     if (source === "knowledge-practice-recall") return nativeSkill("memory-recall", Math.max(0, Math.min(8, Number(reward.metadata?.skillXP || 0))), source);
     if (source === "knowledge-practice-explain") return nativeSkill("learning-inquiry", Math.max(0, Math.min(6, Number(reward.metadata?.skillXP || 0))), source);
     if (source === "schulcockpit-completion") {
-      const map = {"lesson-prepared":"lesson-design-preparation","lesson-reflected":"assessment-feedback","preparation-completed":"professional-organization","assessment-analyzed":"assessment-feedback","sequence-planned":"lesson-design-preparation"};
+      const map = {"lesson-prepared":"lesson-design-preparation","lesson-reflected":"assessment-feedback","preparation-completed":"professional-organization","assessment-analyzed":"assessment-feedback","sequence-planned":"lesson-design-preparation","assessment-filed":"lesson-design-preparation","assessment-corrected":"assessment-feedback","assessment-makeup-scheduled":"professional-organization","assessment-makeup-written":"professional-organization","assessment-competency-raster":"assessment-feedback","assessment-returned":"assessment-feedback"};
       const id = map[reward.metadata?.bridgeType];
       if (id) return nativeSkill(id, Math.max(0, Math.min(16, Number(reward.metadata?.skillXP || 0))), source);
     }
