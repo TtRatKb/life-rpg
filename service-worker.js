@@ -1,4 +1,4 @@
-const CACHE_NAME = "life-rpg-v0.31.4dz50a-SKILL-COVERAGE";
+const CACHE_NAME = "life-rpg-v0.31.4dz50b-NAVIGATION-RESTORE";
 const ASSET_CACHE_NAME = "life-rpg-assets-v6";
 const MAX_RUNTIME_ASSETS = 96;
 const CORE = [
@@ -19,7 +19,7 @@ const CORE = [
   "./nonogram.js?v=0.31.4dz28",
   "./sudoku.js?v=0.31.4dz28",
   "./focus-dock.js?v=0.31.4dz28",
-  "./life-hub-v314dk.js?v=0.31.4dz44",
+  "./life-hub-v314dk.js?v=0.31.4dz50b",
   "./creative-hub-v314dl.js?v=0.31.4dz34",
   "./creative-hub-v314dl.css?v=0.31.4dz19",
   "./ui-chrome.css?v=0.31.4dz19",
