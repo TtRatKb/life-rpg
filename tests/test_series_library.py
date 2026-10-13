@@ -422,11 +422,46 @@ class SeriesLibraryTests(unittest.TestCase):
         self.assertGreaterEqual(self.page.locator('#seriesReviewForm button').first.bounding_box()['height'],44)
         html=(ROOT/'index.html').read_text();sw=(ROOT/'service-worker.js').read_text()
         for name in ['series-library.js','series-library.css','app.js','daily.js','my-week.js','skills.js','time.js','pwa.js']:
-            version='0.31.4-series2' if name in ['app.js','daily.js','series-library.js','series-library.css','pwa.js'] else '0.31.4-series1'
+            version='0.31.4-series5' if name in ['series-library.js','series-library.css','pwa.js'] else '0.31.4-series2' if name in ['app.js','daily.js'] else '0.31.4-series1'
             self.assertIn(f'{name}?v={version}',html)
             self.assertIn(f'{name}?v={version}',sw)
-        self.assertIn('life-rpg-v0.31.4-series2',sw)
-        self.assertIn('const VERSION = "0.31.4-series2"',(ROOT/'pwa.js').read_text())
+        self.assertIn('life-rpg-v0.31.4-series5',sw)
+        self.assertIn('const VERSION = "0.31.4-series5"',(ROOT/'pwa.js').read_text())
+
+    def test_series_light_cozy_shelf_and_dialog_have_readable_contrast(self):
+        """Catch the dark-background/dark-ink regression from the real screenshot."""
+        self.page.add_style_tag(path=str(ROOT/'series-library.css'))
+        self.assertEqual(self.page.locator('#view-series .series-hero').count(), 1)
+        self.assertEqual(self.page.locator('#view-series .series-panel').count(), 1)
+        self.assertEqual(self.page.locator('.series-empty .series-empty-mark').count(), 1)
+        self.assertEqual(self.page.locator('.series-empty [data-series-add]').count(), 1)
+        result=self.page.evaluate("""() => {
+          const col=el => getComputedStyle(document.querySelector(el)).color.match(/\\d+(?:\\.\\d+)?/g).slice(0,3).map(Number);
+          const light=[250,237,242];
+          const lin=x => {x/=255;return x<=.04045?x/12.92:((x+.055)/1.055)**2.4;};
+          const lum=a=>.2126*lin(a[0])+.7152*lin(a[1])+.0722*lin(a[2]);
+          const contrast=(a,b)=>{const x=lum(a),y=lum(b);return (Math.max(x,y)+.05)/(Math.min(x,y)+.05);};
+          return {title:contrast(col('.series-hero h1'),light),
+            body:contrast(col('.series-lead'),light),
+            empty:contrast(col('.series-empty p'),[255,250,246]),
+            gradient:getComputedStyle(document.querySelector('.series-hero')).backgroundImage.includes('gradient'),
+            darkFallback:document.querySelector('#seriesShelf').style.backgroundColor};
+        }""")
+        for value in ['title','body','empty']:
+            self.assertGreaterEqual(result[value],4.5,value)
+        self.assertTrue(result['gradient'])
+        self.page.locator('.series-empty [data-series-add]').click()
+        self.assertTrue(self.page.locator('#seriesAdd').evaluate('(d)=>d.open'))
+        self.assertEqual(self.page.locator('#seriesAdd h2').inner_text(),'Add a series')
+        dialog=self.page.evaluate("""() => {
+          const d=getComputedStyle(document.getElementById('seriesAdd'));
+          const h=getComputedStyle(document.querySelector('#seriesAdd h2'));
+          return {background:d.backgroundColor,title:h.color};
+        }""")
+        self.assertIn('255, 250, 246',dialog['background'])
+        self.assertNotEqual(dialog['title'],dialog['background'])
+        self.page.set_viewport_size({'width':390,'height':844})
+        self.assertLessEqual(self.page.locator('#seriesAdd').bounding_box()['width'],390)
 
     def test_complete_local_bootstrap_with_external_services_blocked(self):
         # Real index and all local modules. Firebase stays mocked; service workers stay blocked.
