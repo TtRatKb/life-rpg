@@ -216,6 +216,7 @@
       if(!item.cover && safeURL(snapshot.cover))item.cover=safeURL(snapshot.cover);
       if(!item.year && positive(snapshot.year))item.year=positive(snapshot.year);
       if(snapshot.ended===true)item.ended=true;
+      if(item.status==='completed' && !complete(item))item.status='watching';
       return {ok:true,item};
     });
   }
