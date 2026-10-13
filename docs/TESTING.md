@@ -28,6 +28,14 @@ Bei jeder Story-Prüfung unveröffentlichte Inhalte im Bericht anonymisieren (ID
 
 ## Vorgehen bei Reparaturen
 
+Gezielte Save-Regressionen sind jetzt in `tests/test_save_safety.py` ausführbar:
+
+```sh
+python3 -m unittest discover -s tests -p 'test_save_safety.py' -v
+```
+
+Voraussetzungen: Python mit Playwright und Chromium (`CHROMIUM_PATH` kann den standardmäßigen Pfad `/usr/bin/chromium` ersetzen). Die Suite startet einen temporären lokalen Server und isolierte Browserkontexte, lädt `app.js`/`cloud-save.js` mit dem echten App-DOM und ersetzt Firebase durch eine In-Memory-Attrappe. Externe Requests sind gesperrt; produktive Cloud- und Browserdaten werden nicht verwendet. Geprüft werden Quota/Reload/Recovery, vollständiger Storage-Ausfall mit Export und Navigationswarnung, Backup-/Replace-/Import-Fehler, beide Konfliktentscheidungen, Rollback-Erhalt, Save-Formate und ein lokaler Fehler während eines Cloud-Uploads. Diese Prüfungen ersetzen keinen echten Provider- oder Gerätetest.
+
 1. Vor Änderungen `git status --short`, aktuellen Commit und relevante Modulintegration dokumentieren.
 2. Konkreten Fehler reproduzieren oder als unbestätigten Verdacht kennzeichnen.
 3. Geringstmögliche Änderung implementieren, Datenformate und Event-IDs erhalten.

@@ -1,4 +1,4 @@
-const CACHE_NAME = "life-rpg-v0.31.4dz50c-QOL-AUDIT";
+const CACHE_NAME = "life-rpg-v0.31.4dz50c-save-safety1";
 const ASSET_CACHE_NAME = "life-rpg-assets-v6";
 const MAX_RUNTIME_ASSETS = 96;
 const CORE = [
@@ -167,14 +167,14 @@ const CORE = [
   "./weekly-review.css?v=0.31.4ag",
   "./weekly-review.js?v=0.31.4ag",
   "./manifest.webmanifest?v=0.30.3a",
-  "./pwa.js?v=0.31.4dz50c",
+  "./pwa.js?v=0.31.4dz50c-save-safety1",
   "./focus-dock.css?v=0.31.4dz16",
   "./focus-dock.js?v=0.31.4dz50c",
   "./visual-performance.js?v=0.31.4bu",
   "./modal-manager.js?v=0.31.4d",
   "./training-focus.js?v=0.31.4o",
   "./pako.min.js?v=0.31.4dz30",
-  "./app.js?v=0.31.4dz50c",
+  "./app.js?v=0.31.4dz50c-save-safety1",
   "./meal-planner.js?v=0.31.4dz12",
   "./daily-streaks.js?v=0.31.4z",
   "./stewardship.js?v=0.31.3a",
@@ -221,7 +221,7 @@ const CORE = [
   "./activity-log.js?v=0.31.4dz50a",
   "./kotoba-integration.js?v=0.31.4dz47",
   "./kotoba-quick-training.js?v=0.31.4dz37",
-  "./cloud-save.js?v=0.31.4dz50c",
+  "./cloud-save.js?v=0.31.4dz50c-save-safety1",
   "./mobile-cloud-gate-dz45.js?v=0.31.4dz45",
   "./assets/app-icon-192.png",
   "./assets/app-icon-512.png",
