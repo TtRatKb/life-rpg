@@ -157,3 +157,53 @@ checks DOM destinations, contrast samples, primary empty-state entry point,
 light dialog background and phone-width sizing. Real Safari/PWA and visual
 screenshot QA remain manual release checks; passing DOM/contrast tests alone
 does not verify final layout appearance.
+
+## Easier multi-season importing and episode logging (Series 6)
+
+- TVmaze search choices now show **cover thumbnails** where the provider supplies
+  one. Selecting a result fetches and previews **every returned season**, its
+  known regular episode count, whether the season is ended, and typical runtime.
+  The manual Season 1 field is an *optional fallback*; it does not imply only
+  the first TVmaze season will be imported.
+- The `Find seasons & poster` action on an already saved title opens the same
+  lookup in a **separate update mode**. A second explicit confirmation attaches
+  the selected provider ID and **only adds missing seasons/episodes and absent
+  cover/year**. Existing season and episode IDs, user corrections, watch cycles,
+  episode receipts, milestones and reviews are preserved. A conflicting provider
+  ID or duplicate catalog attachment to another saved title is rejected.
+- If new unwatched seasons extend a previously completed title, its status
+  returns to Watching; the previous rewards remain intact. Catalog updates
+  never trigger retroactive XP.
+- `Mark this season previously watched · no XP` creates history-only episode
+  receipts for that season in a **single persistence transaction**; it does not
+  create real time intervals, rewards, or current-week events. Imported entries
+  are labeled with their **import date**, not a guessed viewing date. Undo can
+  reverse an individual imported episode. Only new episodes in a later season
+  can earn that season's first-completion milestone; imported season milestones
+  are never backfilled. Finishing a series by truly watching its remaining
+  episodes can still earn the once-only first series-completion bonus.
+- `Log next episode` uses the same canonical `logEpisode()` and existing
+  duplicate/reward guard as the full form, without recording fictitious watch
+  minutes. It is a confirmed current watch, not a timer. The detailed form
+  remains available for historical, batch and actual start/end recordings.
+- My Week explicitly excludes historical episode records from planned/live
+  viewing summaries. Importing a prior season today must **not** imply those
+  episodes were watched today.
+- New catalog UI and changed Series/Week assets use cache version
+  `0.31.4-series6`. No schema bump or migration is required; no external
+  credentials and no automatic provider syncing were added.
+
+### Focused preflight
+
+Test: TVmaze result with two seasons and cover; confirm preview before adding,
+then verify the full persisted season list and poster. Enrich an already saved
+manual title and verify every prior episode/log/reward ID stays exactly the same;
+repeat enrichment idempotently. Mark a finished earlier season as history and
+verify zero XP, no My Week event, next unplayed episode in the new season, and
+no historical season bonus. Verify a newly watched second season earns its own
+once-only milestone; a series milestone is awarded only by a real completion.
+Verify provider failure/offline mode, archived title, duplicate provider ID,
+reload/export/import and storage-quota rollback. Cover CDN may be blocked in
+synthetic browser tests, so compare stored sanitized cover URLs in addition to
+checking visible preview markup; real poster rendering and Safari/PWA remain
+manual release checks.
