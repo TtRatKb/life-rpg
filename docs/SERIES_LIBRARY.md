@@ -139,3 +139,21 @@ Books/Library and Games retain their separate navigation views. Opening an episo
 from a Daily pick or My Week activates the Series view and opens the same native
 episode dialog. The existing Series library state, logs, IDs and rewards are not
 migrated or reset by this navigation change.
+
+## Series visual QA (light Life RPG shell)
+
+The Series & Anime view must follow the established **cream / blush / plum**
+visual language of the Books v16 and Games v17 screens. It must never use an
+unscoped dark `--panel` fallback: the application is a light-theme PWA, and
+that combination makes headings and labels unreadable. The hero, filters,
+empty state, series cards and both body-mounted add/detail dialogs must have
+explicit light surfaces with contrasting dark text; input/select controls
+remain usable in Safari and on narrow iPhones.
+
+The Series visual skin is isolated in `series-library.css`. It must not change
+book/game screens or persist cosmetic settings into the game save. The synthetic
+browser regression `test_series_light_cozy_shelf_and_dialog_have_readable_contrast`
+checks DOM destinations, contrast samples, primary empty-state entry point,
+light dialog background and phone-width sizing. Real Safari/PWA and visual
+screenshot QA remain manual release checks; passing DOM/contrast tests alone
+does not verify final layout appearance.
