@@ -121,8 +121,10 @@
   border-radius: 12px;
   background: #fffdfa;
   color: #3f2a3a;
-  font: 500 .93rem/1.4 inherit;
   font-family: inherit;
+  font-size: .93rem;
+  font-weight: 500;
+  line-height: 1.4;
   color-scheme: light;
 }
 .series-filters input::placeholder, .series-form input::placeholder, .series-form textarea::placeholder { color: #947c8d; }
