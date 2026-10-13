@@ -582,7 +582,7 @@ class SeriesLibraryTests(unittest.TestCase):
         self.assertTrue(self.page.locator('#seriesDetail').evaluate('(el) => el.open'))
         self.page.locator('#seriesDetail [data-series-close]').click()
         self.page.locator('.life-nav-group[data-group="play"] .nav-button[data-view="games"]').click()
-        self.assertTrue(self.page.locator('#view-games').evaluate('(el) => el.classList.contains("active")
+        self.assertTrue(self.page.locator('#view-games').evaluate('(el) => el.classList.contains("active")'))
         self.page.evaluate('LifeRPGSeries.open(seriesId, LifeRPGSeries.nextEpisode(LifeRPGSeries.find(seriesId)).id)')
         self.assertTrue(self.page.locator('#view-series').evaluate('(el) => el.classList.contains("active")'))
         self.assertTrue(sidebar.evaluate('(el) => el.classList.contains("active")'))
