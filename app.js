@@ -731,6 +731,7 @@
     if (!isBookAdmin && (quest.hobbyLane === "Reading" || /(\bread\b|\breading\b|\bpages?\b|continue current book)/i.test(name))) {
       return "reading";
     }
+    if (/comfort episode|watch.*episode/i.test(name)) return "watching";
     if (quest.hobbyLane === "Gaming" || /(\bgame\b|\bgaming\b|play session)/i.test(name)) return "gaming";
     return null;
   }
@@ -775,7 +776,7 @@
       ? new Set(["quest", "library"])
       : dedupeFamily === "gaming"
         ? new Set(["quest", "game"])
-        : null;
+        : dedupeFamily === "watching" ? new Set(["quest", "series", "time"]) : null;
     if (!allowedSources?.has(source)) return null;
 
     ensureProgressionState();

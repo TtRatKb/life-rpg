@@ -412,6 +412,7 @@
     if (rewardSpec.xp <= 0 && rewardSpec.storyEnergyBase <= 0 && coins <= 0) return null;
     const reward = app.awardActivity({
       source: "time",
+      dedupeFamily: app.dedupeFamilyForQuest?.(app.getQuestById?.(entry.linkedQuestId)) === "watching" || /watch.*episode|comfort episode/i.test(entry.label || "") ? "watching" : null,
       sourceId: entry.id,
       label: `${category.label}${entry.subcategory ? ` · ${entry.subcategory}` : ""}`,
       realm: category.realm,
@@ -424,7 +425,7 @@
       metadata: { minutes: entry.minutes, categoryId: entry.categoryId, mode: entry.mode, focusCompletionBonus: focusBonus }
     });
     entry.rewardEventId = reward.eventId || null;
-    entry.reward = { xp: reward.xp, storyEnergy: reward.storyEnergy, rawStoryEnergy: reward.rawStoryEnergy, statXP: reward.statXP, coins: reward.coins };
+    entry.reward = { watchingDeduped: Boolean(reward.deduped && (/watch.*episode|comfort episode/i.test(entry.label || "") || app.dedupeFamilyForQuest?.(app.getQuestById?.(entry.linkedQuestId)) === "watching")), xp: reward.xp, storyEnergy: reward.storyEnergy, rawStoryEnergy: reward.rawStoryEnergy, statXP: reward.statXP, coins: reward.coins };
     return reward;
   }
 
