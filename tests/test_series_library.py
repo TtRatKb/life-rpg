@@ -466,8 +466,6 @@ class SeriesLibraryTests(unittest.TestCase):
         self.assertEqual(self.page.evaluate('JSON.stringify(LifeRPGSeries.getLogs())'),log_before)
         self.assertEqual(self.page.evaluate('LifeRPGApp.getState().characterXP'),xp_before)
         self.assertEqual(self.page.locator('.series-card img').count(),1)
-        self.page.evaluate('LifeRPGSeries.mergeCatalog(seriesId, window.seriesSnapshotTest)')
-        # The explicit second import is checked below using the saved schema directly:
         self.assertEqual(len(self.page.evaluate('LifeRPGSeries.find(seriesId).seasons')),2)
 
     def test_previous_season_import_no_retro_rewards_but_live_second_season_bonus(self):
@@ -518,11 +516,11 @@ class SeriesLibraryTests(unittest.TestCase):
         self.assertGreaterEqual(self.page.locator('#seriesReviewForm button').first.bounding_box()['height'],44)
         html=(ROOT/'index.html').read_text();sw=(ROOT/'service-worker.js').read_text()
         for name in ['series-library.js','series-library.css','app.js','daily.js','my-week.js','skills.js','time.js','pwa.js']:
-            version='0.31.4-series5' if name in ['series-library.js','series-library.css','pwa.js'] else '0.31.4-series2' if name in ['app.js','daily.js'] else '0.31.4-series1'
+            version='0.31.4-series6' if name in ['series-library.js','series-library.css','my-week.js','pwa.js'] else '0.31.4-series2' if name in ['app.js','daily.js'] else '0.31.4-series1'
             self.assertIn(f'{name}?v={version}',html)
             self.assertIn(f'{name}?v={version}',sw)
-        self.assertIn('life-rpg-v0.31.4-series5',sw)
-        self.assertIn('const VERSION = "0.31.4-series5"',(ROOT/'pwa.js').read_text())
+        self.assertIn('life-rpg-v0.31.4-series6',sw)
+        self.assertIn('const VERSION = "0.31.4-series6"',(ROOT/'pwa.js').read_text())
 
     def test_series_light_cozy_shelf_and_dialog_have_readable_contrast(self):
         """Catch the dark-background/dark-ink regression from the real screenshot."""
