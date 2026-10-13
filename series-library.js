@@ -376,13 +376,59 @@
     window.addEventListener('life-rpg:state-saved',render);
     render();
   }
+  function catalogPreview(snapshot){
+    const host=document.getElementById('seriesCatalogPreview');if(!host)return;
+    const seasonList=snapshot.seasons.map(season=>{
+      const known=positive(season.episodeCount),available=season.episodes?.filter(e=>!e.special).length||0;
+      const descriptor=known?`${known} episode${known===1?'':'s'}`:available?`${available} known episodes · total unknown`:'Episode total unknown';
+      return `<li><strong>Season ${escape(season.number)}</strong><span>${escape(descriptor)} · ${season.ended?'finished':'ongoing / end unknown'}</span></li>`;
+    }).join('');
+    host.innerHTML=`<div class="series-catalog-card">
+      ${snapshot.cover?`<img src="${escape(safeURL(snapshot.cover))}" alt="Cover of ${escape(snapshot.title)}" loading="lazy" referrerpolicy="no-referrer">`:'<span class="series-catalog-no-cover" aria-hidden="true">📺</span>'}
+      <div><small>TVMAZE · CHECK BEFORE IMPORT</small><h3>${escape(snapshot.title)}</h3>
+      <p>${snapshot.year||'Year unknown'} · ${snapshot.minutes?`typically ${snapshot.minutes} min`:'Duration unknown'}</p>
+      <ul class="series-catalog-seasons">${seasonList||'<li>Season details unavailable · enter manually</li>'}</ul>
+      <p class="series-catalog-footnote">The catalog may be incomplete for ongoing shows. Extras/specials are optional. You can edit missing metadata later.</p></div>
+    </div>`;
+    host.hidden=false;
+  }
+  function openCatalog(targetId=null) {
+    const item=targetId?find(targetId):null;
+    if(targetId&&!item)return;
+    if(document.getElementById('seriesDetail').open)document.getElementById('seriesDetail').close();
+    catalogTargetItemId=item?.id||null;catalogSelection=null;searchResults=[];searchGeneration++;
+    const dialog=document.getElementById('seriesAdd');
+    dialog.querySelector('#seriesCatalogTitle').textContent=item?'Update seasons & poster':'Add a series';
+    dialog.querySelector('#seriesSearchForm').reset();
+    dialog.querySelector('#seriesSearchForm [name="query"]').value=item?.title||'';
+    dialog.querySelector('#seriesAddForm').reset();
+    dialog.querySelector('#seriesAddForm').hidden=Boolean(item);
+    dialog.querySelector('#seriesUpdateForm').hidden=!item;
+    dialog.querySelector('#seriesUpdateForm button').disabled=true;
+    document.getElementById('seriesSearchResults').replaceChildren();
+    document.getElementById('seriesCatalogPreview').hidden=true;
+    document.getElementById('seriesSearchStatus').textContent=item?
+      'Find the matching catalog title. Nothing changes until you confirm the import.':
+      'Find the correct title and see its cover and all known seasons before adding. Manual entry also works.';
+    dialog.showModal();
+  }
   function showResult(result){if(result?.ok && selected && document.getElementById('seriesDetail').open)detail();if(!result?.ok)document.getElementById('seriesDetailNotice').textContent=result?.reason||'Not saved. Please try again.';else document.getElementById('seriesDetailNotice').textContent='Saved locally. Cloud synchronization uses your existing settings.';}
   async function click(event){
     const b=event.target.closest('button');if(!b)return;
     try {
-      if(b.hasAttribute('data-series-add')){catalogSelection=null;document.getElementById('seriesAddForm').reset();document.getElementById('seriesAdd').showModal();}
+      if(b.hasAttribute('data-series-add'))openCatalog();
       if(b.hasAttribute('data-series-close'))b.closest('dialog').close();
       if(b.dataset.seriesOpen)open(b.dataset.seriesOpen);
+      if(b.hasAttribute('data-series-enrich'))openCatalog(selected);
+      if(b.hasAttribute('data-series-log-next')){
+        const item=find(selected),next=item&&nextEpisode(item);
+        if(next)showResult(logEpisode(item.id,next.id));
+      }
+      if(b.dataset.seriesHistoricalSeason){
+        const item=find(selected),season=item?.seasons.find(s=>s.id===b.dataset.seriesHistoricalSeason);
+        if(season && window.confirm(`Mark Season ${season.number} previously watched? No XP or recent watch time will be added.`))
+          showResult(markSeasonHistorical(item.id,season.id));
+      }
       if(b.dataset.seriesEpisode){document.getElementById('seriesDetail').dataset.episodeId=b.dataset.seriesEpisode;detail();document.getElementById('seriesLogForm').scrollIntoView({block:'nearest'});}
       if(b.dataset.seriesUndo)showResult(undo(b.dataset.seriesUndo));
       if(b.hasAttribute('data-series-archive'))showResult(archiveItem(selected));
@@ -392,14 +438,22 @@
       if(b.dataset.seriesAddEpisode)showResult(addEpisode(selected,b.dataset.seriesAddEpisode));
       if(b.dataset.seriesPlanRemove)showResult(removePlan(b.dataset.seriesPlanRemove));
       if(b.dataset.seriesCatalog){const generation=++searchGeneration;const status=document.getElementById('seriesSearchStatus');status.textContent='Loading seasons and episodes…';b.disabled=true;
-        try {const snapshot=await catalogDetails(searchResults.find(r=>String(r.id)===b.dataset.seriesCatalog));if(generation!==searchGeneration)return;catalogSelection=snapshot;const form=document.getElementById('seriesAddForm');form.elements.title.value=snapshot.title;form.elements.year.value=snapshot.year||'';form.elements.minutes.value=snapshot.minutes||'';form.elements.episodeCount.value=snapshot.seasons[0]?.episodeCount||'';form.elements.ended.checked=snapshot.ended;status.textContent='Snapshot selected. Confirm Add to shelf, or change the title to create a separate manual entry.';}catch(error){status.textContent=error.message;}finally{b.disabled=false;}}
+        try {const snapshot=await catalogDetails(searchResults.find(r=>String(r.id)===b.dataset.seriesCatalog));if(generation!==searchGeneration)return;catalogSelection=snapshot;const form=document.getElementById('seriesAddForm');form.elements.title.value=snapshot.title;form.elements.year.value=snapshot.year||'';form.elements.minutes.value=snapshot.minutes||'';form.elements.episodeCount.value=snapshot.seasons[0]?.episodeCount||'';form.elements.ended.checked=snapshot.ended;catalogPreview(snapshot);document.getElementById('seriesUpdateForm button').disabled=false;status.textContent=catalogTargetItemId?'Snapshot selected. Confirm safe enrichment below.':'Snapshot selected. All known seasons and poster are ready; confirm Add to shelf.';}catch(error){status.textContent=error.message;}finally{b.disabled=false;}}
     }catch(error){notify(error.message);}
   }
   async function submit(event){
     const form=event.target;if(!form.id.startsWith('series')&&!form.dataset.seriesSeasonEdit)return;event.preventDefault();const data=values(form);
-    if(form.id==='seriesSearchForm'){const generation=++searchGeneration,status=document.getElementById('seriesSearchStatus');status.textContent='Searching TVmaze…';catalogSelection=null;
-      try{const results=await searchCatalog(data.query);if(generation!==searchGeneration)return;searchResults=results;document.getElementById('seriesSearchResults').innerHTML=results.map(r=>`<button type="button" class="secondary-button" data-series-catalog="${r.id}">${escape(r.title)} · ${r.year||'year unknown'} · ${r.minutes?`${r.minutes} min`:'duration unknown'}</button>`).join('');status.textContent=results.length?'Choose the correct title.':'No matches. You can still add it manually.';}catch(error){status.textContent=error.message;}return;}
+    if(form.id==='seriesSearchForm'){const generation=++searchGeneration,status=document.getElementById('seriesSearchStatus');status.textContent='Searching TVmaze…';catalogSelection=null;document.getElementById('seriesCatalogPreview').hidden=true;document.getElementById('seriesUpdateForm button').disabled=true;
+      try{const results=await searchCatalog(data.query);if(generation!==searchGeneration)return;searchResults=results;document.getElementById('seriesSearchResults').innerHTML=results.map(r=>`<button type="button" class="secondary-button series-search-result" data-series-catalog="${r.id}">${r.cover?`<img src="${escape(r.cover)}" alt="" loading="lazy" referrerpolicy="no-referrer">`:'<span aria-hidden="true">📺</span>'}<span><strong>${escape(r.title)}</strong><small>${r.year||'Year unknown'} · ${r.minutes?`${r.minutes} min`:'Duration unknown'}</small></span></button>`).join('');status.textContent=results.length?'Choose the correct title.':'No matches. You can still add it manually.';}catch(error){status.textContent=error.message;}return;}
     let result;
+    if(form.id==='seriesUpdateForm'){
+      if(!catalogTargetItemId||!catalogSelection){showResult({ok:false,reason:'Select catalog seasons first.'});return;}
+      const target=catalogTargetItemId;
+      result=mergeCatalog(target,catalogSelection);
+      if(result.ok){document.getElementById('seriesAdd').close();open(target);}
+      else document.getElementById('seriesSearchStatus').textContent=result.reason;
+      return;
+    }
     if(form.id==='seriesAddForm'){const snapshot=catalogSelection&&catalogSelection.title===data.title?catalogSelection:null;const seasons=snapshot?JSON.parse(JSON.stringify(snapshot.seasons)):null;if(seasons?.length && positive(data.episodeCount)!==seasons[0].episodeCount){seasons[0]={...seasons[0],episodeCount:positive(data.episodeCount),episodes:undefined};}if(seasons?.length && positive(data.minutes)!==snapshot.minutes){seasons[0].minutes=positive(data.minutes);seasons[0].episodes?.forEach(e=>e.minutes=positive(data.minutes));}result=addItem({...snapshot,...data,provider:snapshot?.provider,seasons:seasons||[{number:1,episodeCount:positive(data.episodeCount),minutes:positive(data.minutes),ended:data.ended}]});if(result.ok){document.getElementById('seriesAdd').close();open(result.item.id);}else document.getElementById('seriesSearchStatus').textContent=result.reason;return;}
     if(form.id==='seriesEditForm')result=updateItem(selected,{...data,year:positive(data.year)});
     if(form.id==='seriesSeasonForm')result=addSeason(selected,data);
@@ -418,7 +472,7 @@
     }
     if(result)showResult(result);
   }
-  window.LifeRPGSeries={find,nextEpisode,label,complete,eligibleItems,completion,open,addItem,updateItem,addSeason,updateSeason,addEpisode,updateEpisode,logEpisode,logEpisodes,undo,startRewatch,activateCycle,archiveItem,saveReview,linkSequel,planEpisode,removePlan,searchCatalog,catalogDetails,
+  window.LifeRPGSeries={find,nextEpisode,label,complete,eligibleItems,completion,open,addItem,updateItem,addSeason,updateSeason,addEpisode,updateEpisode,logEpisode,logEpisodes,undo,startRewatch,activateCycle,archiveItem,saveReview,linkSequel,planEpisode,removePlan,searchCatalog,catalogDetails,mergeCatalog,markSeasonHistorical,
     getLogs:()=>model().logs,getPlans:()=>model().plans};
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })();
