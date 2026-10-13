@@ -9,7 +9,7 @@
   const positive = value => Number.isFinite(Number(value)) && Number(value) > 0 ? Number(value) : null;
   const dateKey = date => `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
   const safeURL = value => { try { const u = new URL(value); return u.protocol === 'https:' ? u.href : ''; } catch { return ''; } };
-  let selected = null, searchResults = [], catalogSelection = null, searchGeneration = 0;
+  let selected = null, searchResults = [], catalogSelection = null, catalogTargetItemId = null, searchGeneration = 0;
   let pendingRequest = false, nextRequestAt = 0, transactionDepth = 0;
   const cache = new Map();
   function model() {
@@ -151,9 +151,11 @@
       item.status='watching';
       if(complete(item)){item.status='completed';activeCycle(item).completedAt=log.at;}
       // Historical sessions may complete a shelf, but never backfill any milestone.
-      if(!log.historical && !logsFor(item).some(l=>l.historical)) {
-        if(seasonComplete(item,season))milestone(item,`season:${season.id}`,log.at);
-        if(complete(item))milestone(item,'series',log.at);
+      if(!log.historical) {
+        // Imported history never earns past rewards, but newly watched episodes
+        // still deserve their own season milestone. A live series finish is paid once.
+        if(seasonComplete(item,season) && !logsFor(item).some(l=>l.seasonId===season.id && l.historical)) milestone(item,`season:${season.id}`,log.at);
+        if(complete(item)) milestone(item,'series',log.at);
       }
       return {ok:true,log};
     });
@@ -165,6 +167,59 @@
       const logs=episodeIds.map(episodeId=>logEpisode(id,episodeId,options).log);return {ok:true,logs};
     });
   }
+  function markSeasonHistorical(id, seasonId) {
+    return transaction(()=>{
+      const item=find(id),season=item?.seasons.find(s=>s.id===seasonId);
+      if(!season || item.archivedAt)throw new Error('Restore the title and select a saved season.');
+      const remaining=season.episodes.filter(e=>!e.special && !seen(item,e));
+      if(!remaining.length)return {ok:true,duplicate:true,logs:[]};
+      if(remaining.length>1000)throw new Error('Too many episodes to import at once.');
+      // Imported history has no invented viewing date, duration, or reward.
+      // recordedAt/at marks the import action; My Week must filter historical entries.
+      const at=new Date().toISOString(),logs=[];
+      for(let offset=0;offset<remaining.length;offset+=100) {
+        const batch=logEpisodes(id,remaining.slice(offset,offset+100).map(e=>e.id),{historical:true,at});
+        logs.push(...batch.logs);
+      }
+      return {ok:true,logs};
+    });
+  }
+
+  function mergeCatalog(id, snapshot) {
+    return transaction(()=>{
+      const item=find(id);
+      if(!item || item.archivedAt)throw new Error('Restore this title before updating its catalog.');
+      if(!snapshot?.provider || !Array.isArray(snapshot.seasons))throw new Error('Choose a catalog result with season details.');
+      if(item.provider && (item.provider.name!==snapshot.provider.name || String(item.provider.id)!==String(snapshot.provider.id))) {
+        throw new Error('This title is linked to another catalog entry. No data was changed.');
+      }
+      if(model().items.some(other=>other.id!==item.id && other.provider?.name===snapshot.provider.name && String(other.provider?.id)===String(snapshot.provider.id))) {
+        throw new Error('This catalog result is already linked to another saved title.');
+      }
+      for(const incoming of snapshot.seasons){
+        let season=item.seasons.find(existing=>existing.number===incoming.number && existing.special===Boolean(incoming.special));
+        if(!season){item.seasons.push(makeSeason(incoming));continue;}
+        const known=positive(incoming.episodeCount),old=positive(season.episodeCount);
+        for(const ep of incoming.episodes||[]) {
+          let existing=season.episodes.find(e=>ep.providerId!=null && String(e.providerId)===String(ep.providerId));
+          if(!existing && positive(ep.number))existing=season.episodes.find(e=>e.special===Boolean(ep.special) && e.number===positive(ep.number));
+          if(existing){if(existing.providerId==null)existing.providerId=ep.providerId??null;if(!existing.minutes)existing.minutes=positive(ep.minutes);}
+          else season.episodes.push({id:uid('episode'),number:positive(ep.number),minutes:positive(ep.minutes),
+            special:Boolean(ep.special),providerId:ep.providerId??null});
+        }
+        const storedCount=season.episodes.filter(e=>!e.special).length;
+        if(known || old) season.episodeCount=Math.max(old||0,known||0,storedCount);
+        // Preserve the user's own known ending when the provider is incomplete.
+        season.ended=season.ended || incoming.ended===true;
+      }
+      item.provider=snapshot.provider;
+      if(!item.cover && safeURL(snapshot.cover))item.cover=safeURL(snapshot.cover);
+      if(!item.year && positive(snapshot.year))item.year=positive(snapshot.year);
+      if(snapshot.ended===true)item.ended=true;
+      return {ok:true,item};
+    });
+  }
+
   function revokeReceipt(receipt, realm, capability='wellbeing') {
     const root=app.getState();
     if(!root.rewardLedger.events.some(e=>e.id===receipt.rewardEventId)) {
