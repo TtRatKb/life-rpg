@@ -245,7 +245,7 @@
       provider:{name:'TVmaze',id:result.id,url:result.url,license:'CC BY-SA',snapshotAt:new Date().toISOString(),snapshot:{title:result.title,year:result.year}}};
   }
 
-  function open(id,episodeId=null,options={}){selected=id;const item=find(id);if(!item)return;if(options.startWatching && item.status==='want' && !item.archivedAt){const result=updateItem(id,{status:'watching'});if(!result.ok)return;}app.showView?.('library');render();const dialog=document.getElementById('seriesDetail');dialog.dataset.episodeId=episodeId||nextEpisode(item)?.id||'';detail();if(!dialog.open)dialog.showModal();}
+  function open(id,episodeId=null,options={}){selected=id;const item=find(id);if(!item)return;if(options.startWatching && item.status==='want' && !item.archivedAt){const result=updateItem(id,{status:'watching'});if(!result.ok)return;}app.showView?.('series');render();const dialog=document.getElementById('seriesDetail');dialog.dataset.episodeId=episodeId||nextEpisode(item)?.id||'';detail();if(!dialog.open)dialog.showModal();}
   function options(values,current){return Object.entries(values).map(([id,title])=>`<option value="${escape(id)}" ${id===current?'selected':''}>${escape(title)}</option>`).join('');}
   function cover(item){return item.cover?`<img src="${escape(item.cover)}" alt="" loading="lazy" referrerpolicy="no-referrer" data-series-cover>`:'<span class="series-placeholder" aria-hidden="true">📺</span>';}
   function attribution(item){return item.provider?.name==='TVmaze'?`<p class="muted">Metadata: <a href="${escape(safeURL(item.provider.url)||'https://www.tvmaze.com')}" target="_blank" rel="noopener noreferrer">TVmaze</a> · <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener noreferrer">CC BY-SA</a> · editable snapshot</p>`:'';}
@@ -278,7 +278,7 @@
   function localInput(date){return new Date(+date-date.getTimezoneOffset()*60000).toISOString().slice(0,16);}
   function values(form){const data=Object.fromEntries(new FormData(form));for(const box of form.querySelectorAll('input[type="checkbox"]'))data[box.name]=box.checked;return data;}
   function init(){
-    const parent=document.getElementById('view-library');if(!parent||document.getElementById('seriesShelf'))return;
+    const parent=document.getElementById('view-series');if(!parent||document.getElementById('seriesShelf'))return;
     const shelf=document.createElement('section');shelf.id='seriesShelf';shelf.className='series-shelf';
     shelf.innerHTML=`<header><p class="eyebrow">YOUR LIBRARY · HOBBIES</p><h2>Series / Anime & TV</h2><p>A cozy episode, a favorite world. Comfort and rewatches count too.</p><button type="button" class="primary-button" data-series-add>＋ Add a series</button></header><p id="seriesNotice" role="status" aria-live="polite"></p><div class="series-filters"><label>Search your shelf<input id="seriesFilter" type="search" placeholder="Title or alternate name"></label><label>Status<select id="seriesStatusFilter"><option value="">All statuses</option>${options(statuses,'')}</select></label><label><input id="seriesShowArchived" type="checkbox"> Show archived titles</label></div><div id="seriesBoard" class="series-board"></div>`;
     parent.prepend(shelf);
