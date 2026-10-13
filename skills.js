@@ -471,7 +471,7 @@
       scheduleReconcile("render");
       render();
     });
-    ["life-rpg:time-change", "life-rpg:game-change", "life-rpg:library-change", "life-rpg:adventure-change", "life-rpg:smart-quest-change", "life-rpg:school-completions-ingested"].forEach(name => {
+    ["life-rpg:series-change", "life-rpg:time-change", "life-rpg:game-change", "life-rpg:library-change", "life-rpg:adventure-change", "life-rpg:smart-quest-change", "life-rpg:school-completions-ingested"].forEach(name => {
       window.addEventListener(name, () => scheduleReconcile(name));
     });
   }
@@ -512,6 +512,9 @@
 
     // Time is canonical for any timed practice, including linked Quests and Adventures.
     timeEntries.forEach(entry => {
+      if (entry.reward?.watchingDeduped) return;
+      if (/comfort episode|watch.*episode/i.test(entry.label || "") && (root.seriesLibrary?.logs || []).some(log =>
+        !log.undone && !log.historical && !log.deduped && timestamp(log.recordedAt) < timestamp(entry.createdAt) && isLikelyDuplicateMediaTime(log, [entry]))) return;
       const skillId = skillForTimeEntry(entry);
       if (!skillId) return;
       const minutes = preciseMinutes(entry);
@@ -686,6 +689,17 @@
       if (log.rewardEventId) claimedRewardIds.add(log.rewardEventId);
     });
 
+    (root.seriesLibrary?.logs || []).forEach(log => {
+      if (log.undone || log.historical || log.deduped || !log.rewardEventId) return;
+      if (log.rewardEventId) claimedRewardIds.add(log.rewardEventId);
+      if (isLikelyDuplicateMediaTime(log, timeEntries.filter(entry => /comfort episode|watch.*episode/i.test(entry.label || "") && timestamp(entry.createdAt) <= timestamp(log.recordedAt)))) return;
+      const item = (root.seriesLibrary?.items || []).find(i => i.id === log.seriesId);
+      if (!item) return;
+      addDerived(events, {id:`series:${log.id}`, skillId:log.realm === "Recovery" ? "recovery-unwinding" : "recreation-play",
+        xp:Number(log.minutes) > 0 ? timeXp(log.minutes) : 8, label:item.title, source:"series", sourceId:log.id, at:log.at,
+        metadata:{seriesId:log.seriesId,episodeId:log.episodeId,watchCycleId:log.watchCycleId,minutes:log.minutes}});
+    });
+
     // Quest completion logs are fallback practice signals. If a matching timed entry or
     // native activity already represents the real action, the quest is only a completion wrapper.
     const linkedTimesByQuest = groupTimeEntriesByQuest(timeEntries);
@@ -694,6 +708,7 @@
       if (log.rewardEventId && claimedRewardIds.has(log.rewardEventId)) return;
       const quest = app.getQuestById?.(log.questId);
       if (!quest) return;
+      if (app.dedupeFamilyForQuest?.(quest) === "watching" && log.deduped) return;
       if (nativeQuestRole(quest)) return;
       if (hasMatchingLinkedTime(log, linkedTimesByQuest[log.questId] || [])) return;
       const mapped = skillForQuest(quest, log.at);
@@ -826,7 +841,7 @@
     if (reward.progressionRelevant === false && source !== "stewardship") return null;
     // Ledger rows derived from their own canonical logs must never be
     // projected a second time via the generic source/Realm fallback.
-    if (["steam-playtime", "library", "game", "timer"].includes(source)) return null;
+    if (["steam-playtime", "library", "game", "series", "series-milestone", "timer"].includes(source)) return null;
     // Only DZ40+ completed comprehension cards earn this specialized Skill XP.
     // Historical Japanese Extras must not gain retroactive levels on rebuild.
     if (source === "talent-reward-studios" && reward.metadata?.contentId === "dynariot-japanese" && reward.metadata?.japaneseReadingRewardV1 === true) {
@@ -2273,7 +2288,7 @@
   }
 
   function sourceLabel(source) {
-    return ({ time: "Focus & Time", habit: "Habit", "daily-checkin": "Daily Check-in", "journal-reflection": "Journal", book: "Library", game: "Games", quest: "Quest", sudoku: "Sudoku", "sudoku-replay": "Sudoku", nonogram: "Nonogram", "nonogram-replay": "Nonogram", "number-sense": "Number Sense", "number-sense-replay": "Number Sense", "memory-garden": "Memory Garden", "memory-garden-replay": "Memory Garden", "lexicon-calibration": "Lexicon Calibration", "lexicon-daily-word": "Daily Word", "lexicon-crossword": "Lexicon Lab", "kotoba-quick-review": "Kotoba / Quick Japanese", "kotoba-dungeon": "Kotoba Dungeon", "japanese-practice": "Japanese Practice", "weekly-review": "Weekly Review", "weekly-review-depth": "Weekly Review", "work-deep-brief": "Work Deep Brief", "schulcockpit-completion": "Schulcockpit", "steam-playtime": "Steam Playtime" })[source] || source || "Practice";
+    return ({ time: "Focus & Time", habit: "Habit", "daily-checkin": "Daily Check-in", "journal-reflection": "Journal", book: "Library", game: "Games", series: "Series", quest: "Quest", sudoku: "Sudoku", "sudoku-replay": "Sudoku", nonogram: "Nonogram", "nonogram-replay": "Nonogram", "number-sense": "Number Sense", "number-sense-replay": "Number Sense", "memory-garden": "Memory Garden", "memory-garden-replay": "Memory Garden", "lexicon-calibration": "Lexicon Calibration", "lexicon-daily-word": "Daily Word", "lexicon-crossword": "Lexicon Lab", "kotoba-quick-review": "Kotoba / Quick Japanese", "kotoba-dungeon": "Kotoba Dungeon", "japanese-practice": "Japanese Practice", "weekly-review": "Weekly Review", "weekly-review-depth": "Weekly Review", "work-deep-brief": "Work Deep Brief", "schulcockpit-completion": "Schulcockpit", "steam-playtime": "Steam Playtime" })[source] || source || "Practice";
   }
 
   function validSkillId(value) { return value && SKILL_BY_ID[value] ? value : null; }

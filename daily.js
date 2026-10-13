@@ -634,6 +634,8 @@
         return;
       }
 
+      const series = event.target.closest?.("[data-daily-series]");
+      if (series) { window.LifeRPGSeries?.open?.(series.dataset.dailySeries, series.dataset.dailySeriesEpisode, {startWatching:true}); return; }
       const bookLog = event.target.closest?.("[data-daily-book-log]");
       if (bookLog) {
         window.LifeRPGLibrary?.openLog?.(bookLog.dataset.dailyBookLog, {
@@ -698,6 +700,7 @@
       render();
     });
 
+    window.addEventListener("life-rpg:series-change", render);
     window.addEventListener("life-rpg:game-change", event => {
       if (!initialized) return;
       const source = String(event?.detail?.source || "");
@@ -1189,6 +1192,15 @@
         </article>`;
     }
 
+    if (pick.sourceType === "series") {
+      const item = window.LifeRPGSeries?.find?.(pick.sourceId);
+      if (!item) return unavailablePickMarkup(pick, slot, "This series is unavailable.");
+      const episode = item.seasons.flatMap(s => s.episodes).find(e => e.id === pick.seriesEpisodeId);
+      if (!episode) return unavailablePickMarkup(pick, slot, "This episode is unavailable.");
+      const completion = pickCompletion(pick);
+      if (item.archivedAt && !completion.done) return unavailablePickMarkup(pick, slot, "This title is archived. Restore it or swap this invitation.");
+      return `<article class="daily-pick-v14 ${slot.className} ${completion.done ? "done" : ""}"><div class="daily-pick-body-v14"><small>${esc(slot.title)} · Series · Optional</small><h3>Watch ${esc(window.LifeRPGSeries.label(item, episode))} of ${esc(item.title)}</h3><p>${pick.seriesMinutes ? `~${Number(pick.seriesMinutes)} min estimated` : "Duration unknown"} · ${esc(pick.reason)}</p><p>${esc(completion.progressText)}</p><button type="button" class="primary-button" data-daily-series="${escAttr(item.id)}" data-daily-series-episode="${escAttr(episode.id)}">Open episode</button></div><div class="daily-pick-actions-v14"><button class="secondary-button" type="button" data-daily-swap="${escAttr(pick.slot)}">↻ Swap</button></div></article>`;
+    }
     if (pick.sourceType === "book") {
       const book = findBook(pick.sourceId);
       if (!book) return unavailablePickMarkup(pick, slot, "This book is no longer in the Library. Reroll this card to replace it.");
@@ -1897,9 +1909,10 @@
     const adventures = eligibleAdventures();
     const books = eligibleBooks();
     const games = eligibleGames();
+    const series = eligibleSeries();
     const kotoba = eligibleKotobaActivities();
     const japaneseMedia = eligibleJapanesePractice();
-    if (!quests.length && !adventures.length && !books.length && !games.length && !kotoba.length && !japaneseMedia.length && !window.LifeRPGHoliday?.eligibleForDaily?.().length && !window.LifeRPGTodoist?.eligibleForDaily?.().length) return [];
+    if (!quests.length && !adventures.length && !books.length && !games.length && !series.length && !kotoba.length && !japaneseMedia.length && !window.LifeRPGHoliday?.eligibleForDaily?.().length && !window.LifeRPGTodoist?.eligibleForDaily?.().length) return [];
 
     const picked = [];
     const used = new Set();
@@ -2025,6 +2038,13 @@
     return Array.isArray(items) ? items.filter(book => book && book.id && book.title && book.status === "reading") : [];
   }
 
+  function eligibleSeries() { return window.LifeRPGSeries?.eligibleItems?.() || []; }
+  function scoreSeries(item, slot, checkIn) {
+    if (slot === "focus") return -100;
+    return 2 + (item.motivation === "high" ? 1.5 : 0) + (item.priority === "favorite" ? 0.5 : 0) +
+      (item.comfort && (checkIn.gentle || ["low", "fumes"].includes(checkIn.energy) || checkIn.stress === "high") ? 1 : 0);
+  }
+
   function eligibleGames() {
     const items = app.getState().gameLibrary?.items;
     return Array.isArray(items) ? items.filter(game => game && game.id && game.title && ["playing", "endless", "backlog"].includes(game.status)) : [];
@@ -2108,6 +2128,7 @@
       adventures.forEach(item => push("adventure", item, scoreAdventure(item, slot, checkIn)));
       books.forEach(book => push("book", book, scoreBook(book, slot, checkIn)));
       games.forEach(game => push("game", game, scoreGame(game, slot, checkIn)));
+      eligibleSeries().forEach(item => push("series", item, scoreSeries(item, slot, checkIn)));
       kotoba.forEach(item => push("kotoba", item, scoreKotoba(item, slot, checkIn)));
       japaneseMedia.forEach(item => push("japanese-media", item, scoreJapaneseMedia(item, slot, checkIn)));
       (window.LifeRPGHoliday?.eligibleForDaily?.() || []).forEach(item => push("holiday", item, window.LifeRPGHoliday.scoreForDaily(item, slot, checkIn)));
@@ -2116,6 +2137,7 @@
       // alternative survives the current reroll/exclusion set. Otherwise a small
       // calming exercise remains a legitimate fallback.
       const hasRealLeisure = slot === "joy" && lowBattery && candidates.some(c =>
+        (c.sourceType === "series") ||
         (c.sourceType === "book" && (c.item.role || "fun") === "fun") ||
         (c.sourceType === "game" && ["fun", "social"].includes(c.item.role || "fun")) ||
         (c.sourceType === "quest" && c.item.realm === "Hobbies"));
@@ -2138,6 +2160,7 @@
     const role = SLOTS[slot]?.role || slot;
     if (type === "holiday") return window.LifeRPGHoliday?.scoreForDaily?.(item, slot, checkIn) > -100;
     if (type === "todoist") return window.LifeRPGTodoist?.scoreForDaily?.(item, slot, checkIn) > -100;
+    if (type === "series") return slot !== "focus" && (slot !== "gentle" || item.status === "want" || item.comfort || item.recovery);
     if (type === "quest") {
       const allowed = Array.isArray(item?.plannerRoles) ? item.plannerRoles : [];
       return !allowed.length || allowed.includes(role);
@@ -2174,6 +2197,7 @@
   }
 
   function sourceRealm(type, item) {
+    if (type === "series") return item?.recovery ? "Recovery" : "Hobbies";
     if (type === "book") return bookRoleMeta(item?.role).realm;
     if (type === "game") return gameRoleMeta(item?.role).realm;
     if (type === "kotoba" || type === "japanese-media") return "Japanese";
@@ -2201,7 +2225,7 @@
     const sameType = usedTypes.filter(value => value === type).length;
     const sameRealm = realm ? usedRealms.filter(value => value === realm).length : 0;
     let penalty = sameType * 0.95 + sameRealm * 0.55;
-    if (slot === "joy" && ["book", "game", "adventure"].includes(type)) penalty *= 0.72;
+    if (slot === "joy" && ["book", "game", "series", "adventure"].includes(type)) penalty *= 0.72;
     if (slot === "gentle" && realm === "Recovery") penalty *= 0.9;
     return -penalty;
   }
@@ -2299,6 +2323,7 @@
   function pickRealm(pick) {
     if (!pick?.sourceId) return "";
     const type = pick.sourceType || "quest";
+    if (type === "series") return sourceRealm(type, window.LifeRPGSeries?.find?.(pick.sourceId));
     if (type === "book") return sourceRealm(type, findBook(pick.sourceId));
     if (type === "game") return sourceRealm(type, findGame(pick.sourceId));
     if (type === "adventure") return sourceRealm(type, findAdventure(pick.sourceId));
@@ -2309,6 +2334,12 @@
   }
 
   function makePickFromCandidate(slot, candidate, checkIn, previous = null) {
+    if (candidate.sourceType === "series") {
+      const item = candidate.item, episode = window.LifeRPGSeries.nextEpisode(item);
+      return {slot,sourceType:"series",sourceId:item.id,seriesEpisodeId:episode.id,seriesCycleId:item.activeCycleId,
+        seriesMinutes:episode.minutes,reason:item.comfort?"A familiar world, if it would feel good today.":item.status==="want"?"Try one episode, only if it sounds good today.":"One episode of a series you want to return to.",
+        pickedAt:Date.now(),rerolls:Number(previous?.rerolls || 0)};
+    }
     if (candidate.sourceType === "todoist") return {slot,sourceType:"todoist",sourceId:candidate.item.id,reason:"Eine konkrete fällige Todoist-Aufgabe – ohne den Freizeit-Slot zu verdrängen.",rerolls:Number(previous?.rerolls||0),pickedAt:Date.now()};
     if (candidate.sourceType === "holiday") return {
       slot, sourceType: "holiday", sourceId: candidate.item.id,
@@ -3073,6 +3104,7 @@
     if (type === "todoist") return window.LifeRPGTodoist?.getTask?.(id) || null;
     if (type === "holiday") return window.LifeRPGHoliday?.goalById?.(id) || null;
     if (type === "quest") return findQuest(id);
+    if (type === "series") return window.LifeRPGSeries?.find?.(id) || null;
     if (type === "game") return findGame(id);
     if (type === "book") return findBook(id);
     if (type === "adventure") return findAdventure(id);
@@ -3090,6 +3122,7 @@
       const motivation = window.LifeRPGGames?.motivationMeta?.(item.motivation) || { icon: "🙂", label: "Okay" };
       return { icon: "🎮", title: item.title, meta: `${motivation.icon} ${motivation.label} · ${item.status === "backlog" ? "Want to Play" : "Playing"} · ~${gameEstimatedMinutes(item, gameSessionAmount(item))} min` };
     }
+    if (type === "series") return {icon:"📺",title:item.title,meta:"One next episode · Optional"};
     if (type === "book") return { icon: "📚", title: item.title, meta: `${bookRoleMeta(item.role).label} · ~${sourceEstimatedMinutes(type, item)} min` };
     if (type === "adventure") return { icon: "✧", title: item.name, meta: `${item.realm || "Hobbies"} · ${item.nextAction || "Next action ready"}` };
     if (type === "kotoba") return { icon: item.kind === "dungeon" ? "⚔" : "🌸", title: item.title, meta: `Japanese · direct Kotoba action · ~${item.minutes || 15} min` };
@@ -3426,6 +3459,7 @@
     const start = pickStartMs(pick);
     const type = pick.sourceType || "quest";
 
+    if (type === "series") return window.LifeRPGSeries?.completion?.(pick) || {done:false,progress:0,progressText:"Episode unavailable"};
     if (type === "kotoba") {
       if (pick.kotobaKind === "reviews") {
         // A Daily plan follows actual confirmed Kotoba SRS work, irrespective of
@@ -3809,6 +3843,7 @@
   }
 
   function sourceEstimatedMinutes(type, item) {
+    if (type === "series") return window.LifeRPGSeries?.nextEpisode?.(item)?.minutes || 0;
     if (type === "todoist") return window.LifeRPGTodoist?.estimatedMinutes?.(item) || 20;
     if (type === "holiday") return Math.max(5, Number(item?.minutes || 20));
     if (type === "quest") return estimatedMinutes(item);
@@ -3825,6 +3860,7 @@
 
   function pickEstimatedMinutes(pick, item) {
     const type = pick?.sourceType || "quest";
+    if (type === "series") return pick.seriesMinutes || 0;
     if (type === "todoist") return window.LifeRPGTodoist?.estimatedMinutes?.(item) || 20;
     if (type === "holiday") return Math.max(5, Number(item?.minutes || 20));
     if (type === "book") {
@@ -3844,6 +3880,7 @@
   }
 
   function sourceEffortLabel(type, item) {
+    if (type === "series") return "Low effort";
     if (type === "todoist") return (window.LifeRPGTodoist?.estimatedMinutes?.(item)||20)<=20 ? "Low effort" : "Medium effort";
     if (type === "holiday") return (item?.effort || 'medium') + ' effort';
     if (type === "quest") return planningEffortLabel(item);
