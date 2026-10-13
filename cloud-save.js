@@ -73,7 +73,7 @@ window.LifeRPGCloudActions = {
 // DZ24 read-only status for the optional Schoolcockpit bridge. The bridge is
 // strictly paused until the existing cloud-save reconciles or the user resolves
 // a save conflict. It must never write the main save document itself.
-window.LifeRPGCloudStatus = { snapshot: () => ({ uid:currentUser?.uid || null, ready:!!currentUser && cloudReady && !conflictOpen, settled: cloudAuthSettled }) };
+window.LifeRPGCloudStatus = { snapshot: () => ({ uid:currentUser?.uid || null, ready:!!currentUser && cloudReady && !conflictOpen && !app.hasPendingLocalSave?.(), settled: cloudAuthSettled }) };
 
 const els = {
   statusButton: byId("cloudStatusButton"),
@@ -141,13 +141,17 @@ async function initCloudSave() {
       await reconcileWithCloud();
     } catch (error) {
       console.error("Cloud reconciliation failed", error);
-      setStatus("error", "Local safe · cloud pending", friendlyError(error));
+      setStatus("error", app.hasPendingLocalSave?.() ? "Local save failed" : "Local safe · cloud pending", friendlyError(error));
     }
   });
 
   window.addEventListener("life-rpg:state-persisted", () => {
     if (isLocalOnly() || applyingRemote || !currentUser || !cloudReady || conflictOpen) return;
     queueCloudSave();
+  });
+  window.addEventListener("life-rpg:local-save-error", () => {
+    clearTimeout(saveTimer);
+    setStatus("error", "Local save failed", "Latest changes are not permanently saved. Export them before closing this tab.");
   });
 }
 
@@ -179,7 +183,7 @@ function bindUI() {
   });
 
   window.addEventListener("offline", () => {
-    if (currentUser) setStatus("saving", "Local safe · offline", "Changes are still saved locally. Cloud sync will resume when this device is online.");
+    if (currentUser && !app.hasPendingLocalSave?.()) setStatus("saving", "Local safe · offline", "Changes are still saved locally. Cloud sync will resume when this device is online.");
   });
 }
 
@@ -236,6 +240,7 @@ function renderSignedIn(user) {
 
 async function reconcileWithCloud() {
   if (isLocalOnly() || !currentUser) return;
+  requireLocalPersistence();
 
   const expectedUid = currentUser.uid;
   const ref = currentSaveRef();
@@ -311,13 +316,14 @@ function queueCloudSave(delay = SAVE_DEBOUNCE_MS) {
   saveTimer = window.setTimeout(() => {
     saveToCloud().catch(error => {
       console.error("Cloud autosave failed", error);
-      setStatus("error", "Local safe · cloud pending", friendlyError(error));
+      setStatus("error", app.hasPendingLocalSave?.() ? "Local save failed" : "Local safe · cloud pending", friendlyError(error));
     });
   }, delay);
 }
 
 async function saveToCloud({ force = false, backupRemote = false, reason = "autosave" } = {}) {
   if (isLocalOnly() || !currentUser || (!cloudReady && !force) || conflictOpen) return;
+  requireLocalPersistence();
   if (!navigator.onLine) {
     setStatus("saving", "Local safe · offline", "Changes are saved locally and will sync when this device is online again.");
     return;
@@ -492,7 +498,11 @@ async function performCloudSave({ force = false, backupRemote = false, reason = 
     });
 
     cloudReady = true;
-    setStatus("synced", "Synced", "Local autosave and cloud save are up to date.");
+    if (app.hasPendingLocalSave?.()) {
+      setStatus("error", "Local save failed", "An earlier change reached the cloud, but your latest changes still need local saving. Export them before closing.");
+    } else {
+      setStatus("synced", "Synced", "Local autosave and cloud save are up to date.");
+    }
   } catch (error) {
     if (error?.code === "life-rpg/remote-revision-changed" || error?.code === "life-rpg/empty-overwrite-blocked") {
       const remote = await readRemoteSave(ref);
@@ -518,7 +528,7 @@ async function manualSync() {
     if (!conflictOpen) app.showToast("Save sync checked.");
   } catch (error) {
     console.error(error);
-    setStatus("error", "Local safe · sync failed", friendlyError(error));
+    setStatus("error", app.hasPendingLocalSave?.() ? "Local save failed" : "Local safe · sync failed", friendlyError(error));
   } finally {
     els.syncButton.disabled = false;
   }
@@ -542,9 +552,9 @@ function showConflict(remote) {
 async function useCloudConflictChoice() {
   if (!pendingConflict) return;
   const remote = pendingConflict;
-  backupLocal("before-use-cloud");
+  if (!applyRemoteSave(remote, "conflict-use-cloud")) return;
   closeConflict();
-  applyRemoteSave(remote, "conflict-use-cloud");
+  setStatus("synced", "Synced", "Cloud progress is now active on this device.");
   app.showToast("Cloud save restored on this device.");
 }
 
@@ -556,11 +566,16 @@ async function useLocalConflictChoice() {
   cloudReady = true;
 
   try {
+    requireLocalPersistence();
+    if (!navigator.onLine || isLocalOnly()) {
+      throw new Error("Cloud save was not uploaded. Reconnect before confirming this choice.");
+    }
     await saveToCloud({ force: true, backupRemote: true, reason: "conflict-use-local" });
     app.showToast("This device was kept. The previous cloud save was backed up.");
   } catch (error) {
     console.error(error);
-    setStatus("error", "Local safe · cloud pending", friendlyError(error));
+    showConflict(remote);
+    setStatus("error", app.hasPendingLocalSave?.() ? "Local save failed" : "Local safe · cloud pending", friendlyError(error));
   }
 }
 
@@ -571,16 +586,31 @@ function closeConflict() {
 }
 
 function applyRemoteSave(remote, reason) {
-  backupLocal(reason);
+  if (!backupLocal(reason)) {
+    cloudReady = false;
+    setStatus("error", "Restore blocked", "Your current progress could not be backed up. Export it before retrying.");
+    return false;
+  }
   applyingRemote = true;
 
   try {
-    app.replaceState(remote.state, { suppressCloud: true, source: "cloud" });
+    if (!app.replaceState(remote.state, { suppressCloud: true, source: "cloud" })) {
+      cloudReady = false;
+      setStatus("error", "Restore failed", "The cloud save could not be stored locally. Your previous progress is still active.");
+      return false;
+    }
     acceptSyncedRevision(remote, fingerprint(cleanState(app.getState())));
     cloudReady = true;
     setStatus("synced", "Synced", "Cloud progress is now active on this device.");
+    return true;
   } finally {
     queueMicrotask(() => { applyingRemote = false; });
+  }
+}
+
+function requireLocalPersistence() {
+  if (app.hasPendingLocalSave?.() && !app.saveState({ suppressCloud: true, source: "cloud-local-retry" })) {
+    throw new Error("Latest progress is not saved locally. Export it or retry local saving before syncing.");
   }
 }
 
@@ -606,7 +636,7 @@ function setStatus(state, title, detail) {
       synced: "Synced",
       saving: "Cloud…",
       conflict: "Choose",
-      error: "Local safe"
+      error: "Attention"
     };
     els.statusShort.textContent = shortMap[state] || "Cloud";
   }
@@ -617,7 +647,7 @@ function setStatus(state, title, detail) {
   if (els.cloudLastSync) els.cloudLastSync.textContent = lastCloudSavedAtClient ? formatDateTime(lastCloudSavedAtClient) : "—";
   document.dispatchEvent(new CustomEvent("life-rpg:cloud-status", { detail: {
     state, title, detail, authSettled: cloudAuthSettled, uid: currentUser?.uid || null,
-    ready: Boolean(currentUser && cloudReady && !conflictOpen), conflict: conflictOpen
+    ready: Boolean(currentUser && cloudReady && !conflictOpen && !app.hasPendingLocalSave?.()), conflict: conflictOpen
   } }));
 }
 
@@ -948,8 +978,7 @@ function setCloudMeta(patch) {
   try {
     localStorage.setItem(CLOUD_META_KEY, JSON.stringify(meta));
   } catch (error) {
-    // Auxiliary copies must never be allowed to break the canonical local save.
-    try { localStorage.removeItem(LOCAL_ROLLBACK_KEY); } catch { /* no-op */ }
+    // A rollback is user data: metadata caching must never delete it.
     [
       "life-rpg-games-shadow-v1",
       "life-rpg-habits-shadow-v1",
@@ -974,19 +1003,24 @@ function getDeviceId() {
 }
 
 function backupLocal(reason) {
-  const payload = JSON.stringify({
-    reason,
-    createdAt: new Date().toISOString(),
-    state: cleanState(app.getState())
-  });
   try {
-    localStorage.setItem(LOCAL_ROLLBACK_KEY, payload);
-  } catch (error) {
-    // A rollback is helpful, but not if it fills localStorage and prevents the
-    // actual save from working. Keep a session-only fallback when possible.
-    console.warn("Could not create persistent local rollback copy", error);
-    try { sessionStorage.setItem(LOCAL_ROLLBACK_KEY, payload); } catch { /* no-op */ }
-  }
+    const payload = JSON.stringify({
+      reason,
+      createdAt: new Date().toISOString(),
+      state: cleanState(app.getState())
+    });
+    // Try persistent storage first, then a verified same-tab fallback.
+    for (const storageName of ["localStorage", "sessionStorage"]) {
+      try {
+        const storage = window[storageName];
+        storage.setItem(LOCAL_ROLLBACK_KEY, payload);
+        if (storage.getItem(LOCAL_ROLLBACK_KEY) === payload) return true;
+      } catch (error) {
+        console.warn(`Could not create ${storageName} rollback copy`, error);
+      }
+    }
+  } catch (error) { console.warn("Could not prepare local rollback copy", error); }
+  return false;
 }
 
 function exportSave() {
@@ -1025,10 +1059,13 @@ async function importSaveFromFile(event) {
     const okay = window.confirm("Import this save? Your current local save will be kept as a rollback copy first.");
     if (!okay) return;
 
-    backupLocal("before-import");
+    if (!backupLocal("before-import")) throw new Error("Current progress could not be backed up. Export it before importing.");
     applyingRemote = true;
-    app.replaceState(importedState, { suppressCloud: true, source: "import" });
-    applyingRemote = false;
+    try {
+      if (!app.replaceState(importedState, { suppressCloud: true, source: "import" })) {
+        throw new Error("Imported progress could not be saved locally. Your previous progress is still active.");
+      }
+    } finally { applyingRemote = false; }
 
     if (currentUser && cloudReady) {
       await saveToCloud({ force: true, backupRemote: true, reason: "manual-import" });

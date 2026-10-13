@@ -4,6 +4,9 @@
   const STORAGE_KEY = "lifeRpgPrototypeV01";
   const CLOUD_META_KEY = "lifeRpgCloudMetaV01";
   const LOCAL_ROLLBACK_KEY = "lifeRpgLocalRollbackV01";
+  const PENDING_SAVE_KEY = "lifeRpgPendingSaveV01";
+  let localSavePending = false;
+  let localRecoveryAvailable = false;
   const LEGACY_SHADOW_KEYS = [
     "life-rpg-games-shadow-v1",
     "life-rpg-habits-shadow-v1",
@@ -1104,6 +1107,11 @@
     renderDateAndGreeting();
     bindNavigation();
     bindActions();
+    window.addEventListener("beforeunload", event => {
+      if (!localSavePending) return;
+      event.preventDefault();
+      event.returnValue = "";
+    });
     migrateLegacyState();
     renderAll();
   }
@@ -1120,6 +1128,19 @@
     prepareStorageBeforeLoad();
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
+      let pending = null;
+      try { pending = sessionStorage.getItem(PENDING_SAVE_KEY); } catch { /* optional recovery storage */ }
+      if (pending) {
+        const recovery = JSON.parse(pending);
+        // Never overwrite a save updated by another tab with an older recovery.
+        if (raw !== recovery.baseRaw && raw !== recovery.raw) {
+          throw new Error("Local save changed since the pending recovery was created.");
+        }
+        if (raw) deserializeLocalState(raw); // Preserve decode protection for the main save.
+        localSavePending = true;
+        localRecoveryAvailable = true;
+        return mergeState(defaultState(), deserializeLocalState(recovery.raw));
+      }
       if (!raw) return defaultState();
       return mergeState(defaultState(), deserializeLocalState(raw));
     } catch (error) {
@@ -1481,9 +1502,7 @@
       try { localStorage.removeItem(key); } catch { /* no-op */ }
     });
     if (aggressive) {
-      // These are optional caches / rollback copies. The canonical current save
-      // remains intact, so dropping them is preferable to making all new saves fail.
-      try { localStorage.removeItem(LOCAL_ROLLBACK_KEY); } catch { /* no-op */ }
+      // Rollbacks are user data, not disposable caches.
       OPTIONAL_CACHE_KEYS.forEach(key => {
         try { localStorage.removeItem(key); } catch { /* no-op */ }
       });
@@ -1678,11 +1697,13 @@
     const source = options.source || "app";
     let persisted = false;
     let lastError = null;
+    let raw = null;
 
     const attempt = aggressive => {
       try {
         reclaimStorage({ aggressive });
-        localStorage.setItem(STORAGE_KEY, serializeLocalState(persistenceStateSnapshot()));
+        raw ||= serializeLocalState(persistenceStateSnapshot());
+        localStorage.setItem(STORAGE_KEY, raw);
         persisted = true;
         return true;
       } catch (error) {
@@ -1694,15 +1715,33 @@
     if (!attempt(false) && isQuotaError(lastError)) attempt(true);
 
     if (!persisted) {
+      if (options.recoverOnFailure !== false) {
+        localSavePending = true;
+        localRecoveryAvailable = false;
+        try {
+          raw ||= serializeLocalState(persistenceStateSnapshot());
+          const recovery = JSON.stringify({ baseRaw: localStorage.getItem(STORAGE_KEY), raw });
+          sessionStorage.setItem(PENDING_SAVE_KEY, recovery);
+          localRecoveryAvailable = sessionStorage.getItem(PENDING_SAVE_KEY) === recovery;
+        } catch { /* Keep the unsaved state in memory and warn before navigation. */ }
+        showSaveWarning();
+      }
       console.error("Life RPG local save failed", lastError);
       try {
         window.dispatchEvent(new CustomEvent("life-rpg:local-save-error", { detail: { source, error: String(lastError?.message || lastError || "Save failed") } }));
       } catch { /* no-op */ }
-      if (typeof showToast === "function") showToast("Local save needs space. Life RPG kept this change in memory; export the save before reloading.");
+      if (typeof showToast === "function") showToast(options.recoverOnFailure === false
+        ? "Save could not be replaced. Your previous progress is still active."
+        : "Local save failed. Please export your progress before closing this tab.");
       return false;
     }
 
-    renderDevOutput();
+    localSavePending = false;
+    localRecoveryAvailable = false;
+    try { sessionStorage.removeItem(PENDING_SAVE_KEY); } catch { /* A matching main save remains authoritative. */ }
+    document.getElementById("localSaveWarning")?.remove();
+
+    try { renderDevOutput(); } catch (error) { console.warn("Save debug display failed", error); }
 
     if (localSaveMigratedFromLegacy) {
       localSaveMigratedFromLegacy = false;
@@ -1726,32 +1765,73 @@
   function replaceState(nextState, options = {}) {
     if (!nextState || typeof nextState !== "object") return false;
 
-    state = mergeState(defaultState(), nextState);
+    const previousState = state;
+    try {
+      // Migration may mutate nested fields; never share them with the old state.
+      state = mergeState(defaultState(), JSON.parse(JSON.stringify(nextState)));
 
-    if ("apartment" in state.locations) {
-      delete state.locations.apartment;
+      if ("apartment" in state.locations) {
+        delete state.locations.apartment;
+      }
+
+      if (state.flags.LOCATION_SHARED_APARTMENT_INTRODUCED) state.locations.sharedApartment = true;
+      if (state.flags.MINA_REAL_COFFEE_COMPLETE) state.locations.cafe = true;
+      if (state.flags.MINA_KNOWS_COMMUTE_BAD) state.locations.station = true;
+      if (state.flags.LOCATION_GYM_INTRODUCED) state.locations.gym = true;
+      if (state.flags.LOCATION_AGENCY_INTRODUCED) state.locations.agency = true;
+      if (state.flags.LOCATION_KONBINI_INTRODUCED) state.locations.konbini = true;
+      if (state.flags.LOCATION_GROCERY_INTRODUCED) state.locations.grocery = true;
+      if (state.flags.LOCATION_PARK_INTRODUCED) state.locations.park = true;
+      if (!state.flags.LOCATION_DISTRICT_INTRODUCED) state.locations.district = false;
+      if (state.flags.SHARED_APARTMENT_IS_HOME || state.flags.DYNARIOT_MOVE_IN_COMPLETE) state.locations.currentHome = false;
+
+      migrateQuestReferencesInState();
+      migrateCapabilityCurve();
+      ensureProgressionState();
+      migrateLegacyRewardLedger();
+      migrateCoinEconomyV306();
+      state.version = 9;
+      if (!saveState({ suppressCloud: Boolean(options.suppressCloud), source: options.source || "replace", recoverOnFailure: false })) {
+        state = previousState;
+        refreshRewardResourceNumbers();
+        return false;
+      }
+    } catch (error) {
+      state = previousState;
+      refreshRewardResourceNumbers();
+      console.error("Life RPG save replacement failed", error);
+      return false;
     }
-
-    if (state.flags.LOCATION_SHARED_APARTMENT_INTRODUCED) state.locations.sharedApartment = true;
-    if (state.flags.MINA_REAL_COFFEE_COMPLETE) state.locations.cafe = true;
-    if (state.flags.MINA_KNOWS_COMMUTE_BAD) state.locations.station = true;
-    if (state.flags.LOCATION_GYM_INTRODUCED) state.locations.gym = true;
-    if (state.flags.LOCATION_AGENCY_INTRODUCED) state.locations.agency = true;
-    if (state.flags.LOCATION_KONBINI_INTRODUCED) state.locations.konbini = true;
-    if (state.flags.LOCATION_GROCERY_INTRODUCED) state.locations.grocery = true;
-    if (state.flags.LOCATION_PARK_INTRODUCED) state.locations.park = true;
-    if (!state.flags.LOCATION_DISTRICT_INTRODUCED) state.locations.district = false;
-    if (state.flags.SHARED_APARTMENT_IS_HOME || state.flags.DYNARIOT_MOVE_IN_COMPLETE) state.locations.currentHome = false;
-
-    migrateQuestReferencesInState();
-    migrateCapabilityCurve();
-    ensureProgressionState();
-    migrateLegacyRewardLedger();
-    migrateCoinEconomyV306();
-    state.version = 9;
-    saveState({ suppressCloud: Boolean(options.suppressCloud), source: options.source || "replace" });
     renderAll();
     return true;
+  }
+
+  function showSaveWarning() {
+    let notice = document.getElementById("localSaveWarning");
+    if (!notice) {
+      notice = document.createElement("div");
+      notice.id = "localSaveWarning";
+      notice.setAttribute("role", "alert");
+      notice.style.cssText = "position:fixed;bottom:0;left:0;right:0;z-index:10000;padding:12px;background:#fff0df;color:#3c2630;";
+      const text = document.createElement("span");
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = "Export current progress";
+      button.addEventListener("click", () => {
+        const payload = { format: "LifeRPGSave", schemaVersion: 7, exportedAt: new Date().toISOString(), state: persistenceStateSnapshot() };
+        const url = URL.createObjectURL(new Blob([JSON.stringify(payload)], { type: "application/json" }));
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "life-rpg-recovery-save.json";
+        link.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      });
+      notice.append(text, button);
+      document.body.append(notice);
+    }
+    notice.firstChild.textContent = localRecoveryAvailable
+      ? "Your latest changes have a recovery copy for reloads in this tab. They are not saved permanently or synced. Export before closing. "
+      : "Your latest changes are only in memory. Reloading or closing can lose them. Export now. ";
   }
 
   function populateFormOptions() {
@@ -3515,6 +3595,7 @@
     formatEnergy,
     formatCoinValue,
     saveState,
+    hasPendingLocalSave: () => localSavePending || localSaveDecodeFailure,
     replaceState,
     renderAll,
     renderWorld,
