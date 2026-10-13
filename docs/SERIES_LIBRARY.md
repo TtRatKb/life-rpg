@@ -25,8 +25,12 @@ Existing balancing tables are unchanged. Reviews give no rewards.
 
 Known ended seasons need an explicit regular-episode total matching their stored
 regular episodes. A series must have a known end and all regular seasons complete.
-Specials are optional. A new rewatch requires completing the current known cycle,
-keeps the first-watch history, and never pays first-completion milestones again.
+Specials are optional. Explicitly starting a rewatch also works when the previous
+cycle is unfinished. It keeps every prior log and milestone receipt and never
+pays first-completion milestones for the new rewatch. Repeated activation of an
+empty rewatch reuses its cycle ID. The cycle selector can return to an earlier
+first-watch or rewatch without any payout; only newly confirmed episodes count.
+First-completion bonuses remain limited to the original first-watch cycle.
 Historical sessions never pay episode rewards or backfill milestones.
 
 Undo retracts owned episode/completion rewards through `revokeActivityReward()`.
@@ -40,15 +44,31 @@ pruning. This is not a claim of general identity resolution for arbitrary freely
 named quests or timers outside the existing protection window.
 
 Each Series transaction persists all related state once. On a failed write it
-rolls back its own state and rewards, with visible failure and retained form input.
+rolls back its own state and rewards, refreshes only resource/XP displays through
+`LifeRPGApp.refreshResources()`, and retains unsaved form input. This refresh
+does not render gameplay, reconcile Skills, persist state or award rewards.
 `recoverOnFailure:false` prevents a failed, rolled-back transaction from entering
 the main app's pending-save recovery. Earlier pending progress remains intact.
+
+Daily candidates include Watching and Want to Watch titles with a known next
+episode and positive motivation; unknown, paused, dropped and archived titles
+are excluded. Want titles are optional invitations and can occupy Care/Optional
+slots, with the same gentle Comfort preference. Suggestion generation pays
+nothing and leaves status untouched; explicitly opening a native Daily episode
+changes Want to Watching, as does the first confirmed log.
 
 Daily picks pin one actual episode and cycle. Completion reads its canonical log
 since the pick, without episode rewards. My Week renders planned watch blocks,
 confirmed intervals and completion-only chips separately from canonical work time.
 No watch estimate is inserted into `timeTracking`, and watch blocks never enter the
 school timetable's automatic logging path.
+
+Archiving is reversible soft removal. It hides a mistaken title from the shelf
+and new suggestions, blocks episode logging until restored, and retains status,
+provider ID, reviews, episode/cycle IDs, logs, plans, milestone receipts and all
+existing rewards. "Show archived titles" and "Restore title" bring it back.
+Catalog duplicate detection still includes archived titles, so restore does not
+create a fresh entitlement or pay again. Existing plans/history remain readable.
 
 ## Catalog policy
 
@@ -92,3 +112,15 @@ and cover behavior; actual installed-PWA update and offline cache behavior.
 A Chromium viewport is not Safari, a Firebase stub is not provider E2E, and static
 CORE version checks are not an offline installation test. No deployment or merge
 is part of this change.
+
+## PR #4 review verification
+
+Review fixes are covered by five additional synthetic browser regressions:
+Want-to-Watch through the real candidate pipeline and native selection, partial
+rewatch and return to the first cycle, visible Coins/XP rollback after a failed
+completion payout, archive/restore with stable receipts and plans, and failed
+review actions preserving unrelated pending-save recovery. The full suite is
+`python3 -m unittest discover -s tests -v` (37 tests: 16 existing save-safety,
+21 Series tests). Runtime and CORE query versions for changed files advance to
+`0.31.4-series2`; unchanged module versions remain intact. Real provider/device
+and installed-PWA verification still remain manual release checks.

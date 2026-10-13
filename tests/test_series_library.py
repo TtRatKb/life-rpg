@@ -422,10 +422,11 @@ class SeriesLibraryTests(unittest.TestCase):
         self.assertGreaterEqual(self.page.locator('#seriesReviewForm button').first.bounding_box()['height'],44)
         html=(ROOT/'index.html').read_text();sw=(ROOT/'service-worker.js').read_text()
         for name in ['series-library.js','series-library.css','app.js','daily.js','my-week.js','skills.js','time.js','pwa.js']:
-            self.assertIn(f'{name}?v=0.31.4-series1',html)
-            self.assertIn(f'{name}?v=0.31.4-series1',sw)
-        self.assertIn('life-rpg-v0.31.4-series1',sw)
-        self.assertIn('const VERSION = "0.31.4-series1"',(ROOT/'pwa.js').read_text())
+            version='0.31.4-series2' if name in ['app.js','daily.js','series-library.js','series-library.css','pwa.js'] else '0.31.4-series1'
+            self.assertIn(f'{name}?v={version}',html)
+            self.assertIn(f'{name}?v={version}',sw)
+        self.assertIn('life-rpg-v0.31.4-series2',sw)
+        self.assertIn('const VERSION = "0.31.4-series2"',(ROOT/'pwa.js').read_text())
 
     def test_complete_local_bootstrap_with_external_services_blocked(self):
         # Real index and all local modules. Firebase stays mocked; service workers stay blocked.
@@ -437,6 +438,117 @@ class SeriesLibraryTests(unittest.TestCase):
         self.make()
         self.page.evaluate('LifeRPGSeries.open(seriesId)')
         self.assertTrue(self.page.locator('#seriesDetail').evaluate('(d)=>d.open'))
+
+
+    def test_want_to_watch_native_daily_invitation_and_first_log(self):
+        self.make(status='want',comfort=False,motivation='high',priority='favorite')
+        result=self.page.evaluate("""() => {
+          const a=LifeRPGSeries,i=a.find(seriesId),root=LifeRPGApp.getState(),t=seriesDailyTest;
+          const comfort=a.addItem({title:'Synthetic Comfort',status:'watching',comfort:true,seasons:[{number:1,episodeCount:2}]}).item;
+          a.addItem({title:'Synthetic Unknown Want',status:'want',seasons:[]});
+          const eligible=a.eligibleItems().map(x=>x.id),before=root.characterXP;
+          root.selectedQuestIds=[];
+          const checkIn={energy:'low',stress:'high',time:'decent',obligations:'open',mood:'okay',sleep:'fine'};
+          const picks=t.buildPicks(checkIn,[],{},new Set(LifeRPGApp.getQuestCatalog().map(q=>q.id))),pick=picks.find(p=>p.sourceId===i.id);
+          if(!pick)throw new Error('Want title missing from real candidate pipeline');
+          const now=new Date(),key=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+          root.dailyPlanner.days[key]={date:key,checkIn,picks:[pick]};LifeRPGDaily.render();
+          const suggestedStatus=i.status,initial=t.pickCompletion(pick).done,optionalBefore=t.sourceAllowedForSlot('series',i,'gentle',checkIn);
+          document.querySelector('[data-daily-series]').click();
+          const selectedStatus=a.find(i.id).status,selectionXP=root.characterXP-before;
+          const log=a.logEpisode(i.id,pick.seriesEpisodeId),duplicate=a.logEpisode(i.id,pick.seriesEpisodeId);
+          return {eligible:eligible.includes(i.id)&&eligible.includes(comfort.id)&&eligible.length===2,suggestedStatus,selectedStatus,selectionXP,
+            initial,done:t.pickCompletion(pick).done,delta:root.characterXP-before,duplicate:duplicate.duplicate,
+            optional:optionalBefore,focus:t.sourceAllowedForSlot('series',i,'focus',checkIn),cycle:log.log.watchCycleId===pick.seriesCycleId};
+        }""")
+        self.assertEqual(result,dict(eligible=True,suggestedStatus='want',selectedStatus='watching',selectionXP=0,initial=False,done=True,delta=15,duplicate=True,optional=True,focus=False,cycle=True))
+
+    def test_partial_rewatch_keeps_first_history_and_returns_without_rewards(self):
+        self.make(seasons=[dict(number=1,episodeCount=1,ended=True),dict(number=2,episodeCount=2,ended=True)])
+        result=self.page.evaluate("""() => {
+          const a=LifeRPGSeries,i=a.find(seriesId),root=LifeRPGApp.getState(),base=root.characterXP,first=i.activeCycleId,ep=i.seasons.flatMap(s=>s.episodes);
+          const original=a.logEpisode(i.id,ep[0].id).log,receipt=JSON.stringify(i.milestones);
+          const rewatch=a.startRewatch(i.id),second=rewatch.cycle.id;
+          const duplicate=a.startRewatch(i.id),sameEmptyCycle=duplicate.cycle.id===second;
+          a.logEpisodes(i.id,ep.map(e=>e.id));const rewatchXP=root.characterXP-base;
+          const noFirstBonus=JSON.stringify(i.milestones)===receipt,coinsBefore=root.coins;
+          a.activateCycle(i.id,first);const resumed=a.nextEpisode(i).id===ep[1].id;
+          const before=root.characterXP;a.activateCycle(i.id,first);const noSwitchReward=root.characterXP===before;
+          a.logEpisodes(i.id,[ep[1].id,ep[2].id]);const completed=root.characterXP-base;
+          a.activateCycle(i.id,second);a.logEpisode(i.id,ep[0].id);
+          return {sameEmptyCycle,noFirstBonus,resumed,noSwitchReward,rewatchXP,completed,unchanged:root.characterXP-base===completed,
+            firstReceipt:a.getLogs().find(l=>l.id===original.id).rewardEventId===original.rewardEventId,cycles:i.watchCycles.length,
+            milestones:Object.keys(i.milestones).length,coinsBefore,coinsAfter:root.coins,logs:a.getLogs().length};
+        }""")
+        self.assertEqual(result,dict(sameEmptyCycle=True,noFirstBonus=True,resumed=True,noSwitchReward=True,rewatchXP=70,completed=120,unchanged=True,firstReceipt=True,cycles=2,milestones=3,coinsBefore=0,coinsAfter=50,logs=6))
+        self.page.reload()
+        self.page.wait_for_function('window.LifeRPGSeries')
+        self.assertEqual(self.page.evaluate('LifeRPGSeries.getLogs().length'),6)
+        self.page.evaluate("""() => {const a=LifeRPGSeries,i=LifeRPGApp.getState().seriesLibrary.items[0];a.open(i.id);document.getElementById('seriesCycleForm').elements.cycleId.value=i.watchCycles[0].id;document.getElementById('seriesCycleForm').requestSubmit();}""")
+        self.assertEqual(self.page.evaluate('LifeRPGApp.getState().seriesLibrary.items[0].activeCycleId === LifeRPGApp.getState().seriesLibrary.items[0].watchCycles[0].id'),True)
+
+    def test_failed_completion_restores_visible_resources_and_retains_draft(self):
+        self.make(seasons=[dict(number=1,episodeCount=1,ended=True)])
+        self.page.evaluate('LifeRPGApp.renderAll(); LifeRPGSeries.open(seriesId)')
+        self.page.locator('#seriesReviewForm textarea').fill('Retain synthetic unsaved draft')
+        result=self.page.evaluate("""() => {
+          const app=LifeRPGApp,a=LifeRPGSeries,i=a.find(seriesId),root=app.getState();
+          const ids=['coinsValue','coinsMoneyValue','xpLabel','profileXP','levelValue','storyEnergyValue','storyEnergyValueLarge'];
+          const visible=()=>ids.map(id=>document.getElementById(id).textContent).concat(document.getElementById('xpBar').style.width);
+          const before=visible(),xp=root.characterXP,coins=root.coins;let during=null,rewards=0;
+          const award=app.awardActivity;app.awardActivity=(...args)=>{rewards++;return award(...args);};
+          window.addEventListener('life-rpg:local-save-error',()=>{during=visible();},{once:true});
+          storageFailures={main:true,session:true};const failed=a.logEpisode(i.id,i.seasons[0].episodes[0].id);
+          app.awardActivity=award;
+          return {failed:failed.ok,before,after:visible(),transientCoins:during[0],xp:root.characterXP-xp,coins:root.coins-coins,
+            rewards,logs:a.getLogs().length,pending:app.hasPendingLocalSave()};
+        }""")
+        self.assertFalse(result['failed'])
+        self.assertEqual(result['transientCoins'],'50')
+        self.assertEqual(result['before'],result['after'])
+        self.assertEqual((result['xp'],result['coins'],result['rewards'],result['logs'],result['pending']),(0,0,3,0,False))
+        self.assertEqual(self.page.locator('#seriesReviewForm textarea').input_value(),'Retain synthetic unsaved draft')
+        self.page.evaluate('storageFailures={}')
+        self.page.reload()
+        self.page.wait_for_function('window.LifeRPGSeries')
+        self.assertEqual(self.page.evaluate('LifeRPGSeries.getLogs().length'),0)
+
+    def test_archive_restore_preserves_ids_logs_rewards_reviews_and_plans(self):
+        self.make(provider=dict(name='TVmaze',id=999,url='https://www.tvmaze.com/shows/999'))
+        result=self.page.evaluate("""() => {
+          const a=LifeRPGSeries,i=a.find(seriesId),root=LifeRPGApp.getState(),ep=i.seasons[0].episodes;
+          a.logEpisode(i.id,ep[0].id);a.saveReview(i.id,9,'Synthetic saved review');
+          a.planEpisode(i.id,ep[1].id,new Date().toISOString(),new Date(Date.now()+120000).toISOString());
+          const log=JSON.stringify(a.getLogs()),plans=JSON.stringify(a.getPlans()),before=root.characterXP;
+          a.open(i.id);document.querySelector('[data-series-archive]').click();
+          const hidden=!document.querySelector(`[data-series-open="${i.id}"]`),eligible=a.eligibleItems().some(x=>x.id===i.id);
+          const blocked=a.logEpisode(i.id,ep[1].id).ok;
+          const duplicate=a.addItem({title:'Synthetic duplicate catalog',provider:i.provider,seasons:[]}).ok;
+          const archived=Boolean(a.find(i.id).archivedAt);
+          document.querySelector('[data-series-restore]').click();
+          const repeated=a.logEpisode(i.id,ep[0].id).duplicate;
+          return {hidden,eligible,blocked,duplicate,archived,repeated,delta:root.characterXP-before,logs:JSON.stringify(a.getLogs())===log,
+            plans:JSON.stringify(a.getPlans())===plans,review:a.find(i.id).review.notes,active:i.activeCycleId===a.find(i.id).activeCycleId};
+        }""")
+        self.assertEqual(result,dict(hidden=True,eligible=False,blocked=False,duplicate=False,archived=True,repeated=True,delta=0,logs=True,plans=True,review='Synthetic saved review',active=True))
+        self.page.evaluate("""() => {const a=LifeRPGSeries,i=a.find(seriesId);a.archiveItem(i.id);document.getElementById('seriesDetail').close();document.getElementById('seriesShowArchived').checked=true;document.getElementById('seriesShowArchived').dispatchEvent(new Event('input',{bubbles:true}));}""")
+        self.assertEqual(self.page.locator('[data-series-open]').count(),1)
+        self.page.reload()
+        self.page.wait_for_function('window.LifeRPGSeries')
+        self.assertTrue(self.page.evaluate('Boolean(LifeRPGApp.getState().seriesLibrary.items[0].archivedAt)'))
+        self.assertEqual(self.page.evaluate('LifeRPGSeries.getLogs().length'),1)
+
+    def test_review_actions_roll_back_safely_with_pending_prior_progress(self):
+        self.make()
+        result=self.page.evaluate("""() => {
+          const a=LifeRPGSeries,i=a.find(seriesId),root=LifeRPGApp.getState();storageFailures={main:true};
+          root.profile.name='Synthetic pending unrelated progress';LifeRPGApp.saveState();
+          const recovery=sessionStorage.getItem('lifeRpgPendingSaveV01'),cycle=i.activeCycleId;
+          const rewatch=a.startRewatch(i.id),archive=a.archiveItem(i.id);
+          return {rewatch:rewatch.ok,archive:archive.ok,recovery:sessionStorage.getItem('lifeRpgPendingSaveV01')===recovery,
+            cycle:a.find(i.id).activeCycleId===cycle,archived:Boolean(a.find(i.id).archivedAt),pending:LifeRPGApp.hasPendingLocalSave(),name:root.profile.name};
+        }""")
+        self.assertEqual(result,dict(rewatch=False,archive=False,recovery=True,cycle=True,archived=False,pending=True,name='Synthetic pending unrelated progress'))
 
 if __name__ == '__main__':
     unittest.main()

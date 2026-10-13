@@ -635,7 +635,7 @@
       }
 
       const series = event.target.closest?.("[data-daily-series]");
-      if (series) { window.LifeRPGSeries?.open?.(series.dataset.dailySeries, series.dataset.dailySeriesEpisode); return; }
+      if (series) { window.LifeRPGSeries?.open?.(series.dataset.dailySeries, series.dataset.dailySeriesEpisode, {startWatching:true}); return; }
       const bookLog = event.target.closest?.("[data-daily-book-log]");
       if (bookLog) {
         window.LifeRPGLibrary?.openLog?.(bookLog.dataset.dailyBookLog, {
@@ -1198,6 +1198,7 @@
       const episode = item.seasons.flatMap(s => s.episodes).find(e => e.id === pick.seriesEpisodeId);
       if (!episode) return unavailablePickMarkup(pick, slot, "This episode is unavailable.");
       const completion = pickCompletion(pick);
+      if (item.archivedAt && !completion.done) return unavailablePickMarkup(pick, slot, "This title is archived. Restore it or swap this invitation.");
       return `<article class="daily-pick-v14 ${slot.className} ${completion.done ? "done" : ""}"><div class="daily-pick-body-v14"><small>${esc(slot.title)} · Series · Optional</small><h3>Watch ${esc(window.LifeRPGSeries.label(item, episode))} of ${esc(item.title)}</h3><p>${pick.seriesMinutes ? `~${Number(pick.seriesMinutes)} min estimated` : "Duration unknown"} · ${esc(pick.reason)}</p><p>${esc(completion.progressText)}</p><button type="button" class="primary-button" data-daily-series="${escAttr(item.id)}" data-daily-series-episode="${escAttr(episode.id)}">Open episode</button></div><div class="daily-pick-actions-v14"><button class="secondary-button" type="button" data-daily-swap="${escAttr(pick.slot)}">↻ Swap</button></div></article>`;
     }
     if (pick.sourceType === "book") {
@@ -2159,7 +2160,7 @@
     const role = SLOTS[slot]?.role || slot;
     if (type === "holiday") return window.LifeRPGHoliday?.scoreForDaily?.(item, slot, checkIn) > -100;
     if (type === "todoist") return window.LifeRPGTodoist?.scoreForDaily?.(item, slot, checkIn) > -100;
-    if (type === "series") return slot !== "focus" && (slot !== "gentle" || item.comfort || item.recovery);
+    if (type === "series") return slot !== "focus" && (slot !== "gentle" || item.status === "want" || item.comfort || item.recovery);
     if (type === "quest") {
       const allowed = Array.isArray(item?.plannerRoles) ? item.plannerRoles : [];
       return !allowed.length || allowed.includes(role);
@@ -2336,7 +2337,7 @@
     if (candidate.sourceType === "series") {
       const item = candidate.item, episode = window.LifeRPGSeries.nextEpisode(item);
       return {slot,sourceType:"series",sourceId:item.id,seriesEpisodeId:episode.id,seriesCycleId:item.activeCycleId,
-        seriesMinutes:episode.minutes,reason:item.comfort?"A familiar world, if it would feel good today.":"One episode of a series you want to return to.",
+        seriesMinutes:episode.minutes,reason:item.comfort?"A familiar world, if it would feel good today.":item.status==="want"?"Try one episode, only if it sounds good today.":"One episode of a series you want to return to.",
         pickedAt:Date.now(),rerolls:Number(previous?.rerolls || 0)};
     }
     if (candidate.sourceType === "todoist") return {slot,sourceType:"todoist",sourceId:candidate.item.id,reason:"Eine konkrete fällige Todoist-Aufgabe – ohne den Freizeit-Slot zu verdrängen.",rerolls:Number(previous?.rerolls||0),pickedAt:Date.now()};

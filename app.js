@@ -3596,6 +3596,7 @@
     formatEnergy,
     formatCoinValue,
     saveState,
+    refreshResources: () => { renderResources(); if (els.profileXP) els.profileXP.textContent = state.characterXP; },
     hasPendingLocalSave: () => localSavePending || localSaveDecodeFailure,
     replaceState,
     renderAll,
