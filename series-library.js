@@ -254,7 +254,7 @@
     try {const query=document.getElementById('seriesFilter').value.toLowerCase(),status=document.getElementById('seriesStatusFilter').value;
       host.innerHTML=model().items.filter(i=>(!i.archivedAt||document.getElementById('seriesShowArchived').checked)&&(!status||i.status===status)&&`${i.title} ${i.aliases}`.toLowerCase().includes(query)).map(item=>{const episode=nextEpisode(item),total=regular(item).length,count=logsFor(item).filter(l=>regular(item).some(e=>e.id===l.episodeId)).length;
         return `<article class="series-card">${cover(item)}<div><small>${item.archivedAt?'Archived · ':''}${escape(statuses[item.status])}${item.comfort?' · Comfort':''}${activeCycle(item).kind==='rewatch'?' · Rewatch':''}</small><h3>${escape(item.title)}</h3><p>${item.year||'Year unknown'} · ${count}/${item.ended?total:'unknown'} regular episodes</p><progress value="${count}" max="${Math.max(1,total)}" aria-label="Known episode progress"></progress><p>${episode?`Continue with ${escape(label(item,episode))}`:'No next known episode'}</p><button type="button" class="secondary-button" data-series-open="${escape(item.id)}">Open series</button></div></article>`;
-      }).join('')||'<p class="empty-state">A favorite, an anime, a comfort rewatch. Add one whenever you like.</p>';
+      }).join('')||'<div class="series-empty"><span class="series-empty-mark" aria-hidden="true">📺</span><div class="series-empty-copy"><h3>Your next favorite is waiting.</h3><p>Start with one title. You can look it up automatically or add it by hand — no watchlist homework required.</p></div><button type="button" class="secondary-button" data-series-add>＋ Add a series</button></div>';
 
     }catch(error){notify(error.message);}
   }
@@ -280,7 +280,35 @@
   function init(){
     const parent=document.getElementById('view-series');if(!parent||document.getElementById('seriesShelf'))return;
     const shelf=document.createElement('section');shelf.id='seriesShelf';shelf.className='series-shelf';
-    shelf.innerHTML=`<header><p class="eyebrow">YOUR LIBRARY · HOBBIES</p><h2>Series / Anime & TV</h2><p>A cozy episode, a favorite world. Comfort and rewatches count too.</p><button type="button" class="primary-button" data-series-add>＋ Add a series</button></header><p id="seriesNotice" role="status" aria-live="polite"></p><div class="series-filters"><label>Search your shelf<input id="seriesFilter" type="search" placeholder="Title or alternate name"></label><label>Status<select id="seriesStatusFilter"><option value="">All statuses</option>${options(statuses,'')}</select></label><label><input id="seriesShowArchived" type="checkbox"> Show archived titles</label></div><div id="seriesBoard" class="series-board"></div>`;
+    shelf.innerHTML=`
+      <section class="series-hero" aria-labelledby="seriesPageTitle">
+        <div class="series-hero-copy">
+          <span class="series-kicker">📺 YOUR LIBRARY · HOBBIES</span>
+          <h1 id="seriesPageTitle">A little more time for stories.</h1>
+          <p class="series-lead">A new anime, a long-awaited season, or a comforting rewatch. Every episode counts as time you chose for yourself.</p>
+          <div class="series-steps" aria-label="How it works"><span>✦ Add a favorite</span><span>📺 Track episodes</span><span>🌸 Enjoy milestones</span></div>
+        </div>
+        <aside class="series-hero-card">
+          <span class="series-hero-icon" aria-hidden="true">☕</span>
+          <small>YOUR NEXT COZY EPISODE</small>
+          <strong>Comfort counts, too.</strong>
+          <p>Build your watchlist at your own pace. Rewatches are welcome, and the Daily Plan offers gentle invitations, never obligations.</p>
+          <button type="button" class="primary-button" data-series-add>＋ Add a series</button>
+        </aside>
+      </section>
+      <section class="series-panel" aria-labelledby="seriesShelfTitle">
+        <div class="series-panel-heading">
+          <div><span class="series-panel-eyebrow">YOUR WATCHLIST</span><h2 id="seriesShelfTitle">What sounds good tonight?</h2><p>Find your next episode, or revisit a world you love.</p></div>
+          <span class="series-panel-icon" aria-hidden="true">✦</span>
+        </div>
+        <p id="seriesNotice" role="status" aria-live="polite"></p>
+        <div class="series-filters">
+          <label>Find a series<input id="seriesFilter" type="search" placeholder="Title or alternate name" autocomplete="off"></label>
+          <label>Status<select id="seriesStatusFilter"><option value="">All statuses</option>${options(statuses,'')}</select></label>
+          <label><input id="seriesShowArchived" type="checkbox"> Show archived titles</label>
+        </div>
+        <div id="seriesBoard" class="series-board"></div>
+      </section>`;
     parent.prepend(shelf);
     const add=document.createElement('dialog');add.id='seriesAdd';add.className='series-dialog';add.innerHTML=`<button type="button" class="secondary-button series-close" data-series-close>Close</button><h2>Add a series</h2><form id="seriesSearchForm" class="series-form"><label>TVmaze title search<input name="query" type="search" minlength="2" required></label><button class="secondary-button">Search catalog</button></form><p id="seriesSearchStatus" role="status" aria-live="polite">Manual entry works offline. Anime sequels stay separate titles.</p><div id="seriesSearchResults"></div><form id="seriesAddForm" class="series-form"><label>Title<input name="title" required></label><label>Alternate / original / romanized names<input name="aliases"></label><label>Year (optional)<input name="year" type="number" min="1900" max="2200"></label><label>Status<select name="status">${options(statuses,'watching')}</select></label><label>Season 1 episode total (optional)<input name="episodeCount" type="number" min="1" max="1000"></label><label>Typical minutes (optional)<input name="minutes" type="number" min="1"></label><label><input name="ended" type="checkbox"> Series and season have ended</label><label><input name="comfort" type="checkbox"> Comfort favorite</label><button class="primary-button">Add to shelf</button></form><p>Catalog snapshots retain provider IDs and <a href="https://www.tvmaze.com/api" target="_blank" rel="noopener noreferrer">TVmaze attribution / CC BY-SA</a>. No account needed. No episode descriptions or thumbnails.</p>`;
     document.body.append(add);
