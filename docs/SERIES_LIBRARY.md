@@ -1,7 +1,10 @@
 # Series / Anime & TV Library
 
-The shelf lives inside the existing Library view. `series-library.js` loads once,
-after `app.js` and before Time, My Week, Daily Plan and Skills. No movie catalog,
+The Series & Anime shelf has its own `view-series` page and 📺 Series & Anime
+sidebar entry beside Books/Library and Games. The existing book and game views stay
+unchanged. Native opens from Daily Plan and My Week activate the dedicated series
+view, not the book Library. `series-library.js` loads once, after `app.js` and
+before Time, My Week, Daily Plan and Skills. No movie catalog,
 streaming-account sync or Japanese-training inference is added.
 
 ## State and rewards
@@ -124,3 +127,12 @@ review actions preserving unrelated pending-save recovery. The full suite is
 21 Series tests). Runtime and CORE query versions for changed files advance to
 `0.31.4-series2`; unchanged module versions remain intact. Real provider/device
 and installed-PWA verification still remain manual release checks.
+
+## Navigation regression (Series view)
+
+The sidebar button `data-view="series"` must show `#view-series` and make its own
+navigation button active. The series shelf must exist only inside `#view-series`;
+Books/Library and Games retain their separate navigation views. Opening an episode
+from a Daily pick or My Week activates the Series view and opens the same native
+episode dialog. The existing Series library state, logs, IDs and rewards are not
+migrated or reset by this navigation change.
