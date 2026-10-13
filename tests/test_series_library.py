@@ -552,15 +552,26 @@ class SeriesLibraryTests(unittest.TestCase):
 
 
     def test_series_sidebar_navigation_and_native_deeplink(self):
-        """A new library is not usable without a discoverable in-app entry."""
+        """The real grouped Life Hub must keep the Series entry on desktop and mobile."""
         self.make()
-        sidebar = self.page.locator('.bottom-nav .nav-button[data-view="series"]')
+        # Without this script, tests see the raw HTML nav, which hides the real regression:
+        # Life Hub rebuilds it and drops any view absent from GROUPS.
+        self.page.add_script_tag(url='/life-hub-v314dk.js')
+        self.page.wait_for_function('window.LifeRPGLifeHub && document.querySelector(".bottom-nav.life-hub-nav")')
+        present = self.page.evaluate("""() => {
+          const groups=LifeRPGLifeHub._test.groups;
+          return groups.find(g=>g.id==='play')?.items.some(([id])=>id==='series')||false;
+        }""")
+        self.assertTrue(present)
+        sidebar = self.page.locator('.life-nav-group[data-group="play"] .nav-button[data-view="series"]')
         self.assertEqual(sidebar.count(), 1)
         self.assertIn('Series', sidebar.inner_text())
         self.assertEqual(self.page.locator('#view-series #seriesShelf').count(), 1)
         self.assertEqual(self.page.locator('#view-library #seriesShelf').count(), 0)
 
-        self.page.locator('.bottom-nav .nav-button[data-view="library"]').click()
+        self.page.locator('.life-nav-parent[data-group="play"]').click()
+        self.assertEqual(self.page.locator('#view-hub-play [data-life-route="series"]').count(), 1)
+        self.page.locator('.life-nav-group[data-group="play"] .nav-button[data-view="library"]').click()
         self.assertTrue(self.page.locator('#view-library').evaluate('(el) => el.classList.contains("active")'))
         sidebar.click()
         self.assertTrue(self.page.locator('#view-series').evaluate('(el) => el.classList.contains("active")'))
@@ -570,13 +581,19 @@ class SeriesLibraryTests(unittest.TestCase):
         self.page.locator('#view-series [data-series-open]').first.click()
         self.assertTrue(self.page.locator('#seriesDetail').evaluate('(el) => el.open'))
         self.page.locator('#seriesDetail [data-series-close]').click()
-        self.page.locator('.bottom-nav .nav-button[data-view="games"]').click()
+        self.page.locator('.life-nav-group[data-group="play"] .nav-button[data-view="games"]').click()
         self.assertTrue(self.page.locator('#view-games').evaluate('(el) => el.classList.contains("active")'))
-
         self.page.evaluate('LifeRPGSeries.open(seriesId, LifeRPGSeries.nextEpisode(LifeRPGSeries.find(seriesId)).id)')
         self.assertTrue(self.page.locator('#view-series').evaluate('(el) => el.classList.contains("active")'))
         self.assertTrue(sidebar.evaluate('(el) => el.classList.contains("active")'))
-        self.assertTrue(self.page.locator('#seriesDetail').evaluate('(el) => el.open'))
+
+        # Mobile navigation builds an alternate submenu from GROUPS.
+        self.page.locator('#seriesDetail [data-series-close]').click()
+        self.page.set_viewport_size({'width':390,'height':844})
+        self.page.locator('.life-nav-parent[data-group="play"]').click()
+        self.assertEqual(self.page.locator('#lifeHubMobileMenu [data-life-route="series"]').count(), 1)
+        self.page.locator('#lifeHubMobileMenu [data-life-route="series"]').click()
+        self.assertTrue(self.page.locator('#view-series').evaluate('(el) => el.classList.contains("active")'))
 
 if __name__ == '__main__':
     unittest.main()

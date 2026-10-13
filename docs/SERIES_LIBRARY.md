@@ -130,8 +130,11 @@ and installed-PWA verification still remain manual release checks.
 
 ## Navigation regression (Series view)
 
-The sidebar button `data-view="series"` must show `#view-series` and make its own
-navigation button active. The series shelf must exist only inside `#view-series`;
+The raw sidebar button `data-view="series"` must also be registered in
+`life-hub-v314dk.js` → `GROUPS.play` (the authoritative grouped desktop/mobile
+menu). Otherwise `buildNav()` silently drops it, even though the HTML contains it.
+The grouped menu and the mobile submenu must reach `#view-series`, with the
+Series navigation button active. The series shelf must exist only inside `#view-series`;
 Books/Library and Games retain their separate navigation views. Opening an episode
 from a Daily pick or My Week activates the Series view and opens the same native
 episode dialog. The existing Series library state, logs, IDs and rewards are not
