@@ -550,5 +550,33 @@ class SeriesLibraryTests(unittest.TestCase):
         }""")
         self.assertEqual(result,dict(rewatch=False,archive=False,recovery=True,cycle=True,archived=False,pending=True,name='Synthetic pending unrelated progress'))
 
+
+    def test_series_sidebar_navigation_and_native_deeplink(self):
+        """A new library is not usable without a discoverable in-app entry."""
+        self.make()
+        sidebar = self.page.locator('.bottom-nav .nav-button[data-view="series"]')
+        self.assertEqual(sidebar.count(), 1)
+        self.assertIn('Series', sidebar.inner_text())
+        self.assertEqual(self.page.locator('#view-series #seriesShelf').count(), 1)
+        self.assertEqual(self.page.locator('#view-library #seriesShelf').count(), 0)
+
+        self.page.locator('.bottom-nav .nav-button[data-view="library"]').click()
+        self.assertTrue(self.page.locator('#view-library').evaluate('(el) => el.classList.contains("active")'))
+        sidebar.click()
+        self.assertTrue(self.page.locator('#view-series').evaluate('(el) => el.classList.contains("active")'))
+        self.assertTrue(sidebar.evaluate('(el) => el.classList.contains("active")'))
+        self.assertFalse(self.page.locator('#view-library').evaluate('(el) => el.classList.contains("active")'))
+
+        self.page.locator('#view-series [data-series-open]').first.click()
+        self.assertTrue(self.page.locator('#seriesDetail').evaluate('(el) => el.open'))
+        self.page.locator('#seriesDetail [data-series-close]').click()
+        self.page.locator('.bottom-nav .nav-button[data-view="games"]').click()
+        self.assertTrue(self.page.locator('#view-games').evaluate('(el) => el.classList.contains("active")'))
+
+        self.page.evaluate('LifeRPGSeries.open(seriesId, LifeRPGSeries.nextEpisode(LifeRPGSeries.find(seriesId)).id)')
+        self.assertTrue(self.page.locator('#view-series').evaluate('(el) => el.classList.contains("active")'))
+        self.assertTrue(sidebar.evaluate('(el) => el.classList.contains("active")'))
+        self.assertTrue(self.page.locator('#seriesDetail').evaluate('(el) => el.open'))
+
 if __name__ == '__main__':
     unittest.main()
