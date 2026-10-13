@@ -462,6 +462,15 @@ class SeriesLibraryTests(unittest.TestCase):
         self.assertNotEqual(dialog['title'],dialog['background'])
         self.page.set_viewport_size({'width':390,'height':844})
         self.assertLessEqual(self.page.locator('#seriesAdd').bounding_box()['width'],390)
+        self.page.locator('#seriesAdd [data-series-close]').click()
+        self.make()
+        self.assertEqual(self.page.locator('#view-series .series-card').count(),1)
+        card_color=self.page.locator('.series-card').evaluate('(el)=>getComputedStyle(el).backgroundColor')
+        self.assertIn('255, 254, 253',card_color)
+        self.page.evaluate('LifeRPGSeries.open(seriesId)')
+        self.assertTrue(self.page.locator('#seriesDetail').evaluate('(d)=>d.open'))
+        detail_color=self.page.locator('#seriesDetail').evaluate('(el)=>getComputedStyle(el).backgroundColor')
+        self.assertIn('255, 250, 246',detail_color)
 
     def test_complete_local_bootstrap_with_external_services_blocked(self):
         # Real index and all local modules. Firebase stays mocked; service workers stay blocked.
