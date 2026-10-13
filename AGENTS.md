@@ -16,6 +16,9 @@ Diese Datei gilt für das gesamte Repository. Der aktuelle Code ist die technisc
 - Vor Änderungen reale Aufrufer, Zustandsmodell, Persistenz, Event-IDs und Empfänger der betroffenen Module lesen. Keine älteren Komplettdateien über neuere Dateien kopieren.
 - Vor und nach Änderungen `git status --short` prüfen. Fremde Änderungen bewahren. Isolierte Branches/Arbeitsumgebungen sind erlaubt und für risikoreiche Aufgaben erwünscht.
 - Ohne ausdrücklichen Auftrag weder Anwendungscode großflächig refactoren noch Dateien löschen, Nutzer-/Cloud-Daten verändern, externe Dienste deployen oder Änderungen nach `main` übernehmen.
+- **Standardabschluss bei ausdrücklich beauftragten Codeänderungen:** Im selben Auftrag die Änderung gezielt implementieren, relevante Tests ausführen, auf einem eigenen Branch committen, zu GitHub pushen und einen **Draft Pull Request gegen `main`** eröffnen. Das Pushen des Arbeitsbranches und das Erstellen des Draft-PR sind damit für solche Aufgaben grundsätzlich freigegeben; nicht für reine Analysen, Reviews oder Entwürfe. Anderslautende Vorgaben im einzelnen Auftrag haben Vorrang.
+- **Freigabegrenze:** Nie eigenständig in `main` mergen, die produktive App deployen oder produktive Nutzer-/Cloud-Daten verändern. Bei blockiertem Push oder PR-Zugriff den konkreten Fehler melden, keine Zugangsdaten erbitten oder Umgehungen versuchen. Ist der Branch bereits gepusht, direkt einen GitHub-Vergleichslink (`main...branch`) ausgeben, statt wiederholt fehlgeschlagene API-Aufrufe auszuführen.
+- **Übergabe ohne Nachfragen:** Den fertigen PR-Link (oder bei blockierter PR-Erstellung den Vergleichslink) zusammen mit kurzer Änderungs-, Test- und Risikozusammenfassung ausgeben. Eine veröffentlichte Codex-Umgebung ist kein GitHub-Push und kein App-Deployment; den tatsächlichen Remote-Stand prüfen und korrekt benennen.
 
 ## Daten- und Migrationssicherheit
 
