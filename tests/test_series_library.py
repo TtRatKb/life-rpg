@@ -412,6 +412,102 @@ class SeriesLibraryTests(unittest.TestCase):
         self.assertIn('busy',error)
         self.assertEqual(self.page.evaluate('JSON.stringify(LifeRPGApp.getState().seriesLibrary)'),before)
 
+    def test_catalog_preview_all_seasons_and_import_without_replacing_existing_logs(self):
+        """Existing manual entries can gain two TVmaze seasons and a poster safely."""
+        def catalog(route):
+            url=route.request.url
+            if '/search/shows' in url:
+                route.fulfill(json=[dict(show=dict(
+                    id=89103,name='Synthetic Polar Opposites',premiered='2026-01-11',
+                    averageRuntime=24,image=dict(medium='https://static.tvmaze.com/synthetic.jpg'),
+                    status='Running',url='https://www.tvmaze.com/shows/89103'))])
+            elif '/seasons' in url:
+                route.fulfill(json=[
+                    dict(id=12,number=1,episodeOrder=None,endDate='2026-03-29'),
+                    dict(id=13,number=2,episodeOrder=None,endDate=None)])
+            else:
+                route.fulfill(json=[
+                    dict(id=10,season=1,number=1,runtime=24),
+                    dict(id=11,season=1,number=2,runtime=24),
+                    dict(id=20,season=2,number=1,runtime=24),
+                    dict(id=21,season=2,number=2,runtime=24)])
+        self.context.route('https://api.tvmaze.com/**',catalog)
+        item=self.make(title='Synthetic Polar Opposites',ended=False,
+                       seasons=[dict(number=1,episodeCount=2,ended=True)])
+        old_id=item['seasons'][0]['episodes'][0]['id']
+        self.page.evaluate("""id=>{const a=LifeRPGSeries,i=a.find(id);
+          a.logEpisode(id,i.seasons[0].episodes[0].id,{historical:true});
+        }""",item['id'])
+        log_before=self.page.evaluate('JSON.stringify(LifeRPGSeries.getLogs())')
+        xp_before=self.page.evaluate('LifeRPGApp.getState().characterXP')
+
+        self.page.evaluate('LifeRPGSeries.open(seriesId)')
+        self.page.locator('[data-series-enrich]').click()
+        self.assertTrue(self.page.locator('#seriesAdd').evaluate('(d)=>d.open'))
+        self.assertTrue(self.page.locator('#seriesAddForm').evaluate('(e)=>e.hidden'))
+        self.page.locator('#seriesSearchForm button').click()
+        self.page.locator('[data-series-catalog]').click()
+        self.page.wait_for_function(
+            "document.getElementById('seriesSearchStatus').textContent.startsWith('Snapshot selected')")
+        preview=self.page.locator('#seriesCatalogPreview')
+        self.assertTrue(preview.is_visible())
+        self.assertIn('Season 1',preview.inner_text())
+        self.assertIn('Season 2',preview.inner_text())
+        self.assertIn('2 known episodes',preview.inner_text())  # running season total unknown
+        self.assertEqual(preview.locator('img').count(),1)
+        self.page.locator('#seriesUpdateForm button').click()
+        self.assertFalse(self.page.locator('#seriesAdd').evaluate('(d)=>d.open'))
+        merged=self.page.evaluate('LifeRPGSeries.find(seriesId)')
+        self.assertEqual(merged['id'],item['id'])
+        self.assertEqual(merged['seasons'][0]['episodes'][0]['id'],old_id)
+        self.assertEqual(merged['seasons'][0]['episodeCount'],2)
+        self.assertEqual(len(merged['seasons']),2)
+        self.assertEqual(merged['cover'],'https://static.tvmaze.com/synthetic.jpg')
+        self.assertEqual(self.page.evaluate('JSON.stringify(LifeRPGSeries.getLogs())'),log_before)
+        self.assertEqual(self.page.evaluate('LifeRPGApp.getState().characterXP'),xp_before)
+        self.assertEqual(self.page.locator('.series-card img').count(),1)
+        self.page.evaluate('LifeRPGSeries.mergeCatalog(seriesId, window.seriesSnapshotTest)')
+        # The explicit second import is checked below using the saved schema directly:
+        self.assertEqual(len(self.page.evaluate('LifeRPGSeries.find(seriesId).seasons')),2)
+
+    def test_previous_season_import_no_retro_rewards_but_live_second_season_bonus(self):
+        """Imported history is neither a rewarded watch nor a fake current-week log."""
+        item=self.make(title='Two Season Synthetic',ended=True,seasons=[
+            dict(number=1,episodeCount=2,ended=True),
+            dict(number=2,episodeCount=2,ended=True)])
+        before=self.page.evaluate('LifeRPGApp.getState().characterXP')
+        result=self.page.evaluate("""() => {
+          const a=LifeRPGSeries,i=a.find(seriesId),first=i.seasons[0],second=i.seasons[1];
+          const past=a.markSeasonHistorical(i.id,first.id);
+          const duplicate=a.markSeasonHistorical(i.id,first.id);
+          const afterPast=LifeRPGApp.getState().characterXP;
+          const progress=a.nextEpisode(i);
+          const fresh=a.logEpisode(i.id,progress.id);
+          const afterFresh=LifeRPGApp.getState().characterXP;
+          const last=a.logEpisode(i.id,second.episodes[1].id);
+          return {pastOk:past.ok,previousLogs:past.logs.length,duplicate:duplicate.duplicate,
+            afterPast,afterFresh,finalXP:LifeRPGApp.getState().characterXP,
+            next:a.label(i,progress),firstMilestone:Object.keys(i.milestones).some(k=>k.includes(first.id)),
+            secondMilestone:Object.keys(i.milestones).some(k=>k.includes(second.id)),
+            seriesMilestone:Boolean(i.milestones.series),finished:i.status==='completed',
+            historical:a.getLogs().filter(l=>l.historical).length};
+        }""")
+        self.assertEqual(result['afterPast'],before)
+        self.assertEqual(result['previousLogs'],2)
+        self.assertEqual(result['historical'],2)
+        self.assertTrue(result['pastOk'])
+        self.assertTrue(result['duplicate'])
+        self.assertEqual(result['next'],'S2E1')
+        self.assertEqual(result['afterFresh']-before,15)
+        self.assertEqual(result['finalXP']-before,50)  # two new episodes + season + series
+        self.assertFalse(result['firstMilestone'])
+        self.assertTrue(result['secondMilestone'])
+        self.assertTrue(result['seriesMilestone'])
+        self.assertTrue(result['finished'])
+        self.page.evaluate('LifeRPGApp.showView("week")')
+        self.page.wait_for_function('document.getElementById("seriesWeek")')
+        self.assertEqual(self.page.locator('#seriesWeek').inner_text().count('Two Season Synthetic'),2)
+
     def test_phone_layout_and_core_pwa_asset_versions(self):
         self.page.set_viewport_size(dict(width=390,height=844))
         self.page.add_style_tag(path=str(ROOT/'series-library.css'))
