@@ -184,7 +184,7 @@
 .series-shelf .secondary-button:hover, .series-dialog .secondary-button:hover { background: #f6e4ee; }
 .series-shelf .primary-button, .series-dialog .primary-button {
   border: 1px solid transparent; border-radius: 12px;
-  background: linear-gradient(135deg,#e36795,#cb4f7f); color: #fff;
+  background: linear-gradient(135deg,#bc4677,#9e3f6d); color: #fff;
   padding: 10px 16px; font-weight: 800; box-shadow: 0 7px 17px rgba(189,71,117,.17);
 }
 .series-shelf .primary-button:hover, .series-dialog .primary-button:hover { filter: brightness(.96); }
