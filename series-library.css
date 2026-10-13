@@ -266,3 +266,10 @@
 .series-history-hint{margin:10px 0 6px;color:#76546b;font-size:.83rem}
 .series-dialog [data-series-historical-season],.series-dialog [data-series-log-next],.series-dialog [data-series-enrich]{margin:7px 5px 8px 0}
 @media(max-width:480px){.series-catalog-card{grid-template-columns:73px minmax(0,1fr);gap:12px}.series-catalog-card>img,.series-catalog-no-cover{width:73px;min-height:103px;max-height:120px}.series-catalog-preview{padding:11px}.series-catalog-seasons li{align-items:start}}
+
+.series-detail-header{display:grid;grid-template-columns:90px minmax(0,1fr);gap:16px;align-items:start;margin:15px 0 18px}
+.series-detail-header>img,.series-detail-header>.series-placeholder{width:90px;height:127px;border-radius:12px;object-fit:cover}
+.series-detail-header h2{margin:0 0 8px}
+.series-detail-header p{margin:7px 0}
+.series-import-hint{flex-basis:100%;padding:10px 12px;border-radius:12px;background:#f9ebf1;color:#67445b;font-size:.82rem;line-height:1.5}
+@media(max-width:480px){.series-detail-header{grid-template-columns:67px minmax(0,1fr);gap:11px}.series-detail-header>img,.series-detail-header>.series-placeholder{width:67px;height:100px}}
