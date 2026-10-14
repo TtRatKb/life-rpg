@@ -288,18 +288,15 @@
     if(pendingRequest||Date.now()<nextRequestAt)throw new Error('Please wait a moment before another catalog request.');
     if(navigator.onLine===false)throw new Error('Offline · add or edit your series manually.');
     pendingRequest=true;nextRequestAt=Date.now()+1000;
-    const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),12000);
+    const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),10000);
     try {
-      // Some browsers/networks leave a cross-origin request pending even after
-      // AbortController fires. Race it with a hard promise timeout so the
-      // catalog dialog can never remain on “Searching TVmaze…” indefinitely.
+      // Timeout the complete request, including response.json(). A server can
+      // send headers and then stall while streaming the body.
       const response=await Promise.race([
-        fetch(`https://api.tvmaze.com${path}`,{signal:controller.signal,credentials:'omit',referrerPolicy:'no-referrer'}),
+        (async()=>{const response=await fetch(`https://api.tvmaze.com${path}`,{signal:controller.signal,credentials:'omit',referrerPolicy:'no-referrer'});if(!response.ok)throw new Error('Catalog unavailable · manual entry still works.');return {response,data:await response.json()};})(),
         new Promise((_,reject)=>setTimeout(()=>reject(new Error('TVmaze timed out · check your connection or add the title manually.')),10000))
       ]);
-      if(response.status===429){nextRequestAt=Date.now()+10000;throw new Error('TVmaze is busy. Wait a little, or add manually.');}
-      if(!response.ok)throw new Error('Catalog unavailable · manual entry still works.');
-      const data=await response.json();cache.set(path,{at:Date.now(),data});if(cache.size>30)cache.delete(cache.keys().next().value);return data;
+      cache.set(path,{at:Date.now(),data:response.data});if(cache.size>30)cache.delete(cache.keys().next().value);return response.data;
     }finally{clearTimeout(timer);pendingRequest=false;}
   }
   async function requestJikan(path) {
@@ -308,11 +305,10 @@
     const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),10000);
     try {
       const response=await Promise.race([
-        fetch(`https://api.jikan.moe/v4${path}`,{signal:controller.signal,credentials:'omit',referrerPolicy:'no-referrer'}),
+        (async()=>{const response=await fetch(`https://api.jikan.moe/v4${path}`,{signal:controller.signal,credentials:'omit',referrerPolicy:'no-referrer'});if(!response.ok)throw new Error('Anime catalog unavailable');return {response,data:await response.json()};})(),
         new Promise((_,reject)=>setTimeout(()=>reject(new Error('Anime catalog timed out')),10000))
       ]);
-      if(!response.ok)throw new Error('Anime catalog unavailable');
-      const data=await response.json();cache.set(key,{at:Date.now(),data});return data;
+      cache.set(key,{at:Date.now(),data:response.data});return response.data;
     } finally {clearTimeout(timer);}
   }
   async function searchCatalog(query){if(String(query).trim().length<2)throw new Error('Enter at least two characters.');
