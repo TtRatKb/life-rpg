@@ -390,6 +390,7 @@ class SeriesLibraryTests(unittest.TestCase):
             role:'fun',motivation:'very_high',createdAt:Date.now()};
           const second={id:'synthetic-game-2',title:'Synthetic Other Game',status:'playing',
             role:'fun',motivation:'high',createdAt:Date.now()};
+          root.gameLibrary=root.gameLibrary||{items:[]};
           root.gameLibrary.items=[first,second];
           const sameGroup=d.plannerGroup('game',first)===d.plannerGroup('game',second);
           const group=d.plannerGroup('game',first);
@@ -693,8 +694,8 @@ class SeriesLibraryTests(unittest.TestCase):
             version='0.31.4-series10' if name in ['series-library.js','pwa.js'] else '0.31.4-series8' if name in ['series-library.css','my-week.js'] else '0.31.4-series2' if name in ['app.js','daily.js'] else '0.31.4-series1'
             self.assertIn(f'{name}?v={version}',html)
             self.assertIn(f'{name}?v={version}',sw)
-        self.assertIn('life-rpg-v0.31.4-series10',sw)
-        self.assertIn('const VERSION = "0.31.4-series10"',(ROOT/'pwa.js').read_text())
+        self.assertIn('life-rpg-v0.31.4-dm1',sw)
+        self.assertIn('const VERSION = "0.31.4-dm1"',(ROOT/'pwa.js').read_text())
 
     def test_series_light_cozy_shelf_and_dialog_have_readable_contrast(self):
         """Catch the dark-background/dark-ink regression from the real screenshot."""
