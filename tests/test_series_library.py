@@ -427,6 +427,63 @@ class SeriesLibraryTests(unittest.TestCase):
         self.page.locator('[data-series-catalog]').first.wait_for(state='visible')
         self.assertIn('Synthetic Anime',self.page.locator('#seriesSearchResults').inner_text())
 
+    def test_catalog_search_buttons_render_results_and_seasons_without_hanging(self):
+        """Reproduce the actual bug: 'Searching...' remains forever after click.
+
+        This MUST exercise the real browser form submit handler, not merely the
+        LifeRPGSeries.searchCatalog public function.
+        """
+        def tvmaze(route):
+            url = route.request.url
+            if '/search/shows' in url:
+                route.fulfill(json=[dict(show=dict(
+                    id=88001,name='Synthetic Comfort Series',
+                    premiered='2026-01-12',averageRuntime=24,status='Running',
+                    image=dict(medium='https://static.tvmaze.com/mock-poster.jpg'),
+                    url='https://www.tvmaze.com/shows/88001'))])
+            elif '/seasons' in url:
+                route.fulfill(json=[
+                    dict(number=1,episodeOrder=2,endDate='2026-03-28'),
+                    dict(number=2,episodeOrder=2,endDate=None)])
+            else:
+                route.fulfill(json=[
+                    dict(season=1,number=1,id=88011,runtime=24),
+                    dict(season=1,number=2,id=88012,runtime=24),
+                    dict(season=2,number=1,id=88021,runtime=24),
+                    dict(season=2,number=2,id=88022,runtime=24)])
+        self.context.route('https://api.tvmaze.com/**',tvmaze)
+        self.context.route('https://api.jikan.moe/v4/**',lambda route:route.fulfill(
+            json=dict(data=[dict(mal_id=88002,title='Synthetic Anime',
+                year=2026,status='Currently Airing',
+                images=dict(jpg=dict(image_url='https://example.org/anime.jpg')))])))
+
+        self.page.locator('[data-series-add]').first.click()
+        self.page.locator('#seriesSearchForm [name="query"]').fill('Synthetic Comfort')
+        self.page.locator('#seriesSearchForm button').first.click()
+        self.page.locator('#seriesSearchResults [data-series-catalog]').first.wait_for(
+            state='visible',timeout=3500)
+        self.assertIn('Synthetic Comfort Series',
+                      self.page.locator('#seriesSearchResults').inner_text())
+        self.assertNotIn('Searching',self.page.locator('#seriesSearchStatus').inner_text())
+
+        self.page.locator('#seriesSearchResults [data-series-catalog]').first.click()
+        self.page.wait_for_function("""() => {
+          const node=document.getElementById('seriesCatalogPreview');
+          return !node.hidden && node.querySelectorAll('.series-catalog-seasons li').length===2;
+        }""",timeout=3500)
+        self.assertIn('Season 2',self.page.locator('#seriesCatalogPreview').inner_text())
+        self.assertEqual(self.page.locator('#seriesCatalogPreview img').count(),1)
+        self.assertNotIn('Loading',self.page.locator('#seriesSearchStatus').inner_text())
+
+        self.page.locator('#seriesSearchForm [name="query"]').fill('Synthetic Anime')
+        self.page.locator('[data-series-anime-search]').click()
+        self.page.locator('#seriesSearchResults [data-series-catalog]').first.wait_for(
+            state='visible',timeout=3500)
+        self.assertIn('Synthetic Anime',
+                      self.page.locator('#seriesSearchResults').inner_text())
+        self.assertNotIn('Searching',self.page.locator('#seriesSearchStatus').inner_text())
+        self.assertFalse(self.errors)
+
     def test_catalog_snapshot_choice_loading_failure_rate_limit_and_no_overwrite(self):
         def catalog(route):
             url=route.request.url
