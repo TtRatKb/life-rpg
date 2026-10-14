@@ -281,29 +281,65 @@
   function completion(pick){const log=model().logs.find(l=>!l.undone&&!l.historical&&l.seriesId===pick.sourceId&&l.episodeId===pick.seriesEpisodeId&&l.watchCycleId===pick.seriesCycleId&&+new Date(l.at)>=Number(pick.pickedAt||0));return {done:Boolean(log),progress:log?1:0,progressText:log?'Episode watched ✓':'One episode, whenever you feel like it'};}
 
   async function request(path) {
-    if(cache.has(path)&&Date.now()-cache.get(path).at<3600000)return cache.get(path).data;
-    if(pendingRequest||Date.now()<nextRequestAt)throw new Error('Please wait a moment before another catalog request.');
+    const cached=cache.get(path);
+    if(cached && Date.now()-cached.at<3600000)return cached.data;
+    if(pendingRequest)throw new Error('Another catalog lookup is running. Please finish that search first.');
     if(navigator.onLine===false)throw new Error('Offline · add or edit your series manually.');
-    pendingRequest=true;nextRequestAt=Date.now()+1000;
-    const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),12000);
-    try {const response=await fetch(`https://api.tvmaze.com${path}`,{signal:controller.signal,credentials:'omit',referrerPolicy:'no-referrer'});
-      if(response.status===429){nextRequestAt=Date.now()+10000;throw new Error('TVmaze is busy. Wait a little, or add manually.');}
-      if(!response.ok)throw new Error('Catalog unavailable · manual entry still works.');
-      const data=await response.json();cache.set(path,{at:Date.now(),data});if(cache.size>30)cache.delete(cache.keys().next().value);return data;
-    }finally{clearTimeout(timer);pendingRequest=false;}
+    pendingRequest=true;
+    try {
+      // TVmaze permits >=20 calls/10 s. One show embed request usually supplies
+      // both seasons and episodes; this short pacing also respects rare 429s.
+      const pause=Math.max(0,nextRequestAt-Date.now());
+      if(pause)await new Promise(resolve=>setTimeout(resolve,pause));
+      for(let attempt=0;attempt<2;attempt++){
+        const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),6500);
+        let retry=false;
+        try {
+          const response=await fetch(`https://api.tvmaze.com${path}`,{signal:controller.signal,credentials:'omit',referrerPolicy:'no-referrer'});
+          nextRequestAt=Date.now()+500;
+          if(response.status===429){
+            retry=attempt===0;
+            if(!retry)throw new Error('TVmaze is rate-limiting requests. Try again shortly or add the title manually.');
+          } else {
+            if(!response.ok)throw new Error('TVmaze could not return this title. Try another result or add manually.');
+            const data=await response.json();
+            cache.set(path,{at:Date.now(),data});if(cache.size>30)cache.delete(cache.keys().next().value);
+            return data;
+          }
+        } catch(error){
+          if(error?.name==='AbortError')throw new Error('TVmaze did not respond within 7 seconds. Please retry or add manually.');
+          if(error instanceof TypeError)throw new Error('TVmaze is unreachable right now. Check your connection or add manually.');
+          throw error;
+        } finally {clearTimeout(timer);}
+        if(retry)await new Promise(resolve=>setTimeout(resolve,1350));
+      }
+      throw new Error('Catalog unavailable. Manual entry still works.');
+    } finally {pendingRequest=false;}
   }
   async function searchCatalog(query){if(String(query).trim().length<2)throw new Error('Enter at least two characters.');const rows=await request(`/search/shows?q=${encodeURIComponent(query.trim())}`);
     return rows.map(row=>{const s=row.show;return {id:s.id,title:s.name,year:positive(s.premiered?.slice(0,4)),minutes:positive(s.averageRuntime||s.runtime),cover:safeURL(s.image?.medium||s.image?.original),ended:s.status==='Ended',url:safeURL(s.url)};});}
   async function catalogDetails(result) {
-    await new Promise(resolve=>setTimeout(resolve,Math.max(0,nextRequestAt-Date.now())));
-    const seasons=await request(`/shows/${Number(result.id)}/seasons`);
-    // One episode request follows the seasonal request; serialize to stay below provider limits.
-    await new Promise(resolve=>setTimeout(resolve,Math.max(0,nextRequestAt-Date.now())));
-    const episodes=await request(`/shows/${Number(result.id)}/episodes?specials=1`);
-    return {...result,seasons:seasons.map(s=>({number:s.number,episodeCount:positive(s.episodeOrder) || ((result.ended || Boolean(s.endDate&&s.endDate<=dateKey(new Date()))) ? positive(episodes.filter(e=>e.season===s.number&&positive(e.number)).length) : null),
-      ended:result.ended || Boolean(s.endDate&&s.endDate<=dateKey(new Date())),minutes:result.minutes,
-      episodes:episodes.filter(e=>e.season===s.number).map(e=>({number:e.number,minutes:positive(e.runtime)||result.minutes,special:!positive(e.number),providerId:e.id}))})),
-      provider:{name:'TVmaze',id:result.id,url:result.url,license:'CC BY-SA',snapshotAt:new Date().toISOString(),snapshot:{title:result.title,year:result.year}}};
+    if(!result || !Number.isFinite(Number(result.id)))throw new Error('Choose a valid catalog result.');
+    const id=Number(result.id);
+    // TVmaze supports embedding seasons and episodes on a single show lookup.
+    // Avoid two sequential 12-second network calls for every selected title.
+    const show=await request(`/shows/${id}?embed[]=seasons&embed[]=episodes`);
+    let seasons=show?._embedded?.seasons,episodes=show?._embedded?.episodes;
+    if(!Array.isArray(seasons)||!Array.isArray(episodes)){
+      // Older/partial provider responses: safely fall back rather than importing
+      // an empty show. Errors surface to the UI after a bounded timeout.
+      seasons=await request(`/shows/${id}/seasons`);
+      episodes=await request(`/shows/${id}/episodes?specials=1`);
+    }
+    const merged={...result,cover:result.cover||safeURL(show.image?.medium||show.image?.original),year:result.year||positive(show.premiered?.slice(0,4)),
+      minutes:result.minutes||positive(show.averageRuntime||show.runtime),ended:result.ended||show.status==='Ended'};
+    return {...merged,seasons:seasons.map(season=>{
+      const regularEps=episodes.filter(ep=>ep.season===season.number&&positive(ep.number));
+      const ended=merged.ended||Boolean(season.endDate&&season.endDate<=dateKey(new Date()));
+      return {number:season.number,episodeCount:positive(season.episodeOrder)||(ended?positive(regularEps.length):null),
+        ended,minutes:merged.minutes,episodes:episodes.filter(ep=>ep.season===season.number).map(ep=>({
+          number:ep.number,minutes:positive(ep.runtime)||merged.minutes,special:!positive(ep.number),providerId:ep.id}))};
+    }),provider:{name:'TVmaze',id:result.id,url:result.url,license:'CC BY-SA',snapshotAt:new Date().toISOString(),snapshot:{title:result.title,year:merged.year}}};
   }
 
   function open(id,episodeId=null,options={}){selected=id;const item=find(id);if(!item)return;if(options.startWatching && item.status==='want' && !item.archivedAt){const result=updateItem(id,{status:'watching'});if(!result.ok)return;}app.showView?.('series');render();const dialog=document.getElementById('seriesDetail');dialog.dataset.episodeId=episodeId||nextEpisode(item)?.id||'';detail();if(!dialog.open)dialog.showModal();}
