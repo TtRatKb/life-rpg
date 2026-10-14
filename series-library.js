@@ -313,13 +313,14 @@
   }
   async function searchCatalog(query){if(String(query).trim().length<2)throw new Error('Enter at least two characters.');
     const encoded=encodeURIComponent(query.trim());
-    const [tv,anime]=await Promise.allSettled([
-      request(`/search/shows?q=${encoded}`),
-      requestJikan(`/anime?q=${encoded}&limit=10&sfw=false`)
-    ]);
-    const results=[];
-    if(tv.status==='fulfilled')results.push(...tv.value.map(row=>{const s=row.show;return {id:s.id,title:s.name,year:positive(s.premiered?.slice(0,4)),minutes:positive(s.averageRuntime||s.runtime),cover:safeURL(s.image?.medium||s.image?.original),ended:s.status==='Ended',url:safeURL(s.url),providerName:'TVmaze'};}));
-    if(anime.status==='fulfilled')results.push(...(anime.value.data||[]).map(s=>({id:s.mal_id,title:s.title,year:positive(s.year||s.aired?.from?.slice(0,4)),minutes:null,cover:safeURL(s.images?.jpg?.image_url),ended:s.status==='Finished Airing',url:s.url,providerName:'Jikan'})));
+    try {
+      const rows=await request(`/search/shows?q=${encoded}`);
+      if(rows.length)return rows.map(row=>{const s=row.show;return {id:s.id,title:s.name,year:positive(s.premiered?.slice(0,4)),minutes:positive(s.averageRuntime||s.runtime),cover:safeURL(s.image?.medium||s.image?.original),ended:s.status==='Ended',url:safeURL(s.url),providerName:'TVmaze'};});
+    } catch (tvmazeError) {
+      // TVmaze is the primary source; try the anime source only if it fails.
+    }
+    const anime=await requestJikan(`/anime?q=${encoded}&limit=10&sfw=false`);
+    const results=(anime.data||[]).map(s=>({id:s.mal_id,title:s.title,year:positive(s.year||s.aired?.from?.slice(0,4)),minutes:null,cover:safeURL(s.images?.jpg?.image_url),ended:s.status==='Finished Airing',url:s.url,providerName:'Jikan'}));
     if(!results.length)throw new Error('No catalog result was available. You can still add the title manually.');
     return results;
   }
