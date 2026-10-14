@@ -561,7 +561,7 @@ class SeriesLibraryTests(unittest.TestCase):
         self.assertGreaterEqual(self.page.locator('#seriesReviewForm button').first.bounding_box()['height'],44)
         html=(ROOT/'index.html').read_text();sw=(ROOT/'service-worker.js').read_text()
         for name in ['series-library.js','series-library.css','app.js','daily.js','my-week.js','skills.js','time.js','pwa.js']:
-            version='0.31.4-series9' if name in ['series-library.js','series-library.css','my-week.js','pwa.js'] else '0.31.4-series2' if name in ['app.js','daily.js'] else '0.31.4-series1'
+            version='0.31.4-series9' if name in ['series-library.js','pwa.js'] else '0.31.4-series8' if name in ['series-library.css','my-week.js'] else '0.31.4-series2' if name in ['app.js','daily.js'] else '0.31.4-series1'
             self.assertIn(f'{name}?v={version}',html)
             self.assertIn(f'{name}?v={version}',sw)
         self.assertIn('life-rpg-v0.31.4-series9',sw)
