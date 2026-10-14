@@ -1,15 +1,27 @@
-name: Series search browser regression
+name: Life RPG focused browser regressions
 
 on:
   pull_request:
     paths:
       - 'series-library.js'
+      - 'daily.js'
+      - 'skills.js'
+      - 'sound-garden.js'
+      - 'index.html'
+      - 'pwa.js'
+      - 'service-worker.js'
       - 'tests/test_series_library.py'
       - '.github/workflows/series-search-browser.yml'
   push:
     branches: [main]
     paths:
       - 'series-library.js'
+      - 'daily.js'
+      - 'skills.js'
+      - 'sound-garden.js'
+      - 'index.html'
+      - 'pwa.js'
+      - 'service-worker.js'
       - 'tests/test_series_library.py'
 
 permissions:
@@ -17,7 +29,7 @@ permissions:
 
 jobs:
   search-click:
-    name: Search button actually renders matches
+    name: Search, Daily, Skills and Sound Garden
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
@@ -33,3 +45,5 @@ jobs:
       - name: Run real Series search UI regression
         run: |
           python -m unittest discover -s tests -p 'test_series_library.py' -k test_catalog_search_buttons_render_results_and_seasons_without_hanging -v
+          python -m unittest discover -s tests -p 'test_series_library.py' -k test_daily_no_duplicate_games_and_assessment_icon -v
+          python -m unittest discover -s tests -p 'test_series_library.py' -k test_soundgarden_keeps_verified_artist_and_in_app_embed_after_oauth_expires -v
