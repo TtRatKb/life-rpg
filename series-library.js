@@ -10,7 +10,7 @@
   const dateKey = date => `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
   const safeURL = value => { try { const u = new URL(value); return u.protocol === 'https:' ? u.href : ''; } catch { return ''; } };
   let selected = null, searchResults = [], catalogSelection = null, catalogTargetItemId = null, searchGeneration = 0;
-  let pendingRequest = false, nextRequestAt = 0, transactionDepth = 0;
+  let pendingRequest = false, transactionDepth = 0;
   const cache = new Map();
   function model() {
     const root = app.getState();
@@ -283,46 +283,78 @@
   function eligibleItems(){if(app.getState().seriesLibrary?.schemaVersion!==1)return [];return model().items.filter(item=>!item.archivedAt && ['want','watching'].includes(item.status) && nextEpisode(item) && item.motivation!=='low');}
   function completion(pick){const log=model().logs.find(l=>!l.undone&&!l.historical&&l.seriesId===pick.sourceId&&l.episodeId===pick.seriesEpisodeId&&l.watchCycleId===pick.seriesCycleId&&+new Date(l.at)>=Number(pick.pickedAt||0));return {done:Boolean(log),progress:log?1:0,progressText:log?'Episode watched ✓':'One episode, whenever you feel like it'};}
 
-  async function request(path) {
-    if(cache.has(path)&&Date.now()-cache.get(path).at<3600000)return cache.get(path).data;
-    if(pendingRequest||Date.now()<nextRequestAt)throw new Error('Please wait a moment before another catalog request.');
-    if(navigator.onLine===false)throw new Error('Offline · add or edit your series manually.');
-    pendingRequest=true;nextRequestAt=Date.now()+1000;
-    const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),10000);
+  // TVmaze used to return results directly. Keep it independent of anime fallbacks:
+  // a slow/blocked second provider must never delay or erase a TVmaze result.
+  async function catalogFetch(url, key, provider) {
+    const cached=cache.get(key);
+    if(cached && Date.now()-cached.at<3600000)return cached.data;
+    if(navigator.onLine===false)throw new Error('You are offline. Add a series manually or try again when connected.');
+    const controller=new AbortController();
+    let timeoutId=null;
+    let timedOut=false;
+    const timeout=new Promise((_,reject)=>{
+      timeoutId=setTimeout(()=>{
+        timedOut=true;controller.abort();
+        reject(new Error(provider+' did not respond within 7 seconds. Try again or add manually.'));
+      },7000);
+    });
     try {
-      // Timeout the complete request, including response.json(). A server can
-      // send headers and then stall while streaming the body.
+      // Race the COMPLETE fetch+JSON chain. Receiving headers does not mean
+      // the body has finished, particularly on Safari or an unstable network.
       const response=await Promise.race([
-        (async()=>{const response=await fetch(`https://api.tvmaze.com${path}`,{signal:controller.signal,credentials:'omit',referrerPolicy:'no-referrer'});if(!response.ok)throw new Error('Catalog unavailable · manual entry still works.');return {response,data:await response.json()};})(),
-        new Promise((_,reject)=>setTimeout(()=>reject(new Error('TVmaze timed out · check your connection or add the title manually.')),10000))
+        (async()=>{
+          const res=await fetch(url,{signal:controller.signal,credentials:'omit',referrerPolicy:'no-referrer'});
+          if(res.status===429)throw new Error(provider+' is busy (rate limited). Try again shortly.');
+          if(!res.ok)throw new Error(provider+' returned HTTP '+res.status+'. Please retry or add manually.');
+          return res.json();
+        })(),
+        timeout
       ]);
-      cache.set(path,{at:Date.now(),data:response.data});if(cache.size>30)cache.delete(cache.keys().next().value);return response.data;
-    }finally{clearTimeout(timer);pendingRequest=false;}
+      cache.set(key,{at:Date.now(),data:response});
+      if(cache.size>30)cache.delete(cache.keys().next().value);
+      return response;
+    } catch(error){
+      if(timedOut)throw new Error(provider+' did not respond within 7 seconds. Try again or add manually.');
+      if(error?.name==='AbortError')throw new Error(provider+' request was interrupted. Please retry.');
+      if(error instanceof TypeError)throw new Error(provider+' could not be reached from this browser. Please retry or add manually.');
+      throw error;
+    } finally {
+      if(timeoutId!==null)clearTimeout(timeoutId);
+    }
+  }
+  async function request(path) {
+    if(pendingRequest)throw new Error('A TVmaze lookup is still running. Please let it finish.');
+    pendingRequest=true;
+    try{return await catalogFetch('https://api.tvmaze.com'+path,path,'TVmaze');}
+    finally{pendingRequest=false;}
   }
   async function requestJikan(path) {
-    const key=`jikan:${path}`;
-    if(cache.has(key)&&Date.now()-cache.get(key).at<3600000)return cache.get(key).data;
-    const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),10000);
-    try {
-      const response=await Promise.race([
-        (async()=>{const response=await fetch(`https://api.jikan.moe/v4${path}`,{signal:controller.signal,credentials:'omit',referrerPolicy:'no-referrer'});if(!response.ok)throw new Error('Anime catalog unavailable');return {response,data:await response.json()};})(),
-        new Promise((_,reject)=>setTimeout(()=>reject(new Error('Anime catalog timed out')),10000))
-      ]);
-      cache.set(key,{at:Date.now(),data:response.data});return response.data;
-    } finally {clearTimeout(timer);}
+    return catalogFetch('https://api.jikan.moe/v4'+path,'jikan:'+path,'Anime catalog');
   }
-  async function searchCatalog(query){if(String(query).trim().length<2)throw new Error('Enter at least two characters.');
-    const encoded=encodeURIComponent(query.trim());
-    try {
-      const rows=await request(`/search/shows?q=${encoded}`);
-      if(rows.length)return rows.map(row=>{const s=row.show;return {id:s.id,title:s.name,year:positive(s.premiered?.slice(0,4)),minutes:positive(s.averageRuntime||s.runtime),cover:safeURL(s.image?.medium||s.image?.original),ended:s.status==='Ended',url:safeURL(s.url),providerName:'TVmaze'};});
-    } catch (tvmazeError) {
-      // TVmaze is the primary source; try the anime source only if it fails.
+  async function searchCatalog(query,{provider='tvmaze'}={}) {
+    const clean=String(query||'').trim();
+    if(clean.length<2)throw new Error('Enter at least two characters.');
+    const encoded=encodeURIComponent(clean);
+    if(provider==='jikan'){
+      const anime=await requestJikan('/anime?q='+encoded+'&limit=10&sfw=false');
+      if(!Array.isArray(anime?.data))throw new Error('Anime catalog returned invalid data. Try again later.');
+      return anime.data.filter(s=>s&&s.mal_id&&s.title).map(s=>({
+        id:s.mal_id,title:s.title,year:positive(s.year||s.aired?.from?.slice(0,4)),minutes:null,
+        cover:safeURL(s.images?.jpg?.image_url),ended:s.status==='Finished Airing',
+        url:safeURL(s.url),providerName:'Jikan'
+      }));
     }
-    const anime=await requestJikan(`/anime?q=${encoded}&limit=10&sfw=false`);
-    const results=(anime.data||[]).map(s=>({id:s.mal_id,title:s.title,year:positive(s.year||s.aired?.from?.slice(0,4)),minutes:null,cover:safeURL(s.images?.jpg?.image_url),ended:s.status==='Finished Airing',url:s.url,providerName:'Jikan'}));
-    if(!results.length)throw new Error('No catalog result was available. You can still add the title manually.');
-    return results;
+    // The original fast path: return TVmaze results immediately.
+    // The anime-specific source is user-initiated via its own button.
+    const rows=await request('/search/shows?q='+encoded);
+    if(!Array.isArray(rows))throw new Error('TVmaze returned invalid search data. Try again later.');
+    return rows.filter(row=>row?.show?.id!=null&&row.show.name).map(row=>{
+      const show=row.show;
+      return {id:show.id,title:show.name,year:positive(show.premiered?.slice(0,4)),
+        minutes:positive(show.averageRuntime||show.runtime),
+        cover:safeURL(show.image?.medium||show.image?.original),
+        ended:show.status==='Ended',url:safeURL(show.url),providerName:'TVmaze'};
+    });
   }
   async function catalogDetails(result) {
     if(result.providerName==='Jikan') {
@@ -330,11 +362,16 @@
       const count=positive(detail.episodes);
       return {...result,title:detail.title||result.title,year:result.year||result.aired?.from?.slice(0,4),cover:safeURL(detail.images?.jpg?.large_image_url||result.cover),seasons:[{number:1,episodeCount:count,ended:detail.status==='Finished Airing',minutes:null,episodes:count?Array.from({length:Math.min(count,1000)},(_,i)=>({number:i+1,minutes:null,special:false,providerId:`${result.id}-${i+1}`})):[]}],provider:{name:'Jikan',id:result.id,url:result.url,license:'Jikan / MyAnimeList metadata',snapshotAt:new Date().toISOString(),snapshot:{title:result.title,year:result.year}}};
     }
-    await new Promise(resolve=>setTimeout(resolve,Math.max(0,nextRequestAt-Date.now())));
-    const seasons=await request(`/shows/${Number(result.id)}/seasons`);
-    // One episode request follows the seasonal request; serialize to stay below provider limits.
-    await new Promise(resolve=>setTimeout(resolve,Math.max(0,nextRequestAt-Date.now())));
-    const episodes=await request(`/shows/${Number(result.id)}/episodes?specials=1`);
+    // Two standard TVmaze endpoints, in parallel: preserves the original
+    // known-good response formats and avoids two sequential waits.
+    const id=Number(result.id);
+    const seasonPath=`/shows/${id}/seasons`;
+    const episodePath=`/shows/${id}/episodes?specials=1`;
+    const [seasons,episodes]=await Promise.all([
+      catalogFetch('https://api.tvmaze.com'+seasonPath,seasonPath,'TVmaze'),
+      catalogFetch('https://api.tvmaze.com'+episodePath,episodePath,'TVmaze')
+    ]);
+    if(!Array.isArray(seasons)||!Array.isArray(episodes))throw new Error('TVmaze did not return a valid season and episode list. Retry or add manually.');
     return {...result,seasons:seasons.map(s=>({number:s.number,episodeCount:positive(s.episodeOrder) || ((result.ended || Boolean(s.endDate&&s.endDate<=dateKey(new Date()))) ? positive(episodes.filter(e=>e.season===s.number&&positive(e.number)).length) : null),
       ended:result.ended || Boolean(s.endDate&&s.endDate<=dateKey(new Date())),minutes:result.minutes,
       episodes:episodes.filter(e=>e.season===s.number).map(e=>({number:e.number,minutes:positive(e.runtime)||result.minutes,special:!positive(e.number),providerId:e.id}))})),
@@ -406,7 +443,7 @@
         <div id="seriesBoard" class="series-board"></div>
       </section>`;
     parent.prepend(shelf);
-    const add=document.createElement('dialog');add.id='seriesAdd';add.className='series-dialog';add.innerHTML=`<button type="button" class="secondary-button series-close" data-series-close>Close</button><h2 id="seriesCatalogTitle">Add a series</h2><form id="seriesSearchForm" class="series-form"><label>Search TVmaze + anime database<input name="query" type="search" minlength="2" required></label><button class="secondary-button">Search catalog</button></form><p id="seriesSearchStatus" role="status" aria-live="polite">Searches TVmaze and Jikan in parallel, then shows every available match. Manual entry works offline.</p><div id="seriesSearchResults" class="series-search-results"></div><section id="seriesCatalogPreview" class="series-catalog-preview" aria-live="polite" hidden></section><form id="seriesUpdateForm" class="series-form" hidden><p>Only missing seasons, episodes and poster details are added. Existing watch logs, IDs, reviews and rewards stay unchanged.</p><button class="primary-button" type="submit" disabled>Import seasons & poster into saved title</button></form><form id="seriesAddForm" class="series-form"><label>Title<input name="title" required></label><label>Alternate / original / romanized names<input name="aliases"></label><label>Year (optional)<input name="year" type="number" min="1900" max="2200"></label><label>Status<select name="status">${options(statuses,'watching')}</select></label><p class="series-import-hint">Choosing a catalog result imports its available seasons and poster. The fields below are optional manual corrections for Season 1.</p><label>Season 1 episode total (optional)<input name="episodeCount" type="number" min="1" max="1000"></label><label>Typical minutes (optional)<input name="minutes" type="number" min="1"></label><label><input name="ended" type="checkbox"> Series and season have ended</label><label><input name="comfort" type="checkbox"> Comfort favorite</label><button class="primary-button">Add to shelf</button></form><p>Catalog snapshots show their provider and retain editable metadata. No account needed.</p>`;
+    const add=document.createElement('dialog');add.id='seriesAdd';add.className='series-dialog';add.innerHTML=`<button type="button" class="secondary-button series-close" data-series-close>Close</button><h2 id="seriesCatalogTitle">Add a series</h2><form id="seriesSearchForm" class="series-form"><label>Search series by title<input name="query" type="search" minlength="2" required></label><button class="secondary-button" type="submit">Search TVmaze</button><button class="secondary-button" type="submit" data-series-anime-search>Search anime instead</button></form><p id="seriesSearchStatus" role="status" aria-live="polite">TVmaze results appear as soon as they arrive. For anime missing from TVmaze, use Search anime instead. Manual entry works offline.</p><div id="seriesSearchResults" class="series-search-results"></div><section id="seriesCatalogPreview" class="series-catalog-preview" aria-live="polite" hidden></section><form id="seriesUpdateForm" class="series-form" hidden><p>Only missing seasons, episodes and poster details are added. Existing watch logs, IDs, reviews and rewards stay unchanged.</p><button class="primary-button" type="submit" disabled>Import seasons & poster into saved title</button></form><form id="seriesAddForm" class="series-form"><label>Title<input name="title" required></label><label>Alternate / original / romanized names<input name="aliases"></label><label>Year (optional)<input name="year" type="number" min="1900" max="2200"></label><label>Status<select name="status">${options(statuses,'watching')}</select></label><p class="series-import-hint">Choosing a catalog result imports its available seasons and poster. The fields below are optional manual corrections for Season 1.</p><label>Season 1 episode total (optional)<input name="episodeCount" type="number" min="1" max="1000"></label><label>Typical minutes (optional)<input name="minutes" type="number" min="1"></label><label><input name="ended" type="checkbox"> Series and season have ended</label><label><input name="comfort" type="checkbox"> Comfort favorite</label><button class="primary-button">Add to shelf</button></form><p>Catalog snapshots show their provider and retain editable metadata. No account needed.</p>`;
     document.body.append(add);
     const dialog=document.createElement('dialog');dialog.id='seriesDetail';dialog.className='series-dialog';dialog.innerHTML='<button type="button" class="secondary-button series-close" data-series-close>Close</button><p id="seriesDetailNotice" role="status" aria-live="polite"></p><div id="seriesDetailBody"></div>';document.body.append(dialog);
     document.addEventListener('error',e=>{if(e.target.matches?.('[data-series-cover]')){const placeholder=document.createElement('span');placeholder.className='series-placeholder';placeholder.textContent='📺';e.target.replaceWith(placeholder);}},true);
@@ -426,7 +463,7 @@
     }).join('');
     host.innerHTML=`<div class="series-catalog-card">
       ${snapshot.cover?`<img src="${escape(safeURL(snapshot.cover))}" alt="Cover of ${escape(snapshot.title)}" loading="lazy" referrerpolicy="no-referrer">`:'<span class="series-catalog-no-cover" aria-hidden="true">📺</span>'}
-      <div><small>TVMAZE · CHECK BEFORE IMPORT</small><h3>${escape(snapshot.title)}</h3>
+      <div><small>${escape(snapshot.provider?.name||snapshot.providerName||'Catalog')} · CHECK BEFORE IMPORT</small><h3>${escape(snapshot.title)}</h3>
       <p>${snapshot.year||'Year unknown'} · ${snapshot.minutes?`typically ${snapshot.minutes} min`:'Duration unknown'}</p>
       <ul class="series-catalog-seasons">${seasonList||'<li>Season details unavailable · enter manually</li>'}</ul>
       <p class="series-catalog-footnote">The catalog may be incomplete for ongoing shows. Extras/specials are optional. You can edit missing metadata later.</p></div>
@@ -484,8 +521,8 @@
   }
   async function submit(event){
     const form=event.target;if(!form.id.startsWith('series')&&!form.dataset.seriesSeasonEdit)return;event.preventDefault();const data=values(form);
-    if(form.id==='seriesSearchForm'){const generation=++searchGeneration,status=document.getElementById('seriesSearchStatus');status.textContent='Searching TVmaze + anime database…';catalogSelection=null;searchResults=[];document.getElementById('seriesSearchResults').replaceChildren();document.getElementById('seriesCatalogPreview').hidden=true;document.getElementById('seriesUpdateForm button').disabled=true;
-      try{const results=await searchCatalog(data.query);if(generation!==searchGeneration)return;searchResults=results;document.getElementById('seriesSearchResults').innerHTML=results.map(r=>`<button type="button" class="secondary-button series-search-result" data-series-catalog="${r.id}">${r.cover?`<img src="${escape(r.cover)}" alt="" loading="lazy" referrerpolicy="no-referrer">`:'<span aria-hidden="true">📺</span>'}<span><strong>${escape(r.title)}</strong><small>${escape(r.providerName)} · ${r.year||'Year unknown'} · ${r.minutes?`${r.minutes} min`:'Duration unknown'}</small></span></button>`).join('');status.textContent=results.length?'Choose the correct title — TVmaze and anime matches are shown together.':'No matches. You can still add it manually.';}catch(error){status.textContent=error.message;}return;}
+    if(form.id==='seriesSearchForm'){const generation=++searchGeneration,status=document.getElementById('seriesSearchStatus');status.textContent=(event.submitter?.hasAttribute('data-series-anime-search')?'Searching anime catalog…':'Searching TVmaze…');catalogSelection=null;searchResults=[];document.getElementById('seriesSearchResults').replaceChildren();document.getElementById('seriesCatalogPreview').hidden=true;document.getElementById('seriesUpdateForm button').disabled=true;
+      try{const provider=event.submitter?.hasAttribute('data-series-anime-search')?'jikan':'tvmaze';const results=await searchCatalog(data.query,{provider});if(generation!==searchGeneration)return;searchResults=results;document.getElementById('seriesSearchResults').innerHTML=results.map(r=>`<button type="button" class="secondary-button series-search-result" data-series-catalog="${r.id}">${r.cover?`<img src="${escape(r.cover)}" alt="" loading="lazy" referrerpolicy="no-referrer">`:'<span aria-hidden="true">📺</span>'}<span><strong>${escape(r.title)}</strong><small>${escape(r.providerName)} · ${r.year||'Year unknown'} · ${r.minutes?`${r.minutes} min`:'Duration unknown'}</small></span></button>`).join('');status.textContent=results.length?'Select the correct '+(provider==='jikan'?'anime':'TVmaze')+' title.':'No matches from '+(provider==='jikan'?'the anime catalog':'TVmaze')+'. You can try the other search or add manually.';}catch(error){if(generation===searchGeneration)status.textContent=(error.message||'Catalog search failed.')+' You can try the other search or add manually.';}return;}
     let result;
     if(form.id==='seriesUpdateForm'){
       if(!catalogTargetItemId||!catalogSelection){showResult({ok:false,reason:'Select catalog seasons first.'});return;}
