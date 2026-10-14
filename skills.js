@@ -25,7 +25,7 @@
   const SKILLS = [
     skill("teaching-facilitation", "Teaching & Facilitation", "Work", "🧑‍🏫", "Teaching, substitution and future facilitation practice."),
     skill("lesson-design-preparation", "Lesson Design & Preparation", "Work", "🗂️", "Designing lessons and preparing concrete teaching work."),
-    skill("assessment-feedback", "Assessment & Feedback", "Work", "Assessment", "Assessing work, corrections and feedback practice."),
+    skill("assessment-feedback", "Assessment & Feedback", "Work", "📝", "Assessing work, corrections and feedback practice."),
     skill("professional-organization", "Professional Organization", "Work", "📋", "Meetings, school administration and keeping work systems usable."),
     skill("focus-concentration", "Focus & Concentration", "Work", "🎯", "Deliberate deep-focus practice rather than generic time spent working."),
 

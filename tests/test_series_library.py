@@ -105,7 +105,7 @@ class SeriesLibraryTests(unittest.TestCase):
                                '<script src="/daily.js"></script><script src="/skills.js"></script>'
                                '<script type="module" src="/cloud-save.js"></script></body>')
         cls.daily_source = (ROOT / 'daily.js').read_text().replace('window.LifeRPGDaily = {',
-            'window.seriesDailyTest = {eligibleSeries,buildPicks,scoreSeries,pickCompletion,makePickFromCandidate,sourceAllowedForSlot}; window.LifeRPGDaily = {')
+            'window.seriesDailyTest = {eligibleSeries,buildPicks,scoreSeries,pickCompletion,makePickFromCandidate,sourceAllowedForSlot,plannerGroup,chooseSourceCandidate,promoteTopVeryHighActiveGame,todayKey}; window.LifeRPGDaily = {')
         cloud = source("cloud-save.js")
         cls.cloud = FIREBASE_STUB + re.sub(
             r'^import\s+.*?from\s+"[^"]+";', '', cloud, flags=re.M | re.S) + CLOUD_HOOKS
@@ -382,6 +382,79 @@ class SeriesLibraryTests(unittest.TestCase):
           LifeRPGSkills.rebuild();return {delta:root.characterXP-before,series:root.skills.events.filter(e=>e.source==='series').length,time:root.skills.events.filter(e=>e.source==='time').length};}""")
         self.assertEqual(result,dict(delta=0,series=1,time=0))
 
+    def test_daily_no_duplicate_games_and_assessment_icon(self):
+        """Library games are one Daily activity family even across different slots."""
+        result=self.page.evaluate("""() => {
+          const d=window.seriesDailyTest, a=LifeRPGApp, root=a.getState();
+          const first={id:'synthetic-game-1',title:'Synthetic Cozy Game',status:'playing',
+            role:'fun',motivation:'very_high',createdAt:Date.now()};
+          const second={id:'synthetic-game-2',title:'Synthetic Other Game',status:'playing',
+            role:'fun',motivation:'high',createdAt:Date.now()};
+          root.gameLibrary=root.gameLibrary||{items:[]};
+          root.gameLibrary.items=[first,second];
+          const sameGroup=d.plannerGroup('game',first)===d.plannerGroup('game',second);
+          const group=d.plannerGroup('game',first);
+          const questGroup=d.plannerGroup('quest',{plannerGroup:group});
+          const day=d.todayKey();
+          root.dailyPlanner.days[day]={date:day,
+            checkIn:{time:'some',energy:'okay',stress:'low',obligations:'light'},
+            picks:[{slot:'joy',sourceType:'game',sourceId:first.id,rerolls:0}],
+            rerollHistory:{}};
+          const promoted=d.promoteTopVeryHighActiveGame({persistChange:false});
+          const withUsedGroup=d.chooseSourceCandidate('gentle',
+            root.dailyPlanner.days[day].checkIn,[],[],[],[first,second],[],[],new Set(),
+            new Set(),null,['game'],['Hobbies'],[group]);
+          return {sameGroup,questGroup,group,promoted,
+            otherGameSelected:withUsedGroup?.sourceType==='game',
+            icon:LifeRPGSkills.getSkill('assessment-feedback')?.icon,
+            savedPickCount:root.dailyPlanner.days[day].picks.length};
+        }""")
+        self.assertTrue(result['sameGroup'])
+        self.assertEqual(result['questGroup'],result['group'])
+        self.assertFalse(result['promoted'])
+        self.assertFalse(result['otherGameSelected'])
+        self.assertEqual(result['savedPickCount'],1)
+        self.assertEqual(result['icon'],'📝')
+
+    def test_soundgarden_keeps_verified_artist_and_in_app_embed_after_oauth_expires(self):
+        """Lost session credentials must not turn a verified artist into a new prompt."""
+        self.page.evaluate("""() => {
+          window.LifeRPGSpotifyBridge={
+            state:()=>({connected:false,busy:false}),clientId:()=>'',redirect:()=>location.origin+'/',
+            embedUrl:track=>'https://open.spotify.com/embed/track/'+track.spotifyTrackId,
+            toggle:async()=>{},ready:Promise.resolve()
+          };
+          const id='0123456789abcdefghijAB';
+          LifeRPGApp.getState().soundGarden={
+            version:4,
+            artists:[{name:'Synthetic Artist',key:'synthetic artist',spotifyArtistId:id}],
+            catalog:{'synthetic artist':[
+              {key:'synthetic artist::song one',title:'Song One',artist:'Synthetic Artist',
+                artistKey:'synthetic artist',spotifyArtistId:id,
+                spotifyTrackId:'ZYXWVUTSRQPONMLKJIHGFE',album:'Synthetic Album'}
+            ]},
+            history:[],tracks:{},days:{},recentArtists:[]
+          };
+        }""")
+        self.page.add_script_tag(url='/sound-garden.js')
+        self.page.evaluate('LifeRPGSoundGarden.open()')
+        self.page.evaluate('LifeRPGSoundGarden.next()')
+        self.page.wait_for_function("""() => {
+          const m=LifeRPGSoundGarden.getData();
+          return Boolean(m.current?.spotifyTrackId);
+        }""",timeout=4000)
+        self.assertFalse(self.page.locator('#sgIdentity').inner_text().strip())
+        self.assertIn('✓',self.page.locator('#sgArtists').inner_text())
+        self.assertIn('Zuordnung ändern',self.page.locator('#sgArtists').inner_text())
+        self.assertIn('Song One',self.page.locator('#sgDaily').inner_text())
+        self.assertFalse(self.page.locator('#sgEmbed').evaluate('(el)=>el.hidden'))
+        iframe=self.page.locator('#sgEmbed iframe')
+        self.assertEqual(iframe.count(),1)
+        self.assertIn('ZYXWVUTSRQPONMLKJIHGFE',iframe.get_attribute('src'))
+        self.assertEqual(self.page.evaluate(
+          'LifeRPGSoundGarden.getData().artists[0].spotifyArtistId'),
+          '0123456789abcdefghijAB')
+
     def test_tvmaze_search_is_independent_of_slow_anime_provider(self):
         """The original TVmaze path must yield search results without contacting Jikan."""
         anime_requests = []
@@ -621,8 +694,8 @@ class SeriesLibraryTests(unittest.TestCase):
             version='0.31.4-series10' if name in ['series-library.js','pwa.js'] else '0.31.4-series8' if name in ['series-library.css','my-week.js'] else '0.31.4-series2' if name in ['app.js','daily.js'] else '0.31.4-series1'
             self.assertIn(f'{name}?v={version}',html)
             self.assertIn(f'{name}?v={version}',sw)
-        self.assertIn('life-rpg-v0.31.4-series10',sw)
-        self.assertIn('const VERSION = "0.31.4-series10"',(ROOT/'pwa.js').read_text())
+        self.assertIn('life-rpg-v0.31.4-dm1',sw)
+        self.assertIn('const VERSION = "0.31.4-dm1"',(ROOT/'pwa.js').read_text())
 
     def test_series_light_cozy_shelf_and_dialog_have_readable_contrast(self):
         """Catch the dark-background/dark-ink regression from the real screenshot."""

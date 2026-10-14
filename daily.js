@@ -2076,7 +2076,9 @@
       .filter(game => !Object.values(day.rerollHistory || {}).some(keys => Array.isArray(keys) && keys.includes(sourceKey("game", game.id))))
       .sort((a, b) => scoreGame(b, "joy", day.checkIn) - scoreGame(a, "joy", day.checkIn));
     const game = games[0];
-    if (!game || day.picks.some(pick => pick.sourceType === "game" && pick.sourceId === game.id)) return false;
+    // A high-motivation game can replace a leisure suggestion only if there is
+    // no other game in the plan. Different games are one activity family.
+    if (!game || day.picks.some(pick => pick.sourceType === "game")) return false;
 
     const target = ["joy", "gentle"]
       .map(slot => day.picks.find(pick => pick.slot === slot))
@@ -2207,6 +2209,10 @@
   }
 
   function plannerGroup(type, item) {
+    // Prevent Focus/Joy/Gentle from independently selecting multiple game sessions.
+    // All game-library items share one activity family; quest metadata may also
+    // opt into it with plannerGroup/activityFamily = "library-game-session".
+    if (type === "game") return "library-game-session";
     if (type !== "quest") return "";
     const explicit = String(item?.activityFamily || item?.plannerGroup || "").trim();
     if (explicit) return explicit;
