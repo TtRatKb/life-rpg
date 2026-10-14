@@ -83,6 +83,14 @@
         provider:spec.provider || null, seasons:(spec.seasons || []).map(makeSeason), links:[],
         watchCycles:[cycle], activeCycleId:cycle.id, milestones:{}, review:{rating:null, notes:''}};
       if (item.status === 'completed') item.status = 'paused'; // status cannot manufacture an unwatched completion
+      // Adding and caring for the shelf is itself a small, real hobby action.
+      // Keep this separate from episode rewards so importing metadata can never
+      // pay for imagined viewing time.
+      const reward = app.awardActivity({source:'series-library-add',sourceId:item.id,
+        label:`Added to Series Library · ${item.title}`,realm:item.recovery?'Recovery':'Hobbies',capability:'wellbeing',
+        xp:5,realmXP:5,statXP:3,coins:5,storyEnergyBase:0,progressionRelevant:false,
+        skipAddOnRewards:true,metadata:{kind:'library-maintenance',seriesId:item.id}});
+      item.milestones.library = {rewardEventId:reward.eventId, reward:{...reward,realm:item.recovery?'Recovery':'Hobbies',capability:'wellbeing'},at:new Date().toISOString(),revoked:false};
       model().items.push(item); return {ok:true,item};
     });
   }
