@@ -362,11 +362,16 @@
       const count=positive(detail.episodes);
       return {...result,title:detail.title||result.title,year:result.year||result.aired?.from?.slice(0,4),cover:safeURL(detail.images?.jpg?.large_image_url||result.cover),seasons:[{number:1,episodeCount:count,ended:detail.status==='Finished Airing',minutes:null,episodes:count?Array.from({length:Math.min(count,1000)},(_,i)=>({number:i+1,minutes:null,special:false,providerId:`${result.id}-${i+1}`})):[]}],provider:{name:'Jikan',id:result.id,url:result.url,license:'Jikan / MyAnimeList metadata',snapshotAt:new Date().toISOString(),snapshot:{title:result.title,year:result.year}}};
     }
-    // TVmaze permits at least 20 calls per 10 seconds; no artificial per-call wait.
-    const seasons=await request(`/shows/${Number(result.id)}/seasons`);
-    // One episode request follows the seasonal request; serialize to stay below provider limits.
-    // TVmaze permits at least 20 calls per 10 seconds; no artificial per-call wait.
-    const episodes=await request(`/shows/${Number(result.id)}/episodes?specials=1`);
+    // Two standard TVmaze endpoints, in parallel: preserves the original
+    // known-good response formats and avoids two sequential waits.
+    const id=Number(result.id);
+    const seasonPath=`/shows/${id}/seasons`;
+    const episodePath=`/shows/${id}/episodes?specials=1`;
+    const [seasons,episodes]=await Promise.all([
+      catalogFetch('https://api.tvmaze.com'+seasonPath,seasonPath,'TVmaze'),
+      catalogFetch('https://api.tvmaze.com'+episodePath,episodePath,'TVmaze')
+    ]);
+    if(!Array.isArray(seasons)||!Array.isArray(episodes))throw new Error('TVmaze did not return a valid season and episode list. Retry or add manually.');
     return {...result,seasons:seasons.map(s=>({number:s.number,episodeCount:positive(s.episodeOrder) || ((result.ended || Boolean(s.endDate&&s.endDate<=dateKey(new Date()))) ? positive(episodes.filter(e=>e.season===s.number&&positive(e.number)).length) : null),
       ended:result.ended || Boolean(s.endDate&&s.endDate<=dateKey(new Date())),minutes:result.minutes,
       episodes:episodes.filter(e=>e.season===s.number).map(e=>({number:e.number,minutes:positive(e.runtime)||result.minutes,special:!positive(e.number),providerId:e.id}))})),
