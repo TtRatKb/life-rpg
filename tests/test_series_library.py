@@ -382,6 +382,51 @@ class SeriesLibraryTests(unittest.TestCase):
           LifeRPGSkills.rebuild();return {delta:root.characterXP-before,series:root.skills.events.filter(e=>e.source==='series').length,time:root.skills.events.filter(e=>e.source==='time').length};}""")
         self.assertEqual(result,dict(delta=0,series=1,time=0))
 
+    def test_tvmaze_search_is_independent_of_slow_anime_provider(self):
+        """The original TVmaze path must yield search results without contacting Jikan."""
+        anime_requests = []
+        def tvmaze(route):
+            if '/search/shows' in route.request.url:
+                route.fulfill(json=[dict(show=dict(
+                    id=551,name='Synthetic Comfort Series',premiered='2001-01-01',
+                    averageRuntime=42,status='Ended',
+                    image=dict(medium='https://static.tvmaze.com/synthetic.jpg'),
+                    url='https://www.tvmaze.com/shows/551'))])
+            else:
+                route.fulfill(status=404, json={})
+        def anime(route):
+            anime_requests.append(route.request.url)
+            route.abort()
+        self.context.route('https://api.tvmaze.com/**',tvmaze)
+        self.context.route('https://api.jikan.moe/v4/**',anime)
+        self.page.locator('[data-series-add]').first.click()
+        self.page.locator('#seriesSearchForm [name="query"]').fill('Synthetic Comfort')
+        self.page.locator('#seriesSearchForm button').first.click()
+        self.page.locator('[data-series-catalog]').first.wait_for(state='visible',timeout=4000)
+        self.assertEqual(anime_requests,[])
+        self.assertIn('Synthetic Comfort Series',self.page.locator('#seriesSearchResults').inner_text())
+        self.assertIn('Select the correct TVmaze title',self.page.locator('#seriesSearchStatus').inner_text())
+
+        self.context.unroute('https://api.tvmaze.com/**',tvmaze)
+        self.context.route('https://api.tvmaze.com/**',lambda route:route.abort())
+        self.page.locator('#seriesSearchForm [name="query"]').fill('new search without result')
+        self.page.locator('#seriesSearchForm button').first.click()
+        self.page.wait_for_function("""() => {
+          const message=document.getElementById('seriesSearchStatus').textContent;
+          return message.includes('could not be reached');
+        }""")
+        self.assertEqual(self.page.locator('#seriesSearchResults [data-series-catalog]').count(),0)
+
+        self.context.unroute('https://api.jikan.moe/v4/**',anime)
+        self.context.route('https://api.jikan.moe/v4/**',lambda route:route.fulfill(json={
+            'data':[{'mal_id':551,'title':'Synthetic Anime',
+                'year':2026,'status':'Currently Airing',
+                'images':{'jpg':{'image_url':'https://example.org/anime.jpg'}}}]}))
+        self.page.locator('#seriesSearchForm [name="query"]').fill('Synthetic Anime')
+        self.page.locator('#seriesSearchForm [data-series-anime-search]').click()
+        self.page.locator('[data-series-catalog]').first.wait_for(state='visible')
+        self.assertIn('Synthetic Anime',self.page.locator('#seriesSearchResults').inner_text())
+
     def test_catalog_snapshot_choice_loading_failure_rate_limit_and_no_overwrite(self):
         def catalog(route):
             url=route.request.url
@@ -516,11 +561,11 @@ class SeriesLibraryTests(unittest.TestCase):
         self.assertGreaterEqual(self.page.locator('#seriesReviewForm button').first.bounding_box()['height'],44)
         html=(ROOT/'index.html').read_text();sw=(ROOT/'service-worker.js').read_text()
         for name in ['series-library.js','series-library.css','app.js','daily.js','my-week.js','skills.js','time.js','pwa.js']:
-            version='0.31.4-series6' if name in ['series-library.js','series-library.css','my-week.js','pwa.js'] else '0.31.4-series2' if name in ['app.js','daily.js'] else '0.31.4-series1'
+            version='0.31.4-series9' if name in ['series-library.js','series-library.css','my-week.js','pwa.js'] else '0.31.4-series2' if name in ['app.js','daily.js'] else '0.31.4-series1'
             self.assertIn(f'{name}?v={version}',html)
             self.assertIn(f'{name}?v={version}',sw)
-        self.assertIn('life-rpg-v0.31.4-series6',sw)
-        self.assertIn('const VERSION = "0.31.4-series6"',(ROOT/'pwa.js').read_text())
+        self.assertIn('life-rpg-v0.31.4-series9',sw)
+        self.assertIn('const VERSION = "0.31.4-series9"',(ROOT/'pwa.js').read_text())
 
     def test_series_light_cozy_shelf_and_dialog_have_readable_contrast(self):
         """Catch the dark-background/dark-ink regression from the real screenshot."""
