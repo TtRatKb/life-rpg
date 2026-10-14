@@ -1,0 +1,35 @@
+name: Series search browser regression
+
+on:
+  pull_request:
+    paths:
+      - 'series-library.js'
+      - 'tests/test_series_library.py'
+      - '.github/workflows/series-search-browser.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'series-library.js'
+      - 'tests/test_series_library.py'
+
+permissions:
+  contents: read
+
+jobs:
+  search-click:
+    name: Search button actually renders matches
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install browser test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install playwright
+          python -m playwright install --with-deps chromium
+      - name: Run real Series search UI regression
+        run: |
+          python -m unittest discover -s tests -p 'test_series_library.py' -k test_catalog_search_buttons_render_results_and_seasons_without_hanging -v
