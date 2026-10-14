@@ -13,6 +13,7 @@
   const DAILY_COIN_CAP = 50;
   const TYPE_META = {
     book: { xp: 2, storyEnergy: 0.40, coins: 5, label: "Library" },
+    series: { xp: 2, storyEnergy: 0.40, coins: 5, label: "Series & Anime" },
     game: { xp: 3, storyEnergy: 0.20, coins: 5, label: "Games" },
     gameDetails: { xp: 2, storyEnergy: 0.15, coins: 5, label: "Game details" },
     gameSteam: { xp: 2, storyEnergy: 0.15, coins: 5, label: "Steam curation" },
