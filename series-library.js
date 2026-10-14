@@ -77,13 +77,17 @@
       if (spec.provider && model().items.some(i=>i.provider?.name===spec.provider.name && i.provider?.id===spec.provider.id)) throw new Error('This catalog title is already on your shelf. Open it for a separate rewatch.');
       if (!String(spec.title || '').trim()) throw new Error('Please enter a title.');
       const cycle = {id:uid('watch'), kind:'first', startedAt:new Date().toISOString()};
+      const historicalWatched=spec.status==='completed';
       const item = {id:uid('series'), title:String(spec.title).trim(), aliases:String(spec.aliases || ''), year:positive(spec.year),
-        cover:safeURL(spec.cover), status:statuses[spec.status] ? spec.status : 'watching', comfort:Boolean(spec.comfort),
+        cover:safeURL(spec.cover), status:statuses[spec.status] ? spec.status : 'watching', historicalWatched, comfort:Boolean(spec.comfort),
         recovery:Boolean(spec.recovery), motivation:spec.motivation || 'medium', priority:spec.priority || 'optional', ended:spec.ended === true,
         provider:spec.provider || null, seasons:(spec.seasons || []).map(makeSeason), links:[],
         watchCycles:[cycle], activeCycleId:cycle.id, milestones:{}, review:{rating:null, notes:''}};
-      if (item.status === 'completed') item.status = 'paused'; // status cannot manufacture an unwatched completion
-      model().items.push(item); return {ok:true,item};
+      // A previously watched show may be shelved as Watched without inventing
+      // episode logs, viewing dates, or completion bonuses.
+      model().items.push(item);
+      const curation=window.LifeRPGStewardship?.rewardCreation?.({type:'series',id:item.id,label:item.title,fields:[item.title]})||null;
+      return {ok:true,item,curation};
     });
   }
   function updateItem(id, changes) {
@@ -93,7 +97,7 @@
       if (!String(item.title).trim()) throw new Error('A title is required.');
       if ('cover' in changes) item.cover=safeURL(changes.cover);
       if ('status' in changes && statuses[changes.status]) {
-        if (changes.status === 'completed' && !complete(item)) throw new Error('Completion needs a known series end and every regular episode.');
+        if (changes.status === 'completed' && !complete(item) && !item.historicalWatched) throw new Error('For a previously watched show, choose Watched when adding it; otherwise track its real episode completion.');
         item.status=changes.status;
       }
       return {ok:true,item};
@@ -129,6 +133,7 @@
       const item=find(id),season=item?.seasons.find(s=>s.episodes.some(e=>e.id===episodeId)),episode=season?.episodes.find(e=>e.id===episodeId);
       if(!episode)throw new Error('Episode unavailable.');
       if(item.archivedAt)throw new Error('Restore this archived title before logging an episode.');
+      if(item.historicalWatched && activeCycle(item)?.kind==='first')throw new Error('This title was saved as previously watched. Start a separate rewatch before logging new episodes.');
       const existing=model().logs.find(log=>log.seriesId===id && log.episodeId===episodeId && log.watchCycleId===item.activeCycleId);
       if(existing && !existing.undone)return {ok:true,duplicate:true,log:existing};
       const at=options.at?new Date(options.at):new Date();
@@ -216,7 +221,7 @@
       if(!item.cover && safeURL(snapshot.cover))item.cover=safeURL(snapshot.cover);
       if(!item.year && positive(snapshot.year))item.year=positive(snapshot.year);
       if(snapshot.ended===true)item.ended=true;
-      if(item.status==='completed' && !complete(item))item.status='watching';
+      if(item.status==='completed' && !complete(item) && !item.historicalWatched)item.status='watching';
       return {ok:true,item};
     });
   }
