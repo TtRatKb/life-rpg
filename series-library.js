@@ -289,15 +289,45 @@
     if(navigator.onLine===false)throw new Error('Offline · add or edit your series manually.');
     pendingRequest=true;nextRequestAt=Date.now()+1000;
     const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),12000);
-    try {const response=await fetch(`https://api.tvmaze.com${path}`,{signal:controller.signal,credentials:'omit',referrerPolicy:'no-referrer'});
+    try {
+      // Some browsers/networks leave a cross-origin request pending even after
+      // AbortController fires. Race it with a hard promise timeout so the
+      // catalog dialog can never remain on “Searching TVmaze…” indefinitely.
+      const response=await Promise.race([
+        fetch(`https://api.tvmaze.com${path}`,{signal:controller.signal,credentials:'omit',referrerPolicy:'no-referrer'}),
+        new Promise((_,reject)=>setTimeout(()=>reject(new Error('TVmaze timed out · check your connection or add the title manually.')),10000))
+      ]);
       if(response.status===429){nextRequestAt=Date.now()+10000;throw new Error('TVmaze is busy. Wait a little, or add manually.');}
       if(!response.ok)throw new Error('Catalog unavailable · manual entry still works.');
       const data=await response.json();cache.set(path,{at:Date.now(),data});if(cache.size>30)cache.delete(cache.keys().next().value);return data;
     }finally{clearTimeout(timer);pendingRequest=false;}
   }
-  async function searchCatalog(query){if(String(query).trim().length<2)throw new Error('Enter at least two characters.');const rows=await request(`/search/shows?q=${encodeURIComponent(query.trim())}`);
-    return rows.map(row=>{const s=row.show;return {id:s.id,title:s.name,year:positive(s.premiered?.slice(0,4)),minutes:positive(s.averageRuntime||s.runtime),cover:safeURL(s.image?.medium||s.image?.original),ended:s.status==='Ended',url:safeURL(s.url)};});}
+  async function requestJikan(path) {
+    const key=`jikan:${path}`;
+    if(cache.has(key)&&Date.now()-cache.get(key).at<3600000)return cache.get(key).data;
+    const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),10000);
+    try {
+      const response=await Promise.race([
+        fetch(`https://api.jikan.moe/v4${path}`,{signal:controller.signal,credentials:'omit',referrerPolicy:'no-referrer'}),
+        new Promise((_,reject)=>setTimeout(()=>reject(new Error('Anime catalog timed out')),10000))
+      ]);
+      if(!response.ok)throw new Error('Anime catalog unavailable');
+      const data=await response.json();cache.set(key,{at:Date.now(),data});return data;
+    } finally {clearTimeout(timer);}
+  }
+  async function searchCatalog(query){if(String(query).trim().length<2)throw new Error('Enter at least two characters.');
+    try {const rows=await request(`/search/shows?q=${encodeURIComponent(query.trim())}`);if(rows.length)return rows.map(row=>{const s=row.show;return {id:s.id,title:s.name,year:positive(s.premiered?.slice(0,4)),minutes:positive(s.averageRuntime||s.runtime),cover:safeURL(s.image?.medium||s.image?.original),ended:s.status==='Ended',url:safeURL(s.url),providerName:'TVmaze'};});throw new Error('No TVmaze matches');}
+    catch (error) {
+      const result=await requestJikan(`/anime?q=${encodeURIComponent(query.trim())}&limit=10&sfw=false`);
+      return (result.data||[]).map(s=>({id:s.mal_id,title:s.title,year:positive(s.year||s.aired?.from?.slice(0,4)),minutes:null,cover:safeURL(s.images?.jpg?.image_url),ended:s.status==='Finished Airing',url:s.url,providerName:'Jikan'}));
+    }
+  }
   async function catalogDetails(result) {
+    if(result.providerName==='Jikan') {
+      const detail=(await requestJikan(`/anime/${Number(result.id)}/full`)).data||{};
+      const count=positive(detail.episodes);
+      return {...result,title:detail.title||result.title,year:result.year||result.aired?.from?.slice(0,4),cover:safeURL(detail.images?.jpg?.large_image_url||result.cover),seasons:[{number:1,episodeCount:count,ended:detail.status==='Finished Airing',minutes:null,episodes:count?Array.from({length:Math.min(count,1000)},(_,i)=>({number:i+1,minutes:null,special:false,providerId:`${result.id}-${i+1}`})):[]}],provider:{name:'Jikan',id:result.id,url:result.url,license:'Jikan / MyAnimeList metadata',snapshotAt:new Date().toISOString(),snapshot:{title:result.title,year:result.year}}};
+    }
     await new Promise(resolve=>setTimeout(resolve,Math.max(0,nextRequestAt-Date.now())));
     const seasons=await request(`/shows/${Number(result.id)}/seasons`);
     // One episode request follows the seasonal request; serialize to stay below provider limits.
