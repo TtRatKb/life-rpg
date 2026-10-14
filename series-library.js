@@ -9,7 +9,7 @@
   const positive = value => Number.isFinite(Number(value)) && Number(value) > 0 ? Number(value) : null;
   const dateKey = date => `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
   const safeURL = value => { try { const u = new URL(value); return u.protocol === 'https:' ? u.href : ''; } catch { return ''; } };
-  let selected = null, searchResults = [], catalogSelection = null, searchGeneration = 0;
+  let selected = null, searchResults = [], catalogSelection = null, catalogTargetItemId = null, searchGeneration = 0;
   let pendingRequest = false, nextRequestAt = 0, transactionDepth = 0;
   const cache = new Map();
   function model() {
@@ -151,9 +151,11 @@
       item.status='watching';
       if(complete(item)){item.status='completed';activeCycle(item).completedAt=log.at;}
       // Historical sessions may complete a shelf, but never backfill any milestone.
-      if(!log.historical && !logsFor(item).some(l=>l.historical)) {
-        if(seasonComplete(item,season))milestone(item,`season:${season.id}`,log.at);
-        if(complete(item))milestone(item,'series',log.at);
+      if(!log.historical) {
+        // Imported history never earns past rewards, but newly watched episodes
+        // still deserve their own season milestone. A live series finish is paid once.
+        if(seasonComplete(item,season) && !logsFor(item).some(l=>l.seasonId===season.id && l.historical)) milestone(item,`season:${season.id}`,log.at);
+        if(complete(item)) milestone(item,'series',log.at);
       }
       return {ok:true,log};
     });
@@ -165,6 +167,60 @@
       const logs=episodeIds.map(episodeId=>logEpisode(id,episodeId,options).log);return {ok:true,logs};
     });
   }
+  function markSeasonHistorical(id, seasonId) {
+    return transaction(()=>{
+      const item=find(id),season=item?.seasons.find(s=>s.id===seasonId);
+      if(!season || item.archivedAt)throw new Error('Restore the title and select a saved season.');
+      const remaining=season.episodes.filter(e=>!e.special && !seen(item,e));
+      if(!remaining.length)return {ok:true,duplicate:true,logs:[]};
+      if(remaining.length>1000)throw new Error('Too many episodes to import at once.');
+      // Imported history has no invented viewing date, duration, or reward.
+      // recordedAt/at marks the import action; My Week must filter historical entries.
+      const at=new Date().toISOString(),logs=[];
+      for(let offset=0;offset<remaining.length;offset+=100) {
+        const batch=logEpisodes(id,remaining.slice(offset,offset+100).map(e=>e.id),{historical:true,at});
+        logs.push(...batch.logs);
+      }
+      return {ok:true,logs};
+    });
+  }
+
+  function mergeCatalog(id, snapshot) {
+    return transaction(()=>{
+      const item=find(id);
+      if(!item || item.archivedAt)throw new Error('Restore this title before updating its catalog.');
+      if(!snapshot?.provider || !Array.isArray(snapshot.seasons))throw new Error('Choose a catalog result with season details.');
+      if(item.provider && (item.provider.name!==snapshot.provider.name || String(item.provider.id)!==String(snapshot.provider.id))) {
+        throw new Error('This title is linked to another catalog entry. No data was changed.');
+      }
+      if(model().items.some(other=>other.id!==item.id && other.provider?.name===snapshot.provider.name && String(other.provider?.id)===String(snapshot.provider.id))) {
+        throw new Error('This catalog result is already linked to another saved title.');
+      }
+      for(const incoming of snapshot.seasons){
+        let season=item.seasons.find(existing=>existing.number===incoming.number && existing.special===Boolean(incoming.special));
+        if(!season){item.seasons.push(makeSeason(incoming));continue;}
+        const known=positive(incoming.episodeCount),old=positive(season.episodeCount);
+        for(const ep of incoming.episodes||[]) {
+          let existing=season.episodes.find(e=>ep.providerId!=null && String(e.providerId)===String(ep.providerId));
+          if(!existing && positive(ep.number))existing=season.episodes.find(e=>e.special===Boolean(ep.special) && e.number===positive(ep.number));
+          if(existing){if(existing.providerId==null)existing.providerId=ep.providerId??null;if(!existing.minutes)existing.minutes=positive(ep.minutes);}
+          else season.episodes.push({id:uid('episode'),number:positive(ep.number),minutes:positive(ep.minutes),
+            special:Boolean(ep.special),providerId:ep.providerId??null});
+        }
+        const storedCount=season.episodes.filter(e=>!e.special).length;
+        if(known || old) season.episodeCount=Math.max(old||0,known||0,storedCount);
+        // Preserve the user's own known ending when the provider is incomplete.
+        season.ended=season.ended || incoming.ended===true;
+      }
+      item.provider=snapshot.provider;
+      if(!item.cover && safeURL(snapshot.cover))item.cover=safeURL(snapshot.cover);
+      if(!item.year && positive(snapshot.year))item.year=positive(snapshot.year);
+      if(snapshot.ended===true)item.ended=true;
+      if(item.status==='completed' && !complete(item))item.status='watching';
+      return {ok:true,item};
+    });
+  }
+
   function revokeReceipt(receipt, realm, capability='wellbeing') {
     const root=app.getState();
     if(!root.rewardLedger.events.some(e=>e.id===receipt.rewardEventId)) {
@@ -232,14 +288,14 @@
     }finally{clearTimeout(timer);pendingRequest=false;}
   }
   async function searchCatalog(query){if(String(query).trim().length<2)throw new Error('Enter at least two characters.');const rows=await request(`/search/shows?q=${encodeURIComponent(query.trim())}`);
-    return rows.map(row=>{const s=row.show;return {id:s.id,title:s.name,year:positive(s.premiered?.slice(0,4)),minutes:positive(s.averageRuntime||s.runtime),cover:safeURL(s.image?.medium),ended:s.status==='Ended',url:safeURL(s.url)};});}
+    return rows.map(row=>{const s=row.show;return {id:s.id,title:s.name,year:positive(s.premiered?.slice(0,4)),minutes:positive(s.averageRuntime||s.runtime),cover:safeURL(s.image?.medium||s.image?.original),ended:s.status==='Ended',url:safeURL(s.url)};});}
   async function catalogDetails(result) {
     await new Promise(resolve=>setTimeout(resolve,Math.max(0,nextRequestAt-Date.now())));
     const seasons=await request(`/shows/${Number(result.id)}/seasons`);
     // One episode request follows the seasonal request; serialize to stay below provider limits.
     await new Promise(resolve=>setTimeout(resolve,Math.max(0,nextRequestAt-Date.now())));
     const episodes=await request(`/shows/${Number(result.id)}/episodes?specials=1`);
-    return {...result,seasons:seasons.map(s=>({number:s.number,episodeCount:positive(s.episodeOrder) || (result.ended ? positive(episodes.filter(e=>e.season===s.number&&positive(e.number)).length) : null),
+    return {...result,seasons:seasons.map(s=>({number:s.number,episodeCount:positive(s.episodeOrder) || ((result.ended || Boolean(s.endDate&&s.endDate<=dateKey(new Date()))) ? positive(episodes.filter(e=>e.season===s.number&&positive(e.number)).length) : null),
       ended:result.ended || Boolean(s.endDate&&s.endDate<=dateKey(new Date())),minutes:result.minutes,
       episodes:episodes.filter(e=>e.season===s.number).map(e=>({number:e.number,minutes:positive(e.runtime)||result.minutes,special:!positive(e.number),providerId:e.id}))})),
       provider:{name:'TVmaze',id:result.id,url:result.url,license:'CC BY-SA',snapshotAt:new Date().toISOString(),snapshot:{title:result.title,year:result.year}}};
@@ -261,11 +317,11 @@
   function detail(){
     const item=find(selected),host=document.getElementById('seriesDetailBody');if(!item||!host)return;
     const episode=item.seasons.flatMap(s=>s.episodes).find(e=>e.id===document.getElementById('seriesDetail').dataset.episodeId)||nextEpisode(item);
-    host.innerHTML=`<h2>${escape(item.title)}</h2>${attribution(item)}<p>${item.ended?'Known series end':'Ongoing / ending unknown'} · ${item.watchCycles.length} watch cycle(s)</p><button class="secondary-button" type="button" ${item.archivedAt?'data-series-restore':'data-series-archive'}>${item.archivedAt?'Restore title':'Archive title · keep all history'}</button><p>Archive hides this title from suggestions. Logs, reviews and rewards stay intact.</p>
+    host.innerHTML=`<div class="series-detail-header">${cover(item)}<div><h2>${escape(item.title)}</h2>${attribution(item)}<p>${item.ended?'Known series end':'Ongoing / ending unknown'} · ${item.watchCycles.length} watch cycle(s)</p></div></div><button type="button" class="secondary-button" data-series-enrich>↻ Find seasons & poster</button> <button type="button" class="primary-button" data-series-log-next ${!nextEpisode(item)||item.archivedAt?'disabled':''}>✓ Log next episode${nextEpisode(item)?` · ${escape(label(item,nextEpisode(item)))}`:''}</button><p>Catalog updates add missing metadata without replacing watched episodes, rewards or manually entered details. Quick log uses the current time only.</p><button class="secondary-button" type="button" ${item.archivedAt?'data-series-restore':'data-series-archive'}>${item.archivedAt?'Restore title':'Archive title · keep all history'}</button><p>Archive hides this title from suggestions. Logs, reviews and rewards stay intact.</p>
       <form id="seriesEditForm" class="series-form"><label>Title<input name="title" value="${escape(item.title)}" required></label><label>Original / English / romanized titles<input name="aliases" value="${escape(item.aliases)}"></label><label>Year<input name="year" type="number" min="1900" max="2200" value="${item.year||''}"></label><label>Cover URL<input name="cover" type="url" value="${escape(item.cover)}"></label><label>Status<select name="status">${options(statuses,item.status)}</select></label><label>Motivation<select name="motivation">${options({low:'Not feeling it',medium:'Maybe',high:'Looking forward to it'},item.motivation)}</select></label><label>Priority<select name="priority">${options({optional:'Optional',favorite:'Favorite'},item.priority)}</select></label><label><input name="ended" type="checkbox" ${item.ended?'checked':''}> Series ending and all seasons are known</label><label><input name="comfort" type="checkbox" ${item.comfort?'checked':''}> Comfort favorite</label><label><input name="recovery" type="checkbox" ${item.recovery?'checked':''}> Intentional recovery (one reward route)</label><button class="secondary-button">Save details</button></form>
       <h3>Seasons & episodes</h3>${item.seasons.map(s=>`<section class="series-season"><h4>${s.special?'Specials (optional)':`Season ${s.number}`} · ${s.episodeCount??'unknown'} episodes · ${s.ended?'ended':'ending unknown'}</h4>
         <form data-series-season-edit="${escape(s.id)}" class="series-form"><label>Number<input name="number" type="number" min="0" value="${s.number}"></label><label>Regular episode total (blank = unknown)<input name="episodeCount" type="number" min="1" max="1000" value="${s.episodeCount||''}"></label><label>Typical minutes (blank = unknown)<input name="minutes" type="number" min="1" value="${s.episodes.find(e=>e.minutes)?.minutes||''}"></label><label><input name="ended" type="checkbox" ${s.ended?'checked':''}> Season has ended</label><button class="secondary-button">Save season</button></form>
-        <div class="series-episodes">${s.episodes.map(e=>{const log=logsFor(item).find(l=>l.episodeId===e.id);return `<button type="button" class="secondary-button ${log?'is-seen':''}" ${log?`data-series-undo="${escape(log.id)}"`:`data-series-episode="${escape(e.id)}"`} aria-label="${escape(log?'Undo':'Select')} ${escape(label(item,e))}">${log?'✓ ':''}${e.special?'Special':escape(label(item,e))} · ${e.minutes?`${e.minutes} min`:'duration unknown'}</button>`;}).join('')}</div><button class="secondary-button" type="button" data-series-add-episode="${escape(s.id)}">＋ Another episode (unknown total stays unknown)</button></section>`).join('')}
+        <p class="series-history-hint">Seen this season before? Import its episodes as previous history, with no retroactive XP or time entry.</p><button type="button" class="secondary-button" data-series-historical-season="${escape(s.id)}" ${item.archivedAt||s.special||!s.episodes.some(e=>!e.special&&!seen(item,e))?'disabled':''}>✓ Mark this season previously watched · no XP</button><div class="series-episodes">${s.episodes.map(e=>{const log=logsFor(item).find(l=>l.episodeId===e.id);return `<button type="button" class="secondary-button ${log?'is-seen':''}" ${log?`data-series-undo="${escape(log.id)}"`:`data-series-episode="${escape(e.id)}"`} aria-label="${escape(log?'Undo':'Select')} ${escape(label(item,e))}">${log?'✓ ':''}${e.special?'Special':escape(label(item,e))} · ${e.minutes?`${e.minutes} min`:'duration unknown'}</button>`;}).join('')}</div><button class="secondary-button" type="button" data-series-add-episode="${escape(s.id)}">＋ Another episode (unknown total stays unknown)</button></section>`).join('')}
       <form id="seriesSeasonForm" class="series-form"><h4>Add a season / part manually</h4><label>Season number<input name="number" type="number" min="0" value="${item.seasons.length+1}"></label><label>Regular episode total (optional)<input name="episodeCount" type="number" min="1" max="1000"></label><label>Typical minutes (optional)<input name="minutes" type="number" min="1"></label><label><input name="ended" type="checkbox"> Season ended</label><label><input name="special" type="checkbox"> Specials only (optional)</label><button class="secondary-button">Add season</button></form>
       <form id="seriesLogForm" class="series-form"><h3>Log episodes you actually watched</h3><label>Episode<select name="episodeId">${item.seasons.flatMap(s=>s.episodes).filter(e=>!seen(item,e)).map(e=>`<option value="${escape(e.id)}" ${e.id===episode?.id?'selected':''}>${escape(label(item,e))}${e.special?' · Special':''}</option>`).join('')}</select></label><label>Consecutive regular episodes actually watched<input name="count" type="number" min="1" max="100" value="1"></label><label>Completed at<input name="at" type="datetime-local" required value="${localInput(new Date())}"></label><label>Actual minutes per episode (optional)<input name="minutes" type="number" min="1" step="0.1"></label><label>Real start (one episode only)<input name="startAt" type="datetime-local"></label><label>Real end (one episode only)<input name="endAt" type="datetime-local"></label><label><input name="historical" type="checkbox"> Older watch history · no rewards</label><p>Blank duration stays unknown. Catalog estimates never become time logs.</p><button class="primary-button" ${episode?'':'disabled'}>Confirm watched</button></form>
       <form id="seriesEpisodeEditForm" class="series-form"><h3>Correct one episode · history IDs stay intact</h3><label>Episode<select name="episodeId">${item.seasons.flatMap(s=>s.episodes).map(e=>`<option value="${escape(e.id)}">${escape(label(item,e))}</option>`).join('')}</select></label><label>Corrected number<input name="number" type="number" min="1" required></label><label>Typical minutes (optional)<input name="minutes" type="number" min="1"></label><button class="secondary-button">Save episode</button></form>
@@ -273,7 +329,7 @@
       <form id="seriesReviewForm" class="series-form"><h3>Personal review · optional</h3><label>Score 1–10<input name="rating" type="number" min="1" max="10" step="0.5" value="${item.review.rating||''}"></label><label>Notes<textarea name="notes">${escape(item.review.notes)}</textarea></label><button class="secondary-button">Save review</button><button class="secondary-button" type="button" data-series-clear-review>Clear review</button></form>
       <form id="seriesLinkForm" class="series-form"><label>Link a separate sequel / part (never merged)<select name="otherId">${model().items.filter(i=>i.id!==item.id).map(i=>`<option value="${escape(i.id)}">${escape(i.title)}</option>`).join('')}</select></label><button class="secondary-button">Link title</button></form><p>${item.links.map(id=>escape(find(id)?.title||'Unavailable linked title')).join(' · ')}</p>
       <form id="seriesPlanForm" class="series-form"><h3>Plan the next episode · optional</h3><p>${episode?escape(label(item,episode)):'No next known episode'} · planned times only</p><label>Planned start<input name="startAt" type="datetime-local" required></label><label>Planned end<input name="endAt" type="datetime-local" required></label><button class="secondary-button" ${episode?'':'disabled'}>Add to My Week</button><input name="episodeId" type="hidden" value="${escape(episode?.id||'')}"></form>
-      <h3>Watch history</h3>${item.watchCycles.map(c=>`<details><summary>${c.kind==='first'?'First watch':'Rewatch'} · ${escape(c.startedAt.slice(0,10))}${c.completedAt?' · completed':''}</summary>${model().logs.filter(l=>l.seriesId===item.id&&l.watchCycleId===c.id).map(l=>`<p>${escape(l.at)} · ${escape(label(item,item.seasons.flatMap(s=>s.episodes).find(e=>e.id===l.episodeId)||{}))} · ${l.undone?'undone':l.historical?'historical':l.startAt?'confirmed interval':'only completed at'}${l.minutes?` · ${l.minutes} actual min`:''}</p>`).join('')}</details>`).join('')}`;
+      <h3>Watch history</h3>${item.watchCycles.map(c=>`<details><summary>${c.kind==='first'?'First watch':'Rewatch'} · ${escape(c.startedAt.slice(0,10))}${c.completedAt?' · completed':''}</summary>${model().logs.filter(l=>l.seriesId===item.id&&l.watchCycleId===c.id).map(l=>`<p>${l.historical?`Previously watched · imported ${escape((l.recordedAt||l.at).slice(0,10))}`:escape(l.at)} · ${escape(label(item,item.seasons.flatMap(s=>s.episodes).find(e=>e.id===l.episodeId)||{}))} · ${l.undone?'undone':l.historical?'historical':l.startAt?'confirmed interval':'only completed at'}${l.minutes?` · ${l.minutes} actual min`:''}</p>`).join('')}</details>`).join('')}`;
   }
   function localInput(date){return new Date(+date-date.getTimezoneOffset()*60000).toISOString().slice(0,16);}
   function values(form){const data=Object.fromEntries(new FormData(form));for(const box of form.querySelectorAll('input[type="checkbox"]'))data[box.name]=box.checked;return data;}
@@ -310,7 +366,7 @@
         <div id="seriesBoard" class="series-board"></div>
       </section>`;
     parent.prepend(shelf);
-    const add=document.createElement('dialog');add.id='seriesAdd';add.className='series-dialog';add.innerHTML=`<button type="button" class="secondary-button series-close" data-series-close>Close</button><h2>Add a series</h2><form id="seriesSearchForm" class="series-form"><label>TVmaze title search<input name="query" type="search" minlength="2" required></label><button class="secondary-button">Search catalog</button></form><p id="seriesSearchStatus" role="status" aria-live="polite">Manual entry works offline. Anime sequels stay separate titles.</p><div id="seriesSearchResults"></div><form id="seriesAddForm" class="series-form"><label>Title<input name="title" required></label><label>Alternate / original / romanized names<input name="aliases"></label><label>Year (optional)<input name="year" type="number" min="1900" max="2200"></label><label>Status<select name="status">${options(statuses,'watching')}</select></label><label>Season 1 episode total (optional)<input name="episodeCount" type="number" min="1" max="1000"></label><label>Typical minutes (optional)<input name="minutes" type="number" min="1"></label><label><input name="ended" type="checkbox"> Series and season have ended</label><label><input name="comfort" type="checkbox"> Comfort favorite</label><button class="primary-button">Add to shelf</button></form><p>Catalog snapshots retain provider IDs and <a href="https://www.tvmaze.com/api" target="_blank" rel="noopener noreferrer">TVmaze attribution / CC BY-SA</a>. No account needed. No episode descriptions or thumbnails.</p>`;
+    const add=document.createElement('dialog');add.id='seriesAdd';add.className='series-dialog';add.innerHTML=`<button type="button" class="secondary-button series-close" data-series-close>Close</button><h2 id="seriesCatalogTitle">Add a series</h2><form id="seriesSearchForm" class="series-form"><label>TVmaze title search<input name="query" type="search" minlength="2" required></label><button class="secondary-button">Search catalog</button></form><p id="seriesSearchStatus" role="status" aria-live="polite">Select a result to see its cover and all known seasons. Manual entry works offline.</p><div id="seriesSearchResults" class="series-search-results"></div><section id="seriesCatalogPreview" class="series-catalog-preview" aria-live="polite" hidden></section><form id="seriesUpdateForm" class="series-form" hidden><p>Only missing seasons, episodes and poster details are added. Existing watch logs, IDs, reviews and rewards stay unchanged.</p><button class="primary-button" type="submit" disabled>Import seasons & poster into saved title</button></form><form id="seriesAddForm" class="series-form"><label>Title<input name="title" required></label><label>Alternate / original / romanized names<input name="aliases"></label><label>Year (optional)<input name="year" type="number" min="1900" max="2200"></label><label>Status<select name="status">${options(statuses,'watching')}</select></label><p class="series-import-hint">Choosing a TVmaze result imports <strong>every season shown in the preview above</strong>. The fields below are optional manual corrections for Season 1.</p><label>Season 1 episode total (optional)<input name="episodeCount" type="number" min="1" max="1000"></label><label>Typical minutes (optional)<input name="minutes" type="number" min="1"></label><label><input name="ended" type="checkbox"> Series and season have ended</label><label><input name="comfort" type="checkbox"> Comfort favorite</label><button class="primary-button">Add to shelf</button></form><p>Catalog snapshots retain provider IDs and <a href="https://www.tvmaze.com/api" target="_blank" rel="noopener noreferrer">TVmaze attribution / CC BY-SA</a>. No account needed. No episode descriptions or thumbnails.</p>`;
     document.body.append(add);
     const dialog=document.createElement('dialog');dialog.id='seriesDetail';dialog.className='series-dialog';dialog.innerHTML='<button type="button" class="secondary-button series-close" data-series-close>Close</button><p id="seriesDetailNotice" role="status" aria-live="polite"></p><div id="seriesDetailBody"></div>';document.body.append(dialog);
     document.addEventListener('error',e=>{if(e.target.matches?.('[data-series-cover]')){const placeholder=document.createElement('span');placeholder.className='series-placeholder';placeholder.textContent='📺';e.target.replaceWith(placeholder);}},true);
@@ -321,13 +377,59 @@
     window.addEventListener('life-rpg:state-saved',render);
     render();
   }
+  function catalogPreview(snapshot){
+    const host=document.getElementById('seriesCatalogPreview');if(!host)return;
+    const seasonList=snapshot.seasons.map(season=>{
+      const known=positive(season.episodeCount),available=season.episodes?.filter(e=>!e.special).length||0;
+      const descriptor=known?`${known} episode${known===1?'':'s'}`:available?`${available} known episodes · total unknown`:'Episode total unknown';
+      return `<li><strong>Season ${escape(season.number)}</strong><span>${escape(descriptor)} · ${season.ended?'finished':'ongoing / end unknown'}</span></li>`;
+    }).join('');
+    host.innerHTML=`<div class="series-catalog-card">
+      ${snapshot.cover?`<img src="${escape(safeURL(snapshot.cover))}" alt="Cover of ${escape(snapshot.title)}" loading="lazy" referrerpolicy="no-referrer">`:'<span class="series-catalog-no-cover" aria-hidden="true">📺</span>'}
+      <div><small>TVMAZE · CHECK BEFORE IMPORT</small><h3>${escape(snapshot.title)}</h3>
+      <p>${snapshot.year||'Year unknown'} · ${snapshot.minutes?`typically ${snapshot.minutes} min`:'Duration unknown'}</p>
+      <ul class="series-catalog-seasons">${seasonList||'<li>Season details unavailable · enter manually</li>'}</ul>
+      <p class="series-catalog-footnote">The catalog may be incomplete for ongoing shows. Extras/specials are optional. You can edit missing metadata later.</p></div>
+    </div>`;
+    host.hidden=false;
+  }
+  function openCatalog(targetId=null) {
+    const item=targetId?find(targetId):null;
+    if(targetId&&!item)return;
+    if(document.getElementById('seriesDetail').open)document.getElementById('seriesDetail').close();
+    catalogTargetItemId=item?.id||null;catalogSelection=null;searchResults=[];searchGeneration++;
+    const dialog=document.getElementById('seriesAdd');
+    dialog.querySelector('#seriesCatalogTitle').textContent=item?'Update seasons & poster':'Add a series';
+    dialog.querySelector('#seriesSearchForm').reset();
+    dialog.querySelector('#seriesSearchForm [name="query"]').value=item?.title||'';
+    dialog.querySelector('#seriesAddForm').reset();
+    dialog.querySelector('#seriesAddForm').hidden=Boolean(item);
+    dialog.querySelector('#seriesUpdateForm').hidden=!item;
+    dialog.querySelector('#seriesUpdateForm button').disabled=true;
+    document.getElementById('seriesSearchResults').replaceChildren();
+    document.getElementById('seriesCatalogPreview').hidden=true;
+    document.getElementById('seriesSearchStatus').textContent=item?
+      'Find the matching catalog title. Nothing changes until you confirm the import.':
+      'Find the correct title and see its cover and all known seasons before adding. Manual entry also works.';
+    dialog.showModal();
+  }
   function showResult(result){if(result?.ok && selected && document.getElementById('seriesDetail').open)detail();if(!result?.ok)document.getElementById('seriesDetailNotice').textContent=result?.reason||'Not saved. Please try again.';else document.getElementById('seriesDetailNotice').textContent='Saved locally. Cloud synchronization uses your existing settings.';}
   async function click(event){
     const b=event.target.closest('button');if(!b)return;
     try {
-      if(b.hasAttribute('data-series-add')){catalogSelection=null;document.getElementById('seriesAddForm').reset();document.getElementById('seriesAdd').showModal();}
+      if(b.hasAttribute('data-series-add'))openCatalog();
       if(b.hasAttribute('data-series-close'))b.closest('dialog').close();
       if(b.dataset.seriesOpen)open(b.dataset.seriesOpen);
+      if(b.hasAttribute('data-series-enrich'))openCatalog(selected);
+      if(b.hasAttribute('data-series-log-next')){
+        const item=find(selected),next=item&&nextEpisode(item);
+        if(next)showResult(logEpisode(item.id,next.id));
+      }
+      if(b.dataset.seriesHistoricalSeason){
+        const item=find(selected),season=item?.seasons.find(s=>s.id===b.dataset.seriesHistoricalSeason);
+        if(season && window.confirm(`Mark Season ${season.number} previously watched? No XP or recent watch time will be added.`))
+          showResult(markSeasonHistorical(item.id,season.id));
+      }
       if(b.dataset.seriesEpisode){document.getElementById('seriesDetail').dataset.episodeId=b.dataset.seriesEpisode;detail();document.getElementById('seriesLogForm').scrollIntoView({block:'nearest'});}
       if(b.dataset.seriesUndo)showResult(undo(b.dataset.seriesUndo));
       if(b.hasAttribute('data-series-archive'))showResult(archiveItem(selected));
@@ -336,15 +438,23 @@
       if(b.hasAttribute('data-series-clear-review'))showResult(saveReview(selected,null,''));
       if(b.dataset.seriesAddEpisode)showResult(addEpisode(selected,b.dataset.seriesAddEpisode));
       if(b.dataset.seriesPlanRemove)showResult(removePlan(b.dataset.seriesPlanRemove));
-      if(b.dataset.seriesCatalog){const generation=++searchGeneration;const status=document.getElementById('seriesSearchStatus');status.textContent='Loading seasons and episodes…';b.disabled=true;
-        try {const snapshot=await catalogDetails(searchResults.find(r=>String(r.id)===b.dataset.seriesCatalog));if(generation!==searchGeneration)return;catalogSelection=snapshot;const form=document.getElementById('seriesAddForm');form.elements.title.value=snapshot.title;form.elements.year.value=snapshot.year||'';form.elements.minutes.value=snapshot.minutes||'';form.elements.episodeCount.value=snapshot.seasons[0]?.episodeCount||'';form.elements.ended.checked=snapshot.ended;status.textContent='Snapshot selected. Confirm Add to shelf, or change the title to create a separate manual entry.';}catch(error){status.textContent=error.message;}finally{b.disabled=false;}}
+      if(b.dataset.seriesCatalog){const generation=++searchGeneration;const status=document.getElementById('seriesSearchStatus');status.textContent='Loading seasons and episodes…';catalogSelection=null;document.getElementById('seriesCatalogPreview').hidden=true;document.getElementById('seriesUpdateForm button').disabled=true;b.disabled=true;
+        try {const snapshot=await catalogDetails(searchResults.find(r=>String(r.id)===b.dataset.seriesCatalog));if(generation!==searchGeneration)return;catalogSelection=snapshot;const form=document.getElementById('seriesAddForm');form.elements.title.value=snapshot.title;form.elements.year.value=snapshot.year||'';form.elements.minutes.value=snapshot.minutes||'';form.elements.episodeCount.value=snapshot.seasons[0]?.episodeCount||'';form.elements.ended.checked=snapshot.ended;catalogPreview(snapshot);document.getElementById('seriesUpdateForm button').disabled=false;status.textContent=catalogTargetItemId?'Snapshot selected. Confirm safe enrichment below.':'Snapshot selected. All known seasons and poster are ready; confirm Add to shelf.';}catch(error){status.textContent=error.message;}finally{b.disabled=false;}}
     }catch(error){notify(error.message);}
   }
   async function submit(event){
     const form=event.target;if(!form.id.startsWith('series')&&!form.dataset.seriesSeasonEdit)return;event.preventDefault();const data=values(form);
-    if(form.id==='seriesSearchForm'){const generation=++searchGeneration,status=document.getElementById('seriesSearchStatus');status.textContent='Searching TVmaze…';catalogSelection=null;
-      try{const results=await searchCatalog(data.query);if(generation!==searchGeneration)return;searchResults=results;document.getElementById('seriesSearchResults').innerHTML=results.map(r=>`<button type="button" class="secondary-button" data-series-catalog="${r.id}">${escape(r.title)} · ${r.year||'year unknown'} · ${r.minutes?`${r.minutes} min`:'duration unknown'}</button>`).join('');status.textContent=results.length?'Choose the correct title.':'No matches. You can still add it manually.';}catch(error){status.textContent=error.message;}return;}
+    if(form.id==='seriesSearchForm'){const generation=++searchGeneration,status=document.getElementById('seriesSearchStatus');status.textContent='Searching TVmaze…';catalogSelection=null;searchResults=[];document.getElementById('seriesSearchResults').replaceChildren();document.getElementById('seriesCatalogPreview').hidden=true;document.getElementById('seriesUpdateForm button').disabled=true;
+      try{const results=await searchCatalog(data.query);if(generation!==searchGeneration)return;searchResults=results;document.getElementById('seriesSearchResults').innerHTML=results.map(r=>`<button type="button" class="secondary-button series-search-result" data-series-catalog="${r.id}">${r.cover?`<img src="${escape(r.cover)}" alt="" loading="lazy" referrerpolicy="no-referrer">`:'<span aria-hidden="true">📺</span>'}<span><strong>${escape(r.title)}</strong><small>${r.year||'Year unknown'} · ${r.minutes?`${r.minutes} min`:'Duration unknown'}</small></span></button>`).join('');status.textContent=results.length?'Choose the correct title.':'No matches. You can still add it manually.';}catch(error){status.textContent=error.message;}return;}
     let result;
+    if(form.id==='seriesUpdateForm'){
+      if(!catalogTargetItemId||!catalogSelection){showResult({ok:false,reason:'Select catalog seasons first.'});return;}
+      const target=catalogTargetItemId;
+      result=mergeCatalog(target,catalogSelection);
+      if(result.ok){document.getElementById('seriesAdd').close();open(target);}
+      else document.getElementById('seriesSearchStatus').textContent=result.reason;
+      return;
+    }
     if(form.id==='seriesAddForm'){const snapshot=catalogSelection&&catalogSelection.title===data.title?catalogSelection:null;const seasons=snapshot?JSON.parse(JSON.stringify(snapshot.seasons)):null;if(seasons?.length && positive(data.episodeCount)!==seasons[0].episodeCount){seasons[0]={...seasons[0],episodeCount:positive(data.episodeCount),episodes:undefined};}if(seasons?.length && positive(data.minutes)!==snapshot.minutes){seasons[0].minutes=positive(data.minutes);seasons[0].episodes?.forEach(e=>e.minutes=positive(data.minutes));}result=addItem({...snapshot,...data,provider:snapshot?.provider,seasons:seasons||[{number:1,episodeCount:positive(data.episodeCount),minutes:positive(data.minutes),ended:data.ended}]});if(result.ok){document.getElementById('seriesAdd').close();open(result.item.id);}else document.getElementById('seriesSearchStatus').textContent=result.reason;return;}
     if(form.id==='seriesEditForm')result=updateItem(selected,{...data,year:positive(data.year)});
     if(form.id==='seriesSeasonForm')result=addSeason(selected,data);
@@ -363,7 +473,7 @@
     }
     if(result)showResult(result);
   }
-  window.LifeRPGSeries={find,nextEpisode,label,complete,eligibleItems,completion,open,addItem,updateItem,addSeason,updateSeason,addEpisode,updateEpisode,logEpisode,logEpisodes,undo,startRewatch,activateCycle,archiveItem,saveReview,linkSequel,planEpisode,removePlan,searchCatalog,catalogDetails,
+  window.LifeRPGSeries={find,nextEpisode,label,complete,eligibleItems,completion,open,addItem,updateItem,addSeason,updateSeason,addEpisode,updateEpisode,logEpisode,logEpisodes,undo,startRewatch,activateCycle,archiveItem,saveReview,linkSequel,planEpisode,removePlan,searchCatalog,catalogDetails,mergeCatalog,markSeasonHistorical,
     getLogs:()=>model().logs,getPlans:()=>model().plans};
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })();
