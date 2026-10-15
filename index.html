@@ -1867,6 +1867,40 @@
             <div class="health-bridge-metric"><small>✿ Stimmung</small><strong id="healthMood">—</strong></div>
           </div>
           <p class="muted">Zyklus- und Stimmungswerte erscheinen nur, wenn du sie freiwillig importierst. Sie werden nicht automatisch zum Daily Check-in oder für Story-Nachrichten verwendet.</p>
+          <details class="health-manual-wellbeing">
+            <summary>🌸 Zyklus & Stimmung für diesen Tag manuell ergänzen oder korrigieren</summary>
+            <p class="muted">Optional, z. B. wenn Flo deine Einträge nicht an Apple Health überträgt. Die Auswahl gilt für den oben ausgewählten Tag. „Keine Angabe“ entfernt einen früher gespeicherten Wert für diesen Tag.</p>
+            <form id="healthWellbeingForm" class="health-bridge-form">
+              <label>Menstruation
+                <select name="periodActive">
+                  <option value="">Keine Angabe</option>
+                  <option value="true">Ja, heute</option>
+                  <option value="false">Nein, heute nicht</option>
+                </select>
+              </label>
+              <label>Periodenkrämpfe
+                <select name="periodCramps">
+                  <option value="">Keine Angabe</option>
+                  <option value="none">Keine</option>
+                  <option value="mild">Leicht</option>
+                  <option value="moderate">Mittel</option>
+                  <option value="strong">Stark</option>
+                </select>
+              </label>
+              <label>Stimmung
+                <select name="mood">
+                  <option value="">Keine Angabe</option>
+                  <option value="very_low">Sehr unangenehm</option>
+                  <option value="low">Unangenehm</option>
+                  <option value="neutral">Neutral</option>
+                  <option value="good">Angenehm</option>
+                  <option value="very_good">Sehr angenehm</option>
+                </select>
+              </label>
+              <label class="health-privacy-consent health-privacy-full"><input name="consent" type="checkbox" required> <span>Ich möchte diese privaten Werte bewusst im Health Journal speichern. Keine automatische Story-Verknüpfung.</span></label>
+              <button class="secondary-button" type="submit">Private Tagesangaben speichern</button>
+            </form>
+          </details>
           <div class="health-bridge-columns">
             <section class="panel" aria-labelledby="healthWeekHeading">
               <h3 id="healthWeekHeading">Schritte · 7-Tage-Verlauf</h3>
