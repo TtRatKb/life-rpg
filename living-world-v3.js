@@ -3,7 +3,7 @@
   if (window.LifeRPGLivingWorldV3) return;
   const app=window.LifeRPGApp;
   if (!app?.getState || !app?.saveState) return;
-  const VERSION="0.31.4dc";
+  const VERSION="0.31.4-health-echo1";
   const E=x=>app.escapeHtml?.(String(x??"")) || String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   const KEY=()=>{const d=new Date();return [d.getFullYear(),String(d.getMonth()+1).padStart(2,"0"),String(d.getDate()).padStart(2,"0")].join("-");};
   const at=ms=>{const d=new Date(ms);return Number.isFinite(d.getTime())?[d.getFullYear(),String(d.getMonth()+1).padStart(2,"0"),String(d.getDate()).padStart(2,"0")].join("-"):"";};
@@ -27,13 +27,74 @@
     {id:"lw3-callback-k",category:"callback",who:["bakugo"],room:"kitchen",title:"A Note for Tomorrow",requires:"lw3-work-note-k",beats:[N("A sticky note has migrated from my bag to the edge of the table."),S("bakugo","Is that the one sentence you were going to write?"),N("He remembers. I hadn't expected him to bring it up."),Q("I answer.",[["It helped to stop there.","Good. Do it again if you need to."],["It turned into two sentences.","Reckless. Glad you survived."],["I forgot about it until now.","Then it's doing its job."]]),N("He moves the note away from a stray splash of water before returning to dinner.")]},
     {id:"lw3-callback-e",category:"callback",who:["kirishima"],room:"living",title:"The Small Win, Again",requires:"lw3-work-note-e",beats:[N("Something about today reminds Eijiro of an earlier conversation."),S("kirishima","Hey. Did you find one of those little wins today? No pressure if not."),Q("I tell him the short version.",[["Actually, yes.","I knew there'd be one worth hearing about."],["Not today, and that's okay.","Yeah. Some days just need to end."],["Can I tell you about something completely different?","Please. I'm listening."]]),N("He follows my lead, as though remembering something matters more than getting a particular answer.")]}
   ];
-  const get=id=>MOMENTS.find(m=>m.id===id);
+
+  const healthBridge=()=>window.LifeRPGHealthStoryContext;
+  const healthContext=()=>healthBridge()?.get?.()||null;
+  const HEALTH_MOMENTS=[];
+  for(const kind of ["cramps","sleep","mood"]){
+    for(const p of ["bakugo","kirishima"]){
+      HEALTH_MOMENTS.push({id:"lw-health-"+kind+"-"+(p==="bakugo"?"k":"e"),
+        healthKind:kind,category:"wellbeing",who:[p],room:p==="bakugo"?"kitchen":"living",
+        title:kind==="cramps"?"A Little Relief":kind==="sleep"?"Take It Slowly":"An Ordinary Low Day"});
+    }
+  }
+  function careTier(){
+    const f=app.getState().flags||{};
+    return f.SHARED_APARTMENT_EMOTIONAL_HOME_STARTED?3:
+      f.HOUSEHOLD_FORMATION_PHASE_TWO_COMPLETE?2:f.HOUSEHOLD_ROUTINE_STARTED?1:0;
+  }
+  function healthBeats(m){
+    const k=m.who[0]==="bakugo",p=m.who[0],tier=careTier();
+    if(m.healthKind==="cramps")return [
+      N("I look uncomfortable. When he asks what's going on, I decide to tell him my period cramps are making today difficult."),
+      S(p,k?"What's wrong? You keep shifting around.":"Hey, you okay? You look uncomfortable."),
+      N("I explain that I'm dealing with cramps. I don't need him to guess."),
+      S(p,k?(tier>=2?"Then don't push through it. Want something warm?":"Tch. Take a break if you need one."):
+          (tier>=2?"Want me to get the heat pack? I can stay if that helps.":"Ouch. Sorry. Water or some space?"),tier>=2?"soft":"neutral"),
+      Q("What would help me right now?",[
+        ["Something warm, please.",k?"I'll get it.":"Of course."],
+        ["Some company, without a big conversation.",k?"Fine. I'm here.":"Yeah, we can do that."],
+        ["I want to be on my own for a while.",k?"Got it.":"Sure. I'll be around."]]),
+      N(tier>=3?"He follows my lead, settling nearby only if I asked. There's an ease to being understood.":"He respects my answer without making it into an event.")];
+    if(m.healthKind==="sleep")return [
+      N("I tell him I hardly slept and that I'm moving slowly today."),
+      S(p,k?"You look exhausted. Bad night?":"Long night? You look tired."),
+      S(p,k?(tier>=2?"Don't turn an empty battery into a full schedule. I'll take care of dinner.":"Keep today simple, then."):
+        (tier>=2?"We can make it a quiet evening, if you want.":"No need to do anything impressive today."),tier>=2?"soft":"neutral"),
+      Q("I decide what feels manageable.",[
+        ["A quiet evening sounds good.",k?"Then that's the plan.":"Works for me."],
+        ["Distract me for a bit.",k?"Pick something easy.":"I've got stories."],
+        ["I need some space.",k?"You got it.":"No problem."]]),
+      N("No one asks me to earn a chance to rest.")];
+    return [
+      N("When he checks in, I tell him my mood has been low today. He doesn't have to guess what I'm feeling."),
+      S(p,k?"One of those days, or something you want to talk about?":"Want to talk about it, or just hang out?"),
+      S(p,k?(tier>=2?"I can listen without trying to fix it.":"You don't owe me a full explanation."):
+        (tier>=2?"I can just sit with you, too.":"Take your time."),tier>=2?"soft":"neutral"),
+      Q("I choose how much to share.",[
+        ["I just want someone to listen.",k?"Go ahead.":"I'm listening."],
+        ["Let's talk about something else.",k?"Pick a topic.":"Absolutely."],
+        ["Not ready to talk right now.",k?"Then we won't.":"That's okay."]]),
+      N("He takes my answer seriously. A difficult mood doesn't have to turn into a dramatic event.")];
+  }
+  const sceneBeats=m=>m?.healthKind?healthBeats(m):m?.beats||[];
+  const get=id=>MOMENTS.find(m=>m.id===id)||HEALTH_MOMENTS.find(m=>m.id===id);
   function state(){const r=app.getState();if(!r.livingWorldV3||typeof r.livingWorldV3!=="object"||Array.isArray(r.livingWorldV3))r.livingWorldV3={schemaVersion:1,completed:{},pending:null,routines:{},dailyHistory:{}};const s=r.livingWorldV3;s.schemaVersion=1;if(!s.completed||typeof s.completed!=="object"||Array.isArray(s.completed))s.completed={};if(!s.routines||typeof s.routines!=="object"||Array.isArray(s.routines))s.routines={};if(!s.dailyHistory||typeof s.dailyHistory!=="object"||Array.isArray(s.dailyHistory))s.dailyHistory={};if(s.pending&&!get(s.pending.id))s.pending=null;return s;}
   function save(label){app.saveState({source:`living-world-v3-${label}`,suppressUiRefresh:true});}
   function recentActivity(){const r=app.getState(), since=Date.now()-7*86400000;const isRecent=x=>{const t=new Date(x?.endAt||x?.at||x?.timestamp||x?.startAt||0).getTime();return Number.isFinite(t)&&t>=since&&t<=Date.now();};const entries=(r.timeTracking?.entries||[]).filter(isRecent);const quests=(r.completionLog||[]).filter(isRecent);const rewards=(r.rewardLedger?.events||[]).filter(isRecent);const words=x=>JSON.stringify(x||{}).toLowerCase();const work=entries.some(e=>["school","work_home","focus"].includes((e.categoryId||e.category))||/lesson|work|school|teaching|planning|correction/.test(words(e)))||quests.some(q=>q.realm==="Work")||rewards.some(e=>e.realm==="Work");const hobby=entries.some(e=>["gaming","reading","hobby"].includes(e.categoryId||e.category))||quests.some(q=>q.realm==="Hobbies")||rewards.some(e=>e.realm==="Hobbies");const recovery=entries.some(e=>(e.categoryId||e.category)==="recovery")||rewards.some(e=>e.realm==="Recovery")||quests.some(q=>q.realm==="Recovery");const home=entries.some(e=>(e.categoryId||e.category)==="life_admin")||rewards.some(e=>e.realm==="Home")||quests.some(q=>q.realm==="Home");return{work,hobby,recovery,home};}
   function personAvailable(p,room){const s=window.LifeRPGStoryUI?.getPersonScheduleStatus?.(p);return Boolean(s&&s.locationKey==="sharedApartment"&&s.unlocked&&!s.working&&s.talkReachable&&s.roomId===room);}
-  function eligible(m,a){if(!homeReady())return false;if(m.requires&&!state().completed[m.requires])return false;if(m.category!=="routine"&&m.category!=="callback"&&!a[m.category])return false;return m.who.every(p=>personAvailable(p,m.room));}
-  function options(){const a=recentActivity(),s=state(),today=KEY();if(s.dailyHistory[today]||(s.completed&&Object.values(s.completed).some(x=>x.date===today)))return[];return MOMENTS.filter(m=>eligible(m,a)).sort((x,y)=>Number(!!s.completed[x.id])-Number(!!s.completed[y.id])||Number(x.category==="callback")-Number(y.category==="callback")||x.id.localeCompare(y.id));}
+  function eligible(m,a){
+    if(!homeReady())return false;
+    if(m.healthKind){
+      const ctx=healthContext();
+      if(!ctx||ctx.kind!==m.healthKind||healthBridge()?.seenToday?.())return false;
+    }else{
+      if(m.requires&&!state().completed[m.requires])return false;
+      if(m.category!=="routine"&&m.category!=="callback"&&!a[m.category])return false;
+    }
+    return m.who.every(p=>personAvailable(p,m.room));
+  }
+  function options(){const a=recentActivity(),s=state(),today=KEY();if(s.dailyHistory[today]||(s.completed&&Object.values(s.completed).some(x=>x.date===today)))return[];return [...HEALTH_MOMENTS,...MOMENTS].filter(m=>eligible(m,a)).sort((x,y)=>Number(Boolean(y.healthKind))-Number(Boolean(x.healthKind))||Number(!!s.completed[x.id])-Number(!!s.completed[y.id])||Number(x.category==="callback")-Number(y.category==="callback")||x.id.localeCompare(y.id));}
   const CALLBACKS={
     bakugo:[
       ["bad-day:vent","Katsuki remembers that sometimes I want to be heard before anything gets fixed. He leaves the advice unsaid."],
@@ -55,7 +116,7 @@
   function card(){const root=document.getElementById("livingWorldV3Card");if(!root)return;const ready=options(),s=state(),today=KEY(),done=Object.values(s.completed).find(x=>x.date===today);const note=!homeReady()?"Continue the shared-apartment story to unlock everyday moments.":done?"A little moment is already part of today. Come back another day.":ready.length?"An ordinary moment is waiting in your shared world.":"No one is available for a spontaneous household moment right now. Check back later.";const headline=done?"A moment to remember":ready.length?"Something ordinary, something yours":"Everyday Moments";root.innerHTML=`<div class="lw3-head"><div><p class="eyebrow">LIVING WORLD · OPTIONAL</p><h2>${E(headline)}</h2><p>${E(note)}</p></div><span class="lw3-charm">✿</span></div>${ready.length?`<button type="button" class="primary-button" data-lw3-open>See what's happening →</button>`:""}<div class="lw3-foot"><span>${Object.keys(s.completed).length} moments remembered</span><button type="button" class="ghost-button" data-lw3-archive>Memories ›</button></div>`;}
   function dialog(){let d=document.getElementById("livingWorldV3Dialog");if(d)return d;d=document.createElement("dialog");d.id="livingWorldV3Dialog";d.className="living-world-v3-dialog";d.innerHTML='<div class="lw3-shell"><header><span>✿ EVERYDAY MOMENTS</span><button type="button" data-lw3-close aria-label="Close">×</button></header><div id="livingWorldV3Body"></div></div>';document.body.appendChild(d);return d;}
   function open(archive=false){if(!archive&&!options().length)return false;active={id:null,step:0,choice:null,replay:false,revisit:false,archive};const d=dialog();render();d.showModal?.();return true;}
-  function chooseEpisode(id){const m=get(id);if(!m)return false;const saved=state().completed[id];if(!saved&&!options().some(x=>x.id===id))return false;const p=state().pending, resume=!saved&&p?.id===id;active={id,step:resume?Math.min(m.beats.length-1,Math.max(0,Number(p.step)||0)):0,choice:resume?p.choice??null:saved?saved.choice??null:null,replay:!!saved,revisit:!!saved&&!active.archive,archive:!!saved};persist();render();return true;}
+  function chooseEpisode(id){const m=get(id);if(!m)return false;const saved=m.healthKind?null:state().completed[id];if(!saved&&!options().some(x=>x.id===id))return false;const p=state().pending, resume=!saved&&p?.id===id;active={id,step:m.healthKind?0:resume?Math.min(sceneBeats(m).length-1,Math.max(0,Number(p.step)||0)):0,choice:m.healthKind?null:resume?p.choice??null:saved?saved.choice??null:null,replay:!!saved,revisit:!!saved&&!active.archive,archive:!!saved};persist();render();return true;}
   function notificationCandidate(category) {
     if (!category || !homeReady()) return null;
     return options().find(m => m.category === category) || null;
@@ -65,13 +126,22 @@
     if (!open()) return false;
     return chooseEpisode(id);
   }
-  function persist(){if(!active?.id||active.replay)return;state().pending={id:active.id,step:active.step,choice:active.choice};save("reading");}
-  function render(){const b=document.getElementById("livingWorldV3Body");if(!b||!active)return;const s=state();if(!active.id){const eligibleNow=options(),archived=MOMENTS.filter(m=>s.completed[m.id]);b.innerHTML=`<section class="lw3-overview"><p class="eyebrow">${active.archive?"YOUR MEMORIES":"A LITTLE EXTRA LIFE"}</p><h2>${active.archive?"Everyday memories":"See what's happening"}</h2><p>Small conversations drawn from real logged activity and the characters' actual availability. No extra XP or relationship farming.</p><div class="lw3-list">${(active.archive?archived:eligibleNow).map(m=>`<button type="button" data-lw3-episode="${E(m.id)}"><small>${E(m.who.map(p=>cast[p].name).join(" & "))} · ${E(m.category)}</small><strong>${E(m.title)}</strong><span>${s.completed[m.id]?"Replay memory ›":"Read moment ›"}</span></button>`).join("")||"<p>Nothing here yet. Ordinary life keeps moving.</p>"}</div>${!active.archive?'<button type="button" class="secondary-button" data-lw3-show-archive>Past moments ›</button>':''}</section>`;return;}const m=get(active.id),beat=m.beats[active.step],selected=beat.options&&active.choice!==null?beat.options[active.choice]:null,prev=m.beats[active.step-1],reply=prev?.options&&active.choice!==null?prev.options[active.choice]?.[1]:"";const sprites=m.who.map(p=>`<img class="dream-vn-sprite dream-vn-${E(p)} ${beat.who!=="luca"&&beat.who!==p?"dream-vn-listener":""}" src="${E(cast[p][beat.who===p&&beat.mood==="soft"?"soft":"neutral"])}" alt="${E(cast[p].name)}" draggable="false">`).join("");b.innerHTML=`<article class="lw3-reader"><div class="lw3-title"><p class="eyebrow">${E(m.category)} · ${active.replay?"MEMORY REPLAY":"TODAY'S MOMENT"}</p><h2>${E(m.title)}</h2></div><div class="dream-vn-stage lw3-stage" style="background-image:linear-gradient(0deg,rgba(30,19,40,.6),rgba(30,19,40,.06) 62%),url('${E(bg[m.room]||bg.living)}')">${sprites}</div><section class="dream-vn-dialogue" aria-live="polite"><div class="dream-vn-speaker">${E(cast[beat.who]?.name||"Luca")}</div>${reply?`<p class="lw3-reply">“${E(reply)}”</p>`:""}<p>${E(beat.text)}</p>${active.step===1&&callbackLine(m)?`<p class="lw3-memory-note">${E(callbackLine(m))}</p>`:""}${beat.options?`<div class="dream-vn-choices">${beat.options.map((o,i)=>`<button type="button" data-lw3-choice="${i}" class="${active.choice===i?"selected":""}" aria-pressed="${active.choice===i}">${E(o[0])}</button>`).join("")}</div>`:""}</section><footer class="dream-vn-actions"><small>${active.step+1} / ${m.beats.length} · ${active.replay?"Original choice preserved":"Reading position saved"}</small><div><button class="secondary-button" type="button" data-lw3-back ${active.step===0?"disabled":""}>← Back</button><button class="primary-button" type="button" ${beat.options&&active.choice===null?"disabled":""} ${active.step===m.beats.length-1?"data-lw3-finish":"data-lw3-next"}>${active.step===m.beats.length-1?"Finish moment":"Continue →"}</button></div></footer></article>`;}
-  function move(d){if(!active?.id)return;const m=get(active.id),beat=m.beats[active.step];if(d>0&&beat.options&&active.choice===null)return;active.step=Math.max(0,Math.min(m.beats.length-1,active.step+d));persist();render();}
+  function persist(){if(!active?.id||active.replay||get(active.id)?.healthKind)return;state().pending={id:active.id,step:active.step,choice:active.choice};save("reading");}
+  function render(){const b=document.getElementById("livingWorldV3Body");if(!b||!active)return;const s=state();if(!active.id){const eligibleNow=options(),archived=MOMENTS.filter(m=>s.completed[m.id]);b.innerHTML=`<section class="lw3-overview"><p class="eyebrow">${active.archive?"YOUR MEMORIES":"A LITTLE EXTRA LIFE"}</p><h2>${active.archive?"Everyday memories":"See what's happening"}</h2><p>Small conversations drawn from real logged activity and the characters' actual availability. No extra XP or relationship farming.</p><div class="lw3-list">${(active.archive?archived:eligibleNow).map(m=>`<button type="button" data-lw3-episode="${E(m.id)}"><small>${E(m.who.map(p=>cast[p].name).join(" & "))} · ${E(m.category)}</small><strong>${E(m.title)}</strong><span>${s.completed[m.id]?"Replay memory ›":"Read moment ›"}</span></button>`).join("")||"<p>Nothing here yet. Ordinary life keeps moving.</p>"}</div>${!active.archive?'<button type="button" class="secondary-button" data-lw3-show-archive>Past moments ›</button>':''}</section>`;return;}const m=get(active.id),beat=sceneBeats(m)[active.step],selected=beat.options&&active.choice!==null?beat.options[active.choice]:null,prev=sceneBeats(m)[active.step-1],reply=prev?.options&&active.choice!==null?prev.options[active.choice]?.[1]:"";const sprites=m.who.map(p=>`<img class="dream-vn-sprite dream-vn-${E(p)} ${beat.who!=="luca"&&beat.who!==p?"dream-vn-listener":""}" src="${E(cast[p][beat.who===p&&beat.mood==="soft"?"soft":"neutral"])}" alt="${E(cast[p].name)}" draggable="false">`).join("");b.innerHTML=`<article class="lw3-reader"><div class="lw3-title"><p class="eyebrow">${E(m.category)} · ${active.replay?"MEMORY REPLAY":"TODAY'S MOMENT"}</p><h2>${E(m.title)}</h2></div><div class="dream-vn-stage lw3-stage" style="background-image:linear-gradient(0deg,rgba(30,19,40,.6),rgba(30,19,40,.06) 62%),url('${E(bg[m.room]||bg.living)}')">${sprites}</div><section class="dream-vn-dialogue" aria-live="polite"><div class="dream-vn-speaker">${E(cast[beat.who]?.name||"Luca")}</div>${reply?`<p class="lw3-reply">“${E(reply)}”</p>`:""}<p>${E(beat.text)}</p>${active.step===1&&callbackLine(m)?`<p class="lw3-memory-note">${E(callbackLine(m))}</p>`:""}${beat.options?`<div class="dream-vn-choices">${beat.options.map((o,i)=>`<button type="button" data-lw3-choice="${i}" class="${active.choice===i?"selected":""}" aria-pressed="${active.choice===i}">${E(o[0])}</button>`).join("")}</div>`:""}</section><footer class="dream-vn-actions"><small>${active.step+1} / ${sceneBeats(m).length} · ${active.replay?"Original choice preserved":"Reading position saved"}</small><div><button class="secondary-button" type="button" data-lw3-back ${active.step===0?"disabled":""}>← Back</button><button class="primary-button" type="button" ${beat.options&&active.choice===null?"disabled":""} ${active.step===sceneBeats(m).length-1?"data-lw3-finish":"data-lw3-next"}>${active.step===sceneBeats(m).length-1?"Finish moment":"Continue →"}</button></div></footer></article>`;}
+  function move(d){if(!active?.id)return;const m=get(active.id),beat=sceneBeats(m)[active.step];if(d>0&&beat.options&&active.choice===null)return;active.step=Math.max(0,Math.min(sceneBeats(m).length-1,active.step+d));persist();render();}
   function choice(i){const opts=get(active?.id)?.beats?.[active.step]?.options;if(!opts||!opts[i]||active.replay)return;active.choice=i;persist();render();}
-  function finish(){if(!active?.id)return;const m=get(active.id);if(active.step!==m.beats.length-1)return;if(active.revisit&&!state().dailyHistory[KEY()]){state().dailyHistory[KEY()]=m.id;save("routine-revisit");}if(!active.replay&&!state().completed[m.id]){const today=KEY();state().completed[m.id]={date:today,completedAt:new Date().toISOString(),choice:active.choice};state().pending=null;const selected=m.beats.find(b=>b.options)?.options?.[active.choice]?.[0];if(selected){for(const p of m.who){window.LifeRPGRelationshipMemory?.remember?.(p,`living-world:${m.id}`,`Luca said: ${selected}`,m.category==="home"||m.category==="routine"?"household":m.category==="work"?"competence":"preference","",`living-world:${m.id}`);}}save("complete");}active={id:null,step:0,choice:null,replay:false,revisit:false,archive:true};render();card();window.dispatchEvent(new CustomEvent("life-rpg:everyday-moment-complete",{detail:{id:m.id}}));}
+  function finish(){if(!active?.id)return;const m=get(active.id);if(active.step!==sceneBeats(m).length-1)return;
+    if(m.healthKind){
+      // Health echoes are ephemeral: no medical detail, choice, relationship
+      // memory, or completed scene ID enters the normal RPG save.
+      healthBridge()?.markSeen?.();
+      active={id:null,step:0,choice:null,replay:false,revisit:false,archive:false};
+      render();card();window.dispatchEvent(new Event("life-rpg:everyday-moment-complete"));return;
+    }
+    if(active.revisit&&!state().dailyHistory[KEY()]){state().dailyHistory[KEY()]=m.id;save("routine-revisit");}if(!active.replay&&!state().completed[m.id]){const today=KEY();state().completed[m.id]={date:today,completedAt:new Date().toISOString(),choice:active.choice};state().pending=null;const selected=sceneBeats(m).find(b=>b.options)?.options?.[active.choice]?.[0];if(selected){for(const p of m.who){window.LifeRPGRelationshipMemory?.remember?.(p,`living-world:${m.id}`,`Luca said: ${selected}`,m.category==="home"||m.category==="routine"?"household":m.category==="work"?"competence":"preference","",`living-world:${m.id}`);}}save("complete");}active={id:null,step:0,choice:null,replay:false,revisit:false,archive:true};render();card();window.dispatchEvent(new CustomEvent("life-rpg:everyday-moment-complete",{detail:{id:m.id}}));}
   document.addEventListener("click",e=>{if(e.target.closest("[data-lw3-open]")){open();return;}if(e.target.closest("[data-lw3-archive]")){open(true);return;}const d=document.getElementById("livingWorldV3Dialog");if(!d?.open||!d.contains(e.target))return;if(e.target.closest("[data-lw3-close]")){d.close();return;}if(e.target.closest("[data-lw3-show-archive]")){active.archive=true;render();return;}const ep=e.target.closest("[data-lw3-episode]");if(ep){chooseEpisode(ep.dataset.lw3Episode);return;}const ch=e.target.closest("[data-lw3-choice]");if(ch){choice(Number(ch.dataset.lw3Choice));return;}if(e.target.closest("[data-lw3-next]")){move(1);return;}if(e.target.closest("[data-lw3-back]")){move(-1);return;}if(e.target.closest("[data-lw3-finish]")){finish();return;}});
   // No save/render feedback loop: render only reads state; completion is the only write.
-  window.addEventListener("life-rpg:render",card);document.addEventListener("visibilitychange",()=>{if(!document.hidden)card();});card();
-  window.LifeRPGLivingWorldV3={version:VERSION,open,openMoment,notificationCandidate,refresh:card,_test:{moments:MOMENTS,state,eligible,options,recentActivity,callbackLine,chooseEpisode,choice,move,finish,personAvailable}};
+  window.addEventListener("life-rpg:render",card);
+  window.addEventListener("life-rpg:health-story-context-changed",()=>{if(active?.id&&get(active.id)?.healthKind&&!healthContext()){active=null;document.getElementById("livingWorldV3Dialog")?.close();}card();});document.addEventListener("visibilitychange",()=>{if(!document.hidden)card();});card();
+  window.LifeRPGLivingWorldV3={version:VERSION,open,openMoment,notificationCandidate,refresh:card,_test:{moments:MOMENTS,healthMoments:HEALTH_MOMENTS,state,eligible,options,recentActivity,callbackLine,chooseEpisode,choice,move,finish,personAvailable,healthContext,careTier}};
 })();
