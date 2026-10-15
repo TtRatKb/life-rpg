@@ -5,7 +5,7 @@
  */
 import { initializeApp, getApp, getApps } from 'https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js';
 import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js';
-import { getFirestore, doc, collection, query, orderBy, limit, getDocs, getDoc, setDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js';
+import { getFirestore, doc, collection, query, orderBy, limit, getDocs, getDoc, setDoc, serverTimestamp, deleteField } from 'https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js';
 
 const FIREBASE_CONFIG = {
   apiKey: 'AIzaSyBFW-vUovZVkqTrxz-6UgZbSkH3eHjK-Ns',
@@ -197,12 +197,20 @@ async function syncPending(){
       const payload={date:row.date, updatedAt:row.updatedAt, origin:row.source||'Life RPG', savedAt:serverTimestamp()};
       if(row.imported && Object.keys(row.imported).length)payload.imported=row.imported;
       if(row.nutrition && Object.keys(row.nutrition).length)payload.nutrition=row.nutrition;
-      if(row.wellbeing && Object.keys(row.wellbeing).length)payload.wellbeing=row.wellbeing;
+      // A removed sensitive field must be deleted remotely; merge:true alone
+      // would silently resurrect it from older cloud records.
+      const oldWellbeing=remote?.wellbeing&&typeof remote.wellbeing==='object'?remote.wellbeing:{};
+      const newWellbeing=row.wellbeing&&typeof row.wellbeing==='object'?row.wellbeing:{};
+      const cloudWellbeing={...newWellbeing};
+      for(const key of Object.keys(oldWellbeing)){
+        if(Object.hasOwn(core.WELLBEING,key)&&!Object.hasOwn(newWellbeing,key))cloudWellbeing[key]=deleteField();
+      }
+      if(Object.keys(cloudWellbeing).length)payload.wellbeing=cloudWellbeing;
       await setDoc(ref,payload,{merge:true});
       if(user?.uid!==account)break;
       const fresh=days.get(row.date);
       // Never clear the flag if a newer local edit happened during the upload.
-      if(fresh && fresh.updatedAt===row.updatedAt){const done={...fresh,nutrition:{...remote?.nutrition,...fresh.nutrition},imported:{...remote?.imported,...fresh.imported},wellbeing:{...remote?.wellbeing,...fresh.wellbeing},pending:false};await putLocal(done);days.set(row.date,done);}
+      if(fresh && fresh.updatedAt===row.updatedAt){const done={...fresh,nutrition:{...remote?.nutrition,...fresh.nutrition},imported:{...remote?.imported,...fresh.imported},wellbeing:{...(fresh.wellbeing||{})},pending:false};await putLocal(done);days.set(row.date,done);}
     }
     setStatus('Health-Tageswerte mit deinem Google-Konto synchronisiert.','success');render();
   } catch(error) {
