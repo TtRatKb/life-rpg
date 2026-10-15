@@ -260,7 +260,8 @@ function render() {
   const n=row.nutrition||{};
   for(const [key,id,unit] of [['proteinG','healthProtein',' g'],['waterMl','healthWater',' ml'],['caloriesKcal','healthCalories',' kcal'],['workoutMin','healthWorkout',' min']])text(id,fmt(n[key],unit));
   const has=Boolean((row.imported && Object.keys(row.imported).length)||(row.nutrition && Object.keys(row.nutrition).length)||(row.wellbeing && Object.keys(row.wellbeing).length));
-  text('healthTodaySource',has?`Apple Health · ${row.pending?'nur lokal / Sync ausstehend':'synchronisiert'}`:'Noch kein Apple-Health-Import für diesen Tag');
+  const sourceLabel=Object.keys(row.imported||{}).length?'Apple-Health-Tageswerte':'Persönliche Tageswerte';
+  text('healthTodaySource',has?`${sourceLabel} · ${row.pending?'nur lokal / Sync ausstehend':'synchronisiert'}`:'Noch keine Health-Journal-Angaben für diesen Tag');
   const form=$('healthNutritionForm');
   if(form && form.dataset.date!==activeDate){
     form.dataset.date=activeDate;
