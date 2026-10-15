@@ -240,6 +240,15 @@ function render() {
   text('healthPeriod',well.periodActive===true?'Eingetragen':well.periodActive===false?'Nicht eingetragen':'—');
   text('healthCramps',({none:'Keine',mild:'Leicht',moderate:'Mittel',strong:'Stark'})[well.periodCramps]||'—');
   text('healthMood',({very_low:'Sehr unangenehm',low:'Unangenehm',neutral:'Neutral',good:'Angenehm',very_good:'Sehr angenehm'})[well.mood]||'—');
+  const manual=$('healthWellbeingForm');
+  if(manual && manual.dataset.date!==activeDate){
+    manual.dataset.date=activeDate;
+    for(const key of ['periodActive','periodCramps','mood']){
+      const field=manual.elements.namedItem(key);
+      if(field)field.value=well[key]===undefined?'':String(well[key]);
+    }
+    if(manual.elements.namedItem('consent'))manual.elements.namedItem('consent').checked=false;
+  }
   const n=row.nutrition||{};
   for(const [key,id,unit] of [['proteinG','healthProtein',' g'],['waterMl','healthWater',' ml'],['caloriesKcal','healthCalories',' kcal'],['workoutMin','healthWorkout',' min']])text(id,fmt(n[key],unit));
   const has=Boolean((row.imported && Object.keys(row.imported).length)||(row.nutrition && Object.keys(row.nutrition).length)||(row.wellbeing && Object.keys(row.wellbeing).length));
@@ -275,6 +284,38 @@ async function saveNutrition(event){
   try {await putLocal(row);days.set(activeDate,row);render();setStatus('Ernährung/Workout lokal gespeichert · Cloud-Abgleich läuft …');void syncPending();}
   catch(e){setStatus(`Speichern fehlgeschlagen: ${e.message}`,'error');}
 }
+async function saveWellbeing(event){
+  event.preventDefault();
+  const form=$('healthWellbeingForm');if(!form)return;
+  if(!user){setStatus('Bitte zuerst mit Google anmelden.','error');return;}
+  if(!form.elements.namedItem('consent')?.checked){setStatus('Für diese privaten Angaben bitte die Einwilligung aktivieren.','error');return;}
+  const button=form.querySelector('button[type="submit"]');
+  if(button)button.disabled=true;
+  try{
+    const selected={};
+    for(const key of ['periodActive','periodCramps','mood']){
+      const value=form.elements.namedItem(key)?.value||'';
+      if(!value)continue;
+      selected[key]=key==='periodActive'?value==='true':value;
+    }
+    // Reuse the exact same allowlist/validation as JSON imports.
+    // An all-empty form is a conscious deletion of earlier entries.
+    if(Object.keys(selected).length)core.parseBatch({date:activeDate,wellbeing:selected},{allowWellbeing:true});
+    const prev=days.get(activeDate)||{date:activeDate,imported:{},nutrition:{}};
+    const old=prev.wellbeing||{};
+    const equal=Object.keys(old).length===Object.keys(selected).length &&
+      Object.entries(selected).every(([key,value])=>old[key]===value);
+    if(equal){setStatus('Keine Änderung nötig.','success');return;}
+    const row={...prev,date:activeDate,wellbeing:selected,
+      source:prev.source||'Life RPG · manuell',updatedAt:Date.now(),pending:true};
+    await putLocalBatch([row]);
+    days.set(activeDate,row);
+    render();
+    setStatus('Private Tagesangaben lokal gespeichert · Cloud-Abgleich wird versucht.','success');
+    void syncPending();
+  }catch(error){setStatus('Speichern fehlgeschlagen: '+error.message,'error');}
+  finally{if(form.elements.namedItem('consent'))form.elements.namedItem('consent').checked=false;if(button)button.disabled=false;}
+}
 function shiftDate(delta){const d=new Date(`${activeDate}T12:00:00`);d.setDate(d.getDate()+delta);if(validDate(localISODate(d))){activeDate=localISODate(d);$('healthNutritionForm').dataset.date='';render();}}
 // Batch files and pasted Shortcut JSON use exactly the same validated path.
 async function importJSONText(raw){
@@ -305,6 +346,7 @@ function bind(){
   $('healthPrevDay')?.addEventListener('click',()=>shiftDate(-1));
   $('healthNextDay')?.addEventListener('click',()=>shiftDate(1));
   $('healthNutritionForm')?.addEventListener('submit',saveNutrition);
+  $('healthWellbeingForm')?.addEventListener('submit',event=>void saveWellbeing(event));
   $('healthImportJson')?.addEventListener('change',importJSONFile);
   $('healthBatchImport')?.addEventListener('click',()=>void importPastedJSON());
   $('healthCopyPrefix')?.addEventListener('click',async()=>{const prefix=location.origin+location.pathname+'#lr-health=';try{await navigator.clipboard.writeText(prefix);setStatus('Import-Link-Anfang kopiert. Im Kurzbefehl Datum und Health-Werte ergänzen.','success');}catch(e){window.prompt('Import-Link-Anfang für Kurzbefehle',prefix);}});
