@@ -36,3 +36,9 @@
 .health-privacy-consent input{width:18px;height:18px;flex:none;margin-top:2px;accent-color:#ab729c}
 .health-batch-label{display:block;font-weight:600;margin:15px 0 7px}
 .health-batch-paste{display:block;width:100%;min-height:100px;border:1px solid rgba(145,113,134,.3);border-radius:13px;padding:11px;background:rgba(255,255,255,.7);color:inherit;resize:vertical;margin-bottom:10px;font-family:ui-monospace,Menlo,monospace;font-size:.84em}
+
+.health-manual-wellbeing{margin:12px 0 18px;padding:10px 13px;border:1px solid rgba(166,113,148,.20);border-radius:13px}
+.health-manual-wellbeing summary{font-weight:600;cursor:pointer}
+.health-manual-wellbeing .health-bridge-form{margin-top:12px}
+.health-bridge-form select{width:100%;padding:10px 11px;border:1px solid rgba(145,113,134,.3);border-radius:11px;background:rgba(255,255,255,.75);color:inherit}
+.health-privacy-full{grid-column:1/-1}
