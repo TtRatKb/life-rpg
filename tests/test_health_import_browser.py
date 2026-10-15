@@ -132,6 +132,29 @@ class HealthImportBrowserTests(unittest.TestCase):
         self.assertFalse(self.page.locator('#healthWellbeingConsent').is_checked())
         self.assertEqual([],self.errors)
 
+    def test_direct_cycle_and_mood_entry_can_be_corrected_without_flo(self):
+        self.page.locator('.health-manual-wellbeing summary').click()
+        self.page.locator('#healthWellbeingForm [name="periodActive"]').select_option('true')
+        self.page.locator('#healthWellbeingForm [name="periodCramps"]').select_option('strong')
+        self.page.locator('#healthWellbeingForm [name="mood"]').select_option('low')
+        self.page.locator('#healthWellbeingForm [name="consent"]').check()
+        self.page.locator('#healthWellbeingForm button[type="submit"]').click()
+        self.page.wait_for_function("""()=>document.getElementById('healthPeriod').textContent==='Eingetragen'""")
+        rec=self.records()
+        self.assertEqual(rec[0]['wellbeing'],{
+            'periodActive':True,'periodCramps':'strong','mood':'low'
+        })
+        self.assertFalse(self.page.locator('#healthWellbeingForm [name="consent"]').is_checked())
+        # Correct a mistaken entry; blank removes a field without touching history.
+        self.page.locator('#healthWellbeingForm [name="periodActive"]').select_option('')
+        self.page.locator('#healthWellbeingForm [name="periodCramps"]').select_option('mild')
+        self.page.locator('#healthWellbeingForm [name="consent"]').check()
+        self.page.locator('#healthWellbeingForm button[type="submit"]').click()
+        self.page.wait_for_function("""()=>document.getElementById('healthPeriod').textContent==='—'""")
+        rec=self.records()
+        self.assertEqual(rec[0]['wellbeing'],{'periodCramps':'mild','mood':'low'})
+        self.assertEqual([],self.errors)
+
     def test_invalid_second_day_rolls_back_whole_import(self):
         invalid={'schema':'life-rpg-health-batch-v1','days':[
             {'date':self.date(),'steps':6000},
