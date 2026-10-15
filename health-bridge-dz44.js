@@ -5,7 +5,7 @@
  */
 import { initializeApp, getApp, getApps } from 'https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js';
 import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js';
-import { getFirestore, doc, collection, query, orderBy, limit, getDocs, getDoc, setDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js';
+import { getFirestore, doc, collection, query, orderBy, limit, getDocs, getDoc, setDoc, serverTimestamp, deleteField } from 'https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js';
 
 const FIREBASE_CONFIG = {
   apiKey: 'AIzaSyBFW-vUovZVkqTrxz-6UgZbSkH3eHjK-Ns',
@@ -30,6 +30,8 @@ const NUTRIENTS = {
   waterMl: 15000, caloriesKcal: 15000, vitaminCMg: 5000, vitaminDUg: 1000,
   workoutMin: 1440
 };
+const core = window.LifeRPGHealthImportCore;
+if(!core)throw new Error('Health-Import-Prüfung nicht geladen. Bitte Life RPG neu öffnen.');
 const input = document.getElementById('healthImportJson');
 let user = null, dbPromise = null, online = navigator.onLine, activeDate = localISODate();
 let days = new Map(), pendingPayload = null, busy = false;
@@ -43,12 +45,8 @@ function localISODate(date = new Date()) {
   return `${y}-${m}-${d}`;
 }
 function validDate(value) {
-  if(!/^\d{4}-\d{2}-\d{2}$/.test(value || '')) return false;
-  const [y,m,d]=value.split('-').map(Number);
-  const dt=new Date(y,m-1,d,12);
-  if(dt.getFullYear()!==y || dt.getMonth()!==m-1 || dt.getDate()!==d) return false;
-  const today=new Date(); today.setHours(12,0,0,0);
-  return dt.getTime()>=today.getTime()-92*86400000 && dt.getTime()<=today.getTime()+86400000;
+  try { core.dateParts(value); return true; }
+  catch { return false; }
 }
 function cleanNumber(value,max,decimals) {
   if(value===undefined || value===null || value==='') return null;
@@ -118,15 +116,48 @@ async function refreshLocal() {
   days=new Map(records.map(record=>[record.date,record]));
   render();
 }
-async function mergeIncoming(record) {
-  const prev=days.get(record.date)||{date:record.date, imported:{},nutrition:{}};
-  const next={...prev, ...record, imported:{...prev.imported,...record.imported}, nutrition:{...prev.nutrition,...record.nutrition}, updatedAt:Date.now(), pending:true};
-  await putLocal(next);
-  days.set(next.date,next);activeDate=record.date;
-  setStatus('Health-Werte lokal gespeichert. '+(user?'Cloud-Abgleich läuft …':'Für Mac-Synchronisierung mit Google anmelden.'),'info');
+// One IndexedDB transaction for the entire import: a storage failure must not
+// leave an apparently completed but partially imported set of days.
+async function putLocalBatch(records) {
+  if(!records.length)return;
+  const account=user?.uid;
+  if(!account)throw new Error('Bitte zuerst mit Google anmelden.');
+  const db=await openDB();
+  if(user?.uid!==account)throw new Error('Google-Konto hat sich während des Imports geändert.');
+  return new Promise((resolve,reject)=>{
+    const tx=db.transaction(DB_STORE,'readwrite'),store=tx.objectStore(DB_STORE);
+    for(const record of records)store.put({...record,id:`${account}:${record.date}`});
+    tx.oncomplete=resolve;
+    tx.onerror=()=>reject(tx.error||new Error('Health-Sammelimport konnte nicht gespeichert werden.'));
+    tx.onabort=()=>reject(tx.error||new Error('Health-Sammelimport abgebrochen; bestehende Daten bleiben erhalten.'));
+  });
+}
+async function mergeBatch(records) {
+  if(!user)throw new Error('Bitte zuerst mit Google anmelden.');
+  const staged=new Map(),stamp=Date.now();
+  for(const record of records){
+    const prev=staged.get(record.date)||days.get(record.date);
+    const merged=core.mergeDay(prev,record,stamp);
+    if(merged.changed)staged.set(record.date,merged.record);
+  }
+  const updates=[...staged.values()];
+  await putLocalBatch(updates);
+  // Only publish the staged values to UI after the entire IndexedDB
+  // transaction has committed successfully.
+  for(const row of updates)days.set(row.date,row);
+  if(records.length){
+    activeDate=records.map(x=>x.date).sort().at(-1);
+    const form=$('healthNutritionForm');if(form)form.dataset.date='';
+  }
   render();
+  const duplicates=records.length-updates.length;
+  setStatus(`${updates.length} Tag(e) übernommen${duplicates?` · ${duplicates} unverändert`:''}. ${updates.length?(online?'Cloud-Abgleich läuft im Hintergrund.':'Offline: lokal gespeichert, Cloud-Abgleich ausstehend.'):'Keine zusätzlichen Daten nötig.'}`,'success');
   window.LifeRPGApp?.showView?.('healthsync');
-  void syncPending();
+  if(updates.length)void syncPending();
+  return {saved:updates.length,unchanged:duplicates};
+}
+async function mergeIncoming(record) {
+  return mergeBatch([record]);
 }
 async function handleHash() {
   const hash=window.location.hash;
@@ -162,11 +193,20 @@ async function syncPending(){
       const payload={date:row.date, updatedAt:row.updatedAt, origin:row.source||'Life RPG', savedAt:serverTimestamp()};
       if(row.imported && Object.keys(row.imported).length)payload.imported=row.imported;
       if(row.nutrition && Object.keys(row.nutrition).length)payload.nutrition=row.nutrition;
+      // A removed sensitive field must be deleted remotely; merge:true alone
+      // would silently resurrect it from older cloud records.
+      const oldWellbeing=remote?.wellbeing&&typeof remote.wellbeing==='object'?remote.wellbeing:{};
+      const newWellbeing=row.wellbeing&&typeof row.wellbeing==='object'?row.wellbeing:{};
+      const cloudWellbeing={...newWellbeing};
+      for(const key of Object.keys(oldWellbeing)){
+        if(Object.hasOwn(core.WELLBEING,key)&&!Object.hasOwn(newWellbeing,key))cloudWellbeing[key]=deleteField();
+      }
+      if(Object.keys(cloudWellbeing).length)payload.wellbeing=cloudWellbeing;
       await setDoc(ref,payload,{merge:true});
       if(user?.uid!==account)break;
       const fresh=days.get(row.date);
       // Never clear the flag if a newer local edit happened during the upload.
-      if(fresh && fresh.updatedAt===row.updatedAt){const done={...fresh,nutrition:{...remote?.nutrition,...fresh.nutrition},imported:{...remote?.imported,...fresh.imported},pending:false};await putLocal(done);days.set(row.date,done);}
+      if(fresh && fresh.updatedAt===row.updatedAt){const done={...fresh,nutrition:{...remote?.nutrition,...fresh.nutrition},imported:{...remote?.imported,...fresh.imported},wellbeing:{...(fresh.wellbeing||{})},pending:false};await putLocal(done);days.set(row.date,done);}
     }
     setStatus('Health-Tageswerte mit deinem Google-Konto synchronisiert.','success');render();
   } catch(error) {
@@ -181,7 +221,7 @@ async function pullCloud(){
   if(!user||!online)return;
   const account=user.uid;
   try {
-    const snap=await getDocs(query(collection(firestore,'users',account,'healthDays'),orderBy('date','desc'),limit(45)));
+    const snap=await getDocs(query(collection(firestore,'users',account,'healthDays'),orderBy('date','desc'),limit(100)));
     if(user?.uid!==account)return;
     for(const item of snap.docs){
       const cloud=item.data();if(!validDate(item.id))continue;
@@ -199,10 +239,25 @@ function render() {
   const row=days.get(activeDate)||{};
   text('healthSelectedDate',new Date(`${activeDate}T12:00:00`).toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'long'}));
   for(const [key,id,unit] of [['steps','healthSteps',''],['activeKcal','healthActiveKcal',' kcal'],['exerciseMin','healthExerciseMin',' min'],['standHours','healthStandHours',' h']])text(id,fmt(row.imported?.[key],unit));
+  const well=row.wellbeing||{};
+  text('healthSleep',fmt(row.imported?.sleepMinutes,' min'));
+  text('healthPeriod',well.periodActive===true?'Eingetragen':well.periodActive===false?'Nicht eingetragen':'—');
+  text('healthCramps',({none:'Keine',mild:'Leicht',moderate:'Mittel',strong:'Stark'})[well.periodCramps]||'—');
+  text('healthMood',({very_low:'Sehr unangenehm',low:'Unangenehm',neutral:'Neutral',good:'Angenehm',very_good:'Sehr angenehm'})[well.mood]||'—');
+  const manual=$('healthWellbeingForm');
+  if(manual && manual.dataset.date!==activeDate){
+    manual.dataset.date=activeDate;
+    for(const key of ['periodActive','periodCramps','mood']){
+      const field=manual.elements.namedItem(key);
+      if(field)field.value=well[key]===undefined?'':String(well[key]);
+    }
+    if(manual.elements.namedItem('consent'))manual.elements.namedItem('consent').checked=false;
+  }
   const n=row.nutrition||{};
   for(const [key,id,unit] of [['proteinG','healthProtein',' g'],['waterMl','healthWater',' ml'],['caloriesKcal','healthCalories',' kcal'],['workoutMin','healthWorkout',' min']])text(id,fmt(n[key],unit));
-  const has=Boolean(row.imported && Object.keys(row.imported).length);
-  text('healthTodaySource',has?`Apple Health · ${row.pending?'nur lokal / Sync ausstehend':'synchronisiert'}`:'Noch kein Apple-Health-Import für diesen Tag');
+  const has=Boolean((row.imported && Object.keys(row.imported).length)||(row.nutrition && Object.keys(row.nutrition).length)||(row.wellbeing && Object.keys(row.wellbeing).length));
+  const sourceLabel=Object.keys(row.imported||{}).length?'Apple-Health-Tageswerte':'Persönliche Tageswerte';
+  text('healthTodaySource',has?`${sourceLabel} · ${row.pending?'nur lokal / Sync ausstehend':'synchronisiert'}`:'Noch keine Health-Journal-Angaben für diesen Tag');
   const form=$('healthNutritionForm');
   if(form && form.dataset.date!==activeDate){
     form.dataset.date=activeDate;
@@ -234,24 +289,71 @@ async function saveNutrition(event){
   try {await putLocal(row);days.set(activeDate,row);render();setStatus('Ernährung/Workout lokal gespeichert · Cloud-Abgleich läuft …');void syncPending();}
   catch(e){setStatus(`Speichern fehlgeschlagen: ${e.message}`,'error');}
 }
+async function saveWellbeing(event){
+  event.preventDefault();
+  const form=$('healthWellbeingForm');if(!form)return;
+  if(!user){setStatus('Bitte zuerst mit Google anmelden.','error');return;}
+  if(!form.elements.namedItem('consent')?.checked){setStatus('Für diese privaten Angaben bitte die Einwilligung aktivieren.','error');return;}
+  const button=form.querySelector('button[type="submit"]');
+  if(button)button.disabled=true;
+  try{
+    const selected={};
+    for(const key of ['periodActive','periodCramps','mood']){
+      const value=form.elements.namedItem(key)?.value||'';
+      if(!value)continue;
+      selected[key]=key==='periodActive'?value==='true':value;
+    }
+    // Reuse the exact same allowlist/validation as JSON imports.
+    // An all-empty form is a conscious deletion of earlier entries.
+    if(Object.keys(selected).length)core.parseBatch({date:activeDate,wellbeing:selected},{allowWellbeing:true});
+    const prev=days.get(activeDate)||{date:activeDate,imported:{},nutrition:{}};
+    const old=prev.wellbeing||{};
+    const equal=Object.keys(old).length===Object.keys(selected).length &&
+      Object.entries(selected).every(([key,value])=>old[key]===value);
+    if(equal){setStatus('Keine Änderung nötig.','success');return;}
+    const row={...prev,date:activeDate,wellbeing:selected,
+      source:prev.source||'Life RPG · manuell',updatedAt:Date.now(),pending:true};
+    await putLocalBatch([row]);
+    days.set(activeDate,row);
+    render();
+    setStatus('Private Tagesangaben lokal gespeichert · Cloud-Abgleich wird versucht.','success');
+    void syncPending();
+  }catch(error){setStatus('Speichern fehlgeschlagen: '+error.message,'error');}
+  finally{if(form.elements.namedItem('consent'))form.elements.namedItem('consent').checked=false;if(button)button.disabled=false;}
+}
 function shiftDate(delta){const d=new Date(`${activeDate}T12:00:00`);d.setDate(d.getDate()+delta);if(validDate(localISODate(d))){activeDate=localISODate(d);$('healthNutritionForm').dataset.date='';render();}}
+// Batch files and pasted Shortcut JSON use exactly the same validated path.
+async function importJSONText(raw){
+  if(!user)throw new Error('Bitte zuerst mit Google anmelden.');
+  const allowWellbeing=Boolean($('healthWellbeingConsent')?.checked);
+  const parsed=core.parseBatch(raw,{allowWellbeing});
+  const result=await mergeBatch(parsed.records);
+  if($('healthWellbeingConsent'))$('healthWellbeingConsent').checked=false;
+  return result;
+}
 async function importJSONFile(event){
   const file=event.target.files?.[0];if(!file)return;
-  try{if(file.size>15000)throw new Error('Importdatei zu groß.');
-    const value=JSON.parse(await file.text());
-    const date=String(value.date||'');if(!validDate(date))throw new Error('Ungültiges Datum.');
-    const imported={},nutrition={};for(const [key, spec] of Object.entries(METRICS)){if(value[key]!==undefined)imported[key]=cleanNumber(value[key],spec.max,spec.decimals);}
-    for(const [key,max] of Object.entries(NUTRIENTS)){if(key!=='workoutMin'&&value[key]!==undefined)nutrition[key]=cleanNumber(value[key],max,1);}
-    if(!Object.keys(imported).length&&!Object.keys(nutrition).length)throw new Error('Keine importierbaren Health-Werte.');
-    await mergeIncoming({date,imported,nutrition,source:'Apple Health / JSON',updatedAt:Date.now(),pending:true});
-  }catch(e){setStatus(`Import fehlgeschlagen: ${e.message}`,'error');}
+  try{
+    if(file.size>60000)throw new Error('Datei zu groß (maximal 60 KB).');
+    await importJSONText(await file.text());
+  }catch(e){setStatus('Import fehlgeschlagen: '+e.message,'error');}
   finally{event.target.value='';}
+}
+async function importPastedJSON(){
+  const field=$('healthBatchPaste');
+  if(!field)return;
+  try{
+    await importJSONText(field.value);
+    field.value=''; // do not leave sensitive copied text unnecessarily in the page
+  }catch(e){setStatus('Import fehlgeschlagen: '+e.message,'error');}
 }
 function bind(){
   $('healthPrevDay')?.addEventListener('click',()=>shiftDate(-1));
   $('healthNextDay')?.addEventListener('click',()=>shiftDate(1));
   $('healthNutritionForm')?.addEventListener('submit',saveNutrition);
+  $('healthWellbeingForm')?.addEventListener('submit',event=>void saveWellbeing(event));
   $('healthImportJson')?.addEventListener('change',importJSONFile);
+  $('healthBatchImport')?.addEventListener('click',()=>void importPastedJSON());
   $('healthCopyPrefix')?.addEventListener('click',async()=>{const prefix=location.origin+location.pathname+'#lr-health=';try{await navigator.clipboard.writeText(prefix);setStatus('Import-Link-Anfang kopiert. Im Kurzbefehl Datum und Health-Werte ergänzen.','success');}catch(e){window.prompt('Import-Link-Anfang für Kurzbefehle',prefix);}});
   $('healthRefresh')?.addEventListener('click',async()=>{await syncPending();await pullCloud();});
   window.addEventListener('hashchange',()=>void handleHash());
