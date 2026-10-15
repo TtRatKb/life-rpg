@@ -223,11 +223,17 @@ class HealthImportBrowserTests(unittest.TestCase):
         self.page.locator('#livingWorldV3Dialog').wait_for(state='visible')
         self.assertIn('cramps',self.page.locator('#livingWorldV3Body').inner_text().lower())
 
-        for _ in range(4):
+        # Walk the real dialogue. Choose explicitly whenever the scene asks.
+        for _ in range(12):
+            choices=self.page.locator('#livingWorldV3Dialog [data-lw3-choice]')
+            if choices.count():
+                choices.last.click()
+            if self.page.locator('#livingWorldV3Dialog [data-lw3-finish]').count():
+                self.page.locator('#livingWorldV3Dialog [data-lw3-finish]').click()
+                break
             self.page.locator('#livingWorldV3Dialog [data-lw3-next]').click()
-        self.page.locator('#livingWorldV3Dialog [data-lw3-choice="2"]').click()
-        self.page.locator('#livingWorldV3Dialog [data-lw3-next]').click()
-        self.page.locator('#livingWorldV3Dialog [data-lw3-finish]').click()
+        else:
+            self.fail('Health scene did not reach Finish within 12 dialogue steps')
 
         self.assertTrue(self.page.evaluate('LifeRPGHealthStoryContext.seenToday()'))
         self.assertFalse(self.page.evaluate("""() =>
