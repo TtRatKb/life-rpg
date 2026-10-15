@@ -15,12 +15,26 @@ from playwright.sync_api import sync_playwright
 ROOT=pathlib.Path(__file__).resolve().parents[1]
 FIREBASE_MOCK="""
 const initializeApp=()=>({}),getApps=()=>[],getApp=()=>({}),getAuth=()=>({}),getFirestore=()=>({});
-const getDoc=async()=>({exists:()=>false,data:()=>null});
+window.fakeHealthCloud={};
+const getDoc=async ref=>({exists:()=>Boolean(window.fakeHealthCloud[ref.at(-1)]),
+  data:()=>window.fakeHealthCloud[ref.at(-1)]||null});
 const getDocs=async()=>({docs:[]});
 const doc=(...v)=>v,collection=(...v)=>v,query=(...v)=>v,orderBy=()=>null,limit=()=>null;
-const serverTimestamp=()=>0;
+const serverTimestamp=()=>0,deleteField=()=>({__delete:true});
 window.testCloudWrites=0;
-const setDoc=async()=>{window.testCloudWrites++;};
+const setDoc=async(ref,payload)=>{
+  const date=ref.at(-1),old=window.fakeHealthCloud[date]||{};
+  const newer={...old,...payload,
+    imported:{...old.imported,...payload.imported},
+    nutrition:{...old.nutrition,...payload.nutrition}};
+  if(payload.wellbeing){
+    newer.wellbeing={...old.wellbeing};
+    for(const [key,value] of Object.entries(payload.wellbeing)){
+      if(value?.__delete)delete newer.wellbeing[key];else newer.wellbeing[key]=value;
+    }
+  }
+  window.fakeHealthCloud[date]=newer;window.testCloudWrites++;
+};
 const onAuthStateChanged=(auth,callback)=>{
   queueMicrotask(()=>callback({uid:'synthetic-health-test-user'}));
 };
@@ -145,6 +159,11 @@ class HealthImportBrowserTests(unittest.TestCase):
             'periodActive':True,'periodCramps':'strong','mood':'low'
         })
         self.assertFalse(self.page.locator('#healthWellbeingForm [name="consent"]').is_checked())
+        self.page.wait_for_function("""() => {
+          const row=window.fakeHealthCloud[Object.keys(window.fakeHealthCloud)[0]];
+          return row && row.wellbeing?.periodActive===true;
+        }""",timeout=4000)
+
         # Correct a mistaken entry; blank removes a field without touching history.
         self.page.locator('#healthWellbeingForm [name="periodActive"]').select_option('')
         self.page.locator('#healthWellbeingForm [name="periodCramps"]').select_option('mild')
@@ -153,6 +172,13 @@ class HealthImportBrowserTests(unittest.TestCase):
         self.page.wait_for_function("""()=>document.getElementById('healthPeriod').textContent==='—'""")
         rec=self.records()
         self.assertEqual(rec[0]['wellbeing'],{'periodCramps':'mild','mood':'low'})
+        self.page.wait_for_function("""() => {
+          const row=window.fakeHealthCloud[Object.keys(window.fakeHealthCloud)[0]];
+          return row && row.wellbeing?.periodCramps==='mild'
+            && !Object.hasOwn(row.wellbeing,'periodActive');
+        }""",timeout=4000)
+        self.assertEqual(self.page.evaluate('window.fakeHealthCloud[Object.keys(window.fakeHealthCloud)[0]].wellbeing'),{'periodCramps':'mild','mood':'low'})
+
         self.assertEqual([],self.errors)
 
     def test_invalid_second_day_rolls_back_whole_import(self):
