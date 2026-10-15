@@ -45,12 +45,8 @@ function localISODate(date = new Date()) {
   return `${y}-${m}-${d}`;
 }
 function validDate(value) {
-  if(!/^\d{4}-\d{2}-\d{2}$/.test(value || '')) return false;
-  const [y,m,d]=value.split('-').map(Number);
-  const dt=new Date(y,m-1,d,12);
-  if(dt.getFullYear()!==y || dt.getMonth()!==m-1 || dt.getDate()!==d) return false;
-  const today=new Date(); today.setHours(12,0,0,0);
-  return dt.getTime()>=today.getTime()-92*86400000 && dt.getTime()<=today.getTime()+86400000;
+  try { core.dateParts(value); return true; }
+  catch { return false; }
 }
 function cleanNumber(value,max,decimals) {
   if(value===undefined || value===null || value==='') return null;
@@ -225,7 +221,7 @@ async function pullCloud(){
   if(!user||!online)return;
   const account=user.uid;
   try {
-    const snap=await getDocs(query(collection(firestore,'users',account,'healthDays'),orderBy('date','desc'),limit(45)));
+    const snap=await getDocs(query(collection(firestore,'users',account,'healthDays'),orderBy('date','desc'),limit(100)));
     if(user?.uid!==account)return;
     for(const item of snap.docs){
       const cloud=item.data();if(!validDate(item.id))continue;
