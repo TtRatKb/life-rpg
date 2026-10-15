@@ -4,7 +4,7 @@
   if (window.LifeRPGSocialDelivery) return;
   const app = window.LifeRPGApp;
   if (!app?.getState || !app?.saveState) return;
-  const VERSION = "0.31.4dc";
+  const VERSION = "0.31.4-health-echo1";
   const LIMIT = 450;
   const MINUTE = 60000;
   const escape = value => app.escapeHtml?.(String(value ?? "")) || String(value ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -121,11 +121,14 @@
   function render(){
     const root=document.getElementById("socialDeliveryCard");if(!root)return;
     const s=state(), ready=activeItems(), phone=unreadPhone(), moment=ready.find(x=>x.type==="moment"), newPhone=ready.find(x=>x.type==="phone");
-    const count=Number(!!moment)+phone.length;
-    root.innerHTML=`<div class="social-delivery-heading"><div><p class="eyebrow">LIVING WORLD · NEW ARRIVALS</p><h2>Little signs of life ${count?`<span class="social-delivery-count">${count}</span>`:""}</h2><p>${count?"Something has arrived. Nothing expires if you are busy.":"Moments and messages appear after a little real-life time, not after every tap."}</p></div><span class="social-delivery-symbol">✉</span></div><div class="social-delivery-actions">${newPhone||phone.length?`<button type="button" class="primary-button" data-social-delivery-phone>✉ ${phone.length} unread message${phone.length===1?"":"s"} ›</button>`:""}${moment?`<button type="button" class="primary-button" data-social-delivery-moment="${escape(moment.id)}">✿ ${moment.deliveryType==="talk"?"A new conversation is waiting":"An everyday moment is waiting"} ›</button>`:""}</div><label class="social-delivery-setting"><input type="checkbox" data-social-delivery-native ${s.settings.native?"checked":""}><span>Optional device notifications while Life RPG is running</span></label><small>In-app alerts work without permission. Device alerts require your opt-in and browser support. No background push when the app is fully closed.</small>`;
+    const privateMoment=moment?null:window.LifeRPGLivingWorldV3?.notificationCandidate?.("wellbeing");
+    // Ephemeral invitation only. Sensitive Health context, scene IDs and
+    // delivery receipts are NOT written to the main Life RPG save.
+    const count=Number(Boolean(moment||privateMoment))+phone.length;
+    root.innerHTML=`<div class="social-delivery-heading"><div><p class="eyebrow">LIVING WORLD · NEW ARRIVALS</p><h2>Little signs of life ${count?`<span class="social-delivery-count">${count}</span>`:""}</h2><p>${count?"Something has arrived. Nothing expires if you are busy.":"Moments and messages appear after a little real-life time, not after every tap."}</p></div><span class="social-delivery-symbol">✉</span></div><div class="social-delivery-actions">${newPhone||phone.length?`<button type="button" class="primary-button" data-social-delivery-phone>✉ ${phone.length} unread message${phone.length===1?"":"s"} ›</button>`:""}${moment?`<button type="button" class="primary-button" data-social-delivery-moment="${escape(moment.id)}">✿ ${moment.deliveryType==="talk"?"A new conversation is waiting":"An everyday moment is waiting"} ›</button>`:privateMoment?`<button type="button" class="primary-button" data-social-delivery-health-echo="${escape(privateMoment.id)}">✿ A little moment is waiting ›</button>`:""}</div><label class="social-delivery-setting"><input type="checkbox" data-social-delivery-native ${s.settings.native?"checked":""}><span>Optional device notifications while Life RPG is running</span></label><small>In-app alerts work without permission. Device alerts require your opt-in and browser support. No background push when the app is fully closed.</small>`;
     let badge=document.getElementById("socialDeliveryNavBadge");const nav=document.querySelector('.nav-button[data-view="story"]');
     if(nav&&!badge){badge=document.createElement("b");badge.id="socialDeliveryNavBadge";badge.className="social-delivery-nav-badge";nav.appendChild(badge);}
-    if(badge){badge.textContent=moment?"✿":"";badge.classList.toggle("hidden",!moment);}
+    if(badge){badge.textContent=moment||privateMoment?"✿":"";badge.classList.toggle("hidden",!(moment||privateMoment));}
   }
   function nativeNotice(item) {
     if(!state().settings.native || !("Notification" in window) || Notification.permission!=="granted")return;
@@ -172,6 +175,7 @@
     if(e.target.closest("[data-social-delivery-dismiss]")){dismissToast();return;}
     if(e.target.closest("[data-social-delivery-phone]")){window.LifeRPGStoryUI?.openPhone?.();dismissToast();schedule();return;}
     const moment=e.target.closest("[data-social-delivery-moment]");if(moment){openMoment(moment.dataset.socialDeliveryMoment);return;}
+    const health=e.target.closest("[data-social-delivery-health-echo]");if(health){window.LifeRPGLivingWorldV3?.openMoment?.(health.dataset.socialDeliveryHealthEcho);return;}
   });
   document.addEventListener("change",async e=>{if(!e.target.matches("[data-social-delivery-native]"))return;const s=state();if(!e.target.checked){s.settings.native=false;save("native-opt-out");render();return;}
     if(!("Notification" in window)){app.showToast?.("Device notifications are unavailable here. In-app alerts still work.");e.target.checked=false;return;}
@@ -182,6 +186,7 @@
   window.addEventListener("life-rpg:state-persisted",e=>{const source=String(e.detail?.source||"");if(source.startsWith("social-delivery-"))return;if(source==="app"||source.startsWith("time-")||source.startsWith("week-"))sync();else schedule();});
   window.addEventListener("life-rpg:render",schedule);
   window.addEventListener("life-rpg:everyday-moment-complete",schedule);
+  window.addEventListener("life-rpg:health-story-context-changed",schedule);
   document.addEventListener("visibilitychange",()=>{if(!document.hidden)schedule();});
   window.addEventListener("focus",schedule);
   setInterval(()=>{if(!document.hidden)sync();},45000);
