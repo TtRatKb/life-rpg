@@ -1,4 +1,4 @@
-const CACHE_NAME = "life-rpg-v0.31.4-healthbatch1";
+const CACHE_NAME = "life-rpg-v0.31.4-health-echo1";
 const ASSET_CACHE_NAME = "life-rpg-assets-v6";
 const MAX_RUNTIME_ASSETS = 96;
 const CORE = [
@@ -13,8 +13,8 @@ const CORE = [
   "./work-event-bridge.js?v=0.31.4dz49",
   "./work-event-cloud.js?v=0.31.4dz49",
   "./health-import-core.js?v=0.31.4-healthbatch1",
-  "./health-bridge-dz44.js?v=0.31.4-healthbatch1",
-  "./health-bridge-dz44.css?v=0.31.4-healthbatch1",
+  "./health-bridge-dz44.js?v=0.31.4-health-echo1",
+  "./health-bridge-dz44.css?v=0.31.4-health-echo1",
   "./",
   "./index.html",
   "./qol-dz50c.css?v=0.31.4dz50c",
@@ -63,8 +63,8 @@ const CORE = [
   "./talent-v3-experiences.js?v=0.31.4dz35",
   "./companion-moments.css?v=0.31.4da",
   "./companion-moments.js?v=0.31.4da",
-  "./living-world-v3.js?v=0.31.4dc",
-  "./social-delivery.js?v=0.31.4dc",
+  "./living-world-v3.js?v=0.31.4-health-echo1",
+  "./social-delivery.js?v=0.31.4-health-echo1",
   "./social-delivery.css?v=0.31.4dc",
   "./living-world-v3.css?v=0.31.4db",
   "./talent-reward-studios.js?v=0.31.4dz40",
@@ -170,7 +170,7 @@ const CORE = [
   "./weekly-review.css?v=0.31.4ag",
   "./weekly-review.js?v=0.31.4ag",
   "./manifest.webmanifest?v=0.30.3a",
-  "./pwa.js?v=0.31.4-healthbatch1",
+  "./pwa.js?v=0.31.4-health-echo1",
   "./focus-dock.css?v=0.31.4dz16",
   "./focus-dock.js?v=0.31.4dz50c",
   "./visual-performance.js?v=0.31.4bu",

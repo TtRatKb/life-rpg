@@ -35,6 +35,60 @@ if(!core)throw new Error('Health-Import-Prüfung nicht geladen. Bitte Life RPG n
 const input = document.getElementById('healthImportJson');
 let user = null, dbPromise = null, online = navigator.onLine, activeDate = localISODate();
 let days = new Map(), pendingPayload = null, busy = false;
+const STORY_PREF_PREFIX='life-rpg-health-story-optin-v1:';
+const STORY_SEEN_PREFIX='life-rpg-health-story-seen-v1:';
+const inMemorySeen=new Set();
+const accountKey=(prefix)=>user?.uid?prefix+user.uid:'';
+function storyPreference(){
+  const key=accountKey(STORY_PREF_PREFIX);
+  if(!key)return null;
+  try{
+    const entry=JSON.parse(localStorage.getItem(key)||'null');
+    return entry?.enabled===true&&Number.isFinite(Number(entry?.since))?entry:null;
+  }catch{return null;}
+}
+function storySeenToday(){
+  if(!user)return false;
+  const today=localISODate();
+  if(inMemorySeen.has(user.uid+':'+today))return true;
+  try{return localStorage.getItem(accountKey(STORY_SEEN_PREFIX))===today;}catch{return false;}
+}
+function getStoryContext(){
+  const opt=storyPreference();if(!opt)return null;
+  const date=localISODate(),day=days.get(date)||{};
+  const currentCheckIn=window.LifeRPGApp?.getState?.()?.dailyPlanner?.days?.[date]?.checkIn;
+  const loggedCramps=['mild','moderate','strong'].includes(day.wellbeing?.periodCramps)||
+    Array.isArray(currentCheckIn?.health?.symptoms)&&currentCheckIn.health.symptoms.includes('periodCramps');
+  const shortSleep=Number.isFinite(day.imported?.sleepMinutes)&&day.imported.sleepMinutes>0&&day.imported.sleepMinutes<360;
+  const lowMood=['low','very_low'].includes(day.wellbeing?.mood);
+  const kind=loggedCramps?'cramps':shortSleep?'sleep':lowMood?'mood':null;
+  if(!kind)return null;
+  const when=Math.max(Number(opt.since)||0,Number(day.updatedAt)||0);
+  return {kind,at:when,date}; // No raw health values or details in app events.
+}
+function markStorySeen(){
+  if(!user||!storyPreference())return false;
+  const today=localISODate();inMemorySeen.add(user.uid+':'+today);
+  try{localStorage.setItem(accountKey(STORY_SEEN_PREFIX),today);}catch{}
+  window.dispatchEvent(new Event('life-rpg:health-story-context-changed'));
+  return true;
+}
+function storyChanged(){window.dispatchEvent(new Event('life-rpg:health-story-context-changed'));}
+function setStoryOptIn(enabled){
+  const key=accountKey(STORY_PREF_PREFIX);
+  if(!key)throw Error('Bitte zuerst mit Google anmelden.');
+  try{
+    if(enabled)localStorage.setItem(key,JSON.stringify({enabled:true,since:Date.now()}));
+    else localStorage.removeItem(key);
+  }catch{throw Error('Freigabe konnte nicht dauerhaft gespeichert werden. Browser-Speicher prüfen.');}
+  if(enabled!==Boolean(storyPreference()))throw Error('Freigabe konnte nicht überprüft werden.');
+  if(!enabled)inMemorySeen.clear();
+  storyChanged();
+}
+window.LifeRPGHealthStoryContext={
+  get:getStoryContext,isEnabled:()=>Boolean(storyPreference()),
+  seenToday:storySeenToday,markSeen:markStorySeen
+};
 const $ = id => document.getElementById(id);
 const text = (id, value) => { const el=$(id); if(el) el.textContent=value; };
 const fmt = (v, unit='') => v == null ? '—' : `${new Intl.NumberFormat('de-DE',{ maximumFractionDigits:1 }).format(v)}${unit}`;
@@ -114,7 +168,7 @@ async function refreshLocal() {
   const records=await listLocal(account);
   if(user?.uid!==account)return;
   days=new Map(records.map(record=>[record.date,record]));
-  render();
+  render();storyChanged();
 }
 // One IndexedDB transaction for the entire import: a storage failure must not
 // leave an apparently completed but partially imported set of days.
@@ -145,6 +199,7 @@ async function mergeBatch(records) {
   // Only publish the staged values to UI after the entire IndexedDB
   // transaction has committed successfully.
   for(const row of updates)days.set(row.date,row);
+  if(updates.some(row=>row.date===localISODate()))storyChanged();
   if(records.length){
     activeDate=records.map(x=>x.date).sort().at(-1);
     const form=$('healthNutritionForm');if(form)form.dataset.date='';
@@ -232,7 +287,7 @@ async function pullCloud(){
         await putLocal(next);days.set(item.id,next);
       }
     }
-    render();
+    render();storyChanged();
   } catch(e){console.warn('Health cloud read deferred:',e.code||e.name);}
 }
 function render() {
@@ -257,6 +312,7 @@ function render() {
   for(const [key,id,unit] of [['proteinG','healthProtein',' g'],['waterMl','healthWater',' ml'],['caloriesKcal','healthCalories',' kcal'],['workoutMin','healthWorkout',' min']])text(id,fmt(n[key],unit));
   const has=Boolean((row.imported && Object.keys(row.imported).length)||(row.nutrition && Object.keys(row.nutrition).length)||(row.wellbeing && Object.keys(row.wellbeing).length));
   const sourceLabel=Object.keys(row.imported||{}).length?'Apple-Health-Tageswerte':'Persönliche Tageswerte';
+  const storyBox=$('healthStoryReactionsOptIn');if(storyBox)storyBox.checked=Boolean(storyPreference());
   text('healthTodaySource',has?`${sourceLabel} · ${row.pending?'nur lokal / Sync ausstehend':'synchronisiert'}`:'Noch keine Health-Journal-Angaben für diesen Tag');
   const form=$('healthNutritionForm');
   if(form && form.dataset.date!==activeDate){
@@ -315,6 +371,7 @@ async function saveWellbeing(event){
       source:prev.source||'Life RPG · manuell',updatedAt:Date.now(),pending:true};
     await putLocalBatch([row]);
     days.set(activeDate,row);
+    if(activeDate===localISODate())storyChanged();
     render();
     setStatus('Private Tagesangaben lokal gespeichert · Cloud-Abgleich wird versucht.','success');
     void syncPending();
@@ -352,6 +409,10 @@ function bind(){
   $('healthNextDay')?.addEventListener('click',()=>shiftDate(1));
   $('healthNutritionForm')?.addEventListener('submit',saveNutrition);
   $('healthWellbeingForm')?.addEventListener('submit',event=>void saveWellbeing(event));
+  $('healthStoryReactionsOptIn')?.addEventListener('change',event=>{
+    try{setStoryOptIn(Boolean(event.target.checked));setStatus(event.target.checked?'Freiwillige Alltagsreaktionen aktiviert. Gesundheitsdaten bleiben im Health Journal.':'Alltagsreaktionen zu Gesundheit deaktiviert.','success');}
+    catch(error){event.target.checked=Boolean(storyPreference());setStatus(error.message,'error');}
+  });
   $('healthImportJson')?.addEventListener('change',importJSONFile);
   $('healthBatchImport')?.addEventListener('click',()=>void importPastedJSON());
   $('healthCopyPrefix')?.addEventListener('click',async()=>{const prefix=location.origin+location.pathname+'#lr-health=';try{await navigator.clipboard.writeText(prefix);setStatus('Import-Link-Anfang kopiert. Im Kurzbefehl Datum und Health-Werte ergänzen.','success');}catch(e){window.prompt('Import-Link-Anfang für Kurzbefehle',prefix);}});
@@ -369,7 +430,7 @@ async function start(){
   await handleHash();
   onAuthStateChanged(auth,async next=>{
     user=next||null;
-    days=new Map();render();
+    days=new Map();render();storyChanged();
     if(!user){setStatus(pendingPayload?'Health-Link wartet auf Google-Anmeldung.':'Für dein privates Health Journal mit Google anmelden.');return;}
     try {await refreshLocal();}catch(e){setStatus('Lokaler Health-Speicher nicht verfügbar.','error');return;}
     if(pendingPayload){

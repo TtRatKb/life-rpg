@@ -66,8 +66,23 @@ Wenn Flo die Periodendaten nicht in Apple Health bereitstellt, kannst du in Life
 - Gespeichert wird in `users/{uid}/healthDays/{date}` nach Anmeldung; ohne Cloudverbindung bleibt der lokale Import ausstehend. Der Status unterscheidet diese Fälle. Keine Passwörter, Health-Dateien oder personenbezogenen Gesundheitsbeispiele ins öffentliche GitHub-Repository laden.
 - Gesundheitswerte sind **keine verlässliche medizinische Diagnose** und weder Stimmungs- noch Zyklusprognosen dienen als Verhütungsmethode.
 
+## Freiwillige Living-World-Reaktionen (separate Freigabe)
+
+Im **Health Journal** findest du den eigenständigen Schalter **„Gesundheitsbezogene Alltagsmomente freiwillig erlauben“**. Er ist **standardmäßig ausgeschaltet** und gilt **nur für das aktuelle Google-Konto auf diesem Gerät**. Die Einwilligung für das *Speichern* von Zyklus- und Stimmungsdaten beim Import ist davon **unabhängig**.
+
+Wenn du ihn aktivierst, kann die vorhandene Living World für **heute** passende optionale Momente mit Katsuki/Eijirou anbieten:
+- tatsächlich eingetragene Periodenkrämpfe (Health Journal **oder** heutiger Daily Check-in);
+- weniger als sechs Stunden ausdrücklich dokumentierte Schlafzeit;
+- ausdrücklich eingetragene niedrige Stimmung.
+
+Nur nach bereits freigeschaltetem Zusammenwohnen-Kapitel und wenn der jeweilige Charakter laut Story-Tagesplan erreichbar ist. Die vorhandenen Story-Flags für gemeinsame Routine und emotionale Vertrautheit bestimmen die Art der Fürsorge. **Keine automatische Offenlegung medizinischer Informationen**: Luca erzählt im Moment selbst, was los ist.
+
+Es gibt höchstens **einen solchen optionalen Health-Moment pro Tag und Gerät**. Seine Auswahl und der private „heute schon gesehen“-Vermerk bleiben im lokalen Browser; **keine Health-Details, Eintragskopien, dialogische Entscheidungen oder Health-Moment-IDs werden in den normalen Life-RPG-Spielstand geschrieben**. Die Hinweise enthalten keine Symptombezeichnung und erzeugen **weder XP noch Zuneigungspunkte**. Es gibt keine System-Pushbenachrichtigung aus privaten Health-Einträgen. Abschalten entfernt die aktuellen Einladungen; ältere Health-Journal-Werte bleiben davon unberührt.
+
+Ein rückwirkender Import löst **keine historischen Szenen** aus. Betrachtet wird nur der aktuelle Kalendertag; fehlende Informationen werden nie als Symptome interpretiert. Die optionale Lesefunktion ist **kein diagnostisches oder therapeutisches Instrument**.
+
 ## Noch nicht Teil dieser Version
 
 - Automatisch direkt aus Apple Health auf „Jetzt synchronisieren“ tippen: **mit einer reinen PWA nicht möglich**.
 - Fertig installierbare Apple-Kurzbefehle-Datei oder automatischer täglicher Rückwärtsscan ohne Nutzerkonfiguration: noch **nicht** entwickelt/auf einem iPhone geprüft.
-- Automatische Life-RPG-Story-Trigger aus sensiblen Health-Werten: **nicht aktiviert**; dafür wäre eine eigene, ausdrücklich freigegebene Story-Privacy-Integration nötig.
+- Story-Hinweise werden **nur** nach zusätzlicher ausdrücklich aktivierter Freigabe angeboten; vergangene Tage und Hintergrund-Push bleiben ausgeschlossen. Vollständige dynamische Health-Dialoge/automatische Nachrichten in allen Story-Kapiteln sind nicht Teil dieses kleinen Living-World-Schritts.
