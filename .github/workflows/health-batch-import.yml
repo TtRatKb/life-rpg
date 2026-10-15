@@ -1,0 +1,51 @@
+name: Health Journal batch import regressions
+
+on:
+  pull_request:
+    paths:
+      - 'health-import-core.js'
+      - 'health-bridge-dz44.js'
+      - 'health-bridge-dz44.css'
+      - 'index.html'
+      - 'pwa.js'
+      - 'service-worker.js'
+      - 'tests/health_import.test.cjs'
+      - 'tests/test_health_import_browser.py'
+      - '.github/workflows/health-batch-import.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'health-import-core.js'
+      - 'health-bridge-dz44.js'
+      - 'health-bridge-dz44.css'
+      - 'index.html'
+      - 'pwa.js'
+      - 'service-worker.js'
+      - 'tests/health_import.test.cjs'
+      - 'tests/test_health_import_browser.py'
+
+permissions:
+  contents: read
+
+jobs:
+  browser-and-parser:
+    name: Health import data safety and browser interaction
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Strict import parser and idempotency tests
+        run: node --test tests/health_import.test.cjs
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install browser test
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install playwright
+          python -m playwright install --with-deps chromium
+      - name: Run Health Journal browser interaction with fake Firebase
+        run: python -m unittest discover -s tests -p 'test_health_import_browser.py' -v
