@@ -1,4 +1,4 @@
-const CACHE_NAME = "life-rpg-v0.31.4-health-echo1";
+const CACHE_NAME = "life-rpg-v0.31.4-health-echo2";
 const ASSET_CACHE_NAME = "life-rpg-assets-v6";
 const MAX_RUNTIME_ASSETS = 96;
 const CORE = [
@@ -63,8 +63,8 @@ const CORE = [
   "./talent-v3-experiences.js?v=0.31.4dz35",
   "./companion-moments.css?v=0.31.4da",
   "./companion-moments.js?v=0.31.4da",
-  "./living-world-v3.js?v=0.31.4-health-echo1",
-  "./social-delivery.js?v=0.31.4-health-echo1",
+  "./living-world-v3.js?v=0.31.4-health-echo2",
+  "./social-delivery.js?v=0.31.4-health-echo2",
   "./social-delivery.css?v=0.31.4dc",
   "./living-world-v3.css?v=0.31.4db",
   "./talent-reward-studios.js?v=0.31.4dz40",

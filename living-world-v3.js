@@ -3,13 +3,15 @@
   if (window.LifeRPGLivingWorldV3) return;
   const app=window.LifeRPGApp;
   if (!app?.getState || !app?.saveState) return;
-  const VERSION="0.31.4-health-echo1";
+  const VERSION="0.31.4-health-echo2";
   const E=x=>app.escapeHtml?.(String(x??"")) || String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   const KEY=()=>{const d=new Date();return [d.getFullYear(),String(d.getMonth()+1).padStart(2,"0"),String(d.getDate()).padStart(2,"0")].join("-");};
   const at=ms=>{const d=new Date(ms);return Number.isFinite(d.getTime())?[d.getFullYear(),String(d.getMonth()+1).padStart(2,"0"),String(d.getDate()).padStart(2,"0")].join("-"):"";};
   const homeReady=()=>Boolean(app.getState().flags?.DYNARIOT_MOVE_IN_COMPLETE);
   const cast={bakugo:{name:"Katsuki",neutral:"assets/story/characters/bakugo-neutral.png",soft:"assets/story/characters/bakugo-soft.png"},kirishima:{name:"Eijiro",neutral:"assets/story/characters/kirishima-neutral.png",soft:"assets/story/characters/kirishima-happy.png"}};
-  const bg={kitchen:"assets/story/backgrounds/time/shared_apartment_kitchen_day.webp",living:"assets/story/backgrounds/time/shared_apartment_day.webp",night:"assets/story/backgrounds/time/shared_apartment_night.webp"};
+  // These moments happen in the player's present day, unlike authored Story V2 chapters.
+  const daypart=()=>{const h=new Date().getHours();return h<6||h>=21?"night":h<10?"dawn":h<17?"day":h<20?"sunset":"night";};
+  const backgroundFor=(room,part)=>"assets/story/backgrounds/time/"+(room==="kitchen"?"shared_apartment_kitchen_":"shared_apartment_")+(["dawn","day","sunset","night"].includes(part)?part:"day")+".webp";
   const N=text=>({who:"luca",text}),S=(who,text,mood="neutral")=>({who,text,mood}),Q=(text,options)=>({who:"luca",text,options});
   // Only mundane events that are already plausible after the shared-apartment chapter.
   // New records are optional story texture, not XP/affection/Story Energy events.
@@ -43,39 +45,161 @@
     return f.SHARED_APARTMENT_EMOTIONAL_HOME_STARTED?3:
       f.HOUSEHOLD_FORMATION_PHASE_TWO_COMPLETE?2:f.HOUSEHOLD_ROUTINE_STARTED?1:0;
   }
+  const HEALTH_SCENES = {
+    cramps: {
+      bakugo: {
+        intro:"Period cramps have made sitting still a ridiculous challenge. I shift on the kitchen stool for the third time.",
+        check:"You've moved that chair more than you've sat in it. Something wrong?",
+        thought:"He's noticed I'm uncomfortable. He doesn't know why, and I get to decide whether to tell him.",
+        care:[
+          "There's a chair at the table if that one's no good.",
+          "Sit somewhere comfortable. The counter can wait.",
+          "Kettle's on if you want something warm.",
+          "I put the kettle on. Doesn't mean you have to explain anything."
+        ],
+        prompt:"How much do I want to share?",
+        choices:[
+          ["It's period cramps. Something warm might help.","Got it. I'll warm something up. Tell me where you keep the heat pack."],
+          ["Not feeling great. Mind if I stay here a bit?","You live here. Stay as long as you want."],
+          ["I'd rather keep it to myself.","Fine. Wasn't asking for a report."]
+        ],
+        end:[
+          "He moves his things off the spare chair and goes back to his own business. No interrogation follows.",
+          "He clears a little more room on the counter, quietly making the kitchen easier to occupy.",
+          "He leaves a warm mug within reach and doesn't make a point of watching me take it.",
+          "There's room beside him if I want it, and space to leave if I don't. He knows the difference now."
+        ]
+      },
+      kirishima: {
+        intro:"Period cramps have made the sofa feel like a puzzle with no comfortable solution. I shift the cushion again.",
+        check:"Hey, you okay? You seem uncomfortable.",
+        thought:"Eijiro's concern is genuine, but he can't know what's wrong unless I choose to tell him.",
+        care:[
+          "I can move over if you need more space.",
+          "Want the other cushion? This one's a bit firmer.",
+          "There's a blanket here, if you want it.",
+          "Want me close by, or should I give you the sofa to yourself?"
+        ],
+        prompt:"What do I feel comfortable saying?",
+        choices:[
+          ["I've got period cramps. A heat pack would be amazing.","Of course. Where do you keep it?"],
+          ["Could you just keep me company for a bit?","Yeah. No big conversation required."],
+          ["I'd rather not explain it.","That's okay. Just let me know if you need anything."]
+        ],
+        end:[
+          "He shifts his own things out of my way and lets the conversation move on.",
+          "He settles at the other end of the sofa, leaving the distance for me to choose.",
+          "The blanket stays nearby. Eijiro doesn't assume an offer is the same as an invitation.",
+          "He follows my lead without the awkwardness of someone trying too hard to be helpful."
+        ]
+      }
+    },
+    sleep: {
+      bakugo: {
+        intro:"I read the same sentence twice and still have no idea what it says. Last night's sleep did not do its job.",
+        check:"You just stared at that mug for a full minute. Rough night?",
+        thought:"I can tell Katsuki how little I slept, or simply ask for a quieter day.",
+        care:[
+          "At least sit down for a minute.",
+          "You can leave the dishes. They'll still be here later.",
+          "I'll deal with the food. Keep your plans simple.",
+          "I've got the kitchen. You don't have to hold a conversation just to keep me company."
+        ],
+        prompt:"What do I need from him?",
+        choices:[
+          ["I barely slept. I need to take it easy.","Then take it easy. I'll handle the dishes."],
+          ["Could we talk about something completely unrelated?","Fine. Pick a topic. Just don't make me guess."],
+          ["I don't really want to talk about it.","Then we won't."]
+        ],
+        end:[
+          "He goes back to what he was doing, leaving a place for me at the table.",
+          "He doesn't ask me to account for the rest of my day.",
+          "The ordinary clatter of the kitchen goes on. For once, I don't feel obliged to match his pace.",
+          "He's comfortable enough with our silence to leave it alone."
+        ]
+      },
+      kirishima: {
+        intro:"I lose track of the conversation for a moment. A night of broken sleep is catching up with me.",
+        check:"Hey, did you sleep at all? You look wiped.",
+        thought:"Eijiro is asking, not demanding a detailed explanation.",
+        care:[
+          "We can switch the TV off if you're tired.",
+          "No need to keep me entertained. Seriously.",
+          "Want to make this a low-key kind of day?",
+          "We can just sit here. You don't have to be on all the time."
+        ],
+        prompt:"What would make this moment easier?",
+        choices:[
+          ["I barely slept. Could we keep things quiet?","Absolutely. We can save the exciting stuff for another day."],
+          ["Tell me something ridiculous to distract me.","Okay, I actually have a story for that."],
+          ["I might go and rest on my own.","Good call. See you whenever."]
+        ],
+        end:[
+          "He lets me decide whether to stay, without making it a big deal.",
+          "He lowers his voice a notch and keeps the atmosphere easy.",
+          "He makes room for me to be tired without turning it into a problem to solve.",
+          "We know each other well enough that quiet doesn't need filling."
+        ]
+      }
+    },
+    mood: {
+      bakugo: {
+        intro:"I stop in the kitchen doorway, then forget what I came in for. My mood has been low all day.",
+        check:"You're quiet. Something on your mind?",
+        thought:"He can't read my mood from a logbook. If I want him to know, I'll have to say something.",
+        care:[
+          "You don't have to make conversation.",
+          "If you want some quiet, say so.",
+          "I can listen. Doesn't mean I'll have a perfect answer.",
+          "We can talk, or we can make something to eat and leave it at that. Your call."
+        ],
+        prompt:"What do I want to tell him?",
+        choices:[
+          ["It's been a rough day. Could I talk for a minute?","Yeah. I'm listening."],
+          ["Could we do something ordinary instead?","Sure. Help me figure out what we're eating."],
+          ["I don't want to get into it.","Okay. I'm not going to pry."]
+        ],
+        end:[
+          "He accepts the answer and returns to the task in front of him. I can stay if I want.",
+          "The conversation doesn't turn into a test I have to pass.",
+          "His attention is practical, unshowy, and surprisingly easy to be around.",
+          "He stays present without pressing for details. It's a kind of trust we've built slowly."
+        ]
+      },
+      kirishima: {
+        intro:"I sit at the edge of the sofa, trying to decide whether I want company. It's been a low-mood day.",
+        check:"Hey. You seem a little far away. Want me to hang around?",
+        thought:"He means the offer, but I still get to decide how much of today he hears about.",
+        care:[
+          "It's okay if you'd rather be alone.",
+          "I can stay for a bit, no pressure.",
+          "Want company, or something silly to take your mind off things?",
+          "I can listen, distract you, or just sit here. Whatever actually helps."
+        ],
+        prompt:"What sounds right for me?",
+        choices:[
+          ["My mood's been low. Would you mind listening?","Not at all. I've got time."],
+          ["Please distract me with something silly.","Oh, I can absolutely do silly."],
+          ["I think I'd rather have some space.","Of course. I'll be around later."]
+        ],
+        end:[
+          "Eijiro doesn't turn my answer into a verdict on our friendship.",
+          "He follows my lead, letting the moment stay ordinary.",
+          "He looks relieved to know what I want, rather than having to guess.",
+          "The ease between us makes it possible to ask for company or space without explaining myself twice."
+        ]
+      }
+    }
+  };
   function healthBeats(m){
-    const k=m.who[0]==="bakugo",p=m.who[0],tier=careTier();
-    if(m.healthKind==="cramps")return [
-      N("I look uncomfortable. When he asks what's going on, I decide to tell him my period cramps are making today difficult."),
-      S(p,k?"What's wrong? You keep shifting around.":"Hey, you okay? You look uncomfortable."),
-      N("I explain that I'm dealing with cramps. I don't need him to guess."),
-      S(p,k?(tier>=2?"Then don't push through it. Want something warm?":"Tch. Take a break if you need one."):
-          (tier>=2?"Want me to get the heat pack? I can stay if that helps.":"Ouch. Sorry. Water or some space?"),tier>=2?"soft":"neutral"),
-      Q("What would help me right now?",[
-        ["Something warm, please.",k?"I'll get it.":"Of course."],
-        ["Some company, without a big conversation.",k?"Fine. I'm here.":"Yeah, we can do that."],
-        ["I want to be on my own for a while.",k?"Got it.":"Sure. I'll be around."]]),
-      N(tier>=3?"He follows my lead, settling nearby only if I asked. There's an ease to being understood.":"He respects my answer without making it into an event.")];
-    if(m.healthKind==="sleep")return [
-      N("I tell him I hardly slept and that I'm moving slowly today."),
-      S(p,k?"You look exhausted. Bad night?":"Long night? You look tired."),
-      S(p,k?(tier>=2?"Don't turn an empty battery into a full schedule. I'll take care of dinner.":"Keep today simple, then."):
-        (tier>=2?"We can make it a quiet evening, if you want.":"No need to do anything impressive today."),tier>=2?"soft":"neutral"),
-      Q("I decide what feels manageable.",[
-        ["A quiet evening sounds good.",k?"Then that's the plan.":"Works for me."],
-        ["Distract me for a bit.",k?"Pick something easy.":"I've got stories."],
-        ["I need some space.",k?"You got it.":"No problem."]]),
-      N("No one asks me to earn a chance to rest.")];
+    const p=m.who[0],s=HEALTH_SCENES[m.healthKind]?.[p];
+    if(!s)return [];
+    const tier=Math.max(0,Math.min(3,careTier()));
     return [
-      N("When he checks in, I tell him my mood has been low today. He doesn't have to guess what I'm feeling."),
-      S(p,k?"One of those days, or something you want to talk about?":"Want to talk about it, or just hang out?"),
-      S(p,k?(tier>=2?"I can listen without trying to fix it.":"You don't owe me a full explanation."):
-        (tier>=2?"I can just sit with you, too.":"Take your time."),tier>=2?"soft":"neutral"),
-      Q("I choose how much to share.",[
-        ["I just want someone to listen.",k?"Go ahead.":"I'm listening."],
-        ["Let's talk about something else.",k?"Pick a topic.":"Absolutely."],
-        ["Not ready to talk right now.",k?"Then we won't.":"That's okay."]]),
-      N("He takes my answer seriously. A difficult mood doesn't have to turn into a dramatic event.")];
+      N(s.intro),S(p,s.check),N(s.thought),
+      S(p,s.care[tier],tier>=2?"soft":"neutral"),
+      Q(s.prompt,s.choices),N(s.end[tier])
+    ];
   }
   const sceneBeats=m=>m?.healthKind?healthBeats(m):m?.beats||[];
   const get=id=>MOMENTS.find(m=>m.id===id)||HEALTH_MOMENTS.find(m=>m.id===id);
@@ -94,7 +218,17 @@
     }
     return m.who.every(p=>personAvailable(p,m.room));
   }
-  function options(){const a=recentActivity(),s=state(),today=KEY();if(s.dailyHistory[today]||(s.completed&&Object.values(s.completed).some(x=>x.date===today)))return[];return [...HEALTH_MOMENTS,...MOMENTS].filter(m=>eligible(m,a)).sort((x,y)=>Number(Boolean(y.healthKind))-Number(Boolean(x.healthKind))||Number(!!s.completed[x.id])-Number(!!s.completed[y.id])||Number(x.category==="callback")-Number(y.category==="callback")||x.id.localeCompare(y.id));}
+  function options(){
+    const a=recentActivity(),s=state(),today=KEY();
+    const ordinaryDone=Boolean(s.dailyHistory[today]||Object.values(s.completed).some(x=>x.date===today));
+    // The private health invitation has its own one-per-day receipt. A normal
+    // Living World moment must never consume it (nor vice versa).
+    return [...HEALTH_MOMENTS,...(ordinaryDone?[]:MOMENTS)]
+      .filter(m=>eligible(m,a))
+      .sort((x,y)=>Number(Boolean(y.healthKind))-Number(Boolean(x.healthKind))||
+        Number(!!s.completed[x.id])-Number(!!s.completed[y.id])||
+        Number(x.category==="callback")-Number(y.category==="callback")||x.id.localeCompare(y.id));
+  }
   const CALLBACKS={
     bakugo:[
       ["bad-day:vent","Katsuki remembers that sometimes I want to be heard before anything gets fixed. He leaves the advice unsaid."],
@@ -113,10 +247,10 @@
   };
   function callbackLine(m){for(const p of m.who){for(const [key,line] of CALLBACKS[p]||[]){if(window.LifeRPGRelationshipMemory?.hasMemory?.(p,key))return line;}}return "";}
   let active=null;
-  function card(){const root=document.getElementById("livingWorldV3Card");if(!root)return;const ready=options(),s=state(),today=KEY(),done=Object.values(s.completed).find(x=>x.date===today);const note=!homeReady()?"Continue the shared-apartment story to unlock everyday moments.":done?"A little moment is already part of today. Come back another day.":ready.length?"An ordinary moment is waiting in your shared world.":"No one is available for a spontaneous household moment right now. Check back later.";const headline=done?"A moment to remember":ready.length?"Something ordinary, something yours":"Everyday Moments";root.innerHTML=`<div class="lw3-head"><div><p class="eyebrow">LIVING WORLD · OPTIONAL</p><h2>${E(headline)}</h2><p>${E(note)}</p></div><span class="lw3-charm">✿</span></div>${ready.length?`<button type="button" class="primary-button" data-lw3-open>See what's happening →</button>`:""}<div class="lw3-foot"><span>${Object.keys(s.completed).length} moments remembered</span><button type="button" class="ghost-button" data-lw3-archive>Memories ›</button></div>`;}
+  function card(){const root=document.getElementById("livingWorldV3Card");if(!root)return;const ready=options(),s=state(),today=KEY(),done=Object.values(s.completed).find(x=>x.date===today);const note=!homeReady()?"Continue the shared-apartment story to unlock everyday moments.":ready.length?"An ordinary moment is waiting in your shared world.":done?"A little moment is already part of today. Come back another day.":"No one is available for a spontaneous household moment right now. Check back later.";const headline=ready.length?"Something ordinary, something yours":done?"A moment to remember":"Everyday Moments";root.innerHTML=`<div class="lw3-head"><div><p class="eyebrow">LIVING WORLD · OPTIONAL</p><h2>${E(headline)}</h2><p>${E(note)}</p></div><span class="lw3-charm">✿</span></div>${ready.length?`<button type="button" class="primary-button" data-lw3-open>See what's happening →</button>`:""}<div class="lw3-foot"><span>${Object.keys(s.completed).length} moments remembered</span><button type="button" class="ghost-button" data-lw3-archive>Memories ›</button></div>`;}
   function dialog(){let d=document.getElementById("livingWorldV3Dialog");if(d)return d;d=document.createElement("dialog");d.id="livingWorldV3Dialog";d.className="living-world-v3-dialog";d.innerHTML='<div class="lw3-shell"><header><span>✿ EVERYDAY MOMENTS</span><button type="button" data-lw3-close aria-label="Close">×</button></header><div id="livingWorldV3Body"></div></div>';document.body.appendChild(d);return d;}
-  function open(archive=false){if(!archive&&!options().length)return false;active={id:null,step:0,choice:null,replay:false,revisit:false,archive};const d=dialog();render();d.showModal?.();return true;}
-  function chooseEpisode(id){const m=get(id);if(!m)return false;const saved=m.healthKind?null:state().completed[id];if(!saved&&!options().some(x=>x.id===id))return false;const p=state().pending, resume=!saved&&p?.id===id;active={id,step:m.healthKind?0:resume?Math.min(sceneBeats(m).length-1,Math.max(0,Number(p.step)||0)):0,choice:m.healthKind?null:resume?p.choice??null:saved?saved.choice??null:null,replay:!!saved,revisit:!!saved&&!active.archive,archive:!!saved};persist();render();return true;}
+  function open(archive=false){if(!archive&&!options().length)return false;active={id:null,step:0,choice:null,replay:false,revisit:false,archive,daypart:daypart()};const d=dialog();render();d.showModal?.();return true;}
+  function chooseEpisode(id){const m=get(id);if(!m)return false;const saved=m.healthKind?null:state().completed[id];if(!saved&&!options().some(x=>x.id===id))return false;const p=state().pending, resume=!saved&&p?.id===id;active={id,step:m.healthKind?0:resume?Math.min(sceneBeats(m).length-1,Math.max(0,Number(p.step)||0)):0,choice:m.healthKind?null:resume?p.choice??null:saved?saved.choice??null:null,replay:!!saved,revisit:!!saved&&!active.archive,archive:!!saved,daypart:active.daypart};persist();render();return true;}
   function notificationCandidate(category) {
     if (!category || !homeReady()) return null;
     return options().find(m => m.category === category) || null;
@@ -127,7 +261,7 @@
     return chooseEpisode(id);
   }
   function persist(){if(!active?.id||active.replay||get(active.id)?.healthKind)return;state().pending={id:active.id,step:active.step,choice:active.choice};save("reading");}
-  function render(){const b=document.getElementById("livingWorldV3Body");if(!b||!active)return;const s=state();if(!active.id){const eligibleNow=options(),archived=MOMENTS.filter(m=>s.completed[m.id]);b.innerHTML=`<section class="lw3-overview"><p class="eyebrow">${active.archive?"YOUR MEMORIES":"A LITTLE EXTRA LIFE"}</p><h2>${active.archive?"Everyday memories":"See what's happening"}</h2><p>Small conversations drawn from real logged activity and the characters' actual availability. No extra XP or relationship farming.</p><div class="lw3-list">${(active.archive?archived:eligibleNow).map(m=>`<button type="button" data-lw3-episode="${E(m.id)}"><small>${E(m.who.map(p=>cast[p].name).join(" & "))} · ${E(m.category)}</small><strong>${E(m.title)}</strong><span>${s.completed[m.id]?"Replay memory ›":"Read moment ›"}</span></button>`).join("")||"<p>Nothing here yet. Ordinary life keeps moving.</p>"}</div>${!active.archive?'<button type="button" class="secondary-button" data-lw3-show-archive>Past moments ›</button>':''}</section>`;return;}const m=get(active.id),beat=sceneBeats(m)[active.step],selected=beat.options&&active.choice!==null?beat.options[active.choice]:null,prev=sceneBeats(m)[active.step-1],reply=prev?.options&&active.choice!==null?prev.options[active.choice]?.[1]:"";const sprites=m.who.map(p=>`<img class="dream-vn-sprite dream-vn-${E(p)} ${beat.who!=="luca"&&beat.who!==p?"dream-vn-listener":""}" src="${E(cast[p][beat.who===p&&beat.mood==="soft"?"soft":"neutral"])}" alt="${E(cast[p].name)}" draggable="false">`).join("");b.innerHTML=`<article class="lw3-reader"><div class="lw3-title"><p class="eyebrow">${E(m.category)} · ${active.replay?"MEMORY REPLAY":"TODAY'S MOMENT"}</p><h2>${E(m.title)}</h2></div><div class="dream-vn-stage lw3-stage" style="background-image:linear-gradient(0deg,rgba(30,19,40,.6),rgba(30,19,40,.06) 62%),url('${E(bg[m.room]||bg.living)}')">${sprites}</div><section class="dream-vn-dialogue" aria-live="polite"><div class="dream-vn-speaker">${E(cast[beat.who]?.name||"Luca")}</div>${reply?`<p class="lw3-reply">“${E(reply)}”</p>`:""}<p>${E(beat.text)}</p>${active.step===1&&callbackLine(m)?`<p class="lw3-memory-note">${E(callbackLine(m))}</p>`:""}${beat.options?`<div class="dream-vn-choices">${beat.options.map((o,i)=>`<button type="button" data-lw3-choice="${i}" class="${active.choice===i?"selected":""}" aria-pressed="${active.choice===i}">${E(o[0])}</button>`).join("")}</div>`:""}</section><footer class="dream-vn-actions"><small>${active.step+1} / ${sceneBeats(m).length} · ${active.replay?"Original choice preserved":"Reading position saved"}</small><div><button class="secondary-button" type="button" data-lw3-back ${active.step===0?"disabled":""}>← Back</button><button class="primary-button" type="button" ${beat.options&&active.choice===null?"disabled":""} ${active.step===sceneBeats(m).length-1?"data-lw3-finish":"data-lw3-next"}>${active.step===sceneBeats(m).length-1?"Finish moment":"Continue →"}</button></div></footer></article>`;}
+  function render(){const b=document.getElementById("livingWorldV3Body");if(!b||!active)return;const s=state();if(!active.id){const eligibleNow=options(),archived=MOMENTS.filter(m=>s.completed[m.id]);b.innerHTML=`<section class="lw3-overview"><p class="eyebrow">${active.archive?"YOUR MEMORIES":"A LITTLE EXTRA LIFE"}</p><h2>${active.archive?"Everyday memories":"See what's happening"}</h2><p>Small conversations drawn from real logged activity and the characters' actual availability. No extra XP or relationship farming.</p><div class="lw3-list">${(active.archive?archived:eligibleNow).map(m=>`<button type="button" data-lw3-episode="${E(m.id)}"><small>${E(m.who.map(p=>cast[p].name).join(" & "))} · ${E(m.category)}</small><strong>${E(m.title)}</strong><span>${s.completed[m.id]?"Replay memory ›":"Read moment ›"}</span></button>`).join("")||"<p>Nothing here yet. Ordinary life keeps moving.</p>"}</div>${!active.archive?'<button type="button" class="secondary-button" data-lw3-show-archive>Past moments ›</button>':''}</section>`;return;}const m=get(active.id),beat=sceneBeats(m)[active.step],selected=beat.options&&active.choice!==null?beat.options[active.choice]:null,prev=sceneBeats(m)[active.step-1],reply=prev?.options&&active.choice!==null?prev.options[active.choice]?.[1]:"";const sprites=m.who.map(p=>`<img class="dream-vn-sprite dream-vn-${E(p)} ${beat.who!=="luca"&&beat.who!==p?"dream-vn-listener":""}" src="${E(cast[p][beat.who===p&&beat.mood==="soft"?"soft":"neutral"])}" alt="${E(cast[p].name)}" draggable="false">`).join("");b.innerHTML=`<article class="lw3-reader"><div class="lw3-title"><p class="eyebrow">${E(m.category)} · ${active.replay?"MEMORY REPLAY":"TODAY'S MOMENT"}</p><h2>${E(m.title)}</h2></div><div class="dream-vn-stage lw3-stage" style="background-image:linear-gradient(0deg,rgba(30,19,40,.6),rgba(30,19,40,.06) 62%),url('${E(backgroundFor(m.room,active.daypart))}')">${sprites}</div><section class="dream-vn-dialogue" aria-live="polite"><div class="dream-vn-speaker">${E(cast[beat.who]?.name||"Luca")}</div>${reply?`<p class="lw3-reply">“${E(reply)}”</p>`:""}<p>${E(beat.text)}</p>${!m.healthKind&&active.step===1&&callbackLine(m)?`<p class="lw3-memory-note">${E(callbackLine(m))}</p>`:""}${beat.options?`<div class="dream-vn-choices">${beat.options.map((o,i)=>`<button type="button" data-lw3-choice="${i}" class="${active.choice===i?"selected":""}" aria-pressed="${active.choice===i}">${E(o[0])}</button>`).join("")}</div>`:""}</section><footer class="dream-vn-actions"><small>${active.step+1} / ${sceneBeats(m).length} · ${m.healthKind?"Private · not saved":active.replay?"Original choice preserved":"Reading position saved"}</small><div><button class="secondary-button" type="button" data-lw3-back ${active.step===0?"disabled":""}>← Back</button><button class="primary-button" type="button" ${beat.options&&active.choice===null?"disabled":""} ${active.step===sceneBeats(m).length-1?"data-lw3-finish":"data-lw3-next"}>${active.step===sceneBeats(m).length-1?"Finish moment":"Continue →"}</button></div></footer></article>`;}
   function move(d){if(!active?.id)return;const m=get(active.id),beat=sceneBeats(m)[active.step];if(d>0&&beat.options&&active.choice===null)return;active.step=Math.max(0,Math.min(sceneBeats(m).length-1,active.step+d));persist();render();}
   function choice(i){const opts=sceneBeats(get(active?.id))[active.step]?.options;if(!opts||!opts[i]||active.replay)return;active.choice=i;persist();render();}
   function finish(){if(!active?.id)return;const m=get(active.id);if(active.step!==sceneBeats(m).length-1)return;
@@ -143,5 +277,5 @@
   // No save/render feedback loop: render only reads state; completion is the only write.
   window.addEventListener("life-rpg:render",card);
   window.addEventListener("life-rpg:health-story-context-changed",()=>{if(active?.id&&get(active.id)?.healthKind&&!healthContext()){active=null;document.getElementById("livingWorldV3Dialog")?.close();}card();});document.addEventListener("visibilitychange",()=>{if(!document.hidden)card();});card();
-  window.LifeRPGLivingWorldV3={version:VERSION,open,openMoment,notificationCandidate,refresh:card,_test:{moments:MOMENTS,healthMoments:HEALTH_MOMENTS,state,eligible,options,recentActivity,callbackLine,chooseEpisode,choice,move,finish,personAvailable,healthContext,careTier}};
+  window.LifeRPGLivingWorldV3={version:VERSION,open,openMoment,notificationCandidate,refresh:card,_test:{moments:MOMENTS,healthMoments:HEALTH_MOMENTS,sceneBeats,backgroundFor,careTier,state,eligible,options,recentActivity,callbackLine,chooseEpisode,choice,move,finish,personAvailable,healthContext,careTier}};
 })();
