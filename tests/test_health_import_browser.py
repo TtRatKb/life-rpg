@@ -279,6 +279,99 @@ class HealthImportBrowserTests(unittest.TestCase):
         self.assertEqual(self.records(),[])
         self.assertEqual([],self.errors)
 
+    def test_private_moment_is_not_blocked_by_an_ordinary_moment(self):
+        self.setup_living_world()
+        self.page.evaluate("""today=>{
+          syntheticRpgState.livingWorldV3.completed['lw3-routine-k']={date:today};
+          syntheticRpgState.dailyPlanner.days[today]={
+            checkIn:{health:{symptoms:['periodCramps']}}
+          };
+        }""",self.date())
+        self.page.locator('#healthStoryReactionsOptIn').check()
+        self.page.wait_for_function("""() =>
+          Boolean(LifeRPGLivingWorldV3.notificationCandidate('wellbeing'))""")
+        self.assertEqual(self.page.evaluate("""() =>
+          LifeRPGLivingWorldV3._test.options().filter(x=>!x.healthKind).length"""),0)
+        self.assertTrue(self.page.locator('#socialDeliveryCard [data-social-delivery-health-echo]').count())
+        self.assertIn('Something ordinary',self.page.locator('#livingWorldV3Card').inner_text())
+        self.assertEqual([],self.errors)
+
+    def test_ordinary_moment_still_available_after_health_seen(self):
+        self.setup_living_world()
+        self.page.evaluate("""today=>{
+          syntheticRpgState.dailyPlanner.days[today]={
+            checkIn:{health:{symptoms:['periodCramps']}}
+          };
+        }""",self.date())
+        self.page.locator('#healthStoryReactionsOptIn').check()
+        self.assertTrue(self.page.evaluate("""() =>
+          Boolean(LifeRPGLivingWorldV3.notificationCandidate('wellbeing'))"""))
+        self.page.evaluate('LifeRPGHealthStoryContext.markSeen()')
+        self.assertFalse(self.page.evaluate("""() =>
+          Boolean(LifeRPGLivingWorldV3.notificationCandidate('wellbeing'))"""))
+        self.assertTrue(self.page.evaluate("""() =>
+          LifeRPGLivingWorldV3._test.options().some(x=>!x.healthKind)"""))
+        self.assertEqual([],self.errors)
+
+    def test_private_dialogue_choices_are_voluntary_and_four_tier_distinct(self):
+        self.setup_living_world()
+        self.page.evaluate("""today=>{
+          syntheticRpgState.dailyPlanner.days[today]={
+            checkIn:{health:{symptoms:['periodCramps']}}
+          };
+        }""",self.date())
+        self.page.locator('#healthStoryReactionsOptIn').check()
+        data=self.page.evaluate("""() => {
+          const t=LifeRPGLivingWorldV3._test;
+          const moment=t.healthMoments.find(x=>x.id==='lw-health-cramps-e');
+          const flags=syntheticRpgState.flags;
+          const keys=['HOUSEHOLD_ROUTINE_STARTED','HOUSEHOLD_FORMATION_PHASE_TWO_COMPLETE',
+            'SHARED_APARTMENT_EMOTIONAL_HOME_STARTED'];
+          const lines=[];
+          for(const phase of [0,1,2,3]){
+            keys.forEach(k=>delete flags[k]);
+            if(phase>=1)flags.HOUSEHOLD_ROUTINE_STARTED=true;
+            if(phase>=2)flags.HOUSEHOLD_FORMATION_PHASE_TWO_COMPLETE=true;
+            if(phase>=3)flags.SHARED_APARTMENT_EMOTIONAL_HOME_STARTED=true;
+            lines.push(t.sceneBeats(moment)[3].text);
+          }
+          const steps=t.sceneBeats(moment);
+          return {lines,choices:steps[4].options.map(x=>x[0]),
+            opening:steps.slice(0,4).map(x=>x.text),
+            sunset:t.backgroundFor('kitchen','sunset'),
+            night:t.backgroundFor('living','night')};
+        }""")
+        self.assertEqual(len(set(data['lines'])),4)
+        self.assertTrue(any('rather not' in x.lower() for x in data['choices']))
+        self.assertTrue(any('decide' in x.lower() for x in data['opening']))
+        self.assertEqual(data['sunset'],'assets/story/backgrounds/time/shared_apartment_kitchen_sunset.webp')
+        self.assertEqual(data['night'],'assets/story/backgrounds/time/shared_apartment_night.webp')
+
+        self.page.locator('#socialDeliveryCard [data-social-delivery-health-echo]').click()
+        self.page.locator('#livingWorldV3Dialog').wait_for(state='visible')
+        self.assertIn('Private · not saved',self.page.locator('#livingWorldV3Dialog').inner_text())
+        self.page.locator('#healthStoryReactionsOptIn').uncheck()
+        self.page.wait_for_function("""() =>
+          !document.getElementById('livingWorldV3Dialog').open""")
+        self.assertEqual([],self.errors)
+
+    def test_health_and_ordinary_invitations_can_coexist_without_private_push(self):
+        self.setup_living_world()
+        self.page.evaluate("""today=>{
+          syntheticRpgState.dailyPlanner.days[today]={
+            checkIn:{health:{symptoms:['periodCramps']}}
+          };
+          const social=syntheticRpgState.socialDeliveryV1;
+          social.items.push({id:'test-ordinary',type:'moment',status:'ready',
+            momentId:'lw3-routine-e',day:today});
+        }""",self.date())
+        self.page.locator('#healthStoryReactionsOptIn').check()
+        self.page.wait_for_function("""() =>
+          Boolean(document.querySelector('[data-social-delivery-health-echo]'))""")
+        self.assertEqual(self.page.locator('[data-social-delivery-moment]').count(),1)
+        self.assertEqual(self.page.locator('[data-social-delivery-health-echo]').count(),1)
+        self.assertEqual([],self.errors)
+
     def test_invalid_second_day_rolls_back_whole_import(self):
         invalid={'schema':'life-rpg-health-batch-v1','days':[
             {'date':self.date(),'steps':6000},
