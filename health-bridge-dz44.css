@@ -42,3 +42,8 @@
 .health-manual-wellbeing .health-bridge-form{margin-top:12px}
 .health-bridge-form select{width:100%;padding:10px 11px;border:1px solid rgba(145,113,134,.3);border-radius:11px;background:rgba(255,255,255,.75);color:inherit}
 .health-privacy-full{grid-column:1/-1}
+
+.health-story-consent{border:1px solid rgba(166,113,148,.25)}
+.health-story-consent span{display:grid;gap:6px}
+.health-story-consent small{display:block;font-weight:400;line-height:1.5;color:var(--muted,#806d80)}
+.health-story-consent strong{font-size:.95em}
