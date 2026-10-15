@@ -54,6 +54,10 @@ Schlaf ist besonders fehleranfällig, weil Schlaf über Mitternacht reicht. Verw
 
 Eine automatisierte Abfrage von Stimmung, Menstruation oder Krämpfen über Kurzbefehle ist **nicht für dein konkretes Gerät bestätigt**. Bitte solche Felder nur aus tatsächlich verfügbaren, eindeutig interpretierbaren Datensätzen oder bewusst manuell ergänzen. **Flo-Importe in Apple Health sind nicht vorauszusetzen.**
 
+## Flo-Fallback: Werte direkt im Health Journal loggen
+
+Wenn Flo die Periodendaten nicht in Apple Health bereitstellt, kannst du in Life RPG **Health Journal → gewünschter Tag → „Zyklus & Stimmung … manuell ergänzen“** aufklappen. Dort lassen sich Menstruation (ja/nein), Krämpfe und Stimmung mit einem Klick speichern oder korrigieren. Eine zusätzliche Checkbox bestätigt, dass diese sensiblen Daten gespeichert werden sollen. **„Keine Angabe“ entfernt einen zuvor gespeicherten Wert**, ohne vorhandene Aktivitäts- und Ernährungsdaten zu löschen. Das ist eine optionale Tagesnotiz, kein Zyklusprognose- oder Verhütungstool.
+
 ## Sicherheit und Fehlerverhalten
 
 - Importiert werden höchstens **93 Tage** (nur aktuelle Daten innerhalb der letzten ca. 92 Tage) und höchstens **60 KB JSON**. Ungültige Daten, unzulässige Zahlen und doppelte Tagesdaten innerhalb einer Datei werden komplett abgelehnt.
