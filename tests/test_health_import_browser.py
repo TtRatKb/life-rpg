@@ -181,6 +181,98 @@ class HealthImportBrowserTests(unittest.TestCase):
 
         self.assertEqual([],self.errors)
 
+    def setup_living_world(self):
+        self.page.evaluate("""() => {
+          window.syntheticRpgState={
+            flags:{DYNARIOT_MOVE_IN_COMPLETE:true,HOUSEHOLD_ROUTINE_STARTED:true},
+            dailyPlanner:{days:{}},timeTracking:{entries:[]},completionLog:[],
+            rewardLedger:{events:[]}
+          };
+          window.LifeRPGApp={
+            getState:()=>window.syntheticRpgState,saveState:()=>true,
+            escapeHtml:s=>String(s).replaceAll('&','&amp;').replaceAll('<','&lt;')
+          };
+          window.LifeRPGStoryUI={getPersonScheduleStatus:person=>({
+            unlocked:true,locationKey:'sharedApartment',working:false,
+            talkReachable:true,roomId:person==='bakugo'?'kitchen':'living'
+          })};
+        }""")
+        self.page.add_script_tag(url='/living-world-v3.js')
+        self.page.add_script_tag(url='/social-delivery.js')
+
+    def test_health_moment_only_after_explicit_opt_in_not_saved_as_health_history(self):
+        self.setup_living_world()
+        data={'schema':'life-rpg-health-batch-v1','days':[
+            {'date':self.date(),'periodCramps':'strong','steps':5600}]}
+        self.load(data,consent=True)
+        self.page.wait_for_function("""() => document.getElementById('healthBatchPaste').value===''""")
+        self.assertFalse(self.page.locator('#healthStoryReactionsOptIn').is_checked())
+        self.assertIsNone(self.page.evaluate('LifeRPGHealthStoryContext.get()'))
+        self.assertEqual(self.page.evaluate("""()=>
+            LifeRPGLivingWorldV3._test.options().filter(x=>x.healthKind).length"""),0)
+
+        self.page.locator('#healthStoryReactionsOptIn').check()
+        self.page.wait_for_function("""() =>
+          Boolean(LifeRPGLivingWorldV3.notificationCandidate('wellbeing'))""")
+        self.assertEqual(self.page.evaluate('LifeRPGHealthStoryContext.get().kind'),'cramps')
+        self.assertIsNone(self.page.evaluate("""()=>
+          LifeRPGHealthStoryContext.get()?.periodCramps"""))
+        self.page.wait_for_function("""() =>
+          Boolean(document.querySelector('[data-social-delivery-health-echo]'))""")
+        self.page.locator('[data-social-delivery-health-echo]').click()
+        self.page.locator('#livingWorldV3Dialog').wait_for(state='visible')
+        self.assertIn('cramps',self.page.locator('#livingWorldV3Body').inner_text().lower())
+
+        for _ in range(4):
+            self.page.locator('#livingWorldV3Dialog [data-lw3-next]').click()
+        self.page.locator('#livingWorldV3Dialog [data-lw3-choice="2"]').click()
+        self.page.locator('#livingWorldV3Dialog [data-lw3-next]').click()
+        self.page.locator('#livingWorldV3Dialog [data-lw3-finish]').click()
+
+        self.assertTrue(self.page.evaluate('LifeRPGHealthStoryContext.seenToday()'))
+        self.assertFalse(self.page.evaluate("""() =>
+          Boolean(LifeRPGLivingWorldV3.notificationCandidate('wellbeing'))"""))
+        self.assertEqual(self.page.evaluate("""() =>
+          Object.keys(syntheticRpgState.livingWorldV3.completed).length"""),0)
+        self.assertEqual(self.page.evaluate("""() =>
+          Object.values(syntheticRpgState.socialDeliveryV1.observed).length"""),0)
+        self.assertEqual(self.page.evaluate("""() =>
+          (syntheticRpgState.story?.relationships||{})"""),{})
+        self.assertEqual([],self.errors)
+
+    def test_health_consent_revocation_and_chapter_gating(self):
+        self.setup_living_world()
+        data={'schema':'life-rpg-health-batch-v1','days':[
+            {'date':self.date(),'sleepMinutes':280}]}
+        self.load(data)
+        self.page.wait_for_function("""() => document.getElementById('healthBatchPaste').value===''""")
+        self.page.locator('#healthStoryReactionsOptIn').check()
+        self.page.wait_for_function("""() => LifeRPGHealthStoryContext.get()?.kind==='sleep'""")
+        self.page.evaluate("syntheticRpgState.flags.DYNARIOT_MOVE_IN_COMPLETE=false")
+        self.assertFalse(self.page.evaluate("""() => Boolean(LifeRPGLivingWorldV3.notificationCandidate('wellbeing'))"""))
+        self.page.evaluate("syntheticRpgState.flags.DYNARIOT_MOVE_IN_COMPLETE=true")
+        self.assertTrue(self.page.evaluate("""() => Boolean(LifeRPGLivingWorldV3.notificationCandidate('wellbeing'))"""))
+        self.page.locator('#healthStoryReactionsOptIn').uncheck()
+        self.page.wait_for_function("""() =>
+          !document.querySelector('[data-social-delivery-health-echo]')""")
+        self.assertIsNone(self.page.evaluate('LifeRPGHealthStoryContext.get()'))
+        self.assertEqual([],self.errors)
+
+    def test_today_daily_checkin_cramps_uses_same_opt_in_without_copying_health_data(self):
+        self.setup_living_world()
+        self.page.evaluate("""today=>{
+          syntheticRpgState.dailyPlanner.days[today]={
+            checkIn:{health:{impact:'moderate',symptoms:['periodCramps']}}
+          };
+        }""",self.date())
+        self.assertIsNone(self.page.evaluate('LifeRPGHealthStoryContext.get()'))
+        self.page.locator('#healthStoryReactionsOptIn').check()
+        self.page.wait_for_function("""() =>
+          LifeRPGHealthStoryContext.get()?.kind==='cramps'""")
+        self.assertTrue(self.page.evaluate("""()=>Boolean(LifeRPGLivingWorldV3.notificationCandidate('wellbeing'))"""))
+        self.assertEqual(self.records(),[])
+        self.assertEqual([],self.errors)
+
     def test_invalid_second_day_rolls_back_whole_import(self):
         invalid={'schema':'life-rpg-health-batch-v1','days':[
             {'date':self.date(),'steps':6000},
