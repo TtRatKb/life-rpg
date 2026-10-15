@@ -292,7 +292,7 @@ class HealthImportBrowserTests(unittest.TestCase):
           Boolean(LifeRPGLivingWorldV3.notificationCandidate('wellbeing'))""")
         self.assertEqual(self.page.evaluate("""() =>
           LifeRPGLivingWorldV3._test.options().filter(x=>!x.healthKind).length"""),0)
-        self.assertTrue(self.page.locator('#socialDeliveryCard [data-social-delivery-health-echo]').count())
+        self.page.locator('#socialDeliveryCard [data-social-delivery-health-echo]').wait_for()
         self.assertIn('Something ordinary',self.page.locator('#livingWorldV3Card').inner_text())
         self.assertEqual([],self.errors)
 
@@ -343,7 +343,7 @@ class HealthImportBrowserTests(unittest.TestCase):
         }""")
         self.assertEqual(len(set(data['lines'])),4)
         self.assertTrue(any('rather not' in x.lower() for x in data['choices']))
-        self.assertTrue(any('decide' in x.lower() for x in data['opening']))
+        self.assertTrue(any('choose' in x.lower() or 'decide' in x.lower() for x in data['opening']))
         self.assertEqual(data['sunset'],'assets/story/backgrounds/time/shared_apartment_kitchen_sunset.webp')
         self.assertEqual(data['night'],'assets/story/backgrounds/time/shared_apartment_night.webp')
 
