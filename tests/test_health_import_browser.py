@@ -350,7 +350,14 @@ class HealthImportBrowserTests(unittest.TestCase):
         self.page.locator('#socialDeliveryCard [data-social-delivery-health-echo]').click()
         self.page.locator('#livingWorldV3Dialog').wait_for(state='visible')
         self.assertIn('Private · not saved',self.page.locator('#livingWorldV3Dialog').inner_text())
-        self.page.locator('#healthStoryReactionsOptIn').uncheck()
+        # Simulate consent removal while the modal is open (for example after
+        # account/settings state changes). An actual pointer can't reach the
+        # underlying checkbox through a modal dialog.
+        self.page.evaluate("""() => {
+          const el=document.getElementById('healthStoryReactionsOptIn');
+          el.checked=false;
+          el.dispatchEvent(new Event('change',{bubbles:true}));
+        }""")
         self.page.wait_for_function("""() =>
           !document.getElementById('livingWorldV3Dialog').open""")
         self.assertEqual([],self.errors)
