@@ -17,7 +17,7 @@
   <link rel="apple-touch-icon" href="assets/app-icon-180.png?v=0.30.3a" />
   <link rel="icon" type="image/png" sizes="192x192" href="assets/app-icon-192.png?v=0.30.3a" />
   <link rel="stylesheet" href="styles.css?v=0.31.4dz43" />
-  <link rel="stylesheet" href="health-bridge-dz44.css?v=0.31.4dz44" />
+  <link rel="stylesheet" href="health-bridge-dz44.css?v=0.31.4-healthbatch1" />
   <link rel="stylesheet" href="play-qol-dz28.css?v=0.31.4dz28" />
   <link rel="stylesheet" href="ui-chrome.css?v=0.31.4dz19" />
   <link rel="stylesheet" href="my-week.css?v=0.31.4cu" />
@@ -1843,9 +1843,9 @@
             <div>
               <p class="eyebrow">HEALTH · YOUR EVERYDAY LIFE</p>
               <h2 id="healthBridgeHeading">✿ Health Journal</h2>
-              <p class="muted">Bewegung, Ernährung und Training – ohne Diät- oder Kalorienzwang. Deine Daten bleiben getrennt von deinem Life-RPG-Spielstand.</p>
+              <p class="muted">Bewegung, Schlaf und freiwillige Wohlfühldaten – ohne Leistungsdruck. Gesundheitsdaten bleiben getrennt vom Life-RPG-Spielstand. Die iPhone-Kurzbefehle liefern die Werte; Life RPG hat keinen direkten Apple-Health-Zugriff.</p>
             </div>
-            <button class="secondary-button" id="healthRefresh" type="button">↻ Health-Abgleich</button>
+            <button class="secondary-button" id="healthRefresh" type="button">↻ Cloud-Abgleich</button>
           </div>
           <div class="health-bridge-controls">
             <button class="secondary-button" id="healthPrevDay" type="button" aria-label="Vorheriger Tag">‹</button>
@@ -1860,6 +1860,13 @@
             <div class="health-bridge-metric"><small>🏃 Trainingsminuten <span title="Nur bei verfügbarer Importquelle">*</span></small><strong id="healthExerciseMin">—</strong></div>
             <div class="health-bridge-metric"><small>🧍 Stehstunden <span title="Nur bei verfügbarer Importquelle">*</span></small><strong id="healthStandHours">—</strong></div>
           </div>
+          <div class="health-bridge-grid health-bridge-wellbeing">
+            <div class="health-bridge-metric"><small>🌙 Schlaf (nur Schlafzeit)</small><strong id="healthSleep">—</strong></div>
+            <div class="health-bridge-metric"><small>🌸 Menstruation</small><strong id="healthPeriod">—</strong></div>
+            <div class="health-bridge-metric"><small>♡ Periodenkrämpfe</small><strong id="healthCramps">—</strong></div>
+            <div class="health-bridge-metric"><small>✿ Stimmung</small><strong id="healthMood">—</strong></div>
+          </div>
+          <p class="muted">Zyklus- und Stimmungswerte erscheinen nur, wenn du sie freiwillig importierst. Sie werden nicht automatisch zum Daily Check-in oder für Story-Nachrichten verwendet.</p>
           <div class="health-bridge-columns">
             <section class="panel" aria-labelledby="healthWeekHeading">
               <h3 id="healthWeekHeading">Schritte · 7-Tage-Verlauf</h3>
@@ -1900,9 +1907,22 @@
           <p><strong>Importformat für Kurzbefehle:</strong> <code>https://ttratkb.github.io/life-rpg/#lr-health=2026-10-11;steps=7500;activeKcal=240</code></p>
           <button class="secondary-button" id="healthCopyPrefix" type="button">Import-Link-Anfang kopieren</button>
           <p class="muted">Das Datum und die Werte müssen im Kurzbefehl durch deine tatsächlichen Health-Daten ersetzt werden. Öffne die erzeugte Adresse auf dem iPhone, auf dem du in Life RPG mit demselben Google-Konto angemeldet bist. Die Werte landen in einer separaten Firebase-Collection.</p>
-          <p>Wenn du lieber Dateien verwendest, kannst du eine selbst erstellte Health-Tagesdatei als JSON importieren:</p>
+          <p><strong>Neu: Rückwirkender Sammelimport.</strong> Erstelle mit Kurzbefehle eine JSON-Zusammenfassung für mehrere Tage (zum Beispiel die letzten 14 Tage) und füge sie unten ein oder wähle die JSON-Datei aus. Das funktioniert auch dann, wenn die automatische Abendroutine einzelne Tage verpasst hat.</p>
+          <p>Life RPG kann die Daten nicht selbst aus Apple Health holen. Eine kostenlose Kurzbefehle-Anleitung und das Sammelformat findest du in <a href="./docs/APPLE_HEALTH_SYNC.md" target="_blank" rel="noopener noreferrer">Apple Health Sync – Anleitung ↗</a>.</p>
+          <details class="health-batch-example"><summary>JSON-Beispiel anzeigen</summary><pre><code>{
+  "schema": "life-rpg-health-batch-v1",
+  "days": [
+    {"date": "2026-10-14", "steps": 7500, "sleepMinutes": 435},
+    {"date": "2026-10-15", "steps": 8100, "sleepMinutes": 460}
+  ]
+}</code></pre><p class="muted">Optional: <code>periodActive</code> (true/false), <code>periodCramps</code> (none, mild, moderate, strong), <code>mood</code> (very_low, low, neutral, good, very_good). Nur eintragen, wenn tatsächlich aus einer Quelle gelesen oder bewusst angegeben.</p></details>
+          <label class="health-privacy-consent"><input id="healthWellbeingConsent" type="checkbox"> <span>Ich möchte die im Import enthaltenen Zyklus-, Beschwerde- und Stimmungsdaten freiwillig in meinem privaten Health Journal speichern. Diese Daten lösen keine Story-Reaktionen aus.</span></label>
+          <label class="health-batch-label" for="healthBatchPaste">Sammelimport aus der Zwischenablage</label>
+          <textarea class="health-batch-paste" id="healthBatchPaste" rows="4" spellcheck="false" placeholder='{"schema":"life-rpg-health-batch-v1","days":[{"date":"2026-10-15","steps":7000}]}'></textarea>
+          <button class="primary-button" id="healthBatchImport" type="button">✿ Tage rückwirkend importieren</button>
+          <p>Oder wähle eine vom iPhone-Kurzbefehl erstellte JSON-Datei aus (auch bestehende einzelne Tagesdateien funktionieren weiterhin):</p>
           <input type="file" id="healthImportJson" accept="application/json,.json" aria-label="Health-Tagesdaten als JSON importieren" />
-          <details><summary>Datenschutz und Grenzen</summary><p>Importe werden nur auf diesem Gerät in IndexedDB und nach Google-Anmeldung unter deinem eigenen Firebase-Nutzerkonto gespeichert. Der Einmal-Link wird nach dem Öffnen aus der Browser-Adresszeile entfernt. Er kann vor dem Öffnen dennoch im Verlauf oder in Kurzbefehlen stehen; deshalb werden nur aggregierte Tageswerte übertragen. Apple-Ringe, Workout-Ereignisse, individuelle Lebensmittel und Supplemente werden durch diesen Basis-Kurzbefehl nicht automatisch ausgelesen. Keine automatisch erzeugten XP.</p></details>
+          <details><summary>Datenschutz und Grenzen</summary><p>Importe werden nur auf diesem Gerät in IndexedDB und nach Google-Anmeldung unter deinem eigenen Firebase-Nutzerkonto gespeichert. Sensible Zyklus- und Stimmungsdaten nur mit obiger Einwilligung; bitte dafür keine URL-Links verwenden, sondern JSON zum bewussten Einfügen. Der alte Tages-Einmal-Link wird nach dem Öffnen aus der Browser-Adresszeile entfernt und sollte nur aggregierte, nicht-sensible Zahlen transportieren. Ein identischer erneuter Import erzeugt weder weitere Tage noch XP. Bereits vorhandene manuelle Nährstoffwerte bleiben erhalten. Flo schreibt eigene Periodendaten möglicherweise nicht in Apple Health zurück – bitte die Datenquelle kontrollieren. Kein rückwirkendes Auslösen von Story-Momenten.</p></details>
         </section>
       </section>
 
@@ -3525,8 +3545,9 @@ League of Legends — PC" required></textarea></label>
   <script src="sound-garden-library.js?v=0.31.4dz13"></script>
   <script src="mobile-cloud-gate-dz45.js?v=0.31.4dz45"></script>
   <script type="module" src="cloud-save.js?v=0.31.4dz50c-save-safety1"></script>
-  <script type="module" src="health-bridge-dz44.js?v=0.31.4dz44"></script>
-  <script src="pwa.js?v=0.31.4-dm1"></script>
+  <script src="health-import-core.js?v=0.31.4-healthbatch1"></script>
+  <script type="module" src="health-bridge-dz44.js?v=0.31.4-healthbatch1"></script>
+  <script src="pwa.js?v=0.31.4-healthbatch1"></script>
   <script src="life-hub-v314dk.js?v=0.31.4-series4"></script>
   <script src="creative-hub-v314dl.js?v=0.31.4dz50c"></script>
   <script src="knowledge-workshop.js?v=0.31.4do"></script>
