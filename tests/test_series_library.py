@@ -608,21 +608,18 @@ class SeriesLibraryTests(unittest.TestCase):
             ready:Promise.resolve()
           };
           LifeRPGApp.getState().soundGarden={
-            version:4,artists:[{name:'Synthetic Artist',key:'synthetic artist',spotifyArtistId:'0123456789abcdefghijAB'}],
+            version:4,artists:[{name:'Synthetic Artist',key:'synthetic artist',spotifyArtistId:null}],
             history:[],tracks:{},days:{},recentArtists:[]
           };
         }""")
         self.page.add_script_tag(url='/sound-garden.js')
         self.page.add_script_tag(url='/sound-garden-library.js')
         self.page.locator('[data-sgl-action="artist"][data-key="synthetic artist"]').click()
-        self.page.locator('[data-sgl-action="verify"]').count()
-        # Existing correctly linked artists use the source modal's 'Zuordnung ändern'.
-        self.page.evaluate('LifeRPGSoundGarden.open()')
-        self.page.locator('#sgArtists [data-sg="verify"]').click()
-        self.assertIn('nicht verbunden',self.page.locator('#sgStatus').inner_text())
+        self.page.locator('[data-sgl-action="verify"][data-key="synthetic artist"]').click()
+        self.assertTrue(self.page.locator('#sgDialog').evaluate('(el)=>el.open'))
+        self.assertIn('nicht verbunden',self.page.locator('.sgl-notice').inner_text())
         self.assertTrue(self.page.locator('#sgConnect').is_visible())
-        self.assertEqual(self.page.evaluate('LifeRPGSoundGarden.getData().artists[0].spotifyArtistId'),
-                         '0123456789abcdefghijAB')
+        self.assertIsNone(self.page.evaluate('LifeRPGSoundGarden.getData().artists[0].spotifyArtistId'))
 
     def test_spotify_browser_player_activates_in_user_click_and_plays_official_id(self):
         """Synthetic Spotify SDK + fake API: activation before first async boundary."""
