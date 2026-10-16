@@ -1,0 +1,112 @@
+/* Life RPG · Realm Mystery Collections. Unrevealed art never enters DOM.
+   Scoped to existing surfaces; no global theme replacement. */
+.rmc-shortcut {
+  margin: 6px 0 6px auto;
+  padding: 7px 10px;
+  font-size: .73rem;
+  border-color: rgba(147,104,136,.32);
+  white-space: nowrap;
+}
+.rmc-dialog {
+  width:min(690px,calc(100vw - 20px));
+  max-height:min(90dvh,760px);
+  box-sizing:border-box;
+  padding:0;border:1px solid #ddc1d1;border-radius:22px;
+  background:#fffaf7;color:#483745;
+  box-shadow:0 24px 85px rgba(45,24,42,.25);
+}
+.rmc-dialog::backdrop {background:rgba(30,23,37,.64);backdrop-filter:blur(5px)}
+.rmc-shell {box-sizing:border-box;padding:clamp(15px,4vw,28px);max-height:89dvh;overflow-y:auto}
+.rmc-header {display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.rmc-header small {letter-spacing:.12em;font-size:.66rem;font-weight:800;color:#956c88}
+.rmc-header h2 {font-size:clamp(1.3rem,4vw,1.7rem);margin:4px 0}
+.rmc-header p {color:#776270;margin:0;font-size:.8rem;line-height:1.5}
+.rmc-close {flex-shrink:0;width:37px;height:37px;background:white;border:1px solid #ebd6e1;border-radius:999px;color:#594151;cursor:pointer;font-size:1.4rem}
+.rmc-progress {margin:16px 0 13px;padding:9px 12px;border-radius:12px;background:#f9e9f1;color:#7a4968;font-weight:750;font-size:.79rem}
+.rmc-packs {display:grid;gap:11px}
+.rmc-pack {min-width:0;display:grid;grid-template-columns:96px minmax(0,1fr) auto;gap:14px;align-items:center;padding:11px;border:1px solid #ead7e2;border-radius:15px;background:#fff;min-height:106px}
+.rmc-pack.rmc-locked {background:#fcf8fb;border-style:dashed;border-color:#ddc9d7}
+.rmc-pack > div:nth-child(2) {min-width:0;display:grid;gap:3px}
+.rmc-pack small {font-weight:800;letter-spacing:.08em;font-size:.64rem;color:#966a86}
+.rmc-pack strong {font-size:.93rem;color:#463540}
+.rmc-pack p {font-size:.75rem;color:#766271;line-height:1.35;margin:0}
+.rmc-pack button {font-size:.76rem;padding:7px 11px}
+.rmc-lock,.rmc-preview {width:96px;height:80px;border-radius:12px;position:relative;overflow:hidden;display:grid;place-items:center}
+.rmc-lock {font-size:2rem;color:#b298ac;background:repeating-linear-gradient(133deg,#f6eef3 0 11px,#f0e5ed 11px 22px)}
+.rmc-preview i,.rmc-preview b,.rmc-preview em {position:absolute;display:block}
+.rmc-reveal {animation:rmc-pop .65s ease both;box-shadow:0 0 0 2px rgba(195,145,184,.22)}
+@keyframes rmc-pop {0%{filter:blur(4px);opacity:.35;transform:scale(.96)}60%{filter:blur(0);opacity:1;transform:scale(1.012)}100%{transform:scale(1)}}
+.rmc-footer {display:flex;flex-wrap:wrap;gap:10px;margin-top:18px;align-items:center}
+.rmc-footer small {color:#867180;font-size:.73rem;flex-basis:100%;line-height:1.5}
+@media(max-width:540px){
+  .rmc-pack {grid-template-columns:72px minmax(0,1fr);gap:10px}
+  .rmc-lock,.rmc-preview {width:70px;height:70px}
+  .rmc-pack button,.rmc-pack>span {grid-column:2;justify-self:start}
+  .rmc-shortcut {font-size:.66rem;padding:6px}
+}
+@media(prefers-reduced-motion:reduce){.rmc-reveal {animation:none}}
+
+/* Original preview compositions. They appear only as purchase-earned cards. */
+.rmc-preview[data-rmc-preview="rmw01"] {background:linear-gradient(135deg,#ece6dc,#a48b7e)}
+.rmc-preview[data-rmc-preview="rmw01"] i {inset:13px 24px 13px 18px;background:#fffaf0;border-radius:3px;box-shadow:4px 5px 0 #77605a}
+.rmc-preview[data-rmc-preview="rmw01"] b {left:29px;top:29px;width:32px;height:2px;background:#b29b8c;box-shadow:0 8px #b29b8c,0 16px #b29b8c}
+.rmc-preview[data-rmc-preview="rmw02"] {background:linear-gradient(145deg,#cab09f,#f4e4d4)}
+.rmc-preview[data-rmc-preview="rmw02"] i {inset:17px;border:2px solid #785a68;border-radius:4px;transform:rotate(-7deg)}
+.rmc-preview[data-rmc-preview="rmw02"] b {height:11px;width:11px;top:20px;right:21px;border-radius:100%;background:#9a5e62;box-shadow:-40px 36px #b68c75}
+.rmc-preview[data-rmc-preview="rmk01"] {background:linear-gradient(135deg,#1e273b,#596578)}
+.rmc-preview[data-rmc-preview="rmk01"] i {height:55px;width:46px;left:16px;top:12px;border:2px solid #d1bd9c;border-radius:7px}
+.rmc-preview[data-rmc-preview="rmk01"] b {height:2px;width:39px;right:9px;top:28px;background:#e1c9aa;transform:rotate(-26deg);box-shadow:0 11px #e1c9aa}
+.rmc-preview[data-rmc-preview="rmk02"] {background:linear-gradient(115deg,#31434d,#a2a99c)}
+.rmc-preview[data-rmc-preview="rmk02"] i {inset:22px 33px;border:2px solid #edc8a5;border-radius:50%}
+.rmc-preview[data-rmc-preview="rmk02"] b {height:6px;width:6px;top:17px;left:18px;border-radius:50%;background:#ffe0ad;box-shadow:45px 5px #ffe0ad,26px 42px #ffe0ad}
+.rmc-preview[data-rmc-preview="rmj01"] {background:linear-gradient(135deg,#efdfd2,#e9b6bb)}
+.rmc-preview[data-rmc-preview="rmj01"] i {width:54px;height:51px;background:repeating-linear-gradient(90deg,#fff8ed 0 5px,#f5e5d9 6px 7px);transform:rotate(9deg);border-radius:3px}
+.rmc-preview[data-rmc-preview="rmj01"] b {width:12px;height:53px;top:13px;right:22px;background:#ad788d;transform:rotate(9deg)}
+.rmc-preview[data-rmc-preview="rmj02"] {background:linear-gradient(135deg,#f8ecea,#b989a6)}
+.rmc-preview[data-rmc-preview="rmj02"] i {width:52px;height:60px;border:3px double #7f5372;border-radius:5px}
+.rmc-preview[data-rmc-preview="rmj02"] b {width:12px;height:12px;background:#fbe7ed;border-radius:50%;top:14px;right:15px;box-shadow:-10px 10px #d9abbc}
+.rmc-preview[data-rmc-preview="rmh01"] {background:linear-gradient(130deg,#efd1dc,#f8eee5)}
+.rmc-preview[data-rmc-preview="rmh01"] i {height:55px;width:49px;background:#fff9f4;transform:rotate(-8deg);border-radius:5px;border-left:4px solid #c996ab}
+.rmc-preview[data-rmc-preview="rmh01"] b {height:3px;width:27px;top:35px;left:37px;background:#dc9dab;box-shadow:0 10px #dc9dab}
+.rmc-preview[data-rmc-preview="rmh02"] {background:linear-gradient(145deg,#debfc8,#e7ebd9)}
+.rmc-preview[data-rmc-preview="rmh02"] i {height:43px;width:43px;border:1px solid #ad8b8f;border-radius:5px;transform:rotate(25deg)}
+.rmc-preview[data-rmc-preview="rmh02"] b {height:23px;width:23px;left:37px;top:24px;background:#eec7cd;border-radius:60% 10% 60% 10%;transform:rotate(40deg)}
+.rmc-preview[data-rmc-preview="rmr01"] {background:linear-gradient(150deg,#293c49,#718b91)}
+.rmc-preview[data-rmc-preview="rmr01"] i {height:50px;width:50px;border-radius:50%;border:1px solid #c5d4c7;box-shadow:0 0 17px #cbdacf88}
+.rmc-preview[data-rmc-preview="rmr01"] b {height:27px;width:27px;right:15px;top:13px;border-radius:50%;background:#e4d8cb}
+.rmc-preview[data-rmc-preview="rmr02"] {background:linear-gradient(135deg,#d6dfd2,#f0ded7)}
+.rmc-preview[data-rmc-preview="rmr02"] i {height:47px;width:47px;border:2px solid #92a4a1;border-radius:50%}
+.rmc-preview[data-rmc-preview="rmr02"] b {height:15px;width:15px;background:#c9a7b6;transform:rotate(40deg);border-radius:4px}
+.rmc-preview[data-rmc-preview="rmd01"] {background:linear-gradient(150deg,#f7e7c6,#b88d79)}
+.rmc-preview[data-rmc-preview="rmd01"] i {height:42px;width:50px;top:19px;left:20px;background:#fff5e2;border-radius:24px 24px 9px 9px;box-shadow:0 4px #7b665c}
+.rmc-preview[data-rmc-preview="rmd01"] b {width:25px;height:7px;right:12px;top:33px;background:#d59b69;border-radius:5px}
+.rmc-preview[data-rmc-preview="rmd02"] {background:linear-gradient(145deg,#efe8db,#bea69b)}
+.rmc-preview[data-rmc-preview="rmd02"] i {width:42px;height:48px;border:4px double #8f7a73;border-radius:10px}
+.rmc-preview[data-rmc-preview="rmd02"] b {width:21px;height:21px;background:#f6dfce;top:14px;right:11px;border-radius:50%}
+
+/* Targeted realm skins, layered and opt-in. Essential text remains legible. */
+#view-week[data-rmc-surface="rmw01"] .my-week-hero {background:linear-gradient(130deg,#f5eae2,#fffaf2);border:1px solid #c9ac9e;border-radius:16px;padding:18px}
+#view-week[data-rmc-surface="rmw01"] .week-calendar {background:#fffaf4;border-color:#d5baa8}
+#view-week[data-rmc-detail="rmw02"] .week-sidebar>.panel {border:2px double #c6a8a0;box-shadow:0 5px 14px #c8a7aa23}
+#view-week[data-rmc-detail="rmw02"] .my-week-hero .eyebrow {border-bottom:2px dotted #ad858e;width:max-content;padding-bottom:4px}
+#view-games[data-rmc-surface="rmk01"] .games-hero-v17 {background:linear-gradient(145deg,#e1e4e9,#f8f0e7);border:1px solid #98a5b3;border-radius:17px;padding:16px}
+#view-games[data-rmc-surface="rmk01"] .games-summary-card-v17 {background:#e9ecf0;border-color:#bdc5d2}
+#view-games[data-rmc-detail="rmk02"] .games-summary-card-v17 {border:2px double #c7a987;box-shadow:0 4px 16px #77655522}
+#view-games[data-rmc-detail="rmk02"] .games-hero-symbol-v17 {outline:3px double #af906f;outline-offset:3px}
+#japanesePracticeLibraryPanel[data-rmc-surface="rmj01"] {background:linear-gradient(145deg,#fff9ed,#f9e5e6);border:1px solid #e1b8bc}
+#japanesePracticeLibraryPanel[data-rmc-surface="rmj01"] .jp-practice-heading-v314dz4 {border-bottom:2px solid #dcb1bd;padding-bottom:13px}
+#japanesePracticeLibraryPanel[data-rmc-detail="rmj02"] {border:3px double #bb8fa5;box-shadow:0 7px 25px #b08a9c26}
+#japanesePracticeLibraryPanel[data-rmc-detail="rmj02"] .count-badge {outline:2px solid #d5aaba;outline-offset:3px}
+#view-journal[data-rmc-surface="rmh01"] .journal-hero-v302 {background:linear-gradient(140deg,#fbebee,#fff8f0);border:1px solid #e3c0cd;border-radius:18px;padding:16px}
+#view-healthsync[data-rmc-surface="rmh01"]>.panel {background:linear-gradient(165deg,#fff8f8,#fffaf6)}
+#view-journal[data-rmc-detail="rmh02"] .journal-summary-grid-v302 article {border:2px double #e1bbc8;box-shadow:0 4px 12px #ce9caa21}
+#view-healthsync[data-rmc-detail="rmh02"] .health-bridge-metric {border-color:#dcb4c4;box-shadow:inset 0 0 0 1px #ecd0d8}
+#recoveryStudioDialog[data-rmc-surface="rmr01"] .recovery-shell-v314m {background:linear-gradient(160deg,#e9edec,#f4f1ec)}
+#recoveryStudioDialog[data-rmc-surface="rmr01"] .recovery-daily-card-v314m {background:linear-gradient(130deg,#dbe5df,#f5f1e9);border-color:#aac3bf}
+#recoveryStudioDialog[data-rmc-detail="rmr02"] .recovery-active-v314m {border:2px double #a0b0ab;border-radius:18px}
+#recoveryStudioDialog[data-rmc-detail="rmr02"] .recovery-stats-v314m {border:1px solid #aebdb7;border-radius:12px}
+#view-basecamp .home-panel[data-rmc-surface="rmd01"] {background:linear-gradient(150deg,#fff5e1,#fff8f1);border-color:#d9bb93}
+#view-meals[data-rmc-surface="rmd01"] #mealPlannerPageV314dz7 {background:linear-gradient(150deg,#fff7e8,#fffaf4);border-radius:15px;padding:8px}
+#view-basecamp .home-panel[data-rmc-detail="rmd02"] {outline:3px double #c5aa9a;outline-offset:3px}
+#view-basecamp .home-panel[data-rmc-detail="rmd02"] .panel-heading h3 {text-decoration:underline dotted #c1a09d;text-underline-offset:5px}
+#view-meals[data-rmc-detail="rmd02"] #mealPlannerPageV314dz7 {border:3px double #d5b3a0;border-radius:15px;padding:8px}

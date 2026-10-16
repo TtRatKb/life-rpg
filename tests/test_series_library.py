@@ -743,6 +743,105 @@ class SeriesLibraryTests(unittest.TestCase):
         self.assertIsNone(self.page.locator('#view-phone').get_attribute('data-mystery-theme'))
         self.assertEqual(self.page.locator('#view-phone').get_attribute('data-mystery-wallpaper'),'m02')
 
+    def test_realm_mystery_two_rank_collections_are_independent_and_spoiler_hidden(self):
+        """All six realm packs cost their own points; no prior progress is changed."""
+        realms=['Work','Knowledge','Japanese','Health','Recovery','Home']
+        self.page.evaluate("""() => {
+          const root=LifeRPGApp.getState();
+          for(const realm of ['Work','Knowledge','Japanese','Health','Recovery','Home'])
+            root.skills.realmBonusPoints[realm]=12;
+          root.soundGarden={version:4,history:[{key:'keep',title:'Original discovery',status:'liked'}]};
+          root.story ||= {};
+          root.story.syntheticExistingMarker='leave this alone';
+        }""")
+        self.page.add_script_tag(url='/talent-v2.js')
+        self.page.add_script_tag(url='/talent-tree-v2-graph.js')
+        self.page.add_style_tag(url='/realm-mystery-cosmetics.css')
+        self.page.add_script_tag(url='/realm-mystery-cosmetics.js')
+        self.assertEqual(self.page.locator('#realmMysteryDialog').count(),0)
+        self.assertFalse(self.page.evaluate("LifeRPGRealmMystery.openRealm('Work')"))
+        before=self.page.evaluate("""() => Object.fromEntries(
+          ['Work','Knowledge','Japanese','Health','Recovery','Home']
+          .map(r=>[r,LifeRPGSkills.getRealmPoints(r).available]))""")
+        for realm in realms:
+            start_rank=self.page.evaluate('(r)=>LifeRPGRealmMystery.getOwnedRank(r)',realm)
+            self.assertEqual(start_rank,0)
+            nodes=self.page.evaluate("""r=>
+              LifeRPGTalentTreeGraph.meta[r].content.filter(x=>x.id==='realm-mystery-collection').length""",realm)
+            self.assertEqual(nodes,1)
+            self.assertTrue(self.page.evaluate("""r=>
+              LifeRPGTalentTreeGraph.purchaseContent(r,'realm-mystery-collection')""",realm))
+            self.assertTrue(self.page.locator('#realmMysteryDialog').evaluate('(el)=>el.open'))
+            self.assertEqual(self.page.locator('#realmMysteryDialog .rmc-preview').count(),1)
+            self.assertEqual(self.page.locator('#realmMysteryDialog .rmc-locked').count(),1)
+            self.assertEqual(self.page.locator('#realmMysteryDialog .rmc-reveal').count(),1)
+            self.assertEqual(self.page.evaluate('(r)=>LifeRPGRealmMystery.getEquipped(r).surface',realm),'')
+            # Purchase does not silently switch the user's current visual style.
+            self.assertEqual(self.page.locator('#realmMysteryDialog [data-rmc-action="equip"]').count(),1)
+            self.assertTrue(self.page.evaluate("""r=>
+              LifeRPGTalentTreeGraph.purchaseContent(r,'realm-mystery-collection')""",realm))
+            self.assertEqual(self.page.locator('#realmMysteryDialog .rmc-preview').count(),2)
+            self.assertEqual(self.page.locator('#realmMysteryDialog .rmc-locked').count(),0)
+            self.assertEqual(self.page.locator('#realmMysteryDialog .rmc-reveal').count(),1)
+            self.assertFalse(self.page.evaluate("""r=>
+              LifeRPGTalentTreeGraph.purchaseContent(r,'realm-mystery-collection')""",realm))
+        after=self.page.evaluate("""() => Object.fromEntries(
+          ['Work','Knowledge','Japanese','Health','Recovery','Home']
+          .map(r=>[r,LifeRPGSkills.getRealmPoints(r).available]))""")
+        for realm in realms:
+            self.assertEqual(after[realm],before[realm]-2)
+            self.assertEqual(self.page.evaluate('(r)=>LifeRPGRealmMystery.getOwnedRank(r)',realm),2)
+        unchanged=self.page.evaluate("""() => ({
+          hobby:LifeRPGTalentTreeGraph.getContentRank('Hobbies','mystery-collection'),
+          history:LifeRPGApp.getState().soundGarden.history[0].title,
+          story:LifeRPGApp.getState().story.syntheticExistingMarker
+        })""")
+        self.assertEqual(unchanged,dict(hobby=0,history='Original discovery',story='leave this alone'))
+
+    def test_realm_mystery_equipped_appearances_persist_and_remain_optional(self):
+        """Each realm has a scoped surface and detail, independent of all other realms."""
+        realms=['Work','Knowledge','Japanese','Health','Recovery','Home']
+        ids={'Work':['rmw01','rmw02'],'Knowledge':['rmk01','rmk02'],
+             'Japanese':['rmj01','rmj02'],'Health':['rmh01','rmh02'],
+             'Recovery':['rmr01','rmr02'],'Home':['rmd01','rmd02']}
+        root_selectors={'Work':'#view-week','Knowledge':'#view-games',
+                        'Japanese':'#japanesePracticeLibraryPanel','Health':'#view-journal',
+                        'Recovery':'#recoveryStudioDialog','Home':'#view-basecamp .home-panel'}
+        self.page.evaluate("""() => {
+          for(const realm of ['Work','Knowledge','Japanese','Health','Recovery','Home'])
+            LifeRPGApp.getState().skills.realmBonusPoints[realm]=8;
+        }""")
+        self.page.add_script_tag(url='/talent-v2.js')
+        self.page.add_script_tag(url='/talent-tree-v2-graph.js')
+        self.page.add_style_tag(url='/realm-mystery-cosmetics.css')
+        self.page.add_script_tag(url='/realm-mystery-cosmetics.js')
+        self.assertFalse(self.page.evaluate("LifeRPGRealmMystery.equipId('Work','rmw01')"))
+        self.assertIsNone(self.page.locator(root_selectors['Work']).get_attribute('data-rmc-surface'))
+        for realm in realms:
+            for _ in range(2):
+                self.assertTrue(self.page.evaluate("""r=>
+                  LifeRPGTalentTreeGraph.purchaseContent(r,'realm-mystery-collection')""",realm))
+            for asset in ids[realm]:
+                self.assertTrue(self.page.evaluate("""a=>LifeRPGRealmMystery.equipId(a[0],a[1])""",[realm,asset]))
+            self.assertEqual(self.page.locator(root_selectors[realm]).get_attribute('data-rmc-surface'),ids[realm][0])
+            self.assertEqual(self.page.locator(root_selectors[realm]).get_attribute('data-rmc-detail'),ids[realm][1])
+        self.assertEqual(self.page.locator('#view-healthsync').get_attribute('data-rmc-surface'),'rmh01')
+        self.assertEqual(self.page.locator('#view-meals').get_attribute('data-rmc-surface'),'rmd01')
+        self.page.evaluate("LifeRPGApp.saveState({suppressCloud:true})")
+        self.page.reload(wait_until='domcontentloaded')
+        self.page.wait_for_function('window.LifeRPGSkills && window.saveSafetyTest')
+        self.page.add_script_tag(url='/talent-v2.js')
+        self.page.add_script_tag(url='/talent-tree-v2-graph.js')
+        self.page.add_script_tag(url='/realm-mystery-cosmetics.js')
+        for realm in realms:
+            self.assertEqual(self.page.evaluate('(r)=>LifeRPGRealmMystery.getOwnedRank(r)',realm),2)
+            self.assertEqual(self.page.locator(root_selectors[realm]).get_attribute('data-rmc-surface'),ids[realm][0])
+            self.assertEqual(self.page.locator(root_selectors[realm]).get_attribute('data-rmc-detail'),ids[realm][1])
+        self.assertTrue(self.page.evaluate("LifeRPGRealmMystery.equipId('Work','rmw01')"))
+        self.assertIsNone(self.page.locator('#view-week').get_attribute('data-rmc-surface'))
+        self.assertEqual(self.page.locator('#view-week').get_attribute('data-rmc-detail'),'rmw02')
+        self.assertEqual(self.page.locator('#view-games').get_attribute('data-rmc-surface'),'rmk01')
+
     def test_tvmaze_search_is_independent_of_slow_anime_provider(self):
         """The original TVmaze path must yield search results without contacting Jikan."""
         anime_requests = []

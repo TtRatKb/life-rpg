@@ -12,7 +12,7 @@
     return;
   }
 
-  const VERSION = "0.31.4-mystery1";
+  const VERSION = "0.31.4-realm-mystery1";
   const SCHEMA = 7;
   const REALMS = ["Work", "Knowledge", "Japanese", "Health", "Recovery", "Home", "Hobbies"];
 
@@ -26,6 +26,9 @@
         content("work-debrief", "🧾", "Work Deep Brief", 1,
           "Starter unlock · spend 1 Work point and use it immediately. A deeper Work reflection for closing the loop after a demanding day, with voice dictation or typing.",
           {}),
+        rankedContent("realm-mystery-collection", "🎁", "Mystery Collection", 2,
+          "Two permanent visual surprises for the Work area · 1 Work point each. Reveal only after purchase; both looks can be equipped or removed any time. Optional cosmetics with no effect on game rewards or daily obligations.",
+          {}, "Open Collection", () => window.LifeRPGRealmMystery?.openRealm?.("Work")),
         linkedContent("school-moments", "✎", "School Moments · Choice Stories", 1,
           "Ten interactive teaching-life situations. Pick a response, explore its trade-offs and keep a personal reflection; the story itself is the reward.",
           { content: "work-debrief" }, "Open School Moments", () => window.LifeRPGTalentV3?.open?.("school-moments")),
@@ -46,6 +49,9 @@
         linkedContent("slitherlink", "◫", "Slitherlink", 1,
           "Starter unlock · a real Daily + Practice Slitherlink puzzle inside Training Grounds.",
           {}, "Open Slitherlink", () => window.LifeRPGLogicExpansion?.open?.("slitherlink")),
+        rankedContent("realm-mystery-collection", "🎁", "Mystery Collection", 2,
+          "Two permanent visual surprises for the Knowledge area · 1 Knowledge point each. Reveal only after purchase; both looks can be equipped or removed any time. Optional cosmetics with no effect on game rewards or daily obligations.",
+          {}, "Open Collection", () => window.LifeRPGRealmMystery?.openRealm?.("Knowledge")),
         linkedContent("nurikabe", "▦", "Nurikabe", 1,
           "Add a second real logic game: Daily + Practice Nurikabe.",
           { content: "slitherlink" }, "Open Nurikabe", () => window.LifeRPGLogicExpansion?.open?.("nurikabe")),
@@ -69,6 +75,9 @@
         rankedContent("dynariot-japanese", "🌸", "DynaRiot Japanese Extras", 3,
           "Rank I: 8 character cards. Rank II: 16. Rank III: 24 written Japanese cards with comprehension and archive. Non-canon and spoiler-safe.",
           {}, "Open DynaRiot Extras", () => window.LifeRPGTalentRewardStudios?.open?.("dynariot-japanese")),
+        rankedContent("realm-mystery-collection", "🎁", "Mystery Collection", 2,
+          "Two permanent visual surprises for the Japanese area · 1 Japanese point each. Reveal only after purchase; both looks can be equipped or removed any time. Optional cosmetics with no effect on game rewards or daily obligations.",
+          {}, "Open Collection", () => window.LifeRPGRealmMystery?.openRealm?.("Japanese")),
         { ...rankedContent("japanese-atlas-kanji", "漢", "Kanji Memory Garden", 3,
           "Independent Kanji path · I/II/III: 3/6/9 meaning + reading recall cards with a mnemonic cue. Your actual new Kanji lessons and SRS still live in Kotoba Quest.",
           {}, "Open Kanji Garden", () => window.LifeRPGJapaneseAtlasDZ48?.open?.("kanji")), group:"kanji" },
@@ -101,6 +110,9 @@
         nativeContent("year-question", "📅", "365 Question Journal", 1,
           "Starter unlock · one different reflection question for every date of the year, recurring annually, with spoken or typed answers.",
           {}, "Open Journal", () => app.showView?.("journal")),
+        rankedContent("realm-mystery-collection", "🎁", "Mystery Collection", 2,
+          "Two permanent visual surprises for the Health area · 1 Health point each. Reveal only after purchase; both looks can be equipped or removed any time. Optional cosmetics with no effect on game rewards or daily obligations.",
+          {}, "Open Collection", () => window.LifeRPGRealmMystery?.openRealm?.("Health")),
         linkedContent("future-letter", "✉", "Future Me · Sealed Letters", 1,
           "Write a sealed letter for yourself to open after 7, 30 or 90 days. Save it in the normal cloud-save state and revisit it when the date arrives; no forced daily task.",
           { content: "year-question" }, "Open Future Me", () => window.LifeRPGTalentV3?.open?.("future-letter")),
@@ -118,6 +130,9 @@
         nativeContent("grounding-54321", "✋", "5–4–3–2–1 Grounding", 1,
           "Starter unlock · the guided 7-minute sensory grounding session already built into Recovery Studio.",
           {}, "Open Recovery Studio", () => window.LifeRPGRecoveryStudio?.open?.()),
+        rankedContent("realm-mystery-collection", "🎁", "Mystery Collection", 2,
+          "Two permanent visual surprises for the Recovery area · 1 Recovery point each. Reveal only after purchase; both looks can be equipped or removed any time. Optional cosmetics with no effect on game rewards or daily obligations.",
+          {}, "Open Collection", () => window.LifeRPGRealmMystery?.openRealm?.("Recovery")),
         content("recovery-toolkit", "✦", "Recovery Toolkit", 1,
           "Second content step · a rotating set of short regulation prompts with a real Recovery timer and its own completion reward.",
           { content: "grounding-54321" }),
@@ -135,6 +150,9 @@
         rankedContent("home-oracle", "🔮", "Home Oracle", 2,
           "Rank I: create and use one weighted decision wheel. Rank II: remove the wheel limit and keep as many saved wheels as you actually use.",
           {}, "Open Home Oracle", () => window.LifeRPGTalentRewardStudios?.open?.("home-oracle")),
+        rankedContent("realm-mystery-collection", "🎁", "Mystery Collection", 2,
+          "Two permanent visual surprises for the Home area · 1 Home point each. Reveal only after purchase; both looks can be equipped or removed any time. Optional cosmetics with no effect on game rewards or daily obligations.",
+          {}, "Open Collection", () => window.LifeRPGRealmMystery?.openRealm?.("Home")),
         linkedContent("cozy-kitchen", "🍳", "Cozy Kitchen · Pantry Deck", 1,
           "Sixteen practical meal ideas with actual ingredients and steps. Filter by what you have and time available; save favorites and tried dishes, without inventing a Quest.",
           { content: "home-oracle", contentRank: 1 }, "Open Cozy Kitchen", () => window.LifeRPGTalentV3?.open?.("cozy-kitchen")),
