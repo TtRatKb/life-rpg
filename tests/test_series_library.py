@@ -455,6 +455,114 @@ class SeriesLibraryTests(unittest.TestCase):
           'LifeRPGSoundGarden.getData().artists[0].spotifyArtistId'),
           '0123456789abcdefghijAB')
 
+
+    def test_soundgarden_never_queries_apple_for_new_discovery_without_spotify(self):
+        """Disconnected discovery keeps legacy state and never creates Apple suggestions."""
+        apple_calls=[]
+        self.context.route("https://itunes.apple.com/**",lambda route: (apple_calls.append(route.request.url),route.abort()))
+        self.page.evaluate("""() => {
+          window.LifeRPGSpotifyBridge={
+            state:()=>({connected:false,busy:false}),clientId:()=>'',redirect:()=>location.origin+'/',
+            embedUrl:track=>'https://open.spotify.com/embed/track/'+track.spotifyTrackId,
+            ready:Promise.resolve()
+          };
+          LifeRPGApp.getState().soundGarden={
+            version:4,artists:[{name:'Synthetic Artist',key:'synthetic artist',artistId:12345}],
+            catalog:{'synthetic artist':[{
+              key:'synthetic artist::old song',title:'Old Song',artist:'Synthetic Artist',
+              artistKey:'synthetic artist',artistId:12345,storeUrl:'https://music.apple.com/de/song/123'
+            }]},
+            history:[{key:'synthetic artist::reviewed',title:'Reviewed',
+              artist:'Synthetic Artist',status:'liked',at:123}],
+            tracks:{'synthetic artist::reviewed':{status:'liked'}},
+            rewardedSongs:{'synthetic artist::reviewed':'preserved'},
+            days:{},recentArtists:[]
+          };
+        }""")
+        self.page.add_script_tag(url='/sound-garden.js')
+        self.page.evaluate('LifeRPGSoundGarden.open()')
+        self.page.evaluate('LifeRPGSoundGarden.next()')
+        self.page.wait_for_function("""() =>
+          !document.getElementById('sgStatus').hidden""")
+        state=self.page.evaluate("""() => {
+          const m=LifeRPGSoundGarden.getData();
+          return {current:m.current??null,artistId:m.artists[0].artistId,
+            history:m.history.length,reward:m.rewardedSongs['synthetic artist::reviewed'],
+            oldCatalog:m.catalog['synthetic artist'][0].title,
+            message:document.getElementById('sgStatus').textContent};
+        }""")
+        self.assertIsNone(state['current'])
+        self.assertEqual(state['artistId'],12345)
+        self.assertEqual(state['history'],1)
+        self.assertEqual(state['reward'],'preserved')
+        self.assertEqual(state['oldCatalog'],'Old Song')
+        self.assertIn('Spotify',state['message'])
+        self.assertEqual(apple_calls,[])
+
+    def test_soundgarden_authenticated_search_returns_official_spotify_track(self):
+        """Existing verified Spotify artist bypasses old Apple IDs and metadata."""
+        apple_calls=[]
+        self.context.route("https://itunes.apple.com/**",lambda route: (apple_calls.append(route.request.url),route.abort()))
+        self.page.evaluate("""() => {
+          const artistId='0123456789abcdefghijAB',trackId='ZYXWVUTSRQPONMLKJIHGFE';
+          window.LifeRPGSpotifyBridge={
+            state:()=>({connected:true,busy:false}),clientId:()=>'',redirect:()=>location.origin+'/',
+            embedUrl:t=>'https://open.spotify.com/embed/track/'+t.spotifyTrackId,
+            ready:Promise.resolve(),api:async url=>{
+              if(url.startsWith('/artists/'))return {items:[]};
+              if(url.startsWith('/search?'))return {tracks:{items:[{
+                id:trackId,name:'Official Spotify Song',artists:[{id:artistId}],
+                album:{name:'Original Album'},external_urls:{spotify:'https://open.spotify.com/track/'+trackId}
+              }],next:null}};
+              throw new Error('Unexpected Spotify endpoint: '+url);
+            }
+          };
+          LifeRPGApp.getState().soundGarden={
+            version:4,artists:[{name:'Synthetic Artist',key:'synthetic artist',
+              artistId:12345,spotifyArtistId:artistId}],
+            catalog:{'synthetic artist':[{
+              key:'synthetic artist::old song',title:'Old Song',artist:'Synthetic Artist',
+              artistKey:'synthetic artist',artistId:12345
+            }]},
+            history:[],tracks:{},days:{},recentArtists:[]
+          };
+        }""")
+        self.page.add_script_tag(url='/sound-garden.js')
+        self.page.evaluate('LifeRPGSoundGarden.open()')
+        self.page.evaluate('LifeRPGSoundGarden.next()')
+        self.page.wait_for_function("""() =>
+          LifeRPGSoundGarden.getData().current?.spotifyTrackId==='ZYXWVUTSRQPONMLKJIHGFE'""")
+        state=self.page.evaluate("""() => {
+          const m=LifeRPGSoundGarden.getData();
+          return {trackId:m.current.spotifyTrackId,artistId:m.artists[0].artistId,
+            catalogIds:m.catalog['synthetic artist'].map(x=>x.spotifyTrackId)};
+        }""")
+        self.assertEqual(state['trackId'],'ZYXWVUTSRQPONMLKJIHGFE')
+        self.assertEqual(state['artistId'],12345)
+        self.assertEqual(state['catalogIds'],['ZYXWVUTSRQPONMLKJIHGFE'])
+        self.assertEqual(apple_calls,[])
+
+    def test_soundgarden_old_apple_suggestion_is_not_deleted_on_load(self):
+        """An unreviewed legacy proposal keeps its manual rating and Spotify replacement."""
+        self.page.evaluate("""() => {
+          window.LifeRPGSpotifyBridge={
+            state:()=>({connected:false,busy:false}),clientId:()=>'',redirect:()=>location.origin+'/',
+            embedUrl:t=>'https://open.spotify.com/embed/track/'+t.spotifyTrackId,
+            ready:Promise.resolve()
+          };
+          LifeRPGApp.getState().soundGarden={
+            version:4,artists:[{name:'Synthetic Artist',key:'synthetic artist',artistId:12345}],
+            current:{key:'synthetic artist::old song',title:'Old Song',artist:'Synthetic Artist',
+              artistKey:'synthetic artist',artistId:12345,storeUrl:'https://music.apple.com/de/song/123'},
+            catalog:{},history:[],tracks:{},days:{},recentArtists:[]
+          };
+        }""")
+        self.page.add_script_tag(url='/sound-garden.js')
+        self.page.evaluate('LifeRPGSoundGarden.open()')
+        self.assertIn('Old Song',self.page.locator('#sgDaily').inner_text())
+        self.assertEqual(self.page.locator('[data-sg="spotify-new"]').count(),1)
+        self.assertEqual(self.page.evaluate('LifeRPGSoundGarden.getData().current.title'),'Old Song')
+
     def test_tvmaze_search_is_independent_of_slow_anime_provider(self):
         """The original TVmaze path must yield search results without contacting Jikan."""
         anime_requests = []
