@@ -1,4 +1,4 @@
-const CACHE_NAME = "life-rpg-v0.31.4-health-echo2";
+const CACHE_NAME = "life-rpg-v0.31.4-sgspotify1";
 const ASSET_CACHE_NAME = "life-rpg-assets-v6";
 const MAX_RUNTIME_ASSETS = 96;
 const CORE = [
@@ -39,7 +39,7 @@ const CORE = [
   "./meal-planner.css?v=0.31.4dz12",
   "./daily-life-v314cv.js?v=0.31.4dv",
   "./sound-garden-spotify.js?v=0.31.4dy",
-  "./sound-garden.js?v=0.31.4-dm1",
+  "./sound-garden.js?v=0.31.4-sgspotify1",
   "./sound-garden-library.js?v=0.31.4dz13",
   "./sound-garden.css?v=0.31.4dz34",
   "./data/quests.js?v=0.31.4dz50c",
