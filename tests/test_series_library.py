@@ -563,6 +563,110 @@ class SeriesLibraryTests(unittest.TestCase):
         self.assertEqual(self.page.locator('[data-sg="spotify-new"]').count(),1)
         self.assertEqual(self.page.evaluate('LifeRPGSoundGarden.getData().current.title'),'Old Song')
 
+    def test_soundgarden_artist_reverify_same_spotify_id_keeps_current_and_cache(self):
+        """Clicking 'Zuordnung ändern' must not destroy an already correct ID's work."""
+        self.page.evaluate("""() => {
+          const id='0123456789abcdefghijAB';
+          window.LifeRPGSpotifyBridge={
+            state:()=>({connected:true,busy:false}),clientId:()=>'',redirect:()=>location.origin+'/',
+            embedUrl:t=>'https://open.spotify.com/embed/track/'+t.spotifyTrackId,
+            findArtists:async()=>[{id,name:'Synthetic Artist',images:[],genres:[]}],
+            ready:Promise.resolve()
+          };
+          LifeRPGApp.getState().soundGarden={
+            version:4,artists:[{name:'Synthetic Artist',key:'synthetic artist',spotifyArtistId:id}],
+            catalog:{'synthetic artist':[{
+              key:'synthetic artist::song one',title:'Song One',artist:'Synthetic Artist',
+              artistKey:'synthetic artist',spotifyArtistId:id,spotifyTrackId:'ZYXWVUTSRQPONMLKJIHGFE'
+            }]},
+            artistGuides:{'synthetic artist':{spotifyArtistId:id,trackIds:['ZYXWVUTSRQPONMLKJIHGFE']}},
+            current:{key:'synthetic artist::song one',title:'Song One',artist:'Synthetic Artist',
+              artistKey:'synthetic artist',spotifyArtistId:id,spotifyTrackId:'ZYXWVUTSRQPONMLKJIHGFE'},
+            history:[],tracks:{},days:{},recentArtists:[]
+          };
+        }""")
+        self.page.add_script_tag(url='/sound-garden.js')
+        self.page.evaluate('LifeRPGSoundGarden.open()')
+        self.page.evaluate('LifeRPGSoundGarden.verifyArtist("synthetic artist")')
+        self.page.wait_for_function("""() =>
+          document.getElementById('sgStatus').textContent.includes('zugeordnet')""")
+        result=self.page.evaluate("""() => {
+          const m=LifeRPGSoundGarden.getData();
+          return {current:m.current?.spotifyTrackId,
+            guide:m.artistGuides['synthetic artist']?.trackIds,
+            cache:m.catalog['synthetic artist']?.map(t=>t.spotifyTrackId)};
+        }""")
+        self.assertEqual(result['current'],'ZYXWVUTSRQPONMLKJIHGFE')
+        self.assertEqual(result['guide'],['ZYXWVUTSRQPONMLKJIHGFE'])
+        self.assertEqual(result['cache'],['ZYXWVUTSRQPONMLKJIHGFE'])
+
+    def test_soundgarden_artist_tools_explain_missing_spotify_connection(self):
+        """The Artist Tools verify action opens the login UI instead of silently doing nothing."""
+        self.page.evaluate("""() => {
+          window.LifeRPGSpotifyBridge={
+            state:()=>({connected:false,busy:false}),clientId:()=>'',redirect:()=>location.origin+'/',
+            ready:Promise.resolve()
+          };
+          LifeRPGApp.getState().soundGarden={
+            version:4,artists:[{name:'Synthetic Artist',key:'synthetic artist',spotifyArtistId:'0123456789abcdefghijAB'}],
+            history:[],tracks:{},days:{},recentArtists:[]
+          };
+        }""")
+        self.page.add_script_tag(url='/sound-garden.js')
+        self.page.add_script_tag(url='/sound-garden-library.js')
+        self.page.locator('[data-sgl-action="artist"][data-key="synthetic artist"]').click()
+        self.page.locator('[data-sgl-action="verify"]').count()
+        # Existing correctly linked artists use the source modal's 'Zuordnung ändern'.
+        self.page.evaluate('LifeRPGSoundGarden.open()')
+        self.page.locator('#sgArtists [data-sg="verify"]').click()
+        self.assertIn('nicht verbunden',self.page.locator('#sgStatus').inner_text())
+        self.assertTrue(self.page.locator('#sgConnect').is_visible())
+        self.assertEqual(self.page.evaluate('LifeRPGSoundGarden.getData().artists[0].spotifyArtistId'),
+                         '0123456789abcdefghijAB')
+
+    def test_spotify_browser_player_activates_in_user_click_and_plays_official_id(self):
+        """Synthetic Spotify SDK + fake API: activation before first async boundary."""
+        self.page.evaluate("""() => {
+          localStorage.setItem('lifeRpg.soundGarden.spotifyClientId.v1','0123456789abcdef0123456789abcdef');
+          sessionStorage.setItem('lifeRpg.soundGarden.spotifySession.v1',
+            JSON.stringify({access:'synthetic-token',refresh:'synthetic-refresh',until:Date.now()+3600000}));
+          window.fakeSpotifyPlayback={activation:0,put:[]};
+          window.Spotify={Player:class {
+            constructor(){this.listeners={};}
+            addListener(name,fn){this.listeners[name]=fn;}
+            activateElement(){window.fakeSpotifyPlayback.activation++;return Promise.resolve();}
+            async connect(){queueMicrotask(()=>this.listeners.ready?.({device_id:'synthetic-device'}));return true;}
+            disconnect(){}
+          }};
+          const originalFetch=window.fetch;
+          window.fetch=(url,config={})=>{
+            if(String(url).startsWith('https://api.spotify.com/v1/me/player/play')){
+              window.fakeSpotifyPlayback.put.push({
+                url:String(url),body:JSON.parse(config.body||'{}'),
+                activated:window.fakeSpotifyPlayback.activation>0
+              });
+              return Promise.resolve(new Response(null,{status:204}));
+            }
+            return originalFetch(url,config);
+          };
+        }""")
+        self.page.add_script_tag(url='/sound-garden-spotify.js')
+        result=self.page.evaluate("""async() => {
+          await LifeRPGSpotifyBridge.ready;
+          const ret=await LifeRPGSpotifyBridge.play({
+            spotifyTrackId:'ZYXWVUTSRQPONMLKJIHGFE',title:'Test Track',artist:'Synthetic Artist'
+          });
+          return {ret,activation:window.fakeSpotifyPlayback.activation,
+            puts:window.fakeSpotifyPlayback.put,
+            ready:LifeRPGSpotifyBridge.state().ready};
+        }""")
+        self.assertFalse(result['ret']['needsGesture'])
+        self.assertTrue(result['ready'])
+        self.assertGreaterEqual(result['activation'],1)
+        self.assertEqual(len(result['puts']),1)
+        self.assertTrue(result['puts'][0]['activated'])
+        self.assertEqual(result['puts'][0]['body']['uris'],['spotify:track:ZYXWVUTSRQPONMLKJIHGFE'])
+
     def test_tvmaze_search_is_independent_of_slow_anime_provider(self):
         """The original TVmaze path must yield search results without contacting Jikan."""
         anime_requests = []
