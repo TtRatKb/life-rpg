@@ -664,6 +664,85 @@ class SeriesLibraryTests(unittest.TestCase):
         self.assertTrue(result['puts'][0]['activated'])
         self.assertEqual(result['puts'][0]['body']['uris'],['spotify:track:ZYXWVUTSRQPONMLKJIHGFE'])
 
+    def test_mystery_cosmetics_four_rank_purchase_spends_exact_points_and_hides_locked(self):
+        """One compact shop node: no early artwork, four points spent, no dupes."""
+        self.page.evaluate("""() => {
+          const root=LifeRPGApp.getState();
+          root.skills.realmBonusPoints.Hobbies=10;
+          root.soundGarden={version:4,history:[{key:'test',title:'Preserved',status:'liked'}]};
+        }""")
+        self.page.add_script_tag(url='/talent-v2.js')
+        self.page.add_script_tag(url='/talent-tree-v2-graph.js')
+        self.page.add_style_tag(url='/mystery-cosmetics.css')
+        self.page.add_script_tag(url='/mystery-cosmetics.js')
+        initial=self.page.evaluate("""() => {
+          const g=LifeRPGTalentTreeGraph,cc=LifeRPGMysteryCosmetics;
+          return {rank:cc.getOwnedRank(),open:cc.open(),
+            points:LifeRPGSkills.getRealmPoints('Hobbies').available,
+            existing:g.meta.Hobbies.content.filter(x=>x.id==='mystery-collection').length,
+            other:g.extraSpent('Hobbies')};
+        }""")
+        self.assertEqual(initial['rank'],0)
+        self.assertFalse(initial['open'])
+        self.assertEqual(initial['existing'],1)
+        self.assertEqual(self.page.locator('#lifeMysteryCollection').count(),0)
+        for rank in range(1,5):
+            self.assertTrue(self.page.evaluate("""() =>
+              LifeRPGTalentTreeGraph.purchaseContent('Hobbies','mystery-collection')"""))
+            self.page.wait_for_function("""wanted =>
+              LifeRPGMysteryCosmetics.getOwnedRank()===wanted""",arg=rank)
+            self.assertTrue(self.page.locator('#lifeMysteryCollection').evaluate('(el)=>el.open'))
+            self.assertEqual(self.page.locator('#lifeMysteryCollection .mystery-preview').count(),rank)
+            self.assertEqual(self.page.locator('#lifeMysteryCollection .mystery-pack.is-locked').count(),4-rank)
+            self.assertEqual(self.page.locator('#lifeMysteryCollection .mystery-pack.is-revealed').count(),1)
+        end=self.page.evaluate("""() => ({
+          available:LifeRPGSkills.getRealmPoints('Hobbies').available,
+          spent:LifeRPGTalentTreeGraph.extraSpent('Hobbies'),
+          rank:LifeRPGMysteryCosmetics.getOwnedRank(),
+          extraPurchase:LifeRPGTalentTreeGraph.purchaseContent('Hobbies','mystery-collection'),
+          history:LifeRPGApp.getState().soundGarden.history[0].title
+        })""")
+        self.assertEqual(end['available'],initial['points']-4)
+        self.assertEqual(end['spent']-initial['other'],4)
+        self.assertEqual(end['rank'],4)
+        self.assertFalse(end['extraPurchase'])
+        self.assertEqual(end['history'],'Preserved')
+
+    def test_mystery_cosmetics_equipped_sets_survive_reload_and_do_not_preview_before_purchase(self):
+        """One theme at a time, optional independent wallpaper/frame; persisted state."""
+        self.page.evaluate("""() => {
+          LifeRPGApp.getState().skills.realmBonusPoints.Hobbies=8;
+        }""")
+        self.page.add_script_tag(url='/talent-v2.js')
+        self.page.add_script_tag(url='/talent-tree-v2-graph.js')
+        self.page.add_style_tag(url='/mystery-cosmetics.css')
+        self.page.add_script_tag(url='/mystery-cosmetics.js')
+        self.assertFalse(self.page.evaluate('LifeRPGMysteryCosmetics.equipId("m04")'))
+        self.assertIsNone(self.page.locator('#view-phone').get_attribute('data-mystery-theme'))
+        self.page.evaluate("""() => {
+          for(let i=0;i<4;i++)LifeRPGTalentTreeGraph.purchaseContent('Hobbies','mystery-collection');
+          for(const id of ['m01','m02','m03'])LifeRPGMysteryCosmetics.equipId(id);
+        }""")
+        self.assertEqual(self.page.locator('#view-phone').get_attribute('data-mystery-theme'),'m01')
+        self.assertEqual(self.page.locator('#view-phone').get_attribute('data-mystery-wallpaper'),'m02')
+        self.assertEqual(self.page.locator('#view-phone').get_attribute('data-mystery-frame'),'m03')
+        self.page.evaluate('LifeRPGMysteryCosmetics.equipId("m04")')
+        self.assertEqual(self.page.locator('#view-phone').get_attribute('data-mystery-theme'),'m04')
+        self.assertEqual(self.page.locator('#storyPhoneDialog').get_attribute('data-mystery-theme'),'m04')
+        self.page.evaluate("LifeRPGApp.saveState({suppressCloud:true})")
+        self.page.reload(wait_until='domcontentloaded')
+        self.page.wait_for_function('window.LifeRPGSkills && window.saveSafetyTest')
+        self.page.add_script_tag(url='/talent-v2.js')
+        self.page.add_script_tag(url='/talent-tree-v2-graph.js')
+        self.page.add_script_tag(url='/mystery-cosmetics.js')
+        self.assertEqual(self.page.evaluate('LifeRPGMysteryCosmetics.getOwnedRank()'),4)
+        self.assertEqual(self.page.locator('#view-phone').get_attribute('data-mystery-theme'),'m04')
+        self.assertEqual(self.page.locator('#view-phone').get_attribute('data-mystery-wallpaper'),'m02')
+        self.assertEqual(self.page.locator('#view-phone').get_attribute('data-mystery-frame'),'m03')
+        self.assertTrue(self.page.evaluate('LifeRPGMysteryCosmetics.equipId("m04")'))
+        self.assertIsNone(self.page.locator('#view-phone').get_attribute('data-mystery-theme'))
+        self.assertEqual(self.page.locator('#view-phone').get_attribute('data-mystery-wallpaper'),'m02')
+
     def test_tvmaze_search_is_independent_of_slow_anime_provider(self):
         """The original TVmaze path must yield search results without contacting Jikan."""
         anime_requests = []

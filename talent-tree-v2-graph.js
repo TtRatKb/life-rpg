@@ -12,7 +12,7 @@
     return;
   }
 
-  const VERSION = "0.31.4dz48";
+  const VERSION = "0.31.4-mystery1";
   const SCHEMA = 7;
   const REALMS = ["Work", "Knowledge", "Japanese", "Health", "Recovery", "Home", "Hobbies"];
 
@@ -146,12 +146,15 @@
     Hobbies: {
       icon: "🎨",
       special: { id: "joy-spark", icon: "♡", title: "Joy Spark", max: 3 },
-      subtitle: "Unlock the creative studios once, then choose individual collectible coloring cards for your gallery. Drawing challenges remain included with the studio.",
+      subtitle: "Build a cozy creative collection: independent mystery Phone cosmetics, studios and collectible coloring cards. Each earned reward stays yours.",
       dream: { title: "Play After Dark", copy: "games, music, playful competition, and moments that feel suspiciously like dates" },
       content: [
         rankedContent("coloring-studio", "🖍️", "Coloring Studio", 1,
           "Unlocks the Coloring Studio, its original Bakugo · Level 1 card and Drawing Studio. Additional collectible cards can be purchased individually below for 1 Hobbies point each.",
           {}, "Open Coloring Studio", () => window.LifeRPGCreativeHub?.enter?.("coloring") || window.LifeRPGTalentRewardStudios?.open?.("coloring-studio")),
+        rankedContent("mystery-collection", "🎁", "Mystery Collection", 4,
+          "Four permanent visual surprises for your Phone · 1 Hobbies point per pack. Designs remain hidden until purchased. Open your collection to equip or remove unlocked looks. No random duplicates, deadlines or story gates.",
+          {}, "Open Collection", () => window.LifeRPGMysteryCosmetics?.open?.()),
         linkedContent("color-card-bakugo-hero-classic", "🃏", "Bakugo · Hero Classic", 1,
           "Collectible coloring card · Hero costume · a confident stance. View the locked preview in Coloring Studio; buy this card permanently with 1 Hobbies point.",
           { content: "coloring-studio" }, "View in Coloring Studio", () => window.LifeRPGCreativeHub?.enter?.("coloring")),
