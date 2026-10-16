@@ -680,7 +680,7 @@ class SeriesLibraryTests(unittest.TestCase):
           return {rank:cc.getOwnedRank(),open:cc.open(),
             points:LifeRPGSkills.getRealmPoints('Hobbies').available,
             existing:g.meta.Hobbies.content.filter(x=>x.id==='mystery-collection').length,
-            other:g.getContentRank('Hobbies','coloring-studio')};
+            other:g.extraSpent('Hobbies')};
         }""")
         self.assertEqual(initial['rank'],0)
         self.assertFalse(initial['open'])
@@ -690,7 +690,7 @@ class SeriesLibraryTests(unittest.TestCase):
             self.assertTrue(self.page.evaluate("""() =>
               LifeRPGTalentTreeGraph.purchaseContent('Hobbies','mystery-collection')"""))
             self.page.wait_for_function("""wanted =>
-              LifeRPGMysteryCosmetics.getOwnedRank()===wanted""",rank)
+              LifeRPGMysteryCosmetics.getOwnedRank()===wanted""",arg=rank)
             self.assertTrue(self.page.locator('#lifeMysteryCollection').evaluate('(el)=>el.open'))
             self.assertEqual(self.page.locator('#lifeMysteryCollection .mystery-preview').count(),rank)
             self.assertEqual(self.page.locator('#lifeMysteryCollection .mystery-pack.is-locked').count(),4-rank)
