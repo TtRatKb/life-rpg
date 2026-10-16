@@ -12,7 +12,7 @@
     'user-read-playback-state', 'user-modify-playback-state',
     'playlist-modify-public', 'playlist-modify-private', 'playlist-read-private'];
   let player = null, deviceId = '', readyTask = null, busy = false, error = '', activeTrack = null;
-  let sdkStatus = '', lastPlayback = null;
+  let sdkStatus = '', lastPlayback = null, playerScriptTask = null;
   const notify = () => window.dispatchEvent(new CustomEvent('life-rpg:spotify-change'));
   const idOk = s => /^[a-f0-9]{32}$/i.test(String(s || '').trim());
   const clientId = () => localStorage.getItem(CLIENT_KEY) || '';
@@ -128,54 +128,103 @@
   }
   async function artistById(id) { return api(`/artists/${encodeURIComponent(id)}`); }
   function playerScript() {
-    if(window.Spotify?.Player) return Promise.resolve();
-    return new Promise((resolve,reject) => {
-      const prior = window.onSpotifyWebPlaybackSDKReady;
-      window.onSpotifyWebPlaybackSDKReady = () => { try { prior?.(); } catch {} resolve(); };
-      const old = document.querySelector('script[data-sg-spotify-sdk]');
-      if (old) { if(window.Spotify?.Player) resolve(); return; }
-      const script = document.createElement('script'); script.dataset.sgSpotifySdk = '1';
-      script.src = 'https://sdk.scdn.co/spotify-player.js'; script.async = true;
-      script.onerror = () => { script.remove(); reject(new Error('Spotify-Player-SDK konnte nicht geladen werden.')); };
+    if(window.Spotify?.Player)return Promise.resolve();
+    if(playerScriptTask)return playerScriptTask;
+    playerScriptTask=new Promise((resolve,reject)=>{
+      let done=false;
+      const finish=err=>{
+        if(done)return;done=true;clearTimeout(timeout);
+        if(err){playerScriptTask=null;reject(err);}else resolve();
+      };
+      const timeout=setTimeout(()=>finish(new Error('Spotify-Player-SDK hat nicht geantwortet. Prüfe Safari-Inhaltsblocker oder versuche den Spotify-Embed.')),12000);
+      const prior=window.onSpotifyWebPlaybackSDKReady;
+      window.onSpotifyWebPlaybackSDKReady=()=>{
+        try{prior?.();}catch{}
+        if(window.Spotify?.Player)finish(null);
+        else finish(new Error('Spotify-Player-SDK ist nicht verfügbar.'));
+      };
+      let script=document.querySelector('script[data-sg-spotify-sdk]');
+      if(script){
+        // Another caller has already inserted the same script: don't inject it
+        // twice, and retain the timeout so this promise cannot hang forever.
+        if(window.Spotify?.Player)finish(null);
+        return;
+      }
+      script=document.createElement('script');
+      script.dataset.sgSpotifySdk='1';script.src='https://sdk.scdn.co/spotify-player.js';script.async=true;
+      script.onerror=()=>{script.remove();finish(new Error('Spotify-Player-SDK konnte nicht geladen werden. Prüfe Browser-/Inhaltsblocker.'));};
       document.head.appendChild(script);
     });
+    return playerScriptTask;
   }
   async function ensurePlayer() {
-    if (deviceId) return deviceId;
-    if (readyTask) return readyTask;
-    readyTask = (async () => {
-      await token(); await playerScript();
-      if (!window.Spotify?.Player) throw new Error('Der Spotify-Player wird in diesem Browser nicht unterstützt.');
-      player = new window.Spotify.Player({name:'Life RPG · Sound Garden', volume:.55,
-        getOAuthToken: async cb => {try{cb(await token());}catch(e){error=e.message;notify();}}});
-      player.addListener('ready',({device_id})=>{ deviceId=device_id; sdkStatus='ready'; notify(); });
-      player.addListener('not_ready',({device_id})=>{ if(deviceId===device_id) deviceId=''; sdkStatus='device-offline'; notify(); });
-      for (const evt of ['initialization_error','authentication_error','account_error','playback_error']) {
-        player.addListener(evt, e=>{error=e?.message || `Spotify: ${evt}`;sdkStatus=evt;notify();});
+    if(deviceId)return deviceId;
+    if(readyTask)return readyTask;
+    // Instantiating an already-preloaded SDK synchronously means the very
+    // same click can call activateElement() before the first await (iOS).
+    readyTask=(async()=>{
+      if(!credentials())throw new Error('Spotify ist nicht verbunden. Bitte zuerst Spotify anmelden.');
+      if(!window.Spotify?.Player)await playerScript();
+      if(!window.Spotify?.Player)throw new Error('Dieser Browser unterstützt den Spotify-Player nicht.');
+      if(!player){
+        player=new window.Spotify.Player({name:'Life RPG · Sound Garden',volume:.55,
+          getOAuthToken:async cb=>{try{cb(await token());}catch(e){error=e.message;notify();}}});
+        player.addListener('ready',({device_id})=>{deviceId=device_id;sdkStatus='ready';notify();});
+        player.addListener('not_ready',({device_id})=>{if(deviceId===device_id)deviceId='';sdkStatus='device-offline';notify();});
+        for(const evt of ['initialization_error','authentication_error','account_error','playback_error']){
+          player.addListener(evt,e=>{error=e?.message||`Spotify: ${evt}`;sdkStatus=evt;notify();});
+        }
+        player.addListener('player_state_changed',x=>{lastPlayback=x;notify();});
       }
-      player.addListener('player_state_changed', s=>{lastPlayback=s;notify();});
-      const connected = await player.connect();
-      if (!connected) throw new Error('Spotify konnte keinen Browser-Player starten.');
-      // The ready event arrives after connect; do not assume a device ID prematurely.
+      const connected=await player.connect();
+      if(!connected)throw new Error('Spotify konnte den Browser-Player nicht starten. Spotify Premium, Berechtigung und Browser prüfen.');
       await new Promise((resolve,reject)=>{
-        const started=Date.now();const poll=setInterval(()=>{
+        const started=Date.now();
+        const poll=setInterval(()=>{
           if(deviceId){clearInterval(poll);resolve();}
-          else if(Date.now()-started>12000){clearInterval(poll);reject(new Error('Spotify-Gerät nicht bereit. Bitte Player erneut starten.'));}
+          else if(Date.now()-started>12000){clearInterval(poll);reject(new Error('Spotify hat kein Browser-Gerät bereitgestellt.')); }
         },120);
       });
       return deviceId;
-    })().catch(e=>{error=e.message; readyTask=null; notify(); throw e;});
+    })().catch(e=>{
+      error=e.message;sdkStatus='player-error';readyTask=null;
+      try{player?.disconnect();}catch{}
+      player=null;deviceId='';notify();throw e;
+    });
     return readyTask;
   }
   async function play(track) {
-    if (!track?.spotifyTrackId || !/^[a-zA-Z0-9]{22}$/.test(track.spotifyTrackId)) throw new Error('Für diesen Song fehlt noch die Spotify-Track-ID. Bitte neuen Spotify-Song vorschlagen.');
-    // Call from a click handler before the first await to satisfy browser autoplay gesture rules.
-    if (player?.activateElement) player.activateElement();
-    activeTrack = {id:track.spotifyTrackId, title:track.title, artist:track.artist}; notify();
-    const id = await ensurePlayer();
-    if (player?.activateElement) player.activateElement();
-    await api(`/me/player/play?device_id=${encodeURIComponent(id)}`,{method:'PUT', body:{uris:[`spotify:track:${track.spotifyTrackId}`]}});
-    error='';notify();return true;
+    if(!/^[a-zA-Z0-9]{22}$/.test(track?.spotifyTrackId||''))
+      throw new Error('Für diesen Song fehlt die Spotify-Track-ID. Bitte einen neuen Spotify-Song vorschlagen.');
+    if(!state().connected)
+      throw new Error('Spotify ist nicht verbunden. Bitte im Sound Garden „Spotify verbinden“ auswählen.');
+    // The playback SDK can start loading after OAuth completes. The current
+    // gesture can activate an existing player, never a not-yet-created one.
+    const pending=ensurePlayer();
+    let activated=false;
+    if(player?.activateElement){
+      try{
+        const task=player.activateElement();
+        task?.catch?.(()=>{});activated=true;
+      }catch{}
+    }
+    const id=await pending;
+    const mobileIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)
+      || (navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+    if(mobileIOS&&!activated){
+      // A new SDK could only initialize asynchronously after the click.
+      // Spotify requires another direct user gesture; do not fake playback.
+      return {needsGesture:true};
+    }
+    if(!activated&&player?.activateElement) {
+      try{player.activateElement()?.catch?.(()=>{});}catch{}
+    }
+    await api(`/me/player/play?device_id=${encodeURIComponent(id)}`,{
+      method:'PUT',body:{uris:[`spotify:track:${track.spotifyTrackId}`]}
+    });
+    activeTrack={id:track.spotifyTrackId,title:track.title,artist:track.artist};
+    error='';notify();
+    return {needsGesture:false};
   }
   async function toggle() {
     if (!player) return;
@@ -189,7 +238,12 @@
     await api(`/playlists/${match[1]}/items`,{method:'POST',body:{uris:[`spotify:track:${track.spotifyTrackId}`]}});
     return true;
   }
-  const bridge = {version:'0.31.4dy', state,clientId,configure,grant,disconnect,token,api,officialId,findArtists,artistById,
-    play,toggle,embedUrl,addToPlaylist,ensurePlayer, redirect, ready:finishCallback()};
+  // Warm the Spotify SDK after a successful OAuth callback. The user still
+  // explicitly initiates playback; no audio starts automatically.
+  const ready=finishCallback().then(async()=>{
+    if(state().connected)try{await playerScript();}catch{}
+  });
+  const bridge = {version:'0.31.4-sgplayer2', state,clientId,configure,grant,disconnect,token,api,officialId,findArtists,artistById,
+    play,toggle,embedUrl,addToPlaylist,ensurePlayer, redirect, ready};
   window.LifeRPGSpotifyBridge = bridge;
 })();
