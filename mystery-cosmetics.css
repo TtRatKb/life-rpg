@@ -1,0 +1,151 @@
+/* Life RPG · Mystery Cosmetics Phase 1. CSS-only curated graphics.
+   Never display locked pack artwork or overwrite approved character sprites. */
+.mystery-phone-button {
+  margin-left: auto;
+  padding: 6px 10px;
+  border: 1px solid rgba(139, 81, 125, .22);
+  border-radius: 999px;
+  font: inherit;
+  font-size: .72rem;
+  font-weight: 750;
+  cursor: pointer;
+  color: #6c375e;
+  background: rgba(255, 248, 253, .94);
+}
+.mystery-phone-button:hover,
+.mystery-phone-button:focus-visible { border-color: #a46391; outline-offset: 2px; }
+#storyPhoneDialog .mystery-phone-button { flex-shrink: 0; align-self: center; }
+
+.mystery-collection-dialog {
+  box-sizing: border-box;
+  width: min(730px, calc(100vw - 22px));
+  max-height: min(90dvh, 780px);
+  border: 1px solid #d9bad0;
+  border-radius: 22px;
+  padding: 0;
+  color: #493744;
+  background: #fffaf7;
+  box-shadow: 0 22px 80px rgba(54, 25, 49, .22);
+}
+.mystery-collection-dialog::backdrop { background: rgba(31, 19, 33, .65); backdrop-filter: blur(5px); }
+.mystery-shell { padding: clamp(14px, 4vw, 27px); overflow: auto; max-height: calc(90dvh - 2px); }
+.mystery-head { display: flex; align-items: start; gap: 12px; justify-content: space-between; }
+.mystery-head small { color: #925c83; letter-spacing: .14em; font-size: .64rem; font-weight: 850; }
+.mystery-head h2 { font-size: clamp(1.25rem, 4vw, 1.8rem); margin: 5px 0 4px; line-height: 1.25; }
+.mystery-head p { margin: 0; font-size: .82rem; color: #765e70; line-height: 1.5; }
+.mystery-close {
+  border: 1px solid #eedbe8; background: white; border-radius: 999px;
+  min-width: 38px; min-height: 38px; color: #5b4054; cursor: pointer; font-size: 1.55rem; line-height: 1;
+}
+.mystery-progress {
+  margin: 16px 0; border-radius: 11px; padding: 9px 12px;
+  font-size: .78rem; font-weight: 750; color: #75445f;
+  background: linear-gradient(105deg, #f9e4f0, #f6eef7);
+}
+.mystery-packs { display: grid; gap: 10px; }
+.mystery-pack {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr) auto;
+  gap: 15px; align-items: center;
+  min-height: 104px; padding: 10px;
+  border-radius: 16px;
+  border: 1px solid #eddae5;
+  background: white;
+}
+.mystery-pack.is-locked { background: #fbf7fa; border-style: dashed; border-color: #d9c5d2; }
+.mystery-lock, .mystery-preview {
+  display: flex; align-items: center; justify-content: center;
+  height: 82px; width: 96px; border-radius: 12px;
+  overflow: hidden; position: relative;
+}
+.mystery-lock { color: #a78ba0; font-size: 2rem; background: repeating-linear-gradient(130deg,#f6f0f5 0 9px,#f0e7ee 9px 18px); }
+.mystery-lock-icon { padding: 4px 8px; font-size: .8rem; }
+.mystery-pack-details { display: grid; gap: 3px; min-width: 0; }
+.mystery-pack-details small { color: #9a718b; font-size: .64rem; letter-spacing: .08em; font-weight: 750; }
+.mystery-pack-details strong { font-size: .94rem; color: #4b3645; }
+.mystery-pack-details span { font-size: .76rem; color: #786675; line-height: 1.4; }
+.mystery-equip { padding: 7px 12px; font-size: .75rem; white-space: nowrap; }
+.mystery-pack.is-revealed { animation: mystery-reveal .72s ease both; border-color: #c89fc1; box-shadow: 0 0 0 2px rgba(226, 168, 211, .19); }
+@keyframes mystery-reveal {
+  0% { transform: scale(.97); opacity: .55; filter: blur(5px); }
+  60% { transform: scale(1.012); opacity: 1; filter: blur(0); }
+  100% { transform: scale(1); }
+}
+.mystery-footer { padding: 17px 0 2px; display: flex; flex-wrap: wrap; gap: 8px 15px; align-items: center; }
+.mystery-footer small { color: #816e79; flex-basis: 100%; font-size: .73rem; line-height: 1.4; }
+.mystery-preview i, .mystery-preview b, .mystery-preview-orb { display: block; position: absolute; border-radius: 10px; }
+.mystery-preview[data-mystery-preview="m01"] {
+  background: linear-gradient(150deg,#3c344d,#876b89 65%,#cfadbc);
+}
+.mystery-preview[data-mystery-preview="m01"] .mystery-preview-orb { width: 32px; height: 24px; top: 14px; left: 11px; background: #ede0e5; border-radius: 13px 13px 13px 4px; }
+.mystery-preview[data-mystery-preview="m01"] i { width: 45px; height: 27px; right: 10px; bottom: 13px; background: #d7b8d2; border-radius: 14px 14px 4px 14px; }
+.mystery-preview[data-mystery-preview="m01"] b { width: 36px; height: 5px; top: 45px; left: 11px; background: #e0a8bd; }
+.mystery-preview[data-mystery-preview="m02"] {
+  background: radial-gradient(circle at 20% 25%,#f4d9c1 0 3px,transparent 4px),
+    radial-gradient(circle at 74% 68%,#e8c2d7 0 2px,transparent 3px),
+    radial-gradient(circle at 65% 23%,#f5d9ac 0 2px,transparent 3px),
+    linear-gradient(165deg,#29283f,#67647e 66%,#bc9bae);
+}
+.mystery-preview[data-mystery-preview="m02"] .mystery-preview-orb { width: 45px; height: 45px; top: 18px; left: 24px; border-radius: 50%; border: 1px solid rgba(255,238,220,.56); box-shadow: 0 0 25px rgba(245,228,237,.28); }
+.mystery-preview[data-mystery-preview="m03"] {
+  background: linear-gradient(130deg,#efe0e8,#f9f2e7);
+}
+.mystery-preview[data-mystery-preview="m03"] .mystery-preview-orb { height: 58px; width: 48px; border: 4px double #a86692; border-radius: 15px; background: linear-gradient(140deg,#7e6b87,#dbc3cb); box-shadow: 0 2px 9px #b193a5; }
+.mystery-preview[data-mystery-preview="m03"] i { width: 12px; height: 12px; right: 13px; top: 10px; border-radius: 50%; background: #bb8d9b; }
+.mystery-preview[data-mystery-preview="m04"] { background: linear-gradient(160deg,#171f2b,#36465a,#766379); }
+.mystery-preview[data-mystery-preview="m04"] .mystery-preview-orb { width: 65px; height: 16px; top: 16px; left: 12px; background: #9badc2; border-radius: 12px 12px 4px 12px; opacity: .8; }
+.mystery-preview[data-mystery-preview="m04"] i { width: 56px; height: 24px; bottom: 13px; right: 12px; background: #cba4bc; border-radius: 13px 13px 4px 13px; }
+.mystery-preview[data-mystery-preview="m04"] b { width: 24px; height: 3px; left: 17px; top: 45px; background: #a3b7bb; }
+
+/* Each variant is scoped to the two real Phone surfaces. No changes to
+   story sprites, general application theme, data or unread-message UX. */
+:is(#view-phone,#storyPhoneDialog)[data-mystery-theme="m01"] .story-phone-layout,
+:is(#view-phone,#storyPhoneDialog)[data-mystery-theme="m01"] .phone-page-shell {
+  border-color: rgba(116,78,116,.32);
+}
+:is(#view-phone,#storyPhoneDialog)[data-mystery-theme="m01"] .story-phone-contacts { background: #eae0e9; }
+:is(#view-phone,#storyPhoneDialog)[data-mystery-theme="m01"] .story-phone-thread-header { background: #f2e9ee; }
+:is(#view-phone,#storyPhoneDialog)[data-mystery-theme="m01"] .story-message-bubble.incoming { background: #e5d4e5; color: #3f3146; }
+:is(#view-phone,#storyPhoneDialog)[data-mystery-theme="m01"] .story-message-bubble.outgoing { background: linear-gradient(125deg,#b996b6,#e3bbd0); color: #322939; }
+:is(#view-phone,#storyPhoneDialog)[data-mystery-theme="m01"] .story-phone-thread-status { background: #ded3e3; color: #624365; }
+:is(#view-phone,#storyPhoneDialog)[data-mystery-theme="m01"] .story-phone-contact.active { border-color: #b494bb; background: #fff9ff; }
+
+:is(#view-phone,#storyPhoneDialog)[data-mystery-theme="m04"] .story-phone-layout,
+:is(#view-phone,#storyPhoneDialog)[data-mystery-theme="m04"] .phone-page-shell { border-color: #596477; }
+:is(#view-phone,#storyPhoneDialog)[data-mystery-theme="m04"] .story-phone-contacts { background: #e0e4e9; }
+:is(#view-phone,#storyPhoneDialog)[data-mystery-theme="m04"] .story-phone-thread-header { background: #dbe2eb; }
+:is(#view-phone,#storyPhoneDialog)[data-mystery-theme="m04"] .story-message-bubble.incoming { background: #d2dee6; color: #26374b; }
+:is(#view-phone,#storyPhoneDialog)[data-mystery-theme="m04"] .story-message-bubble.outgoing { background: linear-gradient(130deg,#bbb5c9,#e1c8d7); color: #293344; }
+:is(#view-phone,#storyPhoneDialog)[data-mystery-theme="m04"] .story-phone-thread-status { background: #ccd7e3; color: #374759; }
+:is(#view-phone,#storyPhoneDialog)[data-mystery-theme="m04"] .story-phone-contact.active { border-color: #8497af; background: #f8faff; }
+
+:is(#view-phone,#storyPhoneDialog)[data-mystery-wallpaper="m02"] .story-phone-thread {
+  background-color: #ededf3;
+  background-image:
+    linear-gradient(rgba(248,244,249,.87),rgba(247,242,249,.87)),
+    radial-gradient(circle at 18% 21%,#ae90bc 0 2px,transparent 3px),
+    radial-gradient(circle at 78% 40%,#b2a7c2 0 2px,transparent 3px),
+    radial-gradient(circle at 38% 73%,#c9a7b4 0 3px,transparent 4px),
+    repeating-radial-gradient(circle at 50% 50%,transparent 0 24px,#e6dce8 25px 26px);
+  background-size: auto, 190px 170px, 220px 190px, 260px 235px, 260px 260px;
+}
+:is(#view-phone,#storyPhoneDialog)[data-mystery-frame="m03"] .story-phone-contact-avatar {
+  border: 3px double #ab7c97;
+  border-radius: 14px;
+  outline: 2px solid #f4e5ee;
+  outline-offset: 2px;
+}
+:is(#view-phone,#storyPhoneDialog)[data-mystery-frame="m03"] .story-message-date {
+  border: 1px solid #d4b1c5;
+  box-shadow: 0 2px 8px rgba(101,52,91,.09);
+}
+:is(#view-phone,#storyPhoneDialog)[data-mystery-frame="m03"] .story-phone-thread-status { border: 1px solid #cfadc3; }
+@media (max-width: 540px) {
+  .mystery-pack { grid-template-columns: 70px minmax(0,1fr); gap: 10px; }
+  .mystery-lock,.mystery-preview { width: 70px; height: 70px; }
+  .mystery-equip,.mystery-lock-icon { grid-column: 2; justify-self: start; }
+  .mystery-pack-details span { font-size: .72rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mystery-pack.is-revealed { animation: none; }
+}
