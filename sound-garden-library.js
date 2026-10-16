@@ -117,7 +117,7 @@
         </div>
       </header>
       <div class="sgl-detail-actions">
-        ${linked ? `<button class="primary-button" type="button" data-sgl-action="load-guide" data-key="${attr(artist.key)}" ${busyKey===artist.key?'disabled':''}>${busyKey===artist.key?'Lade Spotify-Daten …':guide.length?`Core-${stats.target}-Liste ${stats.loaded<stats.target?'erweitern':'aktualisieren'}`:`Core-${stats.target}-Liste laden`}</button>` : `<button class="primary-button" type="button" data-sgl-action="verify" data-key="${attr(artist.key)}">Mit Spotify verknüpfen</button>`}
+        ${linked ? `<button class="primary-button" type="button" data-sgl-action="load-guide" data-key="${attr(artist.key)}" ${busyKey===artist.key?'disabled':''}>${busyKey===artist.key?'Lade Spotify-Daten …':guide.length?`Core-${stats.target}-Liste ${stats.loaded<stats.target?'erweitern':'aktualisieren'}`:`Core-${stats.target}-Liste laden`}</button>` : `<button class="primary-button" type="button" data-sgl-action="verify" data-key="${attr(artist.key)}">${spotifyConnected()?'Mit Spotify verknüpfen':'Spotify verbinden & zuordnen'}</button>`}
         ${guide.length ? `<button class="secondary-button" type="button" data-sgl-action="continue" data-key="${attr(artist.key)}">Nächsten offenen Song entdecken →</button>` : ''}
       </div>
       ${guide.length ? `<div class="sgl-track-list">${guide.map((track,index) => {
@@ -144,7 +144,7 @@
       <section class="sgl-toolbar">
         <div><small>ARTIST LIBRARY</small><strong>${artists().length} Artists</strong></div>
         <label><span>Core Songs pro Artist</span><select data-sgl-target>${[10,20,30,50].map(n=>`<option value="${n}" ${target===n?'selected':''}>${n}</option>`).join('')}</select></label>
-        <div class="sgl-spotify-state ${spotifyState.connected?'is-connected':''}"><span>${spotifyState.connected?'●':'○'}</span><div><strong>${spotifyState.connected?'Spotify verbunden':'Spotify nicht verbunden'}</strong><small>${spotifyState.connected?'Core Lists können geladen werden.':'Für Artist-Listen und eindeutige IDs Spotify im Daily Sound Garden verbinden.'}</small></div></div>
+        <div class="sgl-spotify-state ${spotifyState.connected?'is-connected':''}"><span>${spotifyState.connected?'●':'○'}</span><div><strong>${spotifyState.connected?'Spotify verbunden':'Spotify nicht verbunden'}</strong><small>${spotifyState.connected?'Core Lists können geladen werden.':'Für Artist-Zuordnung und neue Songs im Daily Sound Garden anmelden.'}</small></div></div>
       </section>
       <section class="sgl-panel">
         ${selected ? renderArtistDetail(selected) : `<div class="sgl-section-head"><div><small>DEINE ARTISTS</small><h2>Artist Progress</h2><p>„Erkundet“ heißt: gehört, bewertet oder bereits als bekannt markiert. Likes und Playlist-Saves bleiben zusätzlich sichtbar.</p></div></div>${renderCards()}`}
@@ -205,7 +205,16 @@
       if (action === 'load-guide') { await loadGuide(key, true); return; }
       if (action === 'verify') {
         sg.open?.();
-        setTimeout(() => sg.verifyArtist?.(key), 120);
+        if (!spotifyConnected()) {
+          notice='Spotify ist in diesem Browser derzeit nicht verbunden. Im geöffneten Sound Garden kannst du „Spotify verbinden“ auswählen; erst danach ist die Artist-Zuordnung möglich.';
+          render();
+          document.getElementById('sgSpotifyState')?.scrollIntoView?.({block:'center',behavior:'instant'});
+          return;
+        }
+        notice='Spotify-Artist-Zuordnung wird geprüft …';
+        render();
+        // Opening the existing modal is synchronous; no timeout/race needed.
+        void sg.verifyArtist?.(key);
         return;
       }
       if (action === 'daily-track') { openDailyWithTrack(key, button.dataset.track); return; }
@@ -235,5 +244,5 @@
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, {once:true}); else init();
-  window.LifeRPGSoundGardenLibrary = { version:'0.31.4dz13', render, openArtist:key=>{selectedArtistKey=key;app.showView?.('soundgarden');render();} };
+  window.LifeRPGSoundGardenLibrary = { version:'0.31.4-sgplayer2', render, openArtist:key=>{selectedArtistKey=key;app.showView?.('soundgarden');render();} };
 })();

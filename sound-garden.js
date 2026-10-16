@@ -6,7 +6,7 @@
   'use strict';
   const app = window.LifeRPGApp;
   if (!app?.getState || !app?.saveState || !app?.awardActivity) return;
-  const VERSION = '0.31.4-sgspotify1';
+  const VERSION = '0.31.4-sgplayer2';
   const Spotify = window.LifeRPGSpotifyBridge;
   const ALIASES = {'hanabie':['HANABIE.','花冷え。','花冷え','HANABIE']};
   const PLAYLIST = 'https://open.spotify.com/playlist/6aD4oA94t1SpI10OpTrsVl';
@@ -460,12 +460,15 @@ async function spotifyArtistOptions(a) {
     }
     if(options.length===1){
       const o=options[0];
+      const sameIdentity=validSpotifyId(a.spotifyArtistId)&&a.spotifyArtistId===o.id;
       a.spotifyArtistId=o.id;a.spotifyArtistName=o.name;a.spotifyImage=artistImage(o.image);
       a.spotifyUrl=o.url||`https://open.spotify.com/artist/${o.id}`;
-      // Provider-specific unreviewed candidates may be rebuilt. Keep confirmed
-      // Apple IDs, history, known tracks, ratings and reward receipts untouched.
-      delete m.catalog[a.key];delete m.artistGuides[a.key];
-      if(m.current?.artistKey===a.key)m.current=null;
+      // Reconfirming an already linked artist must not discard their Core
+      // list, cached tracks or current unreviewed proposal.
+      if(!sameIdentity){
+        delete m.catalog[a.key];delete m.artistGuides[a.key];
+        if(m.current?.artistKey===a.key&&validSpotifyId(m.current.spotifyTrackId))m.current=null;
+      }
       m.pendingIdentity=null;
       save('spotify-artist-identity');
       status=`✓ ${a.name} eindeutig auf Spotify zugeordnet.`;
@@ -481,19 +484,26 @@ async function spotifyArtistOptions(a) {
     if(busy)return;
     const m=data(),a=m.artists.find(x=>x.key===key);
     if(!a)return;
+    if(!spotifyActive()){
+      tell('Spotify ist aktuell nicht verbunden. Nutze unten „Spotify verbinden“, bevor du die Artist-Zuordnung änderst.');
+      return false;
+    }
     busy=true;status=`Überprüfe „${a.name}“ auf Spotify …`;render();
-    try{await resolveArtist(a,true);}
-    catch(e){status=`Spotify-Artist-Suche fehlgeschlagen: ${e?.message||'Unbekannter Fehler'}`;}
+    try{return await resolveArtist(a,true);}
+    catch(e){status=`Spotify-Artist-Suche fehlgeschlagen: ${e?.message||'Unbekannter Fehler'}`;return false;}
     finally{busy=false;render();}
   }
   function chooseArtist(key,id) {
     const m=data(),pending=m.pendingIdentity,a=m.artists.find(x=>x.key===key);
     const option=pending?.artistKey===key&&pending.options.find(x=>String(x.id)===String(id));
     if(!a||!option)return;
+    const sameIdentity=pending.source==='spotify'&&a.spotifyArtistId===option.id;
     if(pending.source==='spotify'){a.spotifyArtistId=option.id;a.spotifyArtistName=option.name;a.spotifyImage=artistImage(option.image);a.spotifyUrl=option.url||`https://open.spotify.com/artist/${option.id}`;}
     else a.artistId=option.id;
-    delete m.catalog[a.key];delete m.artistGuides[a.key];
-    if(m.current?.artistKey===a.key)m.current=null;
+    if(!sameIdentity){
+      delete m.catalog[a.key];delete m.artistGuides[a.key];
+      if(m.current?.artistKey===a.key&&validSpotifyId(m.current.spotifyTrackId))m.current=null;
+    }
     const resumeDiscovery=Boolean(pending.resumeDiscovery);
     m.pendingIdentity=null;artistSampleId='';
     save('artist-identity-selected');status=`✓ ${a.name} zugeordnet · ${pending.source==='spotify'?'Spotify':'Katalog'}-ID ${option.id}.`;
@@ -667,8 +677,16 @@ async function spotifyArtistOptions(a) {
     const t=data().current;
     if(!t?.spotifyTrackId||!spotifyActive())return tell('Bitte Spotify verbinden und einen neuen Song vorschlagen.');
     const button=$('sgPlayInside');if(button)button.disabled=true;
-    try {await Spotify.play(t);data().listenedSpotify[t.spotifyTrackId]=Date.now();save('spotify-listened');status='♫ Spotify spielt jetzt innerhalb von Life RPG.';}
-    catch(e){status=`Spotify-Player: ${e.message} Der eingebettete Player darunter bleibt als Alternative verfügbar.`;}
+    try {
+      const result=await Spotify.play(t);
+      if(result?.needsGesture){
+        status='♫ Spotify-Player ist bereit. Bitte „Hier im Life RPG abspielen“ noch einmal drücken, um Audio im Browser freizugeben.';
+      }else{
+        status='♫ Spotify hat den Wiedergabebefehl angenommen. Falls Safari noch pausiert ist, tippe erneut auf „Abspielen“ oder nutze den eingebetteten Player.';
+      }
+    } catch(e){
+      status=`Spotify-Player: ${e.message}. Der Spotify-Embed unten bleibt als Alternative verfügbar.`;
+    }
     finally {if(button)button.disabled=false;render();}
   }
   function updateEmbed(t) {
@@ -722,7 +740,7 @@ async function spotifyArtistOptions(a) {
     $('sgClientId').value=Spotify?.clientId()||'';
     $('sgSaveClient').addEventListener('click',()=>{try{Spotify.configure($('sgClientId').value);tell('Client ID lokal gespeichert. Jetzt Spotify verbinden.');}catch(e){tell(e.message);}});
     $('sgConnect').addEventListener('click',()=>Spotify?.grant().catch(e=>tell(e.message)));
-    $('sgDisconnect').addEventListener('click',()=>{Spotify?.disconnect();embeddedId='';data().current=null;save('spotify-disconnect');render();});
+    $('sgDisconnect').addEventListener('click',()=>{Spotify?.disconnect();render();});
     $('sgClose').addEventListener('click',()=>dialog.close());
     dialog.addEventListener('click',e=>{if(e.target===dialog)dialog.close();});
     $('sgArtistForm').addEventListener('submit',e=>{e.preventDefault();addArtists($('sgArtistName').value);});
@@ -784,7 +802,10 @@ async function spotifyArtistOptions(a) {
     $('sgStatus').textContent=status;$('sgStatus').hidden=!status;
     $('sgPlaylistUrl').value=m.playlistUrl;
     const state=Spotify?.state();
-    $('sgSpotifyState').textContent=state?.connected?(state.error?`Spotify verbunden · ${state.error}`:'✓ Spotify verbunden · bereit für Songvorschläge und den In-App-Player')
+    $('sgSpotifyState').textContent=state?.connected
+      ? state.error?`Spotify verbunden · Player-/API-Fehler: ${state.error}`
+        :state.ready?'✓ Spotify verbunden · Browser-Player bereit'
+        :'✓ Spotify verbunden · Songkatalog verfügbar. Der Browser-Player wird beim ersten Abspielen eingerichtet.'
       :state?.error||'Spotify nicht verbunden · bisherige Spotify-Songs bleiben verfügbar. Für neue Titel bitte wieder verbinden.';
     $('sgConnect').disabled=Boolean(state?.busy);
     $('sgDisconnect').hidden=!state?.connected;
@@ -816,5 +837,5 @@ async function spotifyArtistOptions(a) {
   window.addEventListener('life-rpg:state-saved',()=>{if(dialog?.open)render();});
   window.addEventListener('life-rpg:spotify-change',()=>{reconcileSpotifyRecovery();if(dialog)render();});
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)reconcileSpotifyRecovery();});
-  Spotify?.ready?.then(()=>{const m=data(); if(spotifyActive() && m.current && !m.current.spotifyTrackId){m.current=null;save('spotify-source-change');status='Spotify verbunden. Bitte einen neuen Song direkt aus Spotify vorschlagen.';} if(dialog)render();});
+  Spotify?.ready?.then(()=>{if(dialog)render();});
 })();
