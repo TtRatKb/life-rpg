@@ -48,7 +48,7 @@
     for(const target of targets){
       const existing=document.getElementById(target.id);
       if(!rank){existing?.remove();continue;}
-      if(!target.root||existing)returnTargetMissing(target,existing);
+      if(!target.root||existing)continue;
       if(existing)continue;
       const button=document.createElement("button");
       button.id=target.id;
@@ -60,8 +60,6 @@
       target.root.appendChild(button);
     }
   }
-  // Preserve existing injected buttons, if a Story UI rerendered only its contents.
-  function returnTargetMissing(){return;}
   let dialog=null,highlight=0,lastOwned=owned();
   function ensureDialog(){
     if(dialog?.isConnected)return dialog;
