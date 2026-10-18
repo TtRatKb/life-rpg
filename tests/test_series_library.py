@@ -1036,6 +1036,73 @@ class SeriesLibraryTests(unittest.TestCase):
         self.assertLessEqual(layout['width'],layout['viewport'])
         self.assertLessEqual(layout['scrollWidth'],layout['rightWidth']+2)
 
+    def test_bullet_journal_live_habits_with_zero_points_and_canonical_log(self):
+        """Personal daily and weekly Habits appear without purchase; Journal logs
+        use exactly the original completion and XP ledger, never a second reward."""
+        self.page.evaluate("""() => {
+          const root=LifeRPGApp.getState();
+          const now=new Date();
+          const key=[now.getFullYear(),String(now.getMonth()+1).padStart(2,'0'),
+                     String(now.getDate()).padStart(2,'0')].join('-');
+          window.journalLiveDate=key;
+          root.skills.realmBonusPoints.Health=0;
+          root.habits={
+            schemaVersion:4,reminders:{},
+            items:[{id:'live-canonical-habit',name:'My genuine routine',
+              realm:'Recovery',active:true,createdDate:key,scheduleStartDate:key,
+              trackingFrom:new Date(now.getFullYear(),now.getMonth(),now.getDate(),0).getTime(),
+              schedule:{type:'daily'},effort:'low',daypart:'anytime',
+              note:'Use my own existing habit'}],
+            completions:[]
+          };
+        }""")
+        for script in ['habits.js','journal.js','bullet-journal-book.js',
+                       'skills.js','talent-v2.js','talent-tree-v2-graph.js',
+                       'bullet-journal-habit-tracker.js']:
+            self.page.add_script_tag(url='/'+script)
+        self.page.add_style_tag(url='/bullet-journal-book.css')
+        self.page.add_style_tag(url='/bullet-journal-daily-tracker.css')
+        self.page.add_script_tag(url='/bullet-journal-daily-tracker.js')
+        self.assertTrue(self.page.evaluate(
+            "LifeRPGBulletJournalBook.open(window.journalLiveDate)"))
+        daily=self.page.locator('#bjBookDailyMini')
+        self.assertFalse(self.page.evaluate(
+            "LifeRPGBulletJournalDailyTracker.isUnlocked()"))
+        self.assertIn('My genuine routine',daily.inner_text())
+        self.assertIn('Available: 0',daily.inner_text())
+        self.assertEqual(daily.locator('[data-bj-daily-log]').count(),1)
+        initial=self.page.evaluate("""() => ({
+          completions:LifeRPGApp.getState().habits.completions.length,
+          rewards:LifeRPGApp.getState().rewardLedger.events.length
+        })""")
+        daily.locator('[data-bj-daily-log]').click()
+        self.assertEqual(daily.locator('.bj-daily-mini-row.is-done').count(),1)
+        self.assertEqual(daily.locator('[data-bj-daily-log]').count(),0)
+        completed=self.page.evaluate("""() => ({
+          completions:LifeRPGApp.getState().habits.completions.length,
+          rewards:LifeRPGApp.getState().rewardLedger.events.length,
+          id:LifeRPGApp.getState().habits.completions.at(-1)?.habitId
+        })""")
+        self.assertEqual(completed['completions'],initial['completions']+1)
+        self.assertEqual(completed['id'],'live-canonical-habit')
+        self.assertGreaterEqual(completed['rewards'],initial['rewards'])
+        self.assertFalse(self.page.evaluate("""() =>
+          LifeRPGHabits.completeFromJournal('live-canonical-habit',window.journalLiveDate)"""))
+        self.assertEqual(self.page.evaluate(
+            "LifeRPGApp.getState().habits.completions.length"),completed['completions'])
+        self.assertEqual(self.page.evaluate(
+            "LifeRPGApp.getState().rewardLedger.events.length"),completed['rewards'])
+        self.page.locator('#bjBookDailySpread [data-bj-chapter="weekly"]').click()
+        self.assertEqual(self.page.locator('#bjBookHabitTracker .bj-habit-row').count(),1)
+        self.assertEqual(self.page.locator(
+            '#bjBookHabitTracker .bj-habit-cell.state-done').count(),1)
+        self.assertIn('My genuine routine',self.page.locator('#bjBookHabitTracker').inner_text())
+        self.page.locator('#bjBookHabitTracker [data-bj-habit-open]').first.click()
+        self.assertTrue(self.page.evaluate("""() =>
+          document.querySelector('#view-habits')?.classList.contains('active')"""))
+        self.assertEqual(self.page.evaluate(
+            "LifeRPGApp.getState().habits.completions.length"),completed['completions'])
+
     def test_bullet_journal_weekly_legacy_entitlement_survives_book_move(self):
         """An already-purchased Weekly Tracker costs zero extra points after routing migration."""
         self.page.evaluate("""() => {
