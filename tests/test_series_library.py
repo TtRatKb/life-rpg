@@ -147,6 +147,8 @@ class SeriesLibraryTests(unittest.TestCase):
             route.fulfill(body=self.app_source, content_type="text/javascript")
         elif "/pako.min.js" in url and getattr(self, 'block_pako', False):
             route.abort()
+        elif "/assets/journal/" in url:
+            route.continue_()
         elif route.request.resource_type in ("image", "media", "font"):
             route.abort()
         elif not url.startswith(f"http://127.0.0.1:{self.server.server_port}/"):
@@ -901,6 +903,114 @@ class SeriesLibraryTests(unittest.TestCase):
         self.assertEqual(self.page.locator('#bjBookHabitTracker .bj-habit-row').count(),2)
         self.assertEqual(self.page.evaluate(
             "LifeRPGSkills.getRealmPoints('Health').available"),after['points'])
+
+    def test_journal_atelier_free_decoration_persists_and_pilot_never_saves(self):
+        """The editor is free and additive. A standalone SVG persists by key;
+        unapproved Sakura samples remain transient, no points/logs are changed."""
+        self.page.evaluate("""() => {
+          const root=LifeRPGApp.getState(),now=new Date();
+          const key=[now.getFullYear(),String(now.getMonth()+1).padStart(2,'0'),
+                     String(now.getDate()).padStart(2,'0')].join('-');
+          window.atelierTestDate=key;
+          root.journal.entries[key]={date:key,bookNote:'Do not touch my writing',
+            gratitude:'A safe little book'};
+          root.skills.realmBonusPoints.Health=0;
+        }""")
+        self.page.add_script_tag(url='/journal.js')
+        self.page.add_script_tag(url='/bullet-journal-book.js')
+        self.page.add_style_tag(url='/bullet-journal-book.css')
+        self.page.add_style_tag(url='/bullet-journal-atelier.css')
+        self.page.add_script_tag(url='/bullet-journal-atelier.js')
+        self.assertTrue(self.page.evaluate(
+            "LifeRPGBulletJournalBook.open(window.atelierTestDate)"))
+        self.assertEqual(self.page.locator('#bjAtelierMount .bj-atelier-stage').count(),0)
+        self.page.locator('[data-bj-atelier-toggle]').click()
+        self.assertEqual(self.page.locator('#bjAtelierMount .bj-atelier-stage').count(),1)
+        self.assertEqual(self.page.locator('[data-bj-atelier-asset]').count(),5)
+        self.page.wait_for_function("""() => [...document.querySelectorAll(
+          '#bjAtelierMount .bj-atelier-pick img')].every(img=>img.complete&&img.naturalWidth>0)""")
+        before=self.page.evaluate("""() => {
+          const s=LifeRPGApp.getState();
+          return {points:LifeRPGSkills.getRealmPoints('Health').available,
+            habits:JSON.stringify(s.habits),rewards:JSON.stringify(s.rewardLedger),
+            unlocks:JSON.stringify(s.talentTreeExpansion),
+            note:s.journal.entries[window.atelierTestDate].bookNote,
+            gratitude:s.journal.entries[window.atelierTestDate].gratitude};
+        }""")
+        self.page.locator('[data-bj-atelier-asset="paperclip-ink"]').click()
+        saved=self.page.evaluate("""() =>
+          LifeRPGApp.getState().journalAtelierV1.daily[window.atelierTestDate]""")
+        self.assertEqual(len(saved),1)
+        self.assertEqual(saved[0]['assetKey'],'paperclip-ink')
+        self.assertFalse(self.page.evaluate("LifeRPGJournalAtelier.isPreview()"))
+        self.page.locator('[data-bj-atelier-edit="larger"]').click()
+        self.page.locator('[data-bj-atelier-edit="turn-right"]').click()
+        resized=self.page.evaluate("""() =>
+          LifeRPGApp.getState().journalAtelierV1.daily[window.atelierTestDate][0]""")
+        self.assertGreater(resized['width'],saved[0]['width'])
+        self.assertNotEqual(resized['angle'],saved[0]['angle'])
+        self.page.locator('[data-bj-atelier-asset="sakura-branch"]').click()
+        self.assertTrue(self.page.evaluate("LifeRPGJournalAtelier.isPreview()"))
+        self.assertIn('not sold or saved',self.page.locator('#bjAtelierMount').inner_text())
+        self.assertEqual(self.page.locator('#bjAtelierMount .bj-atelier-item').count(),2)
+        self.assertEqual(self.page.evaluate("""() =>
+          JSON.stringify(LifeRPGApp.getState().journalAtelierV1.daily[window.atelierTestDate])"""),
+          __import__('json').dumps([resized],separators=(',',':')))
+        self.page.locator('[data-bj-atelier-edit="turn-left"]').click()
+        self.page.locator('[data-bj-atelier-exit]').click()
+        self.assertFalse(self.page.evaluate("LifeRPGJournalAtelier.isPreview()"))
+        self.assertEqual(self.page.locator('#bjAtelierMount .bj-atelier-item').count(),1)
+        self.assertEqual(self.page.locator('[data-bj-atelier-asset="sakura-branch"]').count(),1)
+        after=self.page.evaluate("""() => {
+          const s=LifeRPGApp.getState();
+          return {points:LifeRPGSkills.getRealmPoints('Health').available,
+            habits:JSON.stringify(s.habits),rewards:JSON.stringify(s.rewardLedger),
+            unlocks:JSON.stringify(s.talentTreeExpansion),
+            note:s.journal.entries[window.atelierTestDate].bookNote,
+            gratitude:s.journal.entries[window.atelierTestDate].gratitude};
+        }""")
+        self.assertEqual(before,after)
+        self.page.evaluate("LifeRPGApp.saveState({suppressCloud:true})")
+        self.page.reload(wait_until='domcontentloaded')
+        self.page.wait_for_function('window.LifeRPGSkills && window.saveSafetyTest')
+        self.page.add_script_tag(url='/journal.js')
+        self.page.add_script_tag(url='/bullet-journal-book.js')
+        self.page.add_script_tag(url='/bullet-journal-atelier.js')
+        self.assertTrue(self.page.evaluate(
+            "LifeRPGBulletJournalBook.open(Object.keys(LifeRPGApp.getState().journalAtelierV1.daily)[0])"))
+        self.assertEqual(self.page.locator('#bjAtelierMount .bj-atelier-item').count(),1)
+        self.assertEqual(self.page.evaluate("""() =>
+          LifeRPGApp.getState().journalAtelierV1.daily[
+            LifeRPGBulletJournalBook.getDate()][0].assetKey"""),'paperclip-ink')
+        self.assertFalse(self.page.evaluate("LifeRPGJournalAtelier.isPreview()"))
+
+    def test_journal_atelier_mobile_decoration_does_not_cover_writing(self):
+        """Editor decorations stay in a separate bounded band even on phone."""
+        self.page.set_viewport_size({'width':390,'height':844})
+        self.page.add_script_tag(url='/journal.js')
+        self.page.add_script_tag(url='/bullet-journal-book.js')
+        self.page.add_style_tag(url='/bullet-journal-book.css')
+        self.page.add_style_tag(url='/bullet-journal-atelier.css')
+        self.page.add_script_tag(url='/bullet-journal-atelier.js')
+        self.assertTrue(self.page.evaluate("LifeRPGBulletJournalBook.open()"))
+        self.page.locator('[data-bj-atelier-toggle]').click()
+        self.page.locator('[data-bj-atelier-asset="sakura-washi"]').click()
+        values=self.page.evaluate("""() => {
+          const stage=document.getElementById('bjAtelierStage');
+          const paper=stage.closest('.bj-book-page');
+          const writing=document.getElementById('bjBookText');
+          const rect=stage.getBoundingClientRect();
+          return {width:rect.width,viewport:document.documentElement.clientWidth,
+            overflow:paper.scrollWidth-paper.clientWidth,
+            writingOutside:!paper.contains(writing),
+            ephemeral:LifeRPGJournalAtelier.isPreview(),
+            noSavedDecorations:!LifeRPGApp.getState().journalAtelierV1};
+        }""")
+        self.assertLessEqual(values['width'],values['viewport'])
+        self.assertLessEqual(values['overflow'],2)
+        self.assertTrue(values['writingOutside'])
+        self.assertTrue(values['ephemeral'])
+        self.assertTrue(values['noSavedDecorations'])
 
     def test_bullet_journal_daily_mini_preview_purchase_movement_and_persistence(self):
         """The Daily insert uses exactly one canonical day, costs one Health point

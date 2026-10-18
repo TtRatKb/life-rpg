@@ -1,4 +1,4 @@
-const CACHE_NAME = "life-rpg-v0.31.4-journalux2b";
+const CACHE_NAME = "life-rpg-v0.31.4-atelier-preview1";
 const ASSET_CACHE_NAME = "life-rpg-assets-v6";
 const MAX_RUNTIME_ASSETS = 96;
 const CORE = [
@@ -60,6 +60,13 @@ const CORE = [
   "./talent-tree-v2-graph.js?v=0.31.4-journalux2b",
   "./bullet-journal-habit-tracker.js?v=0.31.4-journalux2b",
   "./bullet-journal-daily-tracker.js?v=0.31.4-journalux2b",
+  "./bullet-journal-atelier.js?v=0.31.4-atelier-preview1",
+  "./bullet-journal-atelier.css?v=0.31.4-atelier-preview1",
+  "./assets/journal/paperclip-ink.svg",
+  "./assets/journal/sakura-branch.svg",
+  "./assets/journal/sakura-washi.svg",
+  "./assets/journal/sakura-letter.svg",
+  "./assets/journal/sakura-divider.svg",
   "./japanese-atlas-dz48.js?v=0.31.4dz48",
   "./japanese-atlas-dz48.css?v=0.31.4dz48",
   "./talent-reward-studios.css?v=0.31.4cw",
@@ -172,12 +179,12 @@ const CORE = [
   "./dreamscape.js?v=0.31.4cx",
   "./journal-rewards.js?v=0.31.4ag",
   "./weekly-review.css?v=0.31.4ag",
-  "./bullet-journal-book.css?v=0.31.4-dailymini1",
+  "./bullet-journal-book.css?v=0.31.4-atelier-preview1",
   "./bullet-journal-habit-tracker.css?v=0.31.4-journalux2b",
-  "./bullet-journal-daily-tracker.css?v=0.31.4-journalux2b",
+  "./bullet-journal-daily-tracker.css?v=0.31.4-atelier-preview1",
   "./weekly-review.js?v=0.31.4ag",
   "./manifest.webmanifest?v=0.30.3a",
-  "./pwa.js?v=0.31.4-journalux2b",
+  "./pwa.js?v=0.31.4-atelier-preview1",
   "./focus-dock.css?v=0.31.4dz16",
   "./focus-dock.js?v=0.31.4dz50c",
   "./visual-performance.js?v=0.31.4bu",
@@ -217,7 +224,7 @@ const CORE = [
   "./daily.js?v=0.31.4-dm1",
   "./data/year-journal-questions.js?v=0.31.4ar",
   "./journal.js?v=0.31.4-book1",
-  "./bullet-journal-book.js?v=0.31.4-dailymini1",
+  "./bullet-journal-book.js?v=0.31.4-atelier-preview1",
   "./story-engine.js?v=0.31.4dz16",
   "./story-ui.js?v=0.31.4dz38",
   "./relationship-memory.js?v=0.31.4cy",

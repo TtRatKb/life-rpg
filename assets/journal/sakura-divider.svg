@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="160" viewBox="0 0 1000 160" fill="none" role="img" aria-label="Fine sakura floral page divider with suspended blossoms">
+<defs><g id="petal" fill="#f1c9d5" stroke="#b995a0" stroke-width="2.5"><path d="M0 0C-20-14-19-45 0-41C20-43 22-15 0 0Z"/><path d="M0 0C20-15 44-7 35 14C28 30 4 17 0 0Z"/><path d="M0 0C15 19 1 46-19 33C-34 22-13 3 0 0Z"/><path d="M0 0C-22 21-46 4-33-12C-23-26-3-17 0 0Z"/><path d="M0 0C-9-24 10-45 27-29C38-17 15-2 0 0Z"/></g></defs>
+<path d="M30 78C200 88 249 66 379 79S655 87 812 77S928 80 968 75" stroke="#ad9894" stroke-width="4" stroke-linecap="round"/>
+<path d="M38 84C170 93 279 71 379 86S655 94 812 85" stroke="#e4c5ca" stroke-width="2" stroke-linecap="round" opacity=".8"/>
+<path d="M221 77c13-18 25-22 37-23M708 82c-9-23-18-30-32-33" stroke="#829388" stroke-width="3" stroke-linecap="round"/>
+<use href="#petal" transform="translate(252 51) rotate(-12) scale(.52)"/><circle cx="252" cy="51" r="4" fill="#b58d6d"/>
+<use href="#petal" transform="translate(479 80) rotate(20) scale(.71)"/><circle cx="479" cy="80" r="5" fill="#b58d6d"/>
+<use href="#petal" transform="translate(667 50) rotate(44) scale(.5)"/><circle cx="667" cy="50" r="4" fill="#b58d6d"/>
+<path d="M490 121C505 110 519 122 505 134S476 133 490 121Z" fill="#f4d0d8" stroke="#bf9fa8" stroke-width="2"/>
+</svg>
