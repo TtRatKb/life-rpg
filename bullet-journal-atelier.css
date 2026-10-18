@@ -25,6 +25,9 @@
  border:0!important;border-radius:0!important;box-shadow:none!important;
  background:none!important;
 }
+/* While placing, the art floats above the paper so drag handles are usable;
+   after closing, text and habit controls win the stacking order. */
+#bjBookDailySpread .bj-atelier-stage.is-editing{z-index:3}
 .bj-atelier-item{
  position:absolute;box-sizing:border-box;
  max-width:none;z-index:1;
