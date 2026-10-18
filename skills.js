@@ -1608,6 +1608,26 @@
     };
   }
 
+  // Two-for-one Realm exchange is a separate permanent, auditable ledger.
+  // Skill XP, Realm XP, Journey allocations and Talent ownership remain intact.
+  // Count only uniquely identified, valid, completed 2 -> 1 transfers.
+  function pointExchangeTotals() {
+    const exchanges = app.getState()?.pointExchangeV1?.transactions;
+    const incoming = Object.fromEntries(Object.keys(REALMS).map(realm => [realm, 0]));
+    const outgoing = Object.fromEntries(Object.keys(REALMS).map(realm => [realm, 0]));
+    const seen = new Set();
+    if (!Array.isArray(exchanges)) return { incoming, outgoing };
+    for (const tx of exchanges) {
+      if (!tx || typeof tx !== "object" || typeof tx.id !== "string" || !tx.id ||
+          seen.has(tx.id) || !REALMS[tx.from] || !REALMS[tx.to] || tx.from === tx.to ||
+          tx.fromCost !== 2 || tx.toCredit !== 1) continue;
+      seen.add(tx.id);
+      outgoing[tx.from] += 2;
+      incoming[tx.to] += 1;
+    }
+    return { incoming, outgoing };
+  }
+
   function realmPointInfo(realm, totals = totalsBySkill()) {
     const earnedFromSkills = (SKILLS_BY_REALM[realm] || []).reduce((sum, item) => sum + pointsFromSkillLevel(levelInfo(totals[item.id] || 0).level), 0);
     const rankInfo = realmRankPointInfo(realm, totals);
@@ -1620,8 +1640,11 @@
     // those costs here as an external contribution instead of duplicating them
     // into the core ledger.
     const externalSpent = Math.max(0, Number(window.LifeRPGTalentTreeGraph?.extraSpent?.(realm) || 0));
-    const spent = baseSpent + externalSpent;
-    const earned = earnedFromSkills + rankInfo.points + breadthInfo.points + legacyCredit + bonus;
+    const exchange = pointExchangeTotals();
+    const exchangedIn = exchange.incoming[realm] || 0;
+    const exchangedOut = exchange.outgoing[realm] || 0;
+    const spent = baseSpent + externalSpent + exchangedOut;
+    const earned = earnedFromSkills + rankInfo.points + breadthInfo.points + legacyCredit + bonus + exchangedIn;
     return {
       earned,
       spent,
@@ -1632,7 +1655,9 @@
       breadth: breadthInfo.points,
       breadthMilestones: breadthInfo,
       legacyCredit,
-      bonus
+      bonus,
+      exchangedIn,
+      exchangedOut
     };
   }
 
@@ -2131,7 +2156,9 @@
       `${points.earnedFromRealmRank} from Realm ranks`,
       points.breadth ? `${points.breadth} from breadth` : null,
       points.legacyCredit ? `${points.legacyCredit} protected legacy` : null,
-      points.bonus ? `${points.bonus} bonus` : null
+      points.bonus ? `${points.bonus} bonus` : null,
+      points.exchangedIn ? `${points.exchangedIn} exchanged in` : null,
+      points.exchangedOut ? `${points.exchangedOut} exchanged out` : null
     ].filter(Boolean);
 
     // Read-only point audit: based on current Skill ledger; never grants XP.
@@ -2141,7 +2168,7 @@
       const pts = pointsFromSkillLevel(level);
       return `<div class="qol-points-row"><span>${esc(item.icon)} ${esc(item.label)} · Lv. ${level}</span><strong>${pts} P.</strong></div>`;
     }).join("");
-    const auditDetail = `<details class="qol-points-details"><summary>Woher kommen meine ${points.earned} Punkte?</summary><div class="qol-points-breakdown">${skillSources}<div class="qol-points-row"><span>Realm-Ränge (bis ${points.realmRank})</span><strong>${points.earnedFromRealmRank} P.</strong></div><div class="qol-points-row"><span>Vielseitigkeits-Meilensteine</span><strong>${points.breadth} P.</strong></div><div class="qol-points-row"><span>Geschütztes historisches Guthaben</span><strong>${points.legacyCredit} P.</strong></div><div class="qol-points-row"><span>Bonus / Journey-Zuweisungen</span><strong>${points.bonus} P.</strong></div><div class="qol-points-row qol-points-total"><span>${points.earned} insgesamt · ${points.spent} ausgegeben</span><strong>${points.available} übrig</strong></div></div><p>Talentpunkte kommen aus mehreren erreichten Stufen, nicht direkt pro geloggter Tätigkeit. Einzelne neue XP stehen unter Activity & Rewards. Ein historischer Rebuild kann mehrere zuvor verdeckte Punkte sichtbar machen.</p></details>`;
+    const auditDetail = `<details class="qol-points-details"><summary>Woher kommen meine ${points.earned} Punkte?</summary><div class="qol-points-breakdown">${skillSources}<div class="qol-points-row"><span>Realm-Ränge (bis ${points.realmRank})</span><strong>${points.earnedFromRealmRank} P.</strong></div><div class="qol-points-row"><span>Vielseitigkeits-Meilensteine</span><strong>${points.breadth} P.</strong></div><div class="qol-points-row"><span>Geschütztes historisches Guthaben</span><strong>${points.legacyCredit} P.</strong></div><div class="qol-points-row"><span>Bonus / Journey-Zuweisungen</span><strong>${points.bonus} P.</strong></div><div class="qol-points-row"><span>Skillpoint Exchange · erhalten</span><strong>+${points.exchangedIn} P.</strong></div><div class="qol-points-row"><span>Skillpoint Exchange · abgegeben</span><strong>−${points.exchangedOut} P.</strong></div><div class="qol-points-row qol-points-total"><span>${points.earned} insgesamt · ${points.spent} ausgegeben</span><strong>${points.available} übrig</strong></div></div><p>Talentpunkte kommen aus mehreren erreichten Stufen, nicht direkt pro geloggter Tätigkeit. Einzelne neue XP stehen unter Activity & Rewards. Ein historischer Rebuild kann mehrere zuvor verdeckte Punkte sichtbar machen.</p></details>`;
     const rank = effectiveRealmRankInfo(realm);
     return `<div class="skills-talent-meta-main-v314ah"><span>${REALMS[realm]?.icon || "✦"}</span><div><small>${esc(realm.toUpperCase())} TREE</small><strong>${points.available} available · ${points.spent} spent${progress.totalCost ? ` · ${progress.totalCost} pts full tree` : ""}</strong><em>${esc(nextCopy)}</em><em>${esc(rank.nextLabel)}</em></div></div><div class="skills-point-source-v314ah"><span>${sourceBits.map(esc).join(" · ")}</span><small>Realm Rank ${points.realmRank} · free respec</small>${auditDetail}</div>`;
   }
@@ -2327,6 +2354,7 @@
     reflectionXp,
     registerTalentTree,
     refreshTalentHub: renderTalentHub,
+    refresh: render,
     selectTalentRealm,
     rebuild: () => reconcile({ persist: true, reason: "skills-api-rebuild", force: true }),
     openTrainingGuide,

@@ -664,6 +664,133 @@ class SeriesLibraryTests(unittest.TestCase):
         self.assertTrue(result['puts'][0]['activated'])
         self.assertEqual(result['puts'][0]['body']['uris'],['spotify:track:ZYXWVUTSRQPONMLKJIHGFE'])
 
+    def test_skillpoint_exchange_debits_two_credits_one_and_persists(self):
+        """One 2:1 exchange changes only available Realm talent points."""
+        self.page.evaluate("""() => {
+          const root=LifeRPGApp.getState();
+          root.skills.realmBonusPoints.Work=12;
+          root.skills.realmBonusPoints.Hobbies=3;
+          root.skills.realmBonusPoints.Knowledge=5;
+          root.story ||= {};
+          root.story.exchangeTestMarker='unchanged relationship history';
+          root.journal.entries['2020-02-02']={date:'2020-02-02',bookNote:'Unchanged diary'};
+        }""")
+        self.page.add_script_tag(url='/skills.js')
+        self.page.add_script_tag(url='/talent-v2.js')
+        self.page.add_script_tag(url='/talent-tree-v2-graph.js')
+        self.page.add_style_tag(url='/skillpoint-exchange.css')
+        self.page.add_script_tag(url='/skillpoint-exchange.js')
+        self.assertEqual(self.page.locator('#pointExchangePanel').count(),1)
+        self.assertEqual(self.page.locator('#pointExchangeSource').input_value(),'Work')
+        self.assertEqual(self.page.locator('#pointExchangeTarget').input_value(),'Hobbies')
+        self.page.evaluate("LifeRPGApp.showView('skills')")
+        before=self.page.evaluate("""() => ({
+          work:LifeRPGSkills.getRealmPoints('Work'),
+          hobbies:LifeRPGSkills.getRealmPoints('Hobbies'),
+          knowledge:LifeRPGSkills.getRealmPoints('Knowledge'),
+          xp:LifeRPGApp.getState().characterXP,
+          skillTotal:JSON.stringify(LifeRPGSkills.getTotals()),
+          rewards:LifeRPGApp.getState().rewardLedger.events.length,
+          story:LifeRPGApp.getState().story.exchangeTestMarker,
+          journal:LifeRPGApp.getState().journal.entries['2020-02-02'].bookNote,
+          originalBonus:LifeRPGApp.getState().skills.realmBonusPoints.Work
+        })""")
+        self.assertTrue(self.page.evaluate("""() =>
+          LifeRPGPointExchange.exchange('Work','Hobbies',{confirmed:true})"""))
+        after=self.page.evaluate("""() => ({
+          work:LifeRPGSkills.getRealmPoints('Work'),
+          hobbies:LifeRPGSkills.getRealmPoints('Hobbies'),
+          knowledge:LifeRPGSkills.getRealmPoints('Knowledge'),
+          xp:LifeRPGApp.getState().characterXP,
+          skillTotal:JSON.stringify(LifeRPGSkills.getTotals()),
+          rewards:LifeRPGApp.getState().rewardLedger.events.length,
+          story:LifeRPGApp.getState().story.exchangeTestMarker,
+          journal:LifeRPGApp.getState().journal.entries['2020-02-02'].bookNote,
+          originalBonus:LifeRPGApp.getState().skills.realmBonusPoints.Work,
+          ledger:LifeRPGPointExchange.getTransactions()
+        })""")
+        self.assertEqual(after['work']['available'],before['work']['available']-2)
+        self.assertEqual(after['hobbies']['available'],before['hobbies']['available']+1)
+        self.assertEqual(after['knowledge']['available'],before['knowledge']['available'])
+        self.assertEqual(after['work']['spent'],before['work']['spent']+2)
+        self.assertEqual(after['hobbies']['earned'],before['hobbies']['earned']+1)
+        self.assertEqual(after['work']['exchangedOut'],2)
+        self.assertEqual(after['hobbies']['exchangedIn'],1)
+        self.assertEqual(after['ledger'][0]['fromCost'],2)
+        self.assertEqual(after['ledger'][0]['toCredit'],1)
+        for field in ('xp','skillTotal','rewards','story','journal','originalBonus'):
+            self.assertEqual(after[field],before[field],field)
+        self.assertFalse(self.page.evaluate("""() =>
+          LifeRPGPointExchange.exchange('Work','Work',{confirmed:true})"""))
+        self.assertFalse(self.page.evaluate("""() =>
+          LifeRPGPointExchange.exchange('Nope','Work',{confirmed:true})"""))
+        self.assertEqual(self.page.evaluate(
+          "LifeRPGPointExchange.getTransactions().length"),1)
+        self.page.evaluate("LifeRPGApp.saveState({suppressCloud:true})")
+        self.page.reload(wait_until='domcontentloaded')
+        self.page.wait_for_function('window.LifeRPGSkills && window.saveSafetyTest')
+        self.page.add_script_tag(url='/skills.js')
+        self.page.add_script_tag(url='/talent-v2.js')
+        self.page.add_script_tag(url='/talent-tree-v2-graph.js')
+        self.page.add_script_tag(url='/skillpoint-exchange.js')
+        persisted=self.page.evaluate("""() => ({
+          work:LifeRPGSkills.getRealmPoints('Work').available,
+          hobbies:LifeRPGSkills.getRealmPoints('Hobbies').available,
+          tx:LifeRPGPointExchange.getTransactions().length,
+          story:LifeRPGApp.getState().story.exchangeTestMarker,
+          journal:LifeRPGApp.getState().journal.entries['2020-02-02'].bookNote
+        })""")
+        self.assertEqual(persisted['work'],after['work']['available'])
+        self.assertEqual(persisted['hobbies'],after['hobbies']['available'])
+        self.assertEqual(persisted['tx'],1)
+        self.assertEqual(persisted['story'],before['story'])
+        self.assertEqual(persisted['journal'],before['journal'])
+
+    def test_skillpoint_exchange_guards_overdraw_and_failed_save(self):
+        """No lost Skillpoints when available balance is too low or saving fails."""
+        self.page.evaluate("""() => {
+          LifeRPGApp.getState().skills.realmBonusPoints.Work=4;
+          LifeRPGApp.getState().skills.realmBonusPoints.Hobbies=0;
+        }""")
+        self.page.add_script_tag(url='/skills.js')
+        self.page.add_script_tag(url='/talent-v2.js')
+        self.page.add_script_tag(url='/talent-tree-v2-graph.js')
+        self.page.add_script_tag(url='/skillpoint-exchange.js')
+        before=self.page.evaluate("""() => ({
+          source:LifeRPGSkills.getRealmPoints('Work').available,
+          target:LifeRPGSkills.getRealmPoints('Hobbies').available
+        })""")
+        self.assertGreaterEqual(before['source'],2)
+        self.assertTrue(self.page.evaluate("""() =>
+          LifeRPGPointExchange.exchange('Work','Hobbies',{confirmed:true})"""))
+        result=self.page.evaluate("""() => {
+          const app=LifeRPGApp,original=app.saveState;
+          const beforeLength=LifeRPGPointExchange.getTransactions().length;
+          const beforeSource=LifeRPGSkills.getRealmPoints('Work').available;
+          const beforeTarget=LifeRPGSkills.getRealmPoints('Hobbies').available;
+          app.saveState=()=>false;
+          let failed;
+          try{failed=LifeRPGPointExchange.exchange('Work','Hobbies',{confirmed:true});}
+          finally{app.saveState=original;}
+          return {failed,beforeLength,afterLength:LifeRPGPointExchange.getTransactions().length,
+            beforeSource,beforeTarget,
+            afterSource:LifeRPGSkills.getRealmPoints('Work').available,
+            afterTarget:LifeRPGSkills.getRealmPoints('Hobbies').available};
+        }""")
+        self.assertFalse(result['failed'])
+        self.assertEqual(result['beforeLength'],result['afterLength'])
+        self.assertEqual(result['beforeSource'],result['afterSource'])
+        self.assertEqual(result['beforeTarget'],result['afterTarget'])
+        # Even if a corrupted cloud payload replays an existing ID, it is
+        # counted only once, not minted as an extra receiver point.
+        self.page.evaluate("""() => {
+          const state=LifeRPGApp.getState();
+          state.pointExchangeV1.transactions.push({...state.pointExchangeV1.transactions[0]});
+        }""")
+        self.assertEqual(self.page.evaluate(
+          "LifeRPGSkills.getRealmPoints('Hobbies').available"),
+          result['afterTarget'])
+
     def test_bullet_journal_book_free_writing_and_legacy_entries_survive_reload(self):
         """A dated blank notebook page never rewrites existing reflections or pays rewards."""
         self.page.evaluate("""() => {

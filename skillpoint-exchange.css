@@ -1,0 +1,45 @@
+/* Life RPG · Skillpoint Exchange. Compact, optional panel within Skills. */
+.point-exchange-v1{
+ margin:14px 0 19px;border:1px solid rgba(143,92,131,.24);
+ border-radius:16px;background:linear-gradient(125deg,rgba(255,250,249,.93),rgba(250,239,249,.86));
+ color:#65455c;
+}
+.point-exchange-v1>summary{
+ display:flex;align-items:center;gap:12px;
+ padding:12px 17px;cursor:pointer;list-style:none;
+}
+.point-exchange-v1>summary::-webkit-details-marker{display:none}
+.point-exchange-v1>summary>span{font-size:1.35rem}
+.point-exchange-v1>summary>div{display:grid;gap:2px;flex:1;min-width:0}
+.point-exchange-v1>summary strong{font-size:.86rem;color:#633c59}
+.point-exchange-v1>summary small{font-size:.72rem;color:#90738a;line-height:1.4}
+.point-exchange-v1>summary:after{content:"⌄";font-size:1.15rem;color:#9a6d8b}
+.point-exchange-v1[open]>summary:after{content:"⌃"}
+.point-exchange-v1>summary:focus-visible{outline:2px solid #aa7395;outline-offset:3px}
+.point-exchange-body{
+ display:grid;justify-items:start;gap:10px;
+ padding:16px;border-top:1px solid #eadce4;
+}
+.point-exchange-picker{display:flex;align-items:end;gap:13px;flex-wrap:wrap;width:100%}
+.point-exchange-picker label{
+ display:grid;gap:6px;flex:1 1 175px;
+ font-size:.74rem;font-weight:700;color:#725468;
+}
+.point-exchange-picker select{
+ width:100%;min-height:43px;box-sizing:border-box;
+ border:1px solid #d9bfce;border-radius:10px;
+ padding:8px 10px;background:#fffefd;color:#53394e;
+ font:inherit;font-size:.9rem;
+}
+.point-exchange-arrow{align-self:center;font-size:1.3rem;color:#b0849d}
+.point-exchange-balance{
+ font-size:.75rem;font-weight:700;color:#694e62;
+ margin:0;line-height:1.5;
+}
+.point-exchange-body button{padding:9px 16px!important;font-size:.83rem}
+.point-exchange-body button:disabled{opacity:.5;cursor:not-allowed}
+.point-exchange-note,.point-exchange-history{
+ font-size:.72rem;color:#8a7582;line-height:1.5;margin:0;
+}
+.point-exchange-history{font-style:italic}
+@media(max-width:540px){.point-exchange-picker{gap:6px}.point-exchange-arrow{flex:0 0 100%;transform:rotate(90deg);text-align:center}}
