@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="460" height="550" viewBox="0 0 460 550" fill="none" role="img" aria-label="Sakura blush letter tag with torn edges and tied thread">
+<defs><linearGradient id="card" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fffdf7"/><stop offset=".52" stop-color="#f9eddf"/><stop offset="1" stop-color="#eee1d4"/></linearGradient><radialGradient id="wax"><stop stop-color="#f5cad3"/><stop offset="1" stop-color="#d19ba9"/></radialGradient><filter id="shadow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="8"/></filter></defs>
+<path d="M70 77L390 62 395 480 372 495 354 486 330 500 308 488 288 496 269 485 247 497 224 488 202 498 180 489 155 499 131 487 110 500 89 489 66 491Z" fill="#7a636c" opacity=".17" filter="url(#shadow)" transform="translate(7 9)"/>
+<path d="M70 77L390 62 395 480 372 495 354 486 330 500 308 488 288 496 269 485 247 497 224 488 202 498 180 489 155 499 131 487 110 500 89 489 66 491Z" fill="url(#card)" stroke="#cbb4ab" stroke-width="3"/>
+<circle cx="229" cy="96" r="19" fill="#f5eee5" stroke="#a9968e" stroke-width="4"/><circle cx="229" cy="96" r="6" fill="#fff9f2" stroke="#d2c2b8" stroke-width="2"/>
+<path d="M229 87C209 32 198 13 172 21C145 32 157 55 180 62C200 67 223 57 229 87ZM229 87C246 35 278 12 298 25C322 42 298 64 281 66C256 71 239 57 229 87Z" fill="#efd4d9" stroke="#bd9fa7" stroke-width="4"/>
+<path d="M229 87c-7 71-37 104-43 151M229 87c29 74 40 118 43 159" stroke="#b69c90" stroke-width="5" stroke-linecap="round"/>
+<path d="M115 320L340 320M118 352L334 352M121 383L315 383" stroke="#d6b8b0" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="2 10"/>
+<circle cx="310" cy="422" r="52" fill="url(#wax)" stroke="#b78495" stroke-width="4"/><circle cx="310" cy="422" r="45" stroke="#fbe3e4" stroke-width="2"/><g transform="translate(310 422)" fill="#fff4ec"><path d="M0 0C-32-16-22-44-7-36L0-8C3-43 28-42 31-25C36-6 5 0 0 0Z"/><path d="M0 0C36-17 47 13 27 23L4 7C21 37-9 53-24 39C-34 30-9 7 0 0Z"/><path d="M0 0C-17 33-48 23-45 4L-11-2Z"/></g><circle cx="310" cy="422" r="5" fill="#cd9b75"/>
+</svg>
