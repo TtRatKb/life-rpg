@@ -926,7 +926,7 @@ class SeriesLibraryTests(unittest.TestCase):
         self.assertEqual(self.page.locator('#bjAtelierMount .bj-atelier-stage').count(),0)
         self.page.locator('[data-bj-atelier-toggle]').click()
         self.assertEqual(self.page.locator('#bjAtelierMount .bj-atelier-stage').count(),1)
-        self.assertEqual(self.page.locator('[data-bj-atelier-asset]').count(),5)
+        self.assertEqual(self.page.locator('[data-bj-atelier-asset]').count(),6)
         self.page.wait_for_function("""() => [...document.querySelectorAll(
           '#bjAtelierMount .bj-atelier-pick img')].every(img=>img.complete&&img.naturalWidth>0)""")
         before=self.page.evaluate("""() => {
@@ -982,6 +982,67 @@ class SeriesLibraryTests(unittest.TestCase):
         self.assertEqual(self.page.evaluate("""() =>
           LifeRPGApp.getState().journalAtelierV1.daily[
             LifeRPGBulletJournalBook.getDate()][0].assetKey"""),'paperclip-ink')
+        self.assertFalse(self.page.evaluate("LifeRPGJournalAtelier.isPreview()"))
+
+    def test_sakura_v2_real_assets_are_in_unsupported_purchase_safe_preview(self):
+        """Anime Sakura v2 replaces the rejected tag with five functioning SVGs.
+        All five images load in the actual Atelier without touching saves/points."""
+        self.page.evaluate("""() => {
+          const now=new Date(),root=LifeRPGApp.getState();
+          window.sakuraTestDate=[now.getFullYear(),
+            String(now.getMonth()+1).padStart(2,'0'),
+            String(now.getDate()).padStart(2,'0')].join('-');
+          root.skills.realmBonusPoints.Health=0;
+        }""")
+        for script in ['journal.js','bullet-journal-book.js','bullet-journal-atelier.js']:
+            self.page.add_script_tag(url='/'+script)
+        self.page.add_style_tag(url='/bullet-journal-book.css')
+        self.page.add_style_tag(url='/bullet-journal-atelier.css')
+        self.assertTrue(self.page.evaluate(
+            "LifeRPGBulletJournalBook.open(window.sakuraTestDate)"))
+        self.page.locator('[data-bj-atelier-toggle]').click()
+        keys=['sakura-branch','sakura-washi','sakura-divider',
+              'sakura-blossoms','sakura-memo']
+        for key in keys:
+            self.assertEqual(self.page.locator(
+                f'#bjAtelierMount [data-bj-atelier-asset="{key}"]').count(),1)
+        self.assertEqual(self.page.locator(
+            '#bjAtelierMount [data-bj-atelier-asset="sakura-letter"]').count(),0)
+        self.assertEqual(self.page.locator(
+            '#bjAtelierMount .bj-atelier-pick img[src*="sakura-anime-"]').count(),5)
+        self.page.wait_for_function("""() => [...document.querySelectorAll(
+          '#bjAtelierMount .bj-atelier-pick img')].every(img=>
+              img.complete&&img.naturalWidth>0&&img.naturalHeight>0)""")
+        original=self.page.evaluate("""() => {
+          const s=LifeRPGApp.getState();
+          return {points:LifeRPGSkills.getRealmPoints('Health').available,
+            journal:JSON.stringify(s.journal),
+            entitlements:JSON.stringify(s.talentTreeExpansion),
+            habits:JSON.stringify(s.habits),
+            rewards:JSON.stringify(s.rewardLedger),
+            decorations:JSON.stringify(s.journalAtelierV1??null)};
+        }""")
+        for key in keys:
+            self.page.locator(
+                f'#bjAtelierMount [data-bj-atelier-asset="{key}"]').click()
+        self.assertEqual(self.page.locator(
+            '#bjAtelierMount [data-bj-deco-id]').count(),5)
+        self.assertTrue(self.page.evaluate("LifeRPGJournalAtelier.isPreview()"))
+        self.page.wait_for_function("""() => [...document.querySelectorAll(
+          '#bjAtelierMount .bj-atelier-item img')].every(img=>
+              img.complete&&img.naturalWidth>0)""")
+        self.assertEqual(original,self.page.evaluate("""() => {
+          const s=LifeRPGApp.getState();
+          return {points:LifeRPGSkills.getRealmPoints('Health').available,
+            journal:JSON.stringify(s.journal),
+            entitlements:JSON.stringify(s.talentTreeExpansion),
+            habits:JSON.stringify(s.habits),
+            rewards:JSON.stringify(s.rewardLedger),
+            decorations:JSON.stringify(s.journalAtelierV1??null)};
+        }"""))
+        self.page.locator('[data-bj-atelier-exit]').click()
+        self.assertEqual(self.page.locator(
+            '#bjAtelierMount [data-bj-deco-id]').count(),0)
         self.assertFalse(self.page.evaluate("LifeRPGJournalAtelier.isPreview()"))
 
     def test_journal_atelier_mobile_decoration_does_not_cover_writing(self):

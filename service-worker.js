@@ -1,4 +1,4 @@
-const CACHE_NAME = "life-rpg-v0.31.4-atelier-preview1";
+const CACHE_NAME = "life-rpg-v0.31.4-sakura-anime-v2";
 const ASSET_CACHE_NAME = "life-rpg-assets-v6";
 const MAX_RUNTIME_ASSETS = 96;
 const CORE = [
@@ -60,13 +60,14 @@ const CORE = [
   "./talent-tree-v2-graph.js?v=0.31.4-journalux2b",
   "./bullet-journal-habit-tracker.js?v=0.31.4-journalux2b",
   "./bullet-journal-daily-tracker.js?v=0.31.4-journalux2b",
-  "./bullet-journal-atelier.js?v=0.31.4-atelier-preview1",
+  "./bullet-journal-atelier.js?v=0.31.4-sakura-anime-v2",
   "./bullet-journal-atelier.css?v=0.31.4-atelier-preview1",
   "./assets/journal/paperclip-ink.svg",
-  "./assets/journal/sakura-branch.svg",
-  "./assets/journal/sakura-washi.svg",
-  "./assets/journal/sakura-letter.svg",
-  "./assets/journal/sakura-divider.svg",
+  "./assets/journal/sakura-anime-branch.svg",
+  "./assets/journal/sakura-anime-washi.svg",
+  "./assets/journal/sakura-anime-divider.svg",
+  "./assets/journal/sakura-anime-blossoms.svg",
+  "./assets/journal/sakura-anime-memo.svg",
   "./japanese-atlas-dz48.js?v=0.31.4dz48",
   "./japanese-atlas-dz48.css?v=0.31.4dz48",
   "./talent-reward-studios.css?v=0.31.4cw",
