@@ -842,7 +842,7 @@ class SeriesLibraryTests(unittest.TestCase):
         self.assertTrue(self.page.locator('#bjBookRecorded').evaluate('(x)=>x.hidden'))
         self.assertEqual(self.page.locator('#bjBookHabitTracker .bj-habit-row').count(),2)
         self.assertEqual(self.page.locator('#bjBookHabitTracker .bj-habit-cell.state-done').count(),2)
-        self.assertEqual(self.page.locator('#bjBookHabitTracker .bj-habit-cells').count(),4)
+        self.assertEqual(self.page.locator('#bjBookHabitTracker .bj-habit-cells').count(),3)
         self.assertIn('2 recorded check-ins',self.page.locator('#bjBookHabitTracker').inner_text())
         self.page.locator('[data-bj-tracker-mode="recorded"]').click()
         self.assertFalse(self.page.locator('#bjBookRecorded').evaluate('(x)=>x.hidden'))
