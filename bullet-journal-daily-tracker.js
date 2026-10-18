@@ -1,6 +1,6 @@
 /* Life RPG · Journal Daily Mini Habit Tracker.
-   The purchased card reads the canonical weekly resolver for exactly one date.
-   It is display-only: no habit, quest, XP, streak or ledger mutations. */
+   Uses the canonical weekly resolver for the selected date. Existing Habit/Quest
+   actions are delegated to the native module; the Journal creates no new ledger. */
 (() => {
   "use strict";
   const app=window.LifeRPGApp,book=window.LifeRPGBulletJournalBook;
@@ -15,10 +15,11 @@
   let expanded=false,collapsed=false,lastDate="";
   function rowsFor(date) {
     const week=window.LifeRPGHabits?.getJournalTrackerWeek?.(date);
+    const linked=new Set((window.LifeRPGHabits?.getHabits?.()||[]).filter(h=>h.linkedQuestId).map(h=>h.id));
     const index=week?.days?.indexOf(date)??-1;
     if(index<0)return null;
     return (week.habits||[]).map(h=>({
-      id:h.id,name:String(h.name||"Unnamed habit"),schedule:String(h.schedule||""),
+      id:h.id,linkedQuestId:linked.has(h.id),name:String(h.name||"Unnamed habit"),schedule:String(h.schedule||""),
       state:h.cells?.[index]||"before"
     })).filter(h=>h.state==="done"||h.state==="open");
   }
@@ -38,7 +39,7 @@
       '<span class="bj-daily-mini-stamp" aria-hidden="true">'+(h.state==="done"?"✓":"·")+'</span>'+
       '<span class="bj-daily-mini-name"><button type="button" data-bj-daily-open="'+safe(h.id)+'" data-bj-habit-date="'+safe(date)+'">'+safe(h.name)+' ↗</button>'+
       (h.schedule?'<small>'+safe(h.schedule)+'</small>':"")+'</span>'+
-      (canLog?'<button class="bj-daily-mini-log" type="button" data-bj-daily-log="'+safe(h.id)+'" data-bj-habit-date="'+safe(date)+'">Log done</button>':
+      (canLog?'<button class="bj-daily-mini-log" type="button" data-bj-daily-log="'+safe(h.id)+'" data-bj-habit-date="'+safe(date)+'">'+(h.linkedQuestId?"Open Quest ↗":"Log done") +'</button>':
       '<small class="bj-daily-mini-state">'+(h.state==="done"?"Logged":"Not logged")+'</small>')+'</li>';
   }
   function render(date=book.getDate()) {
@@ -48,7 +49,7 @@
     const unlocked=owned();
     // The preview shows the same actual Habit/Quest data as the unlocked card.
     const all=rowsFor(date);
-    const visible=all===null?null:(expanded?all:all.slice(0,5));
+    const visible=all===null?null:(!unlocked||expanded?all:all.slice(0,5));
     host.innerHTML='<section class="bj-daily-mini-paper'+(unlocked?' is-unlocked':' is-preview')+'">'+
       '<div class="bj-daily-mini-head"><div><small>✦ DAILY HABIT MINI</small>'+
       '<h3>Little things today</h3></div>'+
@@ -120,5 +121,5 @@
   });
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",bind,{once:true});
   else bind();
-  window.LifeRPGBulletJournalDailyTracker={version:"0.31.4-realhabits1",render,isUnlocked:owned,rowsFor};
+  window.LifeRPGBulletJournalDailyTracker={version:"0.31.4-realhabits2",render,isUnlocked:owned,rowsFor};
 })();
