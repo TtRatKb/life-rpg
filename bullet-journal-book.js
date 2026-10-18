@@ -97,7 +97,11 @@
           '</section>'+
           '<section class="bj-book-page bj-book-recorded">'+
             '<div class="bj-book-page-inner"><small>THE DAY AS IT HAPPENED</small><h2>Moments & reflections</h2>'+
+            '<div id="bjBookTrackerTabs" class="bj-book-tracker-tabs" role="group" aria-label="Journal page content" hidden>'+
+              '<button type="button" data-bj-tracker-mode="weekly" aria-pressed="false">▦ Weekly Habit Tracker</button>'+
+              '<button type="button" data-bj-tracker-mode="recorded" aria-pressed="true">✦ Recorded Moments</button></div>'+
             '<div id="bjBookRecorded" class="bj-book-records"></div>'+
+            '<div id="bjBookHabitTracker" class="bj-book-habit-tracker" hidden></div>'+
             '<button type="button" class="bj-book-edit" data-bj-action="reflect">Edit saved reflections ↗</button>'+
             '</div></section>'+
         '</div>'+
@@ -155,6 +159,7 @@
     savedNote=noteFor(activeDay);dirty=false;
     noteStatus(savedNote?"Saved":"Your words stay yours");
     view.querySelector("#bjBookRecorded").innerHTML=dayContents(activeDay);
+    window.LifeRPGBulletJournalHabitTracker?.render?.(activeDay);
   }
   function changeDate(target){
     if(!dayDate(target)||target>today()){noteStatus("Choose today or an earlier date");return false;}
