@@ -12,7 +12,7 @@
     return;
   }
 
-  const VERSION = "0.31.4-weekchapter1";
+  const VERSION = "0.31.4-dailymini1";
   const SCHEMA = 7;
   const REALMS = ["Work", "Knowledge", "Japanese", "Health", "Recovery", "Home", "Hobbies"];
 
