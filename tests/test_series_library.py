@@ -686,7 +686,15 @@ class SeriesLibraryTests(unittest.TestCase):
         self.page.add_script_tag(url='/bullet-journal-book.js')
         self.assertEqual(self.page.locator('#bulletJournalBookOpen').count(),1)
         self.assertTrue(self.page.evaluate("LifeRPGBulletJournalBook.open('2020-04-17')"))
-        self.assertTrue(self.page.locator('#bulletJournalBookDialog').evaluate('(e)=>e.open'))
+        self.assertTrue(self.page.locator('#view-bullet-journal').evaluate("(e)=>e.classList.contains('active')"))
+        self.assertEqual(self.page.locator('#bulletJournalBookDialog').count(),0)
+        self.assertTrue(self.page.locator('#view-journal').evaluate("(e)=>!e.classList.contains('active')"))
+        self.assertGreaterEqual(self.page.evaluate("""() => {
+          const spread=document.querySelector('#view-bullet-journal .bj-book-spread');
+          const main=document.querySelector('.app-shell > main');
+          return spread.getBoundingClientRect().width/main.getBoundingClientRect().width;
+        }"""),0.9)
+        self.assertEqual(self.page.locator('#view-bullet-journal .bj-book-writing .bj-book-nav').count(),1)
         self.assertEqual(self.page.locator('#bjBookRecorded .bj-book-answer').count(),4)
         self.assertIn('Played a cozy game',self.page.locator('#bjBookRecorded').inner_text())
         self.assertIn('A quiet moment',self.page.locator('#bjBookRecorded').inner_text())
@@ -716,6 +724,8 @@ class SeriesLibraryTests(unittest.TestCase):
         self.assertEqual(edited['xp'],before['xp'])
         self.assertEqual(edited['story'],'keep')
         self.page.locator('[data-bj-action="close"]').click()
+        self.assertFalse(self.page.locator('#view-bullet-journal').evaluate("(e)=>e.classList.contains('active')"))
+        self.assertTrue(self.page.locator('#view-journal').evaluate("(e)=>e.classList.contains('active')"))
         self.page.evaluate('LifeRPGJournal.render()')
         self.assertIn('April 2020',self.page.locator('#journalArchive').inner_text())
         self.page.evaluate("LifeRPGApp.saveState({suppressCloud:true})")
@@ -753,11 +763,34 @@ class SeriesLibraryTests(unittest.TestCase):
           "LifeRPGBulletJournalBook.changeDate('2099-01-01')"))
         self.assertEqual(self.page.locator('#bjBookDate').input_value(),'2021-02-27')
         self.page.locator('[data-bj-action="reflect"]').click()
-        self.assertFalse(self.page.locator('#bulletJournalBookDialog').evaluate('(e)=>e.open'))
+        self.assertFalse(self.page.locator('#view-bullet-journal').evaluate("(e)=>e.classList.contains('active')"))
+        self.assertTrue(self.page.locator('#view-journal').evaluate("(e)=>e.classList.contains('active')"))
         self.assertTrue(self.page.locator('#journalDayDialog').evaluate('(e)=>e.open'))
         self.assertEqual(self.page.evaluate(
           "LifeRPGApp.getState().journal.entries['2021-02-27'].bookNote"),
           'Personal note on Saturday')
+
+    def test_bullet_journal_book_sidebar_navigation_saves_full_page_draft(self):
+        """The book is its own Life RPG route, not a popup; sidebar exit autosaves."""
+        self.page.add_script_tag(url='/journal.js')
+        self.page.add_style_tag(url='/bullet-journal-book.css')
+        self.page.add_script_tag(url='/bullet-journal-book.js')
+        self.page.evaluate("LifeRPGApp.showView('journal')")
+        self.page.locator('#bulletJournalBookOpen').click()
+        self.assertTrue(self.page.locator('#view-bullet-journal').evaluate("(e)=>e.classList.contains('active')"))
+        self.assertEqual(self.page.locator('#bulletJournalBookDialog').count(),0)
+        self.assertFalse(self.page.locator('#view-journal').evaluate("(e)=>e.classList.contains('active')"))
+        self.page.locator('#bjBookText').fill('Saved through normal navigation')
+        self.page.evaluate("LifeRPGApp.showView('journal')")
+        self.assertTrue(self.page.locator('#view-journal').evaluate("(e)=>e.classList.contains('active')"))
+        today=self.page.evaluate("""() => LifeRPGBulletJournalBook.getDate()""")
+        self.assertEqual(self.page.evaluate("""d => LifeRPGApp.getState().journal.entries[d].bookNote""",today),
+                         'Saved through normal navigation')
+        self.assertTrue(self.page.evaluate('LifeRPGBulletJournalBook.open()'))
+        self.assertEqual(self.page.locator('#bjBookText').input_value(),'Saved through normal navigation')
+        self.assertEqual(self.page.locator('#view-bullet-journal .bj-book-nav').count(),1)
+        self.assertEqual(self.page.locator('#view-bullet-journal .bj-book-toolbar').count(),0)
+        self.assertTrue(self.page.locator('#view-bullet-journal').evaluate("(e)=>e.classList.contains('active')"))
 
     def test_retired_mystery_refund_exact_once_and_preserves_other_purchases(self):
         """Old Work II and Hobbies I refund 2+1 through derived spending only."""
