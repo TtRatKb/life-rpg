@@ -12,7 +12,7 @@
     return;
   }
 
-  const VERSION = "0.31.4-mystery-retired1";
+  const VERSION = "0.31.4-journal-habits1";
   const SCHEMA = 7;
   const REALMS = ["Work", "Knowledge", "Japanese", "Health", "Recovery", "Home", "Hobbies"];
 
@@ -101,6 +101,9 @@
         nativeContent("year-question", "📅", "365 Question Journal", 1,
           "Starter unlock · one different reflection question for every date of the year, recurring annually, with spoken or typed answers.",
           {}, "Open Journal", () => app.showView?.("journal")),
+        linkedContent("journal-weekly-habit-tracker", "▦", "Bullet Journal · Weekly Habit Tracker", 1,
+          "A true seven-day check-in grid inside your Bullet Journal. Reads your existing Habits, including linked Quests, without demanding new logs. The normal Habits page remains free.",
+          {}, "Open Habit Tracker", () => window.LifeRPGBulletJournalBook?.open?.()),
         linkedContent("future-letter", "✉", "Future Me · Sealed Letters", 1,
           "Write a sealed letter for yourself to open after 7, 30 or 90 days. Save it in the normal cloud-save state and revisit it when the date arrives; no forced daily task.",
           { content: "year-question" }, "Open Future Me", () => window.LifeRPGTalentV3?.open?.("future-letter")),
