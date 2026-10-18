@@ -312,7 +312,7 @@
     document.addEventListener("keydown",removeUsingKeyboard);
     mount.addEventListener("click",event=>{
       const toggle=event.target.closest?.("[data-bj-atelier-toggle]");
-      if(toggle){opened=!opened;selectedId="";render();return;}
+      if(toggle){opened=!opened;selectedId="";if(opened)addSide="left";render();return;}
       if(event.target.closest?.("[data-bj-atelier-exit]")){exitPreview();return;}
       const page=event.target.closest?.("[data-bj-atelier-side]");
       if(page){addSide=page.dataset.bjAtelierSide==="left"?"left":"right";
@@ -326,7 +326,7 @@
     });
     window.addEventListener("life-rpg:view-changed",event=>{
       if(event?.detail?.view!=="bullet-journal"){
-        preview=false;selectedId="";opened=false;working=saved();drag=null;
+        preview=false;selectedId="";opened=false;addSide="left";working=saved();drag=null;
         stageFor("left")?.replaceChildren();stageFor("right")?.replaceChildren();
       }
     });
