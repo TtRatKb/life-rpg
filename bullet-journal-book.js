@@ -4,7 +4,7 @@
   const app = window.LifeRPGApp;
   const journal = window.LifeRPGJournal;
   if (!app?.getState || !app?.saveState || !journal?.getEntry || window.LifeRPGBulletJournalBook) return;
-  const VERSION = "0.31.4-weekchapter1";
+  const VERSION = "0.31.4-dailymini1";
   const htmlEscape = value => String(value ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
   const get = id => document.getElementById(id);
   const dateKey = d => [d.getFullYear(), String(d.getMonth()+1).padStart(2,"0"), String(d.getDate()).padStart(2,"0")].join("-");
@@ -108,6 +108,7 @@
           '<section class="bj-book-page bj-book-recorded">'+
             '<div class="bj-book-page-inner"><small>THE DAY AS IT HAPPENED</small><h2>Moments & reflections</h2>'+
             '<div id="bjBookRecorded" class="bj-book-records"></div>'+
+            '<div id="bjBookDailyMini" class="bj-book-daily-mini" aria-label="Daily Mini Habit Tracker"></div>'+
             '<button type="button" class="bj-book-edit" data-bj-action="reflect">Edit saved reflections ↗</button>'+
             '</div></section>'+
         '</div>'+
@@ -198,6 +199,7 @@
     savedNote=noteFor(activeDay);dirty=false;
     noteStatus(savedNote?"Saved":"Your words stay yours");
     view.querySelector("#bjBookRecorded").innerHTML=dayContents(activeDay);
+    window.LifeRPGBulletJournalDailyTracker?.render?.(activeDay);
     // Weekly collection renders only on its own spread, never inside a daily page.
   }
   function renderWeek(){
