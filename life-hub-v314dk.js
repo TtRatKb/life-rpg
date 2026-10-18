@@ -20,7 +20,7 @@
     {id:"other",icon:"✿",name:"Andere Haushaltsaufgabe"}
   ];
   const GROUPS=[
-    {id:"everyday",icon:"❀",title:"Alltag",subtitle:"Erledigen & festhalten",items:[["quick","Schnell loggen"],["habits","Habits"],["healthsync","Health Journal"],["quests","Quests"],["adventures","Adventures"],["journal","Journal"],["meals","Essensplan"],["tasks","Meine Aufgaben"]]},
+    {id:"everyday",icon:"❀",title:"Alltag",subtitle:"Erledigen & festhalten",items:[["quick","Schnell loggen"],["habits","Habits"],["healthsync","Health Journal"],["quests","Quests"],["adventures","Adventures"],["journal","📖 Mein Journal"],["meals","Essensplan"],["tasks","Meine Aufgaben"]]},
     {id:"planning",icon:"◷",title:"Zeit & Planung",subtitle:"Woche, Termine & genaue Zeit",items:[["week","Meine Woche"],["breaks","Ferien & Auszeiten"],["rhythm","Focus & Time"]]},
     {id:"play",icon:"◇",title:"Spielen & Lernen",subtitle:"Rätsel, Bücher & Kreativität",items:[["training","Training Grounds"],["kotoba","Kotoba Quest"],["library","Library"],["series","Series & Anime"],["knowledge-workshop","Knowledge Workshop"],["games","Games"],["soundgarden","Sound Garden"],["coloring","Coloring Studio"],["drawing","Drawing Studio"]]},
     {id:"progress",icon:"✦",title:"Fortschritt",subtitle:"Deine Entwicklung",items:[["growth","Growth & Realms"],["skills","Skill Trees"],["achievements","Achievements"],["shop","Reward Shop"]]},
