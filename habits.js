@@ -1593,11 +1593,46 @@
       .replaceAll("'", "&#039;");
   }
 
+  // Read-only, derived weekly tracker for the Bullet Journal. Uses the SAME
+  // completion resolver as the Habits page, including linked Quest/time logs.
+  // Viewing a tracker never logs completions or grants rewards.
+  function getJournalTrackerWeek(dateKey = todayKey()) {
+    const date = parseDateKey(dateKey);
+    if(!Number.isFinite(date.getTime()))return {start:"",days:[],habits:[],count:0};
+    const weekStart = startOfWeek(date);
+    const days = Array.from({length:7},(_,offset)=>{
+      const d=cloneDate(weekStart);
+      d.setDate(d.getDate()+offset);
+      return formatDateKey(d);
+    });
+    const start=days[0],end=days[6],current=todayKey();
+    const habits=(habitState().items||[]).filter(habit=>habit&&habit.id).map(habit=>{
+      const completions=completionsForHabit(habit);
+      const doneDates=new Set(completions.map(item=>item.date));
+      const within=completions.filter(item=>item.date>=start&&item.date<=end);
+      if(habit.active===false&&!within.length)return null;
+      const cells=days.map(key=>{
+        if(doneDates.has(key))return "done";
+        if(key>current)return "future";
+        if(!isTrackableOnDate(habit,key))return "before";
+        if(!isScheduledOnDate(habit,key))return "off";
+        return "open";
+      });
+      return {
+        id:habit.id,name:String(habit.name||"Unnamed habit"),
+        realm:habit.realm||"Health",schedule:scheduleLabel(habit),
+        cells,checkIns:cells.filter(cell=>cell==="done").length
+      };
+    }).filter(Boolean);
+    return {start,end,days,habits,count:habits.reduce((total,habit)=>total+habit.checkIns,0)};
+  }
+
   window.LifeRPGHabits = {
     render,
     openCreate: () => openHabitDialog(),
     getHabits: () => habitState().items.map(item => ({ ...item })),
     getCompletions: () => habitState().completions.map(item => ({ ...item })),
+    getJournalTrackerWeek,
     complete: completeHabit
   };
 })();
