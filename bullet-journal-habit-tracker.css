@@ -158,3 +158,19 @@ button.bj-habit-cell:disabled{cursor:default}
 .bj-habit-name-link:focus-visible,button.bj-habit-cell:focus-visible{
  outline:2px solid #896b82;outline-offset:3px;
 }
+
+/* Real weekly layout preview opened from Health: no purchase, no save changes. */
+.bj-habit-layout-preview{
+ display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;
+ gap:7px;border:1px dashed #c3a0b2;border-radius:7px;
+ padding:7px 9px;color:#74536b;font:600 .69rem/1.35 Georgia,serif;
+ background:rgba(249,237,241,.6)
+}
+.bj-habit-layout-preview button{
+ border:1px solid #cbb2bb;border-radius:7px;color:#795a6f;
+ background:#fcf6ee;padding:5px 8px;min-height:32px;
+ cursor:pointer;font:600 .67rem Georgia,serif
+}
+.bj-habit-layout-preview button:focus-visible{
+ outline:2px solid #896b82;outline-offset:2px
+}
