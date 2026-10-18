@@ -28,6 +28,8 @@
     {id:"review",icon:"≡",title:"Rückblick",subtitle:"Alles nachvollziehen",items:[["activity","Activity & Rewards"],["home-stats","Haushalt · Statistik"],["week","Arbeitszeit · Meine Woche"]]}
   ];
   const INDEX = new Map(); for(const g of GROUPS) for(const [id] of g.items) if(!INDEX.has(id))INDEX.set(id,g.id);
+  // Book is a subview of the existing Alltag → Journal route, not an extra menu item.
+  INDEX.set("bullet-journal","everyday");
   let activeGroup="",pendingAction="",pendingName="",lastLoggedId="",inFlight=false;
   function model(){const r=app.getState();if(!r.homeQuickActionsV1||typeof r.homeQuickActionsV1!=="object"||Array.isArray(r.homeQuickActionsV1))r.homeQuickActionsV1={schemaVersion:1,entries:[],pinned:[]};const s=r.homeQuickActionsV1;if(!Array.isArray(s.entries))s.entries=[];if(!Array.isArray(s.pinned))s.pinned=[];return s;}
   const definition = id => CATALOG.find(x=>x.id===id);
