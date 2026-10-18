@@ -664,6 +664,101 @@ class SeriesLibraryTests(unittest.TestCase):
         self.assertTrue(result['puts'][0]['activated'])
         self.assertEqual(result['puts'][0]['body']['uris'],['spotify:track:ZYXWVUTSRQPONMLKJIHGFE'])
 
+    def test_bullet_journal_book_free_writing_and_legacy_entries_survive_reload(self):
+        """A dated blank notebook page never rewrites existing reflections or pays rewards."""
+        self.page.evaluate("""() => {
+          const root=LifeRPGApp.getState(),date='2020-04-17';
+          root.journal.entries[date]={
+            date,createdAt:12345,updatedAt:12345,
+            gratitude:'A quiet moment',smallWin:'Finished a novel',
+            hardThing:'A long day',yearQuestion:'A small beautiful thing',
+            yearQuestionPrompt:'What did you notice?'
+          };
+          root.story ||= {};root.story.bookRegressionMarker='keep';
+          root.rewardLedger.events.push({
+            id:'synthetic-recorded-1',source:'game',sourceId:'book-1',
+            label:'Played a cozy game',at:new Date(2020,3,17,12).toISOString(),xp:3,
+            coins:0,duplicate:false
+          });
+        }""")
+        self.page.add_script_tag(url='/journal.js')
+        self.page.add_style_tag(url='/bullet-journal-book.css')
+        self.page.add_script_tag(url='/bullet-journal-book.js')
+        self.assertEqual(self.page.locator('#bulletJournalBookOpen').count(),1)
+        self.assertTrue(self.page.evaluate("LifeRPGBulletJournalBook.open('2020-04-17')"))
+        self.assertTrue(self.page.locator('#bulletJournalBookDialog').evaluate('(e)=>e.open'))
+        self.assertEqual(self.page.locator('#bjBookRecorded .bj-book-answer').count(),4)
+        self.assertIn('Played a cozy game',self.page.locator('#bjBookRecorded').inner_text())
+        self.assertIn('A quiet moment',self.page.locator('#bjBookRecorded').inner_text())
+        self.assertEqual(self.page.locator('#bjBookText').input_value(),'')
+        before=self.page.evaluate("""() => ({
+          rewards:LifeRPGApp.getState().rewardLedger.events.length,
+          xp:LifeRPGApp.getState().characterXP,
+          journal:JSON.stringify(LifeRPGApp.getState().journal.entries['2020-04-17'])
+        })""")
+        note="Today was just a day.\\nAnd that's enough.\\n<unsafe-looking-not-markup>"
+        self.page.locator('#bjBookText').fill(note)
+        self.page.locator('[data-bj-action="save"]').click()
+        self.assertIn('Saved',self.page.locator('#bjBookStatus').inner_text())
+        edited=self.page.evaluate("""() => ({
+          day:LifeRPGApp.getState().journal.entries['2020-04-17'],
+          rewards:LifeRPGApp.getState().rewardLedger.events.length,
+          xp:LifeRPGApp.getState().characterXP,
+          story:LifeRPGApp.getState().story.bookRegressionMarker
+        })""")
+        self.assertEqual(edited['day']['bookNote'],note)
+        self.assertEqual(edited['day']['gratitude'],'A quiet moment')
+        self.assertEqual(edited['day']['smallWin'],'Finished a novel')
+        self.assertEqual(edited['day']['hardThing'],'A long day')
+        self.assertEqual(edited['day']['yearQuestion'],'A small beautiful thing')
+        self.assertEqual(edited['day']['yearQuestionPrompt'],'What did you notice?')
+        self.assertEqual(edited['rewards'],before['rewards'])
+        self.assertEqual(edited['xp'],before['xp'])
+        self.assertEqual(edited['story'],'keep')
+        self.page.locator('[data-bj-action="close"]').click()
+        self.page.evaluate('LifeRPGJournal.render()')
+        self.assertIn('April 2020',self.page.locator('#journalArchive').inner_text())
+        self.page.evaluate("LifeRPGApp.saveState({suppressCloud:true})")
+        self.page.reload(wait_until='domcontentloaded')
+        self.page.wait_for_function("window.LifeRPGSkills && window.saveSafetyTest")
+        self.page.add_script_tag(url='/journal.js')
+        self.page.add_script_tag(url='/bullet-journal-book.js')
+        self.assertTrue(self.page.evaluate("LifeRPGBulletJournalBook.open('2020-04-17')"))
+        self.assertEqual(self.page.locator('#bjBookText').input_value(),note)
+        self.assertEqual(self.page.locator('#bjBookRecorded .bj-book-answer').count(),4)
+        self.assertEqual(self.page.evaluate(
+          "LifeRPGApp.getState().story.bookRegressionMarker"),'keep')
+
+    def test_bullet_journal_book_navigation_autosaves_and_edits_original_day(self):
+        """No empty prompt grids, no future navigation, date changes preserve typing."""
+        self.page.add_script_tag(url='/journal.js')
+        self.page.add_script_tag(url='/bullet-journal-book.js')
+        self.page.set_viewport_size({'width':390,'height':844})
+        self.assertTrue(self.page.evaluate("LifeRPGBulletJournalBook.open('2021-02-27')"))
+        self.assertEqual(self.page.locator('#bjBookRecorded .bj-book-answer').count(),0)
+        self.page.locator('#bjBookText').fill('Personal note on Saturday')
+        self.page.locator('[data-bj-action="next"]').click()
+        self.assertEqual(self.page.locator('#bjBookDate').input_value(),'2021-02-28')
+        self.assertEqual(self.page.evaluate(
+          "LifeRPGApp.getState().journal.entries['2021-02-27'].bookNote"),
+          'Personal note on Saturday')
+        self.page.locator('#bjBookText').fill('Sunday is a new page')
+        self.page.locator('[data-bj-action="prev"]').click()
+        self.assertEqual(self.page.locator('#bjBookDate').input_value(),'2021-02-27')
+        self.assertEqual(self.page.locator('#bjBookText').input_value(),'Personal note on Saturday')
+        self.assertEqual(self.page.evaluate(
+          "LifeRPGApp.getState().journal.entries['2021-02-28'].bookNote"),
+          'Sunday is a new page')
+        self.assertFalse(self.page.evaluate(
+          "LifeRPGBulletJournalBook.changeDate('2099-01-01')"))
+        self.assertEqual(self.page.locator('#bjBookDate').input_value(),'2021-02-27')
+        self.page.locator('[data-bj-action="reflect"]').click()
+        self.assertFalse(self.page.locator('#bulletJournalBookDialog').evaluate('(e)=>e.open'))
+        self.assertTrue(self.page.locator('#journalDayDialog').evaluate('(e)=>e.open'))
+        self.assertEqual(self.page.evaluate(
+          "LifeRPGApp.getState().journal.entries['2021-02-27'].bookNote"),
+          'Personal note on Saturday')
+
     def test_retired_mystery_refund_exact_once_and_preserves_other_purchases(self):
         """Old Work II and Hobbies I refund 2+1 through derived spending only."""
         self.page.evaluate("""() => {

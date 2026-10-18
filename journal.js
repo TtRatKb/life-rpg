@@ -544,13 +544,13 @@
   function renderArchive() {
     if (!els.archive) return;
     const entries = Object.values(journalState().entries || {});
-    const months = [...new Set(entries.filter(entry => hasCoreCheckIn(entry) || hasReflection(entry)).map(entry => entry.date.slice(0, 7)))].sort().reverse();
+    const months = [...new Set(entries.filter(entry => hasCoreCheckIn(entry) || hasReflection(entry) || Boolean(cleanText(entry.bookNote))).map(entry => entry.date.slice(0, 7)))].sort().reverse();
     if (!months.length) {
       els.archive.innerHTML = `<span class="muted">Your first month will appear here once you check in or save a reflection.</span>`;
       return;
     }
     els.archive.innerHTML = months.map(month => {
-      const count = monthEntries(month).filter(entry => hasCoreCheckIn(entry) || hasReflection(entry)).length;
+      const count = monthEntries(month).filter(entry => hasCoreCheckIn(entry) || hasReflection(entry) || Boolean(cleanText(entry.bookNote))).length;
       return `<button type="button" class="journal-archive-chip-v302 ${month === activeMonth ? "active" : ""}" data-journal-month="${escAttr(month)}"><strong>${esc(monthTitle(month))}</strong><small>${count} day${count === 1 ? "" : "s"}</small></button>`;
     }).join("");
   }
@@ -849,7 +849,7 @@
 
   function exportJournalMarkdown() {
     const state = app.getState();
-    const entries = Object.values(journalState().entries || {}).filter(entry => hasCoreCheckIn(entry) || hasReflection(entry)).sort((a, b) => a.date.localeCompare(b.date));
+    const entries = Object.values(journalState().entries || {}).filter(entry => hasCoreCheckIn(entry) || hasReflection(entry) || Boolean(cleanText(entry.bookNote))).sort((a, b) => a.date.localeCompare(b.date));
     const groups = new Map();
     entries.forEach(entry => {
       const month = entry.date.slice(0, 7);
@@ -874,6 +874,7 @@
           core.push(`Body: ${entry.health.impact}${entry.health.illness === "yes" ? " · sick" : ""}${symptoms.length ? ` · ${symptoms.join(", ")}` : ""}${entry.health.sickLeave === "yes" ? " · called in sick" : entry.health.sickLeave === "no" ? " · worked while sick" : ""}`);
         }
         if (core.length) lines.push(core.join(" · "));
+        if (cleanText(entry.bookNote)) lines.push("", `**My journal page**`, "", entry.bookNote);
         if (cleanText(entry.gratitude)) lines.push("", `**Grateful for**  `, entry.gratitude);
         if (cleanText(entry.smallWin)) lines.push("", `**Small win**  `, entry.smallWin);
         if (cleanText(entry.hardThing)) lines.push("", `**What was hard**  `, entry.hardThing);
@@ -1290,6 +1291,7 @@
   window.LifeRPGJournal = {
     render,
     openReflection,
+    openDayEditor,
     promptAfterCheckIn: (companionId = null, date = todayKey()) => openReflection(date, companionId),
     getEntry: date => ({ ...(entryFor(date, false) || {}) }),
     exportJson: exportJournalJson,
