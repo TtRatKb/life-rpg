@@ -48,3 +48,14 @@
  .bj-daily-mini-state{font-size:.58rem}
  .bj-daily-mini-row{gap:6px}
 }
+
+
+/* Tap-friendly links use the native Habits workflow; they are not decorations. */
+.bj-daily-mini-paper .bj-daily-mini-name button{
+ background:transparent!important;border:0!important;box-shadow:none!important;
+ color:#6e526b!important;padding:4px 0!important;min-height:34px;
+ font:650 .78rem/1.3 Georgia,serif;text-align:left;overflow-wrap:anywhere;
+}
+.bj-daily-mini-name button:hover{text-decoration:underline;text-underline-offset:3px}
+.bj-daily-mini-paper .bj-daily-mini-log{white-space:nowrap;min-height:36px}
+.bj-daily-mini-name{min-width:0}
