@@ -1015,6 +1015,117 @@ class SeriesLibraryTests(unittest.TestCase):
         self.assertEqual(self.page.evaluate(
             "LifeRPGSkills.getRealmPoints('Health').available"),after['points'])
 
+    def test_journal_ux_2b_compact_grid_and_zero_point_health_previews(self):
+        """Eight saved Habits fit a compact multi-column Journal grid.
+        Locked Health nodes preview the actual purchased components at 0 SP;
+        layout experiments never write preferences, unlocks or Habit records."""
+        self.page.set_viewport_size({'width':1440,'height':900})
+        self.page.evaluate("""() => {
+          const root=LifeRPGApp.getState();
+          const now=new Date(),today=[
+            now.getFullYear(),String(now.getMonth()+1).padStart(2,'0'),
+            String(now.getDate()).padStart(2,'0')].join('-');
+          window.journal2bToday=today;
+          root.skills.realmBonusPoints.Health=0;
+          root.habits={schemaVersion:4,reminders:{},
+            items:Array.from({length:8},(_,i)=>({
+              id:'compact-'+i,
+              name:['Zahnseide','Gym','Morning Skincare','Evening Skincare',
+                'Supplements','Hair Oiling / Mask',
+                'Throw One Thing Away','10-Minute Clean'][i],
+              realm:'Health',active:true,createdDate:today,
+              scheduleStartDate:today,
+              trackingFrom:new Date(now.getFullYear(),now.getMonth(),now.getDate()).getTime(),
+              schedule:{type:'daily'},effort:'low',daypart:'anytime'
+            })),completions:[]};
+        }""")
+        for script in ['habits.js','journal.js','bullet-journal-book.js',
+                       'talent-v2.js','talent-tree-v2-graph.js',
+                       'bullet-journal-habit-tracker.js','bullet-journal-daily-tracker.js']:
+            self.page.add_script_tag(url='/'+script)
+        for style in ['bullet-journal-book.css','bullet-journal-daily-tracker.css',
+                      'bullet-journal-habit-tracker.css']:
+            self.page.add_style_tag(url='/'+style)
+        self.page.evaluate("LifeRPGTalentTreeGraph.refresh()")
+        self.page.evaluate("LifeRPGTalentTreeGraph.focusRealm('Health')")
+        daily_button=self.page.locator(
+            '[data-talent-v3-preview="Health|journal-daily-mini-habit-tracker"]')
+        self.assertEqual(daily_button.count(),1)
+        self.assertIn('Preview layout',daily_button.inner_text())
+        self.assertIn('Available: 0',self.page.locator(
+            '#talent-v3-content-Health-journal-daily-mini-habit-tracker').inner_text())
+        before=self.page.evaluate("""() => {
+          const s=LifeRPGApp.getState();
+          return {points:LifeRPGSkills.getRealmPoints('Health').available,
+             owned:JSON.stringify(s.talentTreeExpansion?.unlocks?.Health||{}),
+             layout:JSON.stringify(s.journalBookLayoutV1||null),
+             habits:JSON.stringify(s.habits),
+             rewards:JSON.stringify(s.rewardLedger)};
+        }""")
+        self.assertEqual(before['points'],0)
+        daily_button.click()
+        self.assertEqual(self.page.evaluate(
+            "LifeRPGBulletJournalBook.getChapter()"),'daily')
+        self.assertTrue(self.page.evaluate("""() =>
+          document.querySelector('#view-bullet-journal').classList.contains('active')"""))
+        self.assertEqual(self.page.locator('#bjBookDailyMini .bj-daily-mini-row').count(),8)
+        self.assertEqual(self.page.locator('[data-bj-daily-exit-preview]').count(),1)
+        grid=self.page.evaluate("""() => {
+          const host=document.querySelector('#bjBookDailyMini');
+          const rows=[...host.querySelectorAll('.bj-daily-mini-row')];
+          return {
+            height:host.getBoundingClientRect().height,
+            columns:new Set(rows.map(r=>Math.round(r.getBoundingClientRect().x))).size,
+            lines:new Set(rows.map(r=>Math.round(r.getBoundingClientRect().y))).size,
+            scroll:host.scrollWidth-host.clientWidth
+          };
+        }""")
+        self.assertLess(grid['height'],360,grid)
+        self.assertGreaterEqual(grid['columns'],3,grid)
+        self.assertLessEqual(grid['lines'],3,grid)
+        self.assertLessEqual(grid['scroll'],2,grid)
+        self.page.locator('[data-bj-daily-move]').click()
+        self.assertTrue(self.page.evaluate("""() =>
+          document.getElementById('bjBookDailyMini').previousElementSibling.id==='bjBookRecorded'"""))
+        self.assertEqual(self.page.evaluate(
+            "JSON.stringify(LifeRPGApp.getState().journalBookLayoutV1||null)"),
+            before['layout'])
+        self.page.locator('[data-bj-daily-exit-preview]').click()
+        self.assertEqual(self.page.locator('[data-bj-daily-exit-preview]').count(),0)
+        self.assertEqual(self.page.locator('[data-bj-daily-move]').count(),0)
+        self.assertTrue(self.page.evaluate("""() =>
+          document.getElementById('bjBookDailyMini').nextElementSibling.id==='bjBookRecorded'"""))
+        self.page.evaluate("LifeRPGTalentTreeGraph.focusRealm('Health')")
+        weekly_button=self.page.locator(
+            '[data-talent-v3-preview="Health|journal-weekly-habit-tracker"]')
+        self.assertEqual(weekly_button.count(),1)
+        weekly_button.click()
+        self.assertEqual(self.page.evaluate(
+            "LifeRPGBulletJournalBook.getChapter()"),'weekly')
+        self.assertEqual(self.page.locator('#bjBookHabitTracker .bj-habit-row').count(),8)
+        self.assertEqual(self.page.locator('[data-bj-exit-preview]').count(),1)
+        self.page.locator('[data-bj-exit-preview]').click()
+        after=self.page.evaluate("""() => {
+          const s=LifeRPGApp.getState();
+          return {points:LifeRPGSkills.getRealmPoints('Health').available,
+             owned:JSON.stringify(s.talentTreeExpansion?.unlocks?.Health||{}),
+             layout:JSON.stringify(s.journalBookLayoutV1||null),
+             habits:JSON.stringify(s.habits),
+             rewards:JSON.stringify(s.rewardLedger)};
+        }""")
+        self.assertEqual(after,before)
+        self.page.set_viewport_size({'width':390,'height':844})
+        self.assertTrue(self.page.evaluate(
+            "LifeRPGBulletJournalBook.open(window.journal2bToday)"))
+        mobile=self.page.evaluate("""() => {
+          const page=document.querySelector('#bjBookDailyMini').closest('.bj-book-page');
+          const rows=[...page.querySelectorAll('.bj-daily-mini-row')];
+          return {overflow:page.scrollWidth-page.clientWidth,
+                  lines:new Set(rows.map(r=>Math.round(r.getBoundingClientRect().y))).size};
+        }""")
+        self.assertLessEqual(mobile['overflow'],2,mobile)
+        self.assertLessEqual(mobile['lines'],4,mobile)
+
     def test_bullet_journal_daily_mini_stays_readable_on_mobile(self):
         """The paper insert fits the stacked daily page without horizontal overflow."""
         self.page.set_viewport_size({'width':390,'height':844})
