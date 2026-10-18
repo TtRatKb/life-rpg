@@ -1627,9 +1627,42 @@
     return {start,end,days,habits,count:habits.reduce((total,habit)=>total+habit.checkIns,0)};
   }
 
+  // Journal shortcuts delegate to the SAME canonical Habit/Quest workflow.
+  // Only today or yesterday can be logged; arbitrary historical book pages stay read-only.
+  function openFromJournal(habitId, dateKey = todayKey()) {
+    const habit = habitState().items.find(item => item.id === habitId);
+    if (!habit) return false;
+    habitViewOffset = dateKey === dateKeyWithOffset(-1) ? -1 : 0;
+    app.showView?.("habits");
+    render();
+    window.requestAnimationFrame?.(() => {
+      const edit = [...document.querySelectorAll("[data-habit-edit]")]
+        .find(button => button.dataset.habitEdit === habitId);
+      edit?.closest(".habit-card-v1")?.scrollIntoView?.({ block:"center", behavior:"smooth" });
+    });
+    return true;
+  }
+  function completeFromJournal(habitId, dateKey = todayKey()) {
+    const habit = habitState().items.find(item => item.id === habitId);
+    if (!habit || habit.active === false) return false;
+    if (dateKey !== todayKey() && dateKey !== dateKeyWithOffset(-1)) {
+      return openFromJournal(habitId,dateKey);
+    }
+    if (!snapshotForHabit(habit,dateKey).canComplete) return false;
+    if (habit.linkedQuestId) {
+      if (dateKey !== todayKey()) return openFromJournal(habitId,dateKey);
+      runLinkedQuest(habitId); // Never grant a second direct Habit reward.
+      return true;
+    }
+    completeHabit(habitId,dateKey);
+    return completionsForHabit(habit).some(item=>item.date===dateKey);
+  }
+
   window.LifeRPGHabits = {
     render,
     openCreate: () => openHabitDialog(),
+    openFromJournal,
+    completeFromJournal,
     getHabits: () => habitState().items.map(item => ({ ...item })),
     getCompletions: () => habitState().completions.map(item => ({ ...item })),
     getJournalTrackerWeek,
