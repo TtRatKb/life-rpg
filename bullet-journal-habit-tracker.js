@@ -65,6 +65,8 @@
     });
     records.hidden=mode!=="recorded";
     tracker.hidden=mode!=="weekly";
+    const heading=$("view-bullet-journal")?.querySelector(".bj-book-recorded .bj-book-page-inner>h2");
+    if(heading)heading.textContent=mode==="weekly"?"Weekly Habit Tracker":"Moments & reflections";
     const edit=$("view-bullet-journal")?.querySelector(".bj-book-edit");
     if(edit)edit.hidden=mode!=="recorded";
     if(mode==="weekly")tracker.innerHTML=markup(date);
