@@ -2354,6 +2354,7 @@
     reflectionXp,
     registerTalentTree,
     refreshTalentHub: renderTalentHub,
+    refresh: render,
     selectTalentRealm,
     rebuild: () => reconcile({ persist: true, reason: "skills-api-rebuild", force: true }),
     openTrainingGuide,
