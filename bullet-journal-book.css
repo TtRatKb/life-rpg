@@ -1,74 +1,102 @@
-/* Life RPG · Free Bullet Journal Book (Phase 1)
-   Basic blank notebook. No paid cosmetics, movable elements, or external fonts. */
-.bj-open-button { font-weight:800; letter-spacing:.01em; }
-.bj-book-dialog {
-  box-sizing:border-box;
-  width:min(1160px, calc(100vw - 24px));
-  max-width:none;
-  height:min(810px, calc(100dvh - 24px));
-  max-height:calc(100dvh - 24px);
-  padding:0;
+/* Bullet Journal · true full-page Life RPG view.
+   The date navigation is part of the notebook paper, not a modal toolbar. */
+.bj-open-button{font-weight:800;letter-spacing:.01em}
+.bj-book-view {width:100%;max-width:none;min-height:calc(100dvh - 140px)}
+.bj-book-shell{
+  display:flex;flex-direction:column;gap:0;
+  box-sizing:border-box;width:100%;min-height:calc(100dvh - 140px);
   color:#453e3c;
-  background:#eee5d8;
-  border:1px solid #b4a398;
-  border-radius:17px;
-  box-shadow:0 28px 90px rgba(43,32,37,.3);
 }
-.bj-book-dialog::backdrop{background:rgba(33,28,35,.69);backdrop-filter:blur(4px)}
-.bj-book-shell {box-sizing:border-box;display:flex;flex-direction:column;height:100%;min-height:0;}
-.bj-book-toolbar {
-  display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
-  flex:0 0 auto;padding:15px clamp(13px,2.8vw,28px);
-  border-bottom:1px solid #cbbbab;
-  background:linear-gradient(120deg,#f4ecdf,#ebe0d4);
+.bj-book-entry{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  margin:0 0 10px;padding:0 3px;
+  color:#9a7586;font-size:.68rem;letter-spacing:.10em;
 }
-.bj-book-title small {font-size:.65rem;color:#89736b;letter-spacing:.17em;font-weight:750}
-.bj-book-title h2 {margin:1px 0 0;font-size:clamp(1.18rem,2.1vw,1.5rem);font-family:Georgia,serif;color:#554b48}
-.bj-book-nav {display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
-.bj-book-nav button,.bj-book-close {
-  background:#fffcf6;border:1px solid #cdbfb2;color:#61534d;
-  border-radius:10px;padding:7px 10px;min-height:36px;font:inherit;
-  font-size:.82rem;cursor:pointer;
+.bj-book-back{
+  padding:5px 7px!important;
+  font:inherit;background:transparent!important;border:none!important;
+  color:#835f78!important;text-align:left;cursor:pointer;
+  border-radius:6px;letter-spacing:normal;font-weight:750;
 }
-.bj-book-nav button:first-child,.bj-book-nav button:nth-child(3) {font-size:1.4rem;line-height:1;min-width:38px;}
-.bj-book-nav button:disabled {opacity:.4;cursor:default}
-.bj-book-nav input {box-sizing:border-box;min-height:36px;width:148px;padding:5px 7px;border:1px solid #cdbfb2;border-radius:9px;background:#fffdf9;color:#554a44;font:inherit;font-size:.83rem}
-.bj-book-close {font-size:1.5rem;width:38px;padding:0;line-height:1;flex:0 0 auto}
-.bj-book-dialog button:focus-visible,.bj-book-dialog textarea:focus-visible,.bj-book-dialog input:focus-visible{outline:2px solid #91758d;outline-offset:2px}
-.bj-book-spread {
+.bj-book-back:hover{text-decoration:underline;text-underline-offset:4px}
+.bj-book-spread{
   display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);
-  position:relative;flex:1 1 auto;min-height:0;overflow:hidden;
-  margin:clamp(8px,1.6vw,17px) clamp(8px,1.7vw,18px) 5px;
-  border-radius:8px;
-  box-shadow:0 12px 28px rgba(72,51,37,.18),inset 0 0 0 1px #d2c4b1;
+  position:relative;flex:1 1 auto;min-height:650px;
+  height:max(650px, calc(100dvh - 203px));
+  width:100%;overflow:hidden;
+  background:#f9f0e5;
+  border:1px solid #c9b7a3;border-radius:7px 12px 12px 7px;
+  box-shadow:0 18px 42px rgba(72,51,37,.18),inset 0 0 0 1px #d2c4b1;
 }
 .bj-book-spread:after {
   content:"";position:absolute;z-index:1;pointer-events:none;
-  width:25px;top:0;bottom:0;left:calc(50% - 12px);
-  background:linear-gradient(90deg,transparent,rgba(99,71,58,.12) 47%,rgba(99,71,58,.18) 50%,rgba(99,71,58,.10) 54%,transparent);
+  width:29px;top:0;bottom:0;left:calc(50% - 14px);
+  background:linear-gradient(90deg,transparent,rgba(99,71,58,.12) 47%,rgba(99,71,58,.19) 50%,rgba(99,71,58,.1) 54%,transparent);
 }
 .bj-book-page{
   min-width:0;min-height:0;overflow:auto;
   background-color:#fffbf2;
-  background-image:radial-gradient(circle,#dcd3c1 0.65px,transparent .8px);
+  background-image:radial-gradient(circle,#dcd3c1 .65px,transparent .8px);
   background-size:18px 18px;
 }
-.bj-book-writing {box-shadow:inset -7px 0 19px rgba(88,66,49,.06)}
-.bj-book-recorded {background-color:#fff9ed;box-shadow:inset 7px 0 19px rgba(88,66,49,.06)}
-.bj-book-page-inner {box-sizing:border-box;display:flex;flex-direction:column;gap:14px;min-height:100%;padding:clamp(20px,3.5vw,42px) clamp(18px,3vw,42px);}
-.bj-book-page-inner>small {letter-spacing:.14em;font-size:.67rem;color:#9d8076;font-weight:750}
-.bj-book-page-inner>h3 {font-family:Georgia,serif;font-size:clamp(1.2rem,2.1vw,1.65rem);color:#675349;margin:0;padding-bottom:12px;border-bottom:1px solid #d6c7b8;}
-.bj-book-writing label{font-weight:650;font-size:.79rem;color:#8b756d}
-.bj-book-writing textarea {
-  resize:vertical;flex:1;box-sizing:border-box;min-height:200px;width:100%;
-  line-height:1.86;font:normal 1rem/1.86 Georgia,serif;
+.bj-book-writing{box-shadow:inset -7px 0 19px rgba(88,66,49,.06)}
+.bj-book-recorded{background-color:#fff9ed;box-shadow:inset 7px 0 19px rgba(88,66,49,.06)}
+.bj-book-page-inner{
+  box-sizing:border-box;display:flex;flex-direction:column;gap:14px;
+  min-height:100%;padding:clamp(21px,3.3vw,49px) clamp(19px,3.4vw,52px);
+}
+.bj-book-page-inner>small,
+.bj-book-date-heading>small{letter-spacing:.14em;font-size:.66rem;color:#9d8076;font-weight:750}
+.bj-book-date-heading{display:grid;gap:11px;border-bottom:1px solid #d6c7b8;padding-bottom:13px;margin-bottom:4px}
+.app-shell .bj-book-date-heading>h1{
+  font-family:Georgia,serif;
+  font-size:clamp(1.35rem,2.05vw,2.15rem);
+  line-height:1.17;font-weight:500;
+  color:#675349;margin:0;
+}
+.app-shell .bj-book-recorded .bj-book-page-inner>h2{
+  font-family:Georgia,serif;font-size:clamp(1.28rem,2vw,1.85rem);
+  color:#675349;margin:0;border-bottom:1px solid #d6c7b8;
+  padding-bottom:14px;font-weight:500;
+}
+.bj-book-nav{
+  display:flex;align-items:center;gap:5px;flex-wrap:wrap;
+  font-family:Georgia,serif;
+}
+.bj-book-nav button {
+  border:1px solid #d5c7b9!important;
+  border-radius:8px;background:rgba(255,251,245,.8)!important;
+  min-height:34px;padding:5px 10px;
+  font:inherit;font-size:.78rem;color:#795f61!important;cursor:pointer;
+}
+.bj-book-nav button[data-bj-action="prev"],
+.bj-book-nav button[data-bj-action="next"]{
+  min-width:34px;font-size:1.25rem;line-height:1;padding:4px 8px;
+}
+.bj-book-nav button:disabled{opacity:.4;cursor:default}
+.bj-book-nav input{
+  width:143px;min-height:34px;box-sizing:border-box;
+  padding:4px 6px;border:1px solid #d5c7b9;border-radius:8px;
+  font-family:inherit;font-size:.79rem;color:#705e5b;background:#fffcf6;
+}
+.bj-book-view button:focus-visible,.bj-book-view textarea:focus-visible,.bj-book-view input:focus-visible{
+  outline:2px solid #8e6982;outline-offset:2px;
+}
+.bj-book-writing label{font-weight:650;font-size:.78rem;color:#8b756d}
+.bj-book-writing textarea{
+  resize:vertical;flex:1;box-sizing:border-box;
+  min-height:220px;width:100%;
+  font:normal 1rem/1.86 Georgia,serif;
   color:#413c3c;padding:5px 2px 14px;border:0;
   background:transparent;outline-offset:3px;
 }
-.bj-book-writing textarea::placeholder {color:#aa9d94;font-style:italic}
-.bj-book-writing textarea:focus {outline:none;}
-.bj-book-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:auto;border-top:1px solid #dcd2c6;padding-top:12px}
-.bj-book-actions span{color:#84776f;font-size:.7rem}
+.bj-book-writing textarea::placeholder{color:#aa9d94;font-style:italic}
+.bj-book-writing textarea:focus{outline:none}
+.bj-book-actions{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  margin-top:auto;border-top:1px solid #dcd2c6;padding-top:12px;
+}
+.bj-book-actions span{color:#84776f;font-size:.72rem}
 .bj-book-actions button{padding:7px 12px;font-size:.75rem;white-space:nowrap}
 .bj-book-records{display:grid;align-content:start;gap:14px;overflow-wrap:anywhere}
 .bj-book-quiet{margin:5px 0;color:#9f9389;font-family:Georgia,serif;font-style:italic;font-size:.85rem}
@@ -87,23 +115,30 @@
 .bj-book-events small{font-size:.7rem;color:#9b8a7b}
 .bj-book-edit{margin-top:auto;border:0;border-top:1px solid #ded1c5;padding:13px 0 2px;text-align:left;color:#7d6380;background:transparent;cursor:pointer;font-size:.79rem}
 .bj-book-footer{flex:0 0 auto;text-align:center;font-family:Georgia,serif;font-style:italic;font-size:.72rem;color:#8d7c73;padding:3px 12px 10px}
+
+.bj-book-footer{
+  text-align:center;font:italic .72rem Georgia,serif;
+  color:#8d7c73;padding:9px 12px 3px;
+}
 @media(max-width:750px){
- .bj-book-dialog{width:100vw;height:100dvh;max-height:100dvh;border-radius:0;border:0}
- .bj-book-toolbar{padding:10px 13px;gap:9px}
- .bj-book-title small{font-size:.55rem}
- .bj-book-title h2{font-size:1.1rem}
- .bj-book-nav{order:3;flex-basis:100%;justify-content:center}
- .bj-book-spread{grid-template-columns:minmax(0,1fr);overflow:auto;box-shadow:0 3px 12px #5e463627}
+ .bj-book-view,.bj-book-shell{min-height:calc(100dvh - 120px)}
+ .bj-book-entry{margin:0 0 9px}
+ .bj-book-entry>span{font-size:.6rem;text-align:right}
+ .bj-book-spread{
+   display:grid;grid-template-columns:minmax(0,1fr);
+   height:auto;min-height:0;overflow:visible;
+   box-shadow:0 4px 17px rgba(72,51,37,.18);
+ }
  .bj-book-spread:after{display:none}
- .bj-book-page{overflow:visible}
- .bj-book-page-inner{min-height:0;padding:23px 19px}
- .bj-book-writing textarea{min-height:220px;flex:auto}
+ .bj-book-page{overflow:visible;min-height:0}
+ .bj-book-page-inner{min-height:0;padding:24px 18px}
+ .bj-book-writing textarea{min-height:260px;flex:auto}
  .bj-book-recorded{border-top:3px double #cfbbaa}
- .bj-book-footer{padding-bottom:6px}
+ .bj-book-footer{padding-bottom:14px}
 }
 @media print {
- .bj-book-dialog[open] {position:static;display:block;width:100%;height:auto;max-height:none;box-shadow:none;border:0}
- .bj-book-toolbar,.bj-book-actions,.bj-book-edit,.bj-book-footer {display:none}
- .bj-book-spread{overflow:visible;box-shadow:none}
+ .bj-book-view:not(.active){display:none}
+ .bj-book-entry,.bj-book-actions,.bj-book-edit,.bj-book-footer,.bj-book-nav{display:none!important}
+ .bj-book-spread{height:auto;overflow:visible;box-shadow:none}
  .bj-book-page{overflow:visible}
 }

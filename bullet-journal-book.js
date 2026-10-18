@@ -4,7 +4,7 @@
   const app = window.LifeRPGApp;
   const journal = window.LifeRPGJournal;
   if (!app?.getState || !app?.saveState || !journal?.getEntry || window.LifeRPGBulletJournalBook) return;
-  const VERSION = "0.31.4-book1";
+  const VERSION = "0.31.4-book-page1";
   const htmlEscape = value => String(value ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
   const get = id => document.getElementById(id);
   const dateKey = d => [d.getFullYear(), String(d.getMonth()+1).padStart(2,"0"), String(d.getDate()).padStart(2,"0")].join("-");
@@ -18,7 +18,7 @@
   const shifted = (key,by) => { const d=dayDate(key);d.setDate(d.getDate()+by);return dateKey(d); };
   const entryFor = key => app.getState().journal?.entries?.[key] || {};
   const noteFor = key => typeof entryFor(key).bookNote==="string" ? entryFor(key).bookNote : "";
-  let dialog=null,activeDay="",savedNote="",dirty=false,saveTimer=null;
+  let bookView=null,activeDay="",savedNote="",dirty=false,saveTimer=null;
   function noteStatus(value) { const el=get("bjBookStatus");if(el)el.textContent=value; }
   function getActivities(key) {
     const events=app.getState().rewardLedger?.events || [];
@@ -64,57 +64,66 @@
     button.textContent="📖 Open my book";button.addEventListener("click",()=>open());
     parent.prepend(button);
   }
-  function ensureDialog(){
-    if(dialog?.isConnected)return dialog;
-    dialog=document.createElement("dialog");
-    dialog.id="bulletJournalBookDialog";
-    dialog.className="bj-book-dialog";
-    dialog.setAttribute("aria-label","My Bullet Journal");
-    dialog.innerHTML =
-      '<div class="bj-book-shell"><header class="bj-book-toolbar">'+
-        '<div class="bj-book-title"><small>BULLET JOURNAL · MY LIFE</small><h2>My Journal</h2></div>'+
-        '<nav class="bj-book-nav" aria-label="Journal dates">'+
-          '<button type="button" data-bj-action="prev" aria-label="Previous day">‹</button>'+
-          '<input id="bjBookDate" type="date" aria-label="Choose journal date">'+
-          '<button type="button" data-bj-action="next" aria-label="Next day">›</button>'+
-          '<button type="button" data-bj-action="today">Today</button></nav>'+
-        '<button type="button" class="bj-book-close" data-bj-action="close" aria-label="Close book">×</button>'+
-      '</header><div class="bj-book-spread">'+
-        '<section class="bj-book-page bj-book-writing">'+
-          '<div class="bj-book-page-inner"><small>DAILY PAGE</small><h3 id="bjBookDayTitle"></h3>'+
-          '<label for="bjBookText">Free writing</label>'+
-          '<textarea id="bjBookText" spellcheck="true" placeholder="Anything on your mind…"></textarea>'+
-          '<div class="bj-book-actions"><span id="bjBookStatus" role="status" aria-live="polite"></span>'+
-          '<button type="button" class="secondary-button" data-bj-action="save">Save page</button></div></div>'+
-        '</section>'+
-        '<section class="bj-book-page bj-book-recorded">'+
-          '<div class="bj-book-page-inner"><small>THE DAY AS IT HAPPENED</small><h3>Moments & reflections</h3>'+
-          '<div id="bjBookRecorded" class="bj-book-records"></div>'+
-          '<button type="button" class="bj-book-edit" data-bj-action="reflect">Edit saved reflections ↗</button>'+
-          '</div></section>'+
-      '</div><footer class="bj-book-footer">Start with a simple book. Make it yours as you go. ♡</footer></div>';
-    dialog.addEventListener("click",e=>{
+  function ensureView(){
+    if(bookView?.isConnected)return bookView;
+    // Real Life RPG view, not a modal: fills the app's available page space and
+    // participates in the normal sidebar / back navigation.
+    const main=document.querySelector(".app-shell > main");
+    if(!main)return null;
+    bookView=document.createElement("section");
+    bookView.id="view-bullet-journal";
+    bookView.className="view bj-book-view";
+    bookView.setAttribute("aria-label","My Bullet Journal");
+    bookView.innerHTML =
+      '<div class="bj-book-shell">'+
+        '<div class="bj-book-entry"><button type="button" data-bj-action="close" class="bj-book-back">← Journal overview</button>'+
+        '<span aria-hidden="true">✦ MY LITTLE NOTEBOOK ✦</span></div>'+
+        '<div class="bj-book-spread">'+
+          '<section class="bj-book-page bj-book-writing">'+
+            '<div class="bj-book-page-inner">'+
+              '<div class="bj-book-date-heading"><small>MY BULLET JOURNAL · DAILY PAGE</small>'+
+              '<h1 id="bjBookDayTitle"></h1>'+
+              '<nav class="bj-book-nav" aria-label="Turn journal pages">'+
+                '<button type="button" data-bj-action="prev" aria-label="Previous day">‹</button>'+
+                '<input id="bjBookDate" type="date" aria-label="Choose journal date">'+
+                '<button type="button" data-bj-action="next" aria-label="Next day">›</button>'+
+                '<button type="button" data-bj-action="today">Today</button></nav>'+
+              '</div>'+
+              '<label for="bjBookText">Free writing</label>'+
+              '<textarea id="bjBookText" spellcheck="true" placeholder="Anything on your mind…"></textarea>'+
+              '<div class="bj-book-actions"><span id="bjBookStatus" role="status" aria-live="polite"></span>'+
+              '<button type="button" class="secondary-button" data-bj-action="save">Save page</button></div>'+
+            '</div>'+
+          '</section>'+
+          '<section class="bj-book-page bj-book-recorded">'+
+            '<div class="bj-book-page-inner"><small>THE DAY AS IT HAPPENED</small><h2>Moments & reflections</h2>'+
+            '<div id="bjBookRecorded" class="bj-book-records"></div>'+
+            '<button type="button" class="bj-book-edit" data-bj-action="reflect">Edit saved reflections ↗</button>'+
+            '</div></section>'+
+        '</div>'+
+        '<footer class="bj-book-footer">Start with a simple book. Make it yours as you go. ♡</footer>'+
+      '</div>';
+    bookView.addEventListener("click",e=>{
       const button=e.target.closest?.("[data-bj-action]");
-      if(!button){if(e.target===dialog)close();return;}
+      if(!button)return;
       const action=button.dataset.bjAction;
       if(action==="close")close();
-      if(action==="save")save(true);
-      if(action==="prev")changeDate(shifted(activeDay,-1));
-      if(action==="next")changeDate(shifted(activeDay,1));
-      if(action==="today")changeDate(today());
-      if(action==="reflect"){
+      else if(action==="save")save(true);
+      else if(action==="prev")changeDate(shifted(activeDay,-1));
+      else if(action==="next")changeDate(shifted(activeDay,1));
+      else if(action==="today")changeDate(today());
+      else if(action==="reflect"){
         const selected=activeDay;
         if(close())journal.openDayEditor?.(selected);
       }
     });
-    dialog.addEventListener("cancel",e=>{if(dirty&&!save()){e.preventDefault();}});
-    dialog.addEventListener("close",()=>{if(dirty)save();clearTimeout(saveTimer);});
-    dialog.querySelector("#bjBookDate").addEventListener("change",e=>changeDate(e.target.value));
-    dialog.querySelector("#bjBookText").addEventListener("input",()=>{
+    bookView.querySelector("#bjBookDate").addEventListener("change",e=>changeDate(e.target.value));
+    bookView.querySelector("#bjBookText").addEventListener("input",()=>{
       dirty=true;noteStatus("Unsaved changes");
       clearTimeout(saveTimer);saveTimer=setTimeout(()=>save(),800);
     });
-    document.body.appendChild(dialog);return dialog;
+    main.appendChild(bookView);
+    return bookView;
   }
   function save(showToast=false) {
     clearTimeout(saveTimer);
@@ -136,15 +145,16 @@
     return true;
   }
   function renderDay(){
-    const d=ensureDialog();
-    d.querySelector("#bjBookDate").value=activeDay;
-    d.querySelector("#bjBookDate").max=today();
-    d.querySelector('[data-bj-action="next"]').disabled=activeDay===today();
-    d.querySelector("#bjBookDayTitle").textContent=dayDate(activeDay).toLocaleDateString(undefined,{weekday:"long",day:"numeric",month:"long",year:"numeric"});
-    d.querySelector("#bjBookText").value=noteFor(activeDay);
+    const view=ensureView();
+    if(!view||!activeDay)return;
+    view.querySelector("#bjBookDate").value=activeDay;
+    view.querySelector("#bjBookDate").max=today();
+    view.querySelector('[data-bj-action="next"]').disabled=activeDay===today();
+    view.querySelector("#bjBookDayTitle").textContent=dayDate(activeDay).toLocaleDateString(undefined,{weekday:"long",day:"numeric",month:"long",year:"numeric"});
+    view.querySelector("#bjBookText").value=noteFor(activeDay);
     savedNote=noteFor(activeDay);dirty=false;
     noteStatus(savedNote?"Saved":"Your words stay yours");
-    d.querySelector("#bjBookRecorded").innerHTML=dayContents(activeDay);
+    view.querySelector("#bjBookRecorded").innerHTML=dayContents(activeDay);
   }
   function changeDate(target){
     if(!dayDate(target)||target>today()){noteStatus("Choose today or an earlier date");return false;}
@@ -153,15 +163,32 @@
   }
   function open(target=today()){
     ensureButton();
+    const view=ensureView();
+    if(!view)return false;
     if(!dayDate(target)||target>today())target=today();
-    const d=ensureDialog();
-    if(d.open)return changeDate(target);
-    activeDay=target;renderDay();d.showModal();
-    d.querySelector("#bjBookText").focus();
+    if(activeDay&&dirty&&!save())return false;
+    activeDay=target;
+    renderDay();
+    app.showView?.("bullet-journal");
     return true;
   }
-  function close(){if(!save())return false;if(dialog?.open)dialog.close();return true;}
-  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",ensureButton,{once:true});
-  else ensureButton();
+  function close(){
+    if(!save())return false;
+    app.showView?.("journal");
+    return true;
+  }
+  function initialize(){
+    ensureButton();
+    ensureView();
+  }
+  // Leaving the book by the sidebar also saves its draft.
+  window.addEventListener("life-rpg:view-changed",e=>{
+    if(e?.detail?.view!=="bullet-journal"&&dirty)save();
+    if(e?.detail?.view==="bullet-journal"&&!activeDay){
+      activeDay=today();renderDay();
+    }
+  });
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",initialize,{once:true});
+  else initialize();
   window.LifeRPGBulletJournalBook={version:VERSION,open,close,save,changeDate,getDate:()=>activeDay};
 })();
