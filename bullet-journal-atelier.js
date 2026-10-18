@@ -7,13 +7,17 @@
   "use strict";
   const app=window.LifeRPGApp,book=window.LifeRPGBulletJournalBook;
   if(!app?.getState||!app?.saveState||!book?.getDate||window.LifeRPGJournalAtelier)return;
-  const VERSION="0.31.4-atelier-preview1",LIMIT=12;
+  const VERSION="0.31.4-sakura-anime-v2",LIMIT=12;
+  // Sakura anime v2: five *independent* assets, not a cropped collage.
+  // Existing asset keys stay stable; the rejected letter-tag is not offered.
+  // Entire Sakura collection remains preview-only until explicit in-app signoff.
   const assets=[
     {key:"paperclip-ink",group:"free",label:"Ink paperclip",src:"assets/journal/paperclip-ink.svg",width:37},
-    {key:"sakura-branch",group:"pilot",label:"Sakura branch",src:"assets/journal/sakura-branch.svg",width:130},
-    {key:"sakura-washi",group:"pilot",label:"Petal washi",src:"assets/journal/sakura-washi.svg",width:205},
-    {key:"sakura-letter",group:"pilot",label:"Blossom letter",src:"assets/journal/sakura-letter.svg",width:81},
-    {key:"sakura-divider",group:"pilot",label:"Floral divider",src:"assets/journal/sakura-divider.svg",width:210}
+    {key:"sakura-branch",group:"pilot",label:"Anime sakura branch",src:"assets/journal/sakura-anime-branch.svg",width:138},
+    {key:"sakura-washi",group:"pilot",label:"Sakura washi tape",src:"assets/journal/sakura-anime-washi.svg",width:204},
+    {key:"sakura-divider",group:"pilot",label:"Sakura floral divider",src:"assets/journal/sakura-anime-divider.svg",width:212},
+    {key:"sakura-blossoms",group:"pilot",label:"Sakura blossom stickers",src:"assets/journal/sakura-anime-blossoms.svg",width:98},
+    {key:"sakura-memo",group:"pilot",label:"Sakura memo card",src:"assets/journal/sakura-anime-memo.svg",width:88}
   ];
   const byKey=new Map(assets.map(a=>[a.key,a]));
   const safe=x=>String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;", "'":"&#39;"}[c]));
@@ -96,17 +100,17 @@
     mount.innerHTML=
       '<div class="bj-atelier-bar"><button type="button" class="bj-atelier-toggle" data-bj-atelier-toggle '+
       'aria-expanded="'+opened+'">'+(opened?'✦ Close Atelier':'✦ Decorate page')+'</button>'+
-      (preview?'<small class="bj-atelier-preview-warning">Sakura sample · temporary, not sold or saved</small>':
+      (preview?'<small class="bj-atelier-preview-warning">Sakura v2 · temporary, not sold or saved</small>':
        '<small>Free editor · separate from your writing</small>')+'</div>'+
       (hasVisible||opened?
         '<div class="bj-atelier-stage" id="bjAtelierStage" role="group" aria-label="Decorative page margin">'+
         working.map(placementHtml).join("")+'</div>':"")+
       (opened?
         '<div class="bj-atelier-controls">'+
-        (preview?'<div class="bj-atelier-preview-note">✧ Sakura quality preview only. All changes here are temporary. '+
+        (preview?'<div class="bj-atelier-preview-note">✧ Sakura anime v2 preview. Nothing is purchased or saved. '+
           '<button type="button" data-bj-atelier-exit>Discard preview</button></div>':'')+
         '<div class="bj-atelier-shelf"><strong>Free starter</strong><div class="bj-atelier-assets">'+picker("free")+'</div></div>'+
-        '<div class="bj-atelier-shelf is-pilot"><strong>Sakura · visual pilot (not for sale)</strong>'+
+        '<div class="bj-atelier-shelf is-pilot"><strong>Sakura v2 · anime style · live preview (not for sale)</strong>'+
           '<div class="bj-atelier-assets">'+picker("pilot")+'</div></div>'+
         (current?'<div class="bj-atelier-transform"><span>Selected: '+safe(byKey.get(current.assetKey)?.label||"Decoration")+'</span>'+
           '<div><button type="button" data-bj-atelier-edit="smaller" aria-label="Shrink decoration">− Size</button>'+
