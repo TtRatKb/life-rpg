@@ -93,3 +93,25 @@
 @media(prefers-reduced-motion:reduce){
   .bj-daily-mini-row.is-done .bj-daily-mini-check{transform:none}
 }
+
+/* Journal Atelier preflight: four balanced columns prevent chopped titles.
+   The external-link glyph floats independently of the two-line name. */
+.bj-daily-mini-rows{
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:6px
+}
+.bj-daily-mini-row{min-height:91px}
+.bj-daily-mini-paper .bj-daily-mini-name{
+  position:relative;display:block;line-clamp:unset;-webkit-line-clamp:unset;
+  overflow:hidden;max-height:none;min-height:31px;
+  padding:1px 12px 1px 3px!important;
+  hyphens:auto;overflow-wrap:break-word;
+  font-size:.72rem;line-height:1.22;text-wrap:balance
+}
+.bj-daily-mini-name span[aria-hidden="true"]{
+  position:absolute;right:0;top:0;color:#a0808d;font-size:.68rem
+}
+@media(max-width:540px){
+  .bj-daily-mini-rows{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .bj-daily-mini-paper .bj-daily-mini-name{font-size:.68rem}
+}
