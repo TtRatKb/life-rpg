@@ -12,7 +12,7 @@
     return;
   }
 
-  const VERSION = "0.31.4-weekchapter1";
+  const VERSION = "0.31.4-dailymini1";
   const SCHEMA = 7;
   const REALMS = ["Work", "Knowledge", "Japanese", "Health", "Recovery", "Home", "Hobbies"];
 
@@ -104,6 +104,9 @@
         linkedContent("journal-weekly-habit-tracker", "▦", "Bullet Journal · Weekly Habit Tracker", 1,
           "A real seven-day tracker on its own weekly notebook spread. Existing purchases remain valid. Reads original Habits and linked Quests without duplicate logs or rewards. See the live example in your Journal before buying.",
           {}, "Open Weekly Pages", () => window.LifeRPGBulletJournalBook?.openWeekly?.()),
+        linkedContent("journal-daily-mini-habit-tracker", "✧", "Bullet Journal · Daily Mini Habit Tracker", 1,
+          "A compact, moveable daily notebook insert for the selected date. It reads existing Habits and linked Quest check-ins without extra rewards. See the real-layout example on Daily Pages before buying. Independent of the Weekly Tracker.",
+          {}, "Open Daily Pages", () => window.LifeRPGBulletJournalBook?.open?.()),
         linkedContent("future-letter", "✉", "Future Me · Sealed Letters", 1,
           "Write a sealed letter for yourself to open after 7, 30 or 90 days. Save it in the normal cloud-save state and revisit it when the date arrives; no forced daily task.",
           { content: "year-question" }, "Open Future Me", () => window.LifeRPGTalentV3?.open?.("future-letter")),

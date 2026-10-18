@@ -1,0 +1,50 @@
+/* Daily Mini · dedicated read-only, optionally repositioned notebook insert.
+   The same component renders both example and real Habit data. */
+.bj-book-daily-mini{width:100%;min-width:0}
+.bj-daily-mini-paper{
+  padding:15px 14px 12px;border:1px solid #d9c4ac;border-radius:6px 13px 8px 12px;
+  background:linear-gradient(155deg,#fffaf1,#f6efe5);
+  box-shadow:0 4px 10px rgba(91,65,46,.08),inset 0 1px rgba(255,255,255,.8);
+  color:#665757;
+}
+.bj-daily-mini-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.bj-daily-mini-head small{font:700 .61rem/1.4 Georgia,serif;letter-spacing:.11em;color:#a0788b}
+.bj-daily-mini-head h3{font:500 1.16rem/1.22 Georgia,serif!important;color:#654d55!important;margin:4px 0 0!important}
+.bj-daily-mini-rows{list-style:none!important;padding:0!important;margin:13px 0 0!important;display:grid;gap:2px}
+.bj-daily-mini-row{display:flex;align-items:center;gap:9px;min-height:42px;border-bottom:1px dashed #ded0c0;padding:5px 1px}
+.bj-daily-mini-row:last-child{border-bottom:0}
+.bj-daily-mini-stamp{
+ flex:0 0 25px;height:25px;border:1px solid #cdb8ae;border-radius:7px;
+ display:grid;place-items:center;background:#fffaf4;
+ color:#a69b97;font:700 1.1rem Georgia,serif;
+}
+.bj-daily-mini-row.is-done .bj-daily-mini-stamp{
+ background:#eee3e8;color:#775d73;border:2px solid #ac91a2;transform:rotate(-6deg);
+}
+.bj-daily-mini-name{display:grid;gap:2px;min-width:0;flex:1;overflow-wrap:anywhere}
+.bj-daily-mini-name strong{font-size:.76rem;color:#5e5152;line-height:1.25}
+.bj-daily-mini-name small{font-size:.63rem;color:#938078}
+.bj-daily-mini-state{flex:0 0 auto;font:italic .64rem Georgia,serif;color:#917f78;text-align:right}
+.bj-daily-mini-legend{display:flex;flex-wrap:wrap;gap:12px;margin-top:9px;color:#97877f;font-size:.63rem}
+.bj-daily-mini-preview-label{font-size:.72rem;line-height:1.5;color:#876e7c;background:#f4e9e9;border-radius:7px;padding:8px;margin:11px 0 0}
+.bj-daily-mini-preview-label strong{display:block;color:#765467}
+.bj-daily-mini-empty,.bj-daily-mini-muted{font:italic .77rem/1.5 Georgia,serif;color:#927f7d;margin:13px 0}
+.bj-daily-mini-cta,.bj-daily-mini-footer{
+ display:flex;align-items:center;justify-content:space-between;gap:9px;flex-wrap:wrap;
+ margin-top:13px;padding-top:10px;border-top:1px solid #dccbbd;
+}
+.bj-daily-mini-cta span{font:700 .67rem Georgia,serif;color:#8f7082}
+.bj-daily-mini-paper button{
+ padding:6px 10px;min-height:34px;border:1px solid #cbb2bb!important;
+ border-radius:8px;color:#795a6f!important;background:#fcf6ee!important;
+ font:600 .68rem Georgia,serif;cursor:pointer;
+}
+.bj-daily-mini-paper button:hover{border-color:#a5889b!important;background:#f7e9e8!important}
+.bj-daily-mini-paper button:focus-visible{outline:2px solid #876983;outline-offset:2px}
+.bj-daily-mini-collapse{margin-top:1px}
+.bj-daily-mini-more{margin-top:9px}
+@media(max-width:420px){
+ .bj-daily-mini-paper{padding:12px 10px}
+ .bj-daily-mini-state{font-size:.58rem}
+ .bj-daily-mini-row{gap:6px}
+}

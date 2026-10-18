@@ -902,6 +902,140 @@ class SeriesLibraryTests(unittest.TestCase):
         self.assertEqual(self.page.evaluate(
             "LifeRPGSkills.getRealmPoints('Health').available"),after['points'])
 
+    def test_bullet_journal_daily_mini_preview_purchase_movement_and_persistence(self):
+        """The Daily insert uses exactly one canonical day, costs one Health point
+        once, and never edits Habit/Quest/XP history on display or layout changes."""
+        self.page.evaluate("""() => {
+          const root=LifeRPGApp.getState();
+          root.skills.realmBonusPoints.Health=9;
+          const from=new Date(2026,9,10,12).getTime();
+          root.habits={
+            schemaVersion:4,reminders:{},
+            items:[
+              {id:'daily-a',name:'My private daily reading',realm:'Hobbies',active:true,
+               createdDate:'2026-10-10',scheduleStartDate:'2026-10-10',trackingFrom:from,
+               schedule:{type:'daily'},effort:'low',daypart:'anytime'},
+              {id:'daily-b',name:'My private recovery ritual',realm:'Recovery',active:true,
+               createdDate:'2026-10-10',scheduleStartDate:'2026-10-10',trackingFrom:from,
+               schedule:{type:'daily'},effort:'low',daypart:'anytime'}
+            ],
+            completions:[
+              {id:'done-a',habitId:'daily-a',date:'2026-10-14',
+               timestamp:new Date(2026,9,14,12).getTime()},
+              {id:'done-b',habitId:'daily-b',date:'2026-10-13',
+               timestamp:new Date(2026,9,13,12).getTime()}
+            ]
+          };
+          root.journal.entries['2026-10-14']={
+            date:'2026-10-14',bookNote:'This page belongs to me',
+            gratitude:'Tea after work'
+          };
+        }""")
+        for script in ['habits.js','journal.js','bullet-journal-book.js',
+                       'skills.js','talent-v2.js','talent-tree-v2-graph.js',
+                       'bullet-journal-habit-tracker.js']:
+            self.page.add_script_tag(url='/'+script)
+        self.page.add_style_tag(url='/bullet-journal-book.css')
+        self.page.add_style_tag(url='/bullet-journal-daily-tracker.css')
+        self.page.add_script_tag(url='/bullet-journal-daily-tracker.js')
+        self.assertTrue(self.page.evaluate("LifeRPGBulletJournalBook.open('2026-10-14')"))
+        preview=self.page.locator('#bjBookDailyMini')
+        self.assertIn('example habits',preview.inner_text())
+        self.assertEqual(preview.locator('.bj-daily-mini-row').count(),3)
+        self.assertNotIn('My private daily reading',preview.inner_text())
+        self.assertFalse(self.page.evaluate("LifeRPGBulletJournalDailyTracker.isUnlocked()"))
+        self.assertFalse(self.page.evaluate(
+            "LifeRPGTalentTreeGraph.isContentUnlocked('Health','journal-weekly-habit-tracker')"))
+        before=self.page.evaluate("""() => {
+          const s=LifeRPGApp.getState();
+          return {
+            points:LifeRPGSkills.getRealmPoints('Health').available,
+            habits:JSON.stringify(s.habits),
+            rewardLedger:JSON.stringify(s.rewardLedger),
+            journal:JSON.stringify(s.journal.entries['2026-10-14'])
+          };
+        }""")
+        self.assertTrue(self.page.evaluate("""() =>
+          LifeRPGTalentTreeGraph.purchaseContent('Health','journal-daily-mini-habit-tracker')"""))
+        self.assertTrue(self.page.evaluate("LifeRPGBulletJournalDailyTracker.isUnlocked()"))
+        self.assertEqual(preview.locator('.bj-daily-mini-row').count(),2)
+        self.assertIn('My private daily reading',preview.inner_text())
+        self.assertEqual(preview.locator('.bj-daily-mini-row.is-done').count(),1)
+        self.assertNotIn('example habits',preview.inner_text())
+        self.assertIn('Tea after work',self.page.locator('#bjBookRecorded').inner_text())
+        self.assertEqual(self.page.locator('#bjBookText').input_value(),'This page belongs to me')
+        self.assertFalse(self.page.evaluate("""() =>
+          LifeRPGTalentTreeGraph.purchaseContent('Health','journal-daily-mini-habit-tracker')"""))
+        self.assertEqual(self.page.evaluate("""() =>
+          LifeRPGSkills.getRealmPoints('Health').available"""),before['points']-1)
+        self.assertFalse(self.page.evaluate(
+            "LifeRPGTalentTreeGraph.isContentUnlocked('Health','journal-weekly-habit-tracker')"))
+        self.page.locator('[data-bj-daily-move]').click()
+        self.assertEqual(self.page.evaluate(
+            "LifeRPGApp.getState().journalBookLayoutV1.dailyMiniSlot"),'below')
+        self.assertTrue(self.page.evaluate("""() =>
+          document.getElementById('bjBookDailyMini').previousElementSibling.id==='bjBookRecorded'"""))
+        self.assertTrue(self.page.evaluate(
+            "LifeRPGBulletJournalBook.changeDate('2026-10-13')"))
+        self.assertEqual(preview.locator('.bj-daily-mini-row.is-done').count(),1)
+        self.assertIn('My private recovery ritual',preview.inner_text())
+        self.assertTrue(self.page.evaluate(
+            "LifeRPGBulletJournalBook.changeDate('2026-10-14')"))
+        self.assertTrue(self.page.evaluate("""() => {
+          const s=LifeRPGApp.getState();
+          return s.journal.entries['2026-10-14'].bookNote==='This page belongs to me';
+        }"""))
+        after=self.page.evaluate("""() => {
+          const s=LifeRPGApp.getState();
+          return {
+            points:LifeRPGSkills.getRealmPoints('Health').available,
+            habits:JSON.stringify(s.habits),
+            rewardLedger:JSON.stringify(s.rewardLedger),
+            journal:JSON.stringify(s.journal.entries['2026-10-14'])
+          };
+        }""")
+        self.assertEqual(after['points'],before['points']-1)
+        self.assertEqual(after['habits'],before['habits'])
+        self.assertEqual(after['rewardLedger'],before['rewardLedger'])
+        self.assertEqual(after['journal'],before['journal'])
+        self.page.evaluate("LifeRPGApp.saveState({suppressCloud:true})")
+        self.page.reload(wait_until='domcontentloaded')
+        self.page.wait_for_function('window.LifeRPGSkills && window.saveSafetyTest')
+        for script in ['habits.js','journal.js','bullet-journal-book.js',
+                       'skills.js','talent-v2.js','talent-tree-v2-graph.js',
+                       'bullet-journal-daily-tracker.js']:
+            self.page.add_script_tag(url='/'+script)
+        self.assertTrue(self.page.evaluate(
+            "LifeRPGBulletJournalDailyTracker.isUnlocked()"))
+        self.assertEqual(self.page.evaluate(
+            "LifeRPGApp.getState().journalBookLayoutV1.dailyMiniSlot"),'below')
+        self.assertTrue(self.page.evaluate("LifeRPGBulletJournalBook.open('2026-10-14')"))
+        self.assertIn('My private daily reading',
+                      self.page.locator('#bjBookDailyMini').inner_text())
+        self.assertEqual(self.page.evaluate(
+            "LifeRPGSkills.getRealmPoints('Health').available"),after['points'])
+
+    def test_bullet_journal_daily_mini_stays_readable_on_mobile(self):
+        """The paper insert fits the stacked daily page without horizontal overflow."""
+        self.page.set_viewport_size({'width':390,'height':844})
+        for script in ['habits.js','journal.js','bullet-journal-book.js']:
+            self.page.add_script_tag(url='/'+script)
+        self.page.add_style_tag(url='/bullet-journal-book.css')
+        self.page.add_style_tag(url='/bullet-journal-daily-tracker.css')
+        self.page.add_script_tag(url='/bullet-journal-daily-tracker.js')
+        self.assertTrue(self.page.evaluate("LifeRPGBulletJournalBook.open('2026-10-14')"))
+        self.assertEqual(self.page.locator('#bjBookDailyMini .bj-daily-mini-row').count(),3)
+        layout=self.page.evaluate("""() => {
+          const host=document.querySelector('#bjBookDailyMini');
+          const right=host.closest('.bj-book-page');
+          const rect=host.getBoundingClientRect();
+          return {width:rect.width,viewport:document.documentElement.clientWidth,
+            rightWidth:right.getBoundingClientRect().width,
+            scrollWidth:right.scrollWidth};
+        }""")
+        self.assertLessEqual(layout['width'],layout['viewport'])
+        self.assertLessEqual(layout['scrollWidth'],layout['rightWidth']+2)
+
     def test_bullet_journal_weekly_legacy_entitlement_survives_book_move(self):
         """An already-purchased Weekly Tracker costs zero extra points after routing migration."""
         self.page.evaluate("""() => {
