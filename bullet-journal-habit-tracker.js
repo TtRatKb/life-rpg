@@ -7,7 +7,7 @@
   if(!app?.getState || !book?.changeDate || window.LifeRPGBulletJournalHabitTracker)return;
   const ID="journal-weekly-habit-tracker";
   const $=id=>document.getElementById(id);
-  let mode="weekly",expanded=false,wasOwned=false,currentDate="";
+  let expanded=false,currentDate="";
   const safe=x=>String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   const owned=()=>Boolean(window.LifeRPGTalentTreeGraph?.isContentUnlocked?.("Health",ID));
   const parseDay=key=>{
@@ -19,10 +19,19 @@
   const dateKey=d=>[d.getFullYear(),String(d.getMonth()+1).padStart(2,"0"),String(d.getDate()).padStart(2,"0")].join("-");
   const addDays=(key,diff)=>{const d=parseDay(key);d.setDate(d.getDate()+diff);return dateKey(d);};
   const today=()=>dateKey(new Date());
-  function markup(date) {
+  function markup(date,preview=false) {
     const getWeek=window.LifeRPGHabits?.getJournalTrackerWeek;
     if(!getWeek)return '<p class="bj-habit-empty">Habits are still loading. Come back to this page in a moment.</p>';
-    const week=getWeek(date);
+    const liveWeek=getWeek(date);
+    const week=preview ? {
+      ...liveWeek,
+      habits:[
+        {name:"Read a chapter",schedule:"Daily",cells:["done","open","done","open","done","off","off"],checkIns:3},
+        {name:"Take a cozy break",schedule:"3 days a week",cells:["off","done","off","open","done","off","off"],checkIns:2},
+        {name:"A little fresh air",schedule:"Daily",cells:["open","done","open","done","open","off","future"],checkIns:2}
+      ],
+      count:7
+    } : liveWeek;
     if(!week?.days?.length)return '<p class="bj-habit-empty">No dated Habit information available yet.</p>';
     const all=Array.isArray(week.habits)?week.habits:[];
     const rows=expanded?all:all.slice(0,8);
@@ -39,10 +48,7 @@
     const count=Number(week.count||0),remaining=all.length-rows.length;
     const label=showDate(week.start)+" – "+showDate(week.end);
     return '<div class="bj-habit-head"><div><small>WEEKLY COLLECTION</small><h3>Little things, day by day</h3>'+
-      '<p>'+safe(label)+' · '+count+' recorded check-in'+(count===1?'':'s')+'</p></div>'+
-      '<nav aria-label="Navigate tracker weeks" class="bj-habit-week-controls">'+
-      '<button data-bj-week="-7" type="button" aria-label="Previous week">‹</button>'+
-      '<button data-bj-week="7" type="button" aria-label="Next week" '+(addDays(date,7)>today()?'disabled':'')+'>›</button></nav></div>'+
+      '<p>'+safe(label)+' · '+count+' recorded check-in'+(count===1?'':'s')+'</p></div></div>'+
       (all.length?'<div class="bj-habit-paper">'+
         '<div class="bj-habit-grid-head"><span>HABIT</span><div class="bj-habit-cells">'+headings+'</div></div>'+
         '<div class="bj-habit-grid" role="grid" aria-label="Habit check-ins by weekday">'+grid+'</div>'+
@@ -50,51 +56,44 @@
          expanded&&all.length>8?'<button class="bj-habit-show" data-bj-show-all type="button">Show fewer habits ↑</button>':"")+
         '<div class="bj-habit-legend"><span><b>✓</b> Logged</span><span>· No log</span><span>– Not scheduled</span></div></div>':
         '<div class="bj-habit-empty"><p>Nothing needs to be filled in. Your existing Habits will appear here when you choose to track them.</p></div>')+
-      '<button type="button" class="bj-habit-link" data-bj-open-habits>Open Habits to manage or log ↗</button>';
+      (preview ? '' : '<button type="button" class="bj-habit-link" data-bj-open-habits>Open Habits to manage or log ↗</button>');
   }
-  function render(date=book.getDate()){
-    const tabs=$("bjBookTrackerTabs"),records=$("bjBookRecorded"),tracker=$("bjBookHabitTracker");
-    if(!tabs||!records||!tracker)return;
-    const has=owned();
-    if(!has){wasOwned=false;tabs.hidden=true;records.hidden=false;tracker.hidden=true;tracker.innerHTML="";return;}
-    if(!wasOwned){mode="weekly";expanded=false;wasOwned=true;}
+  function render(date=book.getWeek()){
+    const target=$("bjBookHabitTracker");
+    if(!target || !date)return;
     if(date!==currentDate){currentDate=date;expanded=false;}
-    tabs.hidden=false;
-    tabs.querySelectorAll("[data-bj-tracker-mode]").forEach(btn=>{
-      btn.setAttribute("aria-pressed",String(btn.dataset.bjTrackerMode===mode));
-    });
-    records.hidden=mode!=="recorded";
-    tracker.hidden=mode!=="weekly";
-    const heading=$("view-bullet-journal")?.querySelector(".bj-book-recorded .bj-book-page-inner>h2");
-    if(heading)heading.textContent=mode==="weekly"?"Weekly Habit Tracker":"Moments & reflections";
-    const edit=$("view-bullet-journal")?.querySelector(".bj-book-edit");
-    if(edit)edit.hidden=mode!=="recorded";
-    if(mode==="weekly")tracker.innerHTML=markup(date);
+    if(owned()){
+      target.innerHTML=markup(date,false);
+    } else {
+      // Preview is rendered by the exact same CSS/component as the real tracker,
+      // but uses explicitly labelled sample data (never the user's Habit history).
+      target.innerHTML='<div class="bj-habit-preview-intro"><strong>Try before unlocking ✧</strong>'+
+        '<p>This is the real tracker layout with example habits. Your own check-ins appear after you unlock it.</p></div>'+
+        markup(date,true)+
+        '<div class="bj-habit-preview-cta"><small>Health Talent · 1 Skillpoint</small>'+
+        '<button type="button" data-bj-unlock-info>See unlock in Skills ↗</button></div>';
+    }
   }
   function bind(){
     const view=$("view-bullet-journal");
     if(!view)return;
     view.addEventListener("click",e=>{
-      const change=e.target.closest?.("[data-bj-tracker-mode]");
-      if(change){
-        if(!owned())return;
-        mode=change.dataset.bjTrackerMode==="recorded"?"recorded":"weekly";
-        render(book.getDate());return;
-      }
-      const week=e.target.closest?.("[data-bj-week]");
-      if(week&&owned()){book.changeDate(addDays(book.getDate(),Number(week.dataset.bjWeek)));return;}
       const more=e.target.closest?.("[data-bj-show-all]");
-      if(more&&owned()){expanded=!expanded;render(book.getDate());return;}
-      if(e.target.closest?.("[data-bj-open-habits]")&&owned())app.showView?.("habits");
+      if(more&&owned()){expanded=!expanded;render(book.getWeek());return;}
+      if(e.target.closest?.("[data-bj-open-habits]")&&owned()){app.showView?.("habits");return;}
+      if(e.target.closest?.("[data-bj-unlock-info]")&&!owned()){
+        app.showView?.("skills");
+        window.LifeRPGSkills?.selectTalentRealm?.("Health");
+      }
     });
   }
   window.addEventListener("life-rpg:talent-content-v2-change",e=>{
-    if(e?.detail?.realm==="Health"&&e.detail?.id===ID)render();
+    if(e?.detail?.realm==="Health"&&e.detail?.id===ID)render(book.getWeek());
   });
   window.addEventListener("life-rpg:state-saved",()=>{
-    if($("view-bullet-journal")?.classList.contains("active"))render();
+    if($("view-bullet-journal")?.classList.contains("active") && book.getChapter()==="weekly")render(book.getWeek());
   });
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",bind,{once:true});
   else bind();
-  window.LifeRPGBulletJournalHabitTracker={version:"0.31.4-journal-habits1",render,isUnlocked:owned};
+  window.LifeRPGBulletJournalHabitTracker={version:"0.31.4-weekchapter1",render,isUnlocked:owned};
 })();

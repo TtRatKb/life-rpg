@@ -4,7 +4,7 @@
   const app = window.LifeRPGApp;
   const journal = window.LifeRPGJournal;
   if (!app?.getState || !app?.saveState || !journal?.getEntry || window.LifeRPGBulletJournalBook) return;
-  const VERSION = "0.31.4-book-page1";
+  const VERSION = "0.31.4-weekchapter1";
   const htmlEscape = value => String(value ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
   const get = id => document.getElementById(id);
   const dateKey = d => [d.getFullYear(), String(d.getMonth()+1).padStart(2,"0"), String(d.getDate()).padStart(2,"0")].join("-");
@@ -18,7 +18,14 @@
   const shifted = (key,by) => { const d=dayDate(key);d.setDate(d.getDate()+by);return dateKey(d); };
   const entryFor = key => app.getState().journal?.entries?.[key] || {};
   const noteFor = key => typeof entryFor(key).bookNote==="string" ? entryFor(key).bookNote : "";
-  let bookView=null,activeDay="",savedNote="",dirty=false,saveTimer=null;
+  let bookView=null,activeDay="",activeWeek="",chapter="daily",savedNote="",dirty=false,saveTimer=null;
+  const monday=key=>{const d=dayDate(key);if(!d)return null;d.setDate(d.getDate()-(d.getDay()+6)%7);return dateKey(d);};
+  const weekDate=(key,offset)=>{const d=dayDate(monday(key));d.setDate(d.getDate()+offset);return dateKey(d);};
+  const weekTitle=key=>{
+    const start=dayDate(monday(key)),end=dayDate(weekDate(key,6));
+    const opts={day:"numeric",month:"short"};
+    return start.toLocaleDateString(undefined,opts)+" – "+end.toLocaleDateString(undefined,{...opts,year:"numeric"});
+  };
   function noteStatus(value) { const el=get("bjBookStatus");if(el)el.textContent=value; }
   function getActivities(key) {
     const events=app.getState().rewardLedger?.events || [];
@@ -78,10 +85,13 @@
       '<div class="bj-book-shell">'+
         '<div class="bj-book-entry"><button type="button" data-bj-action="close" class="bj-book-back">← Journal overview</button>'+
         '<span aria-hidden="true">✦ MY LITTLE NOTEBOOK ✦</span></div>'+
-        '<div class="bj-book-spread">'+
+        '<div class="bj-book-spread" id="bjBookDailySpread">'+
           '<section class="bj-book-page bj-book-writing">'+
             '<div class="bj-book-page-inner">'+
               '<div class="bj-book-date-heading"><small>MY BULLET JOURNAL · DAILY PAGE</small>'+
+              '<nav class="bj-book-chapter-tabs" aria-label="Notebook chapters">'+
+                '<button type="button" data-bj-chapter="daily" aria-current="page">✦ Days</button>'+
+                '<button type="button" data-bj-chapter="weekly">▦ Weeks</button></nav>'+
               '<h1 id="bjBookDayTitle"></h1>'+
               '<nav class="bj-book-nav" aria-label="Turn journal pages">'+
                 '<button type="button" data-bj-action="prev" aria-label="Previous day">‹</button>'+
@@ -97,21 +107,50 @@
           '</section>'+
           '<section class="bj-book-page bj-book-recorded">'+
             '<div class="bj-book-page-inner"><small>THE DAY AS IT HAPPENED</small><h2>Moments & reflections</h2>'+
-            '<div id="bjBookTrackerTabs" class="bj-book-tracker-tabs" role="group" aria-label="Journal page content" hidden>'+
-              '<button type="button" data-bj-tracker-mode="weekly" aria-pressed="false">▦ Weekly Habit Tracker</button>'+
-              '<button type="button" data-bj-tracker-mode="recorded" aria-pressed="true">✦ Recorded Moments</button></div>'+
             '<div id="bjBookRecorded" class="bj-book-records"></div>'+
-            '<div id="bjBookHabitTracker" class="bj-book-habit-tracker" hidden></div>'+
             '<button type="button" class="bj-book-edit" data-bj-action="reflect">Edit saved reflections ↗</button>'+
+            '</div></section>'+
+        '</div>'+
+        '<div class="bj-book-spread bj-book-weekly-spread" id="bjBookWeeklySpread" hidden>'+
+          '<section class="bj-book-page bj-book-writing">'+
+            '<div class="bj-book-page-inner">'+
+              '<div class="bj-book-date-heading"><small>MY BULLET JOURNAL · WEEKLY PAGES</small>'+
+                '<nav class="bj-book-chapter-tabs" aria-label="Notebook chapters">'+
+                  '<button type="button" data-bj-chapter="daily">✦ Days</button>'+
+                  '<button type="button" data-bj-chapter="weekly" aria-current="page">▦ Weeks</button></nav>'+
+                '<h1 id="bjBookWeekTitle"></h1>'+
+                '<nav class="bj-book-nav" aria-label="Turn weekly pages">'+
+                  '<button type="button" data-bj-action="week-prev" aria-label="Previous week">‹</button>'+
+                  '<button type="button" data-bj-action="week-next" aria-label="Next week">›</button>'+
+                  '<button type="button" data-bj-action="week-today">This week</button>'+
+                '</nav></div>'+
+              '<div class="bj-book-week-intro"><span aria-hidden="true">✧</span>'+
+                '<h2>Seven little chapters</h2>'+
+                '<p>Every day has its own story. Pick a date to read or write on its page.</p>'+
+              '</div>'+
+              '<div class="bj-book-week-days" id="bjBookWeekDays" aria-label="Daily pages in this week"></div>'+
+              '<p class="bj-book-week-note">Your original Weekly Review stays available from the Journal overview. Nothing here asks you to fill an extra checklist.</p>'+
+            '</div></section>'+
+          '<section class="bj-book-page bj-book-recorded">'+
+            '<div class="bj-book-page-inner"><small>YOUR WEEKLY COLLECTION</small>'+
+              '<h2 class="bj-book-week-right-title">Habit Tracker</h2>'+
+              '<div id="bjBookHabitTracker" class="bj-book-habit-tracker"></div>'+
             '</div></section>'+
         '</div>'+
         '<footer class="bj-book-footer">Start with a simple book. Make it yours as you go. ♡</footer>'+
       '</div>';
     bookView.addEventListener("click",e=>{
+      const chapterButton=e.target.closest?.("[data-bj-chapter]");
+      if(chapterButton){showChapter(chapterButton.dataset.bjChapter);return;}
+      const dayButton=e.target.closest?.("[data-bj-week-day]");
+      if(dayButton){open(dayButton.dataset.bjWeekDay);return;}
       const button=e.target.closest?.("[data-bj-action]");
       if(!button)return;
       const action=button.dataset.bjAction;
       if(action==="close")close();
+      else if(action==="week-prev")changeWeek(weekDate(activeWeek,-7));
+      else if(action==="week-next")changeWeek(weekDate(activeWeek,7));
+      else if(action==="week-today")changeWeek(monday(today()));
       else if(action==="save")save(true);
       else if(action==="prev")changeDate(shifted(activeDay,-1));
       else if(action==="next")changeDate(shifted(activeDay,1));
@@ -159,7 +198,54 @@
     savedNote=noteFor(activeDay);dirty=false;
     noteStatus(savedNote?"Saved":"Your words stay yours");
     view.querySelector("#bjBookRecorded").innerHTML=dayContents(activeDay);
-    window.LifeRPGBulletJournalHabitTracker?.render?.(activeDay);
+    // Weekly collection renders only on its own spread, never inside a daily page.
+  }
+  function renderWeek(){
+    const view=ensureView();
+    if(!view||!activeWeek)return;
+    view.querySelector("#bjBookWeekTitle").textContent=weekTitle(activeWeek);
+    view.querySelector('[data-bj-action="week-next"]').disabled=activeWeek>=monday(today());
+    view.querySelector("#bjBookWeekDays").innerHTML=Array.from({length:7},(_,index)=>{
+      const day=weekDate(activeWeek,index);
+      const pretty=dayDate(day).toLocaleDateString(undefined,{weekday:"short",day:"numeric"});
+      const future=day>today();
+      return '<button type="button" data-bj-week-day="'+day+'" '+(future?'disabled':'')+
+        ' aria-label="Open '+pretty+'" class="bj-book-week-day'+(day===activeDay?' is-selected':'')+'">'+
+        '<span>'+String(index+1).padStart(2,"0")+'</span><strong>'+htmlEscape(pretty)+'</strong><small>'+ (future?'Upcoming':day===today()?'Today':'Open page ↗') +'</small></button>';
+    }).join("");
+    window.LifeRPGBulletJournalHabitTracker?.render?.(activeWeek);
+  }
+  function showChapter(target){
+    if(target!=="daily"&&target!=="weekly")return false;
+    if(!save())return false;
+    chapter=target;
+    if(!activeWeek)activeWeek=monday(activeDay||today());
+    const view=ensureView();
+    view.querySelector("#bjBookDailySpread").hidden=chapter!=="daily";
+    view.querySelector("#bjBookWeeklySpread").hidden=chapter!=="weekly";
+    view.querySelectorAll("[data-bj-chapter]").forEach(button=>{
+      if(button.dataset.bjChapter===chapter)button.setAttribute("aria-current","page");
+      else button.removeAttribute("aria-current");
+    });
+    if(chapter==="weekly")renderWeek();
+    return true;
+  }
+  function changeWeek(target){
+    const key=monday(target);
+    if(!key||key>monday(today())||!save())return false;
+    activeWeek=key;
+    if(chapter!=="weekly")return showChapter("weekly");
+    renderWeek();
+    return true;
+  }
+  function openWeekly(target=today()){
+    ensureButton();
+    if(!ensureView())return false;
+    const selected=dayDate(target)&&target<=today()?target:today();
+    if(!activeDay){activeDay=today();renderDay();}
+    if(!changeWeek(selected))return false;
+    app.showView?.("bullet-journal");
+    return true;
   }
   function changeDate(target){
     if(!dayDate(target)||target>today()){noteStatus("Choose today or an earlier date");return false;}
@@ -173,7 +259,9 @@
     if(!dayDate(target)||target>today())target=today();
     if(activeDay&&dirty&&!save())return false;
     activeDay=target;
+    activeWeek=monday(target);
     renderDay();
+    if(!showChapter("daily"))return false;
     app.showView?.("bullet-journal");
     return true;
   }
@@ -190,10 +278,10 @@
   window.addEventListener("life-rpg:view-changed",e=>{
     if(e?.detail?.view!=="bullet-journal"&&dirty)save();
     if(e?.detail?.view==="bullet-journal"&&!activeDay){
-      activeDay=today();renderDay();
+      activeDay=today();activeWeek=monday(activeDay);renderDay();showChapter("daily");
     }
   });
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",initialize,{once:true});
   else initialize();
-  window.LifeRPGBulletJournalBook={version:VERSION,open,close,save,changeDate,getDate:()=>activeDay};
+  window.LifeRPGBulletJournalBook={version:VERSION,open,openWeekly,close,save,changeDate,changeWeek,showChapter,getDate:()=>activeDay,getWeek:()=>activeWeek,getChapter:()=>chapter};
 })();
