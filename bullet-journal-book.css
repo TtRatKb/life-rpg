@@ -142,3 +142,106 @@
  .bj-book-spread{height:auto;overflow:visible;box-shadow:none}
  .bj-book-page{overflow:visible}
 }
+
+
+/* Book v1 · distinct weekly chapter (no longer replacing the daily reflections).
+   Chapter selectors live on actual paper, not in an external navigation bar. */
+#view-bullet-journal [hidden]{display:none!important}
+.bj-book-chapter-tabs{
+  display:flex;flex-wrap:wrap;align-items:center;gap:8px;
+  margin:2px 0 0;padding-bottom:4px;
+}
+.bj-book-chapter-tabs button{
+  border:1px solid #d8c5b7;
+  border-radius:8px 8px 3px 3px;
+  background:rgba(253,247,238,.75);
+  color:#846d70;
+  padding:7px 13px;
+  min-height:37px;
+  font:600 .78rem Georgia,serif;
+  cursor:pointer;
+}
+.bj-book-chapter-tabs button[aria-current="page"]{
+  color:#69485b;
+  border-color:#b8a0a8;
+  background:linear-gradient(135deg,#f3e5e7,#faf3e8);
+  box-shadow:0 2px 0 #c5a9af;
+}
+.bj-book-weekly-spread .bj-book-page-inner>small{line-height:1.5}
+.bj-book-weekly-spread .bj-book-date-heading h1{
+  font:500 clamp(1.35rem,2.1vw,2.1rem)/1.3 Georgia,serif;
+  color:#675349;margin:0;
+}
+.bj-book-weekly-spread .bj-book-nav{
+  margin:5px 0 0;
+}
+.bj-book-week-intro{
+  padding:16px 12px 16px 18px;
+  border-left:3px solid #c2a4ae;
+  background:linear-gradient(120deg,rgba(250,237,234,.75),rgba(255,253,246,.2));
+  border-radius:3px 12px 12px 3px;
+}
+.bj-book-week-intro>span{color:#b58a9d;font:1.55rem Georgia,serif;}
+.bj-book-week-intro h2{
+  margin:2px 0 7px!important;
+  color:#695665!important;
+  font:500 clamp(1.1rem,1.8vw,1.45rem)/1.2 Georgia,serif!important;
+}
+.bj-book-week-intro p{
+  font:italic .86rem/1.5 Georgia,serif;
+  margin:0;color:#927a7c;
+}
+.bj-book-week-days{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:9px;
+}
+.bj-book-week-day{
+  display:grid;gap:5px;align-content:start;text-align:left;
+  padding:12px 13px;min-height:92px;
+  border:1px solid #d8c8b7!important;
+  border-radius:9px!important;
+  background:linear-gradient(145deg,#fffcf5,#f7eee4)!important;
+  color:#594c4a!important;
+  cursor:pointer;
+  box-shadow:0 3px 8px rgba(100,79,59,.07);
+}
+.bj-book-week-day>span{
+  color:#ba9da4;font:italic .7rem Georgia,serif;
+}
+.bj-book-week-day strong{
+  font:500 .93rem Georgia,serif;letter-spacing:.01em;
+}
+.bj-book-week-day small{
+  font:.66rem Georgia,serif;color:#9b7b86;
+}
+.bj-book-week-day:hover:not(:disabled),.bj-book-week-day:focus-visible{
+  border-color:#b89aab!important;
+  box-shadow:0 3px 13px rgba(133,93,116,.18);
+}
+.bj-book-week-day.is-selected{
+  border-color:#bd92ac!important;
+}
+.bj-book-week-day:disabled{
+  opacity:.45;cursor:default;box-shadow:none;
+}
+.bj-book-week-note{
+  font:italic .75rem/1.55 Georgia,serif;
+  color:#998c80;margin:0;
+}
+.bj-book-weekly-spread .bj-book-recorded h2.bj-book-week-right-title{
+  font:500 clamp(1.25rem,2vw,1.85rem)/1.25 Georgia,serif!important;
+  color:#675349!important;margin:0;padding-bottom:14px;
+  border-bottom:1px solid #d6c7b8;
+}
+@media(min-width:1000px){
+ .bj-book-week-days{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media(max-width:750px){
+ .bj-book-week-days{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .bj-book-weekly-spread .bj-book-page-inner{padding:24px 19px}
+}
+@media(max-width:410px){
+ .bj-book-week-day{padding:10px;min-height:85px}
+ .bj-book-week-days{gap:6px}
+ .bj-book-chapter-tabs button{font-size:.74rem;padding:6px 10px}
+}
