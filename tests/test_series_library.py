@@ -1045,6 +1045,92 @@ class SeriesLibraryTests(unittest.TestCase):
             '#bjBookDailySpread [data-bj-deco-id]').count(),0)
         self.assertFalse(self.page.evaluate("LifeRPGJournalAtelier.isPreview()"))
 
+    def test_journal_atelier_direct_sticker_handles_and_default_writing_page(self):
+        """Choose, spawn, rotate and resize a sticker *on the actual paper*.
+        Default is the writing page, never the already-crowded Moments page."""
+        self.page.set_viewport_size({'width':1240,'height':940})
+        self.page.add_script_tag(url='/journal.js')
+        self.page.add_script_tag(url='/bullet-journal-book.js')
+        self.page.add_style_tag(url='/bullet-journal-book.css')
+        self.page.add_style_tag(url='/bullet-journal-atelier.css')
+        self.page.add_script_tag(url='/bullet-journal-atelier.js')
+        self.assertTrue(self.page.evaluate("LifeRPGBulletJournalBook.open()"))
+        self.page.locator('[data-bj-atelier-toggle]').click()
+        self.assertEqual(
+            self.page.locator('[data-bj-atelier-side="left"]').get_attribute('aria-pressed'),
+            'true')
+        self.assertEqual(
+            self.page.locator('[data-bj-atelier-side="right"]').get_attribute('aria-pressed'),
+            'false')
+        saved_before=self.page.evaluate("""() =>
+          JSON.stringify(LifeRPGApp.getState().journalAtelierV1??null)""")
+        self.page.locator('[data-bj-atelier-asset="sakura-blossoms"]').click()
+        self.assertEqual(self.page.locator('#bjAtelierStageLeft .bj-atelier-item').count(),1)
+        self.assertEqual(self.page.locator('#bjAtelierStage .bj-atelier-item').count(),0)
+        self.assertEqual(self.page.locator('#bjAtelierStageLeft [data-bj-deco-resize]').count(),1)
+        self.assertEqual(self.page.locator('#bjAtelierStageLeft [data-bj-deco-rotate]').count(),1)
+        initial=self.page.evaluate("""() =>
+          LifeRPGJournalAtelier.getPlacements().find(p=>p.assetKey==='sakura-blossoms')""")
+        self.assertEqual(initial['pageSide'],'left')
+        # Actual drag of the resize grip changes the sticker width.
+        rect=self.page.locator('[data-bj-deco-resize]').bounding_box()
+        self.assertIsNotNone(rect)
+        self.page.mouse.move(rect['x']+rect['width']/2,rect['y']+rect['height']/2)
+        self.page.mouse.down()
+        self.page.mouse.move(rect['x']+rect['width']/2+90,rect['y']+rect['height']/2,steps=8)
+        self.page.mouse.up()
+        larger=self.page.evaluate("""() =>
+          LifeRPGJournalAtelier.getPlacements().find(p=>p.assetKey==='sakura-blossoms')""")
+        self.assertGreater(larger['width'],initial['width']+45)
+        self.assertEqual(larger['angle'],0)
+        # The on-sticker rotate grip changes its angle, not its size.
+        handle=self.page.locator('[data-bj-deco-rotate]').bounding_box()
+        self.assertIsNotNone(handle)
+        self.page.mouse.move(handle['x']+handle['width']/2,
+                             handle['y']+handle['height']/2)
+        self.page.mouse.down()
+        self.page.mouse.move(handle['x']+handle['width']/2+100,
+                             handle['y']+handle['height']/2,steps=8)
+        self.page.mouse.up()
+        turned=self.page.evaluate("""() =>
+          LifeRPGJournalAtelier.getPlacements().find(p=>p.assetKey==='sakura-blossoms')""")
+        self.assertGreater(abs(turned['angle']),10)
+        self.assertEqual(turned['width'],larger['width'])
+        self.assertTrue(self.page.evaluate("LifeRPGJournalAtelier.isPreview()"))
+        self.assertEqual(saved_before,self.page.evaluate("""() =>
+          JSON.stringify(LifeRPGApp.getState().journalAtelierV1??null)"""))
+        self.page.keyboard.press('Delete')
+        self.assertEqual(self.page.locator('#bjAtelierStageLeft .bj-atelier-item').count(),0)
+        self.page.locator('[data-bj-atelier-exit]').click()
+        self.assertEqual(saved_before,self.page.evaluate("""() =>
+          JSON.stringify(LifeRPGApp.getState().journalAtelierV1??null)"""))
+
+    def test_journal_atelier_direct_handles_mobile_are_touch_sized(self):
+        """The controls remain tappable on a narrow notebook page."""
+        self.page.set_viewport_size({'width':390,'height':844})
+        for path in ['journal.js','bullet-journal-book.js','bullet-journal-atelier.js']:
+            self.page.add_script_tag(url='/'+path)
+        self.page.add_style_tag(url='/bullet-journal-book.css')
+        self.page.add_style_tag(url='/bullet-journal-atelier.css')
+        self.assertTrue(self.page.evaluate("LifeRPGBulletJournalBook.open()"))
+        self.page.locator('[data-bj-atelier-toggle]').click()
+        self.page.locator('[data-bj-atelier-asset="sakura-memo"]').click()
+        self.assertEqual(self.page.locator('#bjAtelierStageLeft .bj-atelier-item').count(),1)
+        sizes=self.page.evaluate("""() => {
+          const stage=document.querySelector('#bjAtelierStageLeft');
+          const controls=['rotate','resize'].map(k=>
+            stage.querySelector('[data-bj-deco-'+k+']')?.getBoundingClientRect());
+          return {
+            pageOverflow:stage.closest('.bj-book-page').scrollWidth-
+                         stage.closest('.bj-book-page').clientWidth,
+            dimensions:controls.map(r=>({width:r?.width,height:r?.height}))
+          };
+        }""")
+        self.assertLessEqual(sizes['pageOverflow'],2,sizes)
+        for control in sizes['dimensions']:
+            self.assertGreaterEqual(control['width'],36)
+            self.assertGreaterEqual(control['height'],36)
+
     def test_journal_atelier_mobile_decoration_does_not_cover_writing(self):
         """Editor decorations stay in a separate bounded band even on phone."""
         self.page.set_viewport_size({'width':390,'height':844})
@@ -1113,6 +1199,8 @@ class SeriesLibraryTests(unittest.TestCase):
             saved:JSON.stringify(s.journalAtelierV1??null)
           };
         }""")
+        self.assertEqual(self.page.locator('[data-bj-atelier-side="left"]').get_attribute('aria-pressed'),'true')
+        self.page.locator('[data-bj-atelier-side="right"]').click()
         self.page.locator('[data-bj-atelier-asset="sakura-washi"]').click()
         self.assertEqual(self.page.locator('#bjAtelierStage .bj-atelier-item.is-tape').count(),1)
         self.assertEqual(self.page.locator('#bjAtelierStage .bj-atelier-tape-art').count(),1)

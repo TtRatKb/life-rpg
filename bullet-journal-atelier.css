@@ -137,3 +137,45 @@
 @media print{
  .bj-atelier-bar,.bj-atelier-controls,.bj-atelier-stretch{display:none!important}
 }
+
+/* Direct manipulation on the selected asset — not an off-page control panel. */
+.bj-book-view .bj-atelier-rotate,
+.bj-book-view .bj-atelier-resize {
+ display:grid;place-items:center;position:absolute;z-index:6;
+ width:36px;height:36px;min-height:36px;
+ padding:0!important;border:2px solid #a67b95!important;
+ border-radius:50%!important;background:#fff7f5!important;
+ color:#704f69!important;
+ font:700 1.12rem/1 Georgia,serif;
+ pointer-events:auto;touch-action:none;user-select:none;
+ box-shadow:0 2px 9px rgba(79,52,69,.2)!important
+}
+.bj-book-view .bj-atelier-rotate {
+ left:50%;top:-44px;transform:translateX(-50%);
+ cursor:grab
+}
+.bj-book-view .bj-atelier-rotate::after{
+ content:"";position:absolute;top:100%;left:50%;height:9px;
+ border-left:2px solid #b99cab;pointer-events:none
+}
+.bj-book-view .bj-atelier-resize {
+ right:-15px;bottom:-15px;border-radius:9px!important;
+ cursor:nwse-resize
+}
+.bj-book-view .bj-atelier-rotate:active,
+.bj-book-view .bj-atelier-resize:active{background:#f4e0e8!important}
+.bj-book-view .bj-atelier-rotate:focus-visible,
+.bj-book-view .bj-atelier-resize:focus-visible{
+ outline:2px solid #7e536b;outline-offset:3px
+}
+.bj-atelier-item.is-selected .bj-atelier-sticker{
+ outline:1px dashed #b1849c;outline-offset:2px
+}
+.bj-atelier-transform>span::before{content:"Fine adjustments · ";color:#9d808e}
+@media(max-width:600px){
+ .bj-book-view .bj-atelier-rotate,.bj-book-view .bj-atelier-resize{
+   width:42px;height:42px;min-height:42px
+ }
+ .bj-book-view .bj-atelier-rotate{top:-48px}
+ .bj-book-view .bj-atelier-resize{right:-18px;bottom:-18px}
+}

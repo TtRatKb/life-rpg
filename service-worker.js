@@ -1,4 +1,4 @@
-const CACHE_NAME = "life-rpg-v0.31.4-atelier-on-paper1";
+const CACHE_NAME = "life-rpg-v0.31.4-atelier-direct-handles1";
 const ASSET_CACHE_NAME = "life-rpg-assets-v6";
 const MAX_RUNTIME_ASSETS = 96;
 const CORE = [
@@ -60,8 +60,8 @@ const CORE = [
   "./talent-tree-v2-graph.js?v=0.31.4-journalux2b",
   "./bullet-journal-habit-tracker.js?v=0.31.4-journalux2b",
   "./bullet-journal-daily-tracker.js?v=0.31.4-journalux2b",
-  "./bullet-journal-atelier.js?v=0.31.4-atelier-on-paper1",
-  "./bullet-journal-atelier.css?v=0.31.4-atelier-on-paper1",
+  "./bullet-journal-atelier.js?v=0.31.4-atelier-direct-handles1",
+  "./bullet-journal-atelier.css?v=0.31.4-atelier-direct-handles1",
   "./assets/journal/paperclip-ink.svg",
   "./assets/journal/sakura-anime-branch.svg",
   "./assets/journal/sakura-anime-washi.svg",
@@ -185,7 +185,7 @@ const CORE = [
   "./bullet-journal-daily-tracker.css?v=0.31.4-atelier-preview1",
   "./weekly-review.js?v=0.31.4ag",
   "./manifest.webmanifest?v=0.30.3a",
-  "./pwa.js?v=0.31.4-atelier-on-paper1",
+  "./pwa.js?v=0.31.4-atelier-direct-handles1",
   "./focus-dock.css?v=0.31.4dz16",
   "./focus-dock.js?v=0.31.4dz50c",
   "./visual-performance.js?v=0.31.4bu",

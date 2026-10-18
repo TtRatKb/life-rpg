@@ -7,7 +7,7 @@
   "use strict";
   const app=window.LifeRPGApp,book=window.LifeRPGBulletJournalBook;
   if(!app?.getState||!app?.saveState||!book?.getDate||window.LifeRPGJournalAtelier)return;
-  const VERSION="0.31.4-atelier-on-paper1",LIMIT=12;
+  const VERSION="0.31.4-atelier-direct-handles1",LIMIT=12;
   // Sakura anime v2: five *independent* assets, not a cropped collage.
   // Existing asset keys stay stable; the rejected letter-tag is not offered.
   // Entire Sakura collection remains preview-only until explicit in-app signoff.
@@ -23,7 +23,7 @@
   const safe=x=>String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;", "'":"&#39;"}[c]));
   const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
   const host=()=>document.getElementById("bjAtelierMount");
-  let date="",opened=false,preview=false,working=[],selectedId="",drag=null,idCounter=0,addSide="right";
+  let date="",opened=false,preview=false,working=[],selectedId="",drag=null,idCounter=0,addSide="left";
   const sideFor=item=>item?.pageSide==="left"?"left":"right";
   const isTape=item=>item?.assetKey==="sakura-washi";
   const stageFor=side=>document.getElementById(side==="left"?"bjAtelierStageLeft":"bjAtelierStage");
@@ -48,7 +48,7 @@
   }
   function loadDate(key) {
     if(date===key)return;
-    date=key;opened=false;preview=false;selectedId="";working=saved(key);drag=null;addSide="right";
+    date=key;opened=false;preview=false;selectedId="";working=saved(key);drag=null;addSide="left";
   }
   function persist(){
     if(preview)return true; // Prototypes and preview edits are NEVER added to a save.
@@ -116,6 +116,11 @@
       '<button type="button" class="bj-atelier-sticker" data-bj-deco-id="'+safe(item.id)+'" '+
       'aria-label="Select '+safe(asset.label)+' on '+sideFor(item)+' page" aria-pressed="'+selected+'">'+
       media+'</button>'+
+      (selected&&opened?
+        '<button type="button" class="bj-atelier-rotate" data-bj-deco-rotate="'+safe(item.id)+'" '+
+        'aria-label="Drag to rotate '+safe(asset.label)+'" title="Drag to rotate">⤾</button>'+
+        (!isTape(item)?'<button type="button" class="bj-atelier-resize" data-bj-deco-resize="'+safe(item.id)+'" '+
+        'aria-label="Drag to resize '+safe(asset.label)+'" title="Drag ↘ to resize">⤡</button>':''):'')+
       (selected&&opened&&isTape(item)?'<button type="button" class="bj-atelier-stretch" '+
       'data-bj-deco-stretch="'+safe(item.id)+'" aria-label="Drag to change Washi tape length" '+
       'title="Drag ↔ to stretch Washi tape">↔</button>':"")+'</div>';
@@ -166,9 +171,9 @@
           '<button type="button" data-bj-atelier-edit="turn-left" aria-label="Rotate left">↶</button>'+
           '<button type="button" data-bj-atelier-edit="turn-right" aria-label="Rotate right">↷</button>'+
           '<button type="button" data-bj-atelier-edit="remove">Remove</button></div></div>':'')+
-        '<p class="bj-atelier-hint">Decorations sit directly on the writing or moments paper. Drag to move. '+
-          'For Washi tape, drag the ↔ handle to change its length without stretching the flowers. '+
-          'Select a sticker and press Delete / Backspace to remove it.</p>'+
+        '<p class="bj-atelier-hint">Choose a decoration to place it on your page. '+
+          'Drag the sticker to move it, ⤾ to rotate and ⤡ to resize. '+
+          'Washi tape uses ↔ to extend its length. Select a sticker and press Delete / Backspace to remove it.</p>'+
         '</div>':"");
   }
   function add(assetKey){
@@ -180,12 +185,20 @@
     const idx=working.length;
     const item={
       id:"deco-"+Date.now().toString(36)+"-"+idCounter,
-      assetKey,pageSide:addSide,x:clamp(25+(idx%4)*16,12,88),
-      y:idx%2?67:35,width:asset.width,angle:0
+      assetKey,pageSide:addSide,x:clamp(40+(idx%3)*8,20,80),
+      y:idx%2?61:40,width:asset.width,angle:0
     };
     working.push(item);selectedId=item.id;
     if(!persist())return;
     render();
+    // On phone the palette lives on the second page. Bring newly spawned art
+    // into view on the chosen paper page instead of making the player hunt.
+    if(window.matchMedia?.("(max-width: 750px)")?.matches){
+      const stage=stageFor(addSide);
+      const itemButton=[...stage?.querySelectorAll("[data-bj-deco-id]")||[]]
+        .find(button=>button.dataset.bjDecoId===selectedId);
+      itemButton?.scrollIntoView?.({block:"center",behavior:"smooth"});
+    }
   }
   function edit(action){
     const item=working.find(p=>p.id===selectedId);
@@ -213,25 +226,35 @@
     if(!p)return;
     p.x=clamp(p.x+step[0],9,91);p.y=clamp(p.y+step[1],15,85);
     persist();render();
-    host()?.querySelectorAll("[data-bj-deco-id]").forEach(button=>{
-      if(button.dataset.bjDecoId===selectedId)button.focus();
-    });
+    for(const side of ["left","right"]){
+      stageFor(side)?.querySelectorAll("[data-bj-deco-id]").forEach(button=>{
+        if(button.dataset.bjDecoId===selectedId)button.focus();
+      });
+    }
   }
   function beginDrag(event){
+    const rotate=event.target.closest?.("[data-bj-deco-rotate]");
+    const resize=event.target.closest?.("[data-bj-deco-resize]");
     const grip=event.target.closest?.("[data-bj-deco-stretch]");
-    const target=grip||event.target.closest?.("[data-bj-deco-id]");
+    const target=rotate||resize||grip||event.target.closest?.("[data-bj-deco-id]");
     if(!target||event.button!==0)return;
-    const id=grip?.dataset.bjDecoStretch||target.dataset.bjDecoId;
+    const id=rotate?.dataset.bjDecoRotate||
+      resize?.dataset.bjDecoResize||
+      grip?.dataset.bjDecoStretch||target.dataset.bjDecoId;
     const item=working.find(p=>p.id===id);
     const stage=stageFor(sideFor(item));
     if(!item||!stage)return;
     selectedId=item.id;addSide=sideFor(item);opened=true;
+    const rect=stage.getBoundingClientRect();
+    const centerX=rect.left+item.x/100*rect.width;
+    const centerY=rect.top+item.y/100*rect.height;
     drag={
       pointerId:event.pointerId,id:item.id,
-      kind:grip?"stretch":"move",
-      rect:stage.getBoundingClientRect(),
+      kind:rotate?"rotate":resize?"resize":grip?"stretch":"move",
+      rect,centerX,centerY,
       startX:event.clientX,startY:event.clientY,
-      x:item.x,y:item.y,width:item.width,
+      x:item.x,y:item.y,width:item.width,angle:item.angle,
+      pointerAngle:Math.atan2(event.clientY-centerY,event.clientX-centerX),
       moved:false
     };
     target.setPointerCapture?.(event.pointerId);
@@ -243,18 +266,30 @@
     if(!item)return;
     const dx=event.clientX-drag.startX,dy=event.clientY-drag.startY;
     if(Math.abs(dx)+Math.abs(dy)>3)drag.moved=true;
-    if(drag.kind==="stretch"){
-      // Tape length changes; height and floral motif size stay constant.
+    if(drag.kind==="rotate"){
+      const angle=Math.atan2(event.clientY-drag.centerY,event.clientX-drag.centerX);
+      let delta=(angle-drag.pointerAngle)*180/Math.PI;
+      // Normalize through +/-180 so the sticker does not jump across the top.
+      delta=((delta+180)%360+360)%360-180;
+      const next=drag.angle+delta;
+      item.angle=clamp(event.shiftKey?Math.round(next/15)*15:next,-180,180);
+    }else if(drag.kind==="resize"){
+      // Project movement onto the sticker's rotated local horizontal axis.
+      const radians=drag.angle*Math.PI/180;
+      const along=dx*Math.cos(radians)+dy*Math.sin(radians);
+      item.width=clamp(drag.width+along*1.5,24,1200);
+    }else if(drag.kind==="stretch"){
+      // Washi extends horizontally; individual blossoms keep their size.
       item.width=clamp(drag.width+dx,50,1200);
     }else{
       item.x=clamp(drag.x+dx/Math.max(drag.rect.width,1)*100,5,95);
       item.y=clamp(drag.y+dy/Math.max(drag.rect.height,1)*100,5,95);
     }
-    const element=stageFor(sideFor(item))?.querySelectorAll("[data-bj-deco-container]");
-    element?.forEach(container=>{
+    stageFor(sideFor(item))?.querySelectorAll("[data-bj-deco-container]")?.forEach(container=>{
       if(container.dataset.bjDecoContainer!==drag.id)return;
       container.style.left=item.x+"%";container.style.top=item.y+"%";
       container.style.width=item.width+"px";
+      container.style.transform=`translate(-50%,-50%) rotate(${item.angle}deg)`;
     });
   }
   function endDrag(event){
@@ -277,7 +312,7 @@
     document.addEventListener("keydown",removeUsingKeyboard);
     mount.addEventListener("click",event=>{
       const toggle=event.target.closest?.("[data-bj-atelier-toggle]");
-      if(toggle){opened=!opened;selectedId="";render();return;}
+      if(toggle){opened=!opened;selectedId="";if(opened)addSide="left";render();return;}
       if(event.target.closest?.("[data-bj-atelier-exit]")){exitPreview();return;}
       const page=event.target.closest?.("[data-bj-atelier-side]");
       if(page){addSide=page.dataset.bjAtelierSide==="left"?"left":"right";
@@ -291,7 +326,7 @@
     });
     window.addEventListener("life-rpg:view-changed",event=>{
       if(event?.detail?.view!=="bullet-journal"){
-        preview=false;selectedId="";opened=false;working=saved();drag=null;
+        preview=false;selectedId="";opened=false;addSide="left";working=saved();drag=null;
         stageFor("left")?.replaceChildren();stageFor("right")?.replaceChildren();
       }
     });
