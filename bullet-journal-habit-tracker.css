@@ -103,3 +103,42 @@
  .bj-habit-cell{border-radius:5px}
 }
 @media (prefers-reduced-motion: reduce){.bj-habit-cell.state-done{transform:none}}
+
+
+/* The pre-purchase sample is generated with the actual tracker markup/CSS.
+   It never shows or modifies any real person's habits. */
+.bj-habit-preview-intro{
+  padding:12px 14px 11px;
+  border:1px solid #d6bac9;
+  border-radius:12px;
+  background:linear-gradient(120deg,#f8eef1,#fdf8f0);
+}
+.bj-habit-preview-intro strong{
+  font:600 .9rem Georgia,serif;
+  color:#745369;
+}
+.bj-habit-preview-intro p{
+  font:.76rem/1.6 Georgia,serif;
+  color:#8a6b7f;
+  margin:5px 0 0;
+}
+.bj-habit-preview-cta{
+  display:flex;flex-wrap:wrap;align-items:center;
+  gap:10px;padding:12px 0 0;
+  border-top:1px solid #e7d3d7;
+}
+.bj-habit-preview-cta small{
+  font:.76rem Georgia,serif;color:#94717e;
+}
+.bj-habit-preview-cta button{
+  border:1px solid #be9cae;
+  color:#684c63;
+  background:#fffaf6;
+  padding:10px 13px;
+  border-radius:10px;
+  font:600 .77rem Georgia,serif;
+  cursor:pointer;
+}
+.bj-habit-preview-cta button:focus-visible{
+  outline:2px solid #896b82;outline-offset:3px;
+}
