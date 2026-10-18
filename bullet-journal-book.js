@@ -140,6 +140,10 @@
         '<footer class="bj-book-footer">Start with a simple book. Make it yours as you go. ♡</footer>'+
       '</div>';
     bookView.addEventListener("click",e=>{
+      const chapterButton=e.target.closest?.("[data-bj-chapter]");
+      if(chapterButton){showChapter(chapterButton.dataset.bjChapter);return;}
+      const dayButton=e.target.closest?.("[data-bj-week-day]");
+      if(dayButton){open(dayButton.dataset.bjWeekDay);return;}
       const button=e.target.closest?.("[data-bj-action]");
       if(!button)return;
       const action=button.dataset.bjAction;
@@ -151,10 +155,6 @@
       else if(action==="prev")changeDate(shifted(activeDay,-1));
       else if(action==="next")changeDate(shifted(activeDay,1));
       else if(action==="today")changeDate(today());
-      const chapterButton=e.target.closest?.("[data-bj-chapter]");
-      if(chapterButton)showChapter(chapterButton.dataset.bjChapter);
-      const dayButton=e.target.closest?.("[data-bj-week-day]");
-      if(dayButton)open(dayButton.dataset.bjWeekDay);
       else if(action==="reflect"){
         const selected=activeDay;
         if(close())journal.openDayEditor?.(selected);
