@@ -27,7 +27,7 @@
     const week=liveWeek; // Always show actual Habits, even before purchase.
     if(!week?.days?.length)return '<p class="bj-habit-empty">No dated Habit information available yet.</p>';
     const all=Array.isArray(week.habits)?week.habits:[];
-    const rows=expanded?all:all.slice(0,8);
+    const rows=preview||expanded?all:all.slice(0,8);
     const days=localeDays(week.days);
     const headings=week.days.map((d,i)=>'<span class="bj-habit-day-label"><b>'+safe(days[i])+'</b><em>'+safe(String(parseDay(d).getDate()))+'</em></span>').join("");
     const grid=rows.map(h=>{
