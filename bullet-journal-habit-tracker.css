@@ -142,3 +142,19 @@
 .bj-habit-preview-cta button:focus-visible{
   outline:2px solid #896b82;outline-offset:3px;
 }
+
+
+/* Clickable Habit names and date cells forward to canonical Habits/Quests. */
+.bj-habit-name .bj-habit-name-link{
+ border:0!important;background:transparent!important;box-shadow:none!important;
+ color:#6d5267!important;padding:6px 0;min-height:34px;
+ cursor:pointer;text-align:left;font:650 .75rem/1.25 Georgia,serif;
+ overflow-wrap:anywhere;
+}
+.bj-habit-name-link:hover{text-decoration:underline;text-underline-offset:3px}
+.bj-habit-cell{padding:0!important}
+button.bj-habit-cell:not(:disabled){cursor:pointer}
+button.bj-habit-cell:disabled{cursor:default}
+.bj-habit-name-link:focus-visible,button.bj-habit-cell:focus-visible{
+ outline:2px solid #896b82;outline-offset:3px;
+}
