@@ -792,7 +792,7 @@ class SeriesLibraryTests(unittest.TestCase):
           result['afterTarget'])
 
     def test_bullet_journal_weekly_habit_unlock_and_real_checkins(self):
-        """One point opens weekly book tracker; normal Habits remain free."""
+        """Weekly tracker is a genuine separate chapter; daily reflections stay put."""
         self.page.evaluate("""() => {
           const root=LifeRPGApp.getState();
           root.skills.realmBonusPoints.Health=12;
@@ -801,10 +801,10 @@ class SeriesLibraryTests(unittest.TestCase):
           root.habits={
             schemaVersion:4,reminders:{},
             items:[
-              {id:'habit-a',name:'Read a chapter',realm:'Hobbies',active:true,
+              {id:'habit-a',name:'My personal reading',realm:'Hobbies',active:true,
                createdDate:'2026-10-10',scheduleStartDate:'2026-10-10',trackingFrom:from,
                schedule:{type:'daily'},effort:'low',daypart:'anytime'},
-              {id:'habit-b',name:'Take time to rest',realm:'Recovery',active:true,
+              {id:'habit-b',name:'My personal recovery',realm:'Recovery',active:true,
                createdDate:'2026-10-10',scheduleStartDate:'2026-10-10',trackingFrom:from,
                schedule:{type:'weekly',target:2},effort:'low',daypart:'anytime'}
             ],
@@ -813,10 +813,13 @@ class SeriesLibraryTests(unittest.TestCase):
               {id:'log-2',habitId:'habit-b',date:'2026-10-14',timestamp:day}
             ]
           };
-          root.journal.entries['2026-10-14']={date:'2026-10-14',gratitude:'A calm day'};
+          root.journal.entries['2026-10-14']={
+            date:'2026-10-14',gratitude:'A calm day',bookNote:'My own page'
+          };
         }""")
         self.page.add_script_tag(url='/habits.js')
         self.page.add_script_tag(url='/journal.js')
+        self.page.add_style_tag(url='/bullet-journal-book.css')
         self.page.add_script_tag(url='/bullet-journal-book.js')
         self.page.add_script_tag(url='/skills.js')
         self.page.add_script_tag(url='/talent-v2.js')
@@ -824,45 +827,61 @@ class SeriesLibraryTests(unittest.TestCase):
         self.page.add_style_tag(url='/bullet-journal-habit-tracker.css')
         self.page.add_script_tag(url='/bullet-journal-habit-tracker.js')
         self.assertTrue(self.page.evaluate("LifeRPGBulletJournalBook.open('2026-10-14')"))
+        self.assertEqual(self.page.evaluate("LifeRPGBulletJournalBook.getChapter()"),'daily')
         self.assertFalse(self.page.evaluate(
             "LifeRPGBulletJournalHabitTracker.isUnlocked()"))
-        self.assertTrue(self.page.locator('#bjBookTrackerTabs').evaluate('(x)=>x.hidden'))
-        self.assertFalse(self.page.locator('#bjBookRecorded').evaluate('(x)=>x.hidden'))
+        self.assertTrue(self.page.locator('#bjBookWeeklySpread').evaluate('(x)=>x.hidden'))
+        self.assertFalse(self.page.locator('#bjBookDailySpread').evaluate('(x)=>x.hidden'))
+        self.assertIn('A calm day',self.page.locator('#bjBookRecorded').inner_text())
+        self.assertEqual(self.page.locator('#bjBookText').input_value(),'My own page')
+        # The paper-embedded Weeks tab opens an actual, independent double page.
+        self.page.locator('#bjBookDailySpread [data-bj-chapter="weekly"]').click()
+        self.assertEqual(self.page.evaluate("LifeRPGBulletJournalBook.getChapter()"),'weekly')
+        self.assertFalse(self.page.locator('#bjBookWeeklySpread').evaluate('(x)=>x.hidden'))
+        self.assertTrue(self.page.locator('#bjBookDailySpread').evaluate('(x)=>x.hidden'))
+        self.assertEqual(self.page.locator('#bjBookWeekDays [data-bj-week-day]').count(),7)
+        self.assertIn('Try before unlocking',self.page.locator('#bjBookHabitTracker').inner_text())
+        self.assertEqual(self.page.locator('#bjBookHabitTracker .bj-habit-row').count(),3)
+        self.assertNotIn('My personal reading',self.page.locator('#bjBookHabitTracker').inner_text())
+        self.assertIn('example habits',self.page.locator('#bjBookHabitTracker').inner_text())
         before=self.page.evaluate("""() => ({
           points:LifeRPGSkills.getRealmPoints('Health').available,
           completions:LifeRPGApp.getState().habits.completions.length,
           rewards:LifeRPGApp.getState().rewardLedger.events.length,
-          note:LifeRPGApp.getState().journal.entries['2026-10-14'].gratitude
+          note:LifeRPGApp.getState().journal.entries['2026-10-14'].bookNote,
+          gratitude:LifeRPGApp.getState().journal.entries['2026-10-14'].gratitude
         })""")
         self.assertTrue(self.page.evaluate("""() =>
           LifeRPGTalentTreeGraph.purchaseContent('Health','journal-weekly-habit-tracker')"""))
         self.assertTrue(self.page.evaluate(
             "LifeRPGBulletJournalHabitTracker.isUnlocked()"))
-        self.assertFalse(self.page.locator('#bjBookTrackerTabs').evaluate('(x)=>x.hidden'))
-        self.assertTrue(self.page.locator('#bjBookRecorded').evaluate('(x)=>x.hidden'))
+        self.assertNotIn('Try before unlocking',self.page.locator('#bjBookHabitTracker').inner_text())
+        self.assertIn('My personal reading',self.page.locator('#bjBookHabitTracker').inner_text())
         self.assertEqual(self.page.locator('#bjBookHabitTracker .bj-habit-row').count(),2)
         self.assertEqual(self.page.locator('#bjBookHabitTracker .bj-habit-cell.state-done').count(),2)
-        self.assertEqual(self.page.locator('#bjBookHabitTracker .bj-habit-cells').count(),3)
         self.assertIn('2 recorded check-ins',self.page.locator('#bjBookHabitTracker').inner_text())
-        self.page.locator('[data-bj-tracker-mode="recorded"]').click()
-        self.assertFalse(self.page.locator('#bjBookRecorded').evaluate('(x)=>x.hidden'))
-        self.assertTrue(self.page.locator('#bjBookHabitTracker').evaluate('(x)=>x.hidden'))
+        self.page.locator('#bjBookWeekDays [data-bj-week-day="2026-10-14"]').click()
+        self.assertEqual(self.page.evaluate("LifeRPGBulletJournalBook.getChapter()"),'daily')
         self.assertIn('A calm day',self.page.locator('#bjBookRecorded').inner_text())
-        self.page.locator('[data-bj-tracker-mode="weekly"]').click()
-        self.assertFalse(self.page.locator('#bjBookHabitTracker').evaluate('(x)=>x.hidden'))
-        self.page.locator('[data-bj-week="-7"]').click()
-        self.assertEqual(self.page.locator('#bjBookDate').input_value(),'2026-10-07')
+        self.assertEqual(self.page.locator('#bjBookText').input_value(),'My own page')
+        self.page.locator('#bjBookDailySpread [data-bj-chapter="weekly"]').click()
+        self.page.locator('[data-bj-action="week-prev"]').click()
+        self.assertEqual(self.page.evaluate("LifeRPGBulletJournalBook.getWeek()"),'2026-10-05')
+        self.assertEqual(self.page.locator('#bjBookWeekDays [data-bj-week-day]').count(),7)
         self.assertEqual(self.page.locator('#bjBookHabitTracker .bj-habit-cell.state-done').count(),0)
+        self.assertEqual(self.page.locator('#bjBookDate').input_value(),'2026-10-14')
         after=self.page.evaluate("""() => ({
           points:LifeRPGSkills.getRealmPoints('Health').available,
           completions:LifeRPGApp.getState().habits.completions.length,
           rewards:LifeRPGApp.getState().rewardLedger.events.length,
-          note:LifeRPGApp.getState().journal.entries['2026-10-14'].gratitude
+          note:LifeRPGApp.getState().journal.entries['2026-10-14'].bookNote,
+          gratitude:LifeRPGApp.getState().journal.entries['2026-10-14'].gratitude
         })""")
         self.assertEqual(after['points'],before['points']-1)
         self.assertEqual(after['completions'],before['completions'])
         self.assertEqual(after['rewards'],before['rewards'])
         self.assertEqual(after['note'],before['note'])
+        self.assertEqual(after['gratitude'],before['gratitude'])
         self.assertFalse(self.page.evaluate("""() =>
           LifeRPGTalentTreeGraph.purchaseContent('Health','journal-weekly-habit-tracker')"""))
         self.page.evaluate("LifeRPGApp.saveState({suppressCloud:true})")
@@ -877,10 +896,45 @@ class SeriesLibraryTests(unittest.TestCase):
         self.page.add_script_tag(url='/bullet-journal-habit-tracker.js')
         self.assertTrue(self.page.evaluate(
             "LifeRPGBulletJournalHabitTracker.isUnlocked()"))
-        self.assertTrue(self.page.evaluate("LifeRPGBulletJournalBook.open('2026-10-14')"))
+        self.assertTrue(self.page.evaluate("LifeRPGBulletJournalBook.openWeekly('2026-10-14')"))
+        self.assertEqual(self.page.evaluate("LifeRPGBulletJournalBook.getChapter()"),'weekly')
         self.assertEqual(self.page.locator('#bjBookHabitTracker .bj-habit-row').count(),2)
         self.assertEqual(self.page.evaluate(
             "LifeRPGSkills.getRealmPoints('Health').available"),after['points'])
+
+    def test_bullet_journal_weekly_legacy_entitlement_survives_book_move(self):
+        """An already-purchased Weekly Tracker costs zero extra points after routing migration."""
+        self.page.evaluate("""() => {
+          const root=LifeRPGApp.getState();
+          root.skills.realmBonusPoints.Health=5;
+          root.talentTreeExpansion={
+            schemaVersion:7,version:'0.31.4-journal-habits1',
+            unlocks:{Health:{'journal-weekly-habit-tracker':1695555555555}},
+            dreamThreads:{},migrations:{}
+          };
+        }""")
+        self.page.add_script_tag(url='/habits.js')
+        self.page.add_script_tag(url='/journal.js')
+        self.page.add_script_tag(url='/bullet-journal-book.js')
+        self.page.add_script_tag(url='/skills.js')
+        self.page.add_script_tag(url='/talent-v2.js')
+        self.page.add_script_tag(url='/talent-tree-v2-graph.js')
+        self.page.add_script_tag(url='/bullet-journal-habit-tracker.js')
+        before=self.page.evaluate("""() => ({
+          available:LifeRPGSkills.getRealmPoints('Health').available,
+          owner:LifeRPGTalentTreeGraph.isContentUnlocked('Health','journal-weekly-habit-tracker'),
+          receipt:LifeRPGApp.getState().talentTreeExpansion.unlocks.Health['journal-weekly-habit-tracker']
+        })""")
+        self.assertTrue(before['owner'])
+        self.assertTrue(self.page.evaluate("LifeRPGBulletJournalBook.openWeekly('2026-10-14')"))
+        self.assertEqual(self.page.locator('#bjBookHabitTracker .bj-habit-preview-intro').count(),0)
+        self.assertFalse(self.page.evaluate("""() =>
+          LifeRPGTalentTreeGraph.purchaseContent('Health','journal-weekly-habit-tracker')"""))
+        after=self.page.evaluate("""() => ({
+          available:LifeRPGSkills.getRealmPoints('Health').available,
+          receipt:LifeRPGApp.getState().talentTreeExpansion.unlocks.Health['journal-weekly-habit-tracker']
+        })""")
+        self.assertEqual(after,{'available':before['available'],'receipt':before['receipt']})
 
     def test_bullet_journal_weekly_habits_respects_linked_quest_history(self):
         """The tracker uses the canonical Habits resolver, not a second ledger."""
