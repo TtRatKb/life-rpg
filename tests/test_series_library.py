@@ -936,6 +936,40 @@ class SeriesLibraryTests(unittest.TestCase):
         })""")
         self.assertEqual(after,{'available':before['available'],'receipt':before['receipt']})
 
+    def test_bullet_journal_weekly_chapter_is_readable_on_mobile(self):
+        """The full-screen weekly spread stacks instead of creating a modal or clipped toolbar."""
+        self.page.set_viewport_size({'width':390,'height':844})
+        self.page.add_script_tag(url='/habits.js')
+        self.page.add_script_tag(url='/journal.js')
+        self.page.add_style_tag(url='/bullet-journal-book.css')
+        self.page.add_script_tag(url='/bullet-journal-book.js')
+        self.page.add_style_tag(url='/bullet-journal-habit-tracker.css')
+        self.page.add_script_tag(url='/bullet-journal-habit-tracker.js')
+        self.assertTrue(self.page.evaluate("LifeRPGBulletJournalBook.openWeekly('2026-10-18')"))
+        self.assertFalse(self.page.locator('#bjBookWeeklySpread').evaluate('(x)=>x.hidden'))
+        self.assertEqual(self.page.locator('#bjBookWeekDays [data-bj-week-day]').count(),7)
+        self.assertEqual(self.page.locator('#bjBookTrackerTabs').count(),0)
+        self.assertIn('example habits',self.page.locator('#bjBookHabitTracker').inner_text())
+        layout=self.page.evaluate("""() => {
+          const pages=[...document.querySelectorAll('#bjBookWeeklySpread .bj-book-page')];
+          const pageRects=pages.map(x=>x.getBoundingClientRect());
+          return {
+            noDialog:!document.querySelector('#bulletJournalBookDialog'),
+            left:pageRects[0].left,
+            right:pageRects[1].left,
+            stacked:pageRects[1].top>=pageRects[0].bottom-1,
+            widths:pageRects.map(x=>x.width),
+            viewport:document.documentElement.clientWidth
+          };
+        }""")
+        self.assertTrue(layout['noDialog'])
+        self.assertTrue(layout['stacked'])
+        self.assertLess(abs(layout['left']-layout['right']),2)
+        self.assertTrue(all(w<=layout['viewport'] for w in layout['widths']))
+        self.page.locator('#bjBookWeekDays [data-bj-week-day="2026-10-14"]').click()
+        self.assertEqual(self.page.evaluate("LifeRPGBulletJournalBook.getChapter()"),'daily')
+        self.assertEqual(self.page.locator('#bjBookDate').input_value(),'2026-10-14')
+
     def test_bullet_journal_weekly_habits_respects_linked_quest_history(self):
         """The tracker uses the canonical Habits resolver, not a second ledger."""
         self.page.evaluate("""() => {
@@ -1000,7 +1034,7 @@ class SeriesLibraryTests(unittest.TestCase):
           const main=document.querySelector('.app-shell > main');
           return spread.getBoundingClientRect().width/main.getBoundingClientRect().width;
         }"""),0.9)
-        self.assertEqual(self.page.locator('#view-bullet-journal .bj-book-writing .bj-book-nav').count(),1)
+        self.assertEqual(self.page.locator('#bjBookDailySpread .bj-book-writing .bj-book-nav').count(),1)
         self.assertEqual(self.page.locator('#bjBookRecorded .bj-book-answer').count(),4)
         self.assertIn('Played a cozy game',self.page.locator('#bjBookRecorded').inner_text())
         self.assertIn('A quiet moment',self.page.locator('#bjBookRecorded').inner_text())
@@ -1094,7 +1128,7 @@ class SeriesLibraryTests(unittest.TestCase):
                          'Saved through normal navigation')
         self.assertTrue(self.page.evaluate('LifeRPGBulletJournalBook.open()'))
         self.assertEqual(self.page.locator('#bjBookText').input_value(),'Saved through normal navigation')
-        self.assertEqual(self.page.locator('#view-bullet-journal .bj-book-nav').count(),1)
+        self.assertEqual(self.page.locator('#bjBookDailySpread .bj-book-nav').count(),1)
         self.assertEqual(self.page.locator('#view-bullet-journal .bj-book-toolbar').count(),0)
         self.assertTrue(self.page.locator('#view-bullet-journal').evaluate("(e)=>e.classList.contains('active')"))
 
