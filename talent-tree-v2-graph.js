@@ -12,7 +12,7 @@
     return;
   }
 
-  const VERSION = "0.31.4-realm-mystery1";
+  const VERSION = "0.31.4-mystery-retired1";
   const SCHEMA = 7;
   const REALMS = ["Work", "Knowledge", "Japanese", "Health", "Recovery", "Home", "Hobbies"];
 
@@ -26,9 +26,6 @@
         content("work-debrief", "🧾", "Work Deep Brief", 1,
           "Starter unlock · spend 1 Work point and use it immediately. A deeper Work reflection for closing the loop after a demanding day, with voice dictation or typing.",
           {}),
-        rankedContent("realm-mystery-collection", "🎁", "Mystery Collection", 2,
-          "Two permanent visual surprises for the Work area · 1 Work point each. Reveal only after purchase; both looks can be equipped or removed any time. Optional cosmetics with no effect on game rewards or daily obligations.",
-          {}, "Open Collection", () => window.LifeRPGRealmMystery?.openRealm?.("Work")),
         linkedContent("school-moments", "✎", "School Moments · Choice Stories", 1,
           "Ten interactive teaching-life situations. Pick a response, explore its trade-offs and keep a personal reflection; the story itself is the reward.",
           { content: "work-debrief" }, "Open School Moments", () => window.LifeRPGTalentV3?.open?.("school-moments")),
@@ -49,9 +46,6 @@
         linkedContent("slitherlink", "◫", "Slitherlink", 1,
           "Starter unlock · a real Daily + Practice Slitherlink puzzle inside Training Grounds.",
           {}, "Open Slitherlink", () => window.LifeRPGLogicExpansion?.open?.("slitherlink")),
-        rankedContent("realm-mystery-collection", "🎁", "Mystery Collection", 2,
-          "Two permanent visual surprises for the Knowledge area · 1 Knowledge point each. Reveal only after purchase; both looks can be equipped or removed any time. Optional cosmetics with no effect on game rewards or daily obligations.",
-          {}, "Open Collection", () => window.LifeRPGRealmMystery?.openRealm?.("Knowledge")),
         linkedContent("nurikabe", "▦", "Nurikabe", 1,
           "Add a second real logic game: Daily + Practice Nurikabe.",
           { content: "slitherlink" }, "Open Nurikabe", () => window.LifeRPGLogicExpansion?.open?.("nurikabe")),
@@ -75,9 +69,6 @@
         rankedContent("dynariot-japanese", "🌸", "DynaRiot Japanese Extras", 3,
           "Rank I: 8 character cards. Rank II: 16. Rank III: 24 written Japanese cards with comprehension and archive. Non-canon and spoiler-safe.",
           {}, "Open DynaRiot Extras", () => window.LifeRPGTalentRewardStudios?.open?.("dynariot-japanese")),
-        rankedContent("realm-mystery-collection", "🎁", "Mystery Collection", 2,
-          "Two permanent visual surprises for the Japanese area · 1 Japanese point each. Reveal only after purchase; both looks can be equipped or removed any time. Optional cosmetics with no effect on game rewards or daily obligations.",
-          {}, "Open Collection", () => window.LifeRPGRealmMystery?.openRealm?.("Japanese")),
         { ...rankedContent("japanese-atlas-kanji", "漢", "Kanji Memory Garden", 3,
           "Independent Kanji path · I/II/III: 3/6/9 meaning + reading recall cards with a mnemonic cue. Your actual new Kanji lessons and SRS still live in Kotoba Quest.",
           {}, "Open Kanji Garden", () => window.LifeRPGJapaneseAtlasDZ48?.open?.("kanji")), group:"kanji" },
@@ -110,9 +101,6 @@
         nativeContent("year-question", "📅", "365 Question Journal", 1,
           "Starter unlock · one different reflection question for every date of the year, recurring annually, with spoken or typed answers.",
           {}, "Open Journal", () => app.showView?.("journal")),
-        rankedContent("realm-mystery-collection", "🎁", "Mystery Collection", 2,
-          "Two permanent visual surprises for the Health area · 1 Health point each. Reveal only after purchase; both looks can be equipped or removed any time. Optional cosmetics with no effect on game rewards or daily obligations.",
-          {}, "Open Collection", () => window.LifeRPGRealmMystery?.openRealm?.("Health")),
         linkedContent("future-letter", "✉", "Future Me · Sealed Letters", 1,
           "Write a sealed letter for yourself to open after 7, 30 or 90 days. Save it in the normal cloud-save state and revisit it when the date arrives; no forced daily task.",
           { content: "year-question" }, "Open Future Me", () => window.LifeRPGTalentV3?.open?.("future-letter")),
@@ -130,9 +118,6 @@
         nativeContent("grounding-54321", "✋", "5–4–3–2–1 Grounding", 1,
           "Starter unlock · the guided 7-minute sensory grounding session already built into Recovery Studio.",
           {}, "Open Recovery Studio", () => window.LifeRPGRecoveryStudio?.open?.()),
-        rankedContent("realm-mystery-collection", "🎁", "Mystery Collection", 2,
-          "Two permanent visual surprises for the Recovery area · 1 Recovery point each. Reveal only after purchase; both looks can be equipped or removed any time. Optional cosmetics with no effect on game rewards or daily obligations.",
-          {}, "Open Collection", () => window.LifeRPGRealmMystery?.openRealm?.("Recovery")),
         content("recovery-toolkit", "✦", "Recovery Toolkit", 1,
           "Second content step · a rotating set of short regulation prompts with a real Recovery timer and its own completion reward.",
           { content: "grounding-54321" }),
@@ -150,9 +135,6 @@
         rankedContent("home-oracle", "🔮", "Home Oracle", 2,
           "Rank I: create and use one weighted decision wheel. Rank II: remove the wheel limit and keep as many saved wheels as you actually use.",
           {}, "Open Home Oracle", () => window.LifeRPGTalentRewardStudios?.open?.("home-oracle")),
-        rankedContent("realm-mystery-collection", "🎁", "Mystery Collection", 2,
-          "Two permanent visual surprises for the Home area · 1 Home point each. Reveal only after purchase; both looks can be equipped or removed any time. Optional cosmetics with no effect on game rewards or daily obligations.",
-          {}, "Open Collection", () => window.LifeRPGRealmMystery?.openRealm?.("Home")),
         linkedContent("cozy-kitchen", "🍳", "Cozy Kitchen · Pantry Deck", 1,
           "Sixteen practical meal ideas with actual ingredients and steps. Filter by what you have and time available; save favorites and tried dishes, without inventing a Quest.",
           { content: "home-oracle", contentRank: 1 }, "Open Cozy Kitchen", () => window.LifeRPGTalentV3?.open?.("cozy-kitchen")),
@@ -164,15 +146,12 @@
     Hobbies: {
       icon: "🎨",
       special: { id: "joy-spark", icon: "♡", title: "Joy Spark", max: 3 },
-      subtitle: "Build a cozy creative collection: independent mystery Phone cosmetics, studios and collectible coloring cards. Each earned reward stays yours.",
+      subtitle: "Unlock the creative studios once, then choose individual collectible coloring cards for your gallery. Drawing challenges remain included with the studio.",
       dream: { title: "Play After Dark", copy: "games, music, playful competition, and moments that feel suspiciously like dates" },
       content: [
         rankedContent("coloring-studio", "🖍️", "Coloring Studio", 1,
           "Unlocks the Coloring Studio, its original Bakugo · Level 1 card and Drawing Studio. Additional collectible cards can be purchased individually below for 1 Hobbies point each.",
           {}, "Open Coloring Studio", () => window.LifeRPGCreativeHub?.enter?.("coloring") || window.LifeRPGTalentRewardStudios?.open?.("coloring-studio")),
-        rankedContent("mystery-collection", "🎁", "Mystery Collection", 4,
-          "Four permanent visual surprises for your Phone · 1 Hobbies point per pack. Designs remain hidden until purchased. Open your collection to equip or remove unlocked looks. No random duplicates, deadlines or story gates.",
-          {}, "Open Collection", () => window.LifeRPGMysteryCosmetics?.open?.()),
         linkedContent("color-card-bakugo-hero-classic", "🃏", "Bakugo · Hero Classic", 1,
           "Collectible coloring card · Hero costume · a confident stance. View the locked preview in Coloring Studio; buy this card permanently with 1 Hobbies point.",
           { content: "coloring-studio" }, "View in Coloring Studio", () => window.LifeRPGCreativeHub?.enter?.("coloring")),
@@ -424,6 +403,28 @@
       const raw = Math.max(0, Math.floor(Number(state.unlocks?.Hobbies?.["coloring-studio"] || 0)));
       if (raw > 1) state.unlocks.Hobbies["coloring-studio"] = 1;
       state.migrations.coloringStudioSingleRankBZ = { at: Date.now(), previousRank: raw, refundedPoints: raw > 1 ? raw - 1 : 0 };
+      migratedNow = true;
+    }
+    // 2026-10-18: the user rejected every cosmetic Mystery Collection.
+    // Existing point totals derive from active Content definitions, not an extra
+    // spent-points ledger: removing their definitions refunds the original
+    // purchases exactly once, without manufacturing bonus points. Archive the
+    // original receipt IDs/ranks for diagnostics and idempotent migrations.
+    if (!state.migrations.retiredMysteryCollections20261018) {
+      const retired = {};
+      for (const realm of REALMS) {
+        const id = realm === "Hobbies" ? "mystery-collection" : "realm-mystery-collection";
+        const owned = state.unlocks[realm];
+        if (Object.prototype.hasOwnProperty.call(owned, id)) {
+          retired[realm] = { [id]: owned[id] };
+          delete owned[id];
+        }
+      }
+      state.migrations.retiredMysteryCollections20261018 = {
+        at: Date.now(),
+        retired,
+        refundsViaDerivedSpending: true
+      };
       migratedNow = true;
     }
     if (migratedNow) app.saveState({ source: "talent-tree-content-migrations-bz", suppressUiRefresh: true });
