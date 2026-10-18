@@ -12,7 +12,7 @@
   const $=id=>document.getElementById(id);
   const safe=x=>String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   const owned=()=>Boolean(window.LifeRPGTalentTreeGraph?.isContentUnlocked?.("Health",ID));
-  let expanded=false,collapsed=false,lastDate="";
+  let expanded=false,collapsed=false,lastDate="",previewMode=false,previewSlot=null;
   function rowsFor(date) {
     const week=window.LifeRPGHabits?.getJournalTrackerWeek?.(date);
     const linked=new Set((window.LifeRPGHabits?.getHabits?.()||[]).filter(h=>h.linkedQuestId).map(h=>h.id));
@@ -24,6 +24,7 @@
     })).filter(h=>h.state==="done"||h.state==="open");
   }
   function slot() {
+    if(previewMode&&!owned()&&previewSlot)return previewSlot;
     return app.getState().journalBookLayoutV1?.dailyMiniSlot==="below"?"below":"above";
   }
   function positionCard() {
@@ -34,44 +35,54 @@
     else parent.insertBefore(card,records);
   }
   function rowMarkup(h,date) {
-    const canLog=h.state==="open"&&(date===today()||date===yesterday());
-    return '<li class="bj-daily-mini-row '+(h.state==="done"?"is-done":"is-open")+'">'+
-      '<span class="bj-daily-mini-stamp" aria-hidden="true">'+(h.state==="done"?"✓":"·")+'</span>'+
-      '<span class="bj-daily-mini-name"><button type="button" data-bj-daily-open="'+safe(h.id)+'" data-bj-habit-date="'+safe(date)+'">'+safe(h.name)+' ↗</button>'+
-      (h.schedule?'<small>'+safe(h.schedule)+'</small>':"")+'</span>'+
-      (canLog?'<button class="bj-daily-mini-log" type="button" data-bj-daily-log="'+safe(h.id)+'" data-bj-habit-date="'+safe(date)+'">'+(h.linkedQuestId?"Open Quest ↗":"Log done") +'</button>':
-      '<small class="bj-daily-mini-state">'+(h.state==="done"?"Logged":"Not logged")+'</small>')+'</li>';
+    const done=h.state==="done";
+    const canLog=!done&&(date===today()||date===yesterday());
+    const action=canLog?"data-bj-daily-log":"data-bj-daily-open";
+    const label=canLog?(h.linkedQuestId&&date===today()?"Open linked Quest for ":"Log ")+h.name:
+      (done?"Already logged: ":"View Habit: ")+h.name;
+    return '<li class="bj-daily-mini-row'+(done?" is-done":" is-open")+'">'+
+      '<button type="button" class="bj-daily-mini-name" data-bj-daily-open="'+safe(h.id)+'" '+
+        'data-bj-habit-date="'+safe(date)+'" title="'+safe(h.name)+'">'+safe(h.name)+' <span aria-hidden="true">↗</span></button>'+
+      '<small class="bj-daily-mini-frequency">'+safe(h.schedule)+'</small>'+
+      '<button type="button" class="bj-daily-mini-check" '+action+'="'+safe(h.id)+'" '+
+        'data-bj-habit-date="'+safe(date)+'" aria-label="'+safe(label)+'" title="'+safe(label)+'">'+
+        (done?"✓":h.linkedQuestId&&date===today()?"↗":"·")+'</button>'+
+      '</li>';
   }
   function render(date=book.getDate()) {
     const host=$("bjBookDailyMini");
     if(!host||!date)return;
     if(lastDate!==date){expanded=false;lastDate=date;}
     const unlocked=owned();
+    const layoutVisible=unlocked||previewMode;
+    const previewOnly=previewMode&&!unlocked;
     // The preview shows the same actual Habit/Quest data as the unlocked card.
     const all=rowsFor(date);
-    const visible=all===null?null:(!unlocked||expanded?all:all.slice(0,5));
-    host.innerHTML='<section class="bj-daily-mini-paper'+(unlocked?' is-unlocked':' is-preview')+'">'+
+    const visible=all===null?null:(!layoutVisible||expanded?all:all.slice(0,8));
+    host.innerHTML='<section class="bj-daily-mini-paper'+(layoutVisible?' is-unlocked':' is-preview')+'">'+
       '<div class="bj-daily-mini-head"><div><small>✦ DAILY HABIT MINI</small>'+
       '<h3>Little things today</h3></div>'+
-      (unlocked?'<button type="button" data-bj-daily-collapse aria-expanded="'+(!collapsed)+'" class="bj-daily-mini-collapse">'+(collapsed?'Show':'Hide')+'</button>':'')+
+      (layoutVisible?'<button type="button" data-bj-daily-collapse aria-expanded="'+(!collapsed)+'" class="bj-daily-mini-collapse">'+(collapsed?'Show':'Hide')+'</button>':'')+
       '</div>'+
-      (!unlocked?'<p class="bj-daily-mini-preview-label"><strong>Your real Habits · live preview</strong> Tap a name to see the full Habit. You can log eligible Habits here; the paid unlock adds notebook layout controls.</p>':'')+
-      (!collapsed||!unlocked?
+      (!layoutVisible?'<p class="bj-daily-mini-preview-label">Your real Habits · Tap a square to log or a name for details.</p>':'')+
+      (previewOnly?'<div class="bj-daily-mini-preview-mode"><span>✧ Layout preview · no points spent</span><button type="button" data-bj-daily-exit-preview>Exit preview</button></div>':'')+
+      (!collapsed||!layoutVisible?
         (visible===null?'<p class="bj-daily-mini-empty">Habits are still loading.</p>':
          visible.length?'<ul class="bj-daily-mini-rows" aria-label="Daily habit status">'+visible.map(h=>rowMarkup(h,date)).join("")+'</ul>':
            '<p class="bj-daily-mini-empty">No scheduled habits on this page. A quiet day is still a page worth keeping.</p>')+
-        (unlocked&&all?.length>5?'<button type="button" data-bj-daily-more class="bj-daily-mini-more">'+(expanded?'Show fewer':('Show all '+all.length))+' habits</button>':'')+
+        (layoutVisible&&all?.length>8?'<button type="button" data-bj-daily-more class="bj-daily-mini-more">'+(expanded?'Show fewer':('Show all '+all.length))+' habits</button>':'')+
         '<div class="bj-daily-mini-legend"><span>✓ Logged</span><span>· Not logged</span></div>'
         :'<p class="bj-daily-mini-muted">Tracker folded away for now.</p>')+
-      (unlocked?
+      (layoutVisible?
        '<div class="bj-daily-mini-footer"><button type="button" data-bj-daily-move>Move '+(slot()==="above"?"below":"above")+' moments ↕</button>'+
        '<button type="button" data-bj-daily-habits>Open Habits ↗</button></div>':
-       '<div class="bj-daily-mini-cta"><span>Layout unlock: 1 Health point · Available: '+available()+'</span>'+
+       '<div class="bj-daily-mini-cta"><span>Layout: 1 Health point · Available: '+available()+'</span>'+
        '<button type="button" data-bj-daily-unlock>See layout unlock ↗</button></div>')+
       '</section>';
     positionCard();
   }
   function move() {
+    if(!owned()&&previewMode){previewSlot=slot()==="above"?"below":"above";render();return;}
     if(!owned())return;
     const state=app.getState(),old=state.journalBookLayoutV1;
     state.journalBookLayoutV1={
@@ -85,10 +96,25 @@
     }
     render();
   }
+  function exitPreview(){
+    if(!previewMode)return;
+    previewMode=false;previewSlot=null;collapsed=false;expanded=false;
+    render();
+  }
+  function openPreview(){
+    if(owned())return Boolean(book.open?.());
+    previewMode=true;previewSlot=null;collapsed=false;expanded=false;
+    const opened=book.open?.();
+    if(!opened){exitPreview();return false;}
+    render(book.getDate());
+    $("bjBookDailyMini")?.scrollIntoView?.({block:"center",behavior:"auto"});
+    return true;
+  }
   function bind() {
     const view=$("view-bullet-journal");
     if(!view)return;
     view.addEventListener("click",e=>{
+      if(e.target.closest?.("[data-bj-daily-exit-preview]")){exitPreview();return;}
       const open=e.target.closest?.("[data-bj-daily-open]");
       if(open){window.LifeRPGHabits?.openFromJournal?.(open.dataset.bjDailyOpen,open.dataset.bjHabitDate);return;}
       const log=e.target.closest?.("[data-bj-daily-log]");
@@ -102,17 +128,20 @@
           app.showView?.("skills");
           window.LifeRPGSkills?.selectTalentRealm?.("Health");
         }
-      }else if(e.target.closest?.("[data-bj-daily-habits]")&&owned()){
+      }else if(e.target.closest?.("[data-bj-daily-habits]")&&(owned()||previewMode)){
         app.showView?.("habits");
-      }else if(e.target.closest?.("[data-bj-daily-more]")&&owned()){
+      }else if(e.target.closest?.("[data-bj-daily-more]")&&(owned()||previewMode)){
         expanded=!expanded;render();
-      }else if(e.target.closest?.("[data-bj-daily-collapse]")&&owned()){
+      }else if(e.target.closest?.("[data-bj-daily-collapse]")&&(owned()||previewMode)){
         collapsed=!collapsed;render();
-      }else if(e.target.closest?.("[data-bj-daily-move]")&&owned()){
+      }else if(e.target.closest?.("[data-bj-daily-move]")&&(owned()||previewMode)){
         move();
       }
     });
   }
+  window.addEventListener("life-rpg:view-changed",e=>{
+    if(e?.detail?.view!=="bullet-journal"&&previewMode){previewMode=false;previewSlot=null;collapsed=false;expanded=false;}
+  });
   window.addEventListener("life-rpg:talent-content-v2-change",e=>{
     if(e?.detail?.realm==="Health"&&e.detail?.id===ID)render();
   });
@@ -121,5 +150,5 @@
   });
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",bind,{once:true});
   else bind();
-  window.LifeRPGBulletJournalDailyTracker={version:"0.31.4-realhabits2",render,isUnlocked:owned,rowsFor};
+  window.LifeRPGBulletJournalDailyTracker={version:"0.31.4-journalux2b",render,isUnlocked:owned,rowsFor,openPreview,exitPreview};
 })();

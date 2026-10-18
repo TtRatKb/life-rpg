@@ -605,6 +605,18 @@
     return true;
   }
 
+  function previewContent(realm,id) {
+    if(realm!=="Health")return false;
+    const tracker=id==="journal-weekly-habit-tracker"
+      ? window.LifeRPGBulletJournalHabitTracker
+      : id==="journal-daily-mini-habit-tracker"
+        ? window.LifeRPGBulletJournalDailyTracker : null;
+    if(!tracker)return false;
+    // Only the live UI mode is opened. No purchaseContent, talent-tree
+    // state mutations, ledger entries, or new entitlement are created.
+    return Boolean(tracker.openPreview?.());
+  }
+
   function openContent(realm, id) {
     const item = (META[realm]?.content || []).find(entry => entry.id === id);
     if (!item || !isOwned(realm, item)) return false;
@@ -860,12 +872,19 @@
     const stateClass = complete ? "is-owned" : !prereq.ok ? "is-locked" : canBuy ? "is-ready" : "is-poor";
 
     const openButton = owned ? `<button class="secondary-button" type="button" data-talent-v3-open="${escAttr(realm)}|${escAttr(item.id)}">${esc(item.openLabel || "Open")}</button>` : "";
+    const journalPreview = realm==="Health" && (
+      item.id==="journal-daily-mini-habit-tracker" || item.id==="journal-weekly-habit-tracker");
+    const previewButton = journalPreview && !owned
+      ? `<button class="secondary-button" type="button" data-talent-v3-preview="${escAttr(realm)}|${escAttr(item.id)}">Preview layout ↗</button>`
+      : "";
     const buyButton = complete ? "" : `<button class="${canBuy ? "primary-button" : "secondary-button"}" type="button" data-talent-v3-content="${escAttr(realm)}|${escAttr(item.id)}" ${!prereq.ok ? "disabled" : ""}>${!prereq.ok ? `Requires ${esc(prereq.label)}` : item.rankable ? `Unlock Rank ${roman(rank + 1)} · ${cost} point` : `Unlock for ${cost} point${cost === 1 ? "" : "s"}`}</button>`;
-    const action = complete ? openButton : `<span class="talent-v3-content-actions">${openButton}${buyButton}</span>`;
+    const action = complete ? openButton : `<span class="talent-v3-content-actions">${openButton}${previewButton}${buyButton}</span>`;
 
     const cardArt = realm === "Hobbies" && item.id.startsWith("color-card-") ?
       `assets/coloring/${item.id.slice("color-card-".length)}-line.png?v=${item.id.startsWith("color-card-luca-bakugo-kirishima-") ? "0.31.4du" : "0.31.4dt"}` : "";
     const art = cardArt ? `<div class="talent-card-art-v314dn ${owned ? "is-owned" : "is-locked"}"><img src="${escAttr(cardArt)}" alt="Preview of ${escAttr(item.title)}" loading="lazy">${owned ? "" : `<span aria-hidden="true">🔒</span>`}</div>` : "";
+    const previewNote = journalPreview && !owned ?
+      `<small class="talent-v3-journal-preview-note">Preview free · Unlock: ${cost} Health point · Available: ${Number(points.available||0)}</small>`:"";
     return `${index ? treeLink(item.requires?.content ? `Previous unlock: ${contentTitle(realm, item.requires.content)}${item.requires.contentRank > 1 ? ` ${roman(item.requires.contentRank)}` : ""}` : `Content expansion`) : ""}
       <article id="talent-v3-content-${escAttr(realm)}-${escAttr(item.id)}" class="talent-v3-node talent-v3-content-node ${stateClass} ${cardArt ? "is-coloring-card" : ""}">
         <div class="talent-v3-node-top">
@@ -875,6 +894,7 @@
         ${item.rankable ? `<div class="talent-v3-ranks" aria-label="${rank} of ${maxRank} ranks">${Array.from({ length: maxRank }, (_, i) => `<i class="${i < rank ? "filled" : ""}"></i>`).join("")}</div>` : ""}
         ${art}
         <p>${esc(item.copy)}</p>
+        ${previewNote}
         <div class="talent-v3-node-foot"><em>${owned ? item.rankable ? `Rank ${roman(rank)}/${roman(maxRank)} unlocked` : "Permanently unlocked" : `Path: ${esc(requirementLabel(realm, item))}`}</em>${action}</div>
       </article>`;
   }
@@ -921,6 +941,14 @@
         const [realm, id] = String(core.dataset.talentV3Core || "").split("|");
         v2.purchase(realm, id);
         scheduleRender(80);
+        return;
+      }
+
+      const preview = event.target.closest?.("[data-talent-v3-preview]");
+      if(preview){
+        event.preventDefault();
+        const [realm,id]=String(preview.dataset.talentV3Preview||"").split("|");
+        previewContent(realm,id);
         return;
       }
 
@@ -994,6 +1022,7 @@
     getContentRank,
     purchaseContent,
     openContent,
+    previewContent,
     extraSpent,
     getDreamThreadRank,
     getTotalDreamThreads: totalDreamThreads,

@@ -8,7 +8,7 @@
   const ID="journal-weekly-habit-tracker";
   const available=()=>Number(window.LifeRPGSkills?.getRealmPoints?.("Health")?.available ?? 0);
   const $=id=>document.getElementById(id);
-  let expanded=false,currentDate="";
+  let expanded=false,currentDate="",previewMode=false;
   const safe=x=>String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   const owned=()=>Boolean(window.LifeRPGTalentTreeGraph?.isContentUnlocked?.("Health",ID));
   const parseDay=key=>{
@@ -65,6 +65,9 @@
     if(date!==currentDate){currentDate=date;expanded=false;}
     if(owned()){
       target.innerHTML=markup(date,false);
+    } else if(previewMode){
+      target.innerHTML='<div class="bj-habit-layout-preview"><span>✧ Live layout preview · no points spent</span>'+
+        '<button type="button" data-bj-exit-preview>Exit preview</button></div>'+markup(date,false);
     } else {
       // Preview is rendered by the exact same CSS/component as the real tracker,
       // but uses explicitly labelled sample data (never the user's Habit history).
@@ -75,12 +78,27 @@
         '<button type="button" data-bj-unlock-info>See unlock in Skills ↗</button></div>';
     }
   }
+  function exitPreview(){
+    if(!previewMode)return;
+    previewMode=false;expanded=false;
+    render();
+  }
+  function openPreview(){
+    if(owned())return Boolean(book.openWeekly?.());
+    previewMode=true;expanded=false;
+    const opened=book.openWeekly?.();
+    if(!opened){exitPreview();return false;}
+    render(book.getWeek());
+    $("bjBookHabitTracker")?.scrollIntoView?.({block:"center",behavior:"auto"});
+    return true;
+  }
   function bind(){
     const view=$("view-bullet-journal");
     if(!view)return;
     view.addEventListener("click",e=>{
+      if(e.target.closest?.("[data-bj-exit-preview]")){exitPreview();return;}
       const more=e.target.closest?.("[data-bj-show-all]");
-      if(more&&owned()){expanded=!expanded;render(book.getWeek());return;}
+      if(more&&(owned()||previewMode)){expanded=!expanded;render(book.getWeek());return;}
       const open=e.target.closest?.("[data-bj-habit-open]");
       if(open){window.LifeRPGHabits?.openFromJournal?.(open.dataset.bjHabitOpen,open.dataset.bjHabitDate);return;}
       const log=e.target.closest?.("[data-bj-habit-log]");
@@ -96,6 +114,9 @@
       }
     });
   }
+  window.addEventListener("life-rpg:view-changed",e=>{
+    if(e?.detail?.view!=="bullet-journal"&&previewMode){previewMode=false;expanded=false;}
+  });
   window.addEventListener("life-rpg:talent-content-v2-change",e=>{
     if(e?.detail?.realm==="Health"&&e.detail?.id===ID)render(book.getWeek());
   });
@@ -104,5 +125,5 @@
   });
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",bind,{once:true});
   else bind();
-  window.LifeRPGBulletJournalHabitTracker={version:"0.31.4-realhabits1",render,isUnlocked:owned};
+  window.LifeRPGBulletJournalHabitTracker={version:"0.31.4-journalux2b",render,isUnlocked:owned,openPreview,exitPreview};
 })();

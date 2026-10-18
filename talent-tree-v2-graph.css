@@ -565,3 +565,20 @@
   #talentV2JapaneseTree .talent-v3-branch.is-content {display:grid;gap:12px;}
   #talentV2JapaneseTree .ja-talent-tile-dz48{width:100%;}
 }
+
+/* Journal functional unlocks: always-visible try-before-buy action. */
+.talent-v3-journal-preview-note{
+ display:block;margin:6px 0 1px;color:#85687c;
+ font:600 .72rem/1.45 Georgia,serif
+}
+.talent-v3-content-node [data-talent-v3-preview]{
+ min-height:38px;border:1px solid #ac889d;border-radius:9px;
+ color:#65465b;background:#fff6f3;font-weight:700;
+ cursor:pointer
+}
+.talent-v3-content-node [data-talent-v3-preview]:hover{
+ background:#f9e7ef
+}
+.talent-v3-content-node [data-talent-v3-preview]:focus-visible{
+ outline:2px solid #765472;outline-offset:3px
+}
