@@ -840,10 +840,10 @@ class SeriesLibraryTests(unittest.TestCase):
         self.assertFalse(self.page.locator('#bjBookWeeklySpread').evaluate('(x)=>x.hidden'))
         self.assertTrue(self.page.locator('#bjBookDailySpread').evaluate('(x)=>x.hidden'))
         self.assertEqual(self.page.locator('#bjBookWeekDays [data-bj-week-day]').count(),7)
-        self.assertIn('Try before unlocking',self.page.locator('#bjBookHabitTracker').inner_text())
-        self.assertEqual(self.page.locator('#bjBookHabitTracker .bj-habit-row').count(),3)
-        self.assertNotIn('My personal reading',self.page.locator('#bjBookHabitTracker').inner_text())
-        self.assertIn('example habits',self.page.locator('#bjBookHabitTracker').inner_text())
+        self.assertIn('Preview with your own Habits',self.page.locator('#bjBookHabitTracker').inner_text())
+        self.assertEqual(self.page.locator('#bjBookHabitTracker .bj-habit-row').count(),2)
+        self.assertIn('My personal reading',self.page.locator('#bjBookHabitTracker').inner_text())
+        self.assertIn('Preview with your own Habits',self.page.locator('#bjBookHabitTracker').inner_text())
         before=self.page.evaluate("""() => ({
           points:LifeRPGSkills.getRealmPoints('Health').available,
           completions:LifeRPGApp.getState().habits.completions.length,
@@ -855,7 +855,7 @@ class SeriesLibraryTests(unittest.TestCase):
           LifeRPGTalentTreeGraph.purchaseContent('Health','journal-weekly-habit-tracker')"""))
         self.assertTrue(self.page.evaluate(
             "LifeRPGBulletJournalHabitTracker.isUnlocked()"))
-        self.assertNotIn('Try before unlocking',self.page.locator('#bjBookHabitTracker').inner_text())
+        self.assertNotIn('Preview with your own Habits',self.page.locator('#bjBookHabitTracker').inner_text())
         self.assertIn('My personal reading',self.page.locator('#bjBookHabitTracker').inner_text())
         self.assertEqual(self.page.locator('#bjBookHabitTracker .bj-habit-row').count(),2)
         self.assertEqual(self.page.locator('#bjBookHabitTracker .bj-habit-cell.state-done').count(),2)
@@ -940,9 +940,9 @@ class SeriesLibraryTests(unittest.TestCase):
         self.page.add_script_tag(url='/bullet-journal-daily-tracker.js')
         self.assertTrue(self.page.evaluate("LifeRPGBulletJournalBook.open('2026-10-14')"))
         preview=self.page.locator('#bjBookDailyMini')
-        self.assertIn('example habits',preview.inner_text())
-        self.assertEqual(preview.locator('.bj-daily-mini-row').count(),3)
-        self.assertNotIn('My private daily reading',preview.inner_text())
+        self.assertIn('Your real Habits',preview.inner_text())
+        self.assertEqual(preview.locator('.bj-daily-mini-row').count(),2)
+        self.assertIn('My private daily reading',preview.inner_text())
         self.assertFalse(self.page.evaluate("LifeRPGBulletJournalDailyTracker.isUnlocked()"))
         self.assertFalse(self.page.evaluate(
             "LifeRPGTalentTreeGraph.isContentUnlocked('Health','journal-weekly-habit-tracker')"))
@@ -1024,7 +1024,7 @@ class SeriesLibraryTests(unittest.TestCase):
         self.page.add_style_tag(url='/bullet-journal-daily-tracker.css')
         self.page.add_script_tag(url='/bullet-journal-daily-tracker.js')
         self.assertTrue(self.page.evaluate("LifeRPGBulletJournalBook.open('2026-10-14')"))
-        self.assertEqual(self.page.locator('#bjBookDailyMini .bj-daily-mini-row').count(),3)
+        self.assertEqual(self.page.locator('#bjBookDailyMini .bj-daily-mini-row').count(),0)
         layout=self.page.evaluate("""() => {
           const host=document.querySelector('#bjBookDailyMini');
           const right=host.closest('.bj-book-page');
@@ -1083,7 +1083,7 @@ class SeriesLibraryTests(unittest.TestCase):
         self.assertFalse(self.page.locator('#bjBookWeeklySpread').evaluate('(x)=>x.hidden'))
         self.assertEqual(self.page.locator('#bjBookWeekDays [data-bj-week-day]').count(),7)
         self.assertEqual(self.page.locator('#bjBookTrackerTabs').count(),0)
-        self.assertIn('example habits',self.page.locator('#bjBookHabitTracker').inner_text())
+        self.assertIn('Preview with your own Habits',self.page.locator('#bjBookHabitTracker').inner_text())
         layout=self.page.evaluate("""() => {
           const pages=[...document.querySelectorAll('#bjBookWeeklySpread .bj-book-page')];
           const pageRects=pages.map(x=>x.getBoundingClientRect());
