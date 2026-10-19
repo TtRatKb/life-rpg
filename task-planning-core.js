@@ -26,7 +26,11 @@
    if(!utcDay(today))throw Error('Ungültiger Planungsbeginn');
    const settings=input?.settings||defaults,horizon=Math.min(70,Math.max(7,Number(settings.horizon)||35));
    const capacities={};const usage={};const buckets={};
-   for(let i=0;i<horizon;i++){const d=add(today,i);const modifier=d===today?(input?.todayModifier??1):1;capacities[d]=capacityFor(d,settings,modifier);usage[d]=0;buckets[d]=[];}
+   for(let i=0;i<horizon;i++){const d=add(today,i);const modifier=d===today?(input?.todayModifier??1):1;
+     const custom=input?.capacityByDate&&Object.prototype.hasOwnProperty.call(input.capacityByDate,d);
+     if(custom){const raw=Number(input.capacityByDate[d]);const reserve=Number(settings?.reservePercent??30);capacities[d]=Math.floor(Math.max(0,Math.min(1440,Number.isFinite(raw)?raw:0))*(1-Math.min(80,Math.max(0,reserve))/100)*Math.max(0,Math.min(1,modifier)));}
+     else capacities[d]=capacityFor(d,settings,modifier);
+     usage[d]=0;buckets[d]=[];}
    const keys=Object.keys(capacities);
    const pending=(input.tasks||[]).filter(t=>t&&!t.doneAt&&!t.archived);
    const mandatory=pending.filter(t=>t.mandatory!==false);
@@ -51,7 +55,7 @@
      // Reserve the last usable prep day before the deadline if any exists.
      const earlier=working(today,due).filter(d=>d<due);
      const desired=earlier.length?earlier[earlier.length-1]:due;
-     const planDays=keys.filter(d=>d<=desired).reverse();
+     const planDays=input?.preferEarlier?keys.filter(d=>d<=desired):keys.filter(d=>d<=desired).reverse();
      const allocated=[];
      for(const date of planDays){
        if(remaining<=0)break;
@@ -73,6 +77,25 @@
    const soon=mandatory.filter(t=>utcDay(t.dueDate)&&t.dueDate>today&&t.dueDate<=add(today,3)&&!todaySet.has(String(t.id))&&!assignments[String(t.id)]?.blocked);
    const later=mandatory.filter(t=>!todaySet.has(String(t.id))&&!soon.some(x=>x.id===t.id));
    const optionalToday=optional.filter(t=>utcDay(t.dueDate)&&t.dueDate<=today);
+   // When the caller explicitly supplies block segments, attach a concrete suggested time.
+   // Segments are virtual planning capacity only; they never become time logs.
+   if(input?.segmentsByDate){
+     for(const d of keys){
+       let budget=capacities[d];
+       const segments=(input.segmentsByDate[d]||[]).map(x=>({...x,cursor:x.startMinute}));
+       for(const entry of buckets[d]){
+         let left=entry.minutes;entry.slots=[];
+         for(const segment of segments){
+           if(left<=0||budget<=0)break;
+           const can=Math.min(left,budget,Math.max(0,segment.endMinute-segment.cursor));
+           if(!can)continue;
+           const slot={date:d,blockId:segment.blockId,startMinute:segment.cursor,endMinute:segment.cursor+can,minutes:can};
+           entry.slots.push(slot);segment.cursor+=can;budget-=can;left-=can;
+           if(assignments[entry.id]){assignments[entry.id].slots ||= [];assignments[entry.id].slots.push(slot);}
+         }
+       }
+     }
+   }
    const daily=keys.map(date=>({date,capacity:capacities[date],planned:usage[date],remaining:capacities[date]-usage[date],tasks:buckets[date]}));
    return {today,todayMust,soon,later,optionalToday,optional,missing,issues,daily,assignments,confident:issues.length===0&&missing.length===0};
  }
