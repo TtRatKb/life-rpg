@@ -27,4 +27,9 @@ r=plan({today:'2026-10-19',tasks:[{...task('reply','2026-10-19',10),status:'wait
 assert.ok(r.issues.some(i=>i.type==='waiting'));
 assert.ok(r.issues.some(i=>i.type==='blocked'));
 assert.ok(!r.todayMust.some(t=>t.id==='reply'||t.id==='dependent'));
-console.log('Native task planning capacities, waiting dependencies and issue warnings passed');
+r=plan({today:'2026-10-19',tasks:[task('monday','2026-10-23',80)],capacityByDate:{'2026-10-19':120,'2026-10-20':0,'2026-10-21':0,'2026-10-22':0,'2026-10-23':0},segmentsByDate:{'2026-10-19':[{blockId:'school-1',startMinute:570,endMinute:690}]},preferEarlier:true});
+assert.equal(r.assignments.monday.unallocated,0);
+assert.equal(r.assignments.monday.slots[0].startMinute,570);
+assert.equal(r.assignments.monday.slots[0].endMinute,650);
+assert.equal(r.assignments.monday.slots[0].blockId,'school-1');
+console.log('Native task planning capacities, block slots, waiting dependencies and issue warnings passed');

@@ -1,0 +1,23 @@
+const assert=require('node:assert/strict'),w=require('../task-work-windows-core.js');
+const monday={id:'m',date:'2026-10-26',start:'09:45',end:'15:30',repeat:'biweekly',place:'school'};
+w.validate(monday);
+assert.equal(w.matches(monday,'2026-10-26'),true);
+assert.equal(w.matches(monday,'2026-11-02'),false);
+assert.equal(w.matches(monday,'2026-11-09'),true);
+assert.equal(w.matches(monday,'2026-11-10'),false);
+assert.throws(()=>w.validate({...monday,start:'16:00'}));
+assert.throws(()=>w.validate({...monday,start:'25:00'}));
+const busy=[{start:'10:00',end:'11:00'},{start:'13:00',end:'14:00'}];
+let segments=w.forDate([monday],'2026-10-26',busy);
+assert.equal(segments[0].availableMinutes,225);
+assert.deepEqual(segments[0].segments.map(s=>s.start),['09:45','11:00','14:00']);
+const two=w.forDate([monday,{...monday,id:'other',start:'11:30',end:'13:30'}],'2026-10-26',busy);
+assert.equal(two[1].availableMinutes,0); // reserved by first planning window
+assert.equal(w.forDate([monday],'2026-10-26',[],true)[0].availableMinutes,0);
+assert.equal(w.forDate([{...monday,place:'home'}],'2026-10-26',[],true)[0].availableMinutes,345);
+const calendar=w.range([monday],'2026-10-26',16,()=>[],()=>false);
+assert.equal(calendar['2026-11-09'][0].availableMinutes,345);
+assert.equal(calendar['2026-11-02'].length,0);
+const utc=[new Date('2026-10-26T08:45:00Z'),new Date('2026-10-26T09:45:00Z')];
+assert.equal(w.forDate([monday],'2026-10-26',[{start:utc[0],end:utc[1]}])[0].availableMinutes>0,true);
+console.log('Biweekly task windows, conflict subtraction, off days and time format passed');

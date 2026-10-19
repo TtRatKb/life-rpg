@@ -83,7 +83,7 @@
          <label>Inklusion<select data-tp-branch="${esc(p.id)}" data-branch-key="inclusion"><option value="check" ${p.options.inclusion==='check'?'selected':''}>Noch klären</option><option value="yes" ${p.options.inclusion==='yes'?'selected':''}>Erforderlich</option><option value="no" ${p.options.inclusion==='no'?'selected':''}>Nicht erforderlich</option></select></label>
          <label>Nachschreiben<select data-tp-branch="${esc(p.id)}" data-branch-key="resit"><option value="no" ${p.options.resit!=='yes'?'selected':''}>Noch kein Bedarf</option><option value="yes" ${p.options.resit==='yes'?'selected':''}>Ja, organisieren</option></select></label>
        </div>
-       ${steps.length?steps.map(s=>taskRow(s,p.id)).join(''):'<p class="tp-empty">Alle Schritte abgeschlossen. 🌸</p>'}
+       ${steps.length?steps.map(s=>taskRow(s,p.id)).join(''):p.tasks.length?'<p class="tp-empty">Alle Schritte abgeschlossen. 🌸</p>':'<p class="tp-empty">Noch keine Schritte. Unten mit „+ Schritt“ anfangen. ✦</p>'}
        <details class="tp-completed"><summary>Erledigte Schritte (${done})</summary>${p.tasks.filter(t=>t.doneAt&&!t.archived).map(t=>`<button type="button" class="tp-done-row" data-tp-undo="${esc(t.id)}">✓ ${esc(t.title)} · rückgängig</button>`).join('')||'<small>Hier ist noch nichts abgehakt.</small>'}</details>
        <form class="tp-add-step" data-tp-add-step="${esc(p.id)}"><input name="title" required maxlength="160" placeholder="Weiteren Schritt hinzufügen" aria-label="Neuer Projektschritt"><input type="date" name="dueDate" required value="${esc(p.anchorDate)}" aria-label="Frist des neuen Schritts"><button class="secondary-button" type="submit">+ Schritt</button></form>
        <div class="tp-project-actions"><button type="button" class="secondary-button" data-tp-save-template="${esc(p.id)}">Als eigene Vorlage speichern</button><button type="button" class="secondary-button" data-tp-archive="${esc(p.id)}">Projekt archivieren</button></div>
@@ -213,5 +213,15 @@
    render();
  }
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
- window.LifeRPGTaskProjects={open:()=>app.showView('tasks'),getOpen:()=>allOpen().map(t=>({...t})),getCriticalToday:()=>allOpen().filter(t=>t.mandatory&&t.dueDate&&t.dueDate<=dateToday()),render,_test:{model,markDone,templates,coach}};
+ function createTask(input){
+   const name=String(input?.title||'').trim(),due=String(input?.dueDate||'');
+   if(!name||name.length>160||due&&!core.parseDay(due))return false;
+   return mutate('guided-create-task',m=>{const id='inbox-'+uid();m.inbox.unshift({id,title:name,dueDate:due,minutes:Math.max(5,Math.min(2400,Number(input?.minutes)||20)),mandatory:input?.mandatory===true,hurdle:input?.hurdle==='high'?'high':'normal',doneAt:null,createdAt:new Date().toISOString()});return id;});
+ }
+ function createProject(input){
+   const template=templates().find(t=>t.id===input?.templateId),title=String(input?.title||'').trim(),date=String(input?.date||'');
+   if((!template&&input?.templateId!=='manual-v1')||!title||title.length>110||!core.parseDay(date))return false;
+   return mutate('guided-create-project',m=>{const id=uid(),project=template?core.instantiate(template,date,{format:'digital',inclusion:'check',resit:'no'},id):{id,templateId:'manual-v1',title:'',anchorDate:date,options:{},createdAt:new Date().toISOString(),tasks:[]};project.title=title;m.projects.unshift(project);expanded=id;return id;});
+ }
+ window.LifeRPGTaskProjects={open:()=>app.showView('tasks'),getOpen:()=>allOpen().map(t=>({...t})),getCriticalToday:()=>allOpen().filter(t=>t.mandatory&&t.dueDate&&t.dueDate<=dateToday()),listTemplates:()=>[{id:'manual-v1',name:'Eigenes Projekt · ohne Vorlage'},...templates().map(t=>({id:t.id,name:t.name}))],createTask,createProject,render,_test:{model,markDone,templates,coach}};
 })();

@@ -1,0 +1,17 @@
+.tww-card,.tww-week-card{padding:16px;margin:12px 0;border:1px solid #dccdda;border-radius:16px;background:linear-gradient(140deg,#fffaf6,#f5ebef);color:#695569}
+.tww-card header,.tww-week-head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.tww-card h2,.tww-week-card h3{font-size:1.05rem;margin:3px 0}.tww-chip{background:#e9f0ea;color:#65816f;border-radius:99px;padding:7px 12px;font-size:.75rem}
+.tww-subtitle,.tww-note{font-size:.75rem;line-height:1.5;color:#917f8c;margin:8px 0}
+.tww-actions{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.tww-actions button{font-size:.77rem}
+.tww-list{display:grid;gap:7px}.tww-item{display:flex;align-items:center;gap:8px;padding:10px;background:#fffdfb;border:1px solid #eadfe4;border-radius:9px}
+.tww-item>div{flex:1;min-width:0;display:grid;gap:4px}.tww-item strong{font-size:.78rem}.tww-item small{font-size:.68rem;color:#97818e;line-height:1.4}
+.tww-item button,.tww-form-head button,.tww-week-head button{border:0!important;background:transparent!important;box-shadow:none!important;cursor:pointer;color:#9e7895!important}
+.tww-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:10px;padding:14px;margin:12px 0;border:1px solid #d2b4c6;border-radius:12px;background:#fffdfb}
+.tww-form-head{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center}
+.tww-form label,.tww-week-card label{display:grid;gap:4px;font-size:.72rem;font-weight:650}
+.tww-form input,.tww-form select,.tww-week-card input{font:inherit;font-size:.8rem;padding:7px;min-width:0;width:100%;box-sizing:border-box;border:1px solid #decbd8;border-radius:8px;background:#fff;color:#665064}
+.tww-form>.tww-note,.tww-form>.tww-actions{grid-column:1/-1}
+.tww-warning{padding:10px;border-radius:9px;background:#fff4e8;font-size:.76rem}
+.tww-week-card p{font-size:.74rem;line-height:1.55}.tww-week-card label{max-width:220px}
+.week-event.task-window{background:#eee3fa!important;color:#6f577f!important;border:1px dashed #987ab4!important}
+@media(max-width:650px){.tww-card{padding:12px}.tww-form{grid-template-columns:1fr}}
