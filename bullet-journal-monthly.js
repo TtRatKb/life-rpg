@@ -103,8 +103,7 @@
     view.addEventListener("click",event=>{
       const button=event.target.closest?.("[data-bj-month-habit]");
       if(button)window.LifeRPGHabits?.openFromJournal?.(button.dataset.bjMonthHabit);
-      const day=event.target.closest?.("#bjBookMonthCollection [data-bj-month-day]");
-      if(day)book.open?.(day.dataset.bjMonthDay);
+      // The book's existing day-navigation listener handles every month-day button.
     });
     window.addEventListener("life-rpg:state-saved",()=>{
       if(book.getChapter?.()==="monthly")render();
