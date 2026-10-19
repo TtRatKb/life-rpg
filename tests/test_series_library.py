@@ -904,6 +904,129 @@ class SeriesLibraryTests(unittest.TestCase):
         self.assertEqual(self.page.evaluate(
             "LifeRPGSkills.getRealmPoints('Health').available"),after['points'])
 
+    def test_journal_collections_preview_existing_media_and_one_point_unlock(self):
+        """Real bookshelf content can be previewed at 0 SP. One Knowledge point
+        unlocks a separate note page without selling the original libraries."""
+        self.page.evaluate("""() => {
+          const root=LifeRPGApp.getState();
+          root.skills.realmBonusPoints.Knowledge=0;
+          root.bookLibrary={schemaVersion:3,items:[
+            {id:'book-real',title:'A real saved novel',author:'Known Author',status:'reading'},
+            {id:'book-next',title:'A book on the shelf',status:'want'}],logs:[]};
+          root.seriesLibrary={schemaVersion:1,items:[
+            {id:'series-real',title:'My actual show',status:'watching'}],logs:[],plans:[]};
+          root.gameLibrary={schemaVersion:11,items:[
+            {id:'game-real',title:'A game I play',status:'playing'}],logs:[]};
+        }""")
+        for script in ['journal.js','bullet-journal-book.js',
+                       'bullet-journal-collections.js','talent-v2.js',
+                       'talent-tree-v2-graph.js']:
+            self.page.add_script_tag(url='/'+script)
+        for style in ['bullet-journal-book.css','bullet-journal-collections.css']:
+            self.page.add_style_tag(url='/'+style)
+        self.page.evaluate("LifeRPGTalentTreeGraph.refresh()")
+        self.assertEqual(self.page.locator(
+            '[data-talent-v3-preview="Knowledge|journal-reading-media-collection"]').count(),1)
+        before=self.page.evaluate("""() => {
+          const state=LifeRPGApp.getState();
+          return {book:JSON.stringify(state.bookLibrary),
+            series:JSON.stringify(state.seriesLibrary),
+            games:JSON.stringify(state.gameLibrary),
+            journal:JSON.stringify(state.journal),
+            xp:JSON.stringify(state.rewardLedger),
+            notes:JSON.stringify(state.journalCollectionsV1??null),
+            purchased:LifeRPGTalentTreeGraph.isContentUnlocked(
+              'Knowledge','journal-reading-media-collection'),
+            points:LifeRPGSkills.getRealmPoints('Knowledge').available};
+        }""")
+        self.assertFalse(before['purchased'])
+        self.assertEqual(before['points'],0)
+        self.page.locator(
+            '[data-talent-v3-preview="Knowledge|journal-reading-media-collection"]').click()
+        self.assertEqual(self.page.evaluate(
+            "LifeRPGBulletJournalBook.getChapter()"),'collections')
+        text=self.page.locator('#bjBookCollectionsContent').inner_text()
+        for title in ['A real saved novel','A book on the shelf',
+                      'My actual show','A game I play']:
+            self.assertIn(title,text)
+        self.assertIn('1 Knowledge point',text)
+        self.assertEqual(self.page.locator('#bjCollectionsMemory').count(),0)
+        self.assertEqual(before,self.page.evaluate("""() => {
+          const state=LifeRPGApp.getState();
+          return {book:JSON.stringify(state.bookLibrary),
+            series:JSON.stringify(state.seriesLibrary),
+            games:JSON.stringify(state.gameLibrary),
+            journal:JSON.stringify(state.journal),
+            xp:JSON.stringify(state.rewardLedger),
+            notes:JSON.stringify(state.journalCollectionsV1??null),
+            purchased:LifeRPGTalentTreeGraph.isContentUnlocked(
+              'Knowledge','journal-reading-media-collection'),
+            points:LifeRPGSkills.getRealmPoints('Knowledge').available};
+        }"""))
+        # After explicitly earning a test point, the native Talent purchase
+        # must charge once, and the collection must become editable.
+        self.page.evaluate("""() => {
+          LifeRPGApp.getState().skills.realmBonusPoints.Knowledge=1;
+        }""")
+        self.assertTrue(self.page.evaluate("""() =>
+          LifeRPGTalentTreeGraph.purchaseContent(
+            'Knowledge','journal-reading-media-collection')"""))
+        self.assertEqual(self.page.evaluate("""() =>
+          LifeRPGSkills.getRealmPoints('Knowledge').available"""),0)
+        self.assertFalse(self.page.evaluate("""() =>
+          LifeRPGTalentTreeGraph.purchaseContent(
+            'Knowledge','journal-reading-media-collection')"""))
+        self.page.evaluate("LifeRPGBulletJournalCollections.render()")
+        self.assertEqual(self.page.locator('#bjCollectionsMemory').count(),1)
+        self.page.locator('#bjCollectionsMemory').fill('I loved these stories.')
+        self.page.locator('[data-bj-collection-save]').click()
+        self.assertEqual(self.page.evaluate("""() =>
+          LifeRPGApp.getState().journalCollectionsV1.pages.readingMedia.note"""),
+          'I loved these stories.')
+        self.assertEqual(self.page.evaluate("""() =>
+          LifeRPGApp.getState().bookLibrary.items[0].title"""),
+          'A real saved novel')
+        self.assertEqual(self.page.evaluate("""() =>
+          LifeRPGApp.getState().seriesLibrary.items[0].title"""),
+          'My actual show')
+        self.assertEqual(self.page.evaluate("""() =>
+          LifeRPGApp.getState().gameLibrary.items[0].title"""),
+          'A game I play')
+        self.page.evaluate("LifeRPGBulletJournalBook.showChapter('daily')")
+        self.page.evaluate("LifeRPGBulletJournalBook.showChapter('collections')")
+        self.assertEqual(self.page.locator('#bjCollectionsMemory').input_value(),
+                         'I loved these stories.')
+
+    def test_journal_collections_mobile_index_and_empty_libraries(self):
+        """The collection preview is usable on mobile without fake data."""
+        self.page.set_viewport_size({'width':390,'height':844})
+        self.page.evaluate("""() => {
+          const s=LifeRPGApp.getState();
+          s.bookLibrary={schemaVersion:3,items:[],logs:[]};
+          s.seriesLibrary={schemaVersion:1,items:[],logs:[],plans:[]};
+          s.gameLibrary={schemaVersion:11,items:[],logs:[]};
+          s.skills.realmBonusPoints.Knowledge=0;
+        }""")
+        for script in ['journal.js','bullet-journal-book.js',
+                       'bullet-journal-collections.js','talent-v2.js',
+                       'talent-tree-v2-graph.js']:
+            self.page.add_script_tag(url='/'+script)
+        for style in ['bullet-journal-book.css','bullet-journal-collections.css']:
+            self.page.add_style_tag(url='/'+style)
+        self.assertTrue(self.page.evaluate("LifeRPGBulletJournalBook.openCollections()"))
+        self.assertIn('0 saved library items',
+                      self.page.locator('#bjBookCollectionsIndex').inner_text())
+        self.assertIn('A quiet space',self.page.locator(
+            '#bjBookCollectionsContent').inner_text())
+        self.assertEqual(self.page.locator(
+            '#bjBookCollectionsSpread .bj-collection-title').count(),0)
+        overflow=self.page.evaluate("""() => {
+          const book=document.getElementById('bjBookCollectionsSpread');
+          return book.scrollWidth-book.clientWidth;
+        }""")
+        self.assertLessEqual(overflow,2,overflow)
+        self.assertEqual(self.page.locator('#bjCollectionsMemory').count(),0)
+
     def test_bullet_journal_monthly_live_data_and_navigation_read_only(self):
         """Monthly calendar is a separate chapter sourced from actual Habits,
         with correct month boundary, zero-point preview and no reward mutations."""
