@@ -69,6 +69,7 @@
   <link rel="stylesheet" href="holiday-planner.css?v=0.31.4dz23d" />
   <link rel="stylesheet" href="todoist-sync.css?v=0.31.4dz28" />
   <link rel="stylesheet" href="task-projects.css?v=0.31.4-task-projects1" />
+  <link rel="stylesheet" href="task-planning-ui.css?v=0.31.4-task-planning2" />
   <link rel="stylesheet" href="qol-dz50c.css?v=0.31.4dz50c" />
   <link rel="stylesheet" href="series-library.css?v=0.31.4-series8">
 </head>
@@ -201,7 +202,8 @@
             <div id="dailyRewardsList" class="daily-rewards-list-v314cv"></div>
           </section>
         </section>
-        <section id="taskProjectTodayMount" aria-label="Task Companion · heutige Fristen"></section>
+        <section id="taskPlanningTodayMount" aria-label="Task Companion · heutige Fristen und Kapazität"></section>
+        <section id="taskProjectTodayMount" aria-label="Alte Task-Companion-Kompatibilität"></section>
         <section id="milestonePanel" class="panel milestone-panel-v314cv" aria-labelledby="milestoneTitle">
           <div class="panel-heading"><div><p class="eyebrow">A LITTLE CLOSER</p><h2 id="milestoneTitle">Next Milestone ✦</h2><p class="muted">Real progress and available activities, not a second reward system.</p></div><label class="milestone-target-control-v314cv"><span>Target</span><select id="milestoneTarget" aria-label="Milestone target"><option value="shop">Current Wish</option><option value="story">Story Energy</option><option value="character">Character level</option><option value="skill">Skill level</option></select></label></div>
           <div id="milestoneContent" aria-live="polite"></div>
@@ -307,11 +309,11 @@
           <section class="panel external-task-panel dashboard-external-card-v3 dashboard-context-card-v314au">
             <div class="panel-heading">
               <div><p class="eyebrow">REAL-LIFE CLEAR</p><h3>External Task</h3></div>
-              <span class="tiny-badge">Todoist</span>
+              <span class="tiny-badge">Life RPG</span>
             </div>
             <div id="externalTaskTodaySummary" class="external-task-summary"></div>
             <button class="secondary-button external-task-button" id="externalTaskButton" type="button">Manuell loggen</button>
-            <button class="secondary-button external-task-button" data-todoist-open type="button">Meine Aufgaben öffnen →</button>
+            <button class="secondary-button external-task-button" data-view-target="tasks" type="button">Meine Aufgaben öffnen →</button>
             <p class="muted" style="font-size:.74rem">Synchronisierte Aufgaben bitte nicht zusätzlich manuell claimen.</p>
           </section>
 
@@ -1394,7 +1396,7 @@
         <div id="mealPlannerPageV314dz7"></div>
       </section>
       <!-- ADDITIVE VACATION BOARD: No existing Activity, Quests or Save sections changed. -->
-      <section id="view-tasks" class="view todoist-view"><div id="taskProjectMount"></div><div id="todoistPageMount"></div></section>
+      <section id="view-tasks" class="view todoist-view"><div id="taskPlanningPanel"></div><div id="taskProjectMount"></div></section>
       <section id="view-breaks" class="view break-view"><div id="breakPlannerMount"></div></section>
 
             <!-- FOCUS / TIME / LIFE RHYTHM -->
@@ -3551,6 +3553,8 @@ League of Legends — PC" required></textarea></label>
   <script src="todoist-sync.js?v=0.31.4dz28"></script>
   <script src="task-projects-core.js?v=0.31.4-task-projects1"></script>
   <script src="task-projects.js?v=0.31.4-task-projects1"></script>
+  <script src="task-planning-core.js?v=0.31.4-task-planning2"></script>
+  <script src="task-planning-ui.js?v=0.31.4-task-planning2"></script>
   <script src="holiday-planner.js?v=0.31.4dz28"></script>
   <script src="daily.js?v=0.31.4-dm1"></script>
   <script src="data/year-journal-questions.js?v=0.31.4ar"></script>
@@ -3600,7 +3604,7 @@ League of Legends — PC" required></textarea></label>
   <script type="module" src="cloud-save.js?v=0.31.4dz50c-save-safety1"></script>
   <script src="health-import-core.js?v=0.31.4-healthbatch1"></script>
   <script type="module" src="health-bridge-dz44.js?v=0.31.4-health-echo1"></script>
-  <script src="pwa.js?v=0.31.4-task-projects1"></script>
+  <script src="pwa.js?v=0.31.4-task-planning2"></script>
   <script src="life-hub-v314dk.js?v=0.31.4-book-page1"></script>
   <script src="creative-hub-v314dl.js?v=0.31.4dz50c"></script>
   <script src="knowledge-workshop.js?v=0.31.4do"></script>
