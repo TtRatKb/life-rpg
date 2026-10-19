@@ -1,0 +1,18 @@
+/* Cozy task companion: actionable, but never a mandatory timer or streak. */
+.tfd-budget{margin:12px 0;padding:10px 12px;border:1px solid #e5d8e1;background:rgba(255,255,255,.65);border-radius:12px}
+.tfd-budget>strong{font-size:.76rem;display:block;margin-bottom:8px}
+.tfd-budget>div{display:flex;gap:7px;flex-wrap:wrap}
+.tfd-budget button,.tfd-character button{border:1px solid #d6c0d1;background:#fffdfc;border-radius:9px;padding:7px 11px;color:#755a74;font:inherit;font-size:.73rem;cursor:pointer}
+.tfd-budget button.active,.tfd-character button.active{background:#e9d9ea;border-color:#a688ad;font-weight:700}
+.tfd-focus-open{border:1px solid #d1b5c7!important;background:#fff7fc!important;border-radius:9px;padding:7px 10px!important;color:#795c75!important;cursor:pointer;font-size:.72rem!important;flex-shrink:0}
+.tfd-task>div{flex:1}
+.tfd-focus{margin:12px 0;padding:13px 14px;background:linear-gradient(140deg,#fffdfc,#f1e6f0);border:1px solid #d9bed3;border-radius:13px}
+.tfd-focus>strong{font-size:.9rem}
+.tfd-focus p{font-size:.81rem;line-height:1.6;margin:9px 0}
+.tfd-focus small{display:block;margin-top:8px;font-size:.67rem;color:#988194;line-height:1.45}
+.tfd-focus-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.tfd-focus-head strong{font-size:.91rem}
+.tfd-focus-head button{font-size:1.15rem;background:none;border:0;cursor:pointer;color:#90788f}
+.tfd-character,.tfd-focus-actions{display:flex;flex-wrap:wrap;gap:8px;margin:9px 0}
+.tfd-focus-actions button{font-size:.74rem!important;min-height:34px!important}
+@media(max-width:600px){.tfd-task{flex-wrap:wrap}.tfd-focus-open{margin-left:auto}.tfd-focus-actions button{flex:1 1 42%}}

@@ -223,5 +223,5 @@
    if((!template&&input?.templateId!=='manual-v1')||!title||title.length>110||!core.parseDay(date))return false;
    return mutate('guided-create-project',m=>{const id=uid(),project=template?core.instantiate(template,date,{format:'digital',inclusion:'check',resit:'no'},id):{id,templateId:'manual-v1',title:'',anchorDate:date,options:{},createdAt:new Date().toISOString(),tasks:[]};project.title=title;m.projects.unshift(project);expanded=id;return id;});
  }
- window.LifeRPGTaskProjects={open:()=>app.showView('tasks'),getOpen:()=>allOpen().map(t=>({...t})),getCriticalToday:()=>allOpen().filter(t=>t.mandatory&&t.dueDate&&t.dueDate<=dateToday()),listTemplates:()=>[{id:'manual-v1',name:'Eigenes Projekt · ohne Vorlage'},...templates().map(t=>({id:t.id,name:t.name}))],createTask,createProject,render,_test:{model,markDone,templates,coach}};
+ window.LifeRPGTaskProjects={open:()=>app.showView('tasks'),getOpen:()=>allOpen().map(t=>({...t})),getCriticalToday:()=>allOpen().filter(t=>t.mandatory&&t.dueDate&&t.dueDate<=dateToday()),listTemplates:()=>[{id:'manual-v1',name:'Eigenes Projekt · ohne Vorlage'},...templates().map(t=>({id:t.id,name:t.name}))],createTask,createProject,completeTask:id=>markDone(id,false),reopenTask:id=>markDone(id,true),render,_test:{model,markDone,templates,coach}};
 })();

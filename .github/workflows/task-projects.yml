@@ -11,6 +11,9 @@ on:
       - 'task-wizard.css'
       - 'task-free-days-core.js'
       - 'task-free-days.js'
+      - 'task-focus-core.js'
+      - 'task-focus.css'
+      - 'tests/test_task_focus.cjs'
       - 'task-free-days.css'
       - 'task-google-calendar-core.js'
       - 'task-google-calendar.js'
@@ -48,6 +51,9 @@ on:
       - 'task-wizard.css'
       - 'task-free-days-core.js'
       - 'task-free-days.js'
+      - 'task-focus-core.js'
+      - 'task-focus.css'
+      - 'tests/test_task_focus.cjs'
       - 'task-free-days.css'
       - 'task-google-calendar-core.js'
       - 'task-google-calendar.js'
@@ -99,6 +105,7 @@ jobs:
           node --check task-wizard.js
           node --check task-free-days-core.js
           node --check task-free-days.js
+          node --check task-focus-core.js
           node --check task-google-calendar-core.js
           node --check task-google-calendar.js
           node --check my-week.js
@@ -112,6 +119,7 @@ jobs:
           node tests/test_task_pack.cjs
           node tests/test_task_work_windows.cjs
           node tests/test_task_free_days.cjs
+          node tests/test_task_focus.cjs
           TZ=Europe/Berlin node tests/test_task_google_calendar.cjs
       - uses: actions/setup-python@v5
         with:
@@ -149,10 +157,13 @@ jobs:
           for (const id of ['taskWizardMount','taskWorkWindowsMount','taskWorkWindowsWeekMount'])
             if (!html.includes('id="'+id+'"')) throw Error('Missing UI mount: '+id);
           for (const [asset,ver] of [
-            ['task-free-days-core.js','0.31.4-freedays1'],['task-free-days.js','0.31.4-freedays1'],['task-free-days.css','0.31.4-freedays1'],
+            ['task-free-days-core.js','0.31.4-freedays1'],['task-free-days.css','0.31.4-freedays1'],
             ['task-google-calendar-core.js','0.31.4-gcal1'],['task-google-calendar.js','0.31.4-gcal1'],['task-google-calendar.css','0.31.4-gcal1']])
             if(!html.includes(asset+'?v='+ver)||!sw.includes(asset+'?v='+ver))throw Error('Missing calendar/free-day asset '+asset);
           for (const id of ['taskFreeDayMount','taskGoogleCalendarMount'])
             if (!html.includes('id="'+id+'"')) throw Error('Missing companion mount: '+id);
+          for (const asset of ['task-focus-core.js','task-focus.css','task-free-days.js']) {
+            if(!html.includes(asset+'?v=0.31.4-focus1') || !sw.includes(asset+'?v=0.31.4-focus1'))throw Error('Focus companion asset missing: '+asset);
+          }
           console.log('Task project assets and mounts registered');
           NODE

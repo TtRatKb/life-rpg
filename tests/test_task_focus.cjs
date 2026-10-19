@@ -1,0 +1,18 @@
+const assert=require('node:assert/strict');
+const f=require('../task-focus-core.js');
+const high={id:'synthetic',title:'Fiktives Telefonat',hurdle:'high',minutes:120,blockedBy:[]};
+assert.equal(f.taskReady(high),true);
+assert.equal(f.sliceMinutes(high,null),5);
+assert.equal(f.sliceMinutes(high,3),3);
+assert.equal(f.sliceMinutes(high,0),0);
+assert.equal(f.sliceMinutes({...high,hurdle:'normal'},null),25);
+assert.equal(f.sliceMinutes({...high,minutes:20,hurdle:'normal'},null),15);
+assert.equal(f.taskReady({...high,status:'waiting'}),false);
+assert.equal(f.taskReady({...high,blockedBy:['missing']}),false);
+assert.equal(f.taskReady({...high,doneAt:'2026-10-19T12:00:00Z'}),false);
+assert.ok(f.dialogue(high,'bakugo','start').includes('erste'));
+assert.ok(f.dialogue(high,'kirishima','done').includes('geschafft'));
+assert.ok(f.dialogue(high,'bakugo','pause').includes('Schluss'));
+assert.equal(f.pickNext([{task:high}],[]).task.id,'synthetic');
+assert.equal(f.pickNext([{task:high}],['synthetic']),null);
+console.log('Task focus readiness, small starts, dialogue and stopping safeguards passed');
