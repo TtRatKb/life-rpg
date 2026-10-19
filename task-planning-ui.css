@@ -1,0 +1,27 @@
+#taskProjectTodayMount{display:none!important}
+#taskPlanningTodayMount{display:grid;gap:8px;padding:14px 16px;margin:12px 0;background:linear-gradient(135deg,#fff7ef,#f3e9f1);border:1px solid #e1ceda;border-radius:14px;color:#694f66}
+#taskPlanningTodayMount strong{font-size:1rem}#taskPlanningTodayMount p{font-size:.82rem;line-height:1.5;margin:0}
+.npt-dash-head{display:flex;justify-content:space-between;gap:10px;align-items:center}.npt-dash-head small{font-size:.65rem;letter-spacing:.1em;color:#9c7e94}
+.npt-dash-head button,#taskPlanningTodayMount>button{border:0;background:transparent;color:#8d677f;font-size:.74rem;cursor:pointer}
+#taskPlanningTodayMount>button{justify-self:start;border:1px solid #d3b8c9;border-radius:8px;padding:6px 10px;background:#fff6f7}
+.npt-card{padding:clamp(13px,2vw,22px);margin:0 0 18px;border:1px solid #e1ceda;border-radius:18px;background:linear-gradient(145deg,#fff9f4,#f6ebf0);box-shadow:0 7px 18px rgba(87,61,77,.06);color:#685263}
+.npt-card h2{font-size:clamp(1.2rem,2vw,1.55rem);margin:4px 0}.npt-card>p{font-size:.8rem;line-height:1.5;margin:5px 0}
+.npt-stats{display:flex;flex-wrap:wrap;gap:9px;margin:13px 0}.npt-stats span{padding:8px 11px;border:1px solid #e7d9dd;background:#fffdfb;border-radius:10px;font-size:.74rem}
+.npt-note{font-size:.72rem!important;color:#99818b;line-height:1.5}
+.npt-coach{padding:11px 13px;background:#f0e3e9;border-radius:10px;font-size:.8rem;line-height:1.55;margin:11px 0}
+.npt-groups{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.npt-groups h3{font-size:.89rem;margin:7px 0;color:#785a71}
+.npt-item{display:flex;align-items:center;justify-content:space-between;gap:7px;padding:9px 10px;background:#fffdfb;border:1px solid #e8dce2;border-radius:9px;margin-bottom:7px}
+.npt-item>div{display:grid;gap:4px;min-width:0}.npt-item strong{font-size:.78rem;overflow-wrap:anywhere}.npt-item small{font-size:.66rem;color:#997f8b;line-height:1.45}
+.npt-item button{border:0!important;background:transparent!important;cursor:pointer;color:#98768b!important;font-size:1rem}
+.npt-warnings{padding:9px 12px;margin:12px 0;border:1px solid #e3b6ad;background:#fff5f0;border-radius:10px;font-size:.77rem}
+.npt-warnings summary{cursor:pointer;font-weight:700;color:#955c57}.npt-warnings p{margin:5px 0}
+.npt-settings{padding:10px 12px;margin:12px 0 0;border:1px solid #e0d0d7;border-radius:10px;background:rgba(255,255,255,.65)}
+.npt-settings summary{cursor:pointer;font-weight:700;font-size:.79rem}.npt-settings form{display:grid;gap:10px;padding:10px 0}
+.npt-settings form>p,.npt-settings form>small{font-size:.73rem;line-height:1.5;margin:0}
+.npt-week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:7px}
+.npt-card label{display:grid;gap:4px;min-width:0;font-size:.75rem}
+.npt-card input,.npt-card select{box-sizing:border-box;min-width:0;width:100%;padding:7px;border:1px solid #dac5d1;border-radius:8px;background:#fffdfb;color:#684e60;font:inherit;font-size:.79rem}
+.npt-settings form>label{max-width:260px}.npt-settings form>button{justify-self:start}
+.npt-editor{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:10px;padding:13px;border:1px solid #d0aec4;border-radius:12px;margin:12px 0;background:#fffdfb;align-items:end}
+.npt-editor h3{grid-column:1/-1;font-size:.95rem;margin:0}.npt-editor button{min-height:34px}
+@media(max-width:600px){.npt-groups{grid-template-columns:1fr}.npt-week{grid-template-columns:repeat(4,minmax(0,1fr))}}
