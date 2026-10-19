@@ -30,7 +30,13 @@
    if(worked>=360)modifier*=.6;
    return {worked,fixed,modifier};
  }
- function snapshot(){const context=load();return {...core.plan({today:today(),tasks:native.getOpen(),settings:config(),todayModifier:context.modifier}),context};}
+ function snapshot(){
+   const context=load(),windows=window.LifeRPGTaskWindows,usingWindows=Boolean(windows?.enabled?.());
+   const windowForecast=usingWindows?windows.forecast(today(),35):null;
+   return {...core.plan({today:today(),tasks:native.getOpen(),settings:config(),todayModifier:context.modifier,
+     capacityByDate:windowForecast?.capacities,segmentsByDate:windowForecast?.segments,preferEarlier:usingWindows}),
+     context,usingWindows,windowForecast};
+ }
  function save(action,kind){
    const state=app.getState(),old=JSON.stringify(state.taskProjectsV1||null);
    try{
@@ -46,7 +52,9 @@
  function taskRow(task,plan){
    const r=node('div',null,'npt-item');
    const info=node('div');
-   info.append(node('strong',task.title),node('small',(task.projectTitle||'Einzelaufgabe')+' · '+date(task.dueDate)+' · ca. '+fmt(task.minutes)+(task.hurdle==='high'?' · 😰':'')+((task.blockedBy||[]).length?' · Vorheriger Schritt offen':'')+(plan.assignments[task.id]?.unallocated?' · ⚠ Nicht vollständig eingeplant':'')));
+   const slots=(plan.assignments[task.id]?.slots||[]).filter(x=>x.date===plan.today);
+   const showTime=slots.length?' · Heute '+slots.map(x=>String(Math.floor(x.startMinute/60)).padStart(2,'0')+':'+String(x.startMinute%60).padStart(2,'0')).join(', ')+' Uhr':'';
+   info.append(node('strong',task.title),node('small',(task.projectTitle||'Einzelaufgabe')+' · '+date(task.dueDate)+' · ca. '+fmt(task.minutes)+showTime+(task.hurdle==='high'?' · 😰':'')+((task.blockedBy||[]).length?' · Vorheriger Schritt offen':'')+(plan.assignments[task.id]?.unallocated?' · ⚠ Nicht vollständig eingeplant':'')));
    r.append(info,button('✎','nptEdit',task.id));return r;
  }
  function labeledInput(label,name,value,type='number'){
@@ -87,7 +95,9 @@
    card.append(node('p','LIFE RPG · DEINE AUFGABEN','eyebrow'),node('h2','Was ist heute wirklich wichtig?'),node('p','Aufgaben direkt in Life RPG planen – mit Fristen, Zeitpuffer und ohne Todoist.'));
    const stats=node('div',null,'npt-stats');
    stats.append(node('span',fmt(todayData.capacity)+' verfügbar'),node('span',fmt(todayData.planned)+' eingeplant'),node('span',config().reservePercent+' % Puffer'));
-   card.append(stats,node('p','Extra-Aufgabenbudget neben dem Unterricht. Heute: '+fmt(p.context.fixed)+' feste Schultermine geplant und '+fmt(p.context.worked)+' Arbeitszeit geloggt. Niedrige Energie reduziert die heutige Kapazität.','npt-note'));
+   card.append(stats,node('p',p.usingWindows?
+     'Zeit aus deinen selbst angelegten Arbeitsfenstern, abzüglich fester Termine und Puffer. Heute: '+fmt(p.context.fixed)+' feste Schultermine. Kein Arbeitsfenster bedeutet keine verfügbare Zusatzzeit.':
+     'Noch das bisherige Minutenmodell. Wenn du eigene Arbeitsfenster anlegst, werden nur diese für Aufgaben verwendet. Heute: '+fmt(p.context.fixed)+' feste Schultermine.','npt-note'));
    const coach=p.issues.length?'Bakugo: „Das geht so noch nicht zuverlässig auf. Check die Warnungen – und versuch nicht, alles mit Mehrarbeit zu retten.“':p.todayMust.length?'Bakugo: „Erst die wichtigen Sachen. Dann kannst du ohne schlechtes Gewissen Schluss machen.“':'Kirishima: „Heute ist nichts Weiteres zwingend eingeplant. Du darfst dir Zeit für dich nehmen.“';
    card.append(node('div',coach,'npt-coach'));
    const groups=node('div',null,'npt-groups');
@@ -99,7 +109,13 @@
      return el;
    };
    groups.append(section('🔸 Heute unbedingt · '+p.todayMust.length,p.todayMust),section('☘ Bald oder optional',p.soon.concat(p.optionalToday).slice(0,7)));card.append(groups);
-   const rest=node('details',null,'npt-settings');rest.append(node('summary','Weitere Aufgaben bearbeiten · '+native.getOpen().length+' offene Aufgaben'));
+   const future=native.getOpen().filter(t=>!p.todayMust.some(x=>x.id===t.id)&&!p.soon.some(x=>x.id===t.id)&&t.status!=='waiting'&&!(t.blockedBy||[]).length)
+     .sort((a,b)=>(a.dueDate||'9999').localeCompare(b.dueDate||'9999')).slice(0,5);
+   const forward=node('div',null,'npt-upcoming');forward.append(node('h3','🗓 Danach kommt · nächste Projektschritte'));
+   if(!future.length)forward.append(node('p','Keine weiteren planbaren Schritte vorhanden.','npt-note'));
+   future.forEach(t=>forward.append(taskRow(t,p)));
+   card.append(forward);
+   const rest=node('details',null,'npt-settings');rest.append(node('summary','Alle '+native.getOpen().length+' offenen Aufgaben aus Projekten & Inbox anzeigen / bearbeiten'));
    native.getOpen().forEach(task=>rest.append(taskRow(task,p)));card.append(rest);
    if(p.issues.length){
      const warnings=node('details',null,'npt-warnings');warnings.open=true;warnings.append(node('summary','⚠ '+p.issues.length+' Planungshinweise'));
