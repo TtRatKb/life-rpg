@@ -73,18 +73,18 @@
     </div>`;
  }
  function projectMarkup(p){
-   const steps=core.nextSteps(p),done=p.tasks.filter(t=>t.doneAt).length,total=p.tasks.filter(t=>!t.archived).length;
+   const steps=core.nextSteps(p),done=p.tasks.filter(t=>t.doneAt&&!t.archived).length,total=p.tasks.filter(t=>!t.archived).length;
    const isOpen=expanded===p.id;
    const required=steps.filter(t=>t.mandatory),soon=required.filter(t=>t.dueDate<=core.dayOffset(dateToday(),2));
    return `<article class="tp-project">
      <div class="tp-project-head"><button type="button" class="tp-project-toggle" data-tp-expand="${esc(p.id)}" aria-expanded="${isOpen}"><span>${isOpen?'⌄':'›'}</span><span><strong>${esc(p.title)}</strong><small>${esc(dateNice(p.anchorDate))} · ${done}/${total} Schritte · ${soon.length?'⚠ '+soon.length+' wichtig bald':'Im Blick'}</small></span></button><div class="tp-project-progress" style="--progress:${total?Math.round(100*done/total):0}%"></div></div>
      ${isOpen?`<div class="tp-project-body">
-       <div class="tp-project-branches">
+       <div class="tp-project-branches" ${p.templateId!==core.exam.id?'hidden':''}>
          <label>Inklusion<select data-tp-branch="${esc(p.id)}" data-branch-key="inclusion"><option value="check" ${p.options.inclusion==='check'?'selected':''}>Noch klären</option><option value="yes" ${p.options.inclusion==='yes'?'selected':''}>Erforderlich</option><option value="no" ${p.options.inclusion==='no'?'selected':''}>Nicht erforderlich</option></select></label>
          <label>Nachschreiben<select data-tp-branch="${esc(p.id)}" data-branch-key="resit"><option value="no" ${p.options.resit!=='yes'?'selected':''}>Noch kein Bedarf</option><option value="yes" ${p.options.resit==='yes'?'selected':''}>Ja, organisieren</option></select></label>
        </div>
        ${steps.length?steps.map(s=>taskRow(s,p.id)).join(''):'<p class="tp-empty">Alle Schritte abgeschlossen. 🌸</p>'}
-       <details class="tp-completed"><summary>Erledigte Schritte (${done})</summary>${p.tasks.filter(t=>t.doneAt).map(t=>`<button type="button" class="tp-done-row" data-tp-undo="${esc(t.id)}">✓ ${esc(t.title)} · rückgängig</button>`).join('')||'<small>Hier ist noch nichts abgehakt.</small>'}</details>
+       <details class="tp-completed"><summary>Erledigte Schritte (${done})</summary>${p.tasks.filter(t=>t.doneAt&&!t.archived).map(t=>`<button type="button" class="tp-done-row" data-tp-undo="${esc(t.id)}">✓ ${esc(t.title)} · rückgängig</button>`).join('')||'<small>Hier ist noch nichts abgehakt.</small>'}</details>
        <form class="tp-add-step" data-tp-add-step="${esc(p.id)}"><input name="title" required maxlength="160" placeholder="Weiteren Schritt hinzufügen" aria-label="Neuer Projektschritt"><input type="date" name="dueDate" required value="${esc(p.anchorDate)}" aria-label="Frist des neuen Schritts"><button class="secondary-button" type="submit">+ Schritt</button></form>
        <div class="tp-project-actions"><button type="button" class="secondary-button" data-tp-save-template="${esc(p.id)}">Als eigene Vorlage speichern</button><button type="button" class="secondary-button" data-tp-archive="${esc(p.id)}">Projekt archivieren</button></div>
        <small>Schritte sind organisatorische Merker. XP aus tatsächlichen Schulcockpit-/Zeit-/Quest-Abschlüssen werden hier nicht erneut ausgezahlt.</small>
