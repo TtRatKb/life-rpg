@@ -428,7 +428,7 @@
    <section class="todoist-panel todoist-advanced"><button type="button" class="todoist-settings-toggle" data-todoist-settings-toggle aria-expanded="${showSettings}"><span>⚙ Verbindung & Einstellungen</span><span>${showSettings?'−':'+'}</span></button>${showSettings?settingsMarkup():''}</section>`;
  }
  function renderList(){const list=mount()?.querySelector('[data-todoist-list]');if(list)list.innerHTML=taskListMarkup();}
- function open(){app.showView('tasks');render();if(currentToken()&&!connected&&!loadingOpen){loadingOpen=true;sync({quiet:true}).catch(()=>{}).finally(()=>{loadingOpen=false;});}}
+ function open(){app.showView('tasks');if(!mount())return;render();if(currentToken()&&!connected&&!loadingOpen){loadingOpen=true;sync({quiet:true}).catch(()=>{}).finally(()=>{loadingOpen=false;});}}
  function init(){const root=mount();if(!root)return;
    root.addEventListener('submit',async e=>{const form=e.target;if(!form.matches('[data-todoist-connect-form],[data-todoist-add-form]'))return;e.preventDefault();const data=new FormData(form),b=form.querySelector('button[type="submit"]');if(b)b.disabled=true;
      try{if(form.matches('[data-todoist-connect-form]'))await connect(data.get('token'),data.get('remember')==='on');else{await create(data.get('title'),{dueDate:data.get('dueDate'),projectId:data.get('projectId'),priority:data.get('priority')});app.showToast?.('Aufgabe gespeichert ✓');}lastError='';render();}
@@ -478,6 +478,7 @@
  // there is deliberately no background poll, webhook or OAuth secret in the PWA.
  let lastVisibilitySync = 0;
  document.addEventListener('visibilitychange',()=>{
+   if(!mount())return; // Native task page replaced the Todoist list; legacy receipts stay untouched.
    if(document.visibilityState==='visible' && currentToken() && Date.now()-lastVisibilitySync > 30000){
      lastVisibilitySync=Date.now(); sync({quiet:true}).catch(()=>{});
    }
