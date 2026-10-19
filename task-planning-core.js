@@ -66,11 +66,11 @@
      // Dependencies are handled before allocation; never suggest work that cannot begin.
    }
    for(const task of missing)issues.push({id:String(task.id),type:'no-date',title:task.title});
-   const dueToday=mandatory.filter(t=>utcDay(t.dueDate)&&t.dueDate<=today);
+   const dueToday=mandatory.filter(t=>utcDay(t.dueDate)&&t.dueDate<=today&&!assignments[String(t.id)]?.blocked);
    const scheduledToday=mandatory.filter(t=>assignments[String(t.id)]?.days.some(x=>x.date===today));
    const todaySet=new Set([...dueToday,...scheduledToday].map(t=>String(t.id)));
    const todayMust=mandatory.filter(t=>todaySet.has(String(t.id)));
-   const soon=mandatory.filter(t=>utcDay(t.dueDate)&&t.dueDate>today&&t.dueDate<=add(today,3)&&!todaySet.has(String(t.id)));
+   const soon=mandatory.filter(t=>utcDay(t.dueDate)&&t.dueDate>today&&t.dueDate<=add(today,3)&&!todaySet.has(String(t.id))&&!assignments[String(t.id)]?.blocked);
    const later=mandatory.filter(t=>!todaySet.has(String(t.id))&&!soon.some(x=>x.id===t.id));
    const optionalToday=optional.filter(t=>utcDay(t.dueDate)&&t.dueDate<=today);
    const daily=keys.map(date=>({date,capacity:capacities[date],planned:usage[date],remaining:capacities[date]-usage[date],tasks:buckets[date]}));
