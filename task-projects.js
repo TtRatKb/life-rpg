@@ -216,7 +216,7 @@
  function createTask(input){
    const name=String(input?.title||'').trim(),due=String(input?.dueDate||'');
    if(!name||name.length>160||due&&!core.parseDay(due))return false;
-   return mutate('guided-create-task',m=>{const id='inbox-'+uid();m.inbox.unshift({id,title:name,dueDate:due,minutes:Math.max(5,Math.min(2400,Number(input?.minutes)||20)),mandatory:input?.mandatory===true,hurdle:input?.hurdle==='high'?'high':'normal',doneAt:null,createdAt:new Date().toISOString()});return id;});
+   return mutate('guided-create-task',m=>{const id='inbox-'+uid();m.inbox.unshift({id,title:name,dueDate:due,minutes:Math.max(5,Math.min(2400,Number(input?.minutes)||20)),mandatory:input?.mandatory===true,hurdle:input?.hurdle==='high'?'high':'normal',context:['any','home','school','outside'].includes(input?.context)?input.context:'any',doneAt:null,createdAt:new Date().toISOString()});return id;});
  }
  function createProject(input){
    const template=templates().find(t=>t.id===input?.templateId),title=String(input?.title||'').trim(),date=String(input?.date||'');
