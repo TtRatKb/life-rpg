@@ -1,0 +1,80 @@
+/* Monthly Journal v1: a book calendar and personal ritual scrapbook.
+   A distinct layout, not a 31-column enlargement of the Weekly tracker. */
+.bj-book-monthly-spread .bj-book-date-heading h1{font:500 clamp(1.4rem,2.1vw,2.1rem)/1.2 Georgia,serif;color:#66505d;margin:0}
+.bj-month-intro{font:italic .8rem/1.5 Georgia,serif;color:#947d80;margin:0}
+.bj-month-calendar{display:grid;gap:10px;min-width:0}
+.bj-month-calendar-grid{
+ display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;
+ padding:10px;border:1px solid #dfcbbd;border-radius:13px;
+ background:linear-gradient(142deg,#fffaf4,#f5ebe4);
+ box-shadow:0 6px 13px rgba(99,72,59,.06),inset 0 1px rgba(255,255,255,.8);
+ min-width:0
+}
+.bj-month-weekday{text-align:center;color:#987989;font:bold .69rem/1.3 Georgia,serif;padding:2px 0 5px}
+.bj-month-pad{min-height:52px}
+.bj-book-view .bj-month-day{
+ display:flex;flex-direction:column;justify-content:space-between;align-items:center;
+ padding:6px 3px;min-width:0;min-height:55px;gap:2px;
+ border:1px solid #e4d5c6!important;border-radius:8px!important;
+ background:rgba(255,251,245,.78)!important;box-shadow:none!important;
+ color:#7a6860!important;cursor:pointer;
+}
+.bj-month-number{font:600 .79rem/1.2 Georgia,serif}
+.bj-month-petals{color:#ae7895;font:.71rem/1.15 Georgia,serif;white-space:nowrap}
+.bj-month-petals sup{font:.53rem Georgia,serif;vertical-align:top}
+.bj-month-quiet{font:.9rem/1 Georgia,serif;color:#d3bdb2}
+.bj-book-view .bj-month-day.has-stamps{background:linear-gradient(150deg,#fffaf8,#f7e6ec)!important;border-color:#d5b5c4!important}
+.bj-book-view .bj-month-day.is-today{outline:2px solid #a67c93;outline-offset:1px}
+.bj-book-view .bj-month-day:disabled{opacity:.34;cursor:default}
+.bj-book-view .bj-month-day:not(:disabled):hover{border-color:#b58c9f!important;background:#f3e6ef!important}
+.bj-month-legend{font:.68rem/1.5 Georgia,serif;color:#947c7d;margin:0}
+.bj-month-summary{
+ display:flex;gap:11px;align-items:center;
+ padding:12px 14px;border:1px solid #dfc7c8;border-radius:10px;
+ background:linear-gradient(115deg,#f9eae9,#fff9f3)
+}
+.bj-month-summary>span{font:2.4rem/1 Georgia,serif;color:#aa859a}
+.bj-month-summary>div{display:grid;gap:5px}
+.bj-month-summary strong{font:500 1.15rem/1.2 Georgia,serif;color:#674e60}
+.bj-month-summary small{font:.72rem Georgia,serif;color:#907879}
+.bj-month-rituals{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:11px}
+.bj-month-ritual{
+ display:grid;align-content:start;gap:6px;padding:11px 10px;
+ border:1px solid #e0cfc0;border-radius:9px;
+ background:rgba(255,252,248,.74);min-width:0
+}
+.bj-month-ritual-head{display:flex;justify-content:space-between;gap:5px;align-items:start}
+.bj-book-view .bj-month-ritual-head button{
+ border:0!important;box-shadow:none!important;padding:0!important;min-height:0;
+ background:transparent!important;color:#745469!important;
+ font:600 .77rem/1.32 Georgia,serif;text-align:left;cursor:pointer;
+ overflow-wrap:anywhere
+}
+.bj-month-ritual-head span{font:600 .65rem/1.5 Georgia,serif;white-space:nowrap;color:#ad8096}
+.bj-month-ritual>small{font:.65rem/1.3 Georgia,serif;color:#927b76}
+.bj-month-flowers{display:flex;flex-wrap:wrap;gap:4px;min-height:21px}
+.bj-book-view .bj-month-flowers button{
+ display:grid;place-items:center;min-width:22px;min-height:22px;
+ border:1px solid #dec0c8!important;border-radius:50%!important;
+ padding:2px!important;background:#f9edf0!important;
+ color:#8f687d!important;cursor:pointer;
+ font:600 .6rem Georgia,serif
+}
+.bj-month-flowers>span{font:italic .65rem/22px Georgia,serif;color:#9b8583}
+.bj-month-no-stamps,.bj-month-empty{margin:0;font:italic .74rem/1.5 Georgia,serif;color:#a08c84}
+.bj-month-preview-foot{margin-top:14px;border-top:1px dashed #d9c6c0;padding:12px 0;color:#876d7e}
+.bj-month-preview-foot strong{font:.75rem Georgia,serif}
+.bj-month-preview-foot p{font:.68rem/1.5 Georgia,serif;margin:6px 0 0;color:#987f82}
+.bj-book-view .bj-month-flowers button:focus-visible,.bj-book-view .bj-month-ritual-head button:focus-visible{outline:2px solid #986b88;outline-offset:2px}
+@media(max-width:1200px){.bj-month-rituals{grid-template-columns:1fr}}
+@media(max-width:750px){
+ .bj-month-calendar-grid{gap:5px;padding:8px}
+ .bj-month-rituals{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:420px){
+ .bj-month-calendar-grid{gap:3px;padding:6px}
+ .bj-book-view .bj-month-day{min-height:48px;padding:4px 1px}
+ .bj-month-number{font-size:.67rem}
+ .bj-month-petals{font-size:.58rem}
+ .bj-month-rituals{grid-template-columns:1fr}
+}
