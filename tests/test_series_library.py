@@ -904,6 +904,114 @@ class SeriesLibraryTests(unittest.TestCase):
         self.assertEqual(self.page.evaluate(
             "LifeRPGSkills.getRealmPoints('Health').available"),after['points'])
 
+    def test_bullet_journal_monthly_live_data_and_navigation_read_only(self):
+        """Monthly calendar is a separate chapter sourced from actual Habits,
+        with correct month boundary, zero-point preview and no reward mutations."""
+        self.page.evaluate("""() => {
+          const root=LifeRPGApp.getState(),start=new Date(2026,8,29,12).getTime();
+          root.skills.realmBonusPoints.Health=0;
+          root.habits={schemaVersion:4,reminders:{},
+            items:[
+              {id:'oct-read',name:'Morning skincare',active:true,
+                realm:'Health',createdDate:'2026-09-29',scheduleStartDate:'2026-09-29',
+                trackingFrom:start,schedule:{type:'daily'},effort:'low',daypart:'anytime'},
+              {id:'oct-walk',name:'Little walk',active:true,
+                realm:'Recovery',createdDate:'2026-09-29',scheduleStartDate:'2026-09-29',
+                trackingFrom:start,schedule:{type:'daily'},effort:'low',daypart:'anytime'}
+            ],
+            completions:[
+              {id:'sep-check',habitId:'oct-read',date:'2026-09-30',
+                timestamp:new Date(2026,8,30,12).getTime()},
+              {id:'oct-1a',habitId:'oct-read',date:'2026-10-01',
+                timestamp:new Date(2026,9,1,12).getTime()},
+              {id:'oct-1b',habitId:'oct-walk',date:'2026-10-01',
+                timestamp:new Date(2026,9,1,13).getTime()},
+              {id:'oct-14',habitId:'oct-read',date:'2026-10-14',
+                timestamp:new Date(2026,9,14,12).getTime()}
+            ]};
+          root.journal.entries['2026-10-14']={
+            date:'2026-10-14',bookNote:'My existing page stays mine'};
+        }""")
+        for script in ['habits.js','journal.js','bullet-journal-book.js',
+                       'bullet-journal-monthly.js']:
+            self.page.add_script_tag(url='/'+script)
+        for style in ['bullet-journal-book.css','bullet-journal-monthly.css']:
+            self.page.add_style_tag(url='/'+style)
+        before=self.page.evaluate("""() => {
+          const s=LifeRPGApp.getState();
+          return {habits:JSON.stringify(s.habits),journal:JSON.stringify(s.journal),
+            rewards:JSON.stringify(s.rewardLedger),
+            points:LifeRPGSkills.getRealmPoints('Health').available,
+            talent:JSON.stringify(s.talentTreeExpansion)};
+        }""")
+        self.assertTrue(self.page.evaluate(
+            "LifeRPGBulletJournalBook.open('2026-10-14')"))
+        self.page.locator('#bjBookDailySpread [data-bj-chapter="monthly"]').click()
+        self.assertEqual(self.page.evaluate(
+            "LifeRPGBulletJournalBook.getChapter()"),'monthly')
+        self.assertEqual(self.page.evaluate(
+            "LifeRPGBulletJournalBook.getMonth()"),'2026-10-01')
+        self.assertEqual(self.page.locator('#bjBookMonthCalendar .bj-month-day').count(),31)
+        self.assertEqual(self.page.locator('#bjBookMonthCollection .bj-month-ritual').count(),2)
+        self.assertIn('3 little check-ins',
+                      self.page.locator('#bjBookMonthCollection').inner_text())
+        self.assertIn('No points are spent',
+                      self.page.locator('#bjBookMonthCollection').inner_text())
+        self.assertIn('Morning skincare',
+                      self.page.locator('#bjBookMonthCollection').inner_text())
+        self.assertIn('Little walk',
+                      self.page.locator('#bjBookMonthCollection').inner_text())
+        oct_first=self.page.locator('#bjBookMonthCalendar [data-bj-month-day="2026-10-01"]')
+        self.assertIn('2 recorded Habit check-ins',oct_first.get_attribute('aria-label'))
+        # 31 Oct is in the future relative to this October snapshot.
+        self.assertTrue(self.page.locator(
+            '#bjBookMonthCalendar [data-bj-month-day="2026-10-31"]').is_disabled())
+        self.page.locator('#bjBookMonthlySpread [data-bj-action="month-prev"]').click()
+        self.assertEqual(self.page.evaluate(
+            "LifeRPGBulletJournalBook.getMonth()"),'2026-09-01')
+        self.assertEqual(self.page.locator('#bjBookMonthCalendar .bj-month-day').count(),30)
+        self.assertIn('1 little check-in',
+                      self.page.locator('#bjBookMonthCollection').inner_text())
+        self.page.locator('#bjBookMonthlySpread [data-bj-action="month-next"]').click()
+        self.assertEqual(self.page.evaluate(
+            "LifeRPGBulletJournalBook.getMonth()"),'2026-10-01')
+        self.page.locator('#bjBookMonthCalendar [data-bj-month-day="2026-10-14"]').click()
+        self.assertEqual(self.page.evaluate(
+            "LifeRPGBulletJournalBook.getChapter()"),'daily')
+        self.assertEqual(self.page.locator('#bjBookText').input_value(),
+                         'My existing page stays mine')
+        after=self.page.evaluate("""() => {
+          const s=LifeRPGApp.getState();
+          return {habits:JSON.stringify(s.habits),journal:JSON.stringify(s.journal),
+            rewards:JSON.stringify(s.rewardLedger),
+            points:LifeRPGSkills.getRealmPoints('Health').available,
+            talent:JSON.stringify(s.talentTreeExpansion)};
+        }""")
+        self.assertEqual(before,after)
+
+    def test_bullet_journal_monthly_mobile_calendar_stays_within_book(self):
+        """On a phone the 7-day calendar stays within its page; tapping works."""
+        self.page.set_viewport_size({'width':390,'height':844})
+        for script in ['habits.js','journal.js','bullet-journal-book.js',
+                       'bullet-journal-monthly.js']:
+            self.page.add_script_tag(url='/'+script)
+        for style in ['bullet-journal-book.css','bullet-journal-monthly.css']:
+            self.page.add_style_tag(url='/'+style)
+        self.assertTrue(self.page.evaluate("LifeRPGBulletJournalBook.openMonth('2026-09-15')"))
+        self.assertEqual(self.page.locator('#bjBookMonthCalendar .bj-month-day').count(),30)
+        sizes=self.page.evaluate("""() => {
+          const calendar=document.getElementById('bjBookMonthCalendar');
+          const page=calendar.closest('.bj-book-page');
+          return {overflow:page.scrollWidth-page.clientWidth,
+            columns:getComputedStyle(calendar.querySelector('.bj-month-calendar-grid'))
+              .gridTemplateColumns.trim().split(/\\s+/).length};
+        }""")
+        self.assertLessEqual(sizes['overflow'],2,sizes)
+        self.assertEqual(sizes['columns'],7,sizes)
+        self.page.locator('#bjBookMonthCalendar [data-bj-month-day="2026-09-15"]').click()
+        self.assertEqual(self.page.evaluate(
+            "LifeRPGBulletJournalBook.getChapter()"),'daily')
+
     def test_journal_atelier_free_decoration_persists_and_pilot_never_saves(self):
         """The editor is free and additive. A standalone SVG persists by key;
         unapproved Sakura samples remain transient, no points/logs are changed."""
