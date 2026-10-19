@@ -213,5 +213,15 @@
    render();
  }
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
- window.LifeRPGTaskProjects={open:()=>app.showView('tasks'),getOpen:()=>allOpen().map(t=>({...t})),getCriticalToday:()=>allOpen().filter(t=>t.mandatory&&t.dueDate&&t.dueDate<=dateToday()),render,_test:{model,markDone,templates,coach}};
+ function createTask(input){
+   const name=String(input?.title||'').trim(),due=String(input?.dueDate||'');
+   if(!name||name.length>160||due&&!core.parseDay(due))return false;
+   return mutate('guided-create-task',m=>{const id='inbox-'+uid();m.inbox.unshift({id,title:name,dueDate:due,minutes:Math.max(5,Math.min(2400,Number(input?.minutes)||20)),mandatory:input?.mandatory===true,hurdle:input?.hurdle==='high'?'high':'normal',doneAt:null,createdAt:new Date().toISOString()});return id;});
+ }
+ function createProject(input){
+   const template=templates().find(t=>t.id===input?.templateId),title=String(input?.title||'').trim(),date=String(input?.date||'');
+   if(!template||!title||title.length>110||!core.parseDay(date))return false;
+   return mutate('guided-create-project',m=>{const id=uid(),project=core.instantiate(template,date,{format:'digital',inclusion:'check',resit:'no'},id);project.title=title;m.projects.unshift(project);expanded=id;return id;});
+ }
+ window.LifeRPGTaskProjects={open:()=>app.showView('tasks'),getOpen:()=>allOpen().map(t=>({...t})),getCriticalToday:()=>allOpen().filter(t=>t.mandatory&&t.dueDate&&t.dueDate<=dateToday()),listTemplates:()=>templates().map(t=>({id:t.id,name:t.name})),createTask,createProject,render,_test:{model,markDone,templates,coach}};
 })();
