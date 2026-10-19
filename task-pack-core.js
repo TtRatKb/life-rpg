@@ -34,7 +34,7 @@
    });
    if(total>220)throw Error('Zu viele Aufgaben auf einmal.');
    raw.routines.forEach(r=>{
-     if(!ID.test(r.id)||!checkTitle(r.title,120)||!['weekly','schoolday','school-monday'].includes(r.cadence)||!Array.isArray(r.steps)||r.steps.length<1||r.steps.length>8||r.steps.some(x=>!checkTitle(x,160)))throw Error('Ungültige Routine.');
+     if(!ID.test(r.id)||!checkTitle(r.title,120)||!['weekly','schoolday','school-monday','before-school-monday'].includes(r.cadence)||!Array.isArray(r.steps)||r.steps.length<1||r.steps.length>8||r.steps.some(x=>!checkTitle(x,160)))throw Error('Ungültige Routine.');
      if(r.cadence==='weekly'&&(!Number.isInteger(r.weekday)||r.weekday<0||r.weekday>6))throw Error('Ungültiger Wochentag.');
    });
    return raw;
@@ -88,10 +88,10 @@
    return occurrences.some(x=>!x.canceled&&['teaching','morning','supervision','lunch','substitutionTeaching','substitutionSupervision','substitutionMorning','substitutionLunch'].includes(x.type))
      ||logged.some(e=>e.categoryId==='school' && String(e.startAt||'').slice(0,10)===dateStr);
  }
- function dueRoutine(r,dateStr,school){
+ function dueRoutine(r,dateStr,school,nextMondaySchool=false){
    if(!date(dateStr))return false;
    const d=new Date(dateStr+'T00:00:00Z'),wd=(d.getUTCDay()+6)%7;
-   return r.cadence==='weekly'?wd===r.weekday:r.cadence==='schoolday'?school:r.cadence==='school-monday'?wd===0&&school:false;
+   return r.cadence==='weekly'?wd===r.weekday:r.cadence==='schoolday'?school:r.cadence==='school-monday'?wd===0&&school:r.cadence==='before-school-monday'?wd===6&&nextMondaySchool:false;
  }
  return {validate,importSelected,dueRoutine,isSchoolday,date};
 });
