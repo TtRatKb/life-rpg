@@ -9,6 +9,15 @@ on:
       - 'task-work-windows.css'
       - 'task-wizard.js'
       - 'task-wizard.css'
+      - 'task-free-days-core.js'
+      - 'task-free-days.js'
+      - 'task-free-days.css'
+      - 'task-google-calendar-core.js'
+      - 'task-google-calendar.js'
+      - 'task-google-calendar.css'
+      - 'tests/test_task_free_days.cjs'
+      - 'tests/test_task_google_calendar.cjs'
+      - 'docs/TASK_GOOGLE_CALENDAR_READONLY.md'
       - 'tests/test_task_work_windows.cjs'
       - 'my-week.js'
       - 'task-pack-core.js'
@@ -37,6 +46,15 @@ on:
       - 'task-work-windows.css'
       - 'task-wizard.js'
       - 'task-wizard.css'
+      - 'task-free-days-core.js'
+      - 'task-free-days.js'
+      - 'task-free-days.css'
+      - 'task-google-calendar-core.js'
+      - 'task-google-calendar.js'
+      - 'task-google-calendar.css'
+      - 'tests/test_task_free_days.cjs'
+      - 'tests/test_task_google_calendar.cjs'
+      - 'docs/TASK_GOOGLE_CALENDAR_READONLY.md'
       - 'tests/test_task_work_windows.cjs'
       - 'my-week.js'
       - 'task-pack-core.js'
@@ -79,6 +97,10 @@ jobs:
           node --check task-work-windows-core.js
           node --check task-work-windows.js
           node --check task-wizard.js
+          node --check task-free-days-core.js
+          node --check task-free-days.js
+          node --check task-google-calendar-core.js
+          node --check task-google-calendar.js
           node --check my-week.js
           node --check todoist-sync.js
           node --check service-worker.js
@@ -89,6 +111,8 @@ jobs:
           node tests/test_task_planning.cjs
           node tests/test_task_pack.cjs
           node tests/test_task_work_windows.cjs
+          node tests/test_task_free_days.cjs
+          TZ=Europe/Berlin node tests/test_task_google_calendar.cjs
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -124,5 +148,11 @@ jobs:
           }
           for (const id of ['taskWizardMount','taskWorkWindowsMount','taskWorkWindowsWeekMount'])
             if (!html.includes('id="'+id+'"')) throw Error('Missing UI mount: '+id);
+          for (const [asset,ver] of [
+            ['task-free-days-core.js','0.31.4-freedays1'],['task-free-days.js','0.31.4-freedays1'],['task-free-days.css','0.31.4-freedays1'],
+            ['task-google-calendar-core.js','0.31.4-gcal1'],['task-google-calendar.js','0.31.4-gcal1'],['task-google-calendar.css','0.31.4-gcal1']])
+            if(!html.includes(asset+'?v='+ver)||!sw.includes(asset+'?v='+ver))throw Error('Missing calendar/free-day asset '+asset);
+          for (const id of ['taskFreeDayMount','taskGoogleCalendarMount'])
+            if (!html.includes('id="'+id+'"')) throw Error('Missing companion mount: '+id);
           console.log('Task project assets and mounts registered');
           NODE
