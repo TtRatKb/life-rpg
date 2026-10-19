@@ -99,6 +99,8 @@
      return el;
    };
    groups.append(section('🔸 Heute unbedingt · '+p.todayMust.length,p.todayMust),section('☘ Bald oder optional',p.soon.concat(p.optionalToday).slice(0,7)));card.append(groups);
+   const rest=node('details',null,'npt-settings');rest.append(node('summary','Weitere Aufgaben bearbeiten · '+native.getOpen().length+' offene Aufgaben'));
+   native.getOpen().forEach(task=>rest.append(taskRow(task,p)));card.append(rest);
    if(p.issues.length){
      const warnings=node('details',null,'npt-warnings');warnings.open=true;warnings.append(node('summary','⚠ '+p.issues.length+' Planungshinweise'));
      p.issues.slice(0,12).forEach(i=>warnings.append(node('p',i.title+': '+(i.type==='overload'?fmt(i.remaining)+' passen bis zur Frist nicht hinein':i.type==='overdue'?'Frist überschritten':i.type==='no-date'?'Verbindliche Aufgabe ohne Datum':i.type==='blocked'?'Ein vorheriger Schritt ist offen':'Außerhalb des 35-Tage-Planungshorizonts'))));
