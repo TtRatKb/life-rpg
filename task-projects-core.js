@@ -78,7 +78,7 @@
       return old ? {...task, doneAt:old.doneAt, dueDate:old.dueDate, hurdle:old.hurdle, minutes:old.minutes} : task;
     });
     // Never destroy a completed branch when changing a conditional answer.
-    const removed = project.tasks.filter(task => !generated.tasks.some(step => step.stepId === task.stepId) && task.doneAt);
+    const removed = project.tasks.filter(task => !generated.tasks.some(step => step.stepId === task.stepId));
     generated.tasks.push(...removed.map(task=>({...task, archived:true})));
     return {...project, options, tasks:generated.tasks};
   }
