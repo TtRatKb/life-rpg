@@ -1,0 +1,22 @@
+.tfd-card{margin:10px 0 14px;padding:15px;border:1px solid #d9cbd4;border-radius:16px;background:linear-gradient(130deg,#fffaf2,#f4eff8);color:#69536a}
+.tfd-card header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.tfd-card h2{font-size:1.04rem;margin:4px 0}.tfd-card>p{font-size:.77rem;line-height:1.55;margin:8px 0}
+.tfd-card>label{display:grid;gap:5px;font-size:.77rem;max-width:260px}
+.tfd-card input[type=date],.tfd-card input[type=time],.tfd-card select{padding:7px;border:1px solid #d7c6d3;border-radius:8px;background:#fff;color:#665164;font:inherit;font-size:.78rem}
+.tfd-presets{display:flex;gap:7px;flex-wrap:wrap;margin:12px 0}
+.tfd-presets button{background:#fffdfb;border:1px solid #e0cedb;border-radius:9px;padding:8px 10px;color:#806580;font-size:.74rem;cursor:pointer}
+.tfd-presets button.active{background:#e5d7ed;border-color:#ac91ba;font-weight:700}
+.tfd-top{display:flex;gap:7px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.tfd-top strong{font-size:.83rem}.tfd-top small{font-size:.69rem;color:#9c8495}
+.tfd-recs{display:grid;gap:7px;margin:11px 0}
+.tfd-task{display:flex;align-items:center;gap:9px;padding:10px 12px;background:#fffefc;border:1px solid #eadde7;border-radius:10px}
+.tfd-task>span{font-size:1.1rem}.tfd-task>div{display:grid;gap:4px;min-width:0}
+.tfd-task strong{font-size:.79rem;overflow-wrap:anywhere}.tfd-task small{font-size:.68rem;line-height:1.4;color:#98808f}
+.tfd-hint{font-size:.7rem!important;color:#9c7988}
+.tfd-wait{font-size:.75rem;margin:10px 0}.tfd-wait summary{font-weight:700;cursor:pointer}.tfd-wait p{font-size:.72rem;margin:6px 0}
+.tfd-outside{padding:9px;margin-top:11px;background:#f7f0f4;border-radius:10px}
+.tfd-outside label,.tfd-outside p{font-size:.75rem;line-height:1.45}.tfd-outside p{margin:5px 0}
+.tfd-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}.tfd-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-top:12px;padding:12px;border-radius:12px;border:1px solid #d6bfd2;background:#fffdfb}
+.tfd-form h3,.tfd-form p{grid-column:1/-1;margin:0}.tfd-form h3{font-size:.85rem}.tfd-form p{font-size:.71rem;line-height:1.5}
+.tfd-form label{display:grid;gap:4px;font-size:.73rem}
+.tfd-status{font-size:.74rem;padding:8px;background:#eef5f0;border-radius:9px}
