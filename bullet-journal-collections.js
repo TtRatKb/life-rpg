@@ -140,8 +140,16 @@
         resetDraft();render();
       }
     });
+    // A keepsake draft should survive a normal page turn or app navigation.
+    // This does not touch the original libraries, and only runs after unlock.
+    view.addEventListener("click",e=>{
+      if(dirty && owned() && e.target.closest?.("[data-bj-chapter], [data-bj-action='close']"))save();
+    },true);
     window.addEventListener("life-rpg:view-changed",e=>{
-      if(e?.detail?.view!=="bullet-journal"){loaded=false;dirty=false;preview=false;}
+      if(e?.detail?.view!=="bullet-journal"){
+        if(dirty&&owned())save();
+        loaded=false;dirty=false;preview=false;
+      }
     });
   }
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",bind,{once:true});
