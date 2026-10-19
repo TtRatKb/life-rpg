@@ -13,6 +13,8 @@ assert.equal(r.tasks,0);assert.equal(r.routines,0);assert.equal(JSON.stringify(s
 const renamed=structuredClone(pack);renamed.groups[1].tasks[0].title='Andere Notiz';
 assert.equal(core.dueRoutine(st.routinesV1[0],'2026-10-25',false),true);
 assert.equal(core.dueRoutine(st.routinesV1[0],'2026-10-26',false),false);
+assert.equal(core.dueRoutine({cadence:'before-school-monday'},'2026-10-25',false,true),true);
+assert.equal(core.dueRoutine({cadence:'before-school-monday'},'2026-10-25',false,false),false);
 assert.equal(core.dueRoutine(st.routinesV1[1],'2026-10-27',false),false);
 assert.equal(core.dueRoutine(st.routinesV1[1],'2026-10-27',true),true);
 assert.equal(core.isSchoolday('2026-10-27',[{type:'teaching',canceled:false}],[]),true);
