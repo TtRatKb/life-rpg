@@ -83,7 +83,7 @@
    const title=labeledInput('Aufgabe','title',t.title,'text');title.querySelector('input').required=true;title.querySelector('input').maxLength=160;
    const due=labeledInput('Späteste Frist','dueDate',t.dueDate||'','date');
    const mins=labeledInput('Minuten Aufwand','minutes',t.minutes||20);mins.querySelector('input').min='5';mins.querySelector('input').max='2400';mins.querySelector('input').step='5';
-   form.append(title,due,mins,labeledSelect('Verbindlichkeit','mandatory',[['yes','Muss erledigt werden'],['no','Optional / verschiebbar']],t.mandatory===false?'no':'yes'),labeledSelect('Emotionale Hürde','hurdle',[['normal','Normal'],['high','😰 Bauchschmerz-Aufgabe']],t.hurdle||'normal'));
+   form.append(title,due,mins,labeledSelect('Kontext / Ort','context',[['any','Überall'],['home','Zu Hause'],['school','In der Schule'],['outside','🚶 Unterwegs / außerhalb']],t.context||'any'),labeledSelect('Verbindlichkeit','mandatory',[['yes','Muss erledigt werden'],['no','Optional / verschiebbar']],t.mandatory===false?'no':'yes'),labeledSelect('Emotionale Hürde','hurdle',[['normal','Normal'],['high','😰 Bauchschmerz-Aufgabe']],t.hurdle||'normal'));
    const submit=node('button','Speichern','primary-button');submit.type='submit';
    form.append(submit,button('Abbrechen','nptCancel'));card.append(form);
  }
@@ -147,7 +147,7 @@
    }else{
      const task=findTask(editId),title=String(f.get('title')||'').trim(),date=String(f.get('dueDate')||''),mins=Number(f.get('minutes'));
      if(!task||!title||(date&&!/^\d{4}-\d{2}-\d{2}$/.test(date))||!Number.isFinite(mins)||mins<5||mins>2400){app.showToast?.('Aufgabendaten überprüfen.');return;}
-     if(save(()=>{task.title=title.slice(0,160);task.dueDate=date;task.minutes=mins;task.mandatory=f.get('mandatory')==='yes';task.hurdle=f.get('hurdle')==='high'?'high':'normal';},'edit')){editId='';render();}
+     if(save(()=>{task.title=title.slice(0,160);task.dueDate=date;task.minutes=mins;task.mandatory=f.get('mandatory')==='yes';task.hurdle=f.get('hurdle')==='high'?'high':'normal';task.context=['home','school','outside'].includes(f.get('context'))?f.get('context'):'any';},'edit')){editId='';render();}
    }
  }
  function init(){

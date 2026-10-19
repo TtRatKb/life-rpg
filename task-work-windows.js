@@ -10,7 +10,7 @@
  let editId='',formOpen=false,viewDate=localDay();
  const state=()=>app.getState().taskProjectsV1;
  const blocks=()=>Array.isArray(state()?.workWindowsV1)?state().workWindowsV1:[];
- const enabled=()=>state()?.useWorkWindowsV1===true;
+ const enabled=()=>state()?.useWorkWindowsV1===true||Boolean(window.LifeRPGGoogleCalendar?.hasWorkCalendars?.());
  function commit(change,reason){
    const st=app.getState(),old=st.taskProjectsV1===undefined?null:JSON.stringify(st.taskProjectsV1);
    try{change();if(app.saveState({source:'task-window:'+reason,suppressUiRefresh:true})===false)throw Error('Arbeitsfenster wurden nicht gespeichert.');
@@ -19,11 +19,12 @@
    }catch(err){if(old===null)delete st.taskProjectsV1;else st.taskProjectsV1=JSON.parse(old);
      app.showToast?.(err.message||String(err));render();return false;}
  }
- function busy(d){try{return window.LifeRPGWeekV2?.getOccurrences?.(d)||[];}catch{return [];}}
+ function busy(d){let w=[];try{w=window.LifeRPGWeekV2?.getOccurrences?.(d)||[];}catch{}return [...w,...(window.LifeRPGGoogleCalendar?.busy?.(d)||[])];}
  function off(d){return Boolean(window.LifeRPGWeekV2?.isHoliday?.(d)||window.LifeRPGWeekV2?.isSickDay?.(d)||app.getState().weekPlanner?.exceptions?.days?.[d]);}
- function dayWindows(date){return core.forDate(blocks(),date,busy(date),off(date));}
+ function combined(from,count){return [...blocks(),...(window.LifeRPGGoogleCalendar?.workWindows?.(from,count)||[])];}
+ function dayWindows(date){return core.forDate(combined(date,1),date,busy(date),off(date));}
  function forecast(from=localDay(),count=35){
-   const days=core.range(blocks(),from,count,busy,off),capacities={},segments={};
+   const days=core.range(combined(from,count),from,count,busy,off),capacities={},segments={};
    for(const [date,items] of Object.entries(days)){
      capacities[date]=items.reduce((s,w)=>s+w.availableMinutes,0);
      segments[date]=items.flatMap(item=>item.segments.map(seg=>({blockId:item.id,startMinute:core.hhmm(seg.start),endMinute:core.hhmm(seg.end)}))).sort((a,b)=>a.startMinute-b.startMinute);
@@ -31,7 +32,7 @@
    return {capacities,segments,days};
  }
  function eventBlocks(d){
-   return dayWindows(d).map(w=>({taskWindowId:w.id,title:'✦ '+w.title,place:w.place,start:new Date(d+'T'+w.plannedStart+':00'),end:new Date(d+'T'+w.plannedEnd+':00'),hasConflict:w.conflictMinutes>0,availableMinutes:w.availableMinutes}));
+   return dayWindows(d).filter(w=>!w.id.startsWith('calendar:')).map(w=>({taskWindowId:w.id,title:'✦ '+w.title,place:w.place,start:new Date(d+'T'+w.plannedStart+':00'),end:new Date(d+'T'+w.plannedEnd+':00'),hasConflict:w.conflictMinutes>0,availableMinutes:w.availableMinutes}));
  }
  const locations={school:'🏫 In der Schule',home:'🏠 Zu Hause',other:'✦ Anderswo'};
  function formMarkup(){
@@ -100,4 +101,5 @@
  }
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
  window.LifeRPGTaskWindows={enabled,forecast,dayWindows,eventBlocks,edit,render,_test:{off,busy}};
+ window.addEventListener('life-rpg:google-calendar-updated',render);
 })();
