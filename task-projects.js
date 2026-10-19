@@ -108,7 +108,7 @@
    const m=model(),open=allOpen(),today=dateToday(),critical=open.filter(x=>x.mandatory&&x.dueDate&&x.dueDate<=today),c=coach(open);
    const registered=templates();
    el.innerHTML=`<section class="tp-app" aria-label="Life RPG Task-Projekte">
-     <header class="tp-title"><div><p class="eyebrow">LIFE RPG · TASK COMPANION</p><h1>Task-Projekte & Vorlagen</h1><p>Wiederkehrende Abläufe einmal planen, Fristen automatisch anlegen. Unabhängig von deiner Todoist-Verbindung.</p></div><span class="tp-count">${critical.length} kritische Fristen heute/überfällig</span></header>
+     <header class="tp-title"><div><p class="eyebrow">LIFE RPG · TASK COMPANION</p><h1>Task-Projekte & Vorlagen</h1><p>Wiederkehrende Abläufe und Einzelaufgaben direkt hier verwalten. Die bisherige Todoist-Anzeige ist ausgeblendet.</p></div><span class="tp-count">${critical.length} kritische Fristen heute/überfällig</span></header>
      <div class="tp-coach"><strong>${esc(c.name)}</strong><p>${esc(c.text)}</p></div>
      <form data-tp-inbox class="tp-inbox"><label for="tp-quick">Quick Inbox · sofort aus dem Kopf</label><div class="tp-inline"><input id="tp-quick" name="title" maxlength="160" required placeholder="Woran muss ich noch denken?"><button type="submit" class="primary-button">+ Merken</button></div><small>Ohne Pflichtfelder erfassen. Nachträglich mit Datum, Aufwand und emotionaler Hürde ergänzen.</small></form>
      <details class="tp-create"><summary>✦ Neues Task-Projekt aus einer Vorlage</summary><form data-tp-create>

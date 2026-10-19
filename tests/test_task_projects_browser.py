@@ -29,7 +29,8 @@ class TaskProjectBrowserTests(unittest.TestCase):
         cls.html=html.replace('</body>',
             '<script src="/data/quests.js"></script><script src="/pako.min.js"></script>'
             '<script src="/app.js"></script><script src="/task-projects-core.js"></script>'
-            '<script src="/task-projects.js"></script></body>')
+            '<script src="/task-projects.js"></script><script src="/task-planning-core.js"></script>'
+            '<script src="/task-planning-ui.js"></script></body>')
 
     @classmethod
     def tearDownClass(cls):
@@ -89,3 +90,28 @@ class TaskProjectBrowserTests(unittest.TestCase):
         self.page.locator('[data-tp-toggle-duty]').click()
         self.assertIn('Feierabendmodus',self.page.locator('#taskProjectTodayMount').inner_text())
         self.assertEqual(1,len(self.page.evaluate('LifeRPGApp.getState().taskProjectsV1.inbox')))
+
+    def test_native_planner_removes_todoist_list_and_allows_task_edit(self):
+        self.page.wait_for_function("window.LifeRPGNativePlanner && document.querySelector('#taskPlanningPanel .npt-card')")
+        self.assertEqual(0,self.page.locator('#todoistPageMount').count())
+        self.page.locator('form[data-tp-inbox] input[name=title]').fill('Fiktive Pflichtaufgabe')
+        self.page.locator('form[data-tp-inbox] button').click()
+        self.page.locator('.npt-settings summary').first.click()
+        self.page.locator('.npt-item button[data-npt-edit]').first.click()
+        form=self.page.locator('form[data-npt-edit-form]')
+        form.locator('[name=title]').fill('Fiktive Pflichtaufgabe aktualisiert')
+        form.locator('[name=dueDate]').fill('2026-11-10')
+        form.locator('[name=minutes]').fill('45')
+        form.locator('[name=mandatory]').select_option('yes')
+        form.locator('button[type=submit]').click()
+        self.assertEqual('Fiktive Pflichtaufgabe aktualisiert',self.page.evaluate('LifeRPGApp.getState().taskProjectsV1.inbox[0].title'))
+        self.assertEqual(45,self.page.evaluate('LifeRPGApp.getState().taskProjectsV1.inbox[0].minutes'))
+        self.page.locator('.npt-settings summary').last.click()
+        settings=self.page.locator('form[data-npt-settings]')
+        settings.locator('[name=d0]').fill('150')
+        settings.locator('[name=reserve]').select_option('40')
+        settings.locator('button[type=submit]').click()
+        self.assertEqual(150,self.page.evaluate('LifeRPGApp.getState().taskProjectsV1.planningSettings.weekdays[0]'))
+        self.assertEqual(40,self.page.evaluate('LifeRPGApp.getState().taskProjectsV1.planningSettings.reservePercent'))
+        self.page.reload(wait_until='domcontentloaded')
+        self.page.wait_for_function("window.LifeRPGNativePlanner && LifeRPGApp.getState().taskProjectsV1?.planningSettings?.reservePercent===40")
