@@ -56,7 +56,7 @@
           "A fourth real puzzle game: eight unique 6×6 grids, a daily challenge, saved progress and optional practice. All grids have unique solutions.",
           { content: "kakuro" }, "Open Takuzu", () => window.LifeRPGTalentV3?.open?.("takuzu")),
         linkedContent("journal-reading-media-collection", "📚", "Journal Collection · Reading & Media", 1,
-          "Permanent Knowledge unlock: a separate notebook collection for your actual books, series and games, plus your own private keepsake notes. All existing media libraries remain free. Preview the finished page in the Journal before buying.",
+          "Permanent Knowledge unlock: pin four favourites on each illustrated Books, Series and Games shelf, plus save a private keepsake note. The full bookshelf design is visible in the free live preview; buying enables personal curation and writing, not a hidden new visual style. Existing media libraries remain free.",
           {}, "Open Reading & Media Collection", () => window.LifeRPGBulletJournalBook?.openCollections?.()),
         linkedContent("knowledge-moments", "◇", "Puzzle Table · Companion Moments", 1,
           "Three optional VN moments around puzzles, shared curiosity and different ways of thinking. The scene is the reward; never purchases affection or Main Story progress.",
