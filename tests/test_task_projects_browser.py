@@ -30,7 +30,8 @@ class TaskProjectBrowserTests(unittest.TestCase):
             '<script src="/data/quests.js"></script><script src="/pako.min.js"></script>'
             '<script src="/app.js"></script><script src="/task-projects-core.js"></script>'
             '<script src="/task-projects.js"></script><script src="/task-planning-core.js"></script>'
-            '<script src="/task-planning-ui.js"></script></body>')
+            '<script src="/task-planning-ui.js"></script><script src="/task-pack-core.js"></script>'
+            '<script src="/task-pack-ui.js"></script></body>')
 
     @classmethod
     def tearDownClass(cls):
@@ -115,3 +116,31 @@ class TaskProjectBrowserTests(unittest.TestCase):
         self.assertEqual(40,self.page.evaluate('LifeRPGApp.getState().taskProjectsV1.planningSettings.reservePercent'))
         self.page.reload(wait_until='domcontentloaded')
         self.page.wait_for_function("window.LifeRPGNativePlanner && LifeRPGApp.getState().taskProjectsV1?.planningSettings?.reservePercent===40")
+
+    def test_selective_private_pack_import_and_idempotent_routines(self):
+        self.page.wait_for_function("window.LifeRPGTaskPacks && window.LifeRPGTaskPackCore")
+        payload = {'schema':'life-rpg-task-pack-v1','id':'synthetic-autumn-2026','title':'Fiktiver Plan',
+            'groups':[{'id':'class-plans','title':'Fiktive Jahrespläne','kind':'project','anchorDate':'2026-10-19',
+                       'tasks':[{'id':'math','title':'Fiktive Matheplanung','dueDate':'2026-11-02','minutes':60,
+                                 'mandatory':True,'dateKind':'target'}]},
+                      {'id':'other','title':'Fiktive Zusatzaufgabe','kind':'inbox',
+                       'tasks':[{'id':'other-a','title':'Nur optionaler Test','dueDate':'2026-11-06',
+                                 'minutes':15,'mandatory':False}]}],
+            'routines':[{'id':'bills','title':'Fiktive Rechnungsprüfung','cadence':'weekly','weekday':6,
+                         'steps':['Rechnungen prüfen','Ggf. zahlen']}]}
+        import json
+        self.page.locator('.tpk-import summary').click()
+        self.page.locator('input[data-tpk-file]').set_input_files(
+            files={'name':'synthetic.json','mimeType':'application/json','buffer':json.dumps(payload).encode()})
+        self.page.locator('[data-tpk-pick="group:other"]').uncheck()
+        self.page.locator('[data-tpk-import]').click()
+        state=self.page.evaluate('LifeRPGApp.getState().taskProjectsV1')
+        self.assertEqual(1,len(state['projects']))
+        self.assertEqual(0,len(state['inbox']))
+        self.assertEqual(1,len(state['routinesV1']))
+        self.page.locator('[data-tpk-import]').click()
+        state=self.page.evaluate('LifeRPGApp.getState().taskProjectsV1')
+        self.assertEqual(1,len(state['projects']))
+        self.assertEqual(1,len(state['routinesV1']))
+        self.page.reload(wait_until='domcontentloaded')
+        self.page.wait_for_function("window.LifeRPGTaskPacks && LifeRPGApp.getState().taskProjectsV1?.projects?.length===1")

@@ -40,6 +40,11 @@
    for(const task of dated){
      const id=String(task.id),due=task.dueDate,blocked=(task.blockedBy||[]).length>0;
      if(due<today)issues.push({id,type:'overdue',title:task.title,remaining:Number(task.minutes)||0});
+     if(task.status==='waiting' || blocked){
+       assignments[id]={dueDate:due,minutes:0,unallocated:0,days:[],blocked:true};
+       if(due<=add(today,3))issues.push({id,type:task.status==='waiting'?'waiting':'blocked',title:task.title});
+       continue;
+     }
      if(due>end){issues.push({id,type:'out-of-range',title:task.title});continue;}
      if(isFixed(task)){assignments[id]={fixed:true,dueDate:due,minutes:0,unallocated:0,days:[]};continue;}
      let remaining=Math.max(5,Math.min(2400,Math.round(Number(task.minutes)||20)));
@@ -58,14 +63,14 @@
      }
      assignments[id]={dueDate:due,minutes:Math.max(5,Math.min(2400,Math.round(Number(task.minutes)||20))),days:allocated,unallocated:remaining,fixed:false};
      if(remaining>0)issues.push({id,type:'overload',title:task.title,remaining});
-     if(blocked&&allocated.some(a=>a.date===today))issues.push({id,type:'blocked',title:task.title});
+     // Dependencies are handled before allocation; never suggest work that cannot begin.
    }
    for(const task of missing)issues.push({id:String(task.id),type:'no-date',title:task.title});
-   const dueToday=mandatory.filter(t=>utcDay(t.dueDate)&&t.dueDate<=today);
+   const dueToday=mandatory.filter(t=>utcDay(t.dueDate)&&t.dueDate<=today&&!assignments[String(t.id)]?.blocked);
    const scheduledToday=mandatory.filter(t=>assignments[String(t.id)]?.days.some(x=>x.date===today));
    const todaySet=new Set([...dueToday,...scheduledToday].map(t=>String(t.id)));
    const todayMust=mandatory.filter(t=>todaySet.has(String(t.id)));
-   const soon=mandatory.filter(t=>utcDay(t.dueDate)&&t.dueDate>today&&t.dueDate<=add(today,3)&&!todaySet.has(String(t.id)));
+   const soon=mandatory.filter(t=>utcDay(t.dueDate)&&t.dueDate>today&&t.dueDate<=add(today,3)&&!todaySet.has(String(t.id))&&!assignments[String(t.id)]?.blocked);
    const later=mandatory.filter(t=>!todaySet.has(String(t.id))&&!soon.some(x=>x.id===t.id));
    const optionalToday=optional.filter(t=>utcDay(t.dueDate)&&t.dueDate<=today);
    const daily=keys.map(date=>({date,capacity:capacities[date],planned:usage[date],remaining:capacities[date]-usage[date],tasks:buckets[date]}));
