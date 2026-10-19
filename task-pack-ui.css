@@ -1,0 +1,20 @@
+.tpk-routines,.tpk-import{margin:10px 0 14px;padding:13px 16px;border:1px solid #dfd2d9;border-radius:14px;background:#fffaf7;color:#70566b}
+.tpk-header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.tpk-header h2{font-size:1rem;margin:0}.tpk-header small{font-size:.68rem;color:#9f8491}
+.tpk-tiny{background:transparent!important;border:0!important;font-size:.72rem!important;color:#997789!important;padding:6px 0!important;box-shadow:none!important;text-align:left;cursor:pointer}
+.tpk-routine{display:grid;grid-template-columns:minmax(110px,170px) 1fr;gap:12px;padding:11px 0;border-bottom:1px solid #efe4e9}.tpk-routine>div:first-child{display:grid;align-content:start;gap:4px}
+.tpk-routine strong{font-size:.78rem}.tpk-routine small{font-size:.69rem;color:#aa8d99}
+.tpk-steps{display:grid;gap:8px}.tpk-steps label{display:flex;align-items:start;gap:8px;font-size:.78rem;line-height:1.4}
+.tpk-steps input{accent-color:#93718a;flex-shrink:0;margin-top:3px}
+.tpk-foot,.tpk-muted{font-size:.72rem;color:#98828e;line-height:1.5;margin:8px 0}
+.tpk-import summary{cursor:pointer;font-size:.8rem;font-weight:700;color:#876780}
+.tpk-inside{padding-top:12px}.tpk-inside>p{font-size:.76rem;line-height:1.5}
+.tpk-file-label{display:grid;gap:5px;font-size:.76rem;font-weight:600}.tpk-file-label input{border:1px solid #dac8d0;border-radius:8px;padding:8px;background:#fff}
+.tpk-status{font-size:.78rem;padding:8px 10px;background:#edf5ef;border-radius:9px}
+.tpk-preview{margin-top:12px;padding:12px;border:1px solid #e9dce2;border-radius:10px;background:#fffdfb}
+.tpk-preview h3{font-size:1rem;margin:0 0 6px}.tpk-preview>p{font-size:.76rem;line-height:1.5;margin:5px 0 10px}
+.tpk-group{display:flex;gap:9px;align-items:start;padding:8px 2px;border-top:1px solid #efe9ee}
+.tpk-group>span{display:grid;gap:3px}.tpk-group strong{font-size:.82rem}.tpk-group small{font-size:.69rem;color:#99848c}
+.tpk-group input{margin:3px 0;accent-color:#91718a}
+.tpk-examples{padding:2px 0 8px 23px;font-size:.69rem;line-height:1.7;color:#94838c}
+.tpk-preview button{margin-top:10px}
+@media(max-width:600px){.tpk-routine{grid-template-columns:1fr;gap:7px}}
