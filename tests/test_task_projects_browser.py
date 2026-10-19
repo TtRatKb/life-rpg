@@ -31,7 +31,8 @@ class TaskProjectBrowserTests(unittest.TestCase):
             '<script src="/app.js"></script><script src="/task-projects-core.js"></script>'
             '<script src="/task-projects.js"></script><script src="/task-planning-core.js"></script>'
             '<script src="/task-planning-ui.js"></script><script src="/task-pack-core.js"></script>'
-            '<script src="/task-pack-ui.js"></script></body>')
+            '<script src="/task-pack-ui.js"></script><script src="/task-work-windows-core.js"></script>'
+            '<script src="/task-work-windows.js"></script><script src="/task-wizard.js"></script></body>')
 
     @classmethod
     def tearDownClass(cls):
@@ -144,3 +145,51 @@ class TaskProjectBrowserTests(unittest.TestCase):
         self.assertEqual(1,len(state['routinesV1']))
         self.page.reload(wait_until='domcontentloaded')
         self.page.wait_for_function("window.LifeRPGTaskPacks && LifeRPGApp.getState().taskProjectsV1?.projects?.length===1")
+
+    def test_guided_character_task_survives_reload(self):
+        self.page.wait_for_function("window.LifeRPGTaskWizard && document.querySelector('#taskWizardMount')")
+        self.page.locator('[data-twd-toggle="open"]').click()
+        self.page.locator('[data-twd-select-char="bakugo"]').click()
+        self.page.locator('#taskWizardMount [data-twd-next]').click()
+        self.page.locator('[data-twd-choose="task"]').click()
+        self.page.locator('#taskWizardMount [data-twd-next]').click()
+        self.page.locator('#taskWizardMount input[name=title]').fill('Synthetic: lesson prep')
+        self.page.locator('#taskWizardMount [data-twd-next]').click()
+        self.page.locator('#taskWizardMount [data-twd-due]').first.click()
+        self.page.locator('#taskWizardMount [data-twd-next]').click()
+        self.page.locator('#taskWizardMount [data-twd-minutes="30"]').click()
+        self.page.locator('#taskWizardMount [data-twd-next]').click()
+        self.page.locator('#taskWizardMount [data-twd-mandatory="yes"]').click()
+        self.page.locator('#taskWizardMount [data-twd-next]').click()
+        self.page.locator('#taskWizardMount [data-twd-hurdle="high"]').click()
+        self.page.locator('#taskWizardMount [data-twd-next]').click()
+        self.page.locator('#taskWizardMount [data-twd-next]').click()
+        self.assertEqual('Synthetic: lesson prep',self.page.evaluate("LifeRPGApp.getState().taskProjectsV1.inbox[0].title"))
+        self.assertEqual('high',self.page.evaluate("LifeRPGApp.getState().taskProjectsV1.inbox[0].hurdle"))
+        self.page.reload(wait_until='domcontentloaded')
+        self.page.wait_for_function("window.LifeRPGTaskWizard && LifeRPGApp.getState().taskProjectsV1?.inbox?.[0]?.title==='Synthetic: lesson prep'")
+
+    def test_biweekly_work_window_and_timetable_conflicts(self):
+        self.page.wait_for_function("window.LifeRPGTaskWindows && window.LifeRPGNativePlanner")
+        self.page.evaluate("""() => {
+            window.LifeRPGWeekV2={
+              getOccurrences:(date)=>date==='2026-10-26'?[{
+                start:new Date('2026-10-26T09:30:00'),end:new Date('2026-10-26T10:00:00'),canceled:false,type:'teaching'
+              }]:[],
+              isHoliday:()=>false,isSickDay:()=>false,render:()=>{}
+            };
+          }""")
+        self.page.locator('[data-tww-add]').click()
+        form=self.page.locator('#taskWorkWindowForm')
+        form.locator('[name=title]').fill('Synthetic school prep')
+        form.locator('[name=date]').fill('2026-10-26')
+        form.locator('[name=start]').fill('09:00')
+        form.locator('[name=end]').fill('11:00')
+        form.locator('[name=repeat]').select_option('biweekly')
+        form.locator('button[type=submit]').click()
+        self.assertTrue(self.page.evaluate("LifeRPGApp.getState().taskProjectsV1.useWorkWindowsV1"))
+        self.assertEqual(90,self.page.evaluate("LifeRPGTaskWindows.dayWindows('2026-10-26')[0].availableMinutes"))
+        self.assertEqual(0,len(self.page.evaluate("LifeRPGTaskWindows.dayWindows('2026-11-02')")))
+        self.assertEqual(120,self.page.evaluate("LifeRPGTaskWindows.dayWindows('2026-11-09')[0].availableMinutes"))
+        self.page.reload(wait_until='domcontentloaded')
+        self.page.wait_for_function("window.LifeRPGTaskWindows && LifeRPGApp.getState().taskProjectsV1?.workWindowsV1?.length===1")
