@@ -99,7 +99,7 @@
         '<div class="bj-media-bookcase"><div class="bj-media-books" role="list">'+
         visible.map((item,i)=>objectMarkup(group,item,i)).join("")+
         '</div><div class="bj-media-wood-shelf" aria-hidden="true"></div></div>':
-        '<div class="bj-media-empty">An empty shelf can be lovely, too. ✧</div>')+
+        '<div class="bj-media-empty">A quiet space for whatever you discover next. ✧</div>')+
       '<footer><span>'+group.all.length+' saved '+group.title.toLowerCase()+'</span>'+
         (group.items.length>visible.length?
          '<button type="button" data-bj-media-more="'+group.key+'">Show '+Math.min(6,group.items.length-visible.length)+' more ↓</button>':'')+
@@ -113,19 +113,24 @@
         if(item)found.push({group,item});
       });
     });
-    const view=found.slice(0,8);
+    // No favourites are assumed. Until the player pins something, this
+    // always shows a plainly-labelled peek at their *real* saved entries.
+    const sneakPeek=groups.flatMap(group=>group.items.slice(0,1).map(item=>({group,item})));
+    const view=(found.length?found:sneakPeek).slice(0,8);
     return '<section class="bj-media-favourites"><div class="bj-media-feature-heading">'+
-      '<small>✧ A CORNER OF MY HEART</small>'+
-      '<h2>My favourite stories</h2>'+
-      '<p>Curate the books, series and games that feel especially yours.</p></div>'+
+      '<small>✧ '+(found.length?'A CORNER OF MY HEART':'A PEEK AT MY SHELVES')+'</small>'+
+      '<h2>'+(found.length?'My favourite stories':'My little story corner')+'</h2>'+
+      '<p>'+(found.length?'The favourites you chose from your libraries.':
+        'Real books, shows and games from your libraries. No favourites chosen yet.')+'</p></div>'+
       (view.length?
         '<div class="bj-media-favourite-books" role="list">'+view.map(({group,item},i)=>
           objectMarkup(group,item,i,true)).join("")+'</div>':
-        '<div class="bj-media-favourite-placeholder">'+
-          '<span aria-hidden="true">♡</span><p>Space for the favourites you choose.</p>'+
-          '<small>'+(owned()?'Tap ♡ beside a title on the shelves to pin it here.':
-          'After unlocking, you can pin up to four favourites per shelf.')+'</small>'+
-        '</div>')+'</section>';
+        '<div class="bj-media-favourite-placeholder"><span aria-hidden="true">♡</span>'+
+          '<p>A quiet nook, waiting for new discoveries.</p></div>')+
+      '<small class="bj-media-favourites-hint">'+
+        (owned()?'Tap ♡ on a shelf to pin up to four favourites per category.':
+         'Unlock to choose which favourites appear here.')+
+      '</small></section>';
   }
   function noteHTML(unlocked){
     if(unlocked){
