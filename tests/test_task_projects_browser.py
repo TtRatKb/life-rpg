@@ -24,8 +24,8 @@ class TaskProjectBrowserTests(unittest.TestCase):
         cls.playwright=sync_playwright().start()
         cls.browser=cls.playwright.chromium.launch(headless=True,args=['--no-sandbox'])
         html=(ROOT/'index.html').read_text()
-        html=re.sub(r'<script\\b[^>]*>.*?</script>','',html,flags=re.S)
-        html=re.sub(r'<link\\b[^>]*>','',html)
+        html=re.sub(r'<script\b[^>]*>.*?</script>','',html,flags=re.S)
+        html=re.sub(r'<link\b[^>]*>','',html)
         cls.html=html.replace('</body>',
             '<script src="/data/quests.js"></script><script src="/pako.min.js"></script>'
             '<script src="/app.js"></script><script src="/task-projects-core.js"></script>'
