@@ -8,7 +8,7 @@
  const addDays=n=>{const d=new Date();d.setHours(12,0,0,0);d.setDate(d.getDate()+n);return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');};
  let active=false,step=0,record={},char='kiri';
  function reset(){
-   active=true;step=0;record={type:'task',title:'',templateId:'manual-v1',dueDate:'',minutes:30,mandatory:true,hurdle:'normal'};char='kiri';
+   active=true;step=0;record={type:'task',title:'',templateId:'manual-v1',dueDate:'',minutes:30,mandatory:true,hurdle:'normal',context:'any'};char='kiri';
  }
  const charName=()=>char==='bakugo'?'Bakugo':'Kirishima';
  const talk={
@@ -20,9 +20,10 @@
   minutes:['Nur grob: Wie lange brauchst du dafür?','Was schätzt du, wie lange es dauert?'],
   mandatory:['Ist das eine echte Pflicht oder eher ein schönes Extra?','MUSS es erledigt werden oder darf es warten?'],
   hurdle:['Wie unangenehm fühlt es sich an?','Ganz normal oder so eine Bauchschmerz-Aufgabe?'],
+  context:['Wo kannst du das erledigen?','Musst du dafür aus dem Haus oder geht es auch hier?'],
   summary:['Sieht das richtig aus? Du kannst zurückgehen.','Einmal gegenchecken, dann kommt es in deinen Plan.']
  };
- const sequence=()=>record.type==='project'?['person','type','title','template','due','summary']:['person','type','title','due','minutes','mandatory','hurdle','summary'];
+ const sequence=()=>record.type==='project'?['person','type','title','template','due','summary']:['person','type','title','due','minutes','mandatory','hurdle','context','summary'];
  const cur=()=>sequence()[step];
  const root=()=>$('taskWizardMount');
  const element=(tag,text,clazz)=>{const e=document.createElement(tag);if(text!=null)e.textContent=String(text);if(clazz)e.className=clazz;return e;};
@@ -57,6 +58,8 @@
    }else if(current==='hurdle'){
      wrap.append(button('🙂 Alles okay','twdHurdle','normal',record.hurdle==='normal'));
      wrap.append(button('😰 Kostet mich Überwindung','twdHurdle','high',record.hurdle==='high'));
+   }else if(current==='context'){
+     [['any','Überall'],['home','Zu Hause'],['school','In der Schule'],['outside','🚶 Unterwegs / außerhalb']].forEach(([id,text])=>wrap.append(button(text,'twdContext',id,record.context===id)));
    }else if(current==='summary'){
      const dateText=record.dueDate||'Ohne Datum';
      wrap.append(element('strong',record.title,'twd-review-title'));
@@ -121,6 +124,7 @@
    if(btn.hasAttribute('data-twd-minutes')){record.minutes=Number(btn.dataset.twdMinutes);render();return;}
    if(btn.hasAttribute('data-twd-mandatory')){record.mandatory=btn.dataset.twdMandatory==='yes';render();return;}
    if(btn.hasAttribute('data-twd-hurdle')){record.hurdle=btn.dataset.twdHurdle;render();return;}
+   if(btn.hasAttribute('data-twd-context')){record.context=btn.dataset.twdContext;render();return;}
  }
  function input(e){
    if(e.target.matches('[name="title"]'))record.title=e.target.value;
