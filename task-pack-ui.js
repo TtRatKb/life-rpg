@@ -30,8 +30,9 @@
  function routinesMarkup(){
    const m=state(),routines=Array.isArray(m?.routinesV1)?m.routinesV1:[],date=day(),school=availableSchoolday(date)||manualSchool;
    if(!routines.length)return '';
-   const due=routines.filter(r=>core.dueRoutine(r,date,school));
-   const hasSchool=routines.some(r=>r.cadence==='schoolday'||r.cadence==='school-monday');
+   const nextMondayDate=(()=>{const d=new Date(date+'T12:00:00');d.setDate(d.getDate()+1);return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');})();
+   const due=routines.filter(r=>core.dueRoutine(r,date,school,availableSchoolday(nextMondayDate)||manualSchool));
+   const hasSchool=routines.some(r=>['schoolday','school-monday','before-school-monday'].includes(r.cadence));
    return '<section class="tpk-routines"><div class="tpk-header"><h2>✿ Heute passende Routinen</h2><small>Keine täglichen Task-Kopien</small></div>'
       +(hasSchool?'<button class="tpk-tiny" type="button" data-tpk-school-toggle>'+(manualSchool?'Manuelle Schultagsansicht ausblenden':'Schultagsroutinen bei Bedarf anzeigen')+'</button>':'')
       +(due.length?due.map(r=>{
@@ -44,7 +45,7 @@
    if(!pack)return '';
    return '<div class="tpk-preview"><h3>'+esc(pack.title||'Ausgewähltes Aufgabenpaket')+'</h3><p>'+esc(pack.subtitle||'Wähle aus, was wirklich wichtig ist.')+'</p>'
      +pack.groups.map(g=>'<label class="tpk-group"><input type="checkbox" data-tpk-pick="group:'+esc(g.id)+'" '+(picked.has('group:'+g.id)?'checked':'')+'> <span><strong>'+esc(g.title)+'</strong><small>'+g.tasks.length+' Aufgaben · '+(g.kind==='project'?'zusammenhängendes Projekt':'Einzelaufgaben')+'</small></span></label><div class="tpk-examples">'+g.tasks.slice(0,5).map(t=>'• '+esc(t.title)+(t.dueDate?' · '+esc(t.dueDate):'')+(t.dateKind==='target'?' (Ziel)':'')).join('<br>')+(g.tasks.length>5?' · …':'')+'</div>').join('')
-     +pack.routines.map(r=>'<label class="tpk-group"><input type="checkbox" data-tpk-pick="routine:'+esc(r.id)+'" '+(picked.has('routine:'+r.id)?'checked':'')+'> <span><strong>'+esc(r.title)+'</strong><small>'+esc(r.cadence==='weekly'?'Wöchentlich':r.cadence==='schoolday'?'Nur an Schultagen':'Montags an Schultagen')+' · '+r.steps.length+' Checkpunkte</small></span></label>').join('')
+     +pack.routines.map(r=>'<label class="tpk-group"><input type="checkbox" data-tpk-pick="routine:'+esc(r.id)+'" '+(picked.has('routine:'+r.id)?'checked':'')+'> <span><strong>'+esc(r.title)+'</strong><small>'+esc(r.cadence==='weekly'?'Wöchentlich':r.cadence==='schoolday'?'Nur an Schultagen':r.cadence==='school-monday'?'Montags an Schultagen':'Sonntags vor einem Schulmontag')+' · '+r.steps.length+' Checkpunkte</small></span></label>').join('')
      +'<p class="tpk-foot">Importiere nur ausgewählte Gruppen. Bei erneutem Import werden gleiche IDs und bereits vorhandene Titel nicht dupliziert. Bestehende Aufgaben bleiben unverändert.</p>'
      +'<button type="button" class="primary-button" data-tpk-import '+(!picked.size?'disabled':'')+'>Ausgewählte Aufgaben sicher übernehmen</button></div>';
  }
