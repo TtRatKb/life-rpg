@@ -34,7 +34,7 @@ class TaskProjectBrowserTests(unittest.TestCase):
             '<script src="/task-pack-ui.js"></script><script src="/task-work-windows-core.js"></script>'
             '<script src="/task-work-windows.js"></script><script src="/task-wizard.js"></script>'
             '<script src="/task-free-days-core.js"></script><script src="/task-google-calendar-core.js"></script>'
-            '<script src="/task-google-calendar.js"></script><script src="/task-free-days.js"></script></body>')
+            '<script src="/task-google-calendar.js"></script><script src="/task-focus-core.js"></script><script src="/task-free-days.js"></script></body>')
 
     @classmethod
     def tearDownClass(cls):
@@ -225,3 +225,43 @@ class TaskProjectBrowserTests(unittest.TestCase):
         self.assertEqual(60,self.page.evaluate("LifeRPGTaskWindows.dayWindows('2026-10-20')[0].conflictMinutes"))
         self.page.reload(wait_until='domcontentloaded')
         self.page.wait_for_function("window.LifeRPGFreeDay && LifeRPGApp.getState().taskProjectsV1?.workWindowsV1?.length===1")
+
+    def test_companion_starts_and_completes_existing_project_step_without_duplicate_reward(self):
+        self.page.wait_for_function("window.LifeRPGFreeDay && window.LifeRPGTaskFocusCore")
+        self.page.evaluate("""() => {
+            LifeRPGTaskProjects.createTask({
+              title:'Synthetic uncomfortable message',dueDate:'2026-11-02',minutes:20,
+              mandatory:true,hurdle:'high',context:'home'
+            });
+        }""")
+        self.page.locator('[data-tfd-budget="15"]').click()
+        self.assertIn('Synthetic uncomfortable message',self.page.locator('#taskFreeDayMount').inner_text())
+        self.page.locator('[data-tfd-focus]').first.click()
+        self.assertIn('Synthetic uncomfortable message',self.page.locator('.tfd-focus').inner_text())
+        self.page.locator('[data-tfd-guide="bakugo"]').click()
+        self.page.locator('[data-tfd-step]').click()
+        self.assertIn('ersten',self.page.locator('.tfd-focus').inner_text())
+        self.assertEqual(1,len(self.page.evaluate("LifeRPGApp.getState().taskProjectsV1.inbox")))
+        self.page.locator('[data-tfd-done]').click()
+        self.assertEqual(0,len(self.page.evaluate("LifeRPGTaskProjects.getOpen()")))
+        self.assertTrue(self.page.evaluate("!!LifeRPGApp.getState().taskProjectsV1.inbox[0].doneAt"))
+        self.assertIn('Geschafft',self.page.locator('.tfd-focus').inner_text())
+        self.page.locator('[data-tfd-undo]').click()
+        self.assertEqual(1,len(self.page.evaluate("LifeRPGTaskProjects.getOpen()")))
+        self.page.locator('[data-tfd-done]').click()
+        self.page.reload(wait_until='domcontentloaded')
+        self.page.wait_for_function("window.LifeRPGTaskProjects && LifeRPGApp.getState().taskProjectsV1?.inbox?.length===1")
+        self.assertEqual(0,len(self.page.evaluate("LifeRPGTaskProjects.getOpen()")))
+
+    def test_free_day_zero_budget_and_calendar_does_not_imply_errands(self):
+        self.page.wait_for_function("window.LifeRPGFreeDay")
+        self.page.evaluate("""() => LifeRPGTaskProjects.createTask({
+          title:'Synthetic classroom file',dueDate:'2026-11-01',minutes:90,mandatory:true
+        })""")
+        self.page.locator('[data-tfd-budget="0"]').click()
+        self.assertIn('nicht arbeiten',self.page.locator('#taskFreeDayMount').inner_text())
+        self.assertEqual(0,self.page.locator('[data-tfd-focus]').count())
+        self.page.locator('[data-tfd-budget="open"]').click()
+        self.assertTrue(self.page.locator('[data-tfd-focus]').count()>0)
+        self.page.evaluate("""() => {LifeRPGGoogleCalendar.busy = () => [{start:'14:00',end:'16:00'}]}""")
+        self.assertFalse(self.page.evaluate("LifeRPGFreeDay._test.outOfHome('2026-10-20')"))
