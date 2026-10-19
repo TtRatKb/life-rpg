@@ -4,6 +4,13 @@ on:
   pull_request:
     paths:
       - 'task-projects.js'
+      - 'task-work-windows-core.js'
+      - 'task-work-windows.js'
+      - 'task-work-windows.css'
+      - 'task-wizard.js'
+      - 'task-wizard.css'
+      - 'tests/test_task_work_windows.cjs'
+      - 'my-week.js'
       - 'task-pack-core.js'
       - 'task-pack-ui.js'
       - 'task-pack-ui.css'
@@ -25,6 +32,13 @@ on:
     branches: [main]
     paths:
       - 'task-projects.js'
+      - 'task-work-windows-core.js'
+      - 'task-work-windows.js'
+      - 'task-work-windows.css'
+      - 'task-wizard.js'
+      - 'task-wizard.css'
+      - 'tests/test_task_work_windows.cjs'
+      - 'my-week.js'
       - 'task-pack-core.js'
       - 'task-pack-ui.js'
       - 'task-pack-ui.css'
@@ -62,6 +76,10 @@ jobs:
           node --check task-planning-ui.js
           node --check task-pack-core.js
           node --check task-pack-ui.js
+          node --check task-work-windows-core.js
+          node --check task-work-windows.js
+          node --check task-wizard.js
+          node --check my-week.js
           node --check todoist-sync.js
           node --check service-worker.js
       - name: Test calendar math, optional branches and safe saves
@@ -70,6 +88,7 @@ jobs:
           node tests/test_task_projects_ui.cjs
           node tests/test_task_planning.cjs
           node tests/test_task_pack.cjs
+          node tests/test_task_work_windows.cjs
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -97,5 +116,13 @@ jobs:
             if (!html.includes(asset+'?v=0.31.4-private-pack1') || !sw.includes(asset+'?v=0.31.4-private-pack1')) throw Error('Private task import asset missing: '+asset);
           }
           if(!html.includes('id="taskPackMount"'))throw Error('Private import mount missing');
+          for (const asset of ['task-work-windows-core.js','task-work-windows.js','task-work-windows.css']) {
+            if (!html.includes(asset+'?v=0.31.4-work-windows1') || !sw.includes(asset+'?v=0.31.4-work-windows1')) throw Error('Task window asset missing: '+asset);
+          }
+          for (const asset of ['task-wizard.js','task-wizard.css']) {
+            if (!html.includes(asset+'?v=0.31.4-wizard1') || !sw.includes(asset+'?v=0.31.4-wizard1')) throw Error('Wizard asset missing: '+asset);
+          }
+          for (const id of ['taskWizardMount','taskWorkWindowsMount','taskWorkWindowsWeekMount'])
+            if (!html.includes('id="'+id+'"')) throw Error('Missing UI mount: '+id);
           console.log('Task project assets and mounts registered');
           NODE
