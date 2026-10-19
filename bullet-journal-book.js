@@ -312,7 +312,7 @@
   function changeDate(target){
     if(!dayDate(target)||target>today()){noteStatus("Choose today or an earlier date");return false;}
     if(!save())return false;
-    activeDay=target;renderDay();return true;
+    activeDay=target;activeWeek=monday(target);activeMonth=monthStart(target);renderDay();return true;
   }
   function open(target=today()){
     ensureButton();
