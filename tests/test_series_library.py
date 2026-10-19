@@ -904,6 +904,125 @@ class SeriesLibraryTests(unittest.TestCase):
         self.assertEqual(self.page.evaluate(
             "LifeRPGSkills.getRealmPoints('Health').available"),after['points'])
 
+    def test_journal_collection_v2_actual_shelves_and_safe_favorites(self):
+        """Free preview shows the FINAL illustrated layout, with real covers.
+        Purchase unlocks private pinning; old notes/media/ledger remain intact."""
+        self.page.evaluate("""() => {
+          const root=LifeRPGApp.getState();
+          root.skills.realmBonusPoints.Knowledge=0;
+          root.bookLibrary={schemaVersion:3,items:[
+            {id:'bk-real',title:'A Court of Living Stories',status:'reading',
+              author:'Real Author',coverUrl:'https://example.org/novel.jpg'},
+            {id:'bk-unsafe',title:'Do Not Load JS URI',status:'finished',
+              coverUrl:'javascript:alert(1)'},
+            ...Array.from({length:9},(_,i)=>({
+              id:'bk-'+i,title:'Saved Book '+i,status:'finished'}))
+          ],logs:[]};
+          root.seriesLibrary={schemaVersion:1,items:[
+            {id:'show-real',title:'My Real Show',status:'watching',
+              cover:'https://example.org/show.jpg'}],logs:[]};
+          root.gameLibrary={schemaVersion:11,items:[
+            {id:'game-real',title:'My Real Game',status:'playing',
+              coverUrl:'https://example.org/game.png'}],logs:[]};
+          root.journalCollectionsV1={
+            schemaVersion:1,pages:{readingMedia:{note:'My old keepsake',
+              anotherPreservedField:'unchanged'}}};
+        }""")
+        for script in ['journal.js','bullet-journal-book.js',
+                       'bullet-journal-collections.js','talent-v2.js',
+                       'talent-tree-v2-graph.js']:
+            self.page.add_script_tag(url='/'+script)
+        for style in ['bullet-journal-book.css','bullet-journal-collections.css']:
+            self.page.add_style_tag(url='/'+style)
+        self.assertTrue(self.page.evaluate(
+            "LifeRPGBulletJournalBook.openCollections()"))
+        self.assertFalse(self.page.evaluate(
+            "LifeRPGBulletJournalCollections.owned()"))
+        self.assertEqual(self.page.locator('.bj-media-shelf').count(),3)
+        self.assertEqual(self.page.locator('.bj-media-bookcase').count(),3)
+        self.assertEqual(self.page.locator('.bj-media-wood-shelf').count(),3)
+        self.assertEqual(self.page.locator('#bjCollectionsMemory').count(),0)
+        self.assertIn('This is the actual bookshelf design',
+                      self.page.locator('.bj-media-preview-explanation').inner_text())
+        self.assertIn('1 Knowledge point',
+                      self.page.locator('#bjBookCollectionsContent').inner_text())
+        self.assertEqual(self.page.locator('[data-bj-media-pin]').count(),0)
+        self.assertEqual(self.page.locator(
+            '.bj-media-object-books .bj-media-cover img').first.get_attribute('src'),
+            'https://example.org/novel.jpg')
+        self.assertEqual(self.page.locator(
+            '.bj-media-object-books img[src^="javascript:"]').count(),0)
+        self.assertEqual(self.page.locator(
+            '.bj-media-favourite-books .bj-media-object').count(),3)
+        self.assertIn('No favourites chosen yet',
+                      self.page.locator('.bj-media-favourites').inner_text())
+        before=self.page.evaluate("""() => {
+          const s=LifeRPGApp.getState();
+          return {books:JSON.stringify(s.bookLibrary),
+            series:JSON.stringify(s.seriesLibrary),
+            games:JSON.stringify(s.gameLibrary),
+            events:JSON.stringify(s.rewardLedger),
+            collections:JSON.stringify(s.journalCollectionsV1)};
+        }""")
+        self.page.locator('[data-bj-media-more="books"]').click()
+        self.assertGreaterEqual(self.page.locator(
+            '.bj-media-shelf-books .bj-media-object').count(),11)
+        self.assertEqual(before,self.page.evaluate("""() => {
+          const s=LifeRPGApp.getState();
+          return {books:JSON.stringify(s.bookLibrary),
+            series:JSON.stringify(s.seriesLibrary),
+            games:JSON.stringify(s.gameLibrary),
+            events:JSON.stringify(s.rewardLedger),
+            collections:JSON.stringify(s.journalCollectionsV1)};
+        }"""))
+        # The original 1-point Knowledge unlock key/entitlement is retained.
+        self.page.evaluate("LifeRPGApp.getState().skills.realmBonusPoints.Knowledge=1")
+        self.assertTrue(self.page.evaluate("""() =>
+          LifeRPGTalentTreeGraph.purchaseContent(
+            'Knowledge','journal-reading-media-collection')"""))
+        self.page.evaluate("LifeRPGBulletJournalCollections.render()")
+        self.assertEqual(self.page.locator('.bj-media-shelf').count(),3)
+        self.assertEqual(self.page.locator('.bj-media-wood-shelf').count(),3)
+        self.assertEqual(self.page.locator('#bjCollectionsMemory').count(),1)
+        self.assertEqual(self.page.locator('#bjCollectionsMemory').input_value(),
+                         'My old keepsake')
+        self.assertTrue(self.page.evaluate("""() =>
+          LifeRPGBulletJournalCollections.togglePin('books','bk-real')"""))
+        self.assertTrue(self.page.evaluate("""() =>
+          LifeRPGBulletJournalCollections.togglePin('series','show-real')"""))
+        self.assertTrue(self.page.evaluate("""() =>
+          LifeRPGBulletJournalCollections.togglePin('games','game-real')"""))
+        saved=self.page.evaluate("""() => {
+          const s=LifeRPGApp.getState();
+          return s.journalCollectionsV1.pages.readingMedia;
+        }""")
+        self.assertEqual(saved['pinned']['books'],['bk-real'])
+        self.assertEqual(saved['pinned']['series'],['show-real'])
+        self.assertEqual(saved['pinned']['games'],['game-real'])
+        self.assertEqual(saved['note'],'My old keepsake')
+        self.assertEqual(saved['anotherPreservedField'],'unchanged')
+        self.assertEqual(self.page.locator('.bj-media-favourite-books .bj-media-object').count(),3)
+        self.assertIn('My favourite stories',
+                      self.page.locator('#bjBookCollectionsIndex').inner_text())
+        self.assertFalse(self.page.evaluate("""() =>
+          LifeRPGBulletJournalCollections.togglePin('books','not-a-real-book')"""))
+        self.assertEqual(self.page.evaluate("""() =>
+          LifeRPGSkills.getRealmPoints('Knowledge').available"""),0)
+        after=self.page.evaluate("""() => {
+          const s=LifeRPGApp.getState();
+          return {books:JSON.stringify(s.bookLibrary),
+            series:JSON.stringify(s.seriesLibrary),
+            games:JSON.stringify(s.gameLibrary),
+            events:JSON.stringify(s.rewardLedger)};
+        }""")
+        for name in ['books','series','games','events']:
+            self.assertEqual(before[name],after[name])
+        self.assertTrue(self.page.evaluate("LifeRPGBulletJournalBook.showChapter('daily')"))
+        self.assertTrue(self.page.evaluate("LifeRPGBulletJournalBook.showChapter('collections')"))
+        self.assertEqual(self.page.evaluate("""() =>
+          LifeRPGApp.getState().journalCollectionsV1.pages.readingMedia.pinned.books[0]"""),
+          'bk-real')
+
     def test_journal_collections_preview_existing_media_and_one_point_unlock(self):
         """Real bookshelf content can be previewed at 0 SP. One Knowledge point
         unlocks a separate note page without selling the original libraries."""
