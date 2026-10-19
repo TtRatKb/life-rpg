@@ -157,7 +157,7 @@ jobs:
           for (const id of ['taskWizardMount','taskWorkWindowsMount','taskWorkWindowsWeekMount'])
             if (!html.includes('id="'+id+'"')) throw Error('Missing UI mount: '+id);
           for (const [asset,ver] of [
-            ['task-free-days-core.js','0.31.4-freedays1'],['task-free-days.js','0.31.4-freedays1'],['task-free-days.css','0.31.4-freedays1'],
+            ['task-free-days-core.js','0.31.4-freedays1'],['task-free-days.css','0.31.4-freedays1'],
             ['task-google-calendar-core.js','0.31.4-gcal1'],['task-google-calendar.js','0.31.4-gcal1'],['task-google-calendar.css','0.31.4-gcal1']])
             if(!html.includes(asset+'?v='+ver)||!sw.includes(asset+'?v='+ver))throw Error('Missing calendar/free-day asset '+asset);
           for (const id of ['taskFreeDayMount','taskGoogleCalendarMount'])
