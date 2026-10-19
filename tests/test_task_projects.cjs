@@ -25,6 +25,13 @@ const paper=core.instantiate(core.exam,'2026-11-20',{format:'paper',inclusion:'n
 assert.ok(!paper.tasks.some(t=>t.stepId==='classtime'));
 assert.ok(!paper.tasks.some(t=>t.stepId==='inclusion-check'));
 assert.ok(paper.tasks.some(t=>t.stepId==='print'));
+const adjusted = core.instantiate(core.exam,'2026-11-20',{format:'digital',inclusion:'yes'},'synthetic-c');
+adjusted.tasks.find(t=>t.stepId==='inclusion').dueDate='2026-11-11';
+const hidden=core.updateBranches(adjusted,core.exam,{inclusion:'no'});
+assert.ok(hidden.tasks.some(t=>t.stepId==='inclusion'&&t.archived));
+const restored=core.updateBranches(hidden,core.exam,{inclusion:'yes'});
+assert.equal(restored.tasks.find(t=>t.stepId==='inclusion').dueDate,'2026-11-11');
+assert.equal(core.nextSteps(restored).filter(t=>t.stepId==='inclusion').length,1);
 assert.notDeepEqual(paper.tasks.map(t=>t.id), expanded.tasks.map(t=>t.id));
 assert.throws(()=>core.instantiate(core.exam,'2026-02-30',{},'x'));
 console.log('Task projects scheduling tests passed');
