@@ -23,5 +23,7 @@ assert.ok(score(tasks[2],d,'frog')>score(tasks[2],d,'gentle'));
 const quick=recommend(tasks,d,{availableMinutes:15,style:'frog'});
 assert.ok(quick.primary.every(x=>x.task.minutes<=15||x.needsSplit));
 assert.equal(recommend([],d).primary.length,0);
+assert.equal(recommend(tasks,d,{availableMinutes:0}).primary.length,0);
+assert.ok(recommend(tasks,d,{availableMinutes:15}).primary.some(x=>x.needsSplit));
 assert.throws(()=>recommend(tasks,'2026-02-30'));
 console.log('Free day priority, frog preference, wait gates, and outdoor suggestions passed');
