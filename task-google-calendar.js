@@ -47,6 +47,7 @@
    });
  }
  function hasBusyOn(date){return busy(date).length>0;}
+ function hasWorkCalendars(){return connected()&&calendars.some(c=>choice(c.id,c.summary).mode==='work');}
  function notify(){window.dispatchEvent(new Event('life-rpg:google-calendar-updated'));window.LifeRPGTaskWindows?.render?.();window.LifeRPGNativePlanner?.render?.();}
  function persist(){
    try{localStorage.setItem(CONFIG_KEY,JSON.stringify({clientId:settings.clientId,choices:settings.choices}));}catch{}
@@ -174,6 +175,6 @@
    render();
  }
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
- window.LifeRPGGoogleCalendar={busy,workWindows,weekEvents,hasBusyOn,connected,hasSetup,render,
+ window.LifeRPGGoogleCalendar={busy,workWindows,weekEvents,hasBusyOn,hasWorkCalendars,connected,hasSetup,render,
    _test:{eventsFor,choice,dropConnection}};
 })();
