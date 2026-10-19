@@ -79,7 +79,7 @@
     });
     // Never destroy a completed branch when changing a conditional answer.
     const removed = project.tasks.filter(task => !generated.tasks.some(step => step.stepId === task.stepId));
-    generated.tasks.push(...removed.map(task=>({...task, archived:true})));
+    generated.tasks.push(...removed.map(task=>({...task, archived:!String(task.stepId).startsWith('custom-')})));
     return {...project, options, tasks:generated.tasks};
   }
   function nextSteps(project) {
