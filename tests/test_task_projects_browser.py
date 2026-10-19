@@ -32,7 +32,9 @@ class TaskProjectBrowserTests(unittest.TestCase):
             '<script src="/task-projects.js"></script><script src="/task-planning-core.js"></script>'
             '<script src="/task-planning-ui.js"></script><script src="/task-pack-core.js"></script>'
             '<script src="/task-pack-ui.js"></script><script src="/task-work-windows-core.js"></script>'
-            '<script src="/task-work-windows.js"></script><script src="/task-wizard.js"></script></body>')
+            '<script src="/task-work-windows.js"></script><script src="/task-wizard.js"></script>'
+            '<script src="/task-free-days-core.js"></script><script src="/task-google-calendar-core.js"></script>'
+            '<script src="/task-google-calendar.js"></script><script src="/task-free-days.js"></script></body>')
 
     @classmethod
     def tearDownClass(cls):
@@ -163,6 +165,8 @@ class TaskProjectBrowserTests(unittest.TestCase):
         self.page.locator('#taskWizardMount [data-twd-next]').click()
         self.page.locator('#taskWizardMount [data-twd-hurdle="high"]').click()
         self.page.locator('#taskWizardMount [data-twd-next]').click()
+        self.page.locator('#taskWizardMount [data-twd-context="home"]').click()
+        self.page.locator('#taskWizardMount [data-twd-next]').click()
         self.page.locator('#taskWizardMount [data-twd-next]').click()
         self.assertEqual('Synthetic: lesson prep',self.page.evaluate("LifeRPGApp.getState().taskProjectsV1.inbox[0].title"))
         self.assertEqual('high',self.page.evaluate("LifeRPGApp.getState().taskProjectsV1.inbox[0].hurdle"))
@@ -193,3 +197,31 @@ class TaskProjectBrowserTests(unittest.TestCase):
         self.assertEqual(120,self.page.evaluate("LifeRPGTaskWindows.dayWindows('2026-11-09')[0].availableMinutes"))
         self.page.reload(wait_until='domcontentloaded')
         self.page.wait_for_function("window.LifeRPGTaskWindows && LifeRPGApp.getState().taskProjectsV1?.workWindowsV1?.length===1")
+
+    def test_free_day_suggestions_without_hard_today_and_calendar_conflict(self):
+        self.page.wait_for_function("window.LifeRPGFreeDay && window.LifeRPGFreeDayCore")
+        self.page.evaluate("""() => {
+          LifeRPGTaskProjects.createTask({
+            title:'Synthetic work next week',dueDate:'2026-11-01',minutes:120,
+            mandatory:true,hurdle:'high',context:'home'
+          });
+        }""")
+        self.page.locator('[data-tfd-date]').fill('2026-10-20')
+        self.assertIn('Synthetic work next week',self.page.locator('#taskFreeDayMount').inner_text())
+        self.page.locator('[data-tfd-style="frog"]').click()
+        self.assertIn('Synthetic work next week',self.page.locator('#taskFreeDayMount').inner_text())
+        self.page.evaluate("""() => {
+          const previous = LifeRPGGoogleCalendar.busy;
+          LifeRPGGoogleCalendar.busy = d => d==='2026-10-20'?[{start:'14:00',end:'16:00',title:'Synthetic appointment'}]:[];
+          window.dispatchEvent(new Event('life-rpg:google-calendar-updated'));
+        }""")
+        self.page.locator('[data-tfd-block]').click()
+        form=self.page.locator('#taskFreeDayForm')
+        form.locator('[name=date]').fill('2026-10-20')
+        form.locator('[name=start]').fill('09:00')
+        form.locator('[name=end]').fill('15:00')
+        form.locator('button[type=submit]').click()
+        self.assertEqual(300,self.page.evaluate("LifeRPGTaskWindows.dayWindows('2026-10-20')[0].availableMinutes"))
+        self.assertEqual(60,self.page.evaluate("LifeRPGTaskWindows.dayWindows('2026-10-20')[0].conflictMinutes"))
+        self.page.reload(wait_until='domcontentloaded')
+        self.page.wait_for_function("window.LifeRPGFreeDay && LifeRPGApp.getState().taskProjectsV1?.workWindowsV1?.length===1")
