@@ -12,7 +12,7 @@
     return;
   }
 
-  const VERSION = "0.31.4-dailymini1";
+  const VERSION = "0.31.4-collections1";
   const SCHEMA = 7;
   const REALMS = ["Work", "Knowledge", "Japanese", "Health", "Recovery", "Home", "Hobbies"];
 
@@ -55,6 +55,9 @@
         linkedContent("takuzu", "01", "Takuzu · Binary Logic", 1,
           "A fourth real puzzle game: eight unique 6×6 grids, a daily challenge, saved progress and optional practice. All grids have unique solutions.",
           { content: "kakuro" }, "Open Takuzu", () => window.LifeRPGTalentV3?.open?.("takuzu")),
+        linkedContent("journal-reading-media-collection", "📚", "Journal Collection · Reading & Media", 1,
+          "Permanent Knowledge unlock: a separate notebook collection for your actual books, series and games, plus your own private keepsake notes. All existing media libraries remain free. Preview the finished page in the Journal before buying.",
+          {}, "Open Reading & Media Collection", () => window.LifeRPGBulletJournalBook?.openCollections?.()),
         linkedContent("knowledge-moments", "◇", "Puzzle Table · Companion Moments", 1,
           "Three optional VN moments around puzzles, shared curiosity and different ways of thinking. The scene is the reward; never purchases affection or Main Story progress.",
           { content: "takuzu", story: "SC_011" }, "Open Puzzle Table", () => window.LifeRPGCompanionMoments?.open?.("Knowledge"))
@@ -606,6 +609,9 @@
   }
 
   function previewContent(realm,id) {
+    if(realm==="Knowledge"&&id==="journal-reading-media-collection"){
+      return Boolean(window.LifeRPGBulletJournalCollections?.openPreview?.());
+    }
     if(realm!=="Health")return false;
     const tracker=id==="journal-weekly-habit-tracker"
       ? window.LifeRPGBulletJournalHabitTracker
@@ -872,8 +878,9 @@
     const stateClass = complete ? "is-owned" : !prereq.ok ? "is-locked" : canBuy ? "is-ready" : "is-poor";
 
     const openButton = owned ? `<button class="secondary-button" type="button" data-talent-v3-open="${escAttr(realm)}|${escAttr(item.id)}">${esc(item.openLabel || "Open")}</button>` : "";
-    const journalPreview = realm==="Health" && (
-      item.id==="journal-daily-mini-habit-tracker" || item.id==="journal-weekly-habit-tracker");
+    const journalPreview = (realm==="Health" && (
+      item.id==="journal-daily-mini-habit-tracker" || item.id==="journal-weekly-habit-tracker"))
+      || (realm==="Knowledge" && item.id==="journal-reading-media-collection");
     const previewButton = journalPreview && !owned
       ? `<button class="secondary-button" type="button" data-talent-v3-preview="${escAttr(realm)}|${escAttr(item.id)}">Preview layout ↗</button>`
       : "";
@@ -884,7 +891,7 @@
       `assets/coloring/${item.id.slice("color-card-".length)}-line.png?v=${item.id.startsWith("color-card-luca-bakugo-kirishima-") ? "0.31.4du" : "0.31.4dt"}` : "";
     const art = cardArt ? `<div class="talent-card-art-v314dn ${owned ? "is-owned" : "is-locked"}"><img src="${escAttr(cardArt)}" alt="Preview of ${escAttr(item.title)}" loading="lazy">${owned ? "" : `<span aria-hidden="true">🔒</span>`}</div>` : "";
     const previewNote = journalPreview && !owned ?
-      `<small class="talent-v3-journal-preview-note">Preview free · Unlock: ${cost} Health point · Available: ${Number(points.available||0)}</small>`:"";
+      `<small class="talent-v3-journal-preview-note">Preview free · Unlock: ${cost} ${esc(realm)} point · Available: ${Number(points.available||0)}</small>`:"";
     return `${index ? treeLink(item.requires?.content ? `Previous unlock: ${contentTitle(realm, item.requires.content)}${item.requires.contentRank > 1 ? ` ${roman(item.requires.contentRank)}` : ""}` : `Content expansion`) : ""}
       <article id="talent-v3-content-${escAttr(realm)}-${escAttr(item.id)}" class="talent-v3-node talent-v3-content-node ${stateClass} ${cardArt ? "is-coloring-card" : ""}">
         <div class="talent-v3-node-top">

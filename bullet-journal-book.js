@@ -4,7 +4,7 @@
   const app = window.LifeRPGApp;
   const journal = window.LifeRPGJournal;
   if (!app?.getState || !app?.saveState || !journal?.getEntry || window.LifeRPGBulletJournalBook) return;
-  const VERSION = "0.31.4-monthly-preview1";
+  const VERSION = "0.31.4-collections1";
   const htmlEscape = value => String(value ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
   const get = id => document.getElementById(id);
   const dateKey = d => [d.getFullYear(), String(d.getMonth()+1).padStart(2,"0"), String(d.getDate()).padStart(2,"0")].join("-");
@@ -94,7 +94,7 @@
               '<nav class="bj-book-chapter-tabs" aria-label="Notebook chapters">'+
                 '<button type="button" data-bj-chapter="daily" aria-current="page">✦ Days</button>'+
                 '<button type="button" data-bj-chapter="weekly">▦ Weeks</button>'+
-                '<button type="button" data-bj-chapter="monthly">☾ Months</button></nav>'+
+                '<button type="button" data-bj-chapter="monthly">☾ Months</button><button type="button" data-bj-chapter="collections">✧ Collections</button></nav>'+
               '<h1 id="bjBookDayTitle"></h1>'+
               '<nav class="bj-book-nav" aria-label="Turn journal pages">'+
                 '<button type="button" data-bj-action="prev" aria-label="Previous day">‹</button>'+
@@ -123,7 +123,7 @@
                 '<nav class="bj-book-chapter-tabs" aria-label="Notebook chapters">'+
                   '<button type="button" data-bj-chapter="daily">✦ Days</button>'+
                   '<button type="button" data-bj-chapter="weekly" aria-current="page">▦ Weeks</button>'+
-                  '<button type="button" data-bj-chapter="monthly">☾ Months</button></nav>'+
+                  '<button type="button" data-bj-chapter="monthly">☾ Months</button><button type="button" data-bj-chapter="collections">✧ Collections</button></nav>'+
                 '<h1 id="bjBookWeekTitle"></h1>'+
                 '<nav class="bj-book-nav" aria-label="Turn weekly pages">'+
                   '<button type="button" data-bj-action="week-prev" aria-label="Previous week">‹</button>'+
@@ -150,7 +150,7 @@
               '<nav class="bj-book-chapter-tabs" aria-label="Notebook chapters">'+
                 '<button type="button" data-bj-chapter="daily">✦ Days</button>'+
                 '<button type="button" data-bj-chapter="weekly">▦ Weeks</button>'+
-                '<button type="button" data-bj-chapter="monthly" aria-current="page">☾ Months</button></nav>'+
+                '<button type="button" data-bj-chapter="monthly" aria-current="page">☾ Months</button><button type="button" data-bj-chapter="collections">✧ Collections</button></nav>'+
               '<h1 id="bjBookMonthTitle"></h1>'+
               '<nav class="bj-book-nav" aria-label="Turn monthly pages">'+
                 '<button type="button" data-bj-action="month-prev" aria-label="Previous month">‹</button>'+
@@ -164,6 +164,25 @@
             '<small>THE LITTLE RITUALS OF THIS MONTH</small>'+
             '<h2 class="bj-book-week-right-title">A month in bloom</h2>'+
             '<div id="bjBookMonthCollection" aria-label="Monthly Habit collection"></div>'+
+          '</div></section>'+
+        '</div>'+
+        '<div class="bj-book-spread bj-book-collections-spread" id="bjBookCollectionsSpread" hidden>'+
+          '<section class="bj-book-page bj-book-writing"><div class="bj-book-page-inner">'+
+            '<div class="bj-book-date-heading"><small>MY BULLET JOURNAL · COLLECTIONS</small>'+
+            '<nav class="bj-book-chapter-tabs" aria-label="Notebook chapters">'+
+              '<button type="button" data-bj-chapter="daily">✦ Days</button>'+
+              '<button type="button" data-bj-chapter="weekly">▦ Weeks</button>'+
+              '<button type="button" data-bj-chapter="monthly">☾ Months</button>'+
+              '<button type="button" data-bj-chapter="collections" aria-current="page">✧ Collections</button></nav>'+
+              '<h1>The little things I keep</h1>'+
+            '</div>'+
+            '<p class="bj-collections-intro">A home for the things you love, with no deadlines or streaks.</p>'+
+            '<div id="bjBookCollectionsIndex" class="bj-collections-index"></div>'+
+          '</div></section>'+
+          '<section class="bj-book-page bj-book-recorded"><div class="bj-book-page-inner">'+
+            '<small>COLLECTION · READING & MEDIA</small>'+
+            '<h2 class="bj-book-week-right-title">Stories on my shelves</h2>'+
+            '<div id="bjBookCollectionsContent" class="bj-collections-content"></div>'+
           '</div></section>'+
         '</div>'+
         '<footer class="bj-book-footer">Start with a simple book. Make it yours as you go. ♡</footer>'+
@@ -259,8 +278,19 @@
     view.querySelector('[data-bj-action="month-next"]').disabled=activeMonth>=monthStart(today());
     window.LifeRPGBulletJournalMonthly?.render?.(activeMonth);
   }
+  function renderCollections(){
+    window.LifeRPGBulletJournalCollections?.render?.();
+  }
+  function openCollections(){
+    ensureButton();
+    if(!ensureView())return false;
+    if(!activeDay){activeDay=today();activeWeek=monday(activeDay);activeMonth=monthStart(activeDay);renderDay();}
+    if(!showChapter("collections"))return false;
+    app.showView?.("bullet-journal");
+    return true;
+  }
   function showChapter(target){
-    if(!["daily","weekly","monthly"].includes(target))return false;
+    if(!["daily","weekly","monthly","collections"].includes(target))return false;
     if(!save())return false;
     chapter=target;
     if(!activeWeek)activeWeek=monday(activeDay||today());
@@ -269,12 +299,14 @@
     view.querySelector("#bjBookDailySpread").hidden=chapter!=="daily";
     view.querySelector("#bjBookWeeklySpread").hidden=chapter!=="weekly";
     view.querySelector("#bjBookMonthlySpread").hidden=chapter!=="monthly";
+    view.querySelector("#bjBookCollectionsSpread").hidden=chapter!=="collections";
     view.querySelectorAll("[data-bj-chapter]").forEach(button=>{
       if(button.dataset.bjChapter===chapter)button.setAttribute("aria-current","page");
       else button.removeAttribute("aria-current");
     });
     if(chapter==="weekly")renderWeek();
     if(chapter==="monthly")renderMonth();
+    if(chapter==="collections")renderCollections();
     return true;
   }
   function changeWeek(target){
@@ -346,5 +378,5 @@
   });
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",initialize,{once:true});
   else initialize();
-  window.LifeRPGBulletJournalBook={version:VERSION,open,openWeekly,openMonth,close,save,changeDate,changeWeek,changeMonth,showChapter,getDate:()=>activeDay,getWeek:()=>activeWeek,getMonth:()=>activeMonth,getChapter:()=>chapter};
+  window.LifeRPGBulletJournalBook={version:VERSION,open,openWeekly,openMonth,openCollections,close,save,changeDate,changeWeek,changeMonth,showChapter,getDate:()=>activeDay,getWeek:()=>activeWeek,getMonth:()=>activeMonth,getChapter:()=>chapter};
 })();
