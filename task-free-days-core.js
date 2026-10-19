@@ -34,8 +34,7 @@
    const fit=a=>available===null||Number(a.task.minutes||20)<=available;
    const ranked=all.filter(a=>contextOf(a.task)!=='outside'||outside).sort((a,b)=>b.points-a.points||(a.task.dueDate||'9999').localeCompare(b.task.dueDate||'9999'));
    // Still show a long critical task rather than pretending nothing exists when budget is short.
-   const primary=ranked.filter(fit).slice(0,4);
-   if(!primary.length&&ranked.length)primary.push({...ranked[0],needsSplit:true});
+   const primary=available===0?[]:ranked.slice(0,4).map(item=>({...item,needsSplit:!fit(item)}));
    const outsideItems=all.filter(a=>contextOf(a.task)==='outside').sort((a,b)=>b.points-a.points).slice(0,3);
    const pending=(tasks||[]).filter(t=>!t.doneAt&&!t.archived);
    const waiting=pending.filter(t=>t.status==='waiting'||(t.blockedBy||[]).length>0);
