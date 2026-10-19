@@ -96,7 +96,7 @@ class TaskProjectBrowserTests(unittest.TestCase):
         self.assertEqual(0,self.page.locator('#todoistPageMount').count())
         self.page.locator('form[data-tp-inbox] input[name=title]').fill('Fiktive Pflichtaufgabe')
         self.page.locator('form[data-tp-inbox] button').click()
-        self.page.locator('.npt-settings').last.click()
+        self.page.locator('.npt-settings summary').first.click()
         self.page.locator('.npt-item button[data-npt-edit]').first.click()
         form=self.page.locator('form[data-npt-edit-form]')
         form.locator('[name=title]').fill('Fiktive Pflichtaufgabe aktualisiert')
