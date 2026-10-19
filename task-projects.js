@@ -67,7 +67,7 @@
    const status=u==='overdue-critical'||u==='today-critical'?'critical':u==='soon-critical'?'soon':'ordinary';
    return `<div class="tp-step tp-${status}">
       <button type="button" data-tp-done="${esc(task.id)}" class="tp-check" aria-label="${esc(task.title)} abschließen" title="Als erledigt markieren">○</button>
-      <div class="tp-step-body"><strong>${esc(task.title)}</strong><small>${esc(labelUrgency(task,now))} · ~${Math.round(task.minutes||20)} Min.${task.hurdle==='high'?' · 😰 Bauchschmerz-Aufgabe':''}</small>${!canDo?`<small>Vorher: ${esc(task.blockedBy.join(', '))}</small>`:''}</div>
+      <div class="tp-step-body"><strong>${esc(task.title)}</strong><small>${esc(labelUrgency(task,now))} · ~${Math.round(task.minutes||20)} Min.${task.hurdle==='high'?' · 😰 Bauchschmerz-Aufgabe':''}${task.dateKind==='target'?' · Zieldatum':' · Frist'}</small>${task.status==='waiting'?'<small>⏳ Wartet auf externe Rückmeldung. Erst bei Eingang abschließen.</small>':''}${task.notes?`<small>${esc(task.notes)}</small>`:''}${!canDo?`<small>Vorher: ${esc(task.blockedBy.join(', '))}</small>`:''}</div>
       <label class="tp-date" title="Individuelle Frist bearbeiten"><span>Bis</span><input type="date" value="${esc(task.dueDate||'')}" data-tp-date="${esc(task.id)}" aria-label="Fälligkeitsdatum für ${esc(task.title)}"></label>
       <button type="button" class="tp-hurdle" data-tp-hurdle="${esc(task.id)}" title="Emotionale Hürde umschalten" aria-label="Emotionale Hürde umschalten">${task.hurdle==='high'?'😰':'🙂'}</button>
     </div>`;
