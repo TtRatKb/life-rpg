@@ -40,6 +40,11 @@
    for(const task of dated){
      const id=String(task.id),due=task.dueDate,blocked=(task.blockedBy||[]).length>0;
      if(due<today)issues.push({id,type:'overdue',title:task.title,remaining:Number(task.minutes)||0});
+     if(task.status==='waiting' || blocked){
+       assignments[id]={dueDate:due,minutes:0,unallocated:0,days:[],blocked:true};
+       if(due<=add(today,3))issues.push({id,type:task.status==='waiting'?'waiting':'blocked',title:task.title});
+       continue;
+     }
      if(due>end){issues.push({id,type:'out-of-range',title:task.title});continue;}
      if(isFixed(task)){assignments[id]={fixed:true,dueDate:due,minutes:0,unallocated:0,days:[]};continue;}
      let remaining=Math.max(5,Math.min(2400,Math.round(Number(task.minutes)||20)));
@@ -58,7 +63,7 @@
      }
      assignments[id]={dueDate:due,minutes:Math.max(5,Math.min(2400,Math.round(Number(task.minutes)||20))),days:allocated,unallocated:remaining,fixed:false};
      if(remaining>0)issues.push({id,type:'overload',title:task.title,remaining});
-     if(blocked&&allocated.some(a=>a.date===today))issues.push({id,type:'blocked',title:task.title});
+     // Dependencies are handled before allocation; never suggest work that cannot begin.
    }
    for(const task of missing)issues.push({id:String(task.id),type:'no-date',title:task.title});
    const dueToday=mandatory.filter(t=>utcDay(t.dueDate)&&t.dueDate<=today);
