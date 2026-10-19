@@ -1,0 +1,67 @@
+name: Task project regression checks
+
+on:
+  pull_request:
+    paths:
+      - 'task-projects.js'
+      - 'task-projects-core.js'
+      - 'task-projects.css'
+      - 'tests/test_task_projects.cjs'
+      - 'tests/test_task_projects_ui.cjs'
+      - 'tests/test_task_projects_browser.py'
+      - 'index.html'
+      - 'service-worker.js'
+      - '.github/workflows/task-projects.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'task-projects.js'
+      - 'task-projects-core.js'
+      - 'task-projects.css'
+      - 'tests/test_task_projects.cjs'
+      - 'tests/test_task_projects_ui.cjs'
+      - 'index.html'
+      - 'service-worker.js'
+      - '.github/workflows/task-projects.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  task-projects:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Parse task project modules and PWA bootstrap
+        run: |
+          node --check task-projects-core.js
+          node --check task-projects.js
+          node --check service-worker.js
+      - name: Test calendar math, optional branches and safe saves
+        run: |
+          node tests/test_task_projects.cjs
+          node tests/test_task_projects_ui.cjs
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install isolated browser dependencies
+        run: |
+          python -m pip install playwright
+          python -m playwright install --with-deps chromium
+      - name: Browser smoke test with synthetic tasks
+        run: python -m unittest discover -s tests -p 'test_task_projects_browser.py' -v
+      - name: Confirm assets are wired into document and offline cache
+        run: |
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const html=fs.readFileSync('index.html','utf8'),sw=fs.readFileSync('service-worker.js','utf8');
+          for (const asset of ['task-projects-core.js','task-projects.js','task-projects.css']) {
+            if (!html.includes(asset+'?v=0.31.4-task-projects1') || !sw.includes(asset+'?v=0.31.4-task-projects1')) throw Error('Asset not registered: '+asset);
+          }
+          if (!html.includes('id="taskProjectMount"') || !html.includes('id="taskProjectTodayMount"')) throw Error('Task project mount missing');
+          console.log('Task project assets and mounts registered');
+          NODE
