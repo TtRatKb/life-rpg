@@ -1,6 +1,11 @@
 /* Life RPG · suggestions for open/unstructured days. NO automatic scheduling/rewards. */
 (function(root,factory){const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;if(root)root.LifeRPGFreeDayCore=api;})(typeof globalThis!=='undefined'?globalThis:this,function(){
  'use strict';
+ function contextOf(t){
+   if(['home','school','outside','any'].includes(t?.context))return t.context;
+   const title=String(t?.title||'').toLocaleLowerCase('de-DE');
+   return /(?:arzt|praxis|apotheke|postfiliale).*(?:abholen|hinfahren|besorgen)|(?:abholen|hinfahren).*(?:arzt|praxis|apotheke|postfiliale)/.test(title)?'outside':'any';
+ }
  function toDay(s){if(!/^\d{4}-\d{2}-\d{2}$/.test(String(s||'')))return null;const d=new Date(s+'T12:00:00Z');return Number.isFinite(+d)&&d.toISOString().slice(0,10)===s?d:null;}
  function days(a,b){const x=toDay(a),y=toDay(b);return x&&y?Math.round((+y- +x)/86400000):null;}
  function score(t,now,style='balanced'){
@@ -22,16 +27,16 @@
  function recommend(tasks,now,opts={}){
    if(!toDay(now))throw Error('Invalid local date.');
    const style=['balanced','frog','gentle','quick'].includes(opts.style)?opts.style:'balanced';
-   const available=Number.isFinite(Number(opts.availableMinutes))?Math.max(0,Math.min(720,Number(opts.availableMinutes))):null;
+   const available=opts.availableMinutes===null||opts.availableMinutes===undefined?null:Number.isFinite(Number(opts.availableMinutes))?Math.max(0,Math.min(720,Number(opts.availableMinutes))):null;
    const outside=Boolean(opts.alreadyOut);
    let all=(tasks||[]).map(t=>({task:t,points:score(t,now,style)})).filter(x=>x.points!==null);
-   all=all.map(({task,points})=>({task,points:points+(task.context==='outside'&&!outside?-16:0)}));
+   all=all.map(({task,points})=>({task,points:points+(contextOf(task)==='outside'&&!outside?-16:0)}));
    const fit=a=>available===null||Number(a.task.minutes||20)<=available;
-   const ranked=all.filter(a=>a.task.context!=='outside'||outside).sort((a,b)=>b.points-a.points||(a.task.dueDate||'9999').localeCompare(b.task.dueDate||'9999'));
+   const ranked=all.filter(a=>contextOf(a.task)!=='outside'||outside).sort((a,b)=>b.points-a.points||(a.task.dueDate||'9999').localeCompare(b.task.dueDate||'9999'));
    // Still show a long critical task rather than pretending nothing exists when budget is short.
    const primary=ranked.filter(fit).slice(0,4);
    if(!primary.length&&ranked.length)primary.push({...ranked[0],needsSplit:true});
-   const outsideItems=all.filter(a=>a.task.context==='outside').sort((a,b)=>b.points-a.points).slice(0,3);
+   const outsideItems=all.filter(a=>contextOf(a.task)==='outside').sort((a,b)=>b.points-a.points).slice(0,3);
    const pending=(tasks||[]).filter(t=>!t.doneAt&&!t.archived);
    const waiting=pending.filter(t=>t.status==='waiting'||(t.blockedBy||[]).length>0);
    const withDates=pending.filter(t=>t.mandatory!==false&&toDay(t.dueDate));
@@ -39,5 +44,5 @@
    return {primary,outsideItems:outside?[]:outsideItems,waiting:waiting.slice(0,3),nextDeadline,
      totalOpen:pending.length,possible:all.length,style};
  }
- return {days,score,recommend};
+ return {days,score,recommend,contextOf};
 });
