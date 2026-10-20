@@ -302,7 +302,7 @@ class TaskProjectBrowserTests(unittest.TestCase):
         self.assertTrue(form.is_visible())
         ids=self.page.evaluate("LifeRPGTaskProjects.getOpen().map(t=>t.id)")
         for id in ids:
-            form.locator('input[name=taskId]').evaluate("(el, id) => {el.checked=true;}",id)
+            form.locator('input[name=taskId][value="'+id+'"]').check()
             form.locator('select[name="status-'+id+'"]').select_option('done' if id==ids[0] else 'progress')
             form.locator('input[name="note-'+id+'"]').fill('Synthetic progress note')
         form.locator('button[type=submit]').click()
