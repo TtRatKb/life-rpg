@@ -14,7 +14,15 @@
    return week.filter(x=>!x.canceled).map(x=>({start:x.start,end:x.end})).concat(window.LifeRPGGoogleCalendar?.busy?.(date)||[]);
  }
  function outOfHome(){return alreadyOut;} // A calendar appointment does not prove an outside errand.
- function choices(){return core.recommend(tasks.getOpen(),selected,{style,availableMinutes:budget,alreadyOut:outOfHome()});}
+ function loggedTaskMinutesFor(date){
+   // One canonical time entry counts once even when three tasks were worked on.
+   return Math.round((window.LifeRPGTime?.getEntries?.()||[]).filter(e=>{
+     const end=new Date(e.endAt||e.startAt);const key=[end.getFullYear(),String(end.getMonth()+1).padStart(2,'0'),String(end.getDate()).padStart(2,'0')].join('-');
+     return key===date&&Array.isArray(e.taskLinks)&&e.taskLinks.length>0;
+   }).reduce((sum,e)=>sum+Math.max(0,Number(e.minutes)||0),0));
+ }
+ function remainingBudget(){return budget===null?null:Math.max(0,budget-loggedTaskMinutesFor(selected));}
+ function choices(){return core.recommend(tasks.getOpen(),selected,{style,availableMinutes:remainingBudget(),alreadyOut:outOfHome()});}
  function activeTask(){return tasks.getOpen().find(t=>t.id===activeId)||null;}
  function focusMarkup(){
    if(stopped)return '<div class="tfd-focus" role="status"><strong>🌙 Für heute genug</strong><p>Kirishima: „Dann machen wir hier Schluss. Die offenen Aufgaben bleiben gespeichert – du musst nicht jede freie Minute verplanen.“</p><button type="button" class="secondary-button" data-tfd-resume>Vorschläge wieder ansehen</button></div>';
@@ -22,8 +30,8 @@
    const task=activeTask();if(!task||!focusCore.taskReady(task))return '';
    const minutes=focusCore.sliceMinutes(task,budget);
    return '<div class="tfd-focus"><div class="tfd-focus-head"><strong>✦ '+E(task.title)+'</strong><button type="button" data-tfd-cancel aria-label="Starthilfe schließen">×</button></div><div class="tfd-character">'+[['kiri','☀️ Kirishima'],['bakugo','💥 Bakugo']].map(([id,label])=>'<button type="button" data-tfd-guide="'+id+'" class="'+(guide===id?'active':'')+'">'+label+'</button>').join('')+'</div><p><b>'+E(guide==='bakugo'?'Bakugo':'Kirishima')+':</b> „'+E(focusCore.dialogue(task,guide,phase))+'“</p>'
-     +(phase==='start'?'<p class="tfd-hint">'+(minutes? 'Vorschlag: nur '+minutes+' Minuten als erster Schritt. Kein Timer und keine automatische Arbeitszeiterfassung.':'Heute ist keine Arbeitszeit vorgesehen – du kannst auch einfach Feierabend machen.')+'</p>':'<p class="tfd-hint">Wenn du nur angefangen hast, bleibt die Aufgabe offen. Du kannst später weitermachen.</p>')
-     +'<div class="tfd-focus-actions">'+(minutes&&phase==='start'?'<button type="button" class="primary-button" data-tfd-step>Mit einem kleinen Schritt anfangen</button>':'')+'<button type="button" class="primary-button" data-tfd-done>Tatsächlich erledigt ✓</button><button type="button" class="secondary-button" data-tfd-cancel>Später weitermachen</button><button type="button" class="secondary-button" data-tfd-stop>Für heute Schluss 🌙</button></div></div>';
+     +(phase==='start'?'<p class="tfd-hint">'+(minutes?'Du kannst direkt alles fertig machen oder nur einen Einstieg von ungefähr '+minutes+' Min. probieren. Das ist eine Schätzung, keine Stoppuhr.':'Heute sind keine zusätzlichen Aufgabenminuten vorgesehen. Du kannst jederzeit entscheiden, doch etwas zu machen.')+'</p>':'<p class="tfd-hint">Ein kleiner Einstieg hat noch nichts abgehakt. Notiere jetzt, was du geschafft hast, damit es beim nächsten Mal nicht verloren geht.</p>')
+     +'<div class="tfd-focus-actions">'+(minutes&&phase==='start'?'<button type="button" class="secondary-button" data-tfd-step>Nur einen kleinen Einstieg probieren</button>':'')+'<button type="button" class="primary-button" data-tfd-done>✓ Fertig oder Zwischenstand festhalten</button><button type="button" class="secondary-button" data-tfd-start-timer>▶ Mit Timer arbeiten</button>'+(phase==='step'?'<button type="button" class="secondary-button" data-tfd-progress>↳ Was ich geschafft habe, speichern</button>':'')+'<button type="button" class="secondary-button" data-tfd-cancel>Später weitermachen</button><button type="button" class="secondary-button" data-tfd-stop>Für heute Schluss 🌙</button></div></div>';
  }
  function preview(){
    const todayDate=selected,open=tasks.getOpen(),choice=choices(),cal=window.LifeRPGGoogleCalendar;
@@ -34,7 +42,7 @@
      +'<p>Keine Aufgabe wird automatisch auf einen Ferientag gelegt. Hier bekommst du sinnvolle Vorschläge – auch wenn „Heute unbedingt“ null anzeigt.</p>'
      +'<label>Für welchen Tag planen wir? <input type="date" data-tfd-date value="'+E(todayDate)+'"></label>'
      +'<div class="tfd-presets">'+[['balanced','⚖ Ausgewogen'],['frog','🐸 Unangenehmes zuerst'],['gentle','🌷 Sanfter Einstieg'],['quick','⚡ Kleine Dinge zuerst']].map(([id,label])=>'<button type="button" data-tfd-style="'+id+'" class="'+(style===id?'active':'')+'">'+label+'</button>').join('')+'</div>'
-     +'<div class="tfd-budget"><strong>Wie viel möchtest du heute freiwillig machen?</strong><div>'+[[null,'Offen lassen'],[0,'Heute nichts 🌙'],[15,'15 Min.'],[30,'30 Min.'],[60,'1 Std.'],[120,'2 Std.']].map(([value,label])=>'<button type="button" data-tfd-budget="'+(value===null?'open':value)+'" class="'+(budget===value?'active':'')+'">'+label+'</button>').join('')+'</div></div>'
+     +'<div class="tfd-budget"><strong>Wie viel freiwillige Aufgabenzeit möchtest du ungefähr einplanen?</strong><p class="tfd-hint">Nur eine Auswahlhilfe, kein automatisch gestarteter Timer. Die Aufwandsangaben der Aufgaben sind Schätzungen. Nur bestätigte, mit Aufgaben verknüpfte Zeitlogs werden hiervon abgezogen – nicht jeder Klick.</p><div>'+[[null,'Ohne Zeitlimit anzeigen'],[0,'Heute keine Aufgaben 🌙'],[15,'15 Min.'],[30,'30 Min.'],[60,'1 Std.'],[120,'2 Std.']].map(([value,label])=>'<button type="button" data-tfd-budget="'+(value===null?'open':value)+'" class="'+(budget===value?'active':'')+'">'+label+'</button>').join('')+'</div>'+(budget!==null?'<small>Mit Aufgaben verknüpft und tatsächlich geloggt: '+loggedTaskMinutesFor(todayDate)+' Min. · noch '+remainingBudget()+' Min. im freiwilligen Richtwert. Ohne Zeitlog wird nichts abgezogen.</small>':'')+'</div>'
      +'<div class="tfd-top"><strong>'+E(nameDate(todayDate))+'</strong><small>'+upcoming.length+' bekannte Zeitblöcke / Termine · '+windows.reduce((sum,b)=>sum+b.availableMinutes,0)+' Min. eigene Arbeitsfenster</small></div>'
      +(scope?'<p class="tfd-hint">⚠ '+E(scope)+'</p>':'')
      +focusMarkup()
@@ -63,7 +71,9 @@
    if(b.hasAttribute('data-tfd-focus')){const task=tasks.getOpen().find(t=>t.id===b.dataset.tfdFocus);if(!focusCore.taskReady(task))return;activeId=task.id;phase='start';finishedTitle='';finishedId='';guide=task.hurdle==='high'?'kiri':'bakugo';stopped=false;render();return;}
    if(b.hasAttribute('data-tfd-guide')){guide=b.dataset.tfdGuide==='bakugo'?'bakugo':'kiri';render();return;}
    if(b.hasAttribute('data-tfd-step')){phase='step';render();return;}
-   if(b.hasAttribute('data-tfd-done')){const task=activeTask();if(!focusCore.taskReady(task))return;const success=tasks.completeTask?.(task.id);if(success){finishedTitle=task.title;finishedId=task.id;activeId='';phase='done';render();}return;}
+   if(b.hasAttribute('data-tfd-done')){const task=activeTask();if(task)window.LifeRPGTaskSessionReview?.openTask?.(task.id);return;}
+   if(b.hasAttribute('data-tfd-progress')){const task=activeTask();if(task)window.LifeRPGTaskSessionReview?.openTask?.(task.id);return;}
+   if(b.hasAttribute('data-tfd-start-timer')){const task=activeTask();if(task)window.LifeRPGTaskSessionReview?.openStart?.(task.id);return;}
    if(b.hasAttribute('data-tfd-undo')){if(finishedId&&tasks.reopenTask?.(finishedId)){activeId=finishedId;phase='start';finishedTitle='';finishedId='';}render();return;}
    if(b.hasAttribute('data-tfd-next')){activeId='';phase='start';finishedId='';finishedTitle='';render();return;}
    if(b.hasAttribute('data-tfd-cancel')){activeId='';phase='start';render();return;}
@@ -101,6 +111,7 @@
    window.addEventListener('life-rpg:google-calendar-updated',render);
    window.addEventListener('life-rpg:task-work-windows-changed',render);
    window.addEventListener('life-rpg:task-projects-changed',render);
+   window.addEventListener('life-rpg:time-change',render);
    window.addEventListener('life-rpg:view-changed',render);
    render();
  }
