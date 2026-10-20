@@ -54,7 +54,7 @@
     const finish = event.target.closest?.("[data-universal-timer-finish]");
     if (finish) {
       event.preventDefault();
-      window.LifeRPGTime?.finishActive?.();
+      if(!window.LifeRPGTaskSessionReview?.requestFinish?.())window.LifeRPGTime?.finishActive?.();
       return;
     }
 
