@@ -103,6 +103,7 @@
     els.manualCategory?.addEventListener("change", () => populateSubcategory(els.manualCategory, els.manualSubcategory));
 
     els.startFocus?.addEventListener("click", () => {
+      const priorTimer=state().active?.id||null;
       const minutes = clamp(Math.round(Number(els.focusMinutes?.value || 50)), 5, 240);
       const breakMinutes = clamp(Math.round(Number(els.breakMinutes?.value || 10)), 0, 60);
       startActive({
@@ -114,6 +115,11 @@
         targetMinutes: minutes,
         breakMinutes
       });
+      const active=state().active;
+      if(active?.id!==priorTimer && ["focus","school","work_home","life_admin"].includes(active?.categoryId)){
+        app.showView?.("tasks");
+        window.LifeRPGTaskSessionReview?.openPick?.();
+      }
     });
 
     els.startClock?.addEventListener("click", () => {
