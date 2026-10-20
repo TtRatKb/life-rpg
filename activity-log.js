@@ -275,6 +275,20 @@
       rows.push(timeRow(entry, event, key));
     });
 
+    // Task progress without a time log is still meaningful history, but never new XP.
+    // Task progress linked to time is already displayed inside its canonical time row.
+    (root.taskProjectsV1?.taskActivityV1 || []).filter(item => !item.timeEntryId &&
+      dateKey(new Date(item.at || 0)) === key).forEach(item => {
+      const text = item.status === "done" ? "✓ Wirklich abgeschlossen" : item.status === "reopen" ? "↺ Wieder geöffnet" : "↳ Zwischenstand";
+      rows.push({
+        id: 'task-progress-' + item.id, at: item.at, category: "quest", icon: "✎",
+        sourceLabel: "Meine Aufgaben · Fortschritt", title: item.title || "Aufgabe",
+        detail: text + (item.note ? ' · ' + item.note : '') + (item.projectTitle ? ' · ' + item.projectTitle : ''),
+        reward: emptyReward(), rewardKnown: true, duplicate: false,
+        why: '<p>Dieser Fortschritt wurde ohne Zeitlog festgehalten. Es wurde keine Arbeitszeit und keine zusätzliche Belohnung erzeugt.</p>'
+      });
+    });
+
     // Habit completions.
     const habits = root.habits?.items || [];
     (root.habits?.completions || []).filter(log => String(log.date || dateKey(new Date(log.timestamp || 0))) === key).forEach(log => {
@@ -459,8 +473,11 @@
     const beforeEffective = effectiveMinutesBefore(entry, key);
     const effective = number(entry.minutes) * meta.multiplier;
     const focusBonus = number(event?.metadata?.focusCompletionBonus);
-    const detail = `${formatDuration(entry.minutes)} · ${meta.label}${entry.subcategory ? ` / ${entry.subcategory}` : ""}${entry.mode === "focus" ? " · Focus timer" : entry.mode === "action" ? " · Action timer" : entry.mode === "manual" ? " · Manual log" : ""}`;
+    const links = Array.isArray(entry.taskLinks) ? entry.taskLinks.filter(x=>x&&x.taskId) : [];
+    const linkedDetail = links.length ? ' · Aufgaben: '+links.map(x=>(x.status==='done'?'✓ ':'↳ ')+String(x.title||x.taskId)+(x.note?' · '+String(x.note):'')).join(' | ') : '';
+    const detail = `${formatDuration(entry.minutes)} · ${meta.label}${entry.subcategory ? ` / ${entry.subcategory}` : ""}${entry.mode === "focus" ? " · Focus timer" : entry.mode === "action" ? " · Action timer" : entry.mode === "manual" ? " · Manual log" : ""}${linkedDetail}`;
     let why = `<p><strong>${formatDuration(entry.minutes)}</strong> was logged to Life Rhythm.</p>`;
+    if (links.length) why += `<p>Diese ${links.length} Aufgabe(n) wurden diesem bestehenden Zeitlog zugeordnet. Die Minuten wurden nicht pro Aufgabe neu gezählt, und die Aufgabenzuordnung hat keine zusätzlichen XP erzeugt.</p>`;
     if (meta.multiplier <= 0) {
       why += `<p>This time category intentionally has <strong>no direct time-farming reward</strong>. Any linked Quest, Book, Game, Adventure, or Recovery action can still reward its own completion separately.</p>`;
     } else {
