@@ -110,7 +110,11 @@
    root.addEventListener('click',click);root.addEventListener('change',change);root.addEventListener('submit',submit);
    window.addEventListener('life-rpg:google-calendar-updated',render);
    window.addEventListener('life-rpg:task-work-windows-changed',render);
-   window.addEventListener('life-rpg:task-projects-changed',render);
+   window.addEventListener('life-rpg:task-projects-changed',()=>{
+     const t=activeId&&tasks.getTask?.(activeId);
+     if(t?.doneAt&&phase!=='done'){finishedTitle=t.title;finishedId=t.id;activeId='';phase='done';}
+     render();
+   });
    window.addEventListener('life-rpg:time-change',render);
    window.addEventListener('life-rpg:view-changed',render);
    render();
