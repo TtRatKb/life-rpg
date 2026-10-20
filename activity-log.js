@@ -277,7 +277,9 @@
 
     // Task progress without a time log is still meaningful history, but never new XP.
     // Task progress linked to time is already displayed inside its canonical time row.
-    (root.taskProjectsV1?.taskActivityV1 || []).filter(item => !item.timeEntryId &&
+    const taskLogs = root.taskProjectsV1?.taskActivityV1 || [];
+    const liveTimeIds = new Set((root.timeTracking?.entries||[]).map(e=>e.id));
+    taskLogs.filter(item => (!item.timeEntryId || !liveTimeIds.has(item.timeEntryId)) &&
       dateKey(new Date(item.at || 0)) === key).forEach(item => {
       const text = item.status === "done" ? "✓ Wirklich abgeschlossen" : item.status === "reopen" ? "↺ Wieder geöffnet" : "↳ Zwischenstand";
       rows.push({
@@ -287,6 +289,16 @@
         reward: emptyReward(), rewardKnown: true, duplicate: false,
         why: '<p>Dieser Fortschritt wurde ohne Zeitlog festgehalten. Es wurde keine Arbeitszeit und keine zusätzliche Belohnung erzeugt.</p>'
       });
+    });
+
+    // Legacy native task completions predate taskActivityV1. Keep them findable
+    // without inventing history, time, or a second reward.
+    const allLegacy=[...(root.taskProjectsV1?.inbox||[]),...(root.taskProjectsV1?.projects||[]).flatMap(p=>(p.tasks||[]).map(t=>({...t,projectTitle:p.title})))];
+    allLegacy.filter(t=>t.doneAt&&dateKey(new Date(t.doneAt))===key&&!taskLogs.some(log=>log.taskId===t.id&&log.status==='done')).forEach(t=>{
+      rows.push({id:'legacy-task-'+t.id,at:t.doneAt,category:'quest',icon:'✓',sourceLabel:'Meine Aufgaben · früher erledigt',
+        title:t.title||'Aufgabe',detail:'✓ Früher als erledigt markiert'+(t.projectTitle?' · '+t.projectTitle:''),
+        reward:emptyReward(),rewardKnown:true,duplicate:false,
+        why:'<p>Diese Aufgabe wurde bereits vor der Fortschrittshistorie abgehakt. Die ursprüngliche Erledigung bleibt unverändert; weder Minuten noch XP wurden nachträglich erfunden.</p>'});
     });
 
     // Habit completions.
