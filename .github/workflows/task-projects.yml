@@ -187,7 +187,7 @@ jobs:
           }
           for (const asset of ['task-progress-core.js','task-projects.js','task-session-review.js','task-session-review.css',
             'task-free-days.js','task-planning-ui.js','time.js','my-week.js','universal-timers.js','activity-log.js']) {
-            if(!html.includes(asset+'?v=0.31.4-task-time1') || !sw.includes(asset+'?v=0.31.4-task-time1')) throw Error('Task/time asset missing: '+asset);
+            if(!html.includes(asset+'?v=0.31.4-task-time2') || !sw.includes(asset+'?v=0.31.4-task-time2')) throw Error('Task/time asset missing: '+asset);
           }
           if(!html.includes('id="taskSessionActiveMount"'))throw Error('Task timer status mount missing');
           console.log('Task project assets and mounts registered');

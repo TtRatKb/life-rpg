@@ -318,3 +318,20 @@ class TaskProjectBrowserTests(unittest.TestCase):
         self.page.reload(wait_until='domcontentloaded')
         self.page.wait_for_function("window.LifeRPGTaskProgressCore && LifeRPGApp.getState().timeTracking?.entries?.length===1")
         self.assertEqual(2,len(self.page.evaluate('LifeRPGApp.getState().timeTracking.entries[0].taskLinks')))
+
+    def test_focus_start_offers_task_matching_and_progress_note_resumes(self):
+        self.page.wait_for_function("window.LifeRPGTime && window.LifeRPGTaskSessionReview")
+        self.page.evaluate("""() => LifeRPGTaskProjects.createTask({
+          title:'Synthetic lesson for resuming',dueDate:'2026-11-15',minutes:40,mandatory:true
+        })""")
+        self.page.locator('[data-tfd-focus]').first.click()
+        self.page.locator('[data-tfd-done]').click()
+        self.page.locator('[data-tsr-task] [name=note]').fill('Synthetic slides finished; worksheet still missing')
+        self.page.locator('[data-tsr-task] button[type=submit]').click()
+        self.assertIn('Synthetic slides finished',self.page.locator('.tfd-focus').inner_text())
+        self.page.evaluate("LifeRPGApp.showView('rhythm')")
+        self.page.locator('#startFocusButton').click()
+        self.assertTrue(self.page.locator('[data-tsr-pick] button[type=submit]').is_visible())
+        self.assertEqual('tasks',self.page.evaluate("LifeRPGApp.getState().ui?.activeView || (document.querySelector('#view-tasks').classList.contains('active')?'tasks':'not-tasks')"))
+        self.page.locator('[data-tsr-pick] button[type=submit]').click()
+        self.assertTrue(self.page.evaluate('!!LifeRPGTime.getActive()'))
