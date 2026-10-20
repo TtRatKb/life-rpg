@@ -28,13 +28,15 @@ class TaskProjectBrowserTests(unittest.TestCase):
         html=re.sub(r'<link\b[^>]*>','',html)
         cls.html=html.replace('</body>',
             '<script src="/data/quests.js"></script><script src="/pako.min.js"></script>'
-            '<script src="/app.js"></script><script src="/task-projects-core.js"></script>'
+            '<script src="/app.js"></script><script src="/time.js"></script>'
+            '<script src="/task-projects-core.js"></script><script src="/task-progress-core.js"></script>'
             '<script src="/task-projects.js"></script><script src="/task-planning-core.js"></script>'
             '<script src="/task-planning-ui.js"></script><script src="/task-pack-core.js"></script>'
             '<script src="/task-pack-ui.js"></script><script src="/task-work-windows-core.js"></script>'
             '<script src="/task-work-windows.js"></script><script src="/task-wizard.js"></script>'
             '<script src="/task-free-days-core.js"></script><script src="/task-google-calendar-core.js"></script>'
-            '<script src="/task-google-calendar.js"></script><script src="/task-focus-core.js"></script><script src="/task-free-days.js"></script></body>')
+            '<script src="/task-google-calendar.js"></script><script src="/task-focus-core.js"></script>'
+            '<script src="/task-free-days.js"></script><script src="/task-session-review.js"></script></body>')
 
     @classmethod
     def tearDownClass(cls):
@@ -243,12 +245,16 @@ class TaskProjectBrowserTests(unittest.TestCase):
         self.assertIn('ersten',self.page.locator('.tfd-focus').inner_text())
         self.assertEqual(1,len(self.page.evaluate("LifeRPGApp.getState().taskProjectsV1.inbox")))
         self.page.locator('[data-tfd-done]').click()
+        self.page.locator('[data-tsr-task] [name=status]').select_option('done')
+        self.page.locator('[data-tsr-task] button[type=submit]').click()
         self.assertEqual(0,len(self.page.evaluate("LifeRPGTaskProjects.getOpen()")))
         self.assertTrue(self.page.evaluate("!!LifeRPGApp.getState().taskProjectsV1.inbox[0].doneAt"))
         self.assertIn('Geschafft',self.page.locator('.tfd-focus').inner_text())
         self.page.locator('[data-tfd-undo]').click()
         self.assertEqual(1,len(self.page.evaluate("LifeRPGTaskProjects.getOpen()")))
         self.page.locator('[data-tfd-done]').click()
+        self.page.locator('[data-tsr-task] [name=status]').select_option('done')
+        self.page.locator('[data-tsr-task] button[type=submit]').click()
         self.page.reload(wait_until='domcontentloaded')
         self.page.wait_for_function("window.LifeRPGTaskProjects && LifeRPGApp.getState().taskProjectsV1?.inbox?.length===1")
         self.assertEqual(0,len(self.page.evaluate("LifeRPGTaskProjects.getOpen()")))
@@ -265,3 +271,50 @@ class TaskProjectBrowserTests(unittest.TestCase):
         self.assertTrue(self.page.locator('[data-tfd-focus]').count()>0)
         self.page.evaluate("""() => {LifeRPGGoogleCalendar.busy = () => [{start:'14:00',end:'16:00'}]}""")
         self.assertFalse(self.page.evaluate("LifeRPGFreeDay._test.outOfHome('2026-10-20')"))
+
+    def test_task_partial_progress_note_and_activity_without_fake_time(self):
+        self.page.wait_for_function("window.LifeRPGTaskSessionReview && window.LifeRPGTaskProgressCore")
+        self.page.evaluate("""() => LifeRPGTaskProjects.createTask({
+          title:'Synthetic planning',dueDate:'2026-11-14',minutes:50,mandatory:true
+        })""")
+        self.page.evaluate("""() => LifeRPGTaskSessionReview.openTask(LifeRPGTaskProjects.getOpen()[0].id)""")
+        self.page.locator('[data-tsr-task] [name=note]').fill('Folien fertig, Blatt fehlt noch')
+        self.page.locator('[data-tsr-task] button[type=submit]').click()
+        self.assertFalse(self.page.locator('#taskSessionReviewOverlay').is_visible())
+        state=self.page.evaluate("LifeRPGApp.getState()")
+        self.assertEqual(1,len(state['taskProjectsV1']['taskActivityV1']))
+        self.assertIsNone(state['taskProjectsV1']['inbox'][0]['doneAt'])
+        self.assertEqual(0,len(state.get('timeTracking',{}).get('entries',[])))
+        self.assertEqual('Folien fertig, Blatt fehlt noch',state['taskProjectsV1']['inbox'][0]['lastProgressNote'])
+        self.page.reload(wait_until='domcontentloaded')
+        self.page.wait_for_function("window.LifeRPGTaskProgressCore && LifeRPGApp.getState().taskProjectsV1?.taskActivityV1?.length===1")
+
+    def test_one_canonical_timer_log_with_two_task_links(self):
+        self.page.wait_for_function("window.LifeRPGTime && window.LifeRPGTaskSessionReview")
+        self.page.evaluate("""() => {
+          LifeRPGTaskProjects.createTask({title:'Synthetic lesson prep',dueDate:'2026-11-18',minutes:50,mandatory:true});
+          LifeRPGTaskProjects.createTask({title:'Synthetic worksheet',dueDate:'2026-11-18',minutes:30,mandatory:true});
+          // Synthetic but valid pre-existing 12-minute working interval: tests real canonical finish path.
+          LifeRPGTime.startClock({categoryId:'work_home',subcategory:'Lesson planning',label:'Synthetic focus'});
+          const a=LifeRPGApp.getState().timeTracking.active;
+          a.startedAt=new Date(Date.now()-12*60000).toISOString();
+          a.segmentStartedAt=a.startedAt;
+          LifeRPGApp.saveState({source:'synthetic-test-clock',suppressUiRefresh:true});
+          LifeRPGTaskSessionReview.requestFinish();
+        }""")
+        form=self.page.locator('[data-tsr-finish]')
+        self.assertTrue(form.is_visible())
+        ids=self.page.evaluate("LifeRPGTaskProjects.getOpen().map(t=>t.id)")
+        for id in ids:
+            form.locator('input[name=taskId][value="'+id+'"]').check()
+            form.locator('select[name="status-'+id+'"]').select_option('done' if id==ids[0] else 'progress')
+            form.locator('input[name="note-'+id+'"]').fill('Synthetic progress note')
+        form.locator('button[type=submit]').click()
+        state=self.page.evaluate("LifeRPGApp.getState()")
+        self.assertEqual(1,len(state['timeTracking']['entries']))
+        self.assertEqual(2,len(state['timeTracking']['entries'][0]['taskLinks']))
+        self.assertEqual(2,len(state['taskProjectsV1']['taskActivityV1']))
+        self.assertEqual(1,len([t for t in state['taskProjectsV1']['inbox'] if t['doneAt']]))
+        self.page.reload(wait_until='domcontentloaded')
+        self.page.wait_for_function("window.LifeRPGTaskProgressCore && LifeRPGApp.getState().timeTracking?.entries?.length===1")
+        self.assertEqual(2,len(self.page.evaluate('LifeRPGApp.getState().timeTracking.entries[0].taskLinks')))

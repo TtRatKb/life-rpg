@@ -1,8 +1,8 @@
 /* Life RPG · Task Projects v1 · additive to Todoist, without AI, secrets or duplicate rewards. */
 (() => {
  'use strict';
- const app=window.LifeRPGApp, core=window.LifeRPGTaskProjectCore;
- if(!app?.getState || !app.saveState || !core)return;
+ const app=window.LifeRPGApp, core=window.LifeRPGTaskProjectCore, progress=window.LifeRPGTaskProgressCore;
+ if(!app?.getState || !app.saveState || !core || !progress)return;
  const esc=value=>app.escapeHtml(String(value??''));
  const dateToday=()=>{const d=new Date();return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');};
  const dateNice=value=>value?new Date(value+'T12:00:00').toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'}):'Ohne Datum';
@@ -18,6 +18,7 @@
    if(!Array.isArray(m.projects))m.projects=[];
    if(!Array.isArray(m.inbox))m.inbox=[];
    if(!Array.isArray(m.templates))m.templates=[];
+   if(!Array.isArray(m.taskActivityV1))m.taskActivityV1=[];
    return m;
  }
  function mutate(source,fn){
@@ -67,7 +68,7 @@
    const status=u==='overdue-critical'||u==='today-critical'?'critical':u==='soon-critical'?'soon':'ordinary';
    return `<div class="tp-step tp-${status}">
       <button type="button" data-tp-done="${esc(task.id)}" class="tp-check" aria-label="${esc(task.title)} abschließen" title="Als erledigt markieren">○</button>
-      <div class="tp-step-body"><strong>${esc(task.title)}</strong><small>${esc(labelUrgency(task,now))} · ~${Math.round(task.minutes||20)} Min.${task.hurdle==='high'?' · 😰 Bauchschmerz-Aufgabe':''}${task.dateKind==='target'?' · Zieldatum':' · Frist'}</small>${task.status==='waiting'?'<small>⏳ Wartet auf externe Rückmeldung. Erst bei Eingang abschließen.</small>':''}${task.notes?`<small>${esc(task.notes)}</small>`:''}${!canDo?`<small>Vorher: ${esc(task.blockedBy.join(', '))}</small>`:''}</div>
+      <div class="tp-step-body"><strong>${esc(task.title)}</strong><small>${esc(labelUrgency(task,now))} · ~${Math.round(task.minutes||20)} Min.${task.hurdle==='high'?' · 😰 Bauchschmerz-Aufgabe':''}${task.dateKind==='target'?' · Zieldatum':' · Frist'}</small>${task.status==='waiting'?'<small>⏳ Wartet auf externe Rückmeldung. Erst bei Eingang abschließen.</small>':''}${task.notes?`<small>${esc(task.notes)}</small>`:''}${task.lastProgressNote?`<small>↳ Zuletzt: ${esc(task.lastProgressNote)}</small>`:''}${!canDo?`<small>Vorher: ${esc(task.blockedBy.join(', '))}</small>`:''}</div>
       <label class="tp-date" title="Individuelle Frist bearbeiten"><span>Bis</span><input type="date" value="${esc(task.dueDate||'')}" data-tp-date="${esc(task.id)}" aria-label="Fälligkeitsdatum für ${esc(task.title)}"></label>
       <button type="button" class="tp-hurdle" data-tp-hurdle="${esc(task.id)}" title="Emotionale Hürde umschalten" aria-label="Emotionale Hürde umschalten">${task.hurdle==='high'?'😰':'🙂'}</button>
     </div>`;
@@ -137,13 +138,19 @@
    </section>`;
    renderDashboard();
  }
+ function recordUpdate(id,status,note='',options={}){
+   return mutate('task-progress',m=>progress.update(m,{taskId:id,status,note},options.at||new Date().toISOString()));
+ }
+ function linkToTimeEntry(entryId,updates){
+   const entry=(app.getState().timeTracking?.entries||[]).find(e=>e.id===entryId);
+   if(!entry){app.showToast?.('Zeitlog nicht mehr vorhanden.');return false;}
+   const old=entry.taskLinks===undefined?undefined:JSON.stringify(entry.taskLinks);
+   const result=mutate('task-time-link',m=>progress.linkTimeEntry(m,entry,updates,entry.endAt||new Date().toISOString()));
+   if(!result){if(old===undefined)delete entry.taskLinks;else entry.taskLinks=JSON.parse(old);}
+   return result;
+ }
  function markDone(id,undo){
-   return mutate(undo?'reopen':'complete',m=>{
-     const pair=projectTask(id),task=pair?.task||m.inbox.find(t=>t.id===id);
-     if(!task)throw Error('Aufgabe nicht gefunden.');
-     task.doneAt=undo?null:new Date().toISOString();
-     app.showToast?.(undo?'Aufgabe wieder geöffnet':'Schritt erledigt ✓');
-   });
+   return recordUpdate(id,undo?'reopen':'done');
  }
  function updateDate(id,value){
    if(value&&!core.parseDay(value)){app.showToast?.('Bitte gültiges Datum verwenden.');return;}
@@ -223,5 +230,5 @@
    if((!template&&input?.templateId!=='manual-v1')||!title||title.length>110||!core.parseDay(date))return false;
    return mutate('guided-create-project',m=>{const id=uid(),project=template?core.instantiate(template,date,{format:'digital',inclusion:'check',resit:'no'},id):{id,templateId:'manual-v1',title:'',anchorDate:date,options:{},createdAt:new Date().toISOString(),tasks:[]};project.title=title;m.projects.unshift(project);expanded=id;return id;});
  }
- window.LifeRPGTaskProjects={open:()=>app.showView('tasks'),getOpen:()=>allOpen().map(t=>({...t})),getCriticalToday:()=>allOpen().filter(t=>t.mandatory&&t.dueDate&&t.dueDate<=dateToday()),listTemplates:()=>[{id:'manual-v1',name:'Eigenes Projekt · ohne Vorlage'},...templates().map(t=>({id:t.id,name:t.name}))],createTask,createProject,completeTask:id=>markDone(id,false),reopenTask:id=>markDone(id,true),render,_test:{model,markDone,templates,coach}};
+ window.LifeRPGTaskProjects={open:()=>app.showView('tasks'),getOpen:()=>allOpen().map(t=>({...t})),getAll:()=>progress.listTasks(model()),getTask:id=>progress.findTask(model(),id)?.task||null,getHistory:id=>id?(model().taskActivityV1||[]).filter(x=>x.taskId===id).slice():(model().taskActivityV1||[]).slice(),recordUpdate,linkToTimeEntry,getCriticalToday:()=>allOpen().filter(t=>t.mandatory&&t.dueDate&&t.dueDate<=dateToday()),listTemplates:()=>[{id:'manual-v1',name:'Eigenes Projekt · ohne Vorlage'},...templates().map(t=>({id:t.id,name:t.name}))],createTask,createProject,completeTask:id=>markDone(id,false),reopenTask:id=>markDone(id,true),render,_test:{model,markDone,templates,coach}};
 })();

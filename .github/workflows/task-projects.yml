@@ -4,6 +4,13 @@ on:
   pull_request:
     paths:
       - 'task-projects.js'
+      - 'task-progress-core.js'
+      - 'task-session-review.js'
+      - 'task-session-review.css'
+      - 'time.js'
+      - 'universal-timers.js'
+      - 'activity-log.js'
+      - 'tests/test_task_progress.cjs'
       - 'task-work-windows-core.js'
       - 'task-work-windows.js'
       - 'task-work-windows.css'
@@ -44,6 +51,13 @@ on:
     branches: [main]
     paths:
       - 'task-projects.js'
+      - 'task-progress-core.js'
+      - 'task-session-review.js'
+      - 'task-session-review.css'
+      - 'time.js'
+      - 'universal-timers.js'
+      - 'activity-log.js'
+      - 'tests/test_task_progress.cjs'
       - 'task-work-windows-core.js'
       - 'task-work-windows.js'
       - 'task-work-windows.css'
@@ -96,6 +110,11 @@ jobs:
         run: |
           node --check task-projects-core.js
           node --check task-projects.js
+          node --check task-progress-core.js
+          node --check task-session-review.js
+          node --check time.js
+          node --check universal-timers.js
+          node --check activity-log.js
           node --check task-planning-core.js
           node --check task-planning-ui.js
           node --check task-pack-core.js
@@ -114,6 +133,7 @@ jobs:
       - name: Test calendar math, optional branches and safe saves
         run: |
           node tests/test_task_projects.cjs
+          node tests/test_task_progress.cjs
           node tests/test_task_projects_ui.cjs
           node tests/test_task_planning.cjs
           node tests/test_task_pack.cjs
@@ -135,11 +155,11 @@ jobs:
           node - <<'NODE'
           const fs = require('node:fs');
           const html=fs.readFileSync('index.html','utf8'),sw=fs.readFileSync('service-worker.js','utf8');
-          for (const asset of ['task-projects-core.js','task-projects.js','task-projects.css']) {
+          for (const asset of ['task-projects-core.js','task-projects.css']) {
             if (!html.includes(asset+'?v=0.31.4-task-projects1') || !sw.includes(asset+'?v=0.31.4-task-projects1')) throw Error('Asset not registered: '+asset);
           }
           if (!html.includes('id="taskProjectMount"') || !html.includes('id="taskProjectTodayMount"')) throw Error('Task project mount missing');
-          for (const asset of ['task-planning-core.js','task-planning-ui.js','task-planning-ui.css']) {
+          for (const asset of ['task-planning-core.js','task-planning-ui.css']) {
             if (!html.includes(asset+'?v=0.31.4-task-planning2') || !sw.includes(asset+'?v=0.31.4-task-planning2')) throw Error('Asset not registered: '+asset);
           }
           if(html.includes('id="todoistPageMount"'))throw Error('Legacy Todoist mount should no longer exist in native task page');
@@ -162,8 +182,13 @@ jobs:
             if(!html.includes(asset+'?v='+ver)||!sw.includes(asset+'?v='+ver))throw Error('Missing calendar/free-day asset '+asset);
           for (const id of ['taskFreeDayMount','taskGoogleCalendarMount'])
             if (!html.includes('id="'+id+'"')) throw Error('Missing companion mount: '+id);
-          for (const asset of ['task-focus-core.js','task-focus.css','task-free-days.js']) {
+          for (const asset of ['task-focus-core.js','task-focus.css']) {
             if(!html.includes(asset+'?v=0.31.4-focus1') || !sw.includes(asset+'?v=0.31.4-focus1'))throw Error('Focus companion asset missing: '+asset);
           }
+          for (const asset of ['task-progress-core.js','task-projects.js','task-session-review.js','task-session-review.css',
+            'task-free-days.js','task-planning-ui.js','time.js','my-week.js','universal-timers.js','activity-log.js']) {
+            if(!html.includes(asset+'?v=0.31.4-task-time1') || !sw.includes(asset+'?v=0.31.4-task-time1')) throw Error('Task/time asset missing: '+asset);
+          }
+          if(!html.includes('id="taskSessionActiveMount"'))throw Error('Task timer status mount missing');
           console.log('Task project assets and mounts registered');
           NODE

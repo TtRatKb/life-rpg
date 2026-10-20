@@ -130,7 +130,7 @@
 
     els.activeCard?.addEventListener("click", event => {
       const stop = event.target.closest("[data-time-stop]");
-      if (stop) return finishActive();
+      if (stop) return window.LifeRPGTaskSessionReview?.requestFinish?.() || finishActive();
       const cancel = event.target.closest("[data-time-cancel]");
       if (cancel) return cancelActive();
       const pause = event.target.closest("[data-time-pause]");
@@ -382,6 +382,7 @@
       durationSeconds: Math.max(1, Math.round(Number(data.durationSeconds || (Number(data.minutes || 0) * 60) || 60))),
       ...(data.precise ? { precise: true, workIntervals: data.workIntervals.map(row=>({...row})), manualDeductionSeconds:Math.max(0,Number(data.manualDeductionSeconds||0)), correctionNote:clean(data.correctionNote) } : {}),
       targetMinutes: data.targetMinutes == null ? null : Number(data.targetMinutes),
+      ...(Array.isArray(data.taskLinks)?{taskLinks:data.taskLinks.map(x=>({...x}))}:{}),
       rewardEventId: data.rewardEventId || null,
       reward: data.reward && typeof data.reward === "object" ? { ...data.reward } : null,
       rewardProcessed: Boolean(data.rewardProcessed || data.rewardEventId),
@@ -555,11 +556,12 @@
       return;
     }
 
-    let oldDate = null, priorWeekRef = null;
+    let oldDate = null, priorWeekRef = null, priorTaskLinks = null;
     if (existingId) {
       const old = state().entries.find(item => item.id === existingId);
       oldDate = old ? dateKey(new Date(old.endAt || old.startAt || 0)) : null;
       priorWeekRef = old?.weekPlannerRef || null;
+      priorTaskLinks = Array.isArray(old?.taskLinks)?old.taskLinks.map(x=>({...x})):null;
       removeEntry(existingId, { silent: true, recalculate: false });
     }
     const entry = makeEntry({
@@ -576,6 +578,7 @@
     // Preserve the planned occurrence association after a user corrects its time.
     // The correction becomes an explicit/manual entry and is not retracted as an automatic log.
     if (priorWeekRef) { entry.weekPlannerRef = priorWeekRef; entry.weekPlannerAuto = false; }
+    if (priorTaskLinks) entry.taskLinks = priorTaskLinks;
     state().entries.push(entry);
     state().entries.sort((a, b) => new Date(a.startAt || 0) - new Date(b.startAt || 0));
     const newDate = dateKey(end);

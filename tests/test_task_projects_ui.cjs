@@ -1,10 +1,12 @@
 /* Isolated task-project persistence test; no network or real Life RPG data. */
 const assert=require('node:assert/strict');
 const core=require('../task-projects-core.js');
+const progress=require('../task-progress-core.js');
 const storage={};
 let persistOk=true, saves=0;
 global.window={
  LifeRPGTaskProjectCore:core,
+ LifeRPGTaskProgressCore:progress,
  LifeRPGApp:{
   getState:()=>storage,
   escapeHtml:s=>String(s).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch])),
@@ -22,10 +24,10 @@ const sample=core.instantiate(core.exam,'2026-11-20',{format:'digital',inclusion
 storage.taskProjectsV1={schemaVersion:1,projects:[sample],inbox:[],templates:[],offDutyDay:''};
 assert.equal(manager.getOpen().length,sample.tasks.length);
 const design=sample.tasks.find(t=>t.stepId==='design');
-assert.equal(manager._test.markDone(design.id,false),true);
+assert.ok(manager._test.markDone(design.id,false));
 assert.equal(sample.tasks.find(t=>t.stepId==='design').doneAt!==null,true);
 assert.equal(manager.getOpen().length,sample.tasks.length-1);
-assert.equal(manager._test.markDone(design.id,true),true);
+assert.ok(manager._test.markDone(design.id,true));
 assert.equal(manager.getOpen().length,sample.tasks.length);
 const saved=JSON.stringify(storage.taskProjectsV1);
 persistOk=false;
