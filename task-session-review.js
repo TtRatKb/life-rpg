@@ -17,6 +17,13 @@
  }
  function visible(open){ensureModal().hidden=!open;if(!open){mode='';focusId='';priorEntry=null;error='';} }
  function close(){visible(false);}
+ function showSaveError(message){
+   const dialog=modal?.querySelector('.tsr-dialog');
+   if(!dialog)return;
+   let field=dialog.querySelector('[data-tsr-live-error]');
+   if(!field){field=document.createElement('p');field.className='tsr-error';field.dataset.tsrLiveError='';field.setAttribute('role','alert');dialog.querySelector('.tsr-head')?.after(field);}
+   field.textContent=message;
+ }
  const tagText=s=>String(s||'').slice(0,500);
  function taskOptions(category,existing=[]){
    const ranked=core.candidates(model(),category||{});
@@ -85,7 +92,7 @@
  }
  function openPick(){if(!time.getActive())return false;mode='pick';error='';render();return true;}
  function openTask(id){if(!tasks.getTask(id))return false;focusId=id;mode='task';error='';render();return true;}
- function openStart(id){if(!tasks.getTask(id))return false;focusId=id;mode='start';error='';render();return true;}
+ function openStart(id){if(!tasks.getTask(id))return false;if(time.getActive()){const ids=[...new Set([...activeTaskIds(),id])];saveChosenActive(ids);return openPick();}focusId=id;mode='start';error='';render();return true;}
  function requestFinish(){const a=time.getActive();if(!a||!['school','work_home','focus','life_admin'].includes(a.categoryId))return false;mode='finish';error='';render();return true;}
  function previewTime(){
    const form=modal?.querySelector('form[data-tsr-finish]');if(!form)return;
@@ -117,9 +124,9 @@
    const updates=selectedUpdates(form),v=new FormData(form);
    const options={deductionMinutes:Number(v.get('deductionMinutes'))||0,endBackMinutes:Number(v.get('endBackMinutes'))||0};
    const result=priorEntry?{ok:true,entry:priorEntry}:time.finishActive(options);
-   if(!result?.ok){error=result?.reason||'Zeit konnte nicht erfasst werden.';render();return;}
+   if(!result?.ok){showSaveError(result?.reason||'Zeit konnte nicht erfasst werden.');return;}
    priorEntry=result.entry;
-   if(updates.length&&!addToLog(result.entry.id,updates)){error='Arbeitszeit wurde bereits gespeichert. Die Aufgabenzuordnung konnte nicht gespeichert werden – bitte erneut versuchen (kein neues Zeitlog).';render();return;}
+   if(updates.length&&!addToLog(result.entry.id,updates)){showSaveError('Arbeitszeit wurde bereits gespeichert, aber die Aufgabenzuordnung nicht. Du kannst sie hier erneut speichern – es entsteht dabei kein zweiter Zeitlog.');return;}
    close();app.showToast?.('Arbeitszeit einmal erfasst · Aufgaben zugeordnet ✓');
  }
  function submit(e){
