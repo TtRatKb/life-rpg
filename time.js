@@ -130,7 +130,7 @@
 
     els.activeCard?.addEventListener("click", event => {
       const stop = event.target.closest("[data-time-stop]");
-      if (stop) return finishActive();
+      if (stop) return window.LifeRPGTaskSessionReview?.requestFinish?.() || finishActive();
       const cancel = event.target.closest("[data-time-cancel]");
       if (cancel) return cancelActive();
       const pause = event.target.closest("[data-time-pause]");
