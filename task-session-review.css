@@ -1,0 +1,26 @@
+/* Task × Time · one review, no duplication */
+.tsr-overlay[hidden]{display:none!important}
+.tsr-overlay{position:fixed;inset:0;z-index:22000;background:rgba(33,24,39,.65);display:flex;align-items:center;justify-content:center;padding:12px;overflow:auto}
+.tsr-dialog{width:min(680px,100%);max-height:min(90vh,960px);overflow:auto;padding:19px;background:#fffaf7;border:1px solid #dac8da;border-radius:16px;color:#675468;box-shadow:0 12px 35px #34202f52}
+.tsr-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.tsr-head h2{font-size:1.1rem;margin:2px 0}
+.tsr-head button{border:0;background:transparent;font-size:1.35rem;color:#887185;cursor:pointer}
+.tsr-dialog p{font-size:.8rem;line-height:1.55}
+.tsr-dialog label{display:grid;gap:5px;font-size:.77rem}
+.tsr-dialog textarea,.tsr-dialog input:not([type=checkbox]),.tsr-dialog select{width:100%;box-sizing:border-box;border:1px solid #d8c7d5;border-radius:8px;background:#fff;color:#654f65;padding:8px;font:inherit;font-size:.78rem}
+.tsr-dialog form{display:grid;gap:12px;margin-top:10px}
+.tsr-time{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.tsr-list{display:grid;gap:9px;max-height:275px;overflow:auto;padding:8px;background:#fcf5f8;border-radius:10px}
+.tsr-task-row{display:grid;grid-template-columns:minmax(110px,1.5fr) minmax(125px,1fr);gap:7px;align-items:center;border-bottom:1px solid #ebdfe9;padding:6px 0}
+.tsr-task-row>label{display:flex;gap:8px;align-items:start}
+.tsr-task-row>input{grid-column:1/-1}
+.tsr-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.tsr-actions button{font-size:.78rem}
+.tsr-hint{color:#987f91;font-size:.71rem!important}
+.tsr-error{padding:9px;background:#fff0ed;border:1px solid #e6b4ad;border-radius:8px;color:#9a5956}
+.tsr-conditional{padding:10px;background:#f6edf2;border-radius:10px}
+.tsr-conditional[hidden]{display:none!important}
+.tsr-mini{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;background:#f1e6ed;border:1px solid #d7c6d5;border-radius:12px;padding:10px 12px;color:#745672;font-size:.76rem;margin:10px 0}
+.tsr-mini>div{display:flex;gap:7px;flex-wrap:wrap}
+.tsr-mini button{border:1px solid #d5bcd0;border-radius:8px;background:#fffafc;padding:7px 9px;font-size:.73rem;color:#765a79}
+@media(max-width:550px){.tsr-time,.tsr-task-row{grid-template-columns:1fr}.tsr-dialog{padding:12px}}
