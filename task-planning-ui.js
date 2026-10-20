@@ -113,6 +113,10 @@
      .sort((a,b)=>(a.dueDate||'9999').localeCompare(b.dueDate||'9999')).slice(0,5);
    const forward=node('div',null,'npt-upcoming');forward.append(node('h3','🗓 Danach kommt · nächste Projektschritte'));
    if(!future.length)forward.append(node('p','Keine weiteren planbaren Schritte vorhanden.','npt-note'));
+   const progress=(app.getState().taskProjectsV1?.taskActivityV1||[]).slice(-8).reverse();
+   const history=node('details',null,'npt-settings');history.append(node('summary','Zuletzt bearbeitet · '+progress.length+' Einträge'));
+   progress.forEach(e=>history.append(node('p',(e.status==='done'?'✓ Fertig: ':e.status==='reopen'?'↺ Wieder geöffnet: ':'↳ Zwischenstand: ')+(e.title||'Aufgabe')+(e.note?' · '+e.note:'')+(e.timeEntryId?' · mit Zeitlog':' · ohne Zeitlog'),'npt-note')));
+   card.append(history);
    future.forEach(t=>forward.append(taskRow(t,p)));
    card.append(forward);
    const rest=node('details',null,'npt-settings');rest.append(node('summary','Alle '+native.getOpen().length+' offenen Aufgaben aus Projekten & Inbox anzeigen / bearbeiten'));
