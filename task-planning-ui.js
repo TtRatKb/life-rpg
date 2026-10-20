@@ -113,7 +113,11 @@
      .sort((a,b)=>(a.dueDate||'9999').localeCompare(b.dueDate||'9999')).slice(0,5);
    const forward=node('div',null,'npt-upcoming');forward.append(node('h3','🗓 Danach kommt · nächste Projektschritte'));
    if(!future.length)forward.append(node('p','Keine weiteren planbaren Schritte vorhanden.','npt-note'));
-   const progress=(app.getState().taskProjectsV1?.taskActivityV1||[]).slice(-8).reverse();
+   const model=app.getState().taskProjectsV1||{};
+   const activity=model.taskActivityV1||[];
+   const legacy=[...(model.inbox||[]),...(model.projects||[]).flatMap(p=>p.tasks||[])].filter(t=>t.doneAt&&!activity.some(e=>e.taskId===t.id&&e.status==='done'))
+     .map(t=>({taskId:t.id,title:t.title,status:'done',at:t.doneAt}));
+   const progress=[...activity,...legacy].sort((a,b)=>String(b.at).localeCompare(String(a.at))).slice(0,8);
    const history=node('details',null,'npt-settings');history.append(node('summary','Zuletzt bearbeitet · '+progress.length+' Einträge'));
    progress.forEach(e=>history.append(node('p',(e.status==='done'?'✓ Fertig: ':e.status==='reopen'?'↺ Wieder geöffnet: ':'↳ Zwischenstand: ')+(e.title||'Aufgabe')+(e.note?' · '+e.note:'')+(e.timeEntryId?' · mit Zeitlog':' · ohne Zeitlog'),'npt-note')));
    card.append(history);
