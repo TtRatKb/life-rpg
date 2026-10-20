@@ -78,7 +78,7 @@
      const logs=(time.getEntries?.()||[]).filter(e=>['work_home','focus','school','life_admin'].includes(e.categoryId)).slice(-25).reverse();
      body='<p><strong>'+E(task.title)+'</strong></p><form data-tsr-task><label>Wie weit bist du gekommen?<select name="status"><option value="progress">Nur angefangen / weitergearbeitet</option><option value="done">Wirklich fertiggestellt</option></select></label>'
        +'<label>Was genau hast du geschafft? (fürs nächste Mal)<textarea name="note" maxlength="500" rows="3" placeholder="Zum Beispiel: Folien 1–4 stehen, Arbeitsblatt fehlt noch.">'+E(task.lastProgressNote||'')+'</textarea></label>'
-       +'<label>Arbeitszeit – nur wenn du sie tatsächlich erfassen möchtest<select name="linkMode"><option value="none">Keine Zeit erfassen · nur Aufgabe aktualisieren</option>'
+       +'<p class="tsr-hint">Bitte keine Schülernamen, Gesundheitsdetails oder andere sensiblen Daten in den Zwischenstand schreiben.</p><label>Arbeitszeit – nur wenn du sie tatsächlich erfassen möchtest<select name="linkMode"><option value="none">Keine Zeit erfassen · nur Aufgabe aktualisieren</option>'
        +(a?'<option value="active">Laufenden Timer zuerst abschließen</option>':'')
        +(logs.length?'<option value="existing">Mit schon erfasstem Zeitlog verknüpfen (keine weitere Zeit)</option>':'')
        +(!a?'<option value="manual">Tatsächlich geleistete Zeit einmal erfassen</option>':'')
