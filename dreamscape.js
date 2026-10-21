@@ -1486,7 +1486,7 @@
     Hobbies: "assets/story/backgrounds/time/shared_apartment_night.webp"
   };
   const DREAM_SPRITES = {
-    bakugo: ["assets/story/characters/bakugo-neutral.png", "assets/story/characters/bakugo-soft.png"],
+    bakugo: ["assets/story/characters/bakugo-v3/bakugo-annoyed.webp", "assets/story/characters/bakugo-v3/bakugo-soft.webp"],
     kirishima: ["assets/story/characters/kirishima-neutral.png", "assets/story/characters/kirishima-happy.png"]
   };
   function sceneBeats(dream) {
