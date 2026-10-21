@@ -132,11 +132,20 @@
    }
    return "What feels right now?";
  }
+ function visiblyBlocking(element){
+   // A mobile-only cloud gate remains in the DOM on desktop (display:none).
+   // Its data-state alone must never hide the Companion on a larger screen.
+   if(!element||element.hidden||element.inert||element.getAttribute('aria-hidden')==='true')return false;
+   const style=window.getComputedStyle(element);
+   return style.display!=='none'&&style.visibility!=='hidden'&&element.getClientRects().length>0;
+ }
  function hiddenByContext(){
    const id=document.querySelector('.view.active')?.id||'';
    if(/(?:story|dream|coloring|drawing|memories|phone|people|talks|training|studio)/.test(id))return true;
-   if(document.querySelector('dialog[open],.vn-reader[aria-hidden="false"],.mobile-cloud-gate-v251:not(.is-hidden-v251)[data-state="checking"]'))return true;
-   return false;
+   const modalOpen=[...document.querySelectorAll('dialog[open],.vn-reader[aria-hidden="false"]')].some(visiblyBlocking);
+   if(modalOpen)return true;
+   const gate=document.getElementById('mobileCloudGate');
+   return Boolean(gate?.dataset.state==='checking'&&visiblyBlocking(gate));
  }
  function init(){
    dock=document.createElement('aside');dock.id='livingCompanionDock';dock.className='lc-dock';dock.setAttribute('aria-label','Living Companion');
@@ -146,6 +155,12 @@
    for(const ev of ['life-rpg:view-changed','life-rpg:habit-complete','life-rpg:task-projects-changed','life-rpg:google-calendar-updated','life-rpg:task-work-windows-changed'])window.addEventListener(ev,refresh);
    window.addEventListener('life-rpg:state-saved',event=>{if(!String(event.detail?.source||'').startsWith('living-companion:'))render();});
    window.addEventListener('focus',refresh);document.addEventListener('visibilitychange',()=>{if(!document.hidden)render();});
+   // The cloud gate can close without any task/state event; refresh immediately.
+   const gate=document.getElementById('mobileCloudGate');
+   if(gate&&typeof MutationObserver!=='undefined'){
+     new MutationObserver(refresh).observe(gate,{attributes:true,attributeFilter:['class','aria-hidden','data-state','style']});
+   }
+   window.addEventListener('resize',refresh);
    window.setInterval(()=>{if(!document.hidden)render();},60000);
    render();
  }
