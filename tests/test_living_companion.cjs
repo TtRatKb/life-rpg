@@ -25,6 +25,8 @@ assert.equal(c.recommend({...free,habits:[{id:'supp',daypart:'morning'}],tasks:[
 assert.equal(c.recommend({...free,habits:[{id:'throw',daypart:'anytime'}],tasks:[]}).kind,'habit');
 assert.equal(c.recommend({...free,habits:[{id:'throw',daypart:'anytime'}],tasks:[],snoozed:{'habit:throw':+now+60000}}).kind,'open');
 assert.equal(c.recommend({...free,habits:[{id:'throw',daypart:'anytime'}],tasks:[],excluded:['habit:throw']}).kind,'open');
+assert.equal(c.recommend({...free,calendarIncomplete:true}).kind,'calendar');
+assert.equal(c.recommend({...free,offDuty:true,games:[{id:'paused',status:'paused',owned:true}]}).kind,'task');
 assert.equal(c.freeSlot(new Date('2026-10-21T14:50:00+02:00'),appt,15).reason,'busy');
 assert.equal(c.freeSlot(new Date('2026-10-21T15:25:00+02:00'),appt,15).reason,'open');
 console.log('Living Companion: hard time safety, context, habits, off-duty, recovery, dismissals pass');
