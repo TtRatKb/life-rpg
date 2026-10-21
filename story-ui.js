@@ -5013,6 +5013,9 @@
   }
 
   function resolveCharacterAsset(character, item) {
+    // New canonical Bakugo V3 sprites supersede every SP_004 historical outfit/expression image.
+    // Keep story IDs, dialogue and scene metadata unchanged; only asset routing changes.
+    if (item?.id === 'bakugo') return window.LifeRPGBakugoSpriteV3?.resolve(item.expression || 'neutral') || null;
     if (!character) return null;
 
     // V0.8 supports explicit outfit + expression while remaining compatible
