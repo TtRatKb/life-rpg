@@ -19,6 +19,11 @@ on:
       - 'task-free-days-core.js'
       - 'task-free-days.js'
       - 'task-focus-core.js'
+      - 'living-companion-core.js'
+      - 'living-companion.js'
+      - 'living-companion.css'
+      - 'habits.js'
+      - 'tests/test_living_companion.cjs'
       - 'task-focus.css'
       - 'tests/test_task_focus.cjs'
       - 'task-free-days.css'
@@ -66,6 +71,11 @@ on:
       - 'task-free-days-core.js'
       - 'task-free-days.js'
       - 'task-focus-core.js'
+      - 'living-companion-core.js'
+      - 'living-companion.js'
+      - 'living-companion.css'
+      - 'habits.js'
+      - 'tests/test_living_companion.cjs'
       - 'task-focus.css'
       - 'tests/test_task_focus.cjs'
       - 'task-free-days.css'
@@ -125,6 +135,9 @@ jobs:
           node --check task-free-days-core.js
           node --check task-free-days.js
           node --check task-focus-core.js
+          node --check living-companion-core.js
+          node --check living-companion.js
+          node --check habits.js
           node --check task-google-calendar-core.js
           node --check task-google-calendar.js
           node --check my-week.js
@@ -140,6 +153,7 @@ jobs:
           node tests/test_task_work_windows.cjs
           node tests/test_task_free_days.cjs
           node tests/test_task_focus.cjs
+          TZ=Europe/Berlin node tests/test_living_companion.cjs
           TZ=Europe/Berlin node tests/test_task_google_calendar.cjs
       - uses: actions/setup-python@v5
         with:

@@ -36,7 +36,8 @@ class TaskProjectBrowserTests(unittest.TestCase):
             '<script src="/task-work-windows.js"></script><script src="/task-wizard.js"></script>'
             '<script src="/task-free-days-core.js"></script><script src="/task-google-calendar-core.js"></script>'
             '<script src="/task-google-calendar.js"></script><script src="/task-focus-core.js"></script>'
-            '<script src="/task-free-days.js"></script><script src="/task-session-review.js"></script></body>')
+            '<script src="/task-free-days.js"></script><script src="/task-session-review.js"></script>'
+            '<script src="/living-companion-core.js"></script><script src="/living-companion.js"></script></body>')
 
     @classmethod
     def tearDownClass(cls):
@@ -68,6 +69,14 @@ class TaskProjectBrowserTests(unittest.TestCase):
             route.abort()
         else:
             route.continue_()
+
+    def test_living_companion_uses_existing_tasks_without_new_reward(self):
+        self.page.wait_for_function("window.LifeRPGLivingCompanion && document.querySelector(\'#livingCompanionDock\')")
+        initial=self.page.evaluate("(LifeRPGApp.getState().rewardLedger?.events||[]).length")
+        self.page.evaluate("document.querySelector('#mobileCloudGate').classList.add('is-hidden-v251'); LifeRPGLivingCompanion.render()")
+        self.assertFalse(self.page.evaluate("document.querySelector('#livingCompanionDock').hidden"))
+        self.assertEqual("checkin",self.page.evaluate("LifeRPGLivingCompanion.recommendation().kind"))
+        self.assertEqual(initial,self.page.evaluate("(LifeRPGApp.getState().rewardLedger?.events||[]).length"))
 
     def test_template_generates_steps_and_survives_reload(self):
         self.page.locator('.tp-create summary').click()
