@@ -13,7 +13,7 @@
   const paths=Object.freeze(Object.fromEntries(bases.map(id=>[id,prefix+id+'.webp'])));
   const emotionForExpression=(expression)=>{
     const e=String(expression||'neutral').toLowerCase();
-    if(/surpris|startl|caught.off.guard|shock/.test(e))return 'surprised';
+    if(/surpris|startl|caught.?off.?guard|shock/.test(e))return 'surprised';
     if(/fluster|embarrass|shy|tsundere|bashful/.test(e))return 'flustered';
     if(/angry|rage|feral|seething|sparking|shouting|clenched|furious/.test(e))return 'angry';
     if(/concern|worr|protect|vulnerab|tired|weary|pain|hurt|uneasy|sad|exhaust/.test(e))return 'worried';
