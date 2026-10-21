@@ -1672,7 +1672,7 @@
       .map(habit => snapshotForHabit(habit, dateKey))
       .filter(snapshot => snapshot.canComplete && !snapshot.periodComplete)
       .map(snapshot => ({ id: snapshot.habit.id, name: snapshot.habit.name,
-        daypart: normalizedDaypart(snapshot.habit), linkedQuestId: snapshot.habit.linkedQuestId || null })),
+        daypart: normalizedDaypart(snapshot.habit), effort: snapshot.habit.effort || 'normal', linkedQuestId: snapshot.habit.linkedQuestId || null })),
     complete: completeHabit
   };
 })();
