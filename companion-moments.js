@@ -18,7 +18,7 @@
     Hobbies:"assets/story/backgrounds/time/shared_apartment_night.webp"
   };
   const SPRITES = {
-    bakugo:{neutral:"assets/story/characters/bakugo-neutral.png",soft:"assets/story/characters/bakugo-soft.png",smug:"assets/story/characters/bakugo-smug.png"},
+    bakugo:{neutral:"assets/story/characters/bakugo-v3/bakugo-annoyed.webp",soft:"assets/story/characters/bakugo-v3/bakugo-soft.webp",smug:"assets/story/characters/bakugo-v3/bakugo-proud.webp"},
     kirishima:{neutral:"assets/story/characters/kirishima-neutral.png",soft:"assets/story/characters/kirishima-happy.png",smug:"assets/story/characters/kirishima-teasing.png"}
   };
   const n = (text) => ({speaker:"luca",text});
