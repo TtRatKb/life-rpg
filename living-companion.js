@@ -5,10 +5,10 @@
  if(!app?.getState||!app.saveState||!core)return;
  const E=v=>app.escapeHtml?.(String(v??''))||String(v??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
  const faces={
-   bakugo:{name:'Katsuki',img:'assets/story/characters/bakugo-neutral.png',symbol:'💥'},
-   kirishima:{name:'Eijiro',img:'assets/story/characters/kirishima-neutral.png',symbol:'☀️'},
+   bakugo:{name:'Katsuki',img:'assets/story/characters/bakugo-neutral.png',soft:'assets/story/characters/bakugo-soft.png',symbol:'💥'},
+   kirishima:{name:'Eijiro',img:'assets/story/characters/kirishima-neutral.png',soft:'assets/story/characters/kirishima-happy.png',symbol:'☀️'},
    mina:{name:'Mina',img:'assets/story/sprites/mina_neutral.png',symbol:'💗'},
-   luca:{name:'Luca',img:'assets/ui/thumbs/characters/luca_neutral.webp',symbol:'✿'}
+   luca:{name:'Luca',img:'assets/ui/thumbs/characters/luca_neutral.webp',soft:'assets/ui/thumbs/characters/luca_soft_smile.webp',symbol:'✿'}
  };
  let dock=null,settingOpen=false,uiStatus='',lastKey='';
  const day=()=>core.localDate(new Date());
@@ -155,7 +155,8 @@
    if(dock.hidden)return;
    const s=settings(),who=person(),face=faces[who],rec=recommendation();
    const mode=offDuty()?'Off-duty mode':'Day companion';
-   const art=window.LifeRPGVisuals?.thumbnail?.(face.img)||face.img;
+   const artSource=face.soft&&['rest','game','book','habit'].includes(rec.kind)?face.soft:face.img;
+   const art=window.LifeRPGVisuals?.thumbnail?.(artSource)||artSource;
    const key=[who,rec.kind,rec.id,rec.item?.title,rec.item?.name,rec.slot?.minutes,rec.slot?.next?.title,mode,s.bufferMinutes,s.collapsed,settingOpen].join('|');
    // Render on relevant app events, never globally tick/rebuild every second.
    if(lastKey===key&&!uiStatus)return;
