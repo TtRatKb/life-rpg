@@ -73,6 +73,8 @@ class TaskProjectBrowserTests(unittest.TestCase):
     def test_living_companion_uses_existing_tasks_without_new_reward(self):
         self.page.wait_for_function("window.LifeRPGLivingCompanion && document.querySelector(\'#livingCompanionDock\')")
         initial=self.page.evaluate("(LifeRPGApp.getState().rewardLedger?.events||[]).length")
+        self.page.evaluate("document.querySelector('#mobileCloudGate').classList.add('is-hidden-v251'); LifeRPGLivingCompanion.render()")
+        self.assertFalse(self.page.evaluate("document.querySelector('#livingCompanionDock').hidden"))
         self.assertEqual("checkin",self.page.evaluate("LifeRPGLivingCompanion.recommendation().kind"))
         self.assertEqual(initial,self.page.evaluate("(LifeRPGApp.getState().rewardLedger?.events||[]).length"))
 
