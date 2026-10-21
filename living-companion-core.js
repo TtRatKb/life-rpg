@@ -60,7 +60,27 @@
    const allowed=id=>!excluded.has(id)&&Number(snoozed[id]||0)<=+now;
    if(slot.reason==='busy')return {kind:'busy',slot,capacity};
    if(slot.reason==='departure')return {kind:'departure',slot,capacity};
-   if(input.calendarIncomplete)return {kind:'calendar',slot,capacity};
+   if(input.calendarIncomplete){
+     // An offline calendar means all unconfirmed time windows are unknown.
+     // Offer only explicitly requested, non-scheduled tiny habits / voluntary leisure.
+     if(input.safeOnly){
+       const hour=now.getHours();
+       const tiny=(input.habits||[]).filter(h=>h?.id&&['tiny','low'].includes(h.effort)
+         &&habitTime(h,hour)&&allowed('habit:'+h.id));
+       const habit=tiny[0];
+       if(habit)return {kind:'habit',id:'habit:'+habit.id,item:habit,slot,capacity,calendarUnverified:true};
+       if(input.offDuty){
+         const game=(input.games||[]).find(g=>g?.id&&['playing','backlog','endless'].includes(g.status)
+           &&g.owned!==false&&!['low','someday'].includes(g.motivation)&&allowed('game:'+g.id));
+         if(game)return {kind:'game',id:'game:'+game.id,item:game,slot,capacity,calendarUnverified:true};
+         const book=(input.books||[]).find(b=>b?.id&&['reading','owned'].includes(b.status)
+           &&b.role!=='work'&&allowed('book:'+b.id));
+         if(book)return {kind:'book',id:'book:'+book.id,item:book,slot,capacity,calendarUnverified:true};
+       }
+       return {kind:'calendar',slot,capacity,safeExhausted:true};
+     }
+     return {kind:'calendar',slot,capacity};
+   }
    if(!input.checkIn&&input.preferCheckIn!==false&&allowed('checkin'))return {kind:'checkin',id:'checkin',slot,capacity};
    const hour=now.getHours();
    const habits=(input.habits||[]).filter(h=>h&&h.id&&allowed('habit:'+h.id)&&habitTime(h,hour));

@@ -10,7 +10,8 @@
    mina:{name:'Mina',img:'assets/story/sprites/mina_neutral.png',symbol:'💗'},
    luca:{name:'Luca',img:'assets/ui/thumbs/characters/luca_neutral.webp',soft:'assets/ui/thumbs/characters/luca_soft_smile.webp',symbol:'✿'}
  };
- let dock=null,settingOpen=false,uiStatus='',lastKey='';
+ let dock=null,settingOpen=false,uiStatus='',lastKey='',safeIdeas=false;
+ let watchedDockObstacle=null,watchedLauncher=null;
  const day=()=>core.localDate(new Date());
  function allowed(){
    const flags=app.getState().flags||{};
@@ -69,6 +70,7 @@
      checkIn:record?.checkIn||null,tasks:window.LifeRPGTaskProjects?.getOpen?.()||[],habits,
      games:window.LifeRPGGames?.getItems?.()||[],books:window.LifeRPGLibrary?.getItems?.()||[],
      offDuty:offDuty(),excluded:s.dismissed,snoozed:s.snoozed,
+     safeOnly:safeIdeas,
      calendarIncomplete:Boolean(window.LifeRPGGoogleCalendar?.hasSetup?.()&&!window.LifeRPGGoogleCalendar?.connected?.())});
  }
  function line(id,rec){
@@ -86,10 +88,10 @@
      luca:"This time is already booked."
    }[id];
    if(rec.kind==='calendar')return {
-     bakugo:"Calendar connection's down. I'm not guessing your free time. Check it first.",
-     kirishima:"I can't see your connected calendar right now. Let's check that before starting anything big.",
-     mina:"Calendar check! I might be missing appointments, so no big task recommendations just yet.",
-     luca:"My connected calendar isn't available. Better check it before planning."
+     bakugo:rec.safeExhausted?"No safe quick picks left. Check your calendar first; I'm not guessing.":"Calendar connection's down. I'm not guessing your free time. Check it first.",
+     kirishima:rec.safeExhausted?"No quick, low-pressure ideas left for now. Let's check your calendar.":"I can't see your connected calendar right now. Let's check that before starting anything big.",
+     mina:rec.safeExhausted?"That's all the tiny ideas I found! Maybe reconnect your calendar next?":"Calendar check! I might be missing appointments, so no big task recommendations just yet.",
+     luca:rec.safeExhausted?"No more reliable tiny suggestions for now; I should check my schedule.":"My connected calendar isn't available. Better check it before planning."
    }[id];
    if(rec.kind==='checkin')return {
      bakugo:"Before we pick a task, how much energy have you actually got?",
@@ -147,6 +149,53 @@
    const gate=document.getElementById('mobileCloudGate');
    return Boolean(gate?.dataset.state==='checking'&&visiblyBlocking(gate));
  }
+ function visibleObstacle(node){
+   if(!node||node.hidden)return false;
+   const css=getComputedStyle(node);
+   return css.display!=='none'&&css.visibility!=='hidden'&&node.getClientRects().length>0;
+ }
+ function positionDock(){
+   if(!dock||dock.hidden)return;
+   const launcher=document.getElementById('lifeRpgFocusLauncher');
+   const timer=document.getElementById('lifeRpgFocusDock');
+   // An expanded Quick Actions menu needs the interaction space to itself.
+   dock.classList.toggle('lc-menu-open',Boolean(launcher?.classList.contains('is-open')&&visibleObstacle(launcher)));
+   if(dock.classList.contains('lc-menu-open'))return;
+   dock.classList.remove('lc-space-tight');
+   dock.style.bottom='';
+   const initial=dock.getBoundingClientRect();
+   let bottom=Math.max(0,window.innerHeight-initial.bottom);
+   for(const obstacle of [launcher,timer]){
+     if(!visibleObstacle(obstacle))continue;
+     const bounds=obstacle.getBoundingClientRect();
+     const horizontal=initial.left<bounds.right+8&&initial.right>bounds.left-8;
+     if(horizontal)bottom=Math.max(bottom,window.innerHeight-bounds.top+12);
+   }
+   dock.style.bottom=Math.round(bottom)+'px';
+   // On a shallow viewport, keep the character accessible without clipping the entire card.
+   if(dock.getBoundingClientRect().top<8){
+     dock.classList.add('lc-space-tight');
+     if(dock.getBoundingClientRect().top<8)
+       dock.style.bottom=Math.max(8,window.innerHeight-dock.offsetHeight-8)+'px';
+   }
+ }
+ function watchDockObstacles(){
+   const launcher=document.getElementById('lifeRpgFocusLauncher');
+   const timer=document.getElementById('lifeRpgFocusDock');
+   if(launcher&&launcher!==watchedLauncher){
+     watchedLauncher=launcher;
+     if(typeof ResizeObserver!=='undefined')new ResizeObserver(positionDock).observe(launcher);
+     if(typeof MutationObserver!=='undefined')
+       new MutationObserver(positionDock).observe(launcher,{attributes:true,attributeFilter:['class','style']});
+   }
+   if(timer&&timer!==watchedDockObstacle){
+     watchedDockObstacle=timer;
+     if(typeof ResizeObserver!=='undefined')new ResizeObserver(positionDock).observe(timer);
+     if(typeof MutationObserver!=='undefined')
+       new MutationObserver(positionDock).observe(timer,{attributes:true,attributeFilter:['class','style']});
+   }
+   positionDock();
+ }
  function init(){
    dock=document.createElement('aside');dock.id='livingCompanionDock';dock.className='lc-dock';dock.setAttribute('aria-label','Living Companion');
    dock.addEventListener('click',click);
@@ -161,6 +210,11 @@
      new MutationObserver(refresh).observe(gate,{attributes:true,attributeFilter:['class','aria-hidden','data-state','style']});
    }
    window.addEventListener('resize',refresh);
+   window.addEventListener('life-rpg:time-change',watchDockObstacles);
+   document.addEventListener('click',event=>{if(event.target.closest?.('#lifeRpgFocusLauncher'))watchDockObstacles();});
+   // Focus dock is loaded asynchronously via pwa.js after our own script.
+   if(typeof MutationObserver!=='undefined')new MutationObserver(watchDockObstacles).observe(document.body,{childList:true});
+   watchDockObstacles();
    window.setInterval(()=>{if(!document.hidden)render();},60000);
    render();
  }
@@ -172,9 +226,9 @@
    const mode=offDuty()?'Off-duty mode':'Day companion';
    const artSource=face.soft&&['rest','game','book','habit'].includes(rec.kind)?face.soft:face.img;
    const art=window.LifeRPGVisuals?.thumbnail?.(artSource)||artSource;
-   const key=[who,rec.kind,rec.id,rec.item?.title,rec.item?.name,rec.slot?.minutes,rec.slot?.next?.title,mode,s.bufferMinutes,s.collapsed,settingOpen].join('|');
+   const key=[who,rec.kind,rec.id,rec.item?.title,rec.item?.name,rec.slot?.minutes,rec.slot?.next?.title,rec.safeExhausted,rec.calendarUnverified,mode,s.bufferMinutes,s.collapsed,settingOpen].join('|');
    // Render on relevant app events, never globally tick/rebuild every second.
-   if(lastKey===key&&!uiStatus)return;
+   if(lastKey===key&&!uiStatus){watchDockObstacles();return;}
    lastKey=key;
    const mini=s.collapsed;
    dock.innerHTML='<div class="lc-surface '+(mini?'lc-mini':'')+'">'+
@@ -184,6 +238,7 @@
        '<div class="lc-heading"><strong>'+E(face.name)+'</strong><small>'+E(mode)+'</small><button type="button" data-lc="settings" aria-label="Companion settings">⚙</button><button type="button" data-lc="toggle" aria-label="Minimize">×</button></div>'+
        '<p aria-live="polite">'+E(line(who,rec))+'</p>'+
        (rec.kind==='task'?'<small class="lc-context">'+E(rec.smallStep?'Optional first step · '+rec.minutes+' min':'Estimated '+rec.minutes+' min')+'</small>':'')+
+       (rec.calendarUnverified?'<small class="lc-context">Calendar offline · check your schedule before starting</small>':'')+
        (['departure','busy'].includes(rec.kind)&&rec.slot.next?'<small class="lc-context">Next: '+E(rec.slot.next.title)+'</small>':'')+
        '<div class="lc-actions">'+actions(rec)+'</div>'+
        (settingOpen?'<div class="lc-options"><label>Time buffer before appointments <select data-lc-buffer>'+[0,10,15,30,45,60].map(n=>'<option value="'+n+'" '+(n===s.bufferMinutes?'selected':'')+'>'+n+' min</option>').join('')+'</select></label><small>Travel time is not inferred. Add enough preparation and travel buffer for your schedule.</small><button type="button" data-lc="character">Switch guide</button><button type="button" data-lc="reset">Show skipped suggestions again</button></div>':'')+
@@ -191,6 +246,7 @@
      '</section>')+'</div>';
    dock.querySelector('.lc-portrait img')?.addEventListener('error',e=>e.currentTarget.remove(),{once:true});
    uiStatus='';
+   watchDockObstacles();
  }
  function actions(rec){
    const button=(id,label,primary=false)=>'<button type="button" data-lc="'+id+'" class="'+(primary?'lc-primary':'')+'">'+label+'</button>';
@@ -198,7 +254,7 @@
    if(rec.kind==='habit')return button('habit','✓ Done',true)+button('later','Later')+button('skip','Not today');
    if(rec.kind==='game'||rec.kind==='book')return button('leisure','Open '+(rec.kind==='game'?'games':'books'),true)+button('later','Later')+button('skip','Something else');
    if(rec.kind==='checkin')return button('checkin','Daily check-in',true)+button('skip','Later');
-   if(rec.kind==='calendar')return button('calendar','Open calendar',true)+button('toggle','Got it');
+   if(rec.kind==='calendar')return rec.safeExhausted?button('calendar','Open calendar',true)+button('toggle','Got it'):button('safe','Tiny safe idea',true)+button('calendar','Open calendar')+button('toggle','Got it');
    if(rec.kind==='departure'||rec.kind==='busy')return button('toggle','Got it',true)+button('duty',offDuty()?'Work mode':'Off duty');
    return button('duty',offDuty()?'Work mode':'Done working',true)+button('reset','What else?')+button('checkin','Check in');
  }
@@ -211,7 +267,8 @@
    if(action==='reset'){write('reset',x=>{x.dismissed=[];x.snoozed={};});lastKey='';render();return;}
    if(action==='duty'){if(!setDuty(!offDuty()))uiStatus='Could not change mode.';lastKey='';render();return;}
    if(action==='checkin'){window.LifeRPGDaily?.openBriefing?.();return;}
-   if(action==='calendar'){app.showView?.('tasks');return;}
+   if(action==='calendar'){safeIdeas=false;app.showView?.('tasks');return;}
+   if(action==='safe'){safeIdeas=true;lastKey='';render();return;}
    if((action==='later'||action==='skip')&&rec.id){
      write(action,x=>{if(action==='later')x.snoozed[rec.id]=Date.now()+60*60000;else x.dismissed=[...(x.dismissed||[]),rec.id].slice(-70);});
      lastKey='';render();return;

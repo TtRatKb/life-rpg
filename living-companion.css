@@ -1,5 +1,5 @@
 /* Living Companion: unobtrusive, persistent, keyboard-accessible. */
-.lc-dock{position:fixed;right:18px;bottom:24px;z-index:480;width:min(350px,calc(100vw - 28px));font-family:inherit;pointer-events:none}
+.lc-dock{position:fixed;right:18px;bottom:calc(env(safe-area-inset-bottom,0px) + 155px);z-index:480;width:min(350px,calc(100vw - 28px));font-family:inherit;pointer-events:none}
 .lc-dock[hidden]{display:none!important}.lc-surface{display:flex;align-items:flex-end;gap:8px;pointer-events:auto}
 .lc-portrait{border:2px solid #fbf0ff;background:linear-gradient(150deg,#e5d2f0,#ffdfd1);box-shadow:0 5px 19px #24142835;border-radius:48% 48% 22px 22px;width:82px;height:106px;flex:none;position:relative;overflow:hidden;cursor:pointer;padding:0}
 .lc-portrait span{position:absolute;inset:36% 0 auto;text-align:center;font-size:32px}.lc-portrait img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center top}
@@ -13,5 +13,11 @@
 .lc-options{border-top:1px solid #e7d8e7;margin-top:9px;padding-top:9px;display:flex;flex-direction:column;gap:7px}
 .lc-options label,.lc-options small{font-size:11px;color:#66506d}.lc-options select{width:100%;display:block;margin-top:3px;border:1px solid #c8b6d0;background:white;border-radius:6px;padding:6px}
 .lc-status{display:block;color:#a24747;margin-top:6px;font-size:11px}
-@media(max-width:700px){.lc-dock{right:9px;bottom:calc(83px + env(safe-area-inset-bottom,0px));width:min(310px,calc(100vw - 18px))}.lc-portrait{width:58px;height:78px}.lc-bubble{padding:9px 10px}.lc-bubble p{font-size:12px}.lc-actions button{padding:8px;font-size:11px}}
+@media(max-width:700px){.lc-dock{right:9px;bottom:calc(145px + env(safe-area-inset-bottom,0px));width:min(310px,calc(100vw - 18px))}.lc-portrait{width:58px;height:78px}.lc-bubble{padding:9px 10px}.lc-bubble p{font-size:12px}.lc-actions button{padding:8px;font-size:11px}}
 @media(prefers-reduced-motion:no-preference){.lc-portrait{transition:transform .15s ease}.lc-portrait:hover{transform:translateY(-2px)}}
+
+/* Respect the existing fixed Quick Actions launcher and active timer.
+   JS measures their real height; these offsets are safe defaults before bootstrap. */
+.lc-dock.lc-menu-open {visibility:hidden;pointer-events:none}
+.lc-dock.lc-space-tight .lc-bubble{display:none}
+.lc-dock.lc-space-tight .lc-portrait{width:68px;height:81px}

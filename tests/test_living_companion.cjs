@@ -26,6 +26,18 @@ assert.equal(c.recommend({...free,habits:[{id:'throw',daypart:'anytime'}],tasks:
 assert.equal(c.recommend({...free,habits:[{id:'throw',daypart:'anytime'}],tasks:[],snoozed:{'habit:throw':+now+60000}}).kind,'open');
 assert.equal(c.recommend({...free,habits:[{id:'throw',daypart:'anytime'}],tasks:[],excluded:['habit:throw']}).kind,'open');
 assert.equal(c.recommend({...free,calendarIncomplete:true}).kind,'calendar');
+assert.equal(c.recommend({...free,calendarIncomplete:true,safeOnly:true,tasks:[long],habits:[{id:'huge',name:'Long habit',effort:'high',daypart:'anytime'}]}).kind,'calendar');
+const safe=c.recommend({...free,calendarIncomplete:true,safeOnly:true,
+  habits:[{id:'tiny',name:'Throw away one item',effort:'tiny',daypart:'anytime'}],tasks:[long]});
+assert.equal(safe.kind,'habit');
+assert.equal(safe.calendarUnverified,true);
+assert.equal(safe.item.id,'tiny');
+assert.equal(c.recommend({...free,calendarIncomplete:true,safeOnly:true,
+  habits:[{id:'tiny',effort:'tiny'}],snoozed:{'habit:tiny':+now+60000}}).kind,'calendar');
+assert.equal(c.recommend({...free,calendarIncomplete:true,safeOnly:true,offDuty:true,
+  games:[{id:'g1',title:'Cozy title',status:'playing',owned:true}]}).kind,'game');
+assert.equal(c.recommend({...free,calendarIncomplete:true,safeOnly:true,offDuty:false,
+  games:[{id:'g1',title:'Cozy title',status:'playing',owned:true}]}).kind,'calendar');
 assert.equal(c.recommend({...free,offDuty:true,games:[{id:'paused',status:'paused',owned:true}]}).kind,'task');
 assert.equal(c.freeSlot(new Date('2026-10-21T14:50:00+02:00'),appt,15).reason,'busy');
 assert.equal(c.freeSlot(new Date('2026-10-21T15:25:00+02:00'),appt,15).reason,'open');
