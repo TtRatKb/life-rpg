@@ -1,4 +1,4 @@
-const CACHE_NAME = "life-rpg-v0.31.4-companion-personality4-home-toast";
+const CACHE_NAME = "life-rpg-v0.31.4-bakugo-seven1";
 const ASSET_CACHE_NAME = "life-rpg-assets-v6";
 const MAX_RUNTIME_ASSETS = 96;
 const CORE = [
@@ -29,7 +29,7 @@ const CORE = [
   "./task-focus.css?v=0.31.4-focus1",
   "./living-companion-core.js?v=0.31.4-lc3",
   "./living-companion-personality.js?v=0.31.4-lc4",
-  "./living-companion.js?v=0.31.4-lc4",
+  "./living-companion.js?v=0.31.4-bakugo-seven1",
   "./living-companion.css?v=0.31.4-lc4",
   "./task-free-days.css?v=0.31.4-freedays1",
   "./task-google-calendar-core.js?v=0.31.4-gcal1",
@@ -104,7 +104,7 @@ const CORE = [
   "./talent-v3-experiences.js?v=0.31.4dz35",
   "./companion-moments.css?v=0.31.4da",
   "./companion-moments.js?v=0.31.4da",
-  "./living-world-v3.js?v=0.31.4-health-echo2",
+  "./living-world-v3.js?v=0.31.4-bakugo-seven1",
   "./social-delivery.js?v=0.31.4-health-echo2",
   "./social-delivery.css?v=0.31.4dc",
   "./living-world-v3.css?v=0.31.4db",
@@ -260,7 +260,15 @@ const CORE = [
   "./bullet-journal-monthly.js?v=0.31.4-monthly-preview1",
   "./bullet-journal-collections.js?v=0.31.4-collection-shelves2",
   "./story-engine.js?v=0.31.4dz16",
-  "./story-ui.js?v=0.31.4dz38",
+  "./bakugo-visual-map.js?v=0.31.4-bakugo-seven1",
+  "./assets/story/characters/bakugo-angry.webp",
+  "./assets/story/characters/bakugo-annoyed.webp",
+  "./assets/story/characters/bakugo-flustered.webp",
+  "./assets/story/characters/bakugo-neutral.webp",
+  "./assets/story/characters/bakugo-proud.webp",
+  "./assets/story/characters/bakugo-surprised.webp",
+  "./assets/story/characters/bakugo-worried.webp",
+  "./story-ui.js?v=0.31.4-bakugo-seven1",
   "./relationship-memory.js?v=0.31.4cy",
   "./relationship-memory.css?v=0.31.4ba",
   "./talks-v2.css?v=0.31.4cy",
