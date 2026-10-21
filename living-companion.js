@@ -22,7 +22,7 @@
  function settings(){
    const existing=app.getState().livingCompanionV1;
    if(existing&&existing.day===day())return existing;
-   return {day:day(),collapsed:false,character:'',bufferMinutes:15,dismissed:[],snoozed:{}};
+   return {day:day(),collapsed:Boolean(existing?.collapsed),character:'',bufferMinutes:[0,10,15,30,45,60].includes(existing?.bufferMinutes)?existing.bufferMinutes:15,dismissed:[],snoozed:{}};
  }
  function write(reason,mutate){
    const state=app.getState(),before=state.livingCompanionV1===undefined?undefined:JSON.stringify(state.livingCompanionV1);
@@ -67,6 +67,7 @@
    const s=settings(),record=window.LifeRPGDaily?.getToday?.(),habits=window.LifeRPGHabits?.getDueForCompanion?.(day())||[];
    return core.recommend({now:new Date(),events:upcoming(),bufferMinutes:s.bufferMinutes,
      checkIn:record?.checkIn||null,tasks:window.LifeRPGTaskProjects?.getOpen?.()||[],habits,
+     games:window.LifeRPGGames?.getItems?.()||[],books:window.LifeRPGLibrary?.getItems?.()||[],
      offDuty:offDuty(),excluded:s.dismissed,snoozed:s.snoozed});
  }
  function line(id,rec){
@@ -100,6 +101,12 @@
      kirishima:"No good match at the moment. Want to check your hobbies or take a break?",
      mina:"No quest you HAVE to jump into right now. Freedom!",
      luca:"No sensible next step right now. That's okay."
+   }[id];
+   if(rec.kind==='game'||rec.kind==='book')return {
+     bakugo:'You wanted to '+(rec.kind==='game'?'play ':'read ')+name+'. Off the clock. Go enjoy it.',
+     kirishima:'How about '+name+'? You deserve time for the stuff you enjoy.',
+     mina:'Wait, '+name+' is in your '+(rec.kind==='game'?'game':'reading')+' list! Fun evening?',
+     luca:'Maybe '+name+' would be a good way to unwind.'
    }[id];
    if(rec.kind==='habit')return {
      bakugo:"You still have "+name+" on your habits. Want to get it done?",
@@ -166,6 +173,7 @@
    const button=(id,label,primary=false)=>'<button type="button" data-lc="'+id+'" class="'+(primary?'lc-primary':'')+'">'+label+'</button>';
    if(rec.kind==='task')return button('start','▶ Start',true)+button('later','Later')+button('skip','Something else')+button('duty',offDuty()?'Back to work':'Done working');
    if(rec.kind==='habit')return button('habit','✓ Done',true)+button('later','Later')+button('skip','Not today');
+   if(rec.kind==='game'||rec.kind==='book')return button('leisure','Open '+(rec.kind==='game'?'games':'books'),true)+button('later','Later')+button('skip','Something else');
    if(rec.kind==='checkin')return button('checkin','Daily check-in',true)+button('skip','Later');
    if(rec.kind==='departure'||rec.kind==='busy')return button('toggle','Got it',true)+button('duty',offDuty()?'Work mode':'Off duty');
    return button('duty',offDuty()?'Work mode':'Done working',true)+button('reset','What else?')+button('checkin','Check in');
@@ -188,6 +196,7 @@
      if(!ok){uiStatus='Please use the Habits page to finish this one.';app.showView?.('habits');}
      lastKey='';render();return;
    }
+   if(action==='leisure'&&(rec.kind==='game'||rec.kind==='book')){app.showView?.(rec.kind==='game'?'games':'library');return;}
    if(action==='start'&&rec.kind==='task'){
      if(window.LifeRPGTaskSessionReview?.openStart)window.LifeRPGTaskSessionReview.openStart(rec.item.id);
      else window.LifeRPGTaskProjects?.open?.();
