@@ -1666,6 +1666,13 @@
     getHabits: () => habitState().items.map(item => ({ ...item })),
     getCompletions: () => habitState().completions.map(item => ({ ...item })),
     getJournalTrackerWeek,
+    // Read-only companion candidates reuse the exact Habit schedule/period checks.
+    getDueForCompanion: (dateKey = todayKey()) => habitState().items
+      .filter(habit => habit.active !== false && isTrackableOnDate(habit, dateKey))
+      .map(habit => snapshotForHabit(habit, dateKey))
+      .filter(snapshot => snapshot.canComplete && !snapshot.periodComplete)
+      .map(snapshot => ({ id: snapshot.habit.id, name: snapshot.habit.name,
+        daypart: normalizedDaypart(snapshot.habit), linkedQuestId: snapshot.habit.linkedQuestId || null })),
     complete: completeHabit
   };
 })();
