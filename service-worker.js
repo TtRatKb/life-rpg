@@ -1,4 +1,4 @@
-const CACHE_NAME = "life-rpg-v0.31.4-bakugo-seven1";
+const CACHE_NAME = "life-rpg-v0.31.4-bakugo-hero-seven1";
 const ASSET_CACHE_NAME = "life-rpg-assets-v6";
 const MAX_RUNTIME_ASSETS = 96;
 const CORE = [
@@ -260,7 +260,7 @@ const CORE = [
   "./bullet-journal-monthly.js?v=0.31.4-monthly-preview1",
   "./bullet-journal-collections.js?v=0.31.4-collection-shelves2",
   "./story-engine.js?v=0.31.4dz16",
-  "./bakugo-visual-map.js?v=0.31.4-bakugo-seven1",
+  "./bakugo-visual-map.js?v=0.31.4-bakugo-hero-seven1",
   "./assets/story/characters/bakugo-angry.webp",
   "./assets/story/characters/bakugo-annoyed.webp",
   "./assets/story/characters/bakugo-flustered.webp",
@@ -268,7 +268,14 @@ const CORE = [
   "./assets/story/characters/bakugo-proud.webp",
   "./assets/story/characters/bakugo-surprised.webp",
   "./assets/story/characters/bakugo-worried.webp",
-  "./story-ui.js?v=0.31.4-bakugo-seven1",
+  "./assets/story/characters/bakugo-hero-neutral.webp",
+  "./assets/story/characters/bakugo-hero-annoyed.webp",
+  "./assets/story/characters/bakugo-hero-angry.webp",
+  "./assets/story/characters/bakugo-hero-proud.webp",
+  "./assets/story/characters/bakugo-hero-flustered.webp",
+  "./assets/story/characters/bakugo-hero-surprised.webp",
+  "./assets/story/characters/bakugo-hero-worried.webp",
+  "./story-ui.js?v=0.31.4-bakugo-hero-seven1",
   "./relationship-memory.js?v=0.31.4cy",
   "./relationship-memory.css?v=0.31.4ba",
   "./talks-v2.css?v=0.31.4cy",

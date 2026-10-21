@@ -5015,8 +5015,9 @@
   function resolveCharacterAsset(character, item) {
     if (!character) return null;
 
-    // Approved Oct 2026 Bakugo off-duty sprites replace legacy expression variants.
-    // Hero outfit continues to use its actual Pro-Hero costumes from the story pack.
+    // Both approved Bakugo costumes share seven emotion names.
+    // The sealed Story pack keeps original scene, outfit and expression IDs;
+    // the resolver maps off-duty vs hero to matching transparent sprites.
     const consolidated = window.LifeRPGBakugoVisuals?.forItem?.(character, item);
     if (consolidated?.src) return consolidated;
 

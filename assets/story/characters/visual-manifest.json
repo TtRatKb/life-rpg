@@ -36,9 +36,9 @@
       "legacyRule": "Older white-matte Luca runtime portraits and legacy character illustrations are transitional only and are excluded as visual-generation references."
     },
     "bakugo": {
-      "status": "approved-7-transparent-offduty-plus-separate-pro-hero-costume",
+      "status": "approved-seven-transparent-offduty-and-seven-transparent-hero",
       "displayName": "Katsuki Bakugo",
-      "visualVersion": "bakugo-offduty-seven-2026-10-21",
+      "visualVersion": "bakugo-two-outfits-seven-emotions-2026-10-21",
       "canonNotes": [
         "Young adult Pro Hero; attractive, sharp anime face rather than an older/rugged look.",
         "Red eyes; face should stay relatively compact rather than long or overly angular.",
@@ -46,7 +46,10 @@
         "Off-duty base: black tank top, relaxed black streetwear, black jacket with warm orange-red lining.",
         "User-approved 2026-10-21 replacement: seven expression-distinct transparent off-duty sprites at a uniform 1122x1402 crop.",
         "Hair uses grouped readable spikes; face and build are consistent across all seven variants. All scene references use the explicit emotional routing in bakugo-visual-map.js.",
-        "The existing separate adult Pro Hero outfit remains in use for active-duty chapters until an approved matching hero-costume replacement exists."
+        "User-approved 2026-10-21 Pro Hero outfit: seven aligned transparent sprites, same expression categories and zoom as the off-duty set.",
+        "Story narrator/scene expressions remain unchanged; the existing resolver converts the original hero-costume mood keys into neutral, annoyed, angry, proud, flustered, surprised and worried.",
+        "Hero and off-duty sprites remain two distinct costumes; never display the black tank top in a hero-costume scene.",
+        "The superseded 24 hero PNGs were removed after redirecting runtime references and checking story expression coverage."
       ],
       "approved": {
         "neutral": "assets/story/characters/bakugo-neutral.webp",
@@ -56,32 +59,15 @@
         "flustered": "assets/story/characters/bakugo-flustered.webp",
         "surprised": "assets/story/characters/bakugo-surprised.webp",
         "worried": "assets/story/characters/bakugo-worried.webp",
-        "heroNeutral": "assets/story/characters/bakugo-hero-neutral.png",
-        "heroSmug": "assets/story/characters/bakugo-hero-smug.png",
-        "heroAlert": "assets/story/characters/bakugo-hero-alert.png",
-        "heroRelaxed": "assets/story/characters/bakugo-hero-relaxed.png",
-        "heroFocused": "assets/story/characters/bakugo-hero-focused.png",
-        "heroAnnoyed": "assets/story/characters/bakugo-hero-annoyed.png",
-        "heroHappy": "assets/story/characters/bakugo-hero-happy.png",
-        "heroProfile": "assets/story/characters/bakugo-hero-profile.png",
-        "heroConcerned": "assets/story/characters/bakugo-hero-concerned.png",
-        "heroSurprised": "assets/story/characters/bakugo-hero-surprised.png",
-        "heroDetermined": "assets/story/characters/bakugo-hero-determined.png",
-        "heroTired": "assets/story/characters/bakugo-hero-tired.png",
-        "heroJealous": "assets/story/characters/bakugo-hero-jealous.png",
-        "heroTsundere": "assets/story/characters/bakugo-hero-tsundere.png",
-        "heroEmbarrassed": "assets/story/characters/bakugo-hero-embarrassed.png",
-        "heroLaughing": "assets/story/characters/bakugo-hero-laughing.png",
-        "heroUnimpressed": "assets/story/characters/bakugo-hero-unimpressed.png",
-        "heroProtective": "assets/story/characters/bakugo-hero-protective.png",
-        "heroShy": "assets/story/characters/bakugo-hero-shy.png",
-        "heroDisgusted": "assets/story/characters/bakugo-hero-disgusted.png",
-        "heroAffectionate": "assets/story/characters/bakugo-hero-affectionate.png",
-        "heroVulnerable": "assets/story/characters/bakugo-hero-vulnerable.png",
-        "heroInPain": "assets/story/characters/bakugo-hero-in-pain.png",
-        "heroRage": "assets/story/characters/bakugo-hero-rage.png"
+        "heroNeutral": "assets/story/characters/bakugo-hero-neutral.webp",
+        "heroAnnoyed": "assets/story/characters/bakugo-hero-annoyed.webp",
+        "heroAngry": "assets/story/characters/bakugo-hero-angry.webp",
+        "heroProud": "assets/story/characters/bakugo-hero-proud.webp",
+        "heroFlustered": "assets/story/characters/bakugo-hero-flustered.webp",
+        "heroSurprised": "assets/story/characters/bakugo-hero-surprised.webp",
+        "heroWorried": "assets/story/characters/bakugo-hero-worried.webp"
       },
-      "legacyRule": "Pre-2026-10-21 off-duty Bakugo variants are superseded and removed after their references are redirected. Pro-Hero outfit remains separately canonical.",
+      "legacyRule": "Pre-2026-10-21 off-duty and Pro Hero sprite PNGs are superseded and removed. Their original scene-emotion aliases continue to work through the runtime mapper.",
       "compatibilityAliases": {
         "neutral": "neutral",
         "annoyedMild": "annoyed",
@@ -96,38 +82,23 @@
         "caughtOffGuard": "surprised",
         "concerned": "worried",
         "tired": "worried",
-        "hero": "Separate existing canon costume runtime assets retained"
+        "hero": "Hero outfit: 7 canonical emotion variants routed by bakugo-visual-map.js"
       },
       "expressionNotes": [
         "Seven canonical off-duty emotions: neutral, annoyed, angry, proud, flustered, surprised, worried. Existing names map semantically without breaking authored Story IDs.",
         "These are reusable transparent character cutouts and must not include apartment backgrounds.",
-        "Do not select hero-costume sprites for off-duty visuals or off-duty tank-top sprites for hero-costume scenes."
+        "Both outfits share the same seven semantic emotion IDs; story legacy aliases resolve through bakugo-visual-map.js.",
+        "Different outfit selection never changes the story scene IDs, relationship, unlocks or chapter progress."
       ],
-      "heroCostumeVersion": "bakugo-adult-pro-hero-v2",
+      "heroCostumeVersion": "bakugo-adult-pro-hero-seven-2026-10-21",
       "heroCoreRuntimePack": [
         "heroNeutral",
-        "heroSmug",
         "heroAnnoyed",
-        "heroRelaxed",
-        "heroHappy",
-        "heroConcerned",
+        "heroAngry",
+        "heroProud",
+        "heroFlustered",
         "heroSurprised",
-        "heroDetermined",
-        "heroTired",
-        "heroJealous",
-        "heroTsundere",
-        "heroEmbarrassed",
-        "heroLaughing",
-        "heroUnimpressed",
-        "heroProtective",
-        "heroShy",
-        "heroDisgusted",
-        "heroAffectionate"
-      ],
-      "heroSpecialRuntimePack": [
-        "heroVulnerable",
-        "heroInPain",
-        "heroRage"
+        "heroWorried"
       ]
     },
     "kirishima": {
