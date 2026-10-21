@@ -60,7 +60,7 @@
    const allowed=id=>!excluded.has(id)&&Number(snoozed[id]||0)<=+now;
    if(slot.reason==='busy')return {kind:'busy',slot,capacity};
    if(slot.reason==='departure')return {kind:'departure',slot,capacity};
-   if(!input.checkIn&&input.preferCheckIn!==false&&allowed('checkin'))return {kind:'checkin',slot,capacity};
+   if(!input.checkIn&&input.preferCheckIn!==false&&allowed('checkin'))return {kind:'checkin',id:'checkin',slot,capacity};
    const hour=now.getHours();
    const habits=(input.habits||[]).filter(h=>h&&h.id&&allowed('habit:'+h.id)&&habitTime(h,hour));
    const habitCandidates=habits.map(h=>({kind:'habit',id:'habit:'+h.id,item:h,
@@ -81,7 +81,21 @@
      if(habitCandidates.length)return habitCandidates.sort((a,b)=>b.score-a.score)[0];
      return {kind:'rest',slot,capacity};
    }
-   const ranked=[...habitCandidates,...candidates].sort((a,b)=>b.score-a.score||a.id.localeCompare(b.id));
+   const leisure=[];
+   if(input.offDuty&&slot.minutes>=15){
+     for(const game of input.games||[]){
+       if(!game?.id||!['playing','backlog','endless','paused'].includes(game.status)||game.owned===false||!allowed('game:'+game.id))continue;
+       if(['low','someday'].includes(game.motivation))continue;
+       const score=(game.status==='playing'?57:game.status==='endless'?50:44)
+         +(game.motivation==='very_high'?18:game.motivation==='high'?9:0);
+       leisure.push({kind:'game',id:'game:'+game.id,item:game,score});
+     }
+     for(const book of input.books||[]){
+       if(!book?.id||!['reading','owned','paused'].includes(book.status)||book.role==='work'||!allowed('book:'+book.id))continue;
+       leisure.push({kind:'book',id:'book:'+book.id,item:book,score:book.status==='reading'?54:42});
+     }
+   }
+   const ranked=[...habitCandidates,...leisure,...candidates].sort((a,b)=>b.score-a.score||a.id.localeCompare(b.id));
    const selected=ranked[0];
    if(selected)return {...selected,slot,capacity};
    return {kind:slot.minutes<12?'departure':input.offDuty?'rest':'open',slot,capacity};
