@@ -155,7 +155,7 @@
  }
  function maybeAmbient(who,rec){
    if(ambientView||reactionView||conversation||document.hidden||!window.LifeRPGLivingPersonality)return;
-   if(['busy','departure','calendar','checkin','task'].includes(rec.kind))return;
+   if(['busy','departure','checkin','task'].includes(rec.kind))return;
    const key='life-rpg-companion-glance:'+day()+':'+who;
    try {if(sessionStorage.getItem(key))return;sessionStorage.setItem(key,'1');}
    catch(e){if(ambientView)return;}
