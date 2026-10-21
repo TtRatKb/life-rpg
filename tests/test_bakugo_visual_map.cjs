@@ -32,12 +32,14 @@ for(const filename of Object.values(v.paths)){
   assert.equal(buf.subarray(8,12).toString(),'WEBP');
 }
 const live=fs.readdirSync(root).filter(x=>x.endsWith('.js')||x.endsWith('.html'));
+const stale=[];
 for(const file of live){
   const c=fs.readFileSync(path.join(root,file),'utf8');
   const refs=[...c.matchAll(/assets\/story\/characters\/bakugo-([a-z-]+)\.png/g)]
     .map(m=>m[0]).filter(ref=>!ref.includes('bakugo-hero-'));
-  assert.deepEqual(refs,[],'Legacy off-duty Bakugo reference in '+file+': '+refs.join(','));
+  if(refs.length)stale.push(file+': '+[...new Set(refs)].join(', '));
 }
+assert.deepEqual(stale,[],'Every live Bakugo image path must resolve');
 assert.equal(v.emotionForExpression('happyProud'),'proud');
 assert.equal(v.emotionForExpression('annoyedMild'),'annoyed');
 assert.equal(v.emotionForExpression('caughtOffGuard'),'surprised');
