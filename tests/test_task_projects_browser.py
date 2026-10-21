@@ -73,8 +73,23 @@ class TaskProjectBrowserTests(unittest.TestCase):
     def test_living_companion_uses_existing_tasks_without_new_reward(self):
         self.page.wait_for_function("window.LifeRPGLivingCompanion && document.querySelector(\'#livingCompanionDock\')")
         initial=self.page.evaluate("(LifeRPGApp.getState().rewardLedger?.events||[]).length")
-        self.page.evaluate("document.querySelector('#mobileCloudGate').classList.add('is-hidden-v251'); LifeRPGLivingCompanion.render()")
+        # Desktop: mobile-only gate is present but hidden by CSS. It must not suppress the dock.
+        self.page.add_style_tag(content="""
+          .mobile-cloud-gate-v251 { display: none; }
+          @media (max-width: 720px) {
+            .mobile-cloud-gate-v251 { display: grid; visibility: visible; }
+            .mobile-cloud-gate-v251.is-hidden-v251 { visibility: hidden; }
+          }
+        """)
+        self.page.evaluate("LifeRPGLivingCompanion.render()")
         self.assertFalse(self.page.evaluate("document.querySelector('#livingCompanionDock').hidden"))
+        # Mobile: an actually visible cloud gate must block the dock until it closes.
+        self.page.set_viewport_size({"width": 390, "height": 844})
+        self.page.evaluate("LifeRPGLivingCompanion.render()")
+        self.assertTrue(self.page.evaluate("document.querySelector('#livingCompanionDock').hidden"))
+        self.page.evaluate("document.querySelector('#mobileCloudGate').classList.add('is-hidden-v251')")
+        self.page.wait_for_function("!document.querySelector('#livingCompanionDock').hidden")
+        self.assertTrue(self.page.locator("#livingCompanionDock .lc-bubble").count() == 1)
         self.assertEqual("checkin",self.page.evaluate("LifeRPGLivingCompanion.recommendation().kind"))
         self.assertEqual(initial,self.page.evaluate("(LifeRPGApp.getState().rewardLedger?.events||[]).length"))
 
