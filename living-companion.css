@@ -21,3 +21,12 @@
 .lc-dock.lc-menu-open {visibility:hidden;pointer-events:none}
 .lc-dock.lc-space-tight .lc-bubble{display:none}
 .lc-dock.lc-space-tight .lc-portrait{width:68px;height:81px}
+
+/* Companion 1.1: optional chat, accessible choices, no obstructive overlay. */
+.lc-personality-aside{display:block;margin:6px 0 10px;padding:8px 10px;border-left:3px solid #db9dc4;border-radius:0 10px 10px 0;background:#faedf7;color:#765071;font-size:11px;line-height:1.45}
+.lc-bubble{max-height:min(420px,calc(100dvh - 155px));overflow-y:auto;overscroll-behavior:contain}
+.lc-talk-actions{display:grid;grid-template-columns:1fr;align-items:stretch}
+.lc-talk-actions button{width:100%;min-height:34px;text-align:left;white-space:normal}
+.lc-talk-actions button:last-child{opacity:.8}
+.lc-actions .lc-talk-button{border-color:#dec4d8;color:#7b4d73;background:#fff5fa}
+@media(max-width:700px){.lc-bubble{max-height:min(360px,calc(100dvh - 175px))}.lc-personality-aside{font-size:10px}}
