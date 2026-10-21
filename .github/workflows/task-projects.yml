@@ -21,6 +21,9 @@ on:
       - 'task-focus-core.js'
       - 'living-companion-core.js'
       - 'living-companion.js'
+      - 'living-companion-personality.js'
+      - 'life-hub-v314dk.js'
+      - 'tests/test_living_companion_personality.cjs'
       - 'living-companion.css'
       - 'habits.js'
       - 'tests/test_living_companion.cjs'
@@ -73,6 +76,9 @@ on:
       - 'task-focus-core.js'
       - 'living-companion-core.js'
       - 'living-companion.js'
+      - 'living-companion-personality.js'
+      - 'life-hub-v314dk.js'
+      - 'tests/test_living_companion_personality.cjs'
       - 'living-companion.css'
       - 'habits.js'
       - 'tests/test_living_companion.cjs'
@@ -137,6 +143,8 @@ jobs:
           node --check task-focus-core.js
           node --check living-companion-core.js
           node --check living-companion.js
+          node --check living-companion-personality.js
+          node --check life-hub-v314dk.js
           node --check habits.js
           node --check task-google-calendar-core.js
           node --check task-google-calendar.js
@@ -154,6 +162,7 @@ jobs:
           node tests/test_task_free_days.cjs
           node tests/test_task_focus.cjs
           TZ=Europe/Berlin node tests/test_living_companion.cjs
+          node tests/test_living_companion_personality.cjs
           TZ=Europe/Berlin node tests/test_task_google_calendar.cjs
       - uses: actions/setup-python@v5
         with:
@@ -196,6 +205,14 @@ jobs:
             if(!html.includes(asset+'?v='+ver)||!sw.includes(asset+'?v='+ver))throw Error('Missing calendar/free-day asset '+asset);
           for (const id of ['taskFreeDayMount','taskGoogleCalendarMount'])
             if (!html.includes('id="'+id+'"')) throw Error('Missing companion mount: '+id);
+          for (const [asset,version] of [
+            ['living-companion-personality.js','0.31.4-lc4'],
+            ['living-companion.js','0.31.4-lc4'],
+            ['living-companion.css','0.31.4-lc4'],
+            ['life-hub-v314dk.js','0.31.4-home-toast4']
+          ]) {
+            if(!html.includes(asset+'?v='+version)||!sw.includes(asset+'?v='+version))throw Error('Missing Companion/Home asset '+asset);
+          }
           for (const asset of ['task-focus-core.js','task-focus.css']) {
             if(!html.includes(asset+'?v=0.31.4-focus1') || !sw.includes(asset+'?v=0.31.4-focus1'))throw Error('Focus companion asset missing: '+asset);
           }

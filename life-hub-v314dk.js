@@ -31,6 +31,17 @@
   // Book is a subview of the existing Alltag → Journal route, not an extra menu item.
   INDEX.set("bullet-journal","everyday");
   let activeGroup="",pendingAction="",pendingName="",lastLoggedId="",inFlight=false;
+  let quickStatusTimer=null;
+  function announceQuickStatus(message) {
+    const status=document.getElementById("lifeQuickStatus");
+    if(!status)return;
+    if(quickStatusTimer!==null)clearTimeout(quickStatusTimer);
+    status.textContent=String(message||"");
+    quickStatusTimer=setTimeout(()=>{
+      quickStatusTimer=null;
+      status.textContent="";
+    },4600);
+  }
   function model(){const r=app.getState();if(!r.homeQuickActionsV1||typeof r.homeQuickActionsV1!=="object"||Array.isArray(r.homeQuickActionsV1))r.homeQuickActionsV1={schemaVersion:1,entries:[],pinned:[]};const s=r.homeQuickActionsV1;if(!Array.isArray(s.entries))s.entries=[];if(!Array.isArray(s.pinned))s.pinned=[];return s;}
   const definition = id => CATALOG.find(x=>x.id===id);
   function entries(){return model().entries.filter(e=>e&&!e.undone);}
@@ -88,11 +99,11 @@
     renderNavActive();
   }
   function showConfirm(id){const dialog=document.getElementById("lifeQuickConfirm");if(!dialog)return;pendingAction=id;const def=definition(id);dialog.querySelector("strong").textContent=def?.name||"Aktion";dialog.showModal();}
-  function showResult(result){const status=document.getElementById("lifeQuickStatus");if(!status)return;if(!result?.ok){status.textContent=result?.reason==="repeat"?"Diese Aktion wurde gerade erst geloggt. Bitte bestätige einen neuen, tatsächlich erledigten Durchgang.":"Bitte gib eine kurze Bezeichnung ein.";if(result?.reason==="repeat")showConfirm(pendingAction);return;}status.textContent=`${result.entry.label} ${result.saved?"gespeichert":"nur im Arbeitsspeicher – Save exportieren"} · ${formatReward(result.entry.reward)}${result.entry.linkedRewardEventId?" · Bereits über Quest/Timer belohnt; hier nur gezählt.":""}`;app.showToast?.(`${result.entry.label} · +${result.entry.reward.xp} XP · +${result.entry.reward.coins} Coin`);}
+  function showResult(result){if(!result?.ok){announceQuickStatus(result?.reason==="repeat"?"Diese Aktion wurde gerade erst geloggt. Bitte bestätige einen neuen, tatsächlich erledigten Durchgang.":"Bitte gib eine kurze Bezeichnung ein.");if(result?.reason==="repeat")showConfirm(pendingAction);return;}announceQuickStatus(`${result.entry.label} ${result.saved?"gespeichert":"nur im Arbeitsspeicher – Save exportieren"} · ${formatReward(result.entry.reward)}${result.entry.linkedRewardEventId?" · Bereits über Quest/Timer belohnt; hier nur gezählt.":""}`);app.showToast?.(`${result.entry.label} · +${result.entry.reward.xp} XP · +${result.entry.reward.coins} Coin`);}
   function addDialog(){if(document.getElementById("lifeQuickConfirm"))return;const d=document.createElement("dialog");d.id="lifeQuickConfirm";d.className="life-hub-confirm";d.innerHTML=`<form method="dialog"><p class="eyebrow">SICHERHEITSCHECK</p><h2>Wirklich noch einmal erledigt?</h2><strong></strong><p>Du hast diese Tätigkeit vor weniger als 90 Sekunden bereits geloggt. Ein zusätzlicher Eintrag ist nur für einen wirklich neuen Durchgang gedacht.</p><div class="life-hub-dialog-actions"><button value="cancel" class="secondary-button" type="submit">Abbrechen</button><button value="confirm" class="primary-button" type="submit">Erneut loggen</button></div></form>`;document.body.appendChild(d);d.addEventListener("close",()=>{if(d.returnValue==="confirm")showResult(logAction(pendingAction,{confirmed:true,label:pendingName}));pendingAction="";pendingName="";});const st=document.createElement("div");st.id="lifeQuickStatus";st.className="life-hub-toast";st.setAttribute("role","status");st.setAttribute("aria-live","polite");document.body.appendChild(st);}
   function onClick(e){if(e.target.closest("[data-life-menu-close]")){setGroup("");return;}const action=e.target.closest("[data-life-action]");if(action){const id=action.dataset.lifeAction;pendingAction=id;if(id==="other"){const name=window.prompt("Welche Haushaltsaufgabe hast du erledigt? (max. 90 Zeichen)","");if(name===null)return;pendingName=name;const result=logAction(id,{label:name});showResult(result);return;}showResult(logAction(id));return;}
     const pin=e.target.closest("[data-life-pin]");if(pin){const s=model(),id=pin.dataset.lifePin;const idx=s.pinned.indexOf(id);if(idx>=0)s.pinned.splice(idx,1);else s.pinned.push(id);app.saveState({source:"home-quick-pin"});renderViews();return;}
-    const undoButton=e.target.closest("[data-life-undo]");if(undoButton){const okay=undo(undoButton.dataset.lifeUndo);const st=document.getElementById("lifeQuickStatus");if(st)st.textContent=okay?"Letzter Eintrag und sein direkter Reward zurückgenommen.":"Rückgängig ist hier nicht mehr möglich.";return;}
+    const undoButton=e.target.closest("[data-life-undo]");if(undoButton){const okay=undo(undoButton.dataset.lifeUndo);const st=document.getElementById("lifeQuickStatus");announceQuickStatus(okay?"Letzter Eintrag und sein direkter Reward zurückgenommen.":"Rückgängig ist hier nicht mehr möglich.");return;}
     const routeButton=e.target.closest("[data-life-route]");if(routeButton){route(routeButton.dataset.lifeRoute);return;}
   }
   function init(){buildViews();buildNav();addDialog();document.addEventListener("click",onClick);window.addEventListener("life-rpg:view-changed",renderNavActive);window.addEventListener("life-rpg:render",()=>{renderViews();const nav=document.querySelector(".bottom-nav");if(nav&&!nav.classList.contains("life-hub-nav"))buildNav();});window.addEventListener("life-rpg:state-saved",renderViews);renderViews();}
