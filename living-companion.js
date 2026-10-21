@@ -68,7 +68,8 @@
    return core.recommend({now:new Date(),events:upcoming(),bufferMinutes:s.bufferMinutes,
      checkIn:record?.checkIn||null,tasks:window.LifeRPGTaskProjects?.getOpen?.()||[],habits,
      games:window.LifeRPGGames?.getItems?.()||[],books:window.LifeRPGLibrary?.getItems?.()||[],
-     offDuty:offDuty(),excluded:s.dismissed,snoozed:s.snoozed});
+     offDuty:offDuty(),excluded:s.dismissed,snoozed:s.snoozed,
+     calendarIncomplete:Boolean(window.LifeRPGGoogleCalendar?.hasSetup?.()&&!window.LifeRPGGoogleCalendar?.connected?.())});
  }
  function line(id,rec){
    const name=rec.item?.name||rec.item?.title||'',task=rec.kind==='task',soft=rec.capacity==='low';
@@ -83,6 +84,12 @@
      kirishima:"Looks like you're busy. I'll keep your tasks here for later.",
      mina:"Calendar says you're booked! Catch you afterward.",
      luca:"This time is already booked."
+   }[id];
+   if(rec.kind==='calendar')return {
+     bakugo:"Calendar connection's down. I'm not guessing your free time. Check it first.",
+     kirishima:"I can't see your connected calendar right now. Let's check that before starting anything big.",
+     mina:"Calendar check! I might be missing appointments, so no big task recommendations just yet.",
+     luca:"My connected calendar isn't available. Better check it before planning."
    }[id];
    if(rec.kind==='checkin')return {
      bakugo:"Before we pick a task, how much energy have you actually got?",
@@ -149,7 +156,7 @@
    const s=settings(),who=person(),face=faces[who],rec=recommendation();
    const mode=offDuty()?'Off-duty mode':'Day companion';
    const art=window.LifeRPGVisuals?.thumbnail?.(face.img)||face.img;
-   const key=[who,rec.kind,rec.id,rec.slot?.minutes,mode,s.collapsed,settingOpen].join('|');
+   const key=[who,rec.kind,rec.id,rec.item?.title,rec.item?.name,rec.slot?.minutes,rec.slot?.next?.title,mode,s.bufferMinutes,s.collapsed,settingOpen].join('|');
    // Render on relevant app events, never globally tick/rebuild every second.
    if(lastKey===key&&!uiStatus)return;
    lastKey=key;
@@ -175,6 +182,7 @@
    if(rec.kind==='habit')return button('habit','✓ Done',true)+button('later','Later')+button('skip','Not today');
    if(rec.kind==='game'||rec.kind==='book')return button('leisure','Open '+(rec.kind==='game'?'games':'books'),true)+button('later','Later')+button('skip','Something else');
    if(rec.kind==='checkin')return button('checkin','Daily check-in',true)+button('skip','Later');
+   if(rec.kind==='calendar')return button('calendar','Open calendar',true)+button('toggle','Got it');
    if(rec.kind==='departure'||rec.kind==='busy')return button('toggle','Got it',true)+button('duty',offDuty()?'Work mode':'Off duty');
    return button('duty',offDuty()?'Work mode':'Done working',true)+button('reset','What else?')+button('checkin','Check in');
  }
@@ -187,6 +195,7 @@
    if(action==='reset'){write('reset',x=>{x.dismissed=[];x.snoozed={};});lastKey='';render();return;}
    if(action==='duty'){if(!setDuty(!offDuty()))uiStatus='Could not change mode.';lastKey='';render();return;}
    if(action==='checkin'){window.LifeRPGDaily?.openBriefing?.();return;}
+   if(action==='calendar'){app.showView?.('tasks');return;}
    if((action==='later'||action==='skip')&&rec.id){
      write(action,x=>{if(action==='later')x.snoozed[rec.id]=Date.now()+60*60000;else x.dismissed=[...(x.dismissed||[]),rec.id].slice(-70);});
      lastKey='';render();return;
