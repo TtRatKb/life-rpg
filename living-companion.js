@@ -11,6 +11,8 @@
    luca:{name:'Luca',img:'assets/ui/thumbs/characters/luca_neutral.webp',soft:'assets/ui/thumbs/characters/luca_soft_smile.webp',symbol:'✿'}
  };
  let dock=null,settingOpen=false,uiStatus='',lastKey='',safeIdeas=false;
+ let conversation=null,reactionView=null,reactionTimer=null,ambientView=null;
+ let knownCompletedTaskCount=null;
  let watchedDockObstacle=null,watchedLauncher=null;
  const day=()=>core.localDate(new Date());
  function allowed(){
@@ -141,6 +143,39 @@
    const style=window.getComputedStyle(element);
    return style.display!=='none'&&style.visibility!=='hidden'&&element.getClientRects().length>0;
  }
+ function dayContext(){
+   return window.LifeRPGLivingPersonality?.context?.({
+     now:new Date(),checkIn:window.LifeRPGDaily?.getToday?.()?.checkIn||null,offDuty:offDuty()
+   })||'day';
+ }
+ function relationLevel(id){
+   if(id==='luca')return 0;
+   // Hidden values influence tone only; never shown or changed by this UI.
+   return Number(window.LifeRPGRelationshipEngine?.getHiddenLevel?.(id)||0);
+ }
+ function maybeAmbient(who,rec){
+   if(ambientView||reactionView||conversation||document.hidden||!window.LifeRPGLivingPersonality)return;
+   if(['busy','departure','calendar','checkin','task'].includes(rec.kind))return;
+   const key='life-rpg-companion-glance:'+day()+':'+who;
+   try {if(sessionStorage.getItem(key))return;sessionStorage.setItem(key,'1');}
+   catch(e){if(ambientView)return;}
+   ambientView={who,text:window.LifeRPGLivingPersonality.ambient(who,dayContext(),day()),until:Date.now()+11000};
+   window.setTimeout(()=>{if(ambientView?.who===who&&Date.now()>=ambientView.until){
+     ambientView=null;lastKey='';render();
+   }},11100);
+ }
+ function showReaction(type){
+   if(!dock||document.hidden||conversation||!window.LifeRPGLivingPersonality)return;
+   const who=person();
+   if(reactionTimer!==null)clearTimeout(reactionTimer);
+   ambientView=null;
+   reactionView={who,text:window.LifeRPGLivingPersonality.reaction(who,type,day()+':'+Date.now()),until:Date.now()+11500};
+   reactionTimer=window.setTimeout(()=>{reactionTimer=null;reactionView=null;lastKey='';render();},11520);
+   lastKey='';render();
+ }
+ function completedTaskCount(){
+   return (window.LifeRPGTaskProjects?.getAll?.()||[]).filter(t=>t?.doneAt).length;
+ }
  function hiddenByContext(){
    const id=document.querySelector('.view.active')?.id||'';
    if(/(?:story|dream|coloring|drawing|memories|phone|people|talks|training|studio)/.test(id))return true;
@@ -201,8 +236,25 @@
    dock.addEventListener('click',click);
    document.body.appendChild(dock);
    const refresh=()=>render();
-   for(const ev of ['life-rpg:view-changed','life-rpg:habit-complete','life-rpg:task-projects-changed','life-rpg:google-calendar-updated','life-rpg:task-work-windows-changed'])window.addEventListener(ev,refresh);
-   window.addEventListener('life-rpg:state-saved',event=>{if(!String(event.detail?.source||'').startsWith('living-companion:'))render();});
+   knownCompletedTaskCount=completedTaskCount();
+   for(const ev of ['life-rpg:view-changed','life-rpg:google-calendar-updated','life-rpg:task-work-windows-changed'])window.addEventListener(ev,refresh);
+   window.addEventListener('life-rpg:habit-complete',event=>{
+     // Backfills are not treated as today's spontaneous conversation.
+     if(!event.detail?.backfilled)showReaction('habit');else render();
+   });
+   window.addEventListener('life-rpg:task-projects-changed',()=>{
+     const count=completedTaskCount();
+     if(knownCompletedTaskCount!==null&&count>knownCompletedTaskCount)showReaction('task');
+     knownCompletedTaskCount=count;render();
+   });
+   window.addEventListener('life-rpg:game-change',event=>{
+     if(event.detail?.source==='game-session-log')showReaction('game');
+   });
+   window.addEventListener('life-rpg:state-saved',event=>{
+     const source=String(event.detail?.source||'');
+     if(source==='home-quick-action')showReaction('home');
+     else if(!source.startsWith('living-companion:'))render();
+   });
    window.addEventListener('focus',refresh);document.addEventListener('visibilitychange',()=>{if(!document.hidden)render();});
    // The cloud gate can close without any task/state event; refresh immediately.
    const gate=document.getElementById('mobileCloudGate');
@@ -223,24 +275,35 @@
    dock.hidden=hiddenByContext();
    if(dock.hidden)return;
    const s=settings(),who=person(),face=faces[who],rec=recommendation();
+   if(conversation&&conversation.who!==who)conversation=null;
+   if(reactionView&&Date.now()>=reactionView.until)reactionView=null;
+   if(ambientView&&Date.now()>=ambientView.until)ambientView=null;
+   maybeAmbient(who,rec);
    const mode=offDuty()?'Off-duty mode':'Day companion';
    const artSource=face.soft&&['rest','game','book','habit'].includes(rec.kind)?face.soft:face.img;
    const art=window.LifeRPGVisuals?.thumbnail?.(artSource)||artSource;
-   const key=[who,rec.kind,rec.id,rec.item?.title,rec.item?.name,rec.slot?.minutes,rec.slot?.next?.title,rec.safeExhausted,rec.calendarUnverified,mode,s.bufferMinutes,s.collapsed,settingOpen].join('|');
+   const key=[who,rec.kind,rec.id,rec.item?.title,rec.item?.name,rec.slot?.minutes,rec.slot?.next?.title,rec.safeExhausted,rec.calendarUnverified,mode,s.bufferMinutes,s.collapsed,settingOpen,conversation?.who,conversation?.reply,reactionView?.text,ambientView?.text].join('|');
    // Render on relevant app events, never globally tick/rebuild every second.
    if(lastKey===key&&!uiStatus){watchDockObstacles();return;}
    lastKey=key;
    const mini=s.collapsed;
+   const speech=conversation?(conversation.reply||conversation.data.intro)
+     :(reactionView?.who===who?reactionView.text:line(who,rec));
+   const aside=(!conversation&&!reactionView&&ambientView?.who===who)?ambientView.text:'';
    dock.innerHTML='<div class="lc-surface '+(mini?'lc-mini':'')+'">'+
      '<button type="button" class="lc-portrait" data-lc="toggle" aria-label="'+(mini?'Open':'Minimize')+' Living Companion"><span>'+face.symbol+'</span><img src="'+E(art)+'" alt="" loading="lazy" decoding="async"></button>'+
      (mini?'<button type="button" class="lc-mini-label" data-lc="toggle">What next? ✦</button>':
      '<section class="lc-bubble" aria-label="Suggestion from '+E(face.name)+'">'+
        '<div class="lc-heading"><strong>'+E(face.name)+'</strong><small>'+E(mode)+'</small><button type="button" data-lc="settings" aria-label="Companion settings">⚙</button><button type="button" data-lc="toggle" aria-label="Minimize">×</button></div>'+
-       '<p aria-live="polite">'+E(line(who,rec))+'</p>'+
+       '<p aria-live="polite">'+E(speech)+'</p>'+ 
+       (aside?'<small class="lc-personality-aside">✦ '+E(aside)+'</small>':'')+
        (rec.kind==='task'?'<small class="lc-context">'+E(rec.smallStep?'Optional first step · '+rec.minutes+' min':'Estimated '+rec.minutes+' min')+'</small>':'')+
        (rec.calendarUnverified?'<small class="lc-context">Calendar offline · check your schedule before starting</small>':'')+
        (['departure','busy'].includes(rec.kind)&&rec.slot.next?'<small class="lc-context">Next: '+E(rec.slot.next.title)+'</small>':'')+
-       '<div class="lc-actions">'+actions(rec)+'</div>'+
+       '<div class="lc-actions '+(conversation?'lc-talk-actions':'')+'">'+(conversation
+          ?(conversation.reply?'<button type="button" data-lc="talk-again" class="lc-primary">Another question</button><button type="button" data-lc="talk-back">Back to my plan</button>'
+          :conversation.data.choices.map((choice,index)=>'<button type="button" data-lc="talk-choice" data-lc-choice="'+index+'">'+E(choice.label)+'</button>').join('')+'<button type="button" data-lc="talk-back">Back to my plan</button>')
+          :actions(rec))+'</div>'+
        (settingOpen?'<div class="lc-options"><label>Time buffer before appointments <select data-lc-buffer>'+[0,10,15,30,45,60].map(n=>'<option value="'+n+'" '+(n===s.bufferMinutes?'selected':'')+'>'+n+' min</option>').join('')+'</select></label><small>Travel time is not inferred. Add enough preparation and travel buffer for your schedule.</small><button type="button" data-lc="character">Switch guide</button><button type="button" data-lc="reset">Show skipped suggestions again</button></div>':'')+
        (uiStatus?'<small class="lc-status" role="status">'+E(uiStatus)+'</small>':'')+
      '</section>')+'</div>';
@@ -249,23 +312,28 @@
    watchDockObstacles();
  }
  function actions(rec){
+   const talk='<button type="button" data-lc="talk" class="lc-talk-button">♡ Talk</button>';
    const button=(id,label,primary=false)=>'<button type="button" data-lc="'+id+'" class="'+(primary?'lc-primary':'')+'">'+label+'</button>';
-   if(rec.kind==='task')return button('start','▶ Start',true)+button('later','Later')+button('skip','Something else')+button('duty',offDuty()?'Back to work':'Done working');
-   if(rec.kind==='habit')return button('habit','✓ Done',true)+button('later','Later')+button('skip','Not today');
-   if(rec.kind==='game'||rec.kind==='book')return button('leisure','Open '+(rec.kind==='game'?'games':'books'),true)+button('later','Later')+button('skip','Something else');
-   if(rec.kind==='checkin')return button('checkin','Daily check-in',true)+button('skip','Later');
-   if(rec.kind==='calendar')return rec.safeExhausted?button('calendar','Open calendar',true)+button('toggle','Got it'):button('safe','Tiny safe idea',true)+button('calendar','Open calendar')+button('toggle','Got it');
-   if(rec.kind==='departure'||rec.kind==='busy')return button('toggle','Got it',true)+button('duty',offDuty()?'Work mode':'Off duty');
-   return button('duty',offDuty()?'Work mode':'Done working',true)+button('reset','What else?')+button('checkin','Check in');
+   if(rec.kind==='task')return button('start','▶ Start',true)+button('later','Later')+button('skip','Something else')+button('duty',offDuty()?'Back to work':'Done working')+talk;
+   if(rec.kind==='habit')return button('habit','✓ Done',true)+button('later','Later')+button('skip','Not today')+talk;
+   if(rec.kind==='game'||rec.kind==='book')return button('leisure','Open '+(rec.kind==='game'?'games':'books'),true)+button('later','Later')+button('skip','Something else')+talk;
+   if(rec.kind==='checkin')return button('checkin','Daily check-in',true)+button('skip','Later')+talk;
+   if(rec.kind==='calendar')return (rec.safeExhausted?button('calendar','Open calendar',true)+button('toggle','Got it'):button('safe','Tiny safe idea',true)+button('calendar','Open calendar')+button('toggle','Got it'))+talk;
+   if(rec.kind==='departure'||rec.kind==='busy')return button('toggle','Got it',true)+button('duty',offDuty()?'Work mode':'Off duty')+talk;
+   return button('duty',offDuty()?'Work mode':'Done working',true)+button('reset','What else?')+button('checkin','Check in')+talk;
  }
  function click(e){
    const b=e.target.closest('button[data-lc]');if(!b||!dock.contains(b))return;
    const action=b.dataset.lc,rec=recommendation(),s=settings();
-   if(action==='toggle'){write('collapse',x=>{x.collapsed=!x.collapsed;});settingOpen=false;render();return;}
+   if(action==='talk'){const who=person();conversation={who,reply:'',data:window.LifeRPGLivingPersonality?.conversation?.(who,dayContext(),relationLevel(who))};if(!conversation.data){conversation=null;return;}lastKey='';render();return;}
+   if(action==='talk-choice'&&conversation){const choice=conversation.data.choices[Number(b.dataset.lcChoice)];if(choice){conversation.reply=choice.reply;lastKey='';render();}return;}
+   if(action==='talk-back'){conversation=null;lastKey='';render();return;}
+   if(action==='talk-again'&&conversation){conversation.reply='';lastKey='';render();return;}
+   if(action==='toggle'){conversation=null;write('collapse',x=>{x.collapsed=!x.collapsed;});settingOpen=false;lastKey='';render();return;}
    if(action==='settings'){settingOpen=!settingOpen;lastKey='';render();return;}
    if(action==='character'){write('character',x=>{const all=allowed(),i=all.indexOf(person());x.character=all[(i+1)%all.length];});lastKey='';render();return;}
    if(action==='reset'){write('reset',x=>{x.dismissed=[];x.snoozed={};});lastKey='';render();return;}
-   if(action==='duty'){if(!setDuty(!offDuty()))uiStatus='Could not change mode.';lastKey='';render();return;}
+   if(action==='duty'){const wasOff=offDuty();if(!setDuty(!wasOff))uiStatus='Could not change mode.';else if(!wasOff)showReaction('duty');lastKey='';render();return;}
    if(action==='checkin'){window.LifeRPGDaily?.openBriefing?.();return;}
    if(action==='calendar'){safeIdeas=false;app.showView?.('tasks');return;}
    if(action==='safe'){safeIdeas=true;lastKey='';render();return;}
