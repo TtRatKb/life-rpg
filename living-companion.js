@@ -135,7 +135,7 @@
  function hiddenByContext(){
    const id=document.querySelector('.view.active')?.id||'';
    if(/(?:story|dream|coloring|drawing|memories|phone|people|talks|training|studio)/.test(id))return true;
-   if(document.querySelector('dialog[open],.vn-reader[aria-hidden="false"],.mobile-cloud-gate-v251:not([hidden]):not(.hidden)[data-state="checking"]'))return true;
+   if(document.querySelector('dialog[open],.vn-reader[aria-hidden="false"],.mobile-cloud-gate-v251:not(.is-hidden-v251)[data-state="checking"]'))return true;
    return false;
  }
  function init(){
