@@ -143,6 +143,7 @@ class TaskProjectBrowserTests(unittest.TestCase):
 
     def test_companion_talk_and_reaction_do_not_change_relationship_rewards(self):
         self.page.wait_for_function("window.LifeRPGLivingPersonality && window.LifeRPGLivingCompanion")
+        self.page.add_style_tag(content='.mobile-cloud-gate-v251.is-hidden-v251 {display:none}')
         self.page.evaluate("document.querySelector('#mobileCloudGate').classList.add('is-hidden-v251'); LifeRPGLivingCompanion.render()")
         initial=self.page.evaluate("JSON.stringify({people:LifeRPGApp.getState().people,events:LifeRPGApp.getState().rewardLedger?.events||[]})")
         self.page.locator('#livingCompanionDock [data-lc="talk"]').click()
