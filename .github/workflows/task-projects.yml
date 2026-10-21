@@ -237,8 +237,8 @@ jobs:
           for (const [asset,version] of [
             ['living-companion-personality.js','0.31.4-lc4'],
             ['living-companion.js','0.31.4-bakugo-seven1'],
-            ['bakugo-visual-map.js','0.31.4-bakugo-seven1'],
-            ['story-ui.js','0.31.4-bakugo-seven1'],
+            ['bakugo-visual-map.js','0.31.4-bakugo-hero-seven1'],
+            ['story-ui.js','0.31.4-bakugo-hero-seven1'],
             ['living-world-v3.js','0.31.4-bakugo-seven1'],
             ['living-companion.css','0.31.4-lc4'],
             ['life-hub-v314dk.js','0.31.4-home-toast4']
