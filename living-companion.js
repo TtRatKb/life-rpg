@@ -226,7 +226,7 @@
    const mode=offDuty()?'Off-duty mode':'Day companion';
    const artSource=face.soft&&['rest','game','book','habit'].includes(rec.kind)?face.soft:face.img;
    const art=window.LifeRPGVisuals?.thumbnail?.(artSource)||artSource;
-   const key=[who,rec.kind,rec.id,rec.item?.title,rec.item?.name,rec.slot?.minutes,rec.slot?.next?.title,mode,s.bufferMinutes,s.collapsed,settingOpen].join('|');
+   const key=[who,rec.kind,rec.id,rec.item?.title,rec.item?.name,rec.slot?.minutes,rec.slot?.next?.title,rec.safeExhausted,rec.calendarUnverified,mode,s.bufferMinutes,s.collapsed,settingOpen].join('|');
    // Render on relevant app events, never globally tick/rebuild every second.
    if(lastKey===key&&!uiStatus){watchDockObstacles();return;}
    lastKey=key;
@@ -238,6 +238,7 @@
        '<div class="lc-heading"><strong>'+E(face.name)+'</strong><small>'+E(mode)+'</small><button type="button" data-lc="settings" aria-label="Companion settings">⚙</button><button type="button" data-lc="toggle" aria-label="Minimize">×</button></div>'+
        '<p aria-live="polite">'+E(line(who,rec))+'</p>'+
        (rec.kind==='task'?'<small class="lc-context">'+E(rec.smallStep?'Optional first step · '+rec.minutes+' min':'Estimated '+rec.minutes+' min')+'</small>':'')+
+       (rec.calendarUnverified?'<small class="lc-context">Calendar offline · check your schedule before starting</small>':'')+
        (['departure','busy'].includes(rec.kind)&&rec.slot.next?'<small class="lc-context">Next: '+E(rec.slot.next.title)+'</small>':'')+
        '<div class="lc-actions">'+actions(rec)+'</div>'+
        (settingOpen?'<div class="lc-options"><label>Time buffer before appointments <select data-lc-buffer>'+[0,10,15,30,45,60].map(n=>'<option value="'+n+'" '+(n===s.bufferMinutes?'selected':'')+'>'+n+' min</option>').join('')+'</select></label><small>Travel time is not inferred. Add enough preparation and travel buffer for your schedule.</small><button type="button" data-lc="character">Switch guide</button><button type="button" data-lc="reset">Show skipped suggestions again</button></div>':'')+
@@ -253,7 +254,7 @@
    if(rec.kind==='habit')return button('habit','✓ Done',true)+button('later','Later')+button('skip','Not today');
    if(rec.kind==='game'||rec.kind==='book')return button('leisure','Open '+(rec.kind==='game'?'games':'books'),true)+button('later','Later')+button('skip','Something else');
    if(rec.kind==='checkin')return button('checkin','Daily check-in',true)+button('skip','Later');
-   if(rec.kind==='calendar')return button('safe','Tiny safe idea',true)+button('calendar','Open calendar')+button('toggle','Got it');
+   if(rec.kind==='calendar')return rec.safeExhausted?button('calendar','Open calendar',true)+button('toggle','Got it'):button('safe','Tiny safe idea',true)+button('calendar','Open calendar')+button('toggle','Got it');
    if(rec.kind==='departure'||rec.kind==='busy')return button('toggle','Got it',true)+button('duty',offDuty()?'Work mode':'Off duty');
    return button('duty',offDuty()?'Work mode':'Done working',true)+button('reset','What else?')+button('checkin','Check in');
  }
