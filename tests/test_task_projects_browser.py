@@ -37,7 +37,7 @@ class TaskProjectBrowserTests(unittest.TestCase):
             '<script src="/task-free-days-core.js"></script><script src="/task-google-calendar-core.js"></script>'
             '<script src="/task-google-calendar.js"></script><script src="/task-focus-core.js"></script>'
             '<script src="/task-free-days.js"></script><script src="/task-session-review.js"></script>'
-            '<script src="/living-companion-core.js"></script><script src="/living-companion.js"></script></body>')
+            '<script src="/living-companion-core.js"></script><script src="/living-companion-personality.js"></script><script src="/living-companion.js"></script></body>')
 
     @classmethod
     def tearDownClass(cls):
@@ -140,6 +140,33 @@ class TaskProjectBrowserTests(unittest.TestCase):
           const b=document.querySelector('#lifeRpgFocusDock')?.getBoundingClientRect();
           return a&&b&&a.bottom<=b.top-8;
         }""")
+
+    def test_companion_talk_and_reaction_do_not_change_relationship_rewards(self):
+        self.page.wait_for_function("window.LifeRPGLivingPersonality && window.LifeRPGLivingCompanion")
+        self.page.evaluate("document.querySelector('#mobileCloudGate').classList.add('is-hidden-v251'); LifeRPGLivingCompanion.render()")
+        initial=self.page.evaluate("JSON.stringify({people:LifeRPGApp.getState().people,events:LifeRPGApp.getState().rewardLedger?.events||[]})")
+        self.page.locator('#livingCompanionDock [data-lc="talk"]').click()
+        self.assertEqual(3,self.page.locator('#livingCompanionDock [data-lc="talk-choice"]').count())
+        self.page.locator('#livingCompanionDock [data-lc="talk-choice"]').first.click()
+        self.assertEqual(1,self.page.locator('#livingCompanionDock [data-lc="talk-again"]').count())
+        self.page.locator('#livingCompanionDock [data-lc="talk-back"]').click()
+        self.assertEqual(1,self.page.locator('#livingCompanionDock [data-lc="talk"]').count())
+        final=self.page.evaluate("JSON.stringify({people:LifeRPGApp.getState().people,events:LifeRPGApp.getState().rewardLedger?.events||[]})")
+        self.assertEqual(initial,final)
+
+    def test_household_quick_status_auto_clears_and_resets_on_new_log(self):
+        base=f'http://127.0.0.1:{self.server.server_port}/'
+        self.page.add_script_tag(url=base+'life-hub-v314dk.js')
+        self.page.wait_for_function("window.LifeRPGLifeHub && document.getElementById('lifeQuickStatus')")
+        self.page.evaluate("LifeRPGApp.showView('quick')")
+        self.page.locator('[data-life-action="put-groceries"]').click()
+        self.assertIn('Einkauf verräumt',self.page.locator('#lifeQuickStatus').inner_text())
+        # A second, separate household action renews the timer instead of leaving stale copy.
+        self.page.locator('[data-life-action="dishwasher"]').click()
+        self.assertIn('Spülmaschine',self.page.locator('#lifeQuickStatus').inner_text())
+        self.page.wait_for_function("!document.getElementById('lifeQuickStatus').textContent",timeout=8500)
+        self.assertIn('Spülmaschine',self.page.locator('[data-life-recent]').inner_text())
+        self.assertEqual(2,len(self.page.evaluate("LifeRPGApp.getState().homeQuickActionsV1.entries")))
 
     def test_template_generates_steps_and_survives_reload(self):
         self.page.locator('.tp-create summary').click()
