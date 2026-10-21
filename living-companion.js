@@ -5,7 +5,7 @@
  if(!app?.getState||!app.saveState||!core)return;
  const E=v=>app.escapeHtml?.(String(v??''))||String(v??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
  const faces={
-   bakugo:{name:'Katsuki',img:'assets/story/characters/bakugo-neutral.png',soft:'assets/story/characters/bakugo-soft.png',symbol:'💥'},
+   bakugo:{name:'Katsuki',img:'assets/story/characters/bakugo-neutral.webp',soft:'assets/story/characters/bakugo-proud.webp',symbol:'💥'},
    kirishima:{name:'Eijiro',img:'assets/story/characters/kirishima-neutral.png',soft:'assets/story/characters/kirishima-happy.png',symbol:'☀️'},
    mina:{name:'Mina',img:'assets/story/sprites/mina_neutral.png',symbol:'💗'},
    luca:{name:'Luca',img:'assets/ui/thumbs/characters/luca_neutral.webp',soft:'assets/ui/thumbs/characters/luca_soft_smile.webp',symbol:'✿'}
