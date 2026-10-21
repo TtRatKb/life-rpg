@@ -33,7 +33,7 @@
       id: "bakugo",
       type: "romance",
       name: "Bakugo",
-      portrait: "assets/story/characters/bakugo-neutral.png"
+      portrait: "assets/story/characters/bakugo-neutral.webp"
     }
   };
 
