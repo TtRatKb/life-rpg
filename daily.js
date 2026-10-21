@@ -1748,10 +1748,10 @@
     }
     if (provisionalCompanion.id === "bakugo") {
       img.src = mood === "positive" || mood === "warm"
-        ? uiThumb("assets/story/characters/bakugo-happy-soft-smirk.png")
+        ? uiThumb("assets/story/characters/bakugo-v3/bakugo-proud.webp")
         : mood === "skeptical" || mood === "low"
-          ? uiThumb("assets/story/characters/bakugo-annoyed-mild.png")
-          : uiThumb("assets/story/characters/bakugo-neutral.png");
+          ? uiThumb("assets/story/characters/bakugo-v3/bakugo-annoyed.webp")
+          : uiThumb("assets/story/characters/bakugo-v3/bakugo-annoyed.webp");
       return;
     }
     img.src = mood === "positive" || mood === "warm"
@@ -3366,7 +3366,7 @@
         name: "Bakugo",
         kicker: "A QUICK CHECK-IN",
         weight: 1,
-        portrait: "assets/story/characters/bakugo-neutral.png",
+        portrait: "assets/story/characters/bakugo-v3/bakugo-annoyed.webp",
         previewLine: "On some days, Bakugo's version of checking in is mostly just demanding accurate information.",
         dialogLine: "Status. How bad is it?",
         doneLine: "There. Accurate status. Don’t make the day harder than it already is."
