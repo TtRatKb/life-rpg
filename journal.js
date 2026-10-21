@@ -169,7 +169,7 @@
       id: "bakugo",
       name: "Bakugo",
       kicker: "MESSAGE FROM BAKUGO",
-      portrait: "assets/story/characters/bakugo-neutral.png",
+      portrait: "assets/story/characters/bakugo-neutral.webp",
       prompts: {
         choice: "You done, or you keeping one more thing from today?",
         gratitude: "One thing that didn't suck. Go.",

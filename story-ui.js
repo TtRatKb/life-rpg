@@ -5015,6 +5015,11 @@
   function resolveCharacterAsset(character, item) {
     if (!character) return null;
 
+    // Approved Oct 2026 Bakugo off-duty sprites replace legacy expression variants.
+    // Hero outfit continues to use its actual Pro-Hero costumes from the story pack.
+    const consolidated = window.LifeRPGBakugoVisuals?.forItem?.(character, item);
+    if (consolidated?.src) return consolidated;
+
     // V0.8 supports explicit outfit + expression while remaining compatible
     // with the older flat expression map.
     const outfitName = item?.outfit || character.defaultOutfit;

@@ -21,6 +21,19 @@ on:
       - 'task-focus-core.js'
       - 'living-companion-core.js'
       - 'living-companion.js'
+      - 'bakugo-visual-map.js'
+      - 'story-ui.js'
+      - 'living-world-v3.js'
+      - 'daily.js'
+      - 'relationship-engine.js'
+      - 'companion-moments.js'
+      - 'companion-moments-v2.js'
+      - 'visual-performance.js'
+      - 'assets/story/characters/bakugo-*.webp'
+      - 'assets/story/characters/bakugo-*.png'
+      - 'assets/story/characters/visual-manifest.json'
+      - 'assets/ui/thumbs/characters/bakugo-*.webp'
+      - 'tests/test_bakugo_visual_map.cjs'
       - 'living-companion-personality.js'
       - 'life-hub-v314dk.js'
       - 'tests/test_living_companion_personality.cjs'
@@ -76,6 +89,19 @@ on:
       - 'task-focus-core.js'
       - 'living-companion-core.js'
       - 'living-companion.js'
+      - 'bakugo-visual-map.js'
+      - 'story-ui.js'
+      - 'living-world-v3.js'
+      - 'daily.js'
+      - 'relationship-engine.js'
+      - 'companion-moments.js'
+      - 'companion-moments-v2.js'
+      - 'visual-performance.js'
+      - 'assets/story/characters/bakugo-*.webp'
+      - 'assets/story/characters/bakugo-*.png'
+      - 'assets/story/characters/visual-manifest.json'
+      - 'assets/ui/thumbs/characters/bakugo-*.webp'
+      - 'tests/test_bakugo_visual_map.cjs'
       - 'living-companion-personality.js'
       - 'life-hub-v314dk.js'
       - 'tests/test_living_companion_personality.cjs'
@@ -143,6 +169,8 @@ jobs:
           node --check task-focus-core.js
           node --check living-companion-core.js
           node --check living-companion.js
+          node --check bakugo-visual-map.js
+          node --check story-ui.js
           node --check living-companion-personality.js
           node --check life-hub-v314dk.js
           node --check habits.js
@@ -163,6 +191,7 @@ jobs:
           node tests/test_task_focus.cjs
           TZ=Europe/Berlin node tests/test_living_companion.cjs
           node tests/test_living_companion_personality.cjs
+          node tests/test_bakugo_visual_map.cjs
           TZ=Europe/Berlin node tests/test_task_google_calendar.cjs
       - uses: actions/setup-python@v5
         with:
@@ -207,7 +236,10 @@ jobs:
             if (!html.includes('id="'+id+'"')) throw Error('Missing companion mount: '+id);
           for (const [asset,version] of [
             ['living-companion-personality.js','0.31.4-lc4'],
-            ['living-companion.js','0.31.4-lc4'],
+            ['living-companion.js','0.31.4-bakugo-seven1'],
+            ['bakugo-visual-map.js','0.31.4-bakugo-seven1'],
+            ['story-ui.js','0.31.4-bakugo-seven1'],
+            ['living-world-v3.js','0.31.4-bakugo-seven1'],
             ['living-companion.css','0.31.4-lc4'],
             ['life-hub-v314dk.js','0.31.4-home-toast4']
           ]) {
