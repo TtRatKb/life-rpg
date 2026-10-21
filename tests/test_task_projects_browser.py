@@ -93,6 +93,54 @@ class TaskProjectBrowserTests(unittest.TestCase):
         self.assertEqual("checkin",self.page.evaluate("LifeRPGLivingCompanion.recommendation().kind"))
         self.assertEqual(initial,self.page.evaluate("(LifeRPGApp.getState().rewardLedger?.events||[]).length"))
 
+    def test_living_companion_stays_clear_of_quick_actions(self):
+        base=f"http://127.0.0.1:{self.server.server_port}/"
+        self.page.add_style_tag(content=".mobile-cloud-gate-v251{display:none}")
+        self.page.add_style_tag(url=base+"focus-dock.css")
+        self.page.add_style_tag(url=base+"living-companion.css")
+        self.page.evaluate("""() => {
+          const gate=document.getElementById('mobileCloudGate');
+          gate.classList.add('is-hidden-v251'); gate.setAttribute('aria-hidden','true');
+          const launcher=document.createElement('div');
+          launcher.id='lifeRpgFocusLauncher';
+          launcher.className='focus-dock-launcher';
+          launcher.innerHTML='<button type="button">✿ Schnellaktionen</button>'+
+            '<div class="focus-dock-launch-options"><button>Action one</button><button>Action two</button></div>';
+          document.body.appendChild(launcher);
+          LifeRPGLivingCompanion.render();
+        }""")
+        self.page.wait_for_function("""() => {
+          const a=document.querySelector('#livingCompanionDock .lc-bubble')?.getBoundingClientRect();
+          const b=document.querySelector('#lifeRpgFocusLauncher>button')?.getBoundingClientRect();
+          return a&&b&&a.bottom<=b.top-8;
+        }""")
+        self.assertTrue(self.page.locator('#livingCompanionDock .lc-bubble').is_visible())
+        # Expanded launcher gets interaction priority; closing it restores the Companion.
+        self.page.evaluate("document.getElementById('lifeRpgFocusLauncher').classList.add('is-open')")
+        self.page.wait_for_function("getComputedStyle(document.getElementById('livingCompanionDock')).visibility==='hidden'")
+        self.page.evaluate("document.getElementById('lifeRpgFocusLauncher').classList.remove('is-open')")
+        self.page.wait_for_function("getComputedStyle(document.getElementById('livingCompanionDock')).visibility==='visible'")
+        self.page.set_viewport_size({"width":390,"height":760})
+        self.page.wait_for_function("""() => {
+          const a=document.querySelector('#livingCompanionDock .lc-bubble')?.getBoundingClientRect();
+          const b=document.querySelector('#lifeRpgFocusLauncher>button')?.getBoundingClientRect();
+          return a&&b&&a.bottom<=b.top-8;
+        }""")
+        # The active-timer dock replaces Quick Actions; avoid it without moving or stopping it.
+        self.page.evaluate("""() => {
+          document.getElementById('lifeRpgFocusLauncher').classList.add('hidden');
+          const timer=document.createElement('aside');
+          timer.id='lifeRpgFocusDock';timer.className='focus-dock';
+          timer.style.height='170px';
+          document.body.appendChild(timer);
+          window.dispatchEvent(new Event('life-rpg:time-change'));
+        }""")
+        self.page.wait_for_function("""() => {
+          const a=document.querySelector('#livingCompanionDock .lc-portrait')?.getBoundingClientRect();
+          const b=document.querySelector('#lifeRpgFocusDock')?.getBoundingClientRect();
+          return a&&b&&a.bottom<=b.top-8;
+        }""")
+
     def test_template_generates_steps_and_survives_reload(self):
         self.page.locator('.tp-create summary').click()
         form=self.page.locator('form[data-tp-create]')
