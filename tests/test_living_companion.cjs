@@ -10,7 +10,8 @@ assert.equal(c.recommend({now,events:appt,bufferMinutes:15,checkIn:{energy:'okay
 const free={now,events:[],checkIn:{energy:'okay'},tasks:[long,quick],preferCheckIn:false};
 assert.equal(c.recommend(free).kind,'task');
 assert.equal(c.recommend(free).item.id,'lesson');
-assert.equal(c.recommend({...free,events:[{start:'15:00',end:'16:00'}]}).item.id,'clean');
+assert.equal(c.recommend({...free,events:[{start:'15:00',end:'16:00'}]}).item.id,'lesson');
+assert.equal(c.recommend({...free,events:[{start:'15:00',end:'16:00'}]}).smallStep,true);
 assert.equal(c.recommend({...free,offDuty:true}).item.id,'clean');
 assert.equal(c.workTask(long),true);
 assert.equal(c.workTask(quick),false);
