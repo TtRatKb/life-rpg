@@ -16,7 +16,7 @@
     const script=document.createElement("script");script.id=id;script.src=src;script.async=false;script.onerror=()=>console.warn("Life RPG could not load Companion Moments V2");document.body.appendChild(script);
   };
   addCss(`./companion-moments-v2.css?v=0.31.4dd`,"lifeRpgCompanionV2Css");
-  addScript(`./companion-moments-v2.js?v=0.31.4dd`,"lifeRpgCompanionV2Js");
+  addScript(`./companion-moments-v2.js?v=0.31.4-kirishima-nine1`,"lifeRpgCompanionV2Js");
 
   // The canonical Time engine is loaded by index.html. Only the persistent UI is
   // additive; do not load a second copy of time.js or create a competing clock.

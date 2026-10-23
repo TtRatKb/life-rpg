@@ -5015,11 +5015,12 @@
   function resolveCharacterAsset(character, item) {
     if (!character) return null;
 
-    // Both approved Bakugo costumes share seven emotion names.
-    // The sealed Story pack keeps original scene, outfit and expression IDs;
-    // the resolver maps off-duty vs hero to matching transparent sprites.
+    // Keep the sealed Story pack's scene, outfit and expression IDs untouched.
+    // Visual-only resolvers translate them to approved transparent cutouts.
     const consolidated = window.LifeRPGBakugoVisuals?.forItem?.(character, item);
     if (consolidated?.src) return consolidated;
+    const kirishima = window.LifeRPGKirishimaVisuals?.forItem?.(character, item);
+    if (kirishima?.src) return kirishima;
 
     // V0.8 supports explicit outfit + expression while remaining compatible
     // with the older flat expression map.

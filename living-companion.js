@@ -6,7 +6,7 @@
  const E=v=>app.escapeHtml?.(String(v??''))||String(v??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
  const faces={
    bakugo:{name:'Katsuki',img:'assets/story/characters/bakugo-neutral.webp',soft:'assets/story/characters/bakugo-proud.webp',symbol:'💥'},
-   kirishima:{name:'Eijiro',img:'assets/story/characters/kirishima-neutral.png',soft:'assets/story/characters/kirishima-happy.png',symbol:'☀️'},
+   kirishima:{name:'Eijiro',img:window.LifeRPGKirishimaVisuals?.pathFor('neutral') || 'assets/story/characters/kirishima-offduty-neutral-v2.png',soft:window.LifeRPGKirishimaVisuals?.pathFor('soft') || 'assets/story/characters/kirishima-offduty-soft-v2.png',symbol:'☀️'},
    mina:{name:'Mina',img:'assets/story/sprites/mina_neutral.png',symbol:'💗'},
    luca:{name:'Luca',img:'assets/ui/thumbs/characters/luca_neutral.webp',soft:'assets/ui/thumbs/characters/luca_soft_smile.webp',symbol:'✿'}
  };
