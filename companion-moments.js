@@ -19,7 +19,7 @@
   };
   const SPRITES = {
     bakugo:{neutral:"assets/story/characters/bakugo-neutral.webp",soft:"assets/story/characters/bakugo-proud.webp",smug:"assets/story/characters/bakugo-proud.webp"},
-    kirishima:{neutral:"assets/story/characters/kirishima-neutral.png",soft:"assets/story/characters/kirishima-happy.png",smug:"assets/story/characters/kirishima-teasing.png"}
+    kirishima:{neutral:window.LifeRPGKirishimaVisuals?.pathFor('neutral') || 'assets/story/characters/kirishima-offduty-neutral-v2.png',soft:window.LifeRPGKirishimaVisuals?.pathFor('soft') || 'assets/story/characters/kirishima-offduty-soft-v2.png',smug:window.LifeRPGKirishimaVisuals?.pathFor('teasing') || 'assets/story/characters/kirishima-offduty-teasing-v2.png'}
   };
   const n = (text) => ({speaker:"luca",text});
   const say = (speaker,text,expression="neutral") => ({speaker,text,expression});

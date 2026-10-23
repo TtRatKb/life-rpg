@@ -1487,7 +1487,7 @@
   };
   const DREAM_SPRITES = {
     bakugo: ["assets/story/characters/bakugo-neutral.webp", "assets/story/characters/bakugo-proud.webp"],
-    kirishima: ["assets/story/characters/kirishima-neutral.png", "assets/story/characters/kirishima-happy.png"]
+    kirishima: [window.LifeRPGKirishimaVisuals?.pathFor('neutral') || 'assets/story/characters/kirishima-offduty-neutral-v2.png', window.LifeRPGKirishimaVisuals?.pathFor('happy') || 'assets/story/characters/kirishima-offduty-happy-v2.png']
   };
   function sceneBeats(dream) {
     const scripted = window.LifeRPGDreamscapeV2Scenes?.[dream.id];
@@ -1516,7 +1516,10 @@
     const visual = sprites.map(who => {
       const bank = DREAM_SPRITES[who];
       const index = beat.expression === "soft" || speaking === who ? 1 : 0;
-      return bank ? `<img class="dream-vn-sprite dream-vn-${who}${speaking !== who && speaking !== "narration" && speaking !== "luca" ? " dream-vn-listener" : ""}" src="${escAttr(bank[index])}" alt="${esc(who === "bakugo" ? "Bakugo" : "Kirishima")}" draggable="false" loading="eager">` : "";
+      const kirishimaSrc = who === 'kirishima' && window.LifeRPGKirishimaVisuals?.pathFor?.(
+        speaking === who ? (beat.expression === 'neutral' ? 'happy' : beat.expression) : 'neutral'
+      );
+      return bank ? `<img class="dream-vn-sprite dream-vn-${who}${speaking !== who && speaking !== "narration" && speaking !== "luca" ? " dream-vn-listener" : ""}" src="${escAttr(kirishimaSrc || bank[index])}" alt="${esc(who === "bakugo" ? "Bakugo" : "Kirishima")}" draggable="false" loading="eager">` : "";
     }).join("");
     const decision = beats.findIndex(item => Array.isArray(item.choices));
     const selectedChoice = decision >= 0 ? beats[decision].choices[reader.choice] : null;

@@ -1,4 +1,4 @@
-const CACHE_NAME = "life-rpg-v0.31.4-bakugo-hero-seven1";
+const CACHE_NAME = "life-rpg-v0.31.4-kirishima-nine1";
 const ASSET_CACHE_NAME = "life-rpg-assets-v6";
 const MAX_RUNTIME_ASSETS = 96;
 const CORE = [
@@ -29,7 +29,7 @@ const CORE = [
   "./task-focus.css?v=0.31.4-focus1",
   "./living-companion-core.js?v=0.31.4-lc3",
   "./living-companion-personality.js?v=0.31.4-lc4",
-  "./living-companion.js?v=0.31.4-bakugo-seven1",
+  "./living-companion.js?v=0.31.4-kirishima-nine1",
   "./living-companion.css?v=0.31.4-lc4",
   "./task-free-days.css?v=0.31.4-freedays1",
   "./task-google-calendar-core.js?v=0.31.4-gcal1",
@@ -103,8 +103,8 @@ const CORE = [
   "./talent-v3-experiences.css?v=0.31.4dz35",
   "./talent-v3-experiences.js?v=0.31.4dz35",
   "./companion-moments.css?v=0.31.4da",
-  "./companion-moments.js?v=0.31.4da",
-  "./living-world-v3.js?v=0.31.4-bakugo-seven1",
+  "./companion-moments.js?v=0.31.4-kirishima-nine1",
+  "./living-world-v3.js?v=0.31.4-kirishima-nine1",
   "./social-delivery.js?v=0.31.4-health-echo2",
   "./social-delivery.css?v=0.31.4dc",
   "./living-world-v3.css?v=0.31.4db",
@@ -206,7 +206,7 @@ const CORE = [
   "./assets/drawing/references/story-shared-carry.svg",
   "./talent-content-v2.js?v=0.31.4cw",
   "./dreamscape-v2-scenes.js?v=0.31.4cx",
-  "./dreamscape.js?v=0.31.4cx",
+  "./dreamscape.js?v=0.31.4-kirishima-nine1",
   "./journal-rewards.js?v=0.31.4ag",
   "./weekly-review.css?v=0.31.4ag",
   "./bullet-journal-book.css?v=0.31.4-collections1",
@@ -216,7 +216,7 @@ const CORE = [
   "./bullet-journal-daily-tracker.css?v=0.31.4-atelier-preview1",
   "./weekly-review.js?v=0.31.4ag",
   "./manifest.webmanifest?v=0.30.3a",
-  "./pwa.js?v=0.31.4-task-time2",
+  "./pwa.js?v=0.31.4-kirishima-nine1",
   "./focus-dock.css?v=0.31.4dz16",
   "./focus-dock.js?v=0.31.4dz50c",
   "./visual-performance.js?v=0.31.4bu",
@@ -261,6 +261,7 @@ const CORE = [
   "./bullet-journal-collections.js?v=0.31.4-collection-shelves2",
   "./story-engine.js?v=0.31.4dz16",
   "./bakugo-visual-map.js?v=0.31.4-bakugo-hero-seven1",
+  "./kirishima-visual-map.js?v=0.31.4-kirishima-nine1",
   "./assets/story/characters/bakugo-angry.webp",
   "./assets/story/characters/bakugo-annoyed.webp",
   "./assets/story/characters/bakugo-flustered.webp",
@@ -275,7 +276,7 @@ const CORE = [
   "./assets/story/characters/bakugo-hero-flustered.webp",
   "./assets/story/characters/bakugo-hero-surprised.webp",
   "./assets/story/characters/bakugo-hero-worried.webp",
-  "./story-ui.js?v=0.31.4-bakugo-hero-seven1",
+  "./story-ui.js?v=0.31.4-kirishima-nine1",
   "./relationship-memory.js?v=0.31.4cy",
   "./relationship-memory.css?v=0.31.4ba",
   "./talks-v2.css?v=0.31.4cy",

@@ -8,7 +8,7 @@
   const KEY=()=>{const d=new Date();return [d.getFullYear(),String(d.getMonth()+1).padStart(2,"0"),String(d.getDate()).padStart(2,"0")].join("-");};
   const at=ms=>{const d=new Date(ms);return Number.isFinite(d.getTime())?[d.getFullYear(),String(d.getMonth()+1).padStart(2,"0"),String(d.getDate()).padStart(2,"0")].join("-"):"";};
   const homeReady=()=>Boolean(app.getState().flags?.DYNARIOT_MOVE_IN_COMPLETE);
-  const cast={bakugo:{name:"Katsuki",neutral:"assets/story/characters/bakugo-neutral.webp",soft:"assets/story/characters/bakugo-proud.webp"},kirishima:{name:"Eijiro",neutral:"assets/story/characters/kirishima-neutral.png",soft:"assets/story/characters/kirishima-happy.png"}};
+  const cast={bakugo:{name:"Katsuki",neutral:"assets/story/characters/bakugo-neutral.webp",soft:"assets/story/characters/bakugo-proud.webp"},kirishima:{name:"Eijiro",neutral:window.LifeRPGKirishimaVisuals?.pathFor('neutral') || 'assets/story/characters/kirishima-offduty-neutral-v2.png',soft:window.LifeRPGKirishimaVisuals?.pathFor('soft') || 'assets/story/characters/kirishima-offduty-soft-v2.png'}};
   // These moments happen in the player's present day, unlike authored Story V2 chapters.
   const daypart=()=>{const h=new Date().getHours();return h<6||h>=21?"night":h<10?"dawn":h<17?"day":h<20?"sunset":"night";};
   const backgroundFor=(room,part)=>"assets/story/backgrounds/time/"+(room==="kitchen"?"shared_apartment_kitchen_":"shared_apartment_")+(["dawn","day","sunset","night"].includes(part)?part:"day")+".webp";
