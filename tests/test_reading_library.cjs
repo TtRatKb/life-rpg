@@ -34,7 +34,8 @@ const window = {
 const document = { getElementById() { return null; }, addEventListener() {} };
 const storage = { getItem: () => null, setItem() {}, removeItem() {} };
 const injected = librarySource.replace(/\n\}\)\(\);\s*$/, `
-  window.__readingTest = { logBook, bookProgress, progressUnitFor, safeExternalUrl, bookCardMarkup, epubMetadata };
+  window.__readingTest = { logBook, bookProgress, progressUnitFor, safeExternalUrl, bookCardMarkup, epubMetadata,
+    captureAo3Bookmarklet, makeAo3BookmarkletUrl, parseAo3ImportHash, ao3WorkId };
 })();`);
 assert.notEqual(injected, librarySource, "test-only exports inserted");
 class FakeXmlParser {
@@ -83,6 +84,42 @@ assert.equal(items[3].status, "reading");
 assert.equal(api.safeExternalUrl("javascript:alert(1)"), "");
 assert.equal(api.safeExternalUrl("http://example.com"), "");
 assert.equal(api.safeExternalUrl("https://archiveofourown.org/works/1"), "https://archiveofourown.org/works/1");
+assert.equal(api.ao3WorkId("https://archiveofourown.org/works/123/chapters/456"), "123");
+assert.equal(api.ao3WorkId("https://attacker.example/works/123"), "");
+assert.equal(api.parseAo3ImportHash("#lr-ao3-import=%7Bbad"), null);
+assert.equal(api.parseAo3ImportHash(`#lr-ao3-import=${encodeURIComponent(JSON.stringify({
+  version: 1, source: "ao3", title: "Fake", externalUrl: "javascript:alert(1)"
+}))}`), null, "an untrusted fragment cannot inject a URL");
+
+// Recreate a public AO3 work page. This is DOM-only: no network, logins or story text.
+window.location = { hostname: "archiveofourown.org", origin: "https://archiveofourown.org", pathname: "/works/123/chapters/456" };
+document.querySelector = selector => ({
+  "h2.title.heading": { textContent: "  A Cozy Fic  " },
+  "dd.chapters": { textContent: "4/?" }
+})[selector] || null;
+document.querySelectorAll = selector => ({
+  "h3.byline.heading a[rel='author'], h3.byline.heading a": [{ textContent: "ExampleWriter" }],
+  "h5.fandom.heading a.tag, h5.fandom.tags a.tag, dd.fandom.tags a.tag": [{ textContent: "My Hero Academia" }]
+})[selector] || [];
+let bookmarkletTarget = "";
+window.open = (url, target) => { bookmarkletTarget = url; assert.equal(target, "_blank"); return { opener: window }; };
+api.captureAo3Bookmarklet("https://ttratkb.github.io/life-rpg/");
+const incoming = api.parseAo3ImportHash(new URL(bookmarkletTarget).hash);
+assert.equal(incoming.title, "A Cozy Fic");
+assert.equal(incoming.author, "ExampleWriter");
+assert.equal(incoming.fandom, "My Hero Academia");
+assert.equal(incoming.totalChapters, 4);
+assert.equal(incoming.publicationStatus, "ongoing");
+assert.equal(incoming.externalUrl, "https://archiveofourown.org/works/123");
+document.querySelector = selector => ({
+  "h2.title.heading": { textContent: "Finished Fic" },
+  "dd.chapters": { textContent: "12/12" }
+})[selector] || null;
+api.captureAo3Bookmarklet("https://ttratkb.github.io/life-rpg/");
+assert.equal(api.parseAo3ImportHash(new URL(bookmarkletTarget).hash).publicationStatus, "complete");
+assert.match(api.makeAo3BookmarkletUrl(), /^javascript:void\(/);
+assert.match(html, /id="libraryAo3Bookmarklet"/);
+assert.match(html, /id="libraryAo3Copy"/);
 assert.match(api.bookCardMarkup(items[1]), /Caught up/);
 assert.match(api.bookCardMarkup(items[1]), /Continue reading/);
 assert.doesNotMatch(api.bookCardMarkup(items[1]), /data-book-quick-log=/);
@@ -101,9 +138,12 @@ for (const id of ["bookKind", "libraryKindFilters", "bookCurrentChapter", "bookT
   assert.match(html, new RegExp(`id="${id}"`));
 }
 for (const name of ["library.js", "daily.js", "shop.js"]) {
-  assert.ok(html.includes(`${name}?v=0.31.4-reading1`));
-  assert.ok(worker.includes(`${name}?v=0.31.4-reading1`));
+  const version = name === "library.js" ? "0.31.4-ao3-bookmark1" : "0.31.4-reading1";
+  assert.ok(html.includes(`${name}?v=${version}`));
+  assert.ok(worker.includes(`${name}?v=${version}`));
 }
+assert.ok(html.includes("pwa.js?v=0.31.4-ao3-bookmark1"));
+assert.ok(worker.includes("pwa.js?v=0.31.4-ao3-bookmark1"));
 assert.match(dailySource, /available > 0 && current >= available/);
 assert.match(shopSource, /book\.kind === "fanfiction"/);
 

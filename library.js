@@ -67,6 +67,9 @@
     readingSummary: byId("librarySummaryReading"),
     wantSummary: byId("librarySummaryWant"),
     finishedSummary: byId("librarySummaryFinished"),
+    ao3Bookmarklet: byId("libraryAo3Bookmarklet"),
+    ao3Copy: byId("libraryAo3Copy"),
+    ao3InstallStatus: byId("libraryAo3InstallStatus"),
 
     dialog: byId("bookDialog"),
     form: byId("bookForm"),
@@ -177,10 +180,26 @@
     initialized = true;
     if (changed) persist("book-library-init", { render: false });
     render();
+    configureAo3Bookmarklet();
+    consumeAo3Import();
     exposeApi();
   }
 
   function bindEvents() {
+    window.addEventListener("hashchange", consumeAo3Import);
+    els.ao3Copy?.addEventListener("click", async () => {
+      const code = makeAo3BookmarkletUrl();
+      try {
+        await navigator.clipboard.writeText(code);
+        if (els.ao3InstallStatus) els.ao3InstallStatus.textContent = "Copied! Create a Firefox bookmark and paste the code into its URL field.";
+      } catch {
+        window.prompt("Copy this into the URL field of a new Firefox bookmark:", code);
+      }
+    });
+    els.ao3Bookmarklet?.addEventListener("click", event => {
+      event.preventDefault();
+      if (els.ao3InstallStatus) els.ao3InstallStatus.textContent = "Drag the ✦ link into your Firefox bookmarks toolbar, or use Copy bookmarklet.";
+    });
     [els.add, els.addSecondary, els.emptyAdd, els.mobileAdd].forEach(button => button?.addEventListener("click", () => openBookDialog()));
     [els.bulk, els.mobileBulk].forEach(button => button?.addEventListener("click", openBulkDialog));
     els.close?.addEventListener("click", closeBookDialog);
@@ -628,6 +647,119 @@
       const url = new URL(String(value || "").trim());
       return url.protocol === "https:" && url.username === "" && url.password === "" ? url.href.slice(0, 2000) : "";
     } catch { return ""; }
+  }
+
+  // Runs as a user-installed bookmark on the AO3 page. No network fetch, accounts,
+  // story body, or third-party service is involved: only visible metadata is read.
+  // Keep this function self-contained; its source is serialized into the bookmark URL.
+  function captureAo3Bookmarklet(destination) {
+    const host = window.location.hostname.toLowerCase();
+    const workId = window.location.pathname.match(/^\/works\/(\d+)(?:\/|$)/)?.[1];
+    if (!["archiveofourown.org", "www.archiveofourown.org", "secure.ao3.org"].includes(host) || !workId) {
+      window.alert("Open an AO3 fanfiction first, then use Add to Life RPG.");
+      return;
+    }
+    const clean = value => String(value || "").replace(/\s+/g, " ").trim();
+    const title = clean(document.querySelector("h2.title.heading")?.textContent).slice(0, 180);
+    if (!title) {
+      window.alert("AO3 work details are not visible on this page. Open the fanfiction itself and try again.");
+      return;
+    }
+    const textList = selector => Array.from(document.querySelectorAll(selector))
+      .map(node => clean(node.textContent)).filter(Boolean);
+    const author = textList("h3.byline.heading a[rel='author'], h3.byline.heading a");
+    const fandom = textList("h5.fandom.heading a.tag, h5.fandom.tags a.tag, dd.fandom.tags a.tag");
+    const chapterText = clean(document.querySelector("dd.chapters")?.textContent);
+    const chapterMatch = chapterText.match(/(\d+)\s*\/\s*(\d+|\?)/);
+    const chapters = chapterMatch ? Number(chapterMatch[1]) : 0;
+    const complete = Boolean(chapterMatch && chapterMatch[2] !== "?" && Number(chapterMatch[2]) === chapters);
+    const payload = {
+      version: 1,
+      source: "ao3",
+      externalUrl: `https://archiveofourown.org/works/${workId}`,
+      title,
+      author: [...new Set(author)].join(", ").slice(0, 120),
+      fandom: [...new Set(fandom)].join(" · ").slice(0, 160),
+      totalChapters: chapters,
+      publicationStatus: chapterMatch ? (complete ? "complete" : "ongoing") : "unknown"
+    };
+    const target = `${destination}#lr-ao3-import=${encodeURIComponent(JSON.stringify(payload))}`;
+    const tab = window.open(target, "_blank");
+    if (tab) { try { tab.opener = null; } catch { /* cross-window protection */ } }
+    else window.location.assign(target);
+  }
+
+  function makeAo3BookmarkletUrl() {
+    // Use the current installation's root (also works for local smoke tests).
+    const destination = `${window.location.origin}${window.location.pathname}`;
+    return `javascript:void((${captureAo3Bookmarklet.toString()})(${JSON.stringify(destination)}))`;
+  }
+
+  function configureAo3Bookmarklet() {
+    if (els.ao3Bookmarklet) els.ao3Bookmarklet.href = makeAo3BookmarkletUrl();
+  }
+
+  function ao3WorkId(url) {
+    const normalized = safeExternalUrl(url);
+    if (!normalized) return "";
+    const parsed = new URL(normalized);
+    if (!["archiveofourown.org", "www.archiveofourown.org", "secure.ao3.org"].includes(parsed.hostname.toLowerCase())) return "";
+    return parsed.pathname.match(/^\/works\/(\d+)(?:\/|$)/)?.[1] || "";
+  }
+
+  function parseAo3ImportHash(hash) {
+    const prefix = "#lr-ao3-import=";
+    if (!String(hash || "").startsWith(prefix) || hash.length > 4000) return null;
+    try {
+      const entry = JSON.parse(decodeURIComponent(hash.slice(prefix.length)));
+      if (entry?.version !== 1 || entry.source !== "ao3" || typeof entry.title !== "string") return null;
+      const id = ao3WorkId(entry.externalUrl);
+      const title = entry.title.trim().slice(0, 180);
+      if (!id || !title) return null;
+      return {
+        id,
+        title,
+        author: String(entry.author || "").trim().slice(0, 120),
+        fandom: String(entry.fandom || "").trim().slice(0, 160),
+        totalChapters: safePositive(entry.totalChapters),
+        publicationStatus: ["ongoing", "complete", "unknown"].includes(entry.publicationStatus) ? entry.publicationStatus : "unknown",
+        externalUrl: `https://archiveofourown.org/works/${id}`
+      };
+    } catch { return null; }
+  }
+
+  function consumeAo3Import() {
+    const hash = window.location?.hash || "";
+    if (!hash?.startsWith("#lr-ao3-import=")) return;
+    // Remove potentially personal fandom/title details from the address bar first;
+    // the fragment is never sent to the host or to Firebase.
+    try { window.history.replaceState(window.history.state, "", window.location.pathname + window.location.search); }
+    catch { /* Continue with an ephemeral, unpersisted form. */ }
+    const entry = parseAo3ImportHash(hash);
+    if (!entry) {
+      showToast("AO3 import needs another try", "Open the work page and use the bookmarklet again.");
+      return;
+    }
+    app.showView?.("library");
+    const existing = model().items.find(book => ao3WorkId(book.externalUrl) === entry.id);
+    if (existing) {
+      openBookDialog(existing.id);
+      showToast("Already in your Library", "Your existing reading progress is untouched.");
+      return;
+    }
+    openBookDialog();
+    if (els.kind) els.kind.value = "fanfiction";
+    if (els.source) els.source.value = "online";
+    if (els.title) els.title.value = entry.title;
+    if (els.author) els.author.value = entry.author;
+    if (els.fandom) els.fandom.value = entry.fandom;
+    if (els.externalUrl) els.externalUrl.value = entry.externalUrl;
+    if (els.totalChapters) els.totalChapters.value = entry.totalChapters || "";
+    if (els.publicationStatus) els.publicationStatus.value = entry.publicationStatus;
+    if (els.preferredGoal) els.preferredGoal.value = "chapter";
+    setRadio("bookStatus", "want");
+    updateKindFields();
+    renderQuickPreview();
   }
 
   async function runBookLookup() {

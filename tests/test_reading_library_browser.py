@@ -104,6 +104,49 @@ class ReadingLibraryBrowserTests(unittest.TestCase):
         self.assertEqual(0, item["currentChapter"])
         self.assertEqual("reading", item["status"])
 
+    def test_ao3_bookmarklet_import_want_to_read_without_overwriting_progress(self):
+        bookmarklet = self.page.locator("#libraryAo3Bookmarklet").get_attribute("href")
+        self.assertTrue(bookmarklet.startswith("javascript:"))
+        ao3_fixture = '''<!doctype html><html><body>
+          <h2 class="title heading">The Synthetic Story</h2>
+          <h3 class="byline heading"><a rel="author">TestWriter</a></h3>
+          <h5 class="fandom heading"><a class="tag">My Hero Academia</a></h5>
+          <dl><dd class="chapters">5/?</dd></dl>
+          <button id="sendToLifeRpg">Add to Life RPG</button>
+        </body></html>'''
+        self.context.route("https://archiveofourown.org/works/123", lambda route:
+            route.fulfill(body=ao3_fixture, content_type="text/html"))
+        ao3 = self.context.new_page()
+        ao3.goto("https://archiveofourown.org/works/123")
+        ao3.evaluate("""code => document.getElementById('sendToLifeRpg').addEventListener('click',
+            () => (0, eval)(code.slice('javascript:'.length)))""", bookmarklet)
+
+        with self.context.expect_page() as new_page:
+            ao3.locator("#sendToLifeRpg").click()
+        imported = new_page.value
+        imported.on("pageerror", lambda error: self.errors.append(str(error)))
+        imported.wait_for_function("window.LifeRPGLibrary && document.querySelector('#bookDialog').open")
+        self.assertEqual("The Synthetic Story", imported.locator("#bookTitle").input_value())
+        self.assertEqual("TestWriter", imported.locator("#bookAuthor").input_value())
+        self.assertEqual("My Hero Academia", imported.locator("#bookFandom").input_value())
+        self.assertEqual("5", imported.locator("#bookTotalChapters").input_value())
+        self.assertEqual("ongoing", imported.locator("#bookPublicationStatus").input_value())
+        self.assertTrue(imported.locator('input[name="bookStatus"][value="want"]').is_checked())
+        self.assertEqual(0, imported.evaluate("LifeRPGLibrary.getItems().length"), "import does not save before confirmation")
+        imported.locator('input[name="bookStatus"][value="reading"]').check()
+        imported.locator("#bookCurrentChapter").fill("2")
+        imported.locator('#bookForm button[type="submit"]:not([data-save-another])').click()
+        self.assertEqual(1, imported.evaluate("LifeRPGLibrary.getItems().length"))
+
+        with self.context.expect_page() as second_page:
+            ao3.locator("#sendToLifeRpg").click()
+        existing = second_page.value
+        existing.on("pageerror", lambda error: self.errors.append(str(error)))
+        existing.wait_for_function("window.LifeRPGLibrary && document.querySelector('#bookDialog').open")
+        self.assertEqual("2", existing.locator("#bookCurrentChapter").input_value())
+        self.assertTrue(existing.locator('input[name="bookStatus"][value="reading"]').is_checked())
+        self.assertEqual(1, existing.evaluate("LifeRPGLibrary.getItems().length"), "same AO3 work is not duplicated")
+
 
 if __name__ == "__main__":
     unittest.main()
