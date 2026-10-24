@@ -1,0 +1,155 @@
+"use strict";
+// Synthetic fixtures only: never load a personal save or contact external services.
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
+const vm = require("node:vm");
+const zlib = require("node:zlib");
+const root = path.resolve(__dirname, "..");
+const librarySource = fs.readFileSync(path.join(root, "library.js"), "utf8");
+const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
+const worker = fs.readFileSync(path.join(root, "service-worker.js"), "utf8");
+const shopSource = fs.readFileSync(path.join(root, "shop.js"), "utf8");
+const dailySource = fs.readFileSync(path.join(root, "daily.js"), "utf8");
+
+const items = [
+  { id: "legacy", title: "Old Book", status: "reading", role: "fun", source: "kindle", currentPage: 42, totalPages: 100 },
+  { id: "wip", title: "Ongoing Fic", kind: "fanfiction", status: "reading", role: "fun", source: "online", publicationStatus: "ongoing", currentChapter: 3, totalChapters: 4, externalUrl: "https://archiveofourown.org/works/123" },
+  { id: "complete", title: "Complete Fic", kind: "fanfiction", status: "reading", role: "fun", source: "online", publicationStatus: "complete", currentChapter: 3, totalChapters: 4 },
+  { id: "manga", title: "Printed Manga", kind: "manga", status: "reading", role: "fun", source: "physical", publicationStatus: "ongoing", progressUnit: "volumes", currentVolume: 1, totalVolumes: 3 }
+];
+const state = { bookLibrary: { schemaVersion: 3, items, logs: [] } };
+const rewards = [];
+let saves = 0;
+const app = {
+  getState: () => state,
+  saveState: () => { saves++; return true; },
+  awardActivity: spec => { rewards.push(spec); return { eventId: `event-${rewards.length}`, xp: spec.xp, coins: spec.coins, storyEnergy: 0 }; },
+  renderAll() {}
+};
+const window = {
+  LifeRPGApp: app, addEventListener() {}, dispatchEvent() {}, setTimeout() {}, clearTimeout() {},
+  pako: { inflateRaw: bytes => zlib.inflateRawSync(Buffer.from(bytes)) }
+};
+const document = { getElementById() { return null; }, addEventListener() {} };
+const storage = { getItem: () => null, setItem() {}, removeItem() {} };
+const injected = librarySource.replace(/\n\}\)\(\);\s*$/, `
+  window.__readingTest = { logBook, bookProgress, progressUnitFor, safeExternalUrl, bookCardMarkup, epubMetadata };
+})();`);
+assert.notEqual(injected, librarySource, "test-only exports inserted");
+class FakeXmlParser {
+  parseFromString(xml) {
+    return {
+      getElementsByTagNameNS(_ns, name) {
+        const pattern = new RegExp(`<((?:[\\w-]+:)?${name})(?=[\\s/>])([^>]*?)(?:\\/\\s*>|>([\\s\\S]*?)<\\/\\1\\s*>)`, "gi");
+        return [...xml.matchAll(pattern)].map(match => ({
+          textContent: (match[3] || "").replace(/<[^>]+>/g, "").trim(),
+          getAttribute(key) {
+            return match[2].match(new RegExp(`\\b${key}=["']([^"']+)["']`))?.[1] || null;
+          }
+        }));
+      }
+    };
+  }
+}
+vm.runInNewContext(injected, { window, document, localStorage: storage, URL, URLSearchParams, TextDecoder, DataView, DOMParser: FakeXmlParser, console, Date }, { filename: "library.js" });
+const api = window.__readingTest;
+
+assert.equal(state.bookLibrary.schemaVersion, 4);
+assert.equal(items[0].kind, "book");
+assert.equal(items[0].currentPage, 42);
+assert.equal(items[0].id, "legacy");
+assert.ok(saves > 0);
+api.logBook(items[1], { chapters: 1 });
+assert.equal(items[1].currentChapter, 4);
+assert.equal(items[1].status, "reading", "caught up WIP is not Finished");
+assert.equal(state.bookLibrary.logs.at(-1).chapters, 1);
+assert.equal(rewards.length, 1);
+api.logBook(items[1], { chapters: 1 });
+assert.equal(items[1].currentChapter, 4);
+assert.equal(rewards.length, 1, "no reward for no-op");
+
+api.logBook(items[2], { chapters: 1 });
+assert.equal(items[2].status, "finished", "only complete works auto-finish");
+assert.equal(rewards.length, 3, "reading plus finish reward once");
+assert.ok(items[2].finishRewardEventId);
+api.logBook(items[2], { chapters: 1 });
+assert.equal(rewards.length, 3);
+api.logBook(items[3], { volumes: 1 });
+assert.equal(items[3].currentVolume, 2);
+assert.equal(items[3].currentChapter, 0);
+assert.equal(state.bookLibrary.logs.at(-1).volumes, 1);
+assert.equal(items[3].status, "reading");
+assert.equal(api.safeExternalUrl("javascript:alert(1)"), "");
+assert.equal(api.safeExternalUrl("http://example.com"), "");
+assert.equal(api.safeExternalUrl("https://archiveofourown.org/works/1"), "https://archiveofourown.org/works/1");
+assert.match(api.bookCardMarkup(items[1]), /Caught up/);
+assert.match(api.bookCardMarkup(items[1]), /Continue reading/);
+assert.doesNotMatch(api.bookCardMarkup(items[1]), /data-book-quick-log=/);
+api.logBook(items[0], { pages: 12 });
+assert.equal(items[0].currentPage, 54, "legacy page tracking unchanged");
+assert.equal(state.bookLibrary.logs.at(-1).pages, 12);
+
+const needsShopSource = shopSource.match(/function bookNeedsShop\(book = \{\}\) \{[\s\S]*?\n  \}/)?.[0];
+assert.ok(needsShopSource);
+const needsShop = vm.runInNewContext(`(${needsShopSource})`);
+assert.equal(needsShop({ kind: "fanfiction", status: "want", source: "online" }), false);
+assert.equal(needsShop({ kind: "manga", status: "want", source: "online" }), false);
+assert.equal(needsShop({ kind: "manga", status: "want", source: "physical" }), true);
+assert.equal(needsShop({ status: "want", source: "physical" }), true);
+for (const id of ["bookKind", "libraryKindFilters", "bookCurrentChapter", "bookTotalChapters", "bookCurrentVolume", "bookTotalVolumes", "bookExternalUrl", "bookEpubFile", "bookLogChapterDetails", "bookLogVolumeDetails"]) {
+  assert.match(html, new RegExp(`id="${id}"`));
+}
+for (const name of ["library.js", "daily.js", "shop.js"]) {
+  assert.ok(html.includes(`${name}?v=0.31.4-reading1`));
+  assert.ok(worker.includes(`${name}?v=0.31.4-reading1`));
+}
+assert.match(dailySource, /available > 0 && current >= available/);
+assert.match(shopSource, /book\.kind === "fanfiction"/);
+
+function testEpub() {
+  const parts = [];
+  const directory = [];
+  let offset = 0;
+  const files = {
+    "META-INF/container.xml": '<container><rootfile full-path="OEBPS/content.opf"/></container>',
+    "OEBPS/content.opf": '<package><metadata><dc:title>Cozy Fic</dc:title><dc:creator>ExampleWriter</dc:creator><dc:identifier>https://archiveofourown.org/works/123</dc:identifier></metadata><manifest><item id="c1" href="chapter1.xhtml"/><item id="c2" href="chapter2.xhtml"/></manifest><spine><itemref idref="c1"/><itemref idref="c2"/></spine></package>'
+  };
+  for (const [name, content] of Object.entries(files)) {
+    const nameBytes = Buffer.from(name);
+    const compressed = zlib.deflateRawSync(Buffer.from(content));
+    const local = Buffer.alloc(30);
+    local.writeUInt32LE(0x04034b50, 0);
+    local.writeUInt16LE(8, 8);
+    local.writeUInt32LE(compressed.length, 18);
+    local.writeUInt32LE(Buffer.byteLength(content), 22);
+    local.writeUInt16LE(nameBytes.length, 26);
+    parts.push(local, nameBytes, compressed);
+    const entry = Buffer.alloc(46);
+    entry.writeUInt32LE(0x02014b50, 0);
+    entry.writeUInt16LE(8, 10);
+    entry.writeUInt32LE(compressed.length, 20);
+    entry.writeUInt32LE(Buffer.byteLength(content), 24);
+    entry.writeUInt16LE(nameBytes.length, 28);
+    entry.writeUInt32LE(offset, 42);
+    directory.push(entry, nameBytes);
+    offset += local.length + nameBytes.length + compressed.length;
+  }
+  const directorySize = directory.reduce((n, b) => n + b.length, 0);
+  const end = Buffer.alloc(22);
+  end.writeUInt32LE(0x06054b50, 0);
+  end.writeUInt16LE(Object.keys(files).length, 8);
+  end.writeUInt16LE(Object.keys(files).length, 10);
+  end.writeUInt32LE(directorySize, 12);
+  end.writeUInt32LE(offset, 16);
+  const zip = Buffer.concat([...parts, ...directory, end]);
+  return api.epubMetadata({ size: zip.length, arrayBuffer: async () => zip.buffer.slice(zip.byteOffset, zip.byteOffset + zip.byteLength) });
+}
+
+testEpub().then(info => {
+  assert.equal(info.title, "Cozy Fic");
+  assert.equal(info.author, "ExampleWriter");
+  assert.equal(info.chapters, 2);
+  assert.equal(info.url, "https://archiveofourown.org/works/123");
+  console.log("Reading Library synthetic regression passed: legacy, WIP, complete, volumes, shop, URL, EPUB and PWA.");
+}).catch(error => { console.error(error); process.exitCode = 1; });

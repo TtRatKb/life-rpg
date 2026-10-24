@@ -481,8 +481,8 @@
           <div class="library-hero-copy-v16">
             <span class="library-kicker-v16">📚 ONE ENTRY. THEN LET THE APP REMEMBER IT.</span>
             <p class="eyebrow">YOUR LIBRARY</p>
-            <h1>Books without database homework.</h1>
-            <p class="lead">A title is enough to start. Categorize it in a few taps, add pages only when they become useful, and let Life RPG remember what you are actually reading.</p>
+            <h1>Your cozy reading library.</h1>
+            <p class="lead">Books, fanfiction, manga, manhwa and webtoons together. Add a title, keep your page or chapter progress, and return to your stories whenever you like.</p>
             <div class="library-rule-row-v16" aria-label="Library rules">
               <span><b>1</b> Add the title</span>
               <span><b>2</b> Tap why it belongs here</span>
@@ -498,7 +498,7 @@
               <p>Status, purpose and source are one-tap choices. Pages, series and notes stay optional until they are actually useful.</p>
             </div>
             <div class="library-hero-actions-v16">
-              <button class="primary-button" id="addBookButton" type="button">＋ Add a book</button>
+              <button class="primary-button" id="addBookButton" type="button">＋ Add a read</button>
               <button class="secondary-button" id="bulkAddBooksButton" type="button">Paste a list</button>
             </div>
           </aside>
@@ -526,7 +526,7 @@
                 <option value="paused">Paused</option>
                 <option value="finished">Finished</option>
                 <option value="dnf">DNF</option>
-                <option value="all">All books</option>
+                <option value="all">All reading</option>
               </select>
               <select id="librarySort" aria-label="Sort Library">
                 <option value="smart">Smart shelf</option>
@@ -539,7 +539,7 @@
                 <button class="active" type="button" data-library-view="grid" aria-pressed="true">▦</button>
                 <button type="button" data-library-view="list" aria-pressed="false">☷</button>
               </div>
-              <button class="secondary-button" id="addBookButtonSecondary" type="button">＋ New book</button>
+              <button class="secondary-button" id="addBookButtonSecondary" type="button">＋ New read</button>
             </div>
           </div>
 
@@ -551,17 +551,25 @@
             <button type="button" data-library-role="japanese">あ Japanese</button>
             <button type="button" data-library-role="work">📎 Work</button>
           </div>
+          <div id="libraryKindFilters" class="library-role-filters-v16" aria-label="Filter reading by format">
+            <button class="active" type="button" data-library-kind="all">All reading</button>
+            <button type="button" data-library-kind="book">📚 Books</button>
+            <button type="button" data-library-kind="fanfiction">✍️ Fanfiction</button>
+            <button type="button" data-library-kind="manga">🌸 Manga</button>
+            <button type="button" data-library-kind="manhwa">💜 Manhwa</button>
+            <button type="button" data-library-kind="webtoon">📱 Webtoons</button>
+          </div>
 
           <div id="libraryBoard" class="library-board-v16"></div>
           <div id="libraryEmpty" class="library-empty-v16 hidden">
             <span>📚</span>
             <h3>Your Library is empty.</h3>
-            <p>Add one book in a few taps, or paste a whole list at once. Details like pages and series can wait until they are useful.</p>
+            <p>Add your first book, fanfiction, manga or manhwa. Details can wait until they are useful.</p>
             <button class="primary-button" id="libraryEmptyCreate" type="button">Add the first book</button>
           </div>
         </section>
         <div class="collection-mobile-quickbar-v291" aria-label="Library quick add">
-          <button class="primary-button" id="libraryMobileAdd" type="button">＋ Book</button>
+          <button class="primary-button" id="libraryMobileAdd" type="button">＋ Read</button>
           <button class="secondary-button" id="libraryMobileBulk" type="button">Paste list</button>
         </div>
       </section>
@@ -2027,18 +2035,27 @@
     <div><small>LIBRARY</small><strong id="libraryToastTitle">Saved.</strong><span id="libraryToastDetail">—</span></div>
   </div>
 
-  <!-- ADD / EDIT BOOK -->
+  <!-- ADD / EDIT READING ITEM -->
   <dialog id="bookDialog" class="rpg-dialog book-dialog-v16">
     <form id="bookForm" class="rpg-dialog-form book-form-v16">
       <input type="hidden" id="bookEditId" />
       <div class="dialog-heading">
-        <div><p class="eyebrow">LIBRARY QUICK ADD</p><h2 id="bookDialogTitle">Add a book</h2></div>
+        <div><p class="eyebrow">LIBRARY QUICK ADD</p><h2 id="bookDialogTitle">Add a read</h2></div>
         <button class="close-button" id="bookDialogClose" type="button" aria-label="Close">×</button>
       </div>
 
       <div class="library-minimal-note-v16"><span>✦</span><div><strong>Only the title is required.</strong><p>Everything below is there to make recommendations smarter — not to give you another admin job.</p></div></div>
 
-      <section class="library-lookup-v161" aria-labelledby="bookLookupHeading">
+      <label>What are you reading?
+        <select id="bookKind">
+          <option value="book">📚 Book</option>
+          <option value="fanfiction">✍️ Fanfiction</option>
+          <option value="manga">🌸 Manga</option>
+          <option value="manhwa">💜 Manhwa</option>
+          <option value="webtoon">📱 Webtoon</option>
+        </select>
+      </label>
+      <section id="bookLookupPanel" class="library-lookup-v161" aria-labelledby="bookLookupHeading">
         <div class="library-lookup-heading-v161">
           <div><span class="library-lookup-kicker-v161">SMART LOOKUP</span><strong id="bookLookupHeading">Find it instead of typing it.</strong><p>Search by title, author, or ISBN. Pick the right match and Life RPG fills the useful catalog details for you.</p></div>
           <span class="library-lookup-provider-v161">Open Library</span>
@@ -2059,6 +2076,41 @@
         <label>Title<input id="bookTitle" maxlength="180" placeholder="A Court of Thorns and Roses" required /></label>
         <label>Author <span class="optional-label-v16">optional</span><input id="bookAuthor" maxlength="120" placeholder="Sarah J. Maas" /></label>
       </div>
+      <section id="bookKindDetails" class="library-advanced-body-v16 hidden" aria-label="Chapter reading details">
+        <label>Reading link <span class="optional-label-v16">optional</span>
+          <input id="bookExternalUrl" type="url" maxlength="2000" inputmode="url" placeholder="https://archiveofourown.org/works/…" />
+          <small class="muted">Continue reading opens this page. Your reading position is tracked only in Life RPG, not on the source website.</small>
+        </label>
+        <label id="bookFandomRow">Fandom <span class="optional-label-v16">optional</span>
+          <input id="bookFandom" maxlength="160" placeholder="e.g. My Hero Academia" />
+        </label>
+        <label>Publication status
+          <select id="bookPublicationStatus">
+            <option value="unknown">Unknown</option>
+            <option value="ongoing">Ongoing / work in progress</option>
+            <option value="complete">Complete</option>
+            <option value="hiatus">Hiatus</option>
+          </select>
+        </label>
+        <label id="bookProgressUnitRow">Track progress by
+          <select id="bookProgressUnit">
+            <option value="chapters">Chapters</option>
+            <option value="volumes">Volumes</option>
+          </select>
+        </label>
+        <div id="bookChapterDetails" class="form-grid">
+          <label>Current chapter<input id="bookCurrentChapter" type="number" min="0" step="1" placeholder="0" /></label>
+          <label>Published / total chapters <span class="optional-label-v16">optional</span><input id="bookTotalChapters" type="number" min="1" step="1" placeholder="24" /></label>
+        </div>
+        <div id="bookVolumeDetails" class="form-grid hidden">
+          <label>Current volume<input id="bookCurrentVolume" type="number" min="0" step="1" placeholder="0" /></label>
+          <label>Published / total volumes <span class="optional-label-v16">optional</span><input id="bookTotalVolumes" type="number" min="1" step="1" placeholder="8" /></label>
+        </div>
+        <label id="bookEpubRow" class="hidden">Import metadata from an AO3 EPUB <span class="optional-label-v16">optional</span>
+          <input id="bookEpubFile" type="file" accept=".epub,application/epub+zip" />
+          <small id="bookEpubStatus" class="muted" role="status" aria-live="polite">Only title, author and chapter estimate are read on your device. No story text is uploaded or stored.</small>
+        </label>
+      </section>
 
       <fieldset class="library-choice-fieldset-v16">
         <legend>Where is it right now?</legend>
@@ -2091,9 +2143,10 @@
           <option value="ku">∞ Kindle Unlimited</option>
           <option value="borrowed">↗ Borrowed</option>
           <option value="audio">🎧 Audiobook</option>
+          <option value="online">↗ Read online</option>
           <option value="other">✦ Other</option>
         </select>
-        <small class="muted">Want to Read + Physical/Kindle/Audiobook means you still want to buy it. Owned / Unread, Kindle Unlimited and Borrowed stay out of the Reward Shop.</small>
+        <small class="muted">Free online stories never become shopping wishes. Physical/Kindle books and manga can still enter the Reward Shop when you mark them Want to Read.</small>
       </label>
 
       <div id="bookQuickPreview" class="library-quick-preview-v16"></div>
@@ -2102,7 +2155,7 @@
       <details id="bookAdvancedDetails" class="library-advanced-v16">
         <summary><span>＋</span> Add useful details <small>pages, series, planner style, notes</small></summary>
         <div class="library-advanced-body-v16">
-          <div class="form-grid">
+          <div id="bookPageDetails" class="form-grid">
             <label>Total pages <span class="optional-label-v16">optional</span><input id="bookTotalPages" type="number" min="1" step="1" placeholder="496" /></label>
             <label>Current page <span class="optional-label-v16">optional</span><input id="bookCurrentPage" type="number" min="0" step="1" placeholder="0" /></label>
           </div>
@@ -2177,11 +2230,21 @@ Project Hail Mary — Andy Weir
         <label>Current page after reading<input id="bookLogEndPage" type="number" min="0" step="1" placeholder="e.g. 143" /></label>
         <small class="muted">If you enter a current page, Life RPG calculates how many pages you read since the previous position.</small>
       </div>
+      <div id="bookLogChapterDetails" class="book-log-unit-v16 hidden">
+        <label>Chapters read now<input id="bookLogChapterCount" type="number" min="0" step="1" placeholder="1" /></label>
+        <div class="library-manual-divider-v161"><span>or set your current position</span></div>
+        <label>Chapter reached<input id="bookLogChapterEnd" type="number" min="0" step="1" placeholder="e.g. 18" /></label>
+      </div>
+      <div id="bookLogVolumeDetails" class="book-log-unit-v16 hidden">
+        <label>Volumes read now<input id="bookLogVolumeCount" type="number" min="0" step="1" placeholder="1" /></label>
+        <div class="library-manual-divider-v161"><span>or set your current position</span></div>
+        <label>Volume reached<input id="bookLogVolumeEnd" type="number" min="0" step="1" placeholder="e.g. 7" /></label>
+      </div>
       <div id="bookLogMinutesWrap" class="book-log-unit-v16 hidden">
         <label>Minutes listened<input id="bookLogMinutes" type="number" min="0" step="1" placeholder="e.g. 30" /></label>
         <div class="book-log-nudges-v16"><button type="button" data-book-log-field="minutes" data-book-log-nudge="15">+15</button><button type="button" data-book-log-field="minutes" data-book-log-nudge="30">+30</button><button type="button" data-book-log-field="minutes" data-book-log-nudge="60">+60</button></div>
       </div>
-      <label class="library-check-v16"><input id="bookLogChapter" type="checkbox" /><span><strong>I finished a chapter.</strong><small>Useful when Today's Pick was “read one chapter”; page count can still stay optional.</small></span></label>
+      <label id="bookLogChapterCheck" class="library-check-v16"><input id="bookLogChapter" type="checkbox" /><span><strong>I finished a chapter.</strong><small>Useful when Today's Pick was “read one chapter”; page count can still stay optional.</small></span></label>
       <div id="bookLogPreview" class="book-log-preview-v16"></div>
       <button id="bookFinishButton" class="secondary-button hidden" type="button">Finish Book</button>
       <p id="bookFinishHint" class="muted hidden"></p>
@@ -3537,7 +3600,7 @@ League of Legends — PC" required></textarea></label>
   <script src="habits.js?v=0.31.4-realhabits1"></script>
   <script src="adventures.js?v=0.31.4ag"></script>
   <script src="adventure-workspace.js?v=0.31.4c"></script>
-  <script src="library.js?v=0.31.4ag"></script>
+  <script src="library.js?v=0.31.4-reading1"></script>
   <script src="games.js?v=0.31.4dz43"></script>
   <script src="series-library.js?v=0.31.4-series10"></script>
   <script src="time.js?v=0.31.4-task-time2"></script>
@@ -3577,7 +3640,7 @@ League of Legends — PC" required></textarea></label>
   <script src="task-free-days.js?v=0.31.4-task-time2"></script>
   <script src="task-session-review.js?v=0.31.4-task-time2"></script>
   <script src="holiday-planner.js?v=0.31.4dz28"></script>
-  <script src="daily.js?v=0.31.4-dm1"></script>
+  <script src="daily.js?v=0.31.4-reading1"></script>
   <script src="data/year-journal-questions.js?v=0.31.4ar"></script>
   <script src="journal.js?v=0.31.4-book1"></script>
   <script src="bullet-journal-book.js?v=0.31.4-collections1"></script>
@@ -3591,7 +3654,7 @@ League of Legends — PC" required></textarea></label>
   <script src="relationship-engine.js?v=0.31.4ba"></script>
   <script src="gifts.js?v=0.31.4ba"></script>
   <script src="seasons.js?v=0.31.4ba"></script>
-  <script src="shop.js?v=0.31.4dz14"></script>
+  <script src="shop.js?v=0.31.4-reading1"></script>
   <script src="achievements.js?v=0.31.0"></script>
   <script src="activity-log.js?v=0.31.4-task-time2"></script>
   <script src="kotoba-integration.js?v=0.31.4dz47"></script>
@@ -3627,7 +3690,7 @@ League of Legends — PC" required></textarea></label>
   <script type="module" src="cloud-save.js?v=0.31.4dz50c-save-safety1"></script>
   <script src="health-import-core.js?v=0.31.4-healthbatch1"></script>
   <script type="module" src="health-bridge-dz44.js?v=0.31.4-health-echo1"></script>
-  <script src="pwa.js?v=0.31.4-kirishima-nine1"></script>
+  <script src="pwa.js?v=0.31.4-reading1"></script>
   <script src="life-hub-v314dk.js?v=0.31.4-home-toast4"></script>
   <script src="creative-hub-v314dl.js?v=0.31.4dz50c"></script>
   <script src="knowledge-workshop.js?v=0.31.4do"></script>
