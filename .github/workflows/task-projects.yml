@@ -26,6 +26,10 @@ on:
       - 'story-ui.js'
       - 'living-world-v3.js'
       - 'daily.js'
+      - 'library.js'
+      - 'shop.js'
+      - 'tests/test_reading_library.cjs'
+      - 'tests/test_reading_library_browser.py'
       - 'relationship-engine.js'
       - 'companion-moments.js'
       - 'companion-moments-v2.js'
@@ -97,6 +101,10 @@ on:
       - 'story-ui.js'
       - 'living-world-v3.js'
       - 'daily.js'
+      - 'library.js'
+      - 'shop.js'
+      - 'tests/test_reading_library.cjs'
+      - 'tests/test_reading_library_browser.py'
       - 'relationship-engine.js'
       - 'companion-moments.js'
       - 'companion-moments-v2.js'
@@ -186,6 +194,9 @@ jobs:
           node --check my-week.js
           node --check todoist-sync.js
           node --check service-worker.js
+          node --check library.js
+          node --check daily.js
+          node --check shop.js
       - name: Test calendar math, optional branches and safe saves
         run: |
           node tests/test_task_projects.cjs
@@ -200,6 +211,7 @@ jobs:
           node tests/test_living_companion_personality.cjs
           node tests/test_bakugo_visual_map.cjs
           node tests/test_kirishima_visual_map.cjs
+          node tests/test_reading_library.cjs
           TZ=Europe/Berlin node tests/test_task_google_calendar.cjs
       - uses: actions/setup-python@v5
         with:
@@ -210,6 +222,8 @@ jobs:
           python -m playwright install --with-deps chromium
       - name: Browser smoke test with synthetic tasks
         run: python -m unittest discover -s tests -p 'test_task_projects_browser.py' -v
+      - name: Browser smoke test for reading formats
+        run: python -m unittest discover -s tests -p 'test_reading_library_browser.py' -v
       - name: Confirm assets are wired into document and offline cache
         run: |
           node - <<'NODE'

@@ -2035,7 +2035,14 @@
 
   function eligibleBooks() {
     const items = app.getState().bookLibrary?.items;
-    return Array.isArray(items) ? items.filter(book => book && book.id && book.title && book.status === "reading") : [];
+    return Array.isArray(items) ? items.filter(book => {
+      if (!book || !book.id || !book.title || book.status !== "reading") return false;
+      if (!book.kind || book.kind === "book") return true;
+      const volumes = book.kind !== "fanfiction" && book.progressUnit === "volumes";
+      const current = Number(volumes ? book.currentVolume : book.currentChapter) || 0;
+      const available = Number(volumes ? book.totalVolumes : book.totalChapters) || 0;
+      return !(available > 0 && current >= available);
+    }) : [];
   }
 
   function eligibleSeries() { return window.LifeRPGSeries?.eligibleItems?.() || []; }
@@ -2844,6 +2851,13 @@
     const gentle = slot === "gentle" || checkIn.gentle || capacity < 1;
     const title = book.title || "this book";
 
+    if (book.kind && book.kind !== "book") {
+      const volumes = book.kind !== "fanfiction" && book.progressUnit === "volumes";
+      const unit = volumes ? "volume" : "chapter";
+      const current = Number(volumes ? book.currentVolume : book.currentChapter) || 0;
+      return { type: "chapter", unit, amount: 1, label: `Read ${unit} ${current + 1} of ${title}` };
+    }
+
     if (book.source === "audio" || preferred === "minutes") {
       let amount = gentle ? 15 : budget >= 60 && capacity >= 2 ? 30 : 20;
       amount = Math.max(10, Math.min(amount, Math.max(10, budget)));
@@ -3490,7 +3504,8 @@
       const logs = bookLogs(pick.sourceId).filter(log => timeFromValue(log.at) >= start);
       if (goal.type === "chapter") {
         const count = logs.filter(log => log.chapter).length;
-        return { done: count >= 1, progress: count, progressText: count ? "1 chapter complete" : "0 / 1 chapter" };
+        const unit = goal.unit === "volume" ? "volume" : "chapter";
+        return { done: count >= 1, progress: count, progressText: count ? `1 ${unit} complete` : `0 / 1 ${unit}` };
       }
       if (goal.type === "minutes") {
         const amount = logs.reduce((sum, log) => sum + Math.max(0, Number(log.minutes || 0)), 0);

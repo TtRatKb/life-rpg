@@ -185,7 +185,9 @@
 
   function bookNeedsShop(book = {}) {
     if (book.status !== "want") return false;
-    return !["ku", "borrowed"].includes(String(book.source || "").toLowerCase());
+    if (book.kind === "fanfiction") return false;
+    if (book.kind && book.kind !== "book" && !["physical", "kindle"].includes(String(book.source || "").toLowerCase())) return false;
+    return !["ku", "borrowed", "online"].includes(String(book.source || "").toLowerCase());
   }
 
   function linkedId(type, sourceId) {

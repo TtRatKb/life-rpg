@@ -7,7 +7,7 @@
     return;
   }
 
-  const SCHEMA = 3;
+  const SCHEMA = 4;
   const LOOKUP_CACHE_KEY = "life-rpg-book-lookup-cache-v2";
   const LOOKUP_CACHE_TTL = 7 * 24 * 60 * 60 * 1000;
   const LOOKUP_LIMIT = 6;
@@ -21,6 +21,14 @@
     paused: { label: "Paused", icon: "◷" },
     finished: { label: "Finished", icon: "✓" },
     dnf: { label: "DNF", icon: "×" }
+  };
+
+  const KINDS = {
+    book: { label: "Book", icon: "📚" },
+    fanfiction: { label: "Fanfiction", icon: "✍️" },
+    manga: { label: "Manga", icon: "🌸" },
+    manhwa: { label: "Manhwa", icon: "💜" },
+    webtoon: { label: "Webtoon", icon: "📱" }
   };
 
   const ROLES = {
@@ -37,6 +45,7 @@
     ku: { label: "Kindle Unlimited", icon: "∞" },
     borrowed: { label: "Borrowed", icon: "↗" },
     audio: { label: "Audiobook", icon: "🎧" },
+    online: { label: "Read online", icon: "↗" },
     other: { label: "Other", icon: "✦" }
   };
 
@@ -54,6 +63,7 @@
     mobileAdd: byId("libraryMobileAdd"),
     mobileBulk: byId("libraryMobileBulk"),
     roleFilters: byId("libraryRoleFilters"),
+    kindFilters: byId("libraryKindFilters"),
     readingSummary: byId("librarySummaryReading"),
     wantSummary: byId("librarySummaryWant"),
     finishedSummary: byId("librarySummaryFinished"),
@@ -68,6 +78,22 @@
     saveAnother: byId("saveBookAnotherButton"),
     title: byId("bookTitle"),
     author: byId("bookAuthor"),
+    kind: byId("bookKind"),
+    kindDetails: byId("bookKindDetails"),
+    bookLookupPanel: byId("bookLookupPanel"),
+    bookPageDetails: byId("bookPageDetails"),
+    externalUrl: byId("bookExternalUrl"),
+    fandom: byId("bookFandom"),
+    publicationStatus: byId("bookPublicationStatus"),
+    currentChapter: byId("bookCurrentChapter"),
+    totalChapters: byId("bookTotalChapters"),
+    chapterDetails: byId("bookChapterDetails"),
+    volumeDetails: byId("bookVolumeDetails"),
+    currentVolume: byId("bookCurrentVolume"),
+    totalVolumes: byId("bookTotalVolumes"),
+    progressUnit: byId("bookProgressUnit"),
+    epubFile: byId("bookEpubFile"),
+    epubStatus: byId("bookEpubStatus"),
     source: byId("bookSource"),
     totalPages: byId("bookTotalPages"),
     currentPage: byId("bookCurrentPage"),
@@ -113,6 +139,13 @@
     logMinutesWrap: byId("bookLogMinutesWrap"),
     logMinutes: byId("bookLogMinutes"),
     logChapter: byId("bookLogChapter"),
+    logChapterCheck: byId("bookLogChapterCheck"),
+    logChapterDetails: byId("bookLogChapterDetails"),
+    logChapterCount: byId("bookLogChapterCount"),
+    logChapterEnd: byId("bookLogChapterEnd"),
+    logVolumeDetails: byId("bookLogVolumeDetails"),
+    logVolumeCount: byId("bookLogVolumeCount"),
+    logVolumeEnd: byId("bookLogVolumeEnd"),
     logPreview: byId("bookLogPreview"),
     finishButton: byId("bookFinishButton"),
     finishHint: byId("bookFinishHint"),
@@ -124,6 +157,7 @@
 
   let initialized = false;
   let selectedRole = "all";
+  let selectedKind = "all";
   let selectedSort = safeStorageGet("life-rpg-library-sort-v291") || "smart";
   let viewMode = safeStorageGet("life-rpg-library-view-v291") || "grid";
   let toastTimer = null;
@@ -154,13 +188,24 @@
     els.form?.addEventListener("submit", saveBookFromDialog);
     els.deleteButton?.addEventListener("click", deleteCurrentBook);
     els.lookupSearch?.addEventListener("click", runBookLookup);
+    els.kind?.addEventListener("change", () => {
+      const kind = els.kind.value;
+      if (kind !== "book" && els.source?.value === "physical") els.source.value = "online";
+      if (kind === "book" && els.source?.value === "online") els.source.value = "physical";
+      if (kind !== "book" && els.preferredGoal) els.preferredGoal.value = "chapter";
+      updateKindFields();
+      renderQuickPreview();
+    });
+    els.progressUnit?.addEventListener("change", () => { updateKindFields(); renderQuickPreview(); });
+    els.epubFile?.addEventListener("change", importEpubSelection);
     els.lookupQuery?.addEventListener("keydown", event => {
       if (event.key !== "Enter") return;
       event.preventDefault();
       runBookLookup();
     });
 
-    [els.title, els.author, els.source, els.totalPages, els.currentPage, els.series, els.seriesNumber, els.seriesTotal, els.preferredGoal].forEach(input => {
+    [els.title, els.author, els.source, els.totalPages, els.currentPage, els.series, els.seriesNumber, els.seriesTotal, els.preferredGoal,
+      els.externalUrl, els.fandom, els.publicationStatus, els.currentChapter, els.totalChapters, els.currentVolume, els.totalVolumes].forEach(input => {
       input?.addEventListener("input", renderQuickPreview);
       input?.addEventListener("change", renderQuickPreview);
     });
@@ -187,6 +232,13 @@
       if (!button) return;
       selectedRole = button.dataset.libraryRole || "all";
       els.roleFilters.querySelectorAll("[data-library-role]").forEach(node => node.classList.toggle("active", node === button));
+      renderBoard();
+    });
+    els.kindFilters?.addEventListener("click", event => {
+      const button = event.target.closest?.("[data-library-kind]");
+      if (!button) return;
+      selectedKind = KINDS[button.dataset.libraryKind] ? button.dataset.libraryKind : "all";
+      els.kindFilters.querySelectorAll("[data-library-kind]").forEach(node => node.classList.toggle("active", node === button));
       renderBoard();
     });
 
@@ -241,6 +293,7 @@
       const openLog = event.target.closest?.("[data-book-open-log]");
       if (openLog) {
         openLogDialog(openLog.dataset.bookOpenLog);
+        return;
       }
     });
 
@@ -270,6 +323,13 @@
       renderLogPreview();
     });
     [els.logMinutes, els.logChapter].forEach(input => input?.addEventListener("input", renderLogPreview));
+    [els.logChapterCount, els.logChapterEnd, els.logVolumeCount, els.logVolumeEnd].forEach(input => input?.addEventListener("input", event => {
+      if (event.target === els.logChapterCount && els.logChapterEnd) els.logChapterEnd.value = "";
+      if (event.target === els.logChapterEnd && els.logChapterCount) els.logChapterCount.value = "";
+      if (event.target === els.logVolumeCount && els.logVolumeEnd) els.logVolumeEnd.value = "";
+      if (event.target === els.logVolumeEnd && els.logVolumeCount) els.logVolumeCount.value = "";
+      renderLogPreview();
+    }));
     els.finishButton?.addEventListener("click", finishCurrentBook);
     document.addEventListener("click", event => {
       const nudge = event.target.closest?.("[data-book-log-nudge]");
@@ -311,6 +371,17 @@
       if (!STATUSES[book.status]) { book.status = "want"; changed = true; }
       if (!ROLES[book.role]) { book.role = "fun"; changed = true; }
       if (!SOURCES[book.source]) { book.source = "physical"; changed = true; }
+      if (!KINDS[book.kind]) { book.kind = "book"; changed = true; }
+      if (typeof book.externalUrl !== "string") { book.externalUrl = ""; changed = true; }
+      if (typeof book.fandom !== "string") { book.fandom = ""; changed = true; }
+      if (!["unknown", "ongoing", "complete", "hiatus"].includes(book.publicationStatus)) { book.publicationStatus = "unknown"; changed = true; }
+      if (!["chapters", "volumes"].includes(book.progressUnit)) { book.progressUnit = "chapters"; changed = true; }
+      for (const field of ["currentChapter", "totalChapters", "currentVolume", "totalVolumes"]) {
+        const value = field.startsWith("total") ? safePositive(book[field]) : Math.max(0, Math.floor(Number(book[field] || 0)) || 0);
+        if (book[field] !== value) { book[field] = value; changed = true; }
+      }
+      if (book.totalChapters && book.currentChapter > book.totalChapters) { book.currentChapter = book.totalChapters; changed = true; }
+      if (book.totalVolumes && book.currentVolume > book.totalVolumes) { book.currentVolume = book.totalVolumes; changed = true; }
       if (!book.preferredGoal || !["auto", "pages", "chapter", "minutes"].includes(book.preferredGoal)) { book.preferredGoal = "auto"; changed = true; }
       if (typeof book.coverUrl !== "string") { book.coverUrl = ""; changed = true; }
       if (typeof book.isbn !== "string") { book.isbn = ""; changed = true; }
@@ -322,7 +393,7 @@
       book.totalPages = safePositive(book.totalPages);
       book.currentPage = Math.max(0, Number(book.currentPage || 0));
       if (book.totalPages) book.currentPage = Math.min(book.currentPage, book.totalPages);
-      if (book.totalPages && book.currentPage >= book.totalPages && book.status === "reading") {
+      if (book.kind === "book" && book.totalPages && book.currentPage >= book.totalPages && book.status === "reading") {
         book.status = "finished";
         book.finishedAt ||= book.updatedAt || Date.now();
         changed = true;
@@ -404,8 +475,9 @@
 
     if (status !== "all") items = items.filter(book => book.status === status);
     if (selectedRole !== "all") items = items.filter(book => book.role === selectedRole);
+    if (selectedKind !== "all") items = items.filter(book => (book.kind || "book") === selectedKind);
     if (query) {
-      items = items.filter(book => [book.title, book.author, book.series, ROLES[book.role]?.label, SOURCES[book.source]?.label]
+      items = items.filter(book => [book.title, book.author, book.series, book.fandom, KINDS[book.kind || "book"]?.label, ROLES[book.role]?.label, SOURCES[book.source]?.label]
         .some(value => String(value || "").toLowerCase().includes(query)));
     }
 
@@ -419,7 +491,7 @@
       els.empty.querySelector("h3").textContent = hasAny ? "Nothing matches this shelf." : "Your Library is empty.";
       els.empty.querySelector("p").textContent = hasAny
         ? "Try another status, role, or search. The books are still here."
-        : "Add one book in a few taps, or paste a whole list at once. Details like pages and series can wait until they are useful.";
+        : "Add a book, fanfiction, manga or manhwa in a few taps. Details can wait.";
     }
   }
 
@@ -447,6 +519,13 @@
     const status = STATUSES[book.status] || STATUSES.want;
     const role = ROLES[book.role] || ROLES.fun;
     const source = SOURCES[book.source] || SOURCES.other;
+    const kind = KINDS[book.kind || "book"] || KINDS.book;
+    const serial = isSerial(book);
+    const unit = serial ? progressUnitFor(book) : "";
+    const position = serial ? Number(unit === "volumes" ? book.currentVolume : book.currentChapter) || 0 : 0;
+    const available = serial ? Number(unit === "volumes" ? book.totalVolumes : book.totalChapters) || 0 : 0;
+    const caughtUp = Boolean(serial && available && position >= available);
+    const readingLink = safeExternalUrl(book.externalUrl);
     const progress = bookProgress(book);
     const isAudio = book.source === "audio";
     const last = book.lastReadAt ? humanAgo(book.lastReadAt) : book.status === "reading" ? "not logged yet" : "—";
@@ -465,6 +544,7 @@
           <div class="library-book-top-v16">
             <div class="library-book-tags-v16">
               <span class="library-status-pill-v16">${status.icon} ${status.label}</span>
+              <span>${kind.icon} ${kind.label}</span>
               <span>${role.icon} ${role.label}</span>
               <span>${source.icon} ${source.label}</span>
             </div>
@@ -474,6 +554,7 @@
             <h3>${esc(book.title)}</h3>
             <p class="library-author-v16">${book.author ? esc(book.author) : "Author not added"}</p>
             ${seriesText ? `<p class="library-series-v16">✦ ${seriesText}</p>` : ""}
+            ${book.fandom ? `<p class="library-series-v16">♡ ${esc(book.fandom)}</p>` : ""}
             ${seriesInfo ? `<p class="library-series-progress-v291">${esc(seriesInfo)}</p>` : ""}
             ${catalogBits ? `<p class="library-catalog-line-v161">${esc(catalogBits)}</p>` : ""}
           </div>
@@ -485,21 +566,41 @@
           </div>
           <div class="library-book-actions-v16">
             ${["want", "owned"].includes(book.status) ? `<button class="primary-button" data-book-start="${escAttr(book.id)}" type="button">Start reading</button>` : ""}
-            ${book.status === "reading" && !isAudio ? `
+            ${book.status === "reading" && serial && !caughtUp ? `
+              <button class="primary-button" data-book-quick-log="${escAttr(book.id)}" data-book-log-type="${unit === "volumes" ? "volume" : "chapter"}" data-book-log-amount="1" type="button">+1 ${unit === "volumes" ? "volume" : "chapter"}</button>
+              <button class="text-button" data-book-open-log="${escAttr(book.id)}" type="button">Log exact →</button>` : ""}
+            ${book.status === "reading" && caughtUp ? `<span class="muted">✓ ${book.publicationStatus === "complete" ? "Final chapter/volume reached · mark Finished in Edit" : `Caught up with available ${unit}`}</span>` : ""}
+            ${book.status === "reading" && !serial && !isAudio ? `
               <button class="primary-button" data-book-quick-log="${escAttr(book.id)}" data-book-log-type="pages" data-book-log-amount="10" type="button">+10 pages</button>
               <button class="secondary-button" data-book-quick-log="${escAttr(book.id)}" data-book-log-type="pages" data-book-log-amount="25" type="button">+25</button>
               <button class="text-button" data-book-open-log="${escAttr(book.id)}" type="button">Log exact →</button>` : ""}
-            ${book.status === "reading" && isAudio ? `
+            ${book.status === "reading" && !serial && isAudio ? `
               <button class="primary-button" data-book-quick-log="${escAttr(book.id)}" data-book-log-type="minutes" data-book-log-amount="15" type="button">+15 min</button>
               <button class="secondary-button" data-book-quick-log="${escAttr(book.id)}" data-book-log-type="minutes" data-book-log-amount="30" type="button">+30</button>
               <button class="text-button" data-book-open-log="${escAttr(book.id)}" type="button">Log exact →</button>` : ""}
             ${!["reading", "want"].includes(book.status) ? `<button class="secondary-button" data-book-edit="${escAttr(book.id)}" type="button">View / edit</button>` : ""}
+            ${readingLink ? `<a class="secondary-button" href="${escAttr(readingLink)}" target="_blank" rel="noopener noreferrer">↗ Continue reading</a>` : ""}
           </div>
         </div>
       </article>`;
   }
 
   function progressMarkup(book, progress) {
+    if (isSerial(book)) {
+      const unit = progressUnitFor(book);
+      const label = unit === "volumes" ? "Volumes" : "Chapters";
+      const current = Number(unit === "volumes" ? book.currentVolume : book.currentChapter) || 0;
+      const available = Number(unit === "volumes" ? book.totalVolumes : book.totalChapters) || 0;
+      const ongoing = book.publicationStatus !== "complete";
+      const text = available ? `${label}: ${current} / ${available} ${ongoing ? "available" : "total"}` : `${label} read: ${current} · total unknown`;
+      const ratio = available ? Math.floor(clamp(current / available * 100, 0, 100)) : null;
+      const note = ongoing ? (available && current >= available ? "Caught up for now · not marked Finished" : "Ongoing or completion unknown") : "Completed release";
+      return `<div class="library-progress-block-v16 ${ratio === null ? "simple" : ""}">
+        <div class="row-between"><span>${esc(text)}</span><strong>${ratio === null ? "" : `${ratio}%`}</strong></div>
+        ${ratio === null ? "" : `<div class="progress large"><span style="width:${ratio}%"></span></div>`}
+        <small>${esc(note)}</small>
+      </div>`;
+    }
     if (book.source === "audio") {
       const totalMinutes = bookLogs(book.id).reduce((sum, log) => sum + Number(log.minutes || 0), 0);
       return `<div class="library-progress-block-v16 simple"><div class="row-between"><span>Listening logged</span><strong>${formatDuration(totalMinutes)}</strong></div></div>`;
@@ -514,6 +615,19 @@
       return `<div class="library-progress-block-v16 simple"><div class="row-between"><span>Current page</span><strong>${formatNumber(book.currentPage)}</strong></div><small>Add total pages later and the percentage appears automatically.</small></div>`;
     }
     return `<div class="library-progress-block-v16 simple"><div class="row-between"><span>Progress</span><strong>Not set</strong></div><small>You can still log reading with one tap.</small></div>`;
+  }
+
+  function isSerial(book) { return (book?.kind || "book") !== "book"; }
+
+  function progressUnitFor(book) {
+    return book?.kind === "fanfiction" ? "chapters" : book?.progressUnit === "volumes" ? "volumes" : "chapters";
+  }
+
+  function safeExternalUrl(value) {
+    try {
+      const url = new URL(String(value || "").trim());
+      return url.protocol === "https:" && url.username === "" && url.password === "" ? url.href.slice(0, 2000) : "";
+    } catch { return ""; }
   }
 
   async function runBookLookup() {
@@ -881,12 +995,23 @@
     const book = id ? findBook(id) : null;
     els.form.reset();
     if (els.editId) els.editId.value = book?.id || "";
-    if (els.dialogTitle) els.dialogTitle.textContent = book ? "Edit book" : "Add a book";
+    if (els.dialogTitle) els.dialogTitle.textContent = book ? "Edit reading entry" : "Add a read";
     if (els.deleteButton) els.deleteButton.classList.toggle("hidden", !book);
     els.saveAnother?.classList.toggle("hidden", Boolean(book));
     if (els.title) els.title.value = book?.title || "";
     if (els.author) els.author.value = book?.author || "";
+    if (els.kind) els.kind.value = KINDS[book?.kind] ? book.kind : "book";
     if (els.source) els.source.value = book?.source || "physical";
+    if (els.externalUrl) els.externalUrl.value = book?.externalUrl || "";
+    if (els.fandom) els.fandom.value = book?.fandom || "";
+    if (els.publicationStatus) els.publicationStatus.value = book?.publicationStatus || "unknown";
+    if (els.progressUnit) els.progressUnit.value = book?.progressUnit || "chapters";
+    if (els.currentChapter) els.currentChapter.value = book?.currentChapter || "";
+    if (els.totalChapters) els.totalChapters.value = book?.totalChapters || "";
+    if (els.currentVolume) els.currentVolume.value = book?.currentVolume || "";
+    if (els.totalVolumes) els.totalVolumes.value = book?.totalVolumes || "";
+    if (els.epubFile) els.epubFile.value = "";
+    if (els.epubStatus) els.epubStatus.textContent = "Only metadata is read on this device; story text is never stored.";
     if (els.totalPages) els.totalPages.value = book?.totalPages || "";
     if (els.currentPage) els.currentPage.value = book?.currentPage || "";
     if (els.series) els.series.value = book?.series || "";
@@ -907,6 +1032,7 @@
     setRadio("bookStatus", book?.status || "want");
     setRadio("bookRole", book?.role || "fun");
     if (els.advanced) els.advanced.open = Boolean(book && (book.totalPages || book.currentPage || book.series || book.seriesTotal || book.notes || book.preferredGoal !== "auto"));
+    updateKindFields();
     renderQuickPreview();
     els.dialog.showModal();
     window.setTimeout(() => els.title?.focus(), 20);
@@ -926,6 +1052,7 @@
     const existing = id ? findBook(id) : null;
     const status = radioValue("bookStatus") || "want";
     const role = radioValue("bookRole") || "fun";
+    const kind = KINDS[els.kind?.value] ? els.kind.value : "book";
     const totalPages = safePositive(els.totalPages?.value);
     const currentPage = Math.min(Math.max(0, Number(els.currentPage?.value || 0)), totalPages || Number.MAX_SAFE_INTEGER);
 
@@ -934,9 +1061,18 @@
       id: existing?.id || makeId("book"),
       title,
       author: String(els.author?.value || "").trim(),
+      kind,
+      externalUrl: safeExternalUrl(els.externalUrl?.value),
+      fandom: String(els.fandom?.value || "").trim().slice(0, 160),
+      publicationStatus: ["unknown", "ongoing", "complete", "hiatus"].includes(els.publicationStatus?.value) ? els.publicationStatus.value : "unknown",
+      progressUnit: kind === "fanfiction" ? "chapters" : els.progressUnit?.value === "volumes" ? "volumes" : "chapters",
+      currentChapter: Math.min(Math.max(0, Math.floor(Number(els.currentChapter?.value || 0))), safePositive(els.totalChapters?.value) || Number.MAX_SAFE_INTEGER),
+      totalChapters: safePositive(els.totalChapters?.value),
+      currentVolume: Math.min(Math.max(0, Math.floor(Number(els.currentVolume?.value || 0))), safePositive(els.totalVolumes?.value) || Number.MAX_SAFE_INTEGER),
+      totalVolumes: safePositive(els.totalVolumes?.value),
       status,
       role,
-      source: SOURCES[els.source?.value] ? els.source.value : "physical",
+       source: SOURCES[els.source?.value] ? els.source.value : "physical",
       totalPages,
       currentPage,
       series: String(els.series?.value || "").trim(),
@@ -971,9 +1107,9 @@
     persist(existing ? "book-library-edit" : "book-library-create");
     if (Number(stewardshipReward?.xp || 0) > 0 || Number(stewardshipReward?.storyEnergy || 0) > 0) app.renderAll?.();
     const upkeepText = window.LifeRPGStewardship?.statusText?.(stewardshipReward) || "";
-    showToast(existing ? "Book updated" : "Added to Library", [title, upkeepText].filter(Boolean).join(" · "));
+    showToast(existing ? "Reading entry updated" : "Added to Library", [title, upkeepText].filter(Boolean).join(" · "));
     if (addAnother) {
-      const defaults = { status, role, source: next.source };
+      const defaults = { status, role, source: next.source, kind };
       resetBookDialogForAnother(defaults);
     } else {
       closeBookDialog();
@@ -983,7 +1119,7 @@
   function resetBookDialogForAnother(defaults = {}) {
     els.form?.reset();
     if (els.editId) els.editId.value = "";
-    if (els.dialogTitle) els.dialogTitle.textContent = "Add a book";
+    if (els.dialogTitle) els.dialogTitle.textContent = "Add a read";
     els.deleteButton?.classList.add("hidden");
     els.saveAnother?.classList.remove("hidden");
     selectedLookup = null;
@@ -998,7 +1134,10 @@
     setRadio("bookStatus", defaults.status || "want");
     setRadio("bookRole", defaults.role || "fun");
     if (els.source) els.source.value = defaults.source || "physical";
+    if (els.kind) els.kind.value = defaults.kind || "book";
+    if (els.epubStatus) els.epubStatus.textContent = "Only metadata is read on this device; story text is never stored.";
     if (els.advanced) els.advanced.open = false;
+    updateKindFields();
     renderQuickPreview();
     window.setTimeout(() => {
       if (els.lookupQuery) els.lookupQuery.focus();
@@ -1037,13 +1176,111 @@
     const status = STATUSES[radioValue("bookStatus") || "want"] || STATUSES.want;
     const role = ROLES[radioValue("bookRole") || "fun"] || ROLES.fun;
     const source = SOURCES[els.source?.value] || SOURCES.physical;
+    const kind = KINDS[els.kind?.value] || KINDS.book;
     const pages = safePositive(els.totalPages?.value);
     const current = Math.max(0, Number(els.currentPage?.value || 0));
     const pct = pages ? Math.floor(Math.min(100, current / pages * 100)) : null;
     const cover = safeCoverUrl(lookupCleared ? "" : (selectedLookup?.coverUrl || findBook(els.editId?.value)?.coverUrl || ""));
     els.preview.innerHTML = `
       ${cover ? `<img class="library-preview-cover-v161" src="${escAttr(cover)}" alt="" />` : `<div class="library-preview-mark-v16">${role.icon}</div>`}
-      <div><small>${status.icon} ${status.label} · ${source.icon} ${source.label}</small><strong>${esc(title)}</strong><span>${role.label}${pct === null ? "" : ` · ${pct}%`}${selectedLookup ? " · catalog match selected" : ""}</span></div>`;
+      <div><small>${kind.icon} ${kind.label} · ${status.icon} ${status.label} · ${source.icon} ${source.label}</small><strong>${esc(title)}</strong><span>${role.label}${els.kind?.value === "book" && pct !== null ? ` · ${pct}%` : ""}${selectedLookup && els.kind?.value === "book" ? " · catalog match selected" : ""}</span></div>`;
+  }
+
+  function updateKindFields() {
+    const kind = KINDS[els.kind?.value] ? els.kind.value : "book";
+    const serial = kind !== "book";
+    const unit = kind === "fanfiction" ? "chapters" : els.progressUnit?.value || "chapters";
+    els.kindDetails?.classList.toggle("hidden", !serial);
+    els.bookLookupPanel?.classList.toggle("hidden", serial);
+    els.bookPageDetails?.classList.toggle("hidden", serial);
+    els.chapterDetails?.classList.toggle("hidden", !serial || unit === "volumes");
+    els.volumeDetails?.classList.toggle("hidden", !serial || unit !== "volumes");
+    byId("bookProgressUnitRow")?.classList.toggle("hidden", !serial || kind === "fanfiction");
+    byId("bookFandomRow")?.classList.toggle("hidden", kind !== "fanfiction");
+    byId("bookEpubRow")?.classList.toggle("hidden", kind !== "fanfiction");
+  }
+
+  async function importEpubSelection() {
+    const file = els.epubFile?.files?.[0];
+    if (!file) return;
+    if (els.epubStatus) els.epubStatus.textContent = "Reading EPUB metadata locally…";
+    try {
+      const info = await epubMetadata(file);
+      if (els.kind) els.kind.value = "fanfiction";
+      if (els.source?.value === "physical") els.source.value = "online";
+      if (els.title && info.title) els.title.value = info.title;
+      if (els.author && info.author) els.author.value = info.author;
+      if (els.totalChapters && info.chapters && !Number(els.totalChapters.value || 0)) els.totalChapters.value = String(info.chapters);
+      if (els.externalUrl && info.url && !els.externalUrl.value) els.externalUrl.value = info.url;
+      if (els.preferredGoal) els.preferredGoal.value = "chapter";
+      updateKindFields();
+      renderQuickPreview();
+      if (els.epubStatus) els.epubStatus.textContent = `Imported title/author${info.chapters ? ` and an estimate of ${info.chapters} chapters` : ""}. Please verify the chapter count; prefaces and notes can affect it. Only metadata is kept.`;
+    } catch (error) {
+      if (els.epubStatus) els.epubStatus.textContent = `Could not read this EPUB (${error?.message || "unsupported file"}). You can still enter the details manually.`;
+    } finally {
+      if (els.epubFile) els.epubFile.value = "";
+    }
+  }
+
+  async function epubMetadata(file) {
+    if (file.size > 30 * 1024 * 1024) throw new Error("file over 30 MB");
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    if (bytes.length < 22) throw new Error("not a valid ZIP/EPUB");
+    const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+    let end = -1;
+    for (let i = bytes.length - 22; i >= Math.max(0, bytes.length - 65557); i--) {
+      if (view.getUint32(i, true) === 0x06054b50) { end = i; break; }
+    }
+    if (end < 0) throw new Error("ZIP directory missing");
+    const count = view.getUint16(end + 10, true);
+    const entries = new Map();
+    let offset = view.getUint32(end + 16, true);
+    const decoder = new TextDecoder();
+    for (let i = 0; i < count && i < 5000; i++) {
+      if (offset + 46 > bytes.length || view.getUint32(offset, true) !== 0x02014b50) break;
+      const method = view.getUint16(offset + 10, true);
+      const compressedSize = view.getUint32(offset + 20, true);
+      const uncompressedSize = view.getUint32(offset + 24, true);
+      const nameLength = view.getUint16(offset + 28, true);
+      const extraLength = view.getUint16(offset + 30, true);
+      const commentLength = view.getUint16(offset + 32, true);
+      const localOffset = view.getUint32(offset + 42, true);
+      const name = decoder.decode(bytes.subarray(offset + 46, offset + 46 + nameLength));
+      entries.set(name, { method, compressedSize, uncompressedSize, localOffset });
+      offset += 46 + nameLength + extraLength + commentLength;
+    }
+    const read = name => {
+      const entry = entries.get(name);
+      if (!entry || entry.uncompressedSize > 3 * 1024 * 1024) return "";
+      const at = entry.localOffset;
+      if (at + 30 > bytes.length || view.getUint32(at, true) !== 0x04034b50) return "";
+      const begin = at + 30 + view.getUint16(at + 26, true) + view.getUint16(at + 28, true);
+      const data = bytes.subarray(begin, begin + entry.compressedSize);
+      if (data.length !== entry.compressedSize) return "";
+      if (entry.method === 0) return decoder.decode(data);
+      if (entry.method !== 8 || !window.pako?.inflateRaw) return "";
+      return decoder.decode(window.pako.inflateRaw(data));
+    };
+    const parseXml = value => new DOMParser().parseFromString(value, "application/xml");
+    const container = parseXml(read("META-INF/container.xml"));
+    let opfPath = container.getElementsByTagNameNS("*", "rootfile")[0]?.getAttribute("full-path") || "";
+    if (!entries.has(opfPath)) opfPath = [...entries.keys()].find(name => /\.opf$/i.test(name)) || "";
+    if (!opfPath) throw new Error("EPUB package metadata missing");
+    const packageText = read(opfPath);
+    if (!packageText) throw new Error("cannot decompress EPUB metadata");
+    const opf = parseXml(packageText);
+    const tag = name => opf.getElementsByTagNameNS("*", name)[0]?.textContent?.trim() || "";
+    const title = tag("title");
+    const author = tag("creator");
+    if (!title) throw new Error("no title in EPUB");
+    const identifier = [...opf.getElementsByTagNameNS("*", "identifier")].map(node => node.textContent?.trim() || "").find(value => /archiveofourown\.org\/works\/\d+/.test(value)) || "";
+    const url = identifier.match(/https:\/\/(?:www\.)?archiveofourown\.org\/works\/\d+/)?.[0] || "";
+    const items = new Map([...opf.getElementsByTagNameNS("*", "item")].map(node => [node.getAttribute("id"), node.getAttribute("href") || ""]));
+    const chapterItems = [...opf.getElementsByTagNameNS("*", "itemref")].map(node => items.get(node.getAttribute("idref")) || "")
+      .filter(path => /\.(xhtml|html?)(?:$|#)/i.test(path) && !/(?:cover|titlepage|toc|nav|intro|notes|afterword|preface)/i.test(path));
+    const chapters = chapterItems.length > 0 && chapterItems.length <= 3000 ? chapterItems.length : null;
+    return { title, author, chapters, url };
   }
 
   function openBulkDialog() {
@@ -1153,8 +1390,13 @@
     if (els.logPicker && els.logPicker.value !== book.id) els.logPicker.value = book.id;
     if (els.logTitle) els.logTitle.textContent = book.title;
     const audio = book.source === "audio";
-    els.logPagesWrap?.classList.toggle("hidden", audio);
-    els.logMinutesWrap?.classList.toggle("hidden", !audio);
+    const serial = isSerial(book);
+    const unit = progressUnitFor(book);
+    els.logPagesWrap?.classList.toggle("hidden", serial || audio);
+    els.logMinutesWrap?.classList.toggle("hidden", serial || !audio);
+    els.logChapterDetails?.classList.toggle("hidden", !serial || unit !== "chapters");
+    els.logVolumeDetails?.classList.toggle("hidden", !serial || unit !== "volumes");
+    els.logChapterCheck?.classList.toggle("hidden", serial);
     els.logPosition?.classList.toggle("hidden", audio);
     logEntryMode = "pages";
     if (els.logPages) els.logPages.value = !audio && suggestion?.type === "pages" ? String(suggestion.amount || 10) : "";
@@ -1166,6 +1408,18 @@
     }
     if (els.logMinutes) els.logMinutes.value = audio && suggestion?.type === "minutes" ? String(suggestion.amount || 20) : "";
     if (els.logChapter) els.logChapter.checked = suggestion?.type === "chapter";
+    if (els.logChapterCount) els.logChapterCount.value = serial && unit === "chapters" && suggestion?.type === "chapter" ? String(suggestion.amount || 1) : "";
+    if (els.logChapterEnd) {
+      els.logChapterEnd.value = "";
+      els.logChapterEnd.min = String(book.currentChapter || 0);
+      els.logChapterEnd.max = book.totalChapters ? String(book.totalChapters) : "";
+    }
+    if (els.logVolumeCount) els.logVolumeCount.value = serial && unit === "volumes" && ["volume", "chapter"].includes(suggestion?.type) ? String(suggestion.amount || 1) : "";
+    if (els.logVolumeEnd) {
+      els.logVolumeEnd.value = "";
+      els.logVolumeEnd.min = String(book.currentVolume || 0);
+      els.logVolumeEnd.max = book.totalVolumes ? String(book.totalVolumes) : "";
+    }
     renderLogPosition(book);
     renderFinishAction(book);
     renderLogPreview();
@@ -1173,6 +1427,14 @@
 
   function renderLogPosition(book) {
     if (!els.logPosition || !book || book.source === "audio") return;
+    if (isSerial(book)) {
+      const unit = progressUnitFor(book);
+      const current = unit === "volumes" ? Number(book.currentVolume || 0) : Number(book.currentChapter || 0);
+      const total = unit === "volumes" ? Number(book.totalVolumes || 0) : Number(book.totalChapters || 0);
+      const label = unit === "volumes" ? "Volume" : "Chapter";
+      els.logPosition.innerHTML = `<span>📍</span><div><strong>${label} ${formatNumber(current)}${total ? ` / ${formatNumber(total)} available` : ""}</strong><p>Reading progress is tracked here, independently from the reading website. ${book.publicationStatus === "complete" ? "This work is complete." : "Caught up does not mean Finished."}</p></div>`;
+      return;
+    }
     const current = Math.max(0, Number(book.currentPage || 0));
     const total = safePositive(book.totalPages);
     const pct = total ? Math.floor(clamp(current / total * 100, 0, 100)) : null;
@@ -1183,14 +1445,14 @@
     if (!els.finishButton || !els.finishHint) return;
     const total = safePositive(book?.totalPages);
     const current = Math.max(0, Number(book?.currentPage || 0));
-    const canFinish = Boolean(book && book.source !== "audio" && total && book.status !== "finished");
+    const canFinish = Boolean(book && !isSerial(book) && book.source !== "audio" && total && book.status !== "finished");
     els.finishButton.classList.toggle("hidden", !canFinish);
-    els.finishHint.classList.toggle("hidden", Boolean(total) || book?.source === "audio" || book?.status === "finished");
+    els.finishHint.classList.toggle("hidden", isSerial(book) || Boolean(total) || book?.source === "audio" || book?.status === "finished");
     if (canFinish) {
       const remaining = Math.max(0, total - current);
       els.finishButton.textContent = remaining > 0 ? `Finish Book · log remaining ${formatNumber(remaining)} pages` : "Finish Book";
       els.finishHint.textContent = "";
-    } else if (book?.source !== "audio" && book?.status !== "finished" && !total) {
+    } else if (!isSerial(book) && book?.source !== "audio" && book?.status !== "finished" && !total) {
       els.finishHint.textContent = "Add the book's total page count to use Finish Book and log the exact remaining pages automatically.";
     } else {
       els.finishHint.textContent = "";
@@ -1198,7 +1460,7 @@
   }
 
   function resolvedLogPages(book) {
-    if (!book || book.source === "audio") return 0;
+    if (!book || isSerial(book) || book.source === "audio") return 0;
     const before = Math.max(0, Number(book.currentPage || 0));
     if (logEntryMode === "position" && String(els.logEndPage?.value || "").trim() !== "") {
       let end = Math.max(before, Number(els.logEndPage.value || before));
@@ -1206,6 +1468,21 @@
       return Math.max(0, end - before);
     }
     return Math.max(0, Number(els.logPages?.value || 0));
+  }
+
+  function resolvedSerialLog(book) {
+    if (!book || !isSerial(book)) return { chapters: 0, volumes: 0 };
+    const unit = progressUnitFor(book);
+    const volumes = unit === "volumes";
+    const before = Math.max(0, Number(volumes ? book.currentVolume : book.currentChapter) || 0);
+    const total = safePositive(volumes ? book.totalVolumes : book.totalChapters);
+    const end = volumes ? els.logVolumeEnd?.value : els.logChapterEnd?.value;
+    const count = volumes ? els.logVolumeCount?.value : els.logChapterCount?.value;
+    const amount = String(end ?? "").trim()
+      ? Math.max(0, Math.floor(Number(end) || 0) - before)
+      : Math.max(0, Math.floor(Number(count || 0)));
+    const actual = Math.min(amount, total ? Math.max(0, total - before) : 1000);
+    return volumes ? { chapters: 0, volumes: actual } : { chapters: actual, volumes: 0 };
   }
 
   function setChainLogStatus(message) {
@@ -1224,6 +1501,15 @@
     if (!els.logPreview) return;
     const book = findBook(els.logId?.value);
     if (!book) { els.logPreview.innerHTML = ""; return; }
+    if (isSerial(book)) {
+      const { chapters, volumes } = resolvedSerialLog(book);
+      const unit = progressUnitFor(book);
+      const count = unit === "volumes" ? volumes : chapters;
+      const before = Number(unit === "volumes" ? book.currentVolume : book.currentChapter) || 0;
+      const label = unit === "volumes" ? "Volume" : "Chapter";
+      els.logPreview.innerHTML = `<span>📖</span><div><small>AFTER THIS LOG</small><strong>${label} ${before} → ${before + count}</strong><p>${count ? `${count} ${unit} added to your reading history.` : "Enter a new chapter/volume or the amount you read."}</p></div>`;
+      return;
+    }
     if (book.source === "audio") {
       const minutes = Math.max(0, Number(els.logMinutes?.value || 0));
       els.logPreview.innerHTML = `<span>🎧</span><div><small>THIS LOG</small><strong>${minutes ? formatDuration(minutes) : "One listening session"}</strong><p>Last touched updates automatically. No extra database editing.</p></div>`;
@@ -1245,11 +1531,17 @@
     event.preventDefault();
     const book = findBook(els.logId?.value);
     if (!book) return;
+    const serial = isSerial(book);
+    const { chapters, volumes } = resolvedSerialLog(book);
+    if (serial && !chapters && !volumes) {
+      setChainLogStatus("No new chapters or volumes to log. Your previous progress stays untouched.");
+      return;
+    }
     const pages = book.source === "audio" ? 0 : resolvedLogPages(book);
     const minutes = book.source === "audio" ? Math.max(0, Number(els.logMinutes?.value || 0)) : 0;
     const chapter = Boolean(els.logChapter?.checked);
     const addAnother = event.submitter?.dataset.logAnother === "true";
-    logBook(book, { pages, minutes, chapter, source: "dialog" });
+    logBook(book, { pages, minutes, chapter: !serial && chapter, chapters, volumes, source: "dialog" });
     if (addAnother) {
       populateLogPicker(book.id);
       const nextBook = findBook(els.logPicker?.value || book.id) || book;
@@ -1263,7 +1555,7 @@
 
   function finishCurrentBook() {
     const book = findBook(els.logId?.value);
-    if (!book || book.source === "audio") return;
+    if (!book || isSerial(book) || book.source === "audio") return;
     const total = safePositive(book.totalPages);
     if (!total) {
       showToast("Total pages needed", "Add the book's total page count first so Life RPG can log the exact remaining pages.");
@@ -1282,14 +1574,19 @@
   function quickLog(id, type, amount) {
     const book = findBook(id);
     if (!book) return;
+    if (isSerial(book)) {
+      const volume = progressUnitFor(book) === "volumes";
+      logBook(book, { chapters: volume ? 0 : amount, volumes: volume ? amount : 0, source: "quick" });
+      return;
+    }
     logBook(book, type === "minutes" ? { minutes: amount, pages: 0, chapter: false, source: "quick" } : { pages: amount, minutes: 0, chapter: false, source: "quick" });
   }
 
-  function readingRewardSpec(book, { pages = 0, minutes = 0, chapter = false, at = Date.now() } = {}) {
+  function readingRewardSpec(book, { pages = 0, minutes = 0, chapter = false, chapters = 0, volumes = 0, at = Date.now() } = {}) {
     let storyEnergyBase = 0.2;
     if (pages > 0) storyEnergyBase = Math.min(3, Number(pages) * 0.04);
     else if (minutes > 0) storyEnergyBase = Math.min(3, Number(minutes) * 0.025);
-    else if (chapter) storyEnergyBase = 0.7;
+    else if (chapter || chapters > 0 || volumes > 0) storyEnergyBase = 0.7;
 
     const role = ROLES[book.role] || ROLES.fun;
     const xp = Math.max(2, Math.round(storyEnergyBase * 10));
@@ -1297,7 +1594,7 @@
       ? Math.min(15, Math.max(1, Math.round(Number(pages) / 2)))
       : minutes > 0
         ? Math.min(15, Math.max(1, Math.round(Number(minutes) / 6)))
-        : chapter ? 5 : 0;
+        : chapter || chapters > 0 || volumes > 0 ? 5 : 0;
     const capability = book.role === "japanese" ? "japanese" : "knowledge";
     return {
       source: "library",
@@ -1312,20 +1609,33 @@
       storyEnergyBase,
       dedupeFamily: "reading",
       at: new Date(at).toISOString(),
-      metadata: { pages: Number(pages || 0), minutes: Number(minutes || 0), chapter: Boolean(chapter), role: book.role }
+      metadata: { pages: Number(pages || 0), minutes: Number(minutes || 0), chapter: Boolean(chapter || chapters > 0 || volumes > 0), chapters, volumes, kind: book.kind || "book", role: book.role }
     };
   }
 
-  function logBook(book, { pages = 0, minutes = 0, chapter = false, source = "manual" } = {}) {
+  function logBook(book, { pages = 0, minutes = 0, chapter = false, chapters = 0, volumes = 0, source = "manual" } = {}) {
     const now = Date.now();
     const wasFinished = book.status === "finished";
+    if (isSerial(book)) {
+      const unit = progressUnitFor(book);
+      const before = Number(unit === "volumes" ? book.currentVolume : book.currentChapter) || 0;
+      const total = safePositive(unit === "volumes" ? book.totalVolumes : book.totalChapters);
+      const requested = Math.max(0, Math.floor(Number(unit === "volumes" ? volumes : chapters) || 0));
+      const actual = total ? Math.min(requested, Math.max(0, total - before)) : Math.min(requested, 1000);
+      if (!actual) {
+        showToast("No new reading to log", total && before >= total ? "Caught up! Update the published chapter/volume count when new content appears." : "Enter a chapter or volume you actually read.");
+        return { skipped: true };
+      }
+      if (unit === "volumes") { book.currentVolume = before + actual; volumes = actual; chapters = 0; }
+      else { book.currentChapter = before + actual; chapters = actual; volumes = 0; }
+    }
     if (book.status !== "reading" && !wasFinished) {
       book.status = "reading";
       book.startedAt ||= now;
     }
 
     const beforePage = Math.max(0, Number(book.currentPage || 0));
-    if (pages > 0) {
+    if (!isSerial(book) && pages > 0) {
       book.currentPage = beforePage + Number(pages);
       if (book.totalPages) book.currentPage = Math.min(book.currentPage, book.totalPages);
     }
@@ -1334,7 +1644,11 @@
     book.lastReadAt = now;
     book.updatedAt = now;
     book.sessions = Number(book.sessions || 0) + 1;
-    if (book.totalPages && book.currentPage >= book.totalPages) {
+    const unit = progressUnitFor(book);
+    const totalSerial = isSerial(book) ? Number(unit === "volumes" ? book.totalVolumes : book.totalChapters) || 0 : 0;
+    const currentSerial = isSerial(book) ? Number(unit === "volumes" ? book.currentVolume : book.currentChapter) || 0 : 0;
+    if ((!isSerial(book) && book.totalPages && book.currentPage >= book.totalPages) ||
+        (isSerial(book) && book.publicationStatus === "complete" && totalSerial && currentSerial >= totalSerial)) {
       book.status = "finished";
       book.finishedAt = now;
     }
@@ -1343,6 +1657,8 @@
       pages: actualPages,
       minutes: Number(minutes || 0),
       chapter,
+      chapters,
+      volumes,
       at: now
     })) || { xp: 0, realmXP: 0, statXP: 0, storyEnergy: 0, rawStoryEnergy: 0, coins: 0 };
 
@@ -1368,7 +1684,7 @@
 
     model().logs.push({
       id: makeId("read"), bookId: book.id, at: now, date: dateKey(new Date(now)),
-      pages: actualPages, minutes: Number(minutes || 0), chapter: Boolean(chapter), source,
+      pages: actualPages, minutes: Number(minutes || 0), chapter: Boolean(chapter || chapters || volumes), chapters, volumes, source,
       xp: Number(reward.xp || 0), realmXP: Number(reward.realmXP || 0), statXP: Number(reward.statXP || 0),
       storyEnergy: Number(reward.storyEnergy || 0), rawStoryEnergy: Number(reward.rawStoryEnergy || 0), coins: Number(reward.coins || 0),
       finishCoins: Number(finishReward?.coins || 0), finishRewardEventId: finishReward?.eventId || null,
@@ -1378,7 +1694,9 @@
     app.renderAll?.();
     const detail = book.status === "finished"
       ? "Finished ✨"
-      : actualPages > 0
+      : isSerial(book)
+        ? `Now on ${unit === "volumes" ? "volume" : "chapter"} ${formatNumber(currentSerial)}${totalSerial ? ` / ${formatNumber(totalSerial)} available` : ""}`
+        : actualPages > 0
         ? `Now on page ${formatNumber(book.currentPage)}${book.totalPages ? ` / ${formatNumber(book.totalPages)}` : ""}`
         : minutes > 0 ? `${formatDuration(minutes)} logged` : "Reading session logged";
     const rewardText = reward.deduped
@@ -1386,10 +1704,16 @@
       : ` · +${app.formatEnergy?.(reward.storyEnergy) ?? reward.storyEnergy} 🔥 · +${Number(reward.xp || 0)} XP · +${Number(reward.coins || 0)} 🪙`;
     const finishText = finishReward ? ` · finish bonus +${Number(finishReward.coins || 0)} 🪙` : "";
     showToast("Reading logged", `${book.title} · ${detail}${rewardText}${finishText}`);
-    return { book, reward, finishReward, actualPages, minutes: Number(minutes || 0), chapter: Boolean(chapter) };
+    return { book, reward, finishReward, actualPages, chapters, volumes, minutes: Number(minutes || 0), chapter: Boolean(chapter || chapters || volumes) };
   }
 
   function bookProgress(book) {
+    if (isSerial(book)) {
+      const unit = progressUnitFor(book);
+      const total = Number(unit === "volumes" ? book.totalVolumes : book.totalChapters) || 0;
+      const current = Number(unit === "volumes" ? book.currentVolume : book.currentChapter) || 0;
+      return total ? Math.floor(clamp(current / total * 100, 0, 100)) : null;
+    }
     if (!book.totalPages) return null;
     return Math.floor(clamp(Number(book.currentPage || 0) / book.totalPages * 100, 0, 100));
   }
@@ -1429,6 +1753,10 @@
   }
 
   function bookSpineMark(book) {
+    if (book.kind === "fanfiction") return "✍";
+    if (book.kind === "manga") return "🌸";
+    if (book.kind === "manhwa") return "💜";
+    if (book.kind === "webtoon") return "▣";
     if (book.role === "japanese") return "あ";
     if (book.role === "knowledge") return "K";
     if (book.role === "growth") return "✦";
