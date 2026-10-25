@@ -117,6 +117,29 @@ document.querySelector = selector => ({
 })[selector] || null;
 api.captureAo3Bookmarklet("https://ttratkb.github.io/life-rpg/");
 assert.equal(api.parseAo3ImportHash(new URL(bookmarkletTarget).hash).publicationStatus, "complete");
+// Regression: provided AO3 adult-view chapter URL shape with nested work stats.
+window.location.pathname = "/works/38106442/chapters/95190004";
+document.querySelector = selector => ({
+  "#workskin .preface h2.title": { textContent: "Chapter-link example" },
+  "dl.work.meta.group dd.stats dd.chapters": { textContent: "8/?" }
+})[selector] || null;
+document.querySelectorAll = selector => selector.includes("byline") ? [{ textContent: "ChapterAuthor" }]
+  : selector.includes("fandom") ? [{ textContent: "My Hero Academia" }] : [];
+api.captureAo3Bookmarklet("https://ttratkb.github.io/life-rpg/");
+const chapterImported = api.parseAo3ImportHash(new URL(bookmarkletTarget).hash);
+assert.equal(chapterImported.author, "ChapterAuthor");
+assert.equal(chapterImported.fandom, "My Hero Academia");
+assert.equal(chapterImported.totalChapters, 8);
+assert.equal(chapterImported.externalUrl, "https://archiveofourown.org/works/38106442");
+// Incomplete metadata must not silently save a title/URL-only entry.
+let missingMessage = "";
+window.alert = message => { missingMessage = message; };
+window.location.assign = url => { assert.equal(url, "https://archiveofourown.org/works/38106442"); };
+document.querySelectorAll = () => [];
+bookmarkletTarget = "";
+api.captureAo3Bookmarklet("https://ttratkb.github.io/life-rpg/");
+assert.match(missingMessage, /incomplete work metadata/);
+assert.equal(bookmarkletTarget, "");
 assert.match(api.makeAo3BookmarkletUrl(), /^javascript:void\(/);
 assert.match(html, /id="libraryAo3Bookmarklet"/);
 assert.match(html, /id="libraryAo3Copy"/);
@@ -138,12 +161,12 @@ for (const id of ["bookKind", "libraryKindFilters", "bookCurrentChapter", "bookT
   assert.match(html, new RegExp(`id="${id}"`));
 }
 for (const name of ["library.js", "daily.js", "shop.js"]) {
-  const version = name === "library.js" ? "0.31.4-ao3-bookmark1" : "0.31.4-reading1";
+  const version = name === "library.js" ? "0.31.4-ao3-bookmark2" : "0.31.4-reading1";
   assert.ok(html.includes(`${name}?v=${version}`));
   assert.ok(worker.includes(`${name}?v=${version}`));
 }
-assert.ok(html.includes("pwa.js?v=0.31.4-ao3-bookmark1"));
-assert.ok(worker.includes("pwa.js?v=0.31.4-ao3-bookmark1"));
+assert.ok(html.includes("pwa.js?v=0.31.4-ao3-bookmark2"));
+assert.ok(worker.includes("pwa.js?v=0.31.4-ao3-bookmark2"));
 assert.match(dailySource, /available > 0 && current >= available/);
 assert.match(shopSource, /book\.kind === "fanfiction"/);
 
