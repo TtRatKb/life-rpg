@@ -97,10 +97,8 @@ document.querySelector = selector => ({
   "h2.title.heading": { textContent: "  A Cozy Fic  " },
   "dd.chapters": { textContent: "4/?" }
 })[selector] || null;
-document.querySelectorAll = selector => ({
-  "h3.byline.heading a[rel='author'], h3.byline.heading a": [{ textContent: "ExampleWriter" }],
-  "h5.fandom.heading a.tag, h5.fandom.tags a.tag, dd.fandom.tags a.tag": [{ textContent: "My Hero Academia" }]
-})[selector] || [];
+document.querySelectorAll = selector => selector.includes("byline") ? [{ textContent: "ExampleWriter" }]
+  : selector.includes("fandom") ? [{ textContent: "My Hero Academia" }] : [];
 let bookmarkletTarget = "";
 window.open = (url, target) => { bookmarkletTarget = url; assert.equal(target, "_blank"); return { opener: window }; };
 api.captureAo3Bookmarklet("https://ttratkb.github.io/life-rpg/");
