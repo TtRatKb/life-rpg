@@ -660,29 +660,43 @@
       return;
     }
     const clean = value => String(value || "").replace(/\s+/g, " ").trim();
-    const title = clean(document.querySelector("h2.title.heading")?.textContent).slice(0, 180);
+    const pick = selectors => {
+      for (const selector of selectors) {
+        const value = clean(document.querySelector(selector)?.textContent);
+        if (value) return value;
+      }
+      return "";
+    };
+    const textList = selectors => [...new Set(Array.from(document.querySelectorAll(selectors))
+      .map(node => clean(node.textContent)).filter(Boolean))];
+    const title = pick(["#workskin .preface h2.title", ".work .preface h2.title", "h2.title.heading", "h2.title"]).slice(0, 180);
     if (!title) {
-      window.alert("AO3 work details are not visible on this page. Open the fanfiction itself and try again.");
+      window.alert("AO3 work title is not visible. Open the main work page and try again.");
       return;
     }
-    const textList = selector => Array.from(document.querySelectorAll(selector))
-      .map(node => clean(node.textContent)).filter(Boolean);
-    const author = textList("h3.byline.heading a[rel='author'], h3.byline.heading a");
-    const fandom = textList("h5.fandom.heading a.tag, h5.fandom.tags a.tag, dd.fandom.tags a.tag");
-    const chapterText = clean(document.querySelector("dd.chapters")?.textContent);
-    const chapterMatch = chapterText.match(/(\d+)\s*\/\s*(\d+|\?)/);
-    const chapters = chapterMatch ? Number(chapterMatch[1]) : 0;
-    const complete = Boolean(chapterMatch && chapterMatch[2] !== "?" && Number(chapterMatch[2]) === chapters);
+    const author = textList("h3.byline a[rel='author'], .work .byline a[rel='author'], .byline a[rel='author']");
+    const fandom = textList("dd.fandom.tags a.tag, dd.fandom a.tag, h5.fandom.heading a.tag, h5.fandom.tags a.tag, h5.fandom a");
+    let chapterText = pick(["dl.work.meta.group dd.stats dd.chapters", "dd.stats dd.chapters", "dd.chapters"]);
+    if (!chapterText) chapterText = clean(document.querySelector("dt.chapters")?.nextElementSibling?.textContent);
+    const chapterMatch = chapterText.match(/([\d,]+)\s*\/\s*([\d,]+|\?)/);
+    const chapters = chapterMatch ? Number(chapterMatch[1].replace(/,/g, "")) : 0;
+    const expected = chapterMatch && chapterMatch[2] !== "?" ? Number(chapterMatch[2].replace(/,/g, "")) : null;
+    const complete = expected !== null && chapters > 0 && expected === chapters;
     const payload = {
       version: 1,
       source: "ao3",
       externalUrl: `https://archiveofourown.org/works/${workId}`,
       title,
-      author: [...new Set(author)].join(", ").slice(0, 120),
-      fandom: [...new Set(fandom)].join(" · ").slice(0, 160),
+      author: author.join(", ").slice(0, 120),
+      fandom: fandom.join(" · ").slice(0, 160),
       totalChapters: chapters,
       publicationStatus: chapterMatch ? (complete ? "complete" : "ongoing") : "unknown"
     };
+    if (!payload.author || !payload.fandom || !payload.totalChapters) {
+      window.alert("This AO3 chapter page has incomplete work metadata. Opening the main work page; please click Add to Life RPG there.");
+      window.location.assign("https://archiveofourown.org/works/" + workId);
+      return;
+    }
     const target = `${destination}#lr-ao3-import=${encodeURIComponent(JSON.stringify(payload))}`;
     const tab = window.open(target, "_blank");
     if (tab) { try { tab.opener = null; } catch { /* cross-window protection */ } }
