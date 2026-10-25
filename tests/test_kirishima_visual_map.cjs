@@ -91,14 +91,14 @@ const sw = content('service-worker.js');
 const prefix = '0.31.4-kirishima-nine1';
 assert.ok(html.indexOf('kirishima-visual-map.js?v=' + prefix) > 0);
 assert.ok(html.indexOf('kirishima-visual-map.js?v=' + prefix) < html.indexOf('story-ui.js?v=' + prefix));
-assert.match(sw, /const CACHE_NAME = "life-rpg-v0\.31\.4-ao3-bookmark1"/, 'Keep the newer AO3 Library PWA cache generation');
+assert.match(sw, /const CACHE_NAME = "life-rpg-v0\.31\.4-ao3-bookmark2"/, 'Keep the newer AO3 Library PWA cache generation');
 for (const file of ['kirishima-visual-map.js','story-ui.js','companion-moments.js',
   'living-world-v3.js','dreamscape.js','living-companion.js']) {
   assert.ok(sw.includes(`./${file}?v=${prefix}`), `PWA must refresh ${file}`);
   assert.ok(html.includes(`${file}?v=${prefix}`), `HTML must refresh ${file}`);
 }
-assert.ok(sw.includes('./pwa.js?v=0.31.4-ao3-bookmark1'));
-assert.ok(html.includes('pwa.js?v=0.31.4-ao3-bookmark1'));
+assert.ok(sw.includes('./pwa.js?v=0.31.4-ao3-bookmark2'));
+assert.ok(html.includes('pwa.js?v=0.31.4-ao3-bookmark2'));
 assert.ok(content('pwa.js').includes(`companion-moments-v2.js?v=${prefix}`));
 for (const file of ['companion-moments.js', 'companion-moments-v2.js',
   'living-world-v3.js', 'dreamscape.js', 'living-companion.js']) {
