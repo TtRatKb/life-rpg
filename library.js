@@ -110,6 +110,8 @@
     notes: byId("bookNotes"),
     advanced: byId("bookAdvancedDetails"),
     preview: byId("bookQuickPreview"),
+    lookupPanel: byId("bookLookupPanel"),
+    lookupHeading: byId("bookLookupHeading"), lookupProvider: byId("bookLookupProvider"), lookupFootnote: byId("bookLookupFootnote"),
     lookupQuery: byId("bookLookupQuery"),
     lookupSearch: byId("bookLookupSearch"),
     lookupStatus: byId("bookLookupStatus"),
@@ -788,7 +790,8 @@
     lookupResultsCollapsed = false;
     renderLookupResults();
     setLookupBusy(true);
-    renderLookupStatus("Searching Open Library…", "loading");
+    const catalog = ["manga", "manhwa", "webtoon"].includes(els.kind?.value) ? "Manga catalog" : "Open Library";
+    renderLookupStatus("Searching " + catalog + "…", "loading");
     try {
       lookupResults = await lookupBooks(query, lookupController.signal);
       if (!lookupResults.length) {
@@ -799,7 +802,7 @@
       renderLookupResults();
     } catch (error) {
       if (error?.name === "AbortError") return;
-      console.warn("Open Library lookup failed", error);
+      console.warn("Reading catalog lookup failed", error);
       renderLookupStatus(error?.message || "Book lookup is unavailable right now. Manual entry still works.", "error");
     } finally {
       setLookupBusy(false);
@@ -810,6 +813,8 @@
   async function lookupBooks(query, signal = undefined) {
     const normalized = String(query || "").trim();
     if (!normalized) return [];
+    const mediaKind = KINDS[els.kind?.value] ? els.kind.value : "book";
+    if (mediaKind !== "book" && mediaKind !== "fanfiction") return lookupManga(normalized, signal);
     const cacheKey = normalizeLookupCacheKey(normalized);
     const cached = readLookupCache(cacheKey);
     if (cached) return cached;
@@ -835,6 +840,42 @@
       .slice(0, LOOKUP_LIMIT);
     writeLookupCache(cacheKey, results);
     return results;
+  }
+
+  async function lookupManga(query, signal) {
+    const kind = els.kind?.value || "manga";
+    const key = "jikan:" + kind + ":" + normalizeLookupCacheKey(query);
+    const cached = readLookupCache(key);
+    if (cached) return cached;
+    const params = new URLSearchParams({ q: query, limit: String(LOOKUP_LIMIT), order_by: "score", sort: "desc" });
+    const response = await fetch("https://api.jikan.moe/v4/manga?" + params, {
+      headers: { Accept: "application/json" }, signal
+    });
+    if (response.status === 429) throw new Error("Manga catalog is busy. Please try again shortly.");
+    if (!response.ok) throw new Error("Manga search unavailable (" + response.status + "). You can still enter it manually.");
+    const data = await response.json();
+    const results = (Array.isArray(data?.data) ? data.data : []).map(mapMangaResult)
+      .filter(item => item.title && (!["manhwa", "webtoon"].includes(kind) || item.kind === kind || (kind === "webtoon" && item.kind === "manhwa")))
+      .slice(0, LOOKUP_LIMIT);
+    writeLookupCache(key, results);
+    return results;
+  }
+
+  function mapMangaResult(item) {
+    const type = String(item?.type || "").toLowerCase();
+    const kind = type === "manhwa" ? "manhwa" : type === "webtoon" ? "webtoon" : "manga";
+    const title = String(item?.title_english || item?.title || item?.title_japanese || "").trim().slice(0, 180);
+    const status = String(item?.status || "").toLowerCase();
+    return {
+      provider: "jikan", key: String(item?.mal_id || ""), title, kind,
+      author: (Array.isArray(item?.authors) ? item.authors : []).map(author => String(author?.name || "").trim()).filter(Boolean).join(", ").slice(0, 120),
+      totalChapters: safePositive(item?.chapters), totalVolumes: safePositive(item?.volumes),
+      publicationStatus: status.includes("finished") ? "complete" : status.includes("publishing") ? "ongoing" : "unknown",
+      coverUrl: String(item?.images?.jpg?.image_url || item?.images?.webp?.image_url || ""),
+      externalUrl: String(item?.url || ""), totalPages: 0, isbn: "", series: "",
+      publishYear: safePositive(item?.published?.prop?.from?.year), publisher: "", language: "",
+      editionCount: 0
+    };
   }
 
   function mapLookupDoc(doc, searchedIsbn = "") {
@@ -872,7 +913,7 @@
     if (!els.lookupResults) return;
     els.lookupResults.classList.toggle("hidden", lookupResultsCollapsed || !lookupResults.length);
     els.lookupResults.innerHTML = lookupResults.map((book, index) => {
-      const meta = [book.publishYear, book.totalPages ? `~${formatNumber(book.totalPages)} pages` : "", book.editionCount ? `${book.editionCount} edition${book.editionCount === 1 ? "" : "s"}` : ""]
+      const meta = [book.kind ? book.kind.toUpperCase() : book.publishYear, book.totalChapters ? `${book.totalChapters} chapters` : "", book.totalVolumes ? `${book.totalVolumes} volumes` : "", book.totalPages ? `~${formatNumber(book.totalPages)} pages` : "", book.editionCount ? `${book.editionCount} editions` : ""]
         .filter(Boolean).join(" · ");
       const cover = safeCoverUrl(book.coverUrl);
       return `<article class="library-lookup-result-v161">
@@ -892,6 +933,20 @@
     if (!book) return;
     selectedLookup = { ...book };
     lookupCleared = false;
+    if (book.provider === "jikan" && book.key) {
+      const matching = model().items.find(item => item.catalogProvider === "jikan" && item.catalogKey === book.key);
+      if (matching && matching.id !== els.editId?.value) {
+        openBookDialog(matching.id);
+        // The dialog reset clears the selected catalog object: restore it without touching progress.
+        selectedLookup = { ...book };
+      }
+      // Keep the user's chosen category, e.g. webtoon for a Korean series.
+      if (els.source && !els.editId?.value) els.source.value = "online";
+      if (els.totalChapters && book.totalChapters && !els.totalChapters.value) els.totalChapters.value = String(book.totalChapters);
+      if (els.totalVolumes && book.totalVolumes && !els.totalVolumes.value) els.totalVolumes.value = String(book.totalVolumes);
+      if (els.publicationStatus && book.publicationStatus !== "unknown" && els.publicationStatus.value === "unknown") els.publicationStatus.value = book.publicationStatus;
+      if (els.externalUrl && book.externalUrl && !els.externalUrl.value) els.externalUrl.value = book.externalUrl;
+    }
     if (els.title) els.title.value = book.title || els.title.value;
     if (els.author) els.author.value = book.author || els.author.value;
     if (els.totalPages && book.totalPages) els.totalPages.value = String(book.totalPages);
@@ -907,6 +962,7 @@
     renderLookupResults();
     renderLookupSelection();
     renderSeriesSuggestions();
+    updateKindFields();
     renderQuickPreview();
     renderLookupStatus("Match applied. Search results folded away — you can change the match if needed.", "success");
   }
@@ -1032,11 +1088,11 @@
       els.lookupSelection.innerHTML = "";
       return;
     }
-    const meta = [selectedLookup.publishYear, selectedLookup.totalPages ? `${formatNumber(selectedLookup.totalPages)} pages` : "", selectedLookup.isbn ? `ISBN ${selectedLookup.isbn}` : ""]
+    const meta = [selectedLookup.totalChapters ? `${selectedLookup.totalChapters} chapters` : "", selectedLookup.totalVolumes ? `${selectedLookup.totalVolumes} volumes` : "", selectedLookup.publishYear, selectedLookup.totalPages ? `${formatNumber(selectedLookup.totalPages)} pages` : "", selectedLookup.isbn ? `ISBN ${selectedLookup.isbn}` : ""]
       .filter(Boolean).join(" · ");
     const cover = safeCoverUrl(selectedLookup.coverUrl);
     els.lookupSelection.innerHTML = `${cover ? `<img src="${escAttr(cover)}" alt="" />` : `<span class="library-lookup-selected-mark-v161">✓</span>`}
-      <div><small>CATALOG MATCH SELECTED</small><strong>${esc(selectedLookup.title || "Book")}</strong><span>${esc(meta || "Open Library")}</span></div>
+      <div><small>CATALOG MATCH SELECTED</small><strong>${esc(selectedLookup.title || "Reading item")}</strong><span>${esc(meta || (selectedLookup.provider === "jikan" ? "Manga catalog" : "Open Library"))}</span></div>
       <div class="library-lookup-selection-actions-v303a">${lookupResults.length > 1 ? `<button class="text-button" type="button" data-book-lookup-change>Change match</button>` : ""}<button class="text-button" type="button" data-book-lookup-clear>Remove match</button></div>`;
     els.lookupSelection.classList.remove("hidden");
   }
@@ -1053,6 +1109,7 @@
       els.lookupSearch.disabled = busy;
       els.lookupSearch.textContent = busy ? "Searching…" : "Find book";
     }
+    if (els.lookupSearch && !busy) els.lookupSearch.textContent = ["manga", "manhwa", "webtoon"].includes(els.kind?.value) ? "Find manga" : "Find book";
     if (els.lookupQuery) els.lookupQuery.setAttribute("aria-busy", busy ? "true" : "false");
   }
 
@@ -1064,6 +1121,7 @@
       title: book.title || "",
       author: book.author || "",
       totalPages: safePositive(book.totalPages),
+      totalChapters: safePositive(book.totalChapters), totalVolumes: safePositive(book.totalVolumes),
       pageCountApprox: Boolean(book.catalogPageCountApprox),
       series: book.series || "",
       seriesNumber: book.seriesNumber || "",
@@ -1133,7 +1191,7 @@
 
   function safeCoverUrl(value) {
     const url = String(value || "").trim();
-    return /^https:\/\/covers\.openlibrary\.org\//i.test(url) ? url : "";
+    return /^https:\/\/(?:covers\.openlibrary\.org|cdn\.myanimelist\.net)\//i.test(url) ? url : "";
   }
 
   function openBookDialog(id = "") {
@@ -1334,6 +1392,12 @@
 
   function updateKindFields() {
     const kind = KINDS[els.kind?.value] ? els.kind.value : "book";
+    if (els.lookupPanel) els.lookupPanel.dataset.catalog = ["manga", "manhwa", "webtoon"].includes(kind) ? "manga" : "book";
+    if (els.lookupHeading) els.lookupHeading.textContent = kind === "book" ? "Find it instead of typing it." : "Find a manga, manhwa or webtoon.";
+    if (els.lookupProvider) els.lookupProvider.textContent = kind === "book" ? "Open Library" : "Jikan · MyAnimeList";
+    if (els.lookupQuery) els.lookupQuery.placeholder = kind === "book" ? "Title, author or ISBN" : "Manga / manhwa / webtoon title";
+    if (els.lookupSearch) els.lookupSearch.textContent = kind === "book" ? "Find book" : "Find manga";
+    if (els.lookupFootnote) els.lookupFootnote.textContent = kind === "book" ? "Book lookup by Open Library. Details are editable." : "Manga metadata by the unofficial Jikan / MyAnimeList API. Chapter and volume totals may be unavailable.";
     const serial = kind !== "book";
     const unit = kind === "fanfiction" ? "chapters" : els.progressUnit?.value || "chapters";
     els.kindDetails?.classList.toggle("hidden", !serial);
