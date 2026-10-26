@@ -46,9 +46,7 @@
   if (host !== "ttratkb.github.io") return;
   let inflight = "";
   window.addEventListener("life-rpg:mangago-progress-ack", event => {
-    const slug = String(event.detail?.slug || "");
-    const chapter = Number(event.detail?.chapter);
-    const key = slug + ":" + chapter;
+    const key = String(event.detail || "");
     GM_setValue(STORE, queue().filter(item => item.slug + ":" + item.chapter !== key));
     inflight = "";
   });
