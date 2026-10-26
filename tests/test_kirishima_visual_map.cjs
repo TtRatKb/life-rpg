@@ -97,8 +97,8 @@ for (const file of ['kirishima-visual-map.js','story-ui.js','companion-moments.j
   assert.ok(sw.includes(`./${file}?v=${prefix}`), `PWA must refresh ${file}`);
   assert.ok(html.includes(`${file}?v=${prefix}`), `HTML must refresh ${file}`);
 }
-assert.ok(sw.includes('./pwa.js?v=0.31.4-ao3-bookmark2'));
-assert.ok(html.includes('pwa.js?v=0.31.4-ao3-bookmark2'));
+assert.ok(sw.includes('./pwa.js?v=0.31.4-manga-lookup1'));
+assert.ok(html.includes('pwa.js?v=0.31.4-manga-lookup1'));
 assert.ok(content('pwa.js').includes(`companion-moments-v2.js?v=${prefix}`));
 for (const file of ['companion-moments.js', 'companion-moments-v2.js',
   'living-world-v3.js', 'dreamscape.js', 'living-companion.js']) {
