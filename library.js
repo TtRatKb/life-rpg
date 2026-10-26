@@ -184,11 +184,13 @@
     render();
     configureAo3Bookmarklet();
     consumeAo3Import();
+    consumeMangagoProgress();
     exposeApi();
   }
 
   function bindEvents() {
     window.addEventListener("hashchange", consumeAo3Import);
+    window.addEventListener("hashchange", consumeMangagoProgress);
     els.ao3Copy?.addEventListener("click", async () => {
       const code = makeAo3BookmarkletUrl();
       try {
@@ -776,6 +778,60 @@
     setRadio("bookStatus", "want");
     updateKindFields();
     renderQuickPreview();
+  }
+
+
+  // Receives only chapter-completion observations from the user's local Firefox
+  // userscript. No account credentials, raw pages or Mangago requests enter Life RPG.
+  function consumeMangagoProgress() {
+    const hash = window.location?.hash || "";
+    const prefix = "#lr-mangago-progress=";
+    if (!hash.startsWith(prefix)) return;
+    let record;
+    try { record = JSON.parse(decodeURIComponent(hash.slice(prefix.length))); } catch { record = null; }
+    try { window.history.replaceState(window.history.state, "", window.location.pathname + window.location.search); }
+    catch { /* Browser may not support replaceState in an embedded context. */ }
+    const slug = String(record?.slug || "");
+    const chapter = Number(record?.chapter);
+    if (!/^[a-z0-9_-]{2,120}$/i.test(slug) || !Number.isSafeInteger(chapter) || chapter < 1 || chapter > 100000) {
+      showToast("Mangago sync rejected", "Chapter information was invalid.");
+      return;
+    }
+    const entry = model().items.find(book => {
+      if (!["manga", "manhwa", "webtoon"].includes(book.kind)) return false;
+      try {
+        const url = new URL(book.externalUrl);
+        return ["www.mangago.me", "mangago.me"].includes(url.hostname.toLowerCase())
+          && url.pathname.match(/^\/read-manga\/([^/]+)/)?.[1]?.toLowerCase() === slug.toLowerCase();
+      } catch { return false; }
+    });
+    if (!entry) {
+      showToast("Mangago not linked yet", "Edit the matching manga in Library and set its Reading link to the Mangago /read-manga/ page.");
+      return;
+    }
+    if (progressUnitFor(entry) !== "chapters") {
+      showToast("Mangago sync needs chapters", "Set this title to Track progress by Chapters first.");
+      return;
+    }
+    const current = Math.max(0, Number(entry.currentChapter || 0));
+    if (chapter > current + 1) {
+      showToast("Mangago sync needs a starting point", "Set the current chapter of " + entry.title + " to " + (chapter - 1) + " once, then reopen Life RPG.");
+      return;
+    }
+    if (entry.totalChapters && chapter > entry.totalChapters) {
+      showToast("Update published chapters", "Increase the total chapters for " + entry.title + " before syncing the new chapter.");
+      return;
+    }
+    let accepted = chapter <= current;
+    if (!accepted) {
+      const result = logBook(entry, { chapters: 1, source: "mangago-userscript" });
+      accepted = !result?.skipped && Number(entry.currentChapter) >= chapter;
+    }
+    // Acknowledge only after the canonical book log has been persisted.
+    if (accepted) {
+      window.dispatchEvent(new CustomEvent("life-rpg:mangago-progress-ack", { detail: { slug, chapter } }));
+      if (chapter > current) showToast("Mangago chapter synced", entry.title + " · Chapter " + chapter);
+    }
   }
 
   async function runBookLookup() {
