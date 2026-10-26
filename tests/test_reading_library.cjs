@@ -194,12 +194,12 @@ for (const id of ["bookKind", "libraryKindFilters", "bookCurrentChapter", "bookT
   assert.match(html, new RegExp(`id="${id}"`));
 }
 for (const name of ["library.js", "daily.js", "shop.js"]) {
-  const version = name === "library.js" ? "0.31.4-manga-lookup1" : "0.31.4-reading1";
+  const version = name === "library.js" ? "0.31.4-mangago-sync1" : "0.31.4-reading1";
   assert.ok(html.includes(`${name}?v=${version}`));
   assert.ok(worker.includes(`${name}?v=${version}`));
 }
-assert.ok(html.includes("pwa.js?v=0.31.4-manga-lookup1"));
-assert.ok(worker.includes("pwa.js?v=0.31.4-manga-lookup1"));
+assert.ok(html.includes("pwa.js?v=0.31.4-mangago-sync1"));
+assert.ok(worker.includes("pwa.js?v=0.31.4-mangago-sync1"));
 assert.match(dailySource, /available > 0 && current >= available/);
 assert.match(shopSource, /book\.kind === "fanfiction"/);
 
