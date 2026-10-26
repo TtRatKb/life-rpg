@@ -35,7 +35,7 @@ const document = { getElementById() { return null; }, addEventListener() {} };
 const storage = { getItem: () => null, setItem() {}, removeItem() {} };
 const injected = librarySource.replace(/\n\}\)\(\);\s*$/, `
   window.__readingTest = { logBook, bookProgress, progressUnitFor, safeExternalUrl, bookCardMarkup, epubMetadata,
-    captureAo3Bookmarklet, makeAo3BookmarkletUrl, parseAo3ImportHash, ao3WorkId, mapMangaResult };
+    captureAo3Bookmarklet, makeAo3BookmarkletUrl, parseAo3ImportHash, ao3WorkId, mapMangaResult, consumeMangagoProgress };
 })();`);
 assert.notEqual(injected, librarySource, "test-only exports inserted");
 class FakeXmlParser {
@@ -53,7 +53,7 @@ class FakeXmlParser {
     };
   }
 }
-vm.runInNewContext(injected, { window, document, localStorage: storage, URL, URLSearchParams, TextDecoder, DataView, DOMParser: FakeXmlParser, console, Date }, { filename: "library.js" });
+vm.runInNewContext(injected, { window, document, localStorage: storage, URL, URLSearchParams, TextDecoder, DataView, DOMParser: FakeXmlParser, console, Date, CustomEvent: class { constructor(type, opts) { this.type = type; this.detail = opts.detail; } } }, { filename: "library.js" });
 const api = window.__readingTest;
 
 const sampleManga = api.mapMangaResult({ mal_id: 42, title: "Test Manhwa", type:"Manhwa", authors:[{name:"Writer"}], chapters:55, volumes:null, status:"Publishing", images:{jpg:{image_url:"https://cdn.myanimelist.net/images/manga/1/123.jpg"}}, url:"https://myanimelist.net/manga/42" });
@@ -155,6 +155,33 @@ assert.doesNotMatch(api.bookCardMarkup(items[1]), /data-book-quick-log=/);
 api.logBook(items[0], { pages: 12 });
 assert.equal(items[0].currentPage, 54, "legacy page tracking unchanged");
 assert.equal(state.bookLibrary.logs.at(-1).pages, 12);
+const syncBook = { id: "mangago-sync", title: "Sample Series", kind: "manga", source: "online",
+  status: "reading", progressUnit: "chapters", publicationStatus: "ongoing",
+  externalUrl: "https://www.mangago.me/read-manga/sample_series/", currentChapter: 1, totalChapters: 6,
+  currentVolume: 0, totalVolumes: 0, role: "fun" };
+items.push(syncBook);
+let syncAcknowledged = 0;
+window.dispatchEvent = event => { if (event.type === "life-rpg:mangago-progress-ack") syncAcknowledged++; };
+window.history = { replaceState() {} };
+const mangagoFragment = chapter => "#lr-mangago-progress=" + encodeURIComponent(JSON.stringify({ slug: "sample_series", chapter }));
+window.location = { pathname: "/life-rpg/", search: "", hash: mangagoFragment(2) };
+const beforeSyncRewards = rewards.length;
+api.consumeMangagoProgress();
+assert.equal(syncBook.currentChapter, 2, "next-chapter observation logs one chapter");
+assert.equal(syncAcknowledged, 1);
+assert.equal(rewards.length, beforeSyncRewards + 1);
+window.location.hash = mangagoFragment(2);
+api.consumeMangagoProgress();
+assert.equal(rewards.length, beforeSyncRewards + 1, "repeat import cannot double-reward");
+assert.equal(syncAcknowledged, 2, "repeat import is acknowledged and discarded");
+window.location.hash = mangagoFragment(5);
+api.consumeMangagoProgress();
+assert.equal(syncBook.currentChapter, 2, "jump ahead cannot invent skipped chapter completion");
+assert.equal(syncAcknowledged, 2, "noncontiguous data left pending");
+window.location.hash = "#lr-mangago-progress=" + encodeURIComponent(JSON.stringify({ slug: "unmatched_series", chapter: 3 }));
+api.consumeMangagoProgress();
+assert.equal(syncAcknowledged, 2, "unlinked title never acknowledged");
+
 
 const needsShopSource = shopSource.match(/function bookNeedsShop\(book = \{\}\) \{[\s\S]*?\n  \}/)?.[0];
 assert.ok(needsShopSource);
