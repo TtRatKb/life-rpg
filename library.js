@@ -935,7 +935,11 @@
     lookupCleared = false;
     if (book.provider === "jikan" && book.key) {
       const matching = model().items.find(item => item.catalogProvider === "jikan" && item.catalogKey === book.key);
-      if (matching && matching.id !== els.editId?.value) openBookDialog(matching.id);
+      if (matching && matching.id !== els.editId?.value) {
+        openBookDialog(matching.id);
+        // The dialog reset clears the selected catalog object: restore it without touching progress.
+        selectedLookup = { ...book };
+      }
       // Keep the user's chosen category, e.g. webtoon for a Korean series.
       if (els.source && !els.editId?.value) els.source.value = "online";
       if (els.totalChapters && book.totalChapters && !els.totalChapters.value) els.totalChapters.value = String(book.totalChapters);
