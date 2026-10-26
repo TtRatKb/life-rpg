@@ -63,8 +63,8 @@
   }
   window.setInterval(() => {
     if (location.hash.startsWith("#lr-mangago-progress=")) return;
-    // Retry only on deliberate Life RPG visits, with at most one item each cycle.
-    inflight = "";
+    // An unlinked title or a gap should not show the same warning every 7 seconds.
+    // Reopen Life RPG after correcting the item's link or starting chapter.
     deliver();
   }, 7000);
   window.setTimeout(deliver, 2000);
