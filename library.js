@@ -754,11 +754,23 @@
       showToast("AO3 import needs another try", "Open the work page and use the bookmarklet again.");
       return;
     }
+    if (!entry.author || !entry.fandom || !entry.totalChapters) {
+      showToast("Incomplete AO3 import", "Your Firefox bookmark may contain the older importer. Replace it from the Library and try again.");
+      return;
+    }
     app.showView?.("library");
     const existing = model().items.find(book => ao3WorkId(book.externalUrl) === entry.id);
     if (existing) {
       openBookDialog(existing.id);
-      showToast("Already in your Library", "Your existing reading progress is untouched.");
+      // Reimports should enrich missing information, not discard metadata or overwrite
+      // the player's status, current chapter, rewards or existing custom details.
+      if (els.author && !els.author.value.trim() && entry.author) els.author.value = entry.author;
+      if (els.fandom && !els.fandom.value.trim() && entry.fandom) els.fandom.value = entry.fandom;
+      if (els.totalChapters && !Number(els.totalChapters.value) && entry.totalChapters) els.totalChapters.value = String(entry.totalChapters);
+      if (els.publicationStatus && els.publicationStatus.value === "unknown" && entry.publicationStatus !== "unknown") els.publicationStatus.value = entry.publicationStatus;
+      updateKindFields();
+      renderQuickPreview();
+      showToast("Already in your Library", "Missing AO3 details added to the form. Save to keep them; reading progress is untouched.");
       return;
     }
     openBookDialog();
