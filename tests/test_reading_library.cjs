@@ -63,6 +63,8 @@ assert.equal(sampleManga.totalVolumes,null);
 assert.equal(sampleManga.publicationStatus,"ongoing");
 assert.equal(sampleManga.author,"Writer");
 assert.equal(state.bookLibrary.schemaVersion, 4);
+assert.match(librarySource, /life-rpg:mangago-progress-ack/);
+assert.match(librarySource, /source: "mangago-userscript"/);
 assert.equal(items[0].kind, "book");
 assert.equal(items[0].currentPage, 42);
 assert.equal(items[0].id, "legacy");
