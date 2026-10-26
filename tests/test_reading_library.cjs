@@ -35,7 +35,7 @@ const document = { getElementById() { return null; }, addEventListener() {} };
 const storage = { getItem: () => null, setItem() {}, removeItem() {} };
 const injected = librarySource.replace(/\n\}\)\(\);\s*$/, `
   window.__readingTest = { logBook, bookProgress, progressUnitFor, safeExternalUrl, bookCardMarkup, epubMetadata,
-    captureAo3Bookmarklet, makeAo3BookmarkletUrl, parseAo3ImportHash, ao3WorkId };
+    captureAo3Bookmarklet, makeAo3BookmarkletUrl, parseAo3ImportHash, ao3WorkId, mapMangaResult };
 })();`);
 assert.notEqual(injected, librarySource, "test-only exports inserted");
 class FakeXmlParser {
@@ -56,6 +56,12 @@ class FakeXmlParser {
 vm.runInNewContext(injected, { window, document, localStorage: storage, URL, URLSearchParams, TextDecoder, DataView, DOMParser: FakeXmlParser, console, Date }, { filename: "library.js" });
 const api = window.__readingTest;
 
+const sampleManga = api.mapMangaResult({ mal_id: 42, title: "Test Manhwa", type:"Manhwa", authors:[{name:"Writer"}], chapters:55, volumes:null, status:"Publishing", images:{jpg:{image_url:"https://cdn.myanimelist.net/images/manga/1/123.jpg"}}, url:"https://myanimelist.net/manga/42" });
+assert.equal(sampleManga.kind,"manhwa");
+assert.equal(sampleManga.totalChapters,55);
+assert.equal(sampleManga.totalVolumes,null);
+assert.equal(sampleManga.publicationStatus,"ongoing");
+assert.equal(sampleManga.author,"Writer");
 assert.equal(state.bookLibrary.schemaVersion, 4);
 assert.equal(items[0].kind, "book");
 assert.equal(items[0].currentPage, 42);
@@ -159,12 +165,12 @@ for (const id of ["bookKind", "libraryKindFilters", "bookCurrentChapter", "bookT
   assert.match(html, new RegExp(`id="${id}"`));
 }
 for (const name of ["library.js", "daily.js", "shop.js"]) {
-  const version = name === "library.js" ? "0.31.4-ao3-bookmark2" : "0.31.4-reading1";
+  const version = name === "library.js" ? "0.31.4-manga-lookup1" : "0.31.4-reading1";
   assert.ok(html.includes(`${name}?v=${version}`));
   assert.ok(worker.includes(`${name}?v=${version}`));
 }
-assert.ok(html.includes("pwa.js?v=0.31.4-ao3-bookmark2"));
-assert.ok(worker.includes("pwa.js?v=0.31.4-ao3-bookmark2"));
+assert.ok(html.includes("pwa.js?v=0.31.4-manga-lookup1"));
+assert.ok(worker.includes("pwa.js?v=0.31.4-manga-lookup1"));
 assert.match(dailySource, /available > 0 && current >= available/);
 assert.match(shopSource, /book\.kind === "fanfiction"/);
 
