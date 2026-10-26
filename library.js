@@ -829,7 +829,7 @@
     }
     // Acknowledge only after the canonical book log has been persisted.
     if (accepted) {
-      window.dispatchEvent(new CustomEvent("life-rpg:mangago-progress-ack", { detail: { slug, chapter } }));
+      window.dispatchEvent(new CustomEvent("life-rpg:mangago-progress-ack", { detail: slug + ":" + chapter }));
       if (chapter > current) showToast("Mangago chapter synced", entry.title + " · Chapter " + chapter);
     }
   }
