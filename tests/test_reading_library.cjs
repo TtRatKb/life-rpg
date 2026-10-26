@@ -86,6 +86,8 @@ assert.equal(api.safeExternalUrl("http://example.com"), "");
 assert.equal(api.safeExternalUrl("https://archiveofourown.org/works/1"), "https://archiveofourown.org/works/1");
 assert.equal(api.ao3WorkId("https://archiveofourown.org/works/123/chapters/456"), "123");
 assert.equal(api.ao3WorkId("https://attacker.example/works/123"), "");
+// A legacy payload with missing author/fandom/chapters must be recognized as incomplete.
+assert.equal(api.parseAo3ImportHash(`#lr-ao3-import=${encodeURIComponent(JSON.stringify({ version:1,source:"ao3",title:"Only title",externalUrl:"https://archiveofourown.org/works/38106442",author:"",fandom:"",totalChapters:0 }))}`).author, "");
 assert.equal(api.parseAo3ImportHash("#lr-ao3-import=%7Bbad"), null);
 assert.equal(api.parseAo3ImportHash(`#lr-ao3-import=${encodeURIComponent(JSON.stringify({
   version: 1, source: "ao3", title: "Fake", externalUrl: "javascript:alert(1)"
@@ -159,12 +161,12 @@ for (const id of ["bookKind", "libraryKindFilters", "bookCurrentChapter", "bookT
   assert.match(html, new RegExp(`id="${id}"`));
 }
 for (const name of ["library.js", "daily.js", "shop.js"]) {
-  const version = name === "library.js" ? "0.31.4-ao3-bookmark2" : "0.31.4-reading1";
+  const version = name === "library.js" ? "0.31.4-ao3-bookmark3" : "0.31.4-reading1";
   assert.ok(html.includes(`${name}?v=${version}`));
   assert.ok(worker.includes(`${name}?v=${version}`));
 }
-assert.ok(html.includes("pwa.js?v=0.31.4-ao3-bookmark2"));
-assert.ok(worker.includes("pwa.js?v=0.31.4-ao3-bookmark2"));
+assert.ok(html.includes("pwa.js?v=0.31.4-ao3-bookmark3"));
+assert.ok(worker.includes("pwa.js?v=0.31.4-ao3-bookmark3"));
 assert.match(dailySource, /available > 0 && current >= available/);
 assert.match(shopSource, /book\.kind === "fanfiction"/);
 
