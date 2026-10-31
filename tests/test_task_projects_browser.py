@@ -211,7 +211,7 @@ class TaskProjectBrowserTests(unittest.TestCase):
         self.assertTrue(self.page.locator('.tp-project').count()==1)
         self.assertTrue(self.page.get_by_text('Inklusionsarbeit konzipieren',exact=True).count()>=1)
         before=self.page.evaluate("({p:LifeRPGApp.getState().taskProjectsV1.projects[0].id,design:LifeRPGApp.getState().taskProjectsV1.projects[0].tasks.find(t=>t.stepId==='design').id})")
-        self.page.locator('[data-tp-done]').first.click()
+        self.page.locator('.tp-project-body [data-tp-done]').first.click()
         self.page.reload(wait_until='domcontentloaded')
         self.page.wait_for_function("window.LifeRPGTaskProjects && LifeRPGApp.getState().taskProjectsV1?.projects?.length===1")
         after=self.page.evaluate("({p:LifeRPGApp.getState().taskProjectsV1.projects[0].id,design:LifeRPGApp.getState().taskProjectsV1.projects[0].tasks.find(t=>t.stepId==='design').id,done:LifeRPGApp.getState().taskProjectsV1.projects[0].tasks.find(t=>t.stepId==='design').doneAt})")
