@@ -8,7 +8,7 @@
  const dateNice=value=>value?new Date(value+'T12:00:00').toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'}):'Ohne Datum';
  const uid=()=>typeof crypto!=='undefined'&&crypto.randomUUID?crypto.randomUUID():('tp-'+Date.now()+'-'+Math.random().toString(36).slice(2));
  const blank=()=>({schemaVersion:1,projects:[],inbox:[],templates:[],offDutyDay:''});
- let expanded='',showArchive=false,showTemplateForm=false,inboxDraft='',inboxDeadline='';
+ let expanded='',showArchive=false,showTemplateForm=false,inboxDraft='',inboxDeadline='',libraryOpen=false,laterOpen=false,waitingOpen=false;
  const root=()=>document.getElementById('taskProjectMount');
  const dashboard=()=>document.getElementById('taskProjectTodayMount');
  function model() {
@@ -72,7 +72,9 @@
    ${task.notes?`<small>📝 ${esc(task.notes)}</small>`:''}${task.lastProgressNote?`<small>↳ ${esc(task.lastProgressNote)}</small>`:''}
    <details class="tp-step-options"><summary>Frist & Details</summary>
     <label class="tp-date">Bis <input type="date" data-tp-date="${esc(task.id)}" value="${esc(task.dueDate||'')}" aria-label="Deadline für ${esc(task.title)}"></label>
-    <span>Geschätzter Aufwand: ${Math.round(task.minutes||20)} Min.</span>
+    <label class="tp-effort">Grob geschätzter Aufwand <select data-tp-effort="${esc(task.id)}">
+     ${[15,30,60,120,240,360].map(n=>`<option value="${n}" ${Number(task.minutes||20)===n?'selected':''}>${n===15?'Klein · ca. 15 Min.':n===30?'Kurz · 30 Min.':n===60?'1 Stunde':n===120?'2 Stunden':n===240?'4 Stunden':'6 Stunden'}</option>`).join('')}
+   </select></label>
     <button type="button" class="tp-hurdle" data-tp-hurdle="${esc(task.id)}">${task.hurdle==='high'?'😰 Hohe Überwindung':'🙂 Normale Überwindung'}</button>
    </details>
   </div></article>`;
@@ -112,8 +114,14 @@
  const el=root();if(!el)return;
  const oldText=el.querySelector('[data-tp-inbox] textarea'),oldDate=el.querySelector('[data-tp-inbox] input[name="dueDate"]');
  if(oldText)inboxDraft=oldText.value;if(oldDate)inboxDeadline=oldDate.value;
+ const oldLibrary=el.querySelector('.tp-calm-library'),oldLater=el.querySelector('.tp-calm-later'),oldWaiting=el.querySelector('.tp-calm-waiting');
+ if(oldLibrary)libraryOpen=oldLibrary.open;
+ if(oldLater)laterOpen=oldLater.open;
+ if(oldWaiting)waitingOpen=oldWaiting.open;
  const m=model(),all=allOpen(),day=dateToday(),buckets=core.taskBuckets(all,day);
  const important=buckets.urgent.length,soon=buckets.soon.length,templatesAvailable=templates();
+ const undated=buckets.later.filter(t=>!t.dueDate);
+ const nudge=undated.length?undated[Number(day.slice(-2))%undated.length]:null;
  const panel=(key,title,description,limit)=>{
    const list=buckets[key];
    return `<section class="tp-calm-group tp-calm-${key}"><header><div><h2>${title}</h2><p>${description}</p></div><span>${list.length}</span></header>
@@ -134,13 +142,14 @@
     <strong>${important?'Katsuki':'Eijirou'}</strong>
     <p>${important?'Es gibt tatsächlich fällige Dinge. Eins nach dem anderen – nicht alles auf einmal.':soon?'Die nächsten Fristen sind im Blick. Ein kleiner Anfang kann reichen.':'Heute ist nichts akut fällig. Deine Gedanken sind hier gut aufgehoben.'}</p>
   </div></div>
+  ${nudge?`<div class="tp-calm-nudge"><span>✿</span><p><strong>Auch sicher notiert:</strong> ${esc(nudge.title)} <small>· ohne Deadline, kein Druck.</small></p><button type="button" data-tp-open-later>Alle Merker</button></div>`:''}
   <div class="tp-calm-columns">${panel('urgent','Heute wirklich wichtig','Echte Deadlines: heute oder bereits überschritten.',8)}
     ${panel('soon','Langsam angehen','Hier wäre ein kleiner Anfang sinnvoll.',7)}</div>
-  <details class="tp-calm-later"><summary>🌿 Sicher vorgemerkt · ${buckets.later.length} weitere Dinge</summary>
+  <details class="tp-calm-later" ${laterOpen?'open':''}><summary>🌿 Sicher vorgemerkt · ${buckets.later.length} weitere Dinge</summary>
      <p>Sie bleiben gespeichert und tauchen wieder auf, wenn die Frist näher rückt.</p>
      ${buckets.later.map(taskRow).join('')||'<p class="tp-empty">Noch nichts Weiteres vorgemerkt.</p>'}</details>
-  ${buckets.waiting.length?`<details class="tp-calm-later"><summary>⏳ Wartet auf etwas · ${buckets.waiting.length}</summary>${buckets.waiting.map(taskRow).join('')}</details>`:''}
-  <details class="tp-calm-library"><summary>📁 Projekte, Vorlagen und erledigte Aufgaben</summary>
+  ${buckets.waiting.length?`<details class="tp-calm-later tp-calm-waiting" ${waitingOpen?'open':''}><summary>⏳ Wartet auf etwas · ${buckets.waiting.length}</summary>${buckets.waiting.map(taskRow).join('')}</details>`:''}
+  <details class="tp-calm-library" ${libraryOpen?'open':''}><summary>📁 Projekte, Vorlagen und erledigte Aufgaben</summary>
      <section class="tp-section"><h2>Meine Projekte · ${m.projects.filter(p=>!p.archived).length}</h2>
      ${m.projects.filter(p=>!p.archived).map(projectMarkup).join('')||'<p class="tp-empty">Noch keine Projekte. Einzelaufgaben sind genauso okay.</p>'}</section>
      <details class="tp-create"><summary>+ Neues Projekt aus einer Vorlage</summary><form data-tp-create>
@@ -189,6 +198,7 @@
    const form=e.target.closest('form');if(!form || !form.matches('[data-tp-inbox],[data-tp-task],[data-tp-create],[data-tp-add-step]'))return;
    e.preventDefault();const data=new FormData(form);
    if(form.matches('[data-tp-create]')){
+     libraryOpen=true;
      const template=templates().find(t=>t.id===data.get('templateId'));if(!template)return;
      const title=String(data.get('title')||'').trim(),anchor=String(data.get('anchor')||'');
      const result=mutate('create-project',m=>{
@@ -198,7 +208,7 @@
      if(result)app.showToast?.('Projekt samt Fristen angelegt ✓');
    }else if(form.matches('[data-tp-add-step]')){
      const id=form.dataset.tpAddStep, title=String(data.get('title')||'').trim(),dueDate=String(data.get('dueDate')||'');
-     mutate('add-step',m=>{const p=projectBy(id);if(!p||!core.parseDay(dueDate))throw Error('Projekt oder Datum ungültig.');const key='custom-'+uid();p.tasks.push({id:p.id+':'+key,stepId:key,title:title.slice(0,160),dueDate,minutes:20,mandatory:true,hurdle:'normal',depends:[],doneAt:null});});
+     libraryOpen=true;mutate('add-step',m=>{const p=projectBy(id);if(!p||!core.parseDay(dueDate))throw Error('Projekt oder Datum ungültig.');const key='custom-'+uid();p.tasks.push({id:p.id+':'+key,stepId:key,title:title.slice(0,160),dueDate,minutes:20,mandatory:true,hurdle:'normal',depends:[],doneAt:null});});
    }else{
      const brain=form.matches('[data-tp-inbox]'),raw=String(data.get('title')||'');
      const entries=[...new Set((brain?raw.split(/\r?\n/):[raw]).map(x=>x.trim()).filter(Boolean))];
@@ -221,6 +231,7 @@
  function clicks(e){
    const button=e.target.closest('button');if(!button)return;
    if(button.hasAttribute('data-tp-open')){app.showView('tasks');return;}
+   if(button.hasAttribute('data-tp-open-later')){const list=root()?.querySelector('.tp-calm-later');if(list){list.open=true;laterOpen=true;}return;}
    if(button.hasAttribute('data-tp-toggle-duty')){mutate('toggle-duty',m=>{m.offDutyDay=m.offDutyDay===dateToday()?'':dateToday();});return;}
    if(button.hasAttribute('data-tp-expand')){expanded=expanded===button.dataset.tpExpand?'':button.dataset.tpExpand;render();return;}
    if(button.hasAttribute('data-tp-done')){markDone(button.dataset.tpDone,false);return;}
@@ -244,6 +255,12 @@
  function changes(e){
    const el=e.target;
    if(el.hasAttribute('data-tp-date')){updateDate(el.dataset.tpDate,el.value);return;}
+   if(el.hasAttribute('data-tp-effort')){
+     const mins=Number(el.value);
+     if(![15,30,60,120,240,360].includes(mins))return;
+     mutate('effort',m=>{const t=projectTask(el.dataset.tpEffort)?.task||m.inbox.find(x=>x.id===el.dataset.tpEffort);
+       if(!t)throw Error('Aufgabe fehlt.');t.minutes=mins;});return;
+   }
    if(el.hasAttribute('data-tp-branch')){
      const id=el.dataset.tpBranch,key=el.dataset.branchKey;
      const template=templates().find(t=>t.id===projectBy(id)?.templateId);
