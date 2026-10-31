@@ -174,7 +174,7 @@ class TaskProjectBrowserTests(unittest.TestCase):
     def test_brain_dump_has_no_required_date_and_saves_multiple_items(self):
         field=self.page.locator('form[data-tp-inbox] textarea[name=title]')
         before=self.page.evaluate("JSON.stringify(LifeRPGApp.getState().rewardLedger||{})")
-        field.fill('Synthetic first reminder\\nSynthetic second reminder')
+        field.fill('Synthetic first reminder\nSynthetic second reminder')
         self.page.locator('form[data-tp-inbox] button[type=submit]').click()
         self.assertEqual(2,len(self.page.evaluate('LifeRPGApp.getState().taskProjectsV1.inbox')))
         self.assertTrue(all(not t['dueDate'] for t in self.page.evaluate('LifeRPGApp.getState().taskProjectsV1.inbox')))
