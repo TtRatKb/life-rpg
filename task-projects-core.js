@@ -95,5 +95,38 @@
     if (days <= 2) return task.mandatory ? 'soon-critical' : 'soon-flex';
     return 'later';
   }
-  return {exam, parseDay, dayOffset, daysUntil, instantiate, updateBranches, nextSteps, urgency};
+
+  // A due date is a deadline, never an automatically assigned work day.
+  // Existing task IDs and records remain unchanged; this is a read-only view.
+  function taskSignal(task, today) {
+    const validDue=parseDay(task?.dueDate);
+    const days=validDue&&parseDay(today)?daysUntil(today,task.dueDate):null;
+    const hard=task?.mandatory!==false&&task?.dateKind!=='target';
+    const blocked=task?.status==='waiting'||(task?.blockedBy||[]).length>0;
+    const effort=Math.max(5,Math.min(2400,Number(task?.minutes)||20));
+    const advance=effort>=180?7:effort>=90?5:effort>=40?3:2;
+    if(blocked)return {bucket:'waiting',days,hard,label:'Noch nicht dran',message:task.status==='waiting'?'Wartet auf eine Rückmeldung. Du musst gerade nichts erzwingen.':'Erst ein vorheriger Schritt – hier ist nichts vergessen.'};
+    if(days===null)return {bucket:'later',days:null,hard,label:'Ohne feste Deadline',message:'Sicher notiert. Du kannst es später in Ruhe einordnen.'};
+    if(!hard){
+      if(days<0)return {bucket:'later',days,hard,label:'Zieldatum vorbei',message:'Das war ein Wunschdatum, keine verpasste Pflicht. Neu entscheiden ist okay.'};
+      if(days===0)return {bucket:'soon',days,hard,label:'Zieldatum heute',message:'Wenn es passt, ist heute ein guter Zeitpunkt. Kein Muss.'};
+      return {bucket:'later',days,hard,label:'Noch '+days+' '+(days===1?'Tag':'Tage')+' bis zum Ziel',message:'Eine Orientierung, keine zwingende Deadline.'};
+    }
+    if(days<0)return {bucket:'urgent',days,hard,label:'Frist überschritten',message:'Das braucht eine neue Lösung oder Absprache – nicht einfach mehr Druck.'};
+    if(days===0)return {bucket:'urgent',days,hard,label:'Deadline heute',message:'Heute muss es fertig sein. Konzentrier dich auf den nächsten machbaren Schritt.'};
+    if(days<=advance)return {bucket:'soon',days,hard,label:'Noch '+days+' '+(days===1?'Tag':'Tage'),message:effort>=90?'Mit dem geschätzten Aufwand solltest du jetzt beginnen.':'Langsam angehen – ein kleiner Schritt reicht für den Anfang.'};
+    return {bucket:'later',days,hard,label:'Noch '+days+' Tage',message:'Im Blick behalten. Heute noch nicht zwingend.'};
+  }
+  function taskBuckets(tasks,today){
+    const groups={urgent:[],soon:[],later:[],waiting:[]};
+    for(const task of tasks||[]){
+      if(!task||task.doneAt||task.archived)continue;
+      const status=taskSignal(task,today);
+      groups[status.bucket].push({...task,calmSignal:status});
+    }
+    const compare=(a,b)=>(a.calmSignal.days??99999)-(b.calmSignal.days??99999)||String(a.title||'').localeCompare(String(b.title||''),'de');
+    for(const bucket of Object.values(groups))bucket.sort(compare);
+    return groups;
+  }
+  return {exam, parseDay, dayOffset, daysUntil, instantiate, updateBranches, nextSteps, urgency, taskSignal, taskBuckets};
 });
