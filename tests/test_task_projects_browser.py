@@ -56,6 +56,8 @@ class TaskProjectBrowserTests(unittest.TestCase):
         self.page.goto(f'http://127.0.0.1:{self.server.server_port}/',wait_until='domcontentloaded')
         self.page.wait_for_function("window.LifeRPGTaskProjects && document.querySelector('#taskProjectMount .tp-app')")
         self.page.evaluate("LifeRPGApp.showView('tasks')")
+        # Advanced tools remain collapsed in production, but tests exercise their compatibility.
+        self.page.locator('.tp-tools > summary').click()
 
     def tearDown(self):
         self.assertEqual([],self.errors,'Uncaught page errors')
@@ -169,7 +171,35 @@ class TaskProjectBrowserTests(unittest.TestCase):
         self.assertIn('Spülmaschine',self.page.locator('[data-life-recent]').inner_text())
         self.assertEqual(2,len(self.page.evaluate("LifeRPGApp.getState().homeQuickActionsV1.entries")))
 
+    def test_brain_dump_has_no_required_date_and_saves_multiple_items(self):
+        field=self.page.locator('form[data-tp-inbox] textarea[name=title]')
+        before=self.page.evaluate("JSON.stringify(LifeRPGApp.getState().rewardLedger||{})")
+        field.fill('Synthetic first reminder\\nSynthetic second reminder')
+        self.page.locator('form[data-tp-inbox] button[type=submit]').click()
+        self.assertEqual(2,len(self.page.evaluate('LifeRPGApp.getState().taskProjectsV1.inbox')))
+        self.assertTrue(all(not t['dueDate'] for t in self.page.evaluate('LifeRPGApp.getState().taskProjectsV1.inbox')))
+        self.assertEqual(before,self.page.evaluate("JSON.stringify(LifeRPGApp.getState().rewardLedger||{})"))
+        self.assertIn('Sicher vorgemerkt',self.page.locator('.tp-calm-later summary').first.inner_text())
+        self.assertEqual('',field.input_value())
+
+    def test_create_and_pause_native_recurring_routine(self):
+        self.page.locator('.tpk-create > summary').click()
+        form=self.page.locator('form[data-tpk-create]')
+        form.locator('[name=title]').fill('Synthetic monthly reminder')
+        form.locator('[name=cadence]').select_option('monthly')
+        form.locator('[name=monthday]').fill('31')
+        form.locator('button[type=submit]').click()
+        self.assertEqual(1,len(self.page.evaluate('LifeRPGApp.getState().taskProjectsV1.routinesV1')))
+        self.assertEqual('monthly',self.page.evaluate('LifeRPGApp.getState().taskProjectsV1.routinesV1[0].cadence'))
+        self.page.locator('.tpk-all > summary').click()
+        self.page.locator('[data-tpk-pause]').first.click()
+        self.assertTrue(self.page.evaluate('LifeRPGApp.getState().taskProjectsV1.routinesV1[0].disabled'))
+        self.page.reload(wait_until='domcontentloaded')
+        self.page.wait_for_function("window.LifeRPGTaskPacks && LifeRPGApp.getState().taskProjectsV1?.routinesV1?.length===1")
+        self.assertTrue(self.page.evaluate('LifeRPGApp.getState().taskProjectsV1.routinesV1[0].disabled'))
+
     def test_template_generates_steps_and_survives_reload(self):
+        self.page.locator('.tp-calm-library > summary').click()
         self.page.locator('.tp-create summary').click()
         form=self.page.locator('form[data-tp-create]')
         form.locator('[name=title]').fill('Fiktive Mathearbeit 6A')
@@ -190,7 +220,7 @@ class TaskProjectBrowserTests(unittest.TestCase):
         self.assertTrue(after['done'])
 
     def test_quick_capture_and_feierabend_does_not_delete_tasks(self):
-        self.page.locator('form[data-tp-inbox] input[name=title]').fill('Fiktive Mail schreiben')
+        self.page.locator('form[data-tp-inbox] textarea[name=title]').fill('Fiktive Mail schreiben')
         self.page.locator('form[data-tp-inbox] button').click()
         self.assertEqual(1,len(self.page.evaluate('LifeRPGApp.getState().taskProjectsV1.inbox')))
         self.page.locator('[data-tp-toggle-duty]').click()
@@ -200,7 +230,7 @@ class TaskProjectBrowserTests(unittest.TestCase):
     def test_native_planner_removes_todoist_list_and_allows_task_edit(self):
         self.page.wait_for_function("window.LifeRPGNativePlanner && document.querySelector('#taskPlanningPanel .npt-card')")
         self.assertEqual(0,self.page.locator('#todoistPageMount').count())
-        self.page.locator('form[data-tp-inbox] input[name=title]').fill('Fiktive Pflichtaufgabe')
+        self.page.locator('form[data-tp-inbox] textarea[name=title]').fill('Fiktive Pflichtaufgabe')
         self.page.locator('form[data-tp-inbox] button').click()
         self.page.locator('.npt-settings summary').first.click()
         self.page.locator('.npt-item button[data-npt-edit]').first.click()
