@@ -85,3 +85,34 @@
 .tp-calm-nudge p,.tp-calm-next p{flex:1;font-size:.74rem;line-height:1.5;margin:0;color:#796876}
 .tp-calm-nudge p small,.tp-calm-next p small{color:#a18d99}
 .tp-calm-nudge button{background:transparent;border:1px solid #ddd0d9;border-radius:8px;color:#896e84;font-size:.68rem;padding:6px 8px;cursor:pointer}
+
+/* Deadline radar: real deadlines stay visible rather than disappearing into the backlog. */
+.tp-radar-head{display:flex;justify-content:space-between;align-items:start;flex-wrap:wrap;gap:12px;margin:17px 0 12px}
+.tp-radar-head h2{font-size:1.2rem;color:#6b5268;margin:0 0 4px}
+.tp-radar-head p{font-size:.77rem;line-height:1.45;color:#887786;margin:0}
+.tp-radar-totals{display:flex;gap:7px;flex-wrap:wrap}
+.tp-radar-totals span{display:flex;align-items:center;gap:5px;background:#fffdf9;border:1px solid #e8dde3;border-radius:10px;padding:7px 9px;font-size:.7rem;color:#826f7d}
+.tp-radar-totals strong{font-size:.9rem;color:#71536f}
+.tp-radar-today{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start;gap:12px}
+.tp-radar-section{border:1px solid #e6dce1;background:#fffdfb;border-radius:16px;padding:13px 15px;margin:0 0 12px;min-width:0}
+.tp-radar-section>header{display:flex;align-items:start;justify-content:space-between;gap:12px;margin-bottom:8px}
+.tp-radar-section>header h2{font-size:1rem;color:#72596e;margin:0}
+.tp-radar-section>header p{font-size:.74rem;color:#8b7b87;line-height:1.45;margin:5px 0 0}
+.tp-radar-count{font-size:.78rem;font-weight:750;color:#805d7c;border-radius:10px;padding:4px 9px;background:#f4ebf1}
+.tp-radar-due{border-color:#e9cfc1;background:#fff8f3}
+.tp-radar-week{border-color:#e2d6c9;background:linear-gradient(115deg,#fffdf8,#fff9f2)}
+.tp-radar-following{background:linear-gradient(115deg,#faf9fb,#f7f7f1)}
+.tp-radar-prepare{background:#f6f9f4;border-color:#dce5d6}
+.tp-radar-undated{background:#f8f4f8}
+.tp-radar-week .tp-calm-step,.tp-radar-following .tp-calm-step{padding:11px 12px}
+.tp-radar-section .tp-step-options input{max-width:180px}
+#taskPlanningTodayMount .npt-radar-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+#taskPlanningTodayMount .npt-radar-stat{padding:8px;background:rgba(255,255,255,.7);border:1px solid #e5d9df;border-radius:11px;display:grid;gap:3px}
+#taskPlanningTodayMount .npt-radar-stat strong{font-size:1.15rem;line-height:1.1;color:#715772}
+#taskPlanningTodayMount .npt-radar-stat small{font-size:.65rem;line-height:1.35;color:#907d8c}
+#taskPlanningTodayMount .npt-radar-list{display:grid;gap:5px}
+#taskPlanningTodayMount .npt-radar-task{padding:7px 8px;background:#fffdfa;border-radius:9px;display:flex;justify-content:space-between;gap:10px;align-items:start}
+#taskPlanningTodayMount .npt-radar-task strong{font-size:.77rem;line-height:1.4;overflow-wrap:anywhere}
+#taskPlanningTodayMount .npt-radar-task small{font-size:.65rem;white-space:normal;color:#8e7282;text-align:right;flex-shrink:0}
+@media(max-width:720px){.tp-radar-today{grid-template-columns:1fr}.tp-radar-head{display:grid}
+#taskPlanningTodayMount .npt-radar-task{display:grid;gap:2px}#taskPlanningTodayMount .npt-radar-task small{text-align:left}}
