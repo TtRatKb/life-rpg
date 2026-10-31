@@ -177,7 +177,9 @@
    return result;
  }
  function markDone(id,undo){
-   return recordUpdate(id,undo?'reopen':'done');
+   const result=recordUpdate(id,undo?'reopen':'done');
+   if(result&&!undo)app.showToast?.('Geschafft – ein Gedanke weniger. ✨');
+   return result;
  }
  function updateDate(id,value){
    if(value&&!core.parseDay(value)){app.showToast?.('Bitte gültiges Datum verwenden.');return;}
@@ -198,9 +200,22 @@
      const id=form.dataset.tpAddStep, title=String(data.get('title')||'').trim(),dueDate=String(data.get('dueDate')||'');
      mutate('add-step',m=>{const p=projectBy(id);if(!p||!core.parseDay(dueDate))throw Error('Projekt oder Datum ungültig.');const key='custom-'+uid();p.tasks.push({id:p.id+':'+key,stepId:key,title:title.slice(0,160),dueDate,minutes:20,mandatory:true,hurdle:'normal',depends:[],doneAt:null});});
    }else{
-     const title=String(data.get('title')||'').trim();
-     const result=mutate('capture-task',m=>{m.inbox.unshift({id:'inbox-'+uid(),title:title.slice(0,160),dueDate:String(data.get('dueDate')||''),minutes:Number(data.get('minutes'))||15,mandatory:data.get('mandatory')==='yes',hurdle:data.get('hurdle')==='high'?'high':'normal',doneAt:null,createdAt:new Date().toISOString()});});
-     if(result)app.showToast?.('Im Life RPG gespeichert ✓');
+     const brain=form.matches('[data-tp-inbox]'),raw=String(data.get('title')||'');
+     const entries=[...new Set((brain?raw.split(/\r?\n/):[raw]).map(x=>x.trim()).filter(Boolean))];
+     const dueDate=String(data.get('dueDate')||'');
+     if(!entries.length||entries.length>25||entries.some(x=>x.length>160)||dueDate&&!core.parseDay(dueDate)){
+       app.showToast?.('Bitte höchstens 25 Gedanken pro Eingabe (je 160 Zeichen) und ein gültiges Datum verwenden.');return;
+     }
+     const result=mutate('capture-task',m=>{
+       const createdAt=new Date().toISOString();
+       for(const title of entries)m.inbox.unshift({id:'inbox-'+uid(),title,dueDate,
+         minutes:Number(data.get('minutes'))||20,mandatory:brain?true:data.get('mandatory')==='yes',
+         hurdle:brain?'normal':data.get('hurdle')==='high'?'high':'normal',doneAt:null,createdAt});
+     });
+     if(result){
+       if(brain){inboxDraft='';inboxDeadline='';render();}
+       app.showToast?.(entries.length===1?'Sicher gemerkt. Du darfst es loslassen. ✨':entries.length+' Gedanken sicher notiert. ✨');
+     }
    }
  }
  function clicks(e){
