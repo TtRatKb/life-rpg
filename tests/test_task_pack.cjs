@@ -22,4 +22,10 @@ assert.equal(core.isSchoolday('2026-10-27',[{type:'teaching',canceled:true}],[])
 assert.throws(()=>core.validate({...pack,id:'../invalid'}));
 assert.throws(()=>core.validate({...pack,groups:[{...pack.groups[0],tasks:[{...pack.groups[0].tasks[0],dueDate:'2026-02-30'}]}]}));
 assert.throws(()=>core.validate({...pack,groups:[{...pack.groups[0],tasks:[{...pack.groups[0].tasks[0],depends:['missing']}]}]}));
-console.log('Curated import validation, idempotency and routine projection passed');
+
+assert.equal(core.dueRoutine({cadence:'daily'},'2026-10-31',false),true);
+assert.equal(core.dueRoutine({cadence:'monthly',monthday:31},'2026-02-28',false),true);
+assert.equal(core.dueRoutine({cadence:'monthly',monthday:31},'2028-02-29',false),true);
+assert.equal(core.dueRoutine({cadence:'monthly',monthday:31},'2026-03-30',false),false);
+assert.equal(core.dueRoutine({cadence:'daily',disabled:true},'2026-10-31',false),false);
+console.log('Curated import, idempotency and daily/monthly recurrence projection passed');
