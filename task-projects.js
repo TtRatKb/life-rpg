@@ -8,7 +8,7 @@
  const dateNice=value=>value?new Date(value+'T12:00:00').toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'}):'Ohne Datum';
  const uid=()=>typeof crypto!=='undefined'&&crypto.randomUUID?crypto.randomUUID():('tp-'+Date.now()+'-'+Math.random().toString(36).slice(2));
  const blank=()=>({schemaVersion:1,projects:[],inbox:[],templates:[],offDutyDay:''});
- let expanded='',showArchive=false,showTemplateForm=false;
+ let expanded='',showArchive=false,showTemplateForm=false,inboxDraft='',inboxDeadline='';
  const root=()=>document.getElementById('taskProjectMount');
  const dashboard=()=>document.getElementById('taskProjectTodayMount');
  function model() {
@@ -62,17 +62,21 @@
    if(hurdle)return {name:'Katsuki',text:'Die unangenehme Aufgabe muss nicht den ganzen Tag im Hinterkopf laufen. Fang mit einem winzigen Schritt an – oder entscheide bewusst, wann du sie angehst.'};
    return {name:'Eijirou',text:'Im Projektplan steht heute keine überfällige kritische Frist. Das ist keine Garantie für alle anderen Schultermine – aber du darfst trotzdem bewusst Schluss machen.'};
  }
- function taskRow(task,projectId){
-   const now=dateToday(),u=priority(task,now);
-   const canDo=!(task.blockedBy||[]).length;
-   const status=u==='overdue-critical'||u==='today-critical'?'critical':u==='soon-critical'?'soon':'ordinary';
-   return `<div class="tp-step tp-${status}">
-      <button type="button" data-tp-done="${esc(task.id)}" class="tp-check" aria-label="${esc(task.title)} abschließen" title="Als erledigt markieren">○</button>
-      <div class="tp-step-body"><strong>${esc(task.title)}</strong><small>${esc(labelUrgency(task,now))} · ~${Math.round(task.minutes||20)} Min.${task.hurdle==='high'?' · 😰 Bauchschmerz-Aufgabe':''}${task.dateKind==='target'?' · Zieldatum':' · Frist'}</small>${task.status==='waiting'?'<small>⏳ Wartet auf externe Rückmeldung. Erst bei Eingang abschließen.</small>':''}${task.notes?`<small>${esc(task.notes)}</small>`:''}${task.lastProgressNote?`<small>↳ Zuletzt: ${esc(task.lastProgressNote)}</small>`:''}${!canDo?`<small>Vorher: ${esc(task.blockedBy.join(', '))}</small>`:''}</div>
-      <label class="tp-date" title="Individuelle Frist bearbeiten"><span>Bis</span><input type="date" value="${esc(task.dueDate||'')}" data-tp-date="${esc(task.id)}" aria-label="Fälligkeitsdatum für ${esc(task.title)}"></label>
-      <button type="button" class="tp-hurdle" data-tp-hurdle="${esc(task.id)}" title="Emotionale Hürde umschalten" aria-label="Emotionale Hürde umschalten">${task.hurdle==='high'?'😰':'🙂'}</button>
-    </div>`;
- }
+ function taskRow(task){
+ const signal=core.taskSignal(task,dateToday());
+ return `<article class="tp-step tp-calm-step tp-${signal.bucket==='urgent'?'critical':signal.bucket==='soon'?'soon':'ordinary'}">
+  <button type="button" class="tp-check" data-tp-done="${esc(task.id)}" aria-label="${esc(task.title)} erledigen" title="Erledigen">✓</button>
+  <div class="tp-step-body"><strong>${esc(task.title)}</strong>
+   <div class="tp-calm-meta"><span>${esc(signal.label)}</span><span>${esc(dateNice(task.dueDate))}</span>${task.projectTitle?`<span>📁 ${esc(task.projectTitle)}</span>`:''}</div>
+   <p class="tp-guidance">${esc(signal.message)}</p>
+   ${task.notes?`<small>📝 ${esc(task.notes)}</small>`:''}${task.lastProgressNote?`<small>↳ ${esc(task.lastProgressNote)}</small>`:''}
+   <details class="tp-step-options"><summary>Frist & Details</summary>
+    <label class="tp-date">Bis <input type="date" data-tp-date="${esc(task.id)}" value="${esc(task.dueDate||'')}" aria-label="Deadline für ${esc(task.title)}"></label>
+    <span>Geschätzter Aufwand: ${Math.round(task.minutes||20)} Min.</span>
+    <button type="button" class="tp-hurdle" data-tp-hurdle="${esc(task.id)}">${task.hurdle==='high'?'😰 Hohe Überwindung':'🙂 Normale Überwindung'}</button>
+   </details>
+  </div></article>`;
+}
  function projectMarkup(p){
    const steps=core.nextSteps(p),done=p.tasks.filter(t=>t.doneAt&&!t.archived).length,total=p.tasks.filter(t=>!t.archived).length;
    const isOpen=expanded===p.id;
@@ -105,39 +109,62 @@
      <button type="button" class="secondary-button" data-tp-toggle-duty>${off?'Zurück zum Arbeitsmodus':'Feierabend für heute 🌙'}</button><small>Ohne automatische Push-Erinnerungen · ohne Kapazitätsgarantie</small>`;
  }
  function render(){
-   const el=root();if(!el)return;
-   const m=model(),open=allOpen(),today=dateToday(),critical=open.filter(x=>x.mandatory&&x.dueDate&&x.dueDate<=today),c=coach(open);
-   const registered=templates();
-   el.innerHTML=`<section class="tp-app" aria-label="Life RPG Task-Projekte">
-     <header class="tp-title"><div><p class="eyebrow">LIFE RPG · TASK COMPANION</p><h1>Task-Projekte & Vorlagen</h1><p>Wiederkehrende Abläufe und Einzelaufgaben direkt hier verwalten. Die bisherige Todoist-Anzeige ist ausgeblendet.</p></div><span class="tp-count">${critical.length} kritische Fristen heute/überfällig</span></header>
-     <div class="tp-coach"><strong>${esc(c.name)}</strong><p>${esc(c.text)}</p></div>
-     <form data-tp-inbox class="tp-inbox"><label for="tp-quick">Quick Inbox · sofort aus dem Kopf</label><div class="tp-inline"><input id="tp-quick" name="title" maxlength="160" required placeholder="Woran muss ich noch denken?"><button type="submit" class="primary-button">+ Merken</button></div><small>Ohne Pflichtfelder erfassen. Nachträglich mit Datum, Aufwand und emotionaler Hürde ergänzen.</small></form>
-     <details class="tp-create"><summary>✦ Neues Task-Projekt aus einer Vorlage</summary><form data-tp-create>
-       <label>Vorlage<select name="templateId">${registered.map(t=>`<option value="${esc(t.id)}">${esc(t.name)}</option>`).join('')}</select></label>
-       <label>Name des Projekts<input name="title" required maxlength="110" placeholder="z. B. Mathe 6.2 · Klassenarbeit"></label>
-       <label>Stichtag<input type="date" name="anchor" required value="${esc(core.dayOffset(today,14))}"></label>
+ const el=root();if(!el)return;
+ const oldText=el.querySelector('[data-tp-inbox] textarea'),oldDate=el.querySelector('[data-tp-inbox] input[name="dueDate"]');
+ if(oldText)inboxDraft=oldText.value;if(oldDate)inboxDeadline=oldDate.value;
+ const m=model(),all=allOpen(),day=dateToday(),buckets=core.taskBuckets(all,day);
+ const important=buckets.urgent.length,soon=buckets.soon.length,templatesAvailable=templates();
+ const panel=(key,title,description,limit)=>{
+   const list=buckets[key];
+   return `<section class="tp-calm-group tp-calm-${key}"><header><div><h2>${title}</h2><p>${description}</p></div><span>${list.length}</span></header>
+     ${list.slice(0,limit).map(taskRow).join('')||'<p class="tp-empty">Hier ist es gerade ruhig. 🌿</p>'}
+     ${list.length>limit?`<details class="tp-more"><summary>Weitere ${list.length-limit} anzeigen</summary>${list.slice(limit).map(taskRow).join('')}</details>`:''}
+   </section>`;
+ };
+ el.innerHTML=`<section class="tp-app tp-calm" aria-label="Life RPG Aufgaben und Deadlines">
+  <header class="tp-calm-hero"><div><p class="eyebrow">LIFE RPG · DEIN AUFGABEN-GEDÄCHTNIS</p>
+   <h1>Aus dem Kopf. Gut aufgehoben. ✦</h1><p>Du musst nicht alles heute schaffen. Du musst es auch nicht alles im Kopf behalten.</p></div>
+   <div class="tp-calm-total"><strong>${all.length}</strong><span>offene Dinge notiert</span></div></header>
+  <form class="tp-inbox tp-brain-dump" data-tp-inbox><label for="tp-quick">🧠 Brain Dump – was geht dir gerade durch den Kopf?</label>
+    <textarea id="tp-quick" name="title" maxlength="4000" rows="2" required placeholder="Schreib einfach. Mehrere Gedanken? Einer pro Zeile."></textarea>
+    <div class="tp-brain-footer"><label>Deadline, falls vorhanden <input type="date" name="dueDate" aria-label="Optionale echte Deadline"></label>
+    <button type="submit" class="primary-button">✦ Sicher merken</button></div>
+    <small>Keine Kategorien, Zeitbudgets oder Pflichtfelder. Ohne Datum ist die Aufgabe trotzdem sicher.</small></form>
+  <div class="tp-calm-coach"><span aria-hidden="true">${important?'💥':'☀️'}</span><div>
+    <strong>${important?'Katsuki':'Eijirou'}</strong>
+    <p>${important?'Es gibt tatsächlich fällige Dinge. Eins nach dem anderen – nicht alles auf einmal.':soon?'Die nächsten Fristen sind im Blick. Ein kleiner Anfang kann reichen.':'Heute ist nichts akut fällig. Deine Gedanken sind hier gut aufgehoben.'}</p>
+  </div></div>
+  <div class="tp-calm-columns">${panel('urgent','Heute wirklich wichtig','Echte Deadlines: heute oder bereits überschritten.',8)}
+    ${panel('soon','Langsam angehen','Hier wäre ein kleiner Anfang sinnvoll.',7)}</div>
+  <details class="tp-calm-later"><summary>🌿 Sicher vorgemerkt · ${buckets.later.length} weitere Dinge</summary>
+     <p>Sie bleiben gespeichert und tauchen wieder auf, wenn die Frist näher rückt.</p>
+     ${buckets.later.map(taskRow).join('')||'<p class="tp-empty">Noch nichts Weiteres vorgemerkt.</p>'}</details>
+  ${buckets.waiting.length?`<details class="tp-calm-later"><summary>⏳ Wartet auf etwas · ${buckets.waiting.length}</summary>${buckets.waiting.map(taskRow).join('')}</details>`:''}
+  <details class="tp-calm-library"><summary>📁 Projekte, Vorlagen und erledigte Aufgaben</summary>
+     <section class="tp-section"><h2>Meine Projekte · ${m.projects.filter(p=>!p.archived).length}</h2>
+     ${m.projects.filter(p=>!p.archived).map(projectMarkup).join('')||'<p class="tp-empty">Noch keine Projekte. Einzelaufgaben sind genauso okay.</p>'}</section>
+     <details class="tp-create"><summary>+ Neues Projekt aus einer Vorlage</summary><form data-tp-create>
+       <label>Vorlage<select name="templateId">${templatesAvailable.map(t=>`<option value="${esc(t.id)}">${esc(t.name)}</option>`).join('')}</select></label>
+       <label>Projektname<input name="title" maxlength="110" required></label>
+       <label>Stichtag<input type="date" name="anchor" value="${esc(core.dayOffset(day,14))}" required></label>
        <label>Format<select name="format"><option value="digital">Digital / Classtime</option><option value="paper">Papier</option></select></label>
        <label>Inklusion<select name="inclusion"><option value="check">Noch klären</option><option value="yes">Ja</option><option value="no">Nein</option></select></label>
-       <button class="primary-button" type="submit">Projekt samt Aufgaben anlegen</button><small>Vorlagenfristen sind anpassbare Vorschläge. Ist der Termin nah, können vorbereitende Fristen bereits überschritten sein.</small>
-     </form></details>
-     <section class="tp-section"><div class="tp-section-head"><h2>Aktive Projekte</h2><span>${m.projects.filter(p=>!p.archived).length}</span></div>${m.projects.filter(p=>!p.archived).map(projectMarkup).join('')||'<p class="tp-empty">Noch keine Task-Projekte. Starte mit der Vorlage „Klassenarbeit“.</p>'}</section>
-     <section class="tp-section"><div class="tp-section-head"><h2>Einzelaufgaben · Inbox</h2><span>${m.inbox.filter(x=>!x.doneAt&&!x.archived).length} offen</span></div>
-     ${m.inbox.filter(x=>!x.doneAt&&!x.archived).map(t=>taskRow(t)).join('')||'<p class="tp-empty">Deine Inbox ist leer. ✦</p>'}
-     <details class="tp-inbox-details"><summary>Aufgabe genauer einordnen</summary><form data-tp-task>
-       <label>Aufgabe<input name="title" maxlength="160" required placeholder="Was steht an?"></label>
-       <label>Frist (optional)<input type="date" name="dueDate"></label>
-       <label>Dauer<select name="minutes"><option value="10">5–15 Minuten</option><option value="30">30 Minuten</option><option value="60">1 Stunde</option><option value="120">2 Stunden</option></select></label>
-       <label>Verbindlichkeit<select name="mandatory"><option value="yes">Muss rechtzeitig fertig werden</option><option value="no">Flexibel / kann warten</option></select></label>
-       <label>Überwindung<select name="hurdle"><option value="normal">Normal</option><option value="high">😰 Bauchschmerz-Aufgabe</option></select></label>
-       <button class="secondary-button" type="submit">Aufgabe speichern</button>
-     </form></details>
-     <details class="tp-completed"><summary>Erledigte Inbox-Aufgaben (${m.inbox.filter(t=>t.doneAt).length})</summary>${m.inbox.filter(t=>t.doneAt).map(t=>`<button class="tp-done-row" type="button" data-tp-undo="${esc(t.id)}">✓ ${esc(t.title)} · rückgängig</button>`).join('')||'<small>Noch keine.</small>'}</details></section>
-     <button type="button" class="tp-showarchive" data-tp-show-archive>${showArchive?'Archiv ausblenden':'Archivierte Projekte anzeigen'}</button>
-     ${showArchive?`<section class="tp-section"><h2>Archiv</h2>${m.projects.filter(p=>p.archived).map(p=>`<div class="tp-archived">${esc(p.title)} <button type="button" data-tp-restore="${esc(p.id)}">Wiederherstellen</button></div>`).join('')||'<p class="tp-empty">Noch nichts archiviert.</p>'}</section>`:''}
-     <p class="tp-privacy">Nur Organisationsdaten im bestehenden Life-RPG-Save. Keine Schülernamen oder Ergebnisse eingeben. Keine doppelten Skill-/XP-Rewards. Die Termine werden innerhalb der App angezeigt; Push bei geschlossener App ist nicht enthalten.</p>
-   </section>`;
-   renderDashboard();
- }
+       <button type="submit" class="primary-button">Projekt anlegen</button></form></details>
+     <details class="tp-inbox-details"><summary>+ Einzelaufgabe ausführlicher erstellen</summary><form data-tp-task>
+       <label>Aufgabe<input name="title" maxlength="160" required></label><label>Späteste Frist<input type="date" name="dueDate"></label>
+       <label>Aufwand<select name="minutes"><option value="10">5–15 Min.</option><option value="30">30 Min.</option><option value="60">1 Stunde</option><option value="120">2 Stunden</option></select></label>
+       <label>Verbindlichkeit<select name="mandatory"><option value="yes">Echte Pflicht</option><option value="no">Flexibel</option></select></label>
+       <label>Überwindung<select name="hurdle"><option value="normal">Normal</option><option value="high">😰 Schwer anzufangen</option></select></label>
+       <button type="submit" class="secondary-button">Aufgabe merken</button></form></details>
+     <details class="tp-completed"><summary>Erledigte Einzelaufgaben (${m.inbox.filter(t=>t.doneAt).length})</summary>
+       ${m.inbox.filter(t=>t.doneAt).map(t=>`<button type="button" class="tp-done-row" data-tp-undo="${esc(t.id)}">✓ ${esc(t.title)} · erneut öffnen</button>`).join('')||'<p class="tp-empty">Noch keine.</p>'}</details>
+     <button class="tp-showarchive" type="button" data-tp-show-archive>${showArchive?'Archiv ausblenden':'Archivierte Projekte anzeigen'}</button>
+     ${showArchive?m.projects.filter(p=>p.archived).map(p=>`<div class="tp-archived">${esc(p.title)} <button type="button" data-tp-restore="${esc(p.id)}">Wiederherstellen</button></div>`).join(''):''}
+  </details><p class="tp-privacy">Die App erinnert beim Öffnen. Push bei geschlossener App ist noch nicht verfügbar. Bestehende Aufgaben/IDs bleiben erhalten.</p></section>`;
+ const textInput=el.querySelector('[data-tp-inbox] textarea'),dueInput=el.querySelector('[data-tp-inbox] input[name="dueDate"]');
+ if(textInput)textInput.value=inboxDraft;if(dueInput)dueInput.value=inboxDeadline;
+ renderDashboard();
+}
  function recordUpdate(id,status,note='',options={}){
    return mutate('task-progress',m=>progress.update(m,{taskId:id,status,note},options.at||new Date().toISOString()));
  }
