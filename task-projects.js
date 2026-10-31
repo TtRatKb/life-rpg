@@ -122,6 +122,7 @@
  const important=buckets.urgent.length,soon=buckets.soon.length,templatesAvailable=templates();
  const undated=buckets.later.filter(t=>!t.dueDate);
  const nudge=undated.length?undated[Number(day.slice(-2))%undated.length]:null;
+ const laterDeadline=buckets.later.find(t=>t.dueDate);
  const panel=(key,title,description,limit)=>{
    const list=buckets[key];
    return `<section class="tp-calm-group tp-calm-${key}"><header><div><h2>${title}</h2><p>${description}</p></div><span>${list.length}</span></header>
@@ -143,6 +144,7 @@
     <p>${important?'Es gibt tatsächlich fällige Dinge. Eins nach dem anderen – nicht alles auf einmal.':soon?'Die nächsten Fristen sind im Blick. Ein kleiner Anfang kann reichen.':'Heute ist nichts akut fällig. Deine Gedanken sind hier gut aufgehoben.'}</p>
   </div></div>
   ${nudge?`<div class="tp-calm-nudge"><span>✿</span><p><strong>Auch sicher notiert:</strong> ${esc(nudge.title)} <small>· ohne Deadline, kein Druck.</small></p><button type="button" data-tp-open-later>Alle Merker</button></div>`:''}
+  ${laterDeadline?`<div class="tp-calm-next"><span>🗓</span><p><strong>Als Nächstes im Blick:</strong> ${esc(laterDeadline.title)} <small>· bis ${esc(dateNice(laterDeadline.dueDate))}. Noch keine heutige Pflicht.</small></p></div>`:''}
   <div class="tp-calm-columns">${panel('urgent','Heute wirklich wichtig','Echte Deadlines: heute oder bereits überschritten.',8)}
     ${panel('soon','Langsam angehen','Hier wäre ein kleiner Anfang sinnvoll.',7)}</div>
   <details class="tp-calm-later" ${laterOpen?'open':''}><summary>🌿 Sicher vorgemerkt · ${buckets.later.length} weitere Dinge</summary>
