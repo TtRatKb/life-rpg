@@ -38,4 +38,21 @@ const afterBranch=core.updateBranches(withCustom,core.exam,{inclusion:'no'});
 assert.ok(core.nextSteps(afterBranch).some(t=>t.stepId==='custom-1'),'Custom steps must survive changed template branches');
 assert.notDeepEqual(paper.tasks.map(t=>t.id), expanded.tasks.map(t=>t.id));
 assert.throws(()=>core.instantiate(core.exam,'2026-02-30',{},'x'));
-console.log('Task projects scheduling tests passed');
+
+const synthetic=[
+ {id:'soft',title:'Optional',dueDate:'2026-10-30',mandatory:false,minutes:20},
+ {id:'undated',title:'Someday',dueDate:'',mandatory:true,minutes:20},
+ {id:'due',title:'Urgent',dueDate:'2026-10-31',mandatory:true,minutes:15},
+ {id:'soon',title:'Long work',dueDate:'2026-11-05',mandatory:true,minutes:240},
+ {id:'blocked',title:'Waiting',dueDate:'2026-10-31',mandatory:true,status:'waiting',minutes:10}
+];
+const buckets=core.taskBuckets(synthetic,'2026-10-31');
+assert.deepEqual(buckets.urgent.map(t=>t.id),['due']);
+assert.deepEqual(buckets.soon.map(t=>t.id),['soon']);
+assert.equal(buckets.waiting[0].id,'blocked');
+assert.ok(buckets.later.some(t=>t.id==='undated'));
+assert.ok(buckets.later.some(t=>t.id==='soft'));
+assert.equal(core.taskSignal(synthetic[1],'2026-10-31').days,null);
+assert.equal(core.taskSignal(synthetic[2],'2026-10-31').label,'Deadline heute');
+assert.equal(core.taskSignal({...synthetic[2],dateKind:'target'},'2026-10-31').hard,false);
+console.log('Task projects scheduling and calm deadline semantics passed');
