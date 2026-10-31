@@ -64,11 +64,12 @@
  }
  function taskRow(task){
  const signal=core.taskSignal(task,dateToday());
- return `<article class="tp-step tp-calm-step tp-${signal.bucket==='urgent'?'critical':signal.bucket==='soon'?'soon':'ordinary'}">
+ const style=task.radarHard&&task.radarDays!==null&&task.radarDays<=0?'critical':task.radarDays!==null&&task.radarDays<=7?'soon':signal.bucket==='urgent'?'critical':signal.bucket==='soon'?'soon':'ordinary';
+ return `<article class="tp-step tp-calm-step tp-${style}">
   <button type="button" class="tp-check" data-tp-done="${esc(task.id)}" aria-label="${esc(task.title)} erledigen" title="Erledigen">✓</button>
   <div class="tp-step-body"><strong>${esc(task.title)}</strong>
-   <div class="tp-calm-meta"><span>${esc(signal.label)}</span><span>${esc(dateNice(task.dueDate))}</span>${task.projectTitle?`<span>📁 ${esc(task.projectTitle)}</span>`:''}</div>
-   <p class="tp-guidance">${esc(signal.message)}</p>
+   <div class="tp-calm-meta"><span>${esc(task.radarLabel||signal.label)}</span><span>${esc(dateNice(task.dueDate))}</span>${task.projectTitle?`<span>📁 ${esc(task.projectTitle)}</span>`:''}</div>
+   <p class="tp-guidance">${esc(task.radarAdvice||signal.message)}</p>
    ${task.notes?`<small>📝 ${esc(task.notes)}</small>`:''}${task.lastProgressNote?`<small>↳ ${esc(task.lastProgressNote)}</small>`:''}
    <details class="tp-step-options"><summary>Frist & Details</summary>
     <label class="tp-date">Bis <input type="date" data-tp-date="${esc(task.id)}" value="${esc(task.dueDate||'')}" aria-label="Deadline für ${esc(task.title)}"></label>
@@ -118,18 +119,14 @@
  if(oldLibrary)libraryOpen=oldLibrary.open;
  if(oldLater)laterOpen=oldLater.open;
  if(oldWaiting)waitingOpen=oldWaiting.open;
- const m=model(),all=allOpen(),day=dateToday(),buckets=core.taskBuckets(all,day);
- const important=buckets.urgent.length,soon=buckets.soon.length,templatesAvailable=templates();
- const undated=buckets.later.filter(t=>!t.dueDate);
- const nudge=undated.length?undated[Number(day.slice(-2))%undated.length]:null;
- const laterDeadline=buckets.later.find(t=>t.dueDate);
- const panel=(key,title,description,limit)=>{
-   const list=buckets[key];
-   return `<section class="tp-calm-group tp-calm-${key}"><header><div><h2>${title}</h2><p>${description}</p></div><span>${list.length}</span></header>
-     ${list.slice(0,limit).map(taskRow).join('')||'<p class="tp-empty">Hier ist es gerade ruhig. 🌿</p>'}
-     ${list.length>limit?`<details class="tp-more"><summary>Weitere ${list.length-limit} anzeigen</summary>${list.slice(limit).map(taskRow).join('')}</details>`:''}
-   </section>`;
- };
+ const m=model(),all=allOpen(),day=dateToday(),radar=core.deadlineRadar(all,day);
+ const critical=radar.dueNow.length,weekCount=radar.week.length,followingCount=radar.following.length;
+ const templatesAvailable=templates();
+ const renderSection=(list,title,subtitle,kind,limit=7)=>`<section class="tp-radar-section tp-radar-${kind}">
+   <header><div><h2>${title}</h2><p>${subtitle}</p></div><span class="tp-radar-count">${list.length}</span></header>
+   ${list.length?list.slice(0,limit).map(taskRow).join(''):'<p class="tp-empty">Hier steht gerade nichts an. 🌿</p>'}
+   ${list.length>limit?`<details class="tp-more"><summary>Weitere ${list.length-limit} anzeigen</summary>${list.slice(limit).map(taskRow).join('')}</details>`:''}
+ </section>`;
  el.innerHTML=`<section class="tp-app tp-calm" aria-label="Life RPG Aufgaben und Deadlines">
   <header class="tp-calm-hero"><div><p class="eyebrow">LIFE RPG · DEIN AUFGABEN-GEDÄCHTNIS</p>
    <h1>Aus dem Kopf. Gut aufgehoben. ✦</h1><p>Du musst nicht alles heute schaffen. Du musst es auch nicht alles im Kopf behalten.</p></div>
@@ -139,18 +136,28 @@
     <div class="tp-brain-footer"><label>Deadline, falls vorhanden <input type="date" name="dueDate" aria-label="Optionale echte Deadline"></label>
     <button type="submit" class="primary-button">✦ Sicher merken</button></div>
     <small>Keine Kategorien, Zeitbudgets oder Pflichtfelder. Ohne Datum ist die Aufgabe trotzdem sicher.</small></form>
-  <div class="tp-calm-coach"><span aria-hidden="true">${important?'💥':'☀️'}</span><div>
-    <strong>${important?'Katsuki':'Eijirou'}</strong>
-    <p>${important?'Es gibt tatsächlich fällige Dinge. Eins nach dem anderen – nicht alles auf einmal.':soon?'Die nächsten Fristen sind im Blick. Ein kleiner Anfang kann reichen.':'Heute ist nichts akut fällig. Deine Gedanken sind hier gut aufgehoben.'}</p>
-  </div></div>
-  ${nudge?`<div class="tp-calm-nudge"><span>✿</span><p><strong>Auch sicher notiert:</strong> ${esc(nudge.title)} <small>· ohne Deadline, kein Druck.</small></p><button type="button" data-tp-open-later>Alle Merker</button></div>`:''}
-  ${laterDeadline?`<div class="tp-calm-next"><span>🗓</span><p><strong>Als Nächstes im Blick:</strong> ${esc(laterDeadline.title)} <small>· bis ${esc(dateNice(laterDeadline.dueDate))}. Noch keine heutige Pflicht.</small></p></div>`:''}
-  <div class="tp-calm-columns">${panel('urgent','Heute wirklich wichtig','Echte Deadlines: heute oder bereits überschritten.',8)}
-    ${panel('soon','Langsam angehen','Hier wäre ein kleiner Anfang sinnvoll.',7)}</div>
-  <details class="tp-calm-later" ${laterOpen?'open':''}><summary>🌿 Sicher vorgemerkt · ${buckets.later.length} weitere Dinge</summary>
-     <p>Sie bleiben gespeichert und tauchen wieder auf, wenn die Frist näher rückt.</p>
-     ${buckets.later.map(taskRow).join('')||'<p class="tp-empty">Noch nichts Weiteres vorgemerkt.</p>'}</details>
-  ${buckets.waiting.length?`<details class="tp-calm-later tp-calm-waiting" ${waitingOpen?'open':''}><summary>⏳ Wartet auf etwas · ${buckets.waiting.length}</summary>${buckets.waiting.map(taskRow).join('')}</details>`:''}
+  <div class="tp-calm-coach"><span aria-hidden="true">${critical?'💥':'☀️'}</span><div>
+    <strong>${critical?'Katsuki':'Eijirou'}</strong>
+    <p>${critical?'Echte Deadlines sind erreicht. Wir schauen zuerst darauf, nicht auf alles gleichzeitig.':
+      weekCount?'Die nächsten Deadlines sind sichtbar. Früh anfangen ist erlaubt, aber nicht alles ist heute fällig.':
+      followingCount?'In den nächsten Wochen steht etwas an. Ich halte es vor Augen.':
+      'Keine kurzfristige Frist eingetragen. Undatierte Gedanken findest du weiter unten.'}</p></div></div>
+  <div class="tp-radar-head"><div><h2>🗓 Dein Deadline-Radar</h2><p>Alle eingetragenen Fristen der nächsten 21 Tage – unabhängig von der Aufwandsschätzung.</p></div>
+     <div class="tp-radar-totals"><span><strong>${critical}</strong> heute/überfällig</span><span><strong>${weekCount}</strong> nächste 7 Tage</span><span><strong>${followingCount}</strong> danach</span></div></div>
+  <div class="tp-radar-today">
+    ${renderSection(radar.dueNow,'🔸 Heute wirklich fällig','Verbindliche Deadlines heute oder bereits überschritten.','due',8)}
+    ${renderSection(radar.prepare,'🌱 Heute sinnvoll anfangen','Noch nicht fällig, aber der Aufwand spricht für einen frühen Anfang.','prepare',4)}
+  </div>
+  ${renderSection(radar.week,'📅 In den nächsten 7 Tagen','Alle Termine – feste Fristen und flexible Ziele, chronologisch.','week',10)}
+  ${renderSection(radar.following,'🔭 In 8–21 Tagen','Auch diese Termine bleiben jetzt schon sichtbar.','following',8)}
+  ${radar.review.length?renderSection(radar.review,'✿ Zieldatum überprüfen','Ein flexibles Ziel ist keine verpasste Pflicht.','review',5):''}
+  <section class="tp-radar-section tp-radar-undated"><header><div><h2>🧠 Noch ohne Deadline</h2>
+    <p>Sicher gespeichert. Ohne Datum kann Life RPG aber nicht wissen, wann es dringend wird.</p></div><span class="tp-radar-count">${radar.undated.length}</span></header>
+    ${radar.undated.slice(0,3).map(taskRow).join('')||'<p class="tp-empty">Alle offenen Merker haben bereits ein Datum.</p>'}
+    ${radar.undated.length>3?`<details class="tp-more"><summary>Weitere ${radar.undated.length-3} anzeigen</summary>${radar.undated.slice(3).map(taskRow).join('')}</details>`:''}
+  </section>
+  ${radar.future.length?`<details class="tp-calm-later"><summary>🌿 Langfristig vorgemerkt · ${radar.future.length} Aufgaben nach 21 Tagen</summary>
+    ${radar.future.map(taskRow).join('')}</details>`:''}
   <details class="tp-calm-library" ${libraryOpen?'open':''}><summary>📁 Projekte, Vorlagen und erledigte Aufgaben</summary>
      <section class="tp-section"><h2>Meine Projekte · ${m.projects.filter(p=>!p.archived).length}</h2>
      ${m.projects.filter(p=>!p.archived).map(projectMarkup).join('')||'<p class="tp-empty">Noch keine Projekte. Einzelaufgaben sind genauso okay.</p>'}</section>

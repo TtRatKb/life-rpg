@@ -128,5 +128,43 @@
     for(const bucket of Object.values(groups))bucket.sort(compare);
     return groups;
   }
-  return {exam, parseDay, dayOffset, daysUntil, instantiate, updateBranches, nextSteps, urgency, taskSignal, taskBuckets};
+
+  // Independent calendar radar: every open dated task is visible even if its prep score
+  // is low, its date is a flexible target, or it is waiting on someone else.
+  // The radar never changes a date, a save, or an activity reward.
+  function deadlineRadar(tasks,today) {
+    if(!parseDay(today))throw Error('Ungültiger Kalendertag.');
+    const groups={dueNow:[],review:[],week:[],following:[],future:[],undated:[],prepare:[]};
+    for(const task of tasks||[]){
+      if(!task||task.doneAt||task.archived)continue;
+      const days=parseDay(task.dueDate)?daysUntil(today,task.dueDate):null;
+      const hard=task.mandatory!==false&&task.dateKind!=='target';
+      const blocked=task.status==='waiting'||(task.blockedBy||[]).length>0;
+      const effort=Math.max(5,Math.min(2400,Number(task.minutes)||20));
+      const advance=effort>=180?7:effort>=90?5:effort>=40?3:2;
+      const readable=days===null?'Ohne Deadline':days<0?(Math.abs(days)+' '+(days===-1?'Tag':'Tage')+' überfällig'):
+        days===0?'Heute':days===1?'Morgen':'In '+days+' Tagen';
+      const base=blocked?' · wartet auf einen vorherigen Schritt / eine Rückmeldung':'';
+      const item={...task,radarDays:days,radarHard:hard,radarBlocked:blocked,
+        radarLabel:readable+(hard?' · feste Frist':' · flexibles Ziel'),
+        radarAdvice:days===null?'Ohne Termin sicher vorgemerkt. Lege eine Deadline nur fest, wenn es tatsächlich eine gibt.':
+          hard&&days<=0?'Die Deadline ist erreicht'+base+'. Bitte heute prüfen, was noch möglich ist.':
+          !hard&&days<=0?'Ein Zieldatum, keine verpasste Pflicht. Du kannst neu entscheiden.':
+          blocked?'Die Deadline nähert sich, obwohl hier noch etwas aussteht. Prüfe die Abhängigkeit.':
+          hard&&days<=advance?'Zeit zum Anfangen, damit es bis zur Frist nicht eng wird.':
+          hard?'Du hast noch Zeit. Die Frist bleibt sichtbar.':'Das ist ein Wunschdatum, keine Pflicht.'};
+      if(days===null)groups.undated.push(item);
+      else if(days<=0)(hard?groups.dueNow:groups.review).push(item);
+      else if(days<=7)groups.week.push(item);
+      else if(days<=21)groups.following.push(item);
+      else groups.future.push(item);
+      if(hard&&days!==null&&days>0&&days<=advance&&!blocked)groups.prepare.push(item);
+    }
+    const compare=(a,b)=>(a.radarDays??Number.POSITIVE_INFINITY)-(b.radarDays??Number.POSITIVE_INFINITY)
+      ||Number(b.radarHard)-Number(a.radarHard)||String(a.title||'').localeCompare(String(b.title||''),'de')
+      ||String(a.id||'').localeCompare(String(b.id||''));
+    for(const group of Object.values(groups))group.sort(compare);
+    return groups;
+  }
+  return {exam, parseDay, dayOffset, daysUntil, instantiate, updateBranches, nextSteps, urgency, taskSignal, taskBuckets, deadlineRadar};
 });

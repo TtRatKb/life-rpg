@@ -133,9 +133,30 @@
    if(editId)buildEdit(card);
    buildSettings(card);root.append(card);
    dash.replaceChildren();
-   const head=node('div',null,'npt-dash-head');head.append(node('small','✦ TASK COMPANION'),button('Meine Aufgaben →','nptOpen'));dash.append(head);
-   dash.append(node('strong',off?'Feierabendmodus 🌙':p.todayMust.length+' verbindliche Schritte im heutigen Plan'));
-   dash.append(node('p',off?'Arbeitsaufgaben sind für heute ausgeblendet. Nichts wurde gelöscht.':p.issues.length?'⚠ '+p.issues.length+' Planungswarnungen – bitte prüfen.':p.todayMust.length?'Katsuki: „Erst diese Aufgaben, dann Schluss!“':'Kirishima: „Keine weitere Pflichtaufgabe für heute geplant.“'));
+   const radar=window.LifeRPGTaskProjectCore?.deadlineRadar?.(native.getOpen(),today());
+   const head=node('div',null,'npt-dash-head');
+   head.append(node('small','✦ DEADLINE-RADAR'),button('Meine Aufgaben →','nptOpen'));dash.append(head);
+   if(!radar){dash.append(node('p','Aufgabenradar vorübergehend nicht verfügbar. Öffne „Meine Aufgaben“.'));return;}
+   const due=radar.dueNow.length,week=radar.week.length,following=radar.following.length;
+   dash.append(node('strong',off?'Feierabendmodus 🌙 · Fristen bleiben im Blick':due?due+' echte Deadline'+(due===1?'':'s')+' heute/überfällig':week?'Keine Deadline heute · '+week+' in den nächsten 7 Tagen':'Keine Deadline heute'));
+   const summary=node('div',null,'npt-radar-summary');
+   [[due,'heute / überfällig'],[week,'nächste 7 Tage'],[following,'in 8–21 Tagen']].forEach(([count,label])=>{
+     const item=node('span',null,'npt-radar-stat');
+     item.append(node('strong',count),node('small',label));summary.append(item);
+   });dash.append(summary);
+   const focus=[...radar.dueNow,...radar.week,...radar.following].slice(0,5);
+   if(focus.length){
+     const list=node('div',null,'npt-radar-list');
+     focus.forEach(task=>{
+       const item=node('div',null,'npt-radar-task');
+       item.append(node('strong',task.title),node('small',(task.radarDays===0?'Heute':task.radarDays<0?'Überfällig':date(task.dueDate))+(task.radarHard?' · feste Frist':' · Ziel')));
+       list.append(item);
+     });dash.append(list);
+   }else{
+     dash.append(node('p',radar.undated.length?radar.undated.length+' Aufgaben sind noch ohne Deadline gespeichert. Bei Bedarf ein Datum ergänzen.':'Keine feste Frist in den nächsten 21 Tagen. 🌿'));
+   }
+   if(radar.prepare.length&&!due)dash.append(node('p','🌱 Falls du heute vorarbeiten möchtest: '+radar.prepare.slice(0,2).map(t=>t.title).join(' · ')));
+   if(off)dash.append(node('p','Dein Feierabend bleibt geschützt. Dies ist nur eine Erinnerung, keine Aufforderung weiterzuarbeiten.'));
    dash.append(button(off?'Arbeitsmodus anzeigen':'Feierabendmodus 🌙','nptDuty'));
  }
  function clicks(e){
