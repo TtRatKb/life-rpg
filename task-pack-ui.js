@@ -28,19 +28,43 @@
    return core.isSchoolday(date,blocks,logs);
  }
  function routinesMarkup(){
-   const m=state(),routines=Array.isArray(m?.routinesV1)?m.routinesV1:[],date=day(),school=availableSchoolday(date)||manualSchool;
-   if(!routines.length)return '';
-   const nextMondayDate=(()=>{const d=new Date(date+'T12:00:00');d.setDate(d.getDate()+1);return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');})();
-   const due=routines.filter(r=>core.dueRoutine(r,date,school,availableSchoolday(nextMondayDate)||manualSchool));
-   const hasSchool=routines.some(r=>['schoolday','school-monday','before-school-monday'].includes(r.cadence));
-   return '<section class="tpk-routines"><div class="tpk-header"><h2>✿ Heute passende Routinen</h2><small>Keine täglichen Task-Kopien</small></div>'
-      +(hasSchool?'<button class="tpk-tiny" type="button" data-tpk-school-toggle>'+(manualSchool?'Manuelle Schultagsansicht ausblenden':'Schultagsroutinen bei Bedarf anzeigen')+'</button>':'')
-      +(due.length?due.map(r=>{
-        const checked=m.routineChecksV1?.[r.id]?.[date]||[];
-        return '<article class="tpk-routine"><div><strong>'+esc(r.title)+'</strong><small>'+checked.length+'/'+r.steps.length+' erledigt · nur für heute</small></div><div class="tpk-steps">'+r.steps.map((s,i)=>'<label><input type="checkbox" data-tpk-routine="'+esc(r.id)+'" data-tpk-step="'+i+'" '+(checked.includes(i)?'checked':'')+'><span>'+esc(s)+'</span></label>').join('')+'</div></article>';
-      }).join(''):'<p class="tpk-muted">Heute steht keine deiner wiederkehrenden Routinen an. 🌸</p>')
-      +'<p class="tpk-foot">Häkchen gelten nur für das jeweilige Datum. Keine Strafen, Streaks oder doppelten XP. Schulroutinen erscheinen bei erfassten Schultagen.</p></section>';
- }
+ const m=state(),routines=Array.isArray(m?.routinesV1)?m.routinesV1:[],date=day();
+ const school=availableSchoolday(date)||manualSchool;
+ const nextMondayDate=(()=>{const d=new Date(date+'T12:00:00');d.setDate(d.getDate()+1);return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');})();
+ const live=routines.filter(r=>!r.disabled);
+ const due=live.filter(r=>core.dueRoutine(r,date,school,availableSchoolday(nextMondayDate)||manualSchool));
+ const checkedCount=due.filter(r=>(m.routineChecksV1?.[r.id]?.[date]||[]).length===r.steps.length).length;
+ const days=['Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag','Sonntag'];
+ const todayWd=(new Date(date+'T12:00:00').getDay()+6)%7;
+ const routineName=r=>r.cadence==='daily'?'Jeden Tag':r.cadence==='weekly'?'Jeden '+days[r.weekday]:r.cadence==='monthly'?'Jeden Monat am '+r.monthday+'.':r.cadence==='schoolday'?'An Schultagen':r.cadence==='school-monday'?'Schulmontags':'Sonntags vor Schulmontag';
+ return `<section class="tpk-routines tpk-calm">
+   <div class="tpk-header"><div><p class="eyebrow">RHYTHMUS STATT ERINNERUNGSSTRESS</p><h2>🌸 Was regelmäßig wiederkommt</h2></div>
+     <small>${checkedCount}/${due.length} heute erledigt · ohne Streak-Druck</small></div>
+   <p class="tpk-intro">Einmal anlegen, dann erinnert Life RPG dich am passenden Tag. Keine täglichen Kopien, keine Strafe fürs Aussetzen.</p>
+   ${live.some(r=>['schoolday','school-monday','before-school-monday'].includes(r.cadence))?`<button type="button" class="tpk-tiny" data-tpk-school-toggle>${manualSchool?'Schultagsvorschau ausblenden':'Schultagsroutinen bei Bedarf zeigen'}</button>`:''}
+   ${due.length?due.map(r=>{
+      const checked=m.routineChecksV1?.[r.id]?.[date]||[];
+      return `<article class="tpk-routine"><div><strong>${esc(r.title)}</strong><small>${esc(routineName(r))} · ${checked.length}/${r.steps.length} erledigt</small></div>
+       <div class="tpk-steps">${r.steps.map((step,i)=>`<label><input type="checkbox" data-tpk-routine="${esc(r.id)}" data-tpk-step="${i}" ${checked.includes(i)?'checked':''}><span>${esc(step)}</span></label>`).join('')}</div></article>`;
+   }).join(''):'<p class="tpk-muted">Heute steht keine Routine an. Dein Kopf hat hier frei. 🌿</p>'}
+   <details class="tpk-create"><summary>+ Eine wiederkehrende Aufgabe merken</summary>
+     <form data-tpk-create>
+       <label>Was soll wiederkommen?<input name="title" required maxlength="120" placeholder="z. B. Arbeitsmaterial vorbereiten"></label>
+       <label>Wie oft?<select name="cadence">
+          <option value="weekly">Jede Woche</option><option value="daily">Jeden Tag</option>
+          <option value="monthly">Jeden Monat</option><option value="schoolday">An Schultagen</option>
+       </select></label>
+       <label data-tpk-weekday>Welcher Wochentag?<select name="weekday">${days.map((t,i)=>`<option value="${i}" ${i===todayWd?'selected':''}>${t}</option>`).join('')}</select></label>
+       <label data-tpk-monthday hidden>Welcher Tag im Monat?<input name="monthday" type="number" min="1" max="31" value="${new Date().getDate()}"></label>
+       <button type="submit" class="primary-button">✦ Routine merken</button>
+     </form>
+   </details>
+   ${routines.length?`<details class="tpk-all"><summary>Meine ${routines.length} Routinen verwalten</summary>
+      ${routines.map(r=>`<div class="tpk-manage"><span><strong>${esc(r.title)}</strong><small>${esc(routineName(r))} ${r.disabled?'· Pausiert':''}</small></span>
+      <button type="button" data-tpk-pause="${esc(r.id)}">${r.disabled?'Wieder aktivieren':'Pausieren'}</button></div>`).join('')}
+   </details>`:''}
+ </section>`;
+}
  function preview(){
    if(!pack)return '';
    return '<div class="tpk-preview"><h3>'+esc(pack.title||'Ausgewähltes Aufgabenpaket')+'</h3><p>'+esc(pack.subtitle||'Wähle aus, was wirklich wichtig ist.')+'</p>'
@@ -71,6 +95,12 @@
  }
  function onChange(event){
    const e=event.target;
+   if(e.name==='cadence'&&e.closest('[data-tpk-create]')){
+     const form=e.closest('form');
+     form.querySelector('[data-tpk-weekday]').hidden=e.value!=='weekly';
+     form.querySelector('[data-tpk-monthday]').hidden=e.value!=='monthly';
+     return;
+   }
    if(e.hasAttribute('data-tpk-file')){handleFile(e.files?.[0]);return;}
    if(e.hasAttribute('data-tpk-pick')){e.checked?picked.add(e.dataset.tpkPick):picked.delete(e.dataset.tpkPick);
      const btn=byId('taskPackMount')?.querySelector('[data-tpk-import]');if(btn)btn.disabled=!picked.size;return;}
@@ -87,6 +117,10 @@
  function onClick(event){
    const b=event.target.closest('button');if(!b)return;
    if(b.hasAttribute('data-tpk-school-toggle')){manualSchool=!manualSchool;render();return;}
+   if(b.hasAttribute('data-tpk-pause')){
+     const id=b.dataset.tpkPause;
+     persist(m=>{const r=m.routinesV1?.find(r=>r.id===id);if(!r)throw Error('Routine nicht gefunden.');r.disabled=!r.disabled;return true;},'routine-pause');return;
+   }
    if(b.hasAttribute('data-tpk-import')){
      if(!pack||!picked.size)return;
      const result=persist(m=>core.importSelected(m,pack,[...picked],new Date().toISOString()),'import');
@@ -97,6 +131,24 @@
  function init(){
    const mount=byId('taskPackMount');if(!mount)return;
    mount.addEventListener('change',onChange);mount.addEventListener('click',onClick);
+   mount.addEventListener('submit',e=>{
+     const form=e.target.closest('[data-tpk-create]');if(!form)return;
+     e.preventDefault();const f=new FormData(form);
+     const title=String(f.get('title')||'').trim(),cadence=String(f.get('cadence')||'');
+     const weekday=Number(f.get('weekday')),monthday=Number(f.get('monthday'));
+     if(!title||title.length>120||!['daily','weekly','monthly','schoolday'].includes(cadence)
+       ||cadence==='weekly'&&(!Number.isInteger(weekday)||weekday<0||weekday>6)
+       ||cadence==='monthly'&&(!Number.isInteger(monthday)||monthday<1||monthday>31)){
+         app.showToast?.('Bitte Titel und Wiederholung prüfen.');return;
+     }
+     const id='manual:routine:'+(typeof crypto!=='undefined'&&crypto.randomUUID?crypto.randomUUID():Date.now()+'-'+Math.random().toString(36).slice(2));
+     const saved=persist(m=>{
+       m.routinesV1 ||= [];
+       m.routinesV1.push({id,title,cadence,weekday,monthday,steps:[title],createdAt:new Date().toISOString()});
+       return true;
+     },'routine-create');
+     if(saved)app.showToast?.('Einmal gemerkt. Ich erinnere dich am richtigen Tag. 🌸');
+   });
    mount.addEventListener('toggle',e=>{if(e.target.matches('.tpk-import'))expanded=e.target.open;},true);
    window.addEventListener('life-rpg:view-changed',()=>{render();});
    window.addEventListener('life-rpg:task-projects-changed',render);

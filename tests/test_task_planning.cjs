@@ -6,7 +6,7 @@ const task=(id,dueDate,minutes,mandatory=true)=>({id,title:id,dueDate,minutes,ma
 let r=plan({today:'2026-10-19',tasks:[task('exam','2026-10-21',80)],settings:{weekdays:[90,90,90,90,90,0,0],reservePercent:30}});
 assert.equal(r.assignments.exam.unallocated,0);
 assert.deepEqual(r.assignments.exam.days.map(d=>d.date),['2026-10-20','2026-10-19']);
-assert.ok(r.todayMust.some(t=>t.id==='exam'));
+assert.ok(!r.todayMust.some(t=>t.id==='exam'));assert.ok(r.suggestedToday.some(t=>t.id==='exam'),'planned work must not masquerade as deadline');
 r=plan({today:'2026-10-19',tasks:[task('a','2026-10-19',400)],settings:{weekdays:[90,90,90,90,90,0,0],reservePercent:30}});
 assert.ok(r.issues.some(i=>i.type==='overload'));
 assert.ok(!r.confident);
@@ -17,8 +17,9 @@ r=plan({today:'2026-10-19',tasks:[{...task('fixed','2026-10-20',90),stepId:'cond
 assert.equal(r.assignments.fixed.fixed,true);
 assert.equal(r.assignments.fixed.minutes,0);
 r=plan({today:'2026-10-19',tasks:[task('undated','',10)]});
-assert.ok(r.issues.some(i=>i.type==='no-date'));
-assert.ok(!r.confident);
+assert.ok(!r.issues.some(i=>i.type==='no-date'));
+assert.equal(r.missing.length,1);
+assert.equal(r.confident,true);
 r=plan({today:'2026-10-19',tasks:[task('overdue','2026-10-18',10)]});
 assert.ok(r.issues.some(i=>i.type==='overdue'));
 r=plan({today:'2026-10-19',todayModifier:0,tasks:[task('due','2026-10-19',20)]});

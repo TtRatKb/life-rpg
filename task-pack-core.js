@@ -91,6 +91,14 @@
  function dueRoutine(r,dateStr,school,nextMondaySchool=false){
    if(!date(dateStr))return false;
    const d=new Date(dateStr+'T00:00:00Z'),wd=(d.getUTCDay()+6)%7;
+   if(r.disabled)return false;
+   if(r.cadence==='daily')return true;
+   if(r.cadence==='monthly'){
+     const day=Number(r.monthday);
+     if(!Number.isInteger(day)||day<1||day>31)return false;
+     const last=new Date(Date.UTC(d.getUTCFullYear(),d.getUTCMonth()+1,0)).getUTCDate();
+     return d.getUTCDate()===Math.min(day,last);
+   }
    return r.cadence==='weekly'?wd===r.weekday:r.cadence==='schoolday'?school:r.cadence==='school-monday'?wd===0&&school:r.cadence==='before-school-monday'?wd===6&&nextMondaySchool:false;
  }
  return {validate,importSelected,dueRoutine,isSchoolday,date};
