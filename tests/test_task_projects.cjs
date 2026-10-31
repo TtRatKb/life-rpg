@@ -55,4 +55,30 @@ assert.ok(buckets.later.some(t=>t.id==='soft'));
 assert.equal(core.taskSignal(synthetic[1],'2026-10-31').days,null);
 assert.equal(core.taskSignal(synthetic[2],'2026-10-31').label,'Deadline heute');
 assert.equal(core.taskSignal({...synthetic[2],dateKind:'target'},'2026-10-31').hard,false);
+
+const radarTasks=[
+ {id:'today',title:'Due today',dueDate:'2026-10-31',mandatory:true,minutes:15},
+ {id:'tomorrow',title:'Short action',dueDate:'2026-11-01',mandatory:true,minutes:15},
+ {id:'day6',title:'Should not disappear',dueDate:'2026-11-06',mandatory:true,minutes:15},
+ {id:'day12',title:'Next week',dueDate:'2026-11-12',mandatory:true,minutes:30},
+ {id:'target',title:'Flexible target',dueDate:'2026-11-02',mandatory:false,dateKind:'target',minutes:15},
+ {id:'waiting',title:'Waiting on reply',dueDate:'2026-11-03',mandatory:true,status:'waiting'},
+ {id:'undated',title:'Brain dump',dueDate:'',mandatory:true},
+ {id:'future',title:'Long horizon',dueDate:'2026-12-01',mandatory:true},
+ {id:'optionalPast',title:'Past flexible date',dueDate:'2026-10-30',mandatory:false},
+ {id:'done',title:'Completed',dueDate:'2026-11-01',doneAt:'2026-10-30T12:00:00Z'},
+ {id:'archived',title:'Archived',dueDate:'2026-11-01',archived:true}
+];
+const radar=core.deadlineRadar(radarTasks,'2026-10-31');
+assert.deepEqual(radar.dueNow.map(t=>t.id),['today']);
+assert.deepEqual(radar.week.map(t=>t.id),['tomorrow','target','waiting','day6']);
+assert.deepEqual(radar.following.map(t=>t.id),['day12']);
+assert.deepEqual(radar.future.map(t=>t.id),['future']);
+assert.deepEqual(radar.review.map(t=>t.id),['optionalPast']);
+assert.deepEqual(radar.undated.map(t=>t.id),['undated']);
+assert.deepEqual(radar.prepare.map(t=>t.id),['tomorrow']);
+assert.ok(radar.week.find(t=>t.id==='waiting').radarBlocked);
+assert.ok(radar.week.find(t=>t.id==='target').radarLabel.includes('flexibles Ziel'));
+assert.equal(radarTasks[0].radarDays,undefined,'radar must never mutate persisted task records');
+console.log('Task deadline radar includes next-week, target and waiting records safely');
 console.log('Task projects scheduling and calm deadline semantics passed');
