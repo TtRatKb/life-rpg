@@ -179,8 +179,39 @@ class TaskProjectBrowserTests(unittest.TestCase):
         self.assertEqual(2,len(self.page.evaluate('LifeRPGApp.getState().taskProjectsV1.inbox')))
         self.assertTrue(all(not t['dueDate'] for t in self.page.evaluate('LifeRPGApp.getState().taskProjectsV1.inbox')))
         self.assertEqual(before,self.page.evaluate("JSON.stringify(LifeRPGApp.getState().rewardLedger||{})"))
-        self.assertIn('Sicher vorgemerkt',self.page.locator('.tp-calm-later summary').first.inner_text())
+        self.assertIn('Noch ohne Deadline',self.page.locator('.tp-radar-undated').inner_text())
         self.assertEqual('',field.input_value())
+
+    def test_deadline_radar_keeps_whole_week_and_later_week_visible(self):
+        # Representative synthetic pending tasks: no personal browser/cloud data.
+        self.page.evaluate("""() => {
+          const now=new Date(), iso=n=>{
+            const d=new Date(now.getFullYear(),now.getMonth(),now.getDate()+n,12);
+            return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');
+          };
+          const state=LifeRPGApp.getState().taskProjectsV1;
+          state.inbox=[
+            {id:'radar-due',title:'Synthetic hard deadline today',dueDate:iso(0),mandatory:true,minutes:15},
+            {id:'radar-six',title:'Synthetic short task due in six days',dueDate:iso(6),mandatory:true,minutes:15},
+            {id:'radar-twelve',title:'Synthetic project due in twelve days',dueDate:iso(12),mandatory:true,minutes:20},
+            {id:'radar-target',title:'Synthetic flexible target',dueDate:iso(4),mandatory:false,dateKind:'target'},
+            {id:'radar-waiting',title:'Synthetic waiting reminder',dueDate:iso(3),mandatory:true,status:'waiting'},
+            {id:'radar-undated',title:'Synthetic undated reminder',dueDate:'',mandatory:true}
+          ];
+          LifeRPGTaskProjects.render();
+          LifeRPGNativePlanner.render();
+        }""")
+        self.assertIn('Synthetic hard deadline today',self.page.locator('.tp-radar-due').inner_text())
+        week=self.page.locator('.tp-radar-week').inner_text()
+        self.assertIn('Synthetic short task due in six days',week)
+        self.assertIn('Synthetic flexible target',week)
+        self.assertIn('Synthetic waiting reminder',week)
+        self.assertIn('Synthetic project due in twelve days',self.page.locator('.tp-radar-following').inner_text())
+        self.assertIn('Synthetic undated reminder',self.page.locator('.tp-radar-undated').inner_text())
+        dash=self.page.locator('#taskPlanningTodayMount').inner_text()
+        self.assertIn('Synthetic short task due in six days',dash)
+        self.assertIn('nächste 7 Tage',dash)
+        self.assertEqual(6,len(self.page.evaluate('LifeRPGApp.getState().taskProjectsV1.inbox')))
 
     def test_create_and_pause_native_recurring_routine(self):
         self.page.locator('.tpk-create > summary').click()
