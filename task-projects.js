@@ -225,7 +225,7 @@
          hurdle:brain?'normal':data.get('hurdle')==='high'?'high':'normal',doneAt:null,createdAt});
      });
      if(result){
-       if(brain){inboxDraft='';inboxDeadline='';render();}
+       if(brain){const freshForm=root()?.querySelector('[data-tp-inbox]');freshForm?.reset();inboxDraft='';inboxDeadline='';render();}
        app.showToast?.(entries.length===1?'Sicher gemerkt. Du darfst es loslassen. ✨':entries.length+' Gedanken sicher notiert. ✨');
      }
    }
