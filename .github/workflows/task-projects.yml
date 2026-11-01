@@ -275,7 +275,7 @@ jobs:
             ['story-ui.js','0.31.4-kirishima-nine1'],
             ['living-world-v3.js','0.31.4-kirishima-nine1'],
             ['living-companion.css','0.31.4-lc4'],
-            ['life-hub-v314dk.js','0.31.4-home-toast4']
+            ['life-hub-v314dk.js','0.31.4-life-board-nav1']
           ]) {
             if(!html.includes(asset+'?v='+version)||!sw.includes(asset+'?v='+version))throw Error('Missing Companion/Home asset '+asset);
           }
