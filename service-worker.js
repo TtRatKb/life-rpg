@@ -1,4 +1,4 @@
-const CACHE_NAME = "life-rpg-v0.31.4-task-radar1";
+const CACHE_NAME = "life-rpg-v0.31.4-life-board1";
 const ASSET_CACHE_NAME = "life-rpg-assets-v6";
 const MAX_RUNTIME_ASSETS = 96;
 const CORE = [
@@ -19,6 +19,9 @@ const CORE = [
   "./task-pack-ui.js?v=0.31.4-calm1",
   "./task-pack-ui.css?v=0.31.4-private-pack1",
   "./task-calm.css?v=0.31.4-radar1",
+  "./life-board-core.js?v=0.31.4-life-board1",
+  "./life-board.js?v=0.31.4-life-board1",
+  "./life-board.css?v=0.31.4-life-board1",
   "./task-work-windows-core.js?v=0.31.4-work-windows1",
   "./task-work-windows.js?v=0.31.4-work-windows1",
   "./task-work-windows.css?v=0.31.4-work-windows1",

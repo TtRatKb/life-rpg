@@ -4,6 +4,10 @@ on:
   pull_request:
     paths:
       - 'task-projects.js'
+      - 'life-board-core.js'
+      - 'life-board.js'
+      - 'life-board.css'
+      - 'tests/test_life_board.cjs'
       - 'task-progress-core.js'
       - 'task-session-review.js'
       - 'task-session-review.css'
@@ -79,6 +83,10 @@ on:
     branches: [main]
     paths:
       - 'task-projects.js'
+      - 'life-board-core.js'
+      - 'life-board.js'
+      - 'life-board.css'
+      - 'tests/test_life_board.cjs'
       - 'task-progress-core.js'
       - 'task-session-review.js'
       - 'task-session-review.css'
@@ -165,6 +173,8 @@ jobs:
       - name: Parse task project modules and PWA bootstrap
         run: |
           node --check task-projects-core.js
+          node --check life-board-core.js
+          node --check life-board.js
           node --check task-projects.js
           node --check task-progress-core.js
           node --check task-session-review.js
@@ -200,6 +210,7 @@ jobs:
       - name: Test calendar math, optional branches and safe saves
         run: |
           node tests/test_task_projects.cjs
+          node tests/test_life_board.cjs
           node tests/test_task_progress.cjs
           node tests/test_task_projects_ui.cjs
           node tests/test_task_planning.cjs
@@ -279,6 +290,11 @@ jobs:
             ['task-projects.js','0.31.4-radar1'],['task-planning-ui.js','0.31.4-radar1'],
             ['task-planning-core.js','0.31.4-calm1'],['task-pack-ui.js','0.31.4-calm1'],['task-calm.css','0.31.4-radar1']])
             if(!html.includes(asset+'?v='+ver)||!sw.includes(asset+'?v='+ver))throw Error('Calm Task asset missing: '+asset);
+          for(const asset of ['life-board-core.js','life-board.js','life-board.css']){
+            if(!html.includes(asset+'?v=0.31.4-life-board1')||!sw.includes(asset+'?v=0.31.4-life-board1'))throw Error('Optional Life Board asset missing: '+asset);
+          }
+          if(!html.includes('id="lifeBoardMount"')||!html.includes('id="view-lifeboard"')||
+              !html.includes('data-view="lifeboard"'))throw Error('Optional Life Board route missing');
           if(!html.includes('id="taskSessionActiveMount"'))throw Error('Task timer status mount missing');
           console.log('Task project assets and mounts registered');
           NODE

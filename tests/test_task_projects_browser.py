@@ -37,7 +37,8 @@ class TaskProjectBrowserTests(unittest.TestCase):
             '<script src="/task-free-days-core.js"></script><script src="/task-google-calendar-core.js"></script>'
             '<script src="/task-google-calendar.js"></script><script src="/task-focus-core.js"></script>'
             '<script src="/task-free-days.js"></script><script src="/task-session-review.js"></script>'
-            '<script src="/living-companion-core.js"></script><script src="/living-companion-personality.js"></script><script src="/living-companion.js"></script></body>')
+            '<script src="/living-companion-core.js"></script><script src="/living-companion-personality.js"></script><script src="/living-companion.js"></script>'
+            '<script src="/life-board-core.js"></script><script src="/life-board.js"></script></body>')
 
     @classmethod
     def tearDownClass(cls):
@@ -170,6 +171,39 @@ class TaskProjectBrowserTests(unittest.TestCase):
         self.page.wait_for_function("!document.getElementById('lifeQuickStatus').textContent",timeout=8500)
         self.assertIn('Spülmaschine',self.page.locator('[data-life-recent]').inner_text())
         self.assertEqual(2,len(self.page.evaluate("LifeRPGApp.getState().homeQuickActionsV1.entries")))
+
+    def test_optional_life_board_renders_sources_without_changing_saves(self):
+        self.page.wait_for_function("window.LifeRPGLifeBoard && window.LifeRPGLifeBoardCore")
+        state_before=self.page.evaluate("JSON.stringify(LifeRPGApp.getState().taskProjectsV1)")
+        ledger_before=self.page.evaluate("JSON.stringify(LifeRPGApp.getState().rewardLedger||{})")
+        self.page.evaluate("LifeRPGApp.showView('lifeboard')")
+        self.assertTrue(self.page.locator('#view-lifeboard').evaluate('(el)=>el.classList.contains("active")'))
+        self.assertEqual(1,self.page.locator('.lb-shell').count())
+        for title in ['Heute wichtig','Bald wichtig','Termine','Meine Habits','Zuhause & Haushalt','Wiederkehrendes','Brain Dump','Zeit für dich']:
+            self.assertIn(title,self.page.locator('#lifeBoardMount').inner_text())
+        self.assertEqual(state_before,self.page.evaluate("JSON.stringify(LifeRPGApp.getState().taskProjectsV1)"))
+        self.assertEqual(ledger_before,self.page.evaluate("JSON.stringify(LifeRPGApp.getState().rewardLedger||{})"))
+        self.page.evaluate("LifeRPGApp.showView('tasks')")
+        self.assertEqual(1,self.page.locator('#taskProjectMount form[data-tp-inbox]').count())
+
+    def test_life_board_household_capture_routes_to_existing_task_ids(self):
+        self.page.wait_for_function("window.LifeRPGLifeBoard && window.LifeRPGTaskProjects")
+        self.page.evaluate("LifeRPGApp.showView('lifeboard')")
+        form=self.page.locator('form[data-lb-capture]')
+        form.locator('[name=title]').fill('Synthetic household chore')
+        form.locator('[name=context]').select_option('home')
+        form.locator('button[type=submit]').click()
+        task=self.page.evaluate("LifeRPGApp.getState().taskProjectsV1.inbox.find(t=>t.title==='Synthetic household chore')")
+        self.assertIsNotNone(task)
+        self.assertEqual('home',task['context'])
+        self.assertIn('Synthetic household chore',self.page.locator('.lb-household').inner_text())
+        count=self.page.evaluate("LifeRPGApp.getState().taskProjectsV1.inbox.length")
+        self.page.locator('.lb-household [data-lb-done]').first.click()
+        self.assertEqual(count,self.page.evaluate("LifeRPGApp.getState().taskProjectsV1.inbox.length"))
+        self.assertTrue(self.page.evaluate("LifeRPGApp.getState().taskProjectsV1.inbox.find(t=>t.title==='Synthetic household chore').doneAt"))
+        self.page.reload(wait_until='domcontentloaded')
+        self.page.wait_for_function("window.LifeRPGLifeBoard && window.LifeRPGTaskProjects")
+        self.assertTrue(self.page.evaluate("LifeRPGApp.getState().taskProjectsV1.inbox.find(t=>t.title==='Synthetic household chore').doneAt"))
 
     def test_brain_dump_has_no_required_date_and_saves_multiple_items(self):
         field=self.page.locator('form[data-tp-inbox] textarea[name=title]')

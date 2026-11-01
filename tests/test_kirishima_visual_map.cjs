@@ -91,7 +91,7 @@ const sw = content('service-worker.js');
 const prefix = '0.31.4-kirishima-nine1';
 assert.ok(html.indexOf('kirishima-visual-map.js?v=' + prefix) > 0);
 assert.ok(html.indexOf('kirishima-visual-map.js?v=' + prefix) < html.indexOf('story-ui.js?v=' + prefix));
-assert.match(sw, /const CACHE_NAME = "life-rpg-v0\.31\.4-task-radar1"/, 'Task cache revision must preserve all Kirishima runtime assets');
+assert.match(sw, /const CACHE_NAME = "life-rpg-v0\.31\.4-life-board1"/, 'Task cache revision must preserve all Kirishima runtime assets');
 for (const file of ['kirishima-visual-map.js','story-ui.js','companion-moments.js',
   'living-world-v3.js','dreamscape.js','living-companion.js']) {
   assert.ok(sw.includes(`./${file}?v=${prefix}`), `PWA must refresh ${file}`);
