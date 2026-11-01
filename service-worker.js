@@ -1,4 +1,4 @@
-const CACHE_NAME = "life-rpg-v0.31.4-life-board1";
+const CACHE_NAME = "life-rpg-v0.31.4-life-board-nav1";
 const ASSET_CACHE_NAME = "life-rpg-assets-v6";
 const MAX_RUNTIME_ASSETS = 96;
 const CORE = [
@@ -56,7 +56,7 @@ const CORE = [
   "./nonogram.js?v=0.31.4dz28",
   "./sudoku.js?v=0.31.4dz28",
   "./focus-dock.js?v=0.31.4dz50c",
-  "./life-hub-v314dk.js?v=0.31.4-home-toast4",
+  "./life-hub-v314dk.js?v=0.31.4-life-board-nav1",
   "./creative-hub-v314dl.js?v=0.31.4dz50c",
   "./creative-hub-v314dl.css?v=0.31.4dz19",
   "./ui-chrome.css?v=0.31.4dz19",
