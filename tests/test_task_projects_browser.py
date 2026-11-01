@@ -181,7 +181,7 @@ class TaskProjectBrowserTests(unittest.TestCase):
         link=sidebar.locator('button[data-view="lifeboard"]')
         self.assertEqual(1,link.count(), 'Life Board must survive the Sidebar rebuild')
         self.assertIn('Life Board',link.inner_text())
-        self.assertEqual('Meine Aufgaben',sidebar.locator('button[data-view="tasks"]').inner_text().strip())
+        self.assertEqual('Meine Aufgaben',sidebar.locator('button[data-view="tasks"] small').inner_text().strip())
         self.assertIn('Life Board',self.page.locator('#lifeHubMobileMenu').inner_text())
         link.click()
         self.assertTrue(self.page.locator('#view-lifeboard').evaluate('(el)=>el.classList.contains("active")'))
