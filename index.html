@@ -80,6 +80,7 @@
   <link rel="stylesheet" href="task-google-calendar.css?v=0.31.4-gcal1" />
   <link rel="stylesheet" href="qol-dz50c.css?v=0.31.4dz50c" />
   <link rel="stylesheet" href="task-calm.css?v=0.31.4-radar1" />
+  <link rel="stylesheet" href="life-board.css?v=0.31.4-life-board1" />
   <link rel="stylesheet" href="series-library.css?v=0.31.4-series8">
 </head>
 <body>
@@ -1430,6 +1431,8 @@
       </section>
       <!-- ADDITIVE VACATION BOARD: No existing Activity, Quests or Save sections changed. -->
       <section id="view-tasks" class="view todoist-view"><div id="taskSessionActiveMount"></div><div id="taskProjectMount"></div><div id="taskPackMount"></div><details class="tp-tools"><summary>⚙ Weitere Möglichkeiten · Planung, Zeitfenster & Begleitung</summary><div id="taskWizardMount" class="twd-root"></div><div id="taskFreeDayMount"></div><div id="taskGoogleCalendarMount"></div><div id="taskWorkWindowsMount"></div><div id="taskPlanningPanel"></div></details></section>
+      <!-- Removable experimental overview; reads existing sources, owns no save fields. -->
+      <section id="view-lifeboard" class="view life-board-view" aria-label="Life Board – visuelle Alltagsübersicht"><div id="lifeBoardMount"></div></section>
       <section id="view-breaks" class="view break-view"><div id="breakPlannerMount"></div></section>
 
             <!-- FOCUS / TIME / LIFE RHYTHM -->
@@ -2016,6 +2019,7 @@
       <button class="nav-button" data-view="week"><span>▦</span><small>Meine Woche</small></button>
       <button class="nav-button" data-view="meals"><span>🍲</span><small>Essensplan</small></button>
       <button class="nav-button" data-view="tasks"><span>☑</span><small>Meine Aufgaben</small></button>
+       <button class="nav-button" data-view="lifeboard"><span>✿</span><small>Life Board</small></button>
       <button class="nav-button" data-view="breaks"><span>🍁</span><small>Ferien & Auszeiten</small></button>
       <button class="nav-button" data-view="rhythm"><span>◷</span><small>Focus & Time</small></button>
       <button class="nav-button" data-view="activity"><span>≡</span><small>Activity</small></button>
@@ -3717,6 +3721,8 @@ League of Legends — PC" required></textarea></label>
   <script src="living-companion-core.js?v=0.31.4-lc3"></script>
   <script src="living-companion-personality.js?v=0.31.4-lc4"></script>
   <script src="living-companion.js?v=0.31.4-kirishima-nine1"></script>
+   <script src="life-board-core.js?v=0.31.4-life-board1"></script>
+   <script src="life-board.js?v=0.31.4-life-board1"></script>
   <script>window.addEventListener('DOMContentLoaded',()=>{requestAnimationFrame(()=>requestAnimationFrame(()=>document.documentElement.classList.remove('life-rpg-hydrating')));},{once:true});</script>
 </body>
 </html>
