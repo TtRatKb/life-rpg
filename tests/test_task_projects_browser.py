@@ -172,6 +172,27 @@ class TaskProjectBrowserTests(unittest.TestCase):
         self.assertIn('Spülmaschine',self.page.locator('[data-life-recent]').inner_text())
         self.assertEqual(2,len(self.page.evaluate("LifeRPGApp.getState().homeQuickActionsV1.entries")))
 
+    def test_life_board_is_reachable_from_actual_grouped_sidebar(self):
+        # The Life Hub rebuilds navigation; original index.html entries alone are insufficient.
+        base=f'http://127.0.0.1:{self.server.server_port}/'
+        self.page.add_script_tag(url=base+'life-hub-v314dk.js')
+        self.page.wait_for_function("window.LifeRPGLifeHub && document.querySelector('.bottom-nav.life-hub-nav')")
+        sidebar=self.page.locator('.life-nav-group[data-group="everyday"]')
+        link=sidebar.locator('button[data-view="lifeboard"]')
+        self.assertEqual(1,link.count(), 'Life Board must survive the Sidebar rebuild')
+        self.assertIn('Life Board',link.inner_text())
+        self.assertEqual('Meine Aufgaben',sidebar.locator('button[data-view="tasks"]').inner_text().strip())
+        self.assertIn('Life Board',self.page.locator('#lifeHubMobileMenu').inner_text())
+        link.click()
+        self.assertTrue(self.page.locator('#view-lifeboard').evaluate('(el)=>el.classList.contains("active")'))
+        self.assertIn('Daily & Weekly',self.page.locator('#lifeBoardMount').inner_text())
+        # Group landing and mobile-style routing must also expose the new page.
+        sidebar.locator('.life-nav-parent').click()
+        self.assertIn('Life Board',self.page.locator('#view-hub-everyday').inner_text())
+        self.page.locator('#view-hub-everyday [data-life-route="lifeboard"]').click()
+        self.assertTrue(self.page.locator('#view-lifeboard').evaluate('(el)=>el.classList.contains("active")'))
+        self.assertEqual(1,sidebar.locator('button[data-view="lifeboard"]').count())
+
     def test_optional_life_board_renders_sources_without_changing_saves(self):
         self.page.wait_for_function("window.LifeRPGLifeBoard && window.LifeRPGLifeBoardCore")
         state_before=self.page.evaluate("JSON.stringify(LifeRPGApp.getState().taskProjectsV1)")
