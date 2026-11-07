@@ -7,6 +7,9 @@ on:
       - "journal.js"
       - "bullet-journal-book.js"
       - "bullet-journal-book.css"
+      - "journal-daily-spread-v1.css"
+      - "assets/journal/basic-*.svg"
+      - "tests/test_journal_soft_floral_v1.cjs"
       - "nonogram.js"
       - "data/nonogram-levels*.js"
       - "service-worker.js"
@@ -27,3 +30,5 @@ jobs:
           node-version: "22"
       - name: Test retired task UI, journal and 30 Nonogram levels
         run: node tests/test_cozy_cleanup_nono_journal.cjs
+      - name: Test Soft Floral Journal V1 non-regressions
+        run: node tests/test_journal_soft_floral_v1.cjs
