@@ -614,7 +614,7 @@
   }
 
   function saveReflectionInBook(date, field, rawText) {
-    if (!REFLECTION_META[field] || !reflectionFieldUnlocked(field) || !/^\\d{4}-\\d{2}-\\d{2}$/.test(String(date))) {
+    if (!REFLECTION_META[field] || !reflectionFieldUnlocked(field) || !/^\d{4}-\d{2}-\d{2}$/.test(String(date))) {
       return {ok:false,reason:"invalid"};
     }
     const entry = entryFor(date, true);

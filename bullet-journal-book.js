@@ -4,7 +4,7 @@
   const app = window.LifeRPGApp;
   const journal = window.LifeRPGJournal;
   if (!app?.getState || !app?.saveState || !journal?.getEntry || window.LifeRPGBulletJournalBook) return;
-  const VERSION = "0.31.4-collections1";
+  const VERSION = "0.31.4-journal-ink1";
   const htmlEscape = value => String(value ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
   const get = id => document.getElementById(id);
   const dateKey = d => [d.getFullYear(), String(d.getMonth()+1).padStart(2,"0"), String(d.getDate()).padStart(2,"0")].join("-");
@@ -19,6 +19,13 @@
   const entryFor = key => app.getState().journal?.entries?.[key] || {};
   const noteFor = key => typeof entryFor(key).bookNote==="string" ? entryFor(key).bookNote : "";
   let bookView=null,activeDay="",activeWeek="",activeMonth="",chapter="daily",savedNote="",dirty=false,saveTimer=null;
+  const pendingPrompts=new Map();
+  const PROMPTS=[
+    ["gratitude","🌸","One thing I'm grateful for","Even the tiniest thing counts…"],
+    ["smallWin","✦","Something that went well","A little win is still a win…"],
+    ["hardThing","☁","Something that felt difficult","You don't have to solve it here…"],
+    ["yearQuestion","☾","365 Question","Your answer, in your own words…"]
+  ];
   const monday=key=>{const d=dayDate(key);if(!d)return null;d.setDate(d.getDate()-(d.getDay()+6)%7);return dateKey(d);};
   const weekDate=(key,offset)=>{const d=dayDate(monday(key));d.setDate(d.getDate()+offset);return dateKey(d);};
   const monthStart=key=>{const d=dayDate(key);return d?dateKey(new Date(d.getFullYear(),d.getMonth(),1,12)):null;};
@@ -41,18 +48,10 @@
     const entry=entryFor(key);
     const metricLabels={mood:"Mood",energy:"Energy",sleep:"Sleep",stress:"Stress"};
     const metrics=Object.entries(metricLabels).filter(([field])=>entry[field]);
-    const fields=[
-      ["gratitude","Something I'm grateful for"],["smallWin","Something that went well"],
-      ["hardThing","Something that was hard"],["yearQuestion","365 Question"]
-    ];
-    const answered=fields.filter(([field])=>typeof entry[field]==="string" && entry[field].trim());
     const events=getActivities(key);
     let blocks="";
     if(metrics.length)blocks+='<div class="bj-book-metrics">'+metrics.map(([id,label])=>'<span><strong>'+label+'</strong> '+htmlEscape(entry[id])+'</span>').join("")+'</div>';
-    for(const [id,label] of answered){
-      const title=id==="yearQuestion"&&entry.yearQuestionPrompt?entry.yearQuestionPrompt:label;
-      blocks+='<section class="bj-book-answer"><small>'+htmlEscape(title)+'</small><p>'+htmlEscape(entry[id])+'</p></section>';
-    }
+    // Reflections render as editable fields above; don't display them twice.
     const mins=(app.getState().timeTracking?.entries||[]).reduce((total,item)=>{
       const start=new Date(item?.startAt||0);
       return Number.isFinite(start.getTime())&&dateKey(start)===key?total+Math.max(0,Math.min(1440,Number(item.minutes)||0)):total;
@@ -109,9 +108,12 @@
             '</div>'+
           '</section>'+
           '<section class="bj-book-page bj-book-recorded">'+
-            '<div class="bj-book-page-inner"><small>THE DAY AS IT HAPPENED</small><h2>Moments & reflections</h2>'+
+            '<div class="bj-book-page-inner"><small>YOUR EVERYDAY PAGES</small><h2>Little reflections</h2>'+
+            '<p class="bj-book-reflection-intro">A few lines, a whole page, or nothing today. All yours. ♡</p>'+
+            '<div id="bjBookPrompts" class="bj-book-prompts" aria-label="Daily journal prompts"></div>'+
+            '<details class="bj-book-recorded-details"><summary>✦ Recorded moments</summary>'+
             '<div id="bjAtelierMount" class="bj-atelier-mount" aria-label="Journal decoration atelier"></div>'+ 
-            '<div id="bjBookRecorded" class="bj-book-records"></div>'+
+            '<div id="bjBookRecorded" class="bj-book-records"></div></details>'+
             '<div id="bjBookDailyMini" class="bj-book-daily-mini" aria-label="Daily Mini Habit Tracker"></div>'+
             '<button type="button" class="bj-book-edit" data-bj-action="reflect">Edit saved reflections ↗</button>'+
             '</div></section>'+
@@ -214,6 +216,21 @@
       }
     });
     bookView.querySelector("#bjBookDate").addEventListener("change",e=>changeDate(e.target.value));
+    bookView.addEventListener("input",event=>{
+      const area=event.target.closest?.("[data-bj-prompt]");
+      if(!area)return;
+      const field=area.dataset.bjPrompt,day=activeDay;
+      const prior=pendingPrompts.get(field);
+      if(prior?.timer)clearTimeout(prior.timer);
+      const status=bookView.querySelector('[data-bj-prompt-status="'+field+'"]');
+      if(status)status.textContent="Writing…";
+      const timer=setTimeout(()=>savePrompt(field),850);
+      pendingPrompts.set(field,{day,value:area.value,timer});
+    });
+    bookView.addEventListener("focusout",event=>{
+      const area=event.target.closest?.("[data-bj-prompt]");
+      if(area)savePrompt(area.dataset.bjPrompt);
+    });
     bookView.querySelector("#bjBookText").addEventListener("input",()=>{
       dirty=true;noteStatus("Unsaved changes");
       clearTimeout(saveTimer);saveTimer=setTimeout(()=>save(),800);
@@ -221,8 +238,39 @@
     main.appendChild(bookView);
     return bookView;
   }
+  function renderPrompts(key) {
+    const mount=get("bjBookPrompts");
+    if(!mount)return;
+    const entry=entryFor(key);
+    mount.innerHTML=PROMPTS.filter(([field])=>journal.isReflectionUnlocked?.(field)!==false).map(([field,icon,label,hint])=>{
+      const prompt=journal.reflectionPromptFor?.(field,key)||label;
+      const value=typeof entry[field]==="string"?entry[field]:"";
+      return '<section class="bj-book-prompt-card">'+
+        '<label for="bjBookPrompt-'+field+'"><span aria-hidden="true">'+icon+'</span>'+
+        '<span>'+htmlEscape(prompt)+'</span></label>'+
+        '<textarea id="bjBookPrompt-'+field+'" data-bj-prompt="'+field+'" rows="3" maxlength="2400" spellcheck="true" placeholder="'+htmlEscape(hint)+'">'+htmlEscape(value)+'</textarea>'+
+        '<small data-bj-prompt-status="'+field+'" aria-live="polite">'+(value?'Saved':'Optional · no pressure')+'</small></section>';
+    }).join("");
+  }
+  function savePrompt(field) {
+    const pending=pendingPrompts.get(field);
+    if(!pending)return true;
+    if(pending.timer)clearTimeout(pending.timer);
+    const result=journal.saveReflectionInBook?.(pending.day,field,pending.value);
+    const status=bookView?.querySelector('[data-bj-prompt-status="'+field+'"]');
+    if(result?.ok){pendingPrompts.delete(field);if(status)status.textContent="Saved ✓";return true;}
+    pending.timer=null;
+    if(status)status.textContent="Not saved — please retry";
+    return false;
+  }
+  function savePendingPrompts(){
+    let okay=true;
+    for(const field of [...pendingPrompts.keys()])if(!savePrompt(field))okay=false;
+    return okay;
+  }
   function save(showToast=false) {
     clearTimeout(saveTimer);
+    if(!savePendingPrompts())return false;
     if(!dirty)return true;
     const value=get("bjBookText")?.value;
     if(value===undefined)return false;
@@ -250,6 +298,7 @@
     view.querySelector("#bjBookText").value=noteFor(activeDay);
     savedNote=noteFor(activeDay);dirty=false;
     noteStatus(savedNote?"Saved":"Your words stay yours");
+    renderPrompts(activeDay);
     view.querySelector("#bjBookRecorded").innerHTML=dayContents(activeDay);
     window.LifeRPGBulletJournalDailyTracker?.render?.(activeDay);
     window.LifeRPGJournalAtelier?.render?.(activeDay);
@@ -351,13 +400,19 @@
     const view=ensureView();
     if(!view)return false;
     if(!dayDate(target)||target>today())target=today();
-    if(activeDay&&dirty&&!save())return false;
+    if(activeDay&&!save())return false;
     activeDay=target;
     activeWeek=monday(target);
     activeMonth=monthStart(target);
     renderDay();
     if(!showChapter("daily"))return false;
     app.showView?.("bullet-journal");
+    return true;
+  }
+  function openReflection(target=today(),field=null){
+    if(!open(target))return false;
+    const area=field?get("bjBookPrompt-"+field):get("bjBookPrompt-gratitude");
+    requestAnimationFrame(()=>{area?.scrollIntoView?.({behavior:"smooth",block:"center"});area?.focus?.({preventScroll:true});});
     return true;
   }
   function close(){
@@ -378,5 +433,5 @@
   });
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",initialize,{once:true});
   else initialize();
-  window.LifeRPGBulletJournalBook={version:VERSION,open,openWeekly,openMonth,openCollections,close,save,changeDate,changeWeek,changeMonth,showChapter,getDate:()=>activeDay,getWeek:()=>activeWeek,getMonth:()=>activeMonth,getChapter:()=>chapter};
+  window.LifeRPGBulletJournalBook={version:VERSION,open,openReflection,openWeekly,openMonth,openCollections,close,save,changeDate,changeWeek,changeMonth,showChapter,getDate:()=>activeDay,getWeek:()=>activeWeek,getMonth:()=>activeMonth,getChapter:()=>chapter};
 })();

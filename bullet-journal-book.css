@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&display=swap');
 /* Bullet Journal · true full-page Life RPG view.
    The date navigation is part of the notebook paper, not a modal toolbar. */
 .bj-open-button{font-weight:800;letter-spacing:.01em}
@@ -244,4 +245,69 @@
  .bj-book-week-day{padding:10px;min-height:85px}
  .bj-book-week-days{gap:6px}
  .bj-book-chapter-tabs button{font-size:.74rem;padding:6px 10px}
+}
+
+/* Journal refresh: contemporary lilac stationery, real handwriting, no sepia cast. */
+.bj-book-shell{color:#413745}
+.bj-book-spread{
+  background:#fdfbff;border:1px solid #e2d8e7;border-radius:18px 22px 22px 18px;
+  box-shadow:0 16px 38px rgba(69,46,87,.10),inset 0 0 0 1px rgba(255,255,255,.8);
+}
+.bj-book-spread:after{
+  width:20px;left:calc(50% - 10px);
+  background:linear-gradient(90deg,transparent,rgba(129,99,136,.06) 45%,rgba(129,99,136,.12) 50%,transparent);
+}
+.bj-book-page{
+  background-color:#fffefe;
+  background-image:radial-gradient(circle,rgba(169,142,180,.20) .55px,transparent .8px);
+  background-size:21px 21px;
+}
+.bj-book-recorded{background-color:#fcfaff;box-shadow:inset 8px 0 22px rgba(125,98,140,.035)}
+.bj-book-writing{box-shadow:inset -8px 0 22px rgba(125,98,140,.035)}
+.bj-book-date-heading{border-bottom-color:#e9deed}
+.app-shell .bj-book-date-heading>h1,.app-shell .bj-book-recorded .bj-book-page-inner>h2,
+.bj-book-nav,.bj-book-chapter-tabs,.bj-book-footer,.bj-book-week-note,
+.bj-book-week-right-title,.bj-book-week-intro>h2{
+  font-family:"Avenir Next","Trebuchet MS",ui-rounded,system-ui,sans-serif!important;
+  color:#624c70!important;
+}
+.bj-book-writing label,.bj-book-prompt-card label{
+  font-family:"Avenir Next","Trebuchet MS",system-ui,sans-serif;
+}
+.bj-book-writing textarea,.bj-book-prompt-card textarea,.bj-book-answer p{
+  font-family:"Kalam","Bradley Hand","Segoe Print",cursive!important;
+  color:#3e344b;font-size:clamp(1.05rem,1.55vw,1.28rem);line-height:1.65;
+}
+.bj-book-writing textarea{padding:14px 7px}
+.bj-book-nav button,.bj-book-nav input{border-color:#e4d7e7!important;background:#fff!important;color:#705577!important}
+.bj-book-reflection-intro{margin:-3px 0 0;color:#907d97;font-size:.81rem;line-height:1.5}
+.bj-book-prompts{display:grid;gap:14px;align-content:start}
+.bj-book-prompt-card{
+  display:grid;gap:5px;padding:13px 15px 10px;
+  border:1px solid #eadfeb;border-radius:14px;
+  background:linear-gradient(135deg,#fff 30%,#fefaff);
+  box-shadow:0 3px 9px rgba(91,57,110,.035);
+}
+.bj-book-prompt-card label{display:flex;align-items:center;gap:7px;font-size:.84rem;font-weight:760;color:#705778;line-height:1.45}
+.bj-book-prompt-card label>span:first-child{font-size:1.05rem}
+.bj-book-prompt-card textarea{
+  display:block;width:100%;min-height:76px;box-sizing:border-box;
+  padding:5px 3px;resize:vertical;overflow:auto;
+  border:0!important;background:transparent;outline-offset:3px;
+}
+.bj-book-prompt-card textarea:focus-visible{outline:2px solid #be9fc4!important;border-radius:7px}
+.bj-book-prompt-card textarea::placeholder,.bj-book-writing textarea::placeholder{
+  color:#b0a1b7;opacity:1;font-style:normal;
+}
+.bj-book-prompt-card small{font-size:.67rem;color:#9b879f;text-align:right}
+.bj-book-recorded-details{margin:6px 0 0;border-top:1px solid #e5dbea;padding-top:13px}
+.bj-book-recorded-details>summary{font-weight:700;font-size:.79rem;color:#80628b;cursor:pointer;padding:4px 0 12px}
+.bj-book-recorded-details .bj-book-records{padding-bottom:8px}
+.bj-book-metrics span{background:#f7f1fa;border-color:#e6d9ed;color:#5b4d65}
+.bj-book-events{border-top-color:#e7dbe9}
+.bj-book-footer{color:#aa95ae!important}
+@media(max-width:750px){
+  .bj-book-spread{border-radius:16px}
+  .bj-book-prompt-card{padding:12px}
+  .bj-book-writing textarea{min-height:220px}
 }
