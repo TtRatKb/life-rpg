@@ -53,7 +53,7 @@ assert.equal(levels.length,80);
 assert.equal(JSON.stringify(levels.slice(0,50)),first50,'Existing 50 level definitions changed');
 vm.runInNewContext(read('data/nonogram-levels-chapter2.js'),context);
 assert.equal(context.window.LIFE_RPG_NONOGRAM_LEVELS.length,80,'Chapter 2 loaded twice must be idempotent');
-assert.deepEqual(levels.map(x=>x.level),Array.from({length:80},(_,i)=>i+1));
+assert.deepEqual(Array.from(levels,x=>x.level),Array.from({length:80},(_,i)=>i+1));
 const getClues=(mask,n)=>{
  let out=[],run=0;
  for(let i=0;i<=n;i++){if(i<n && (mask&(1<<i)))run++;else if(run){out.push(run);run=0;}}
