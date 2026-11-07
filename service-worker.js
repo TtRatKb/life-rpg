@@ -1,4 +1,4 @@
-const CACHE_NAME = "life-rpg-v0.31.4-cozy-cleanup-nono80-journal2";
+const CACHE_NAME = "life-rpg-v0.31.4-cozy-cleanup-nono80-journal3";
 const ASSET_CACHE_NAME = "life-rpg-assets-v6";
 const MAX_RUNTIME_ASSETS = 96;
 const CORE = [
@@ -226,7 +226,7 @@ const CORE = [
   "./daily.js?v=0.31.4-reading1",
   "./data/year-journal-questions.js?v=0.31.4ar",
   "./journal.js?v=0.31.4-journal-ink1",
-  "./bullet-journal-book.js?v=0.31.4-journal-ink1",
+  "./bullet-journal-book.js?v=0.31.4-journal-ink2",
   "./bullet-journal-monthly.js?v=0.31.4-monthly-preview1",
   "./bullet-journal-collections.js?v=0.31.4-collection-shelves2",
   "./story-engine.js?v=0.31.4dz16",
