@@ -4,7 +4,7 @@
   const app = window.LifeRPGApp;
   const journal = window.LifeRPGJournal;
   if (!app?.getState || !app?.saveState || !journal?.getEntry || window.LifeRPGBulletJournalBook) return;
-  const VERSION = "0.31.4-journal-ink1";
+  const VERSION = "0.31.4-journal-ink2";
   const htmlEscape = value => String(value ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
   const get = id => document.getElementById(id);
   const dateKey = d => [d.getFullYear(), String(d.getMonth()+1).padStart(2,"0"), String(d.getDate()).padStart(2,"0")].join("-");
@@ -242,14 +242,20 @@
     const mount=get("bjBookPrompts");
     if(!mount)return;
     const entry=entryFor(key);
-    mount.innerHTML=PROMPTS.filter(([field])=>journal.isReflectionUnlocked?.(field)!==false).map(([field,icon,label,hint])=>{
+    mount.innerHTML=PROMPTS.map(([field,icon,label,hint])=>{
       const prompt=journal.reflectionPromptFor?.(field,key)||label;
       const value=typeof entry[field]==="string"?entry[field]:"";
+      const locked=journal.isReflectionUnlocked?.(field)===false;
+      // Older answers must remain readable even when an entitlement is missing.
+      // Do not offer an editor which would then silently refuse to save.
+      if(locked&&!value.trim())return "";
+      const content=locked
+        ? '<div class="bj-book-answer"><p>'+htmlEscape(value)+'</p></div><small>Saved previously · read only</small>'
+        : '<textarea id="bjBookPrompt-'+field+'" data-bj-prompt="'+field+'" rows="3" maxlength="2400" spellcheck="true" placeholder="'+htmlEscape(hint)+'">'+htmlEscape(value)+'</textarea>'+
+          '<small data-bj-prompt-status="'+field+'" aria-live="polite">'+(value?'Saved':'Optional · no pressure')+'</small>';
       return '<section class="bj-book-prompt-card">'+
-        '<label for="bjBookPrompt-'+field+'"><span aria-hidden="true">'+icon+'</span>'+
-        '<span>'+htmlEscape(prompt)+'</span></label>'+
-        '<textarea id="bjBookPrompt-'+field+'" data-bj-prompt="'+field+'" rows="3" maxlength="2400" spellcheck="true" placeholder="'+htmlEscape(hint)+'">'+htmlEscape(value)+'</textarea>'+
-        '<small data-bj-prompt-status="'+field+'" aria-live="polite">'+(value?'Saved':'Optional · no pressure')+'</small></section>';
+        '<label'+(locked?'':' for="bjBookPrompt-'+field+'"')+'><span aria-hidden="true">'+icon+'</span>'+
+        '<span>'+htmlEscape(prompt)+'</span></label>'+content+'</section>';
     }).join("");
   }
   function savePrompt(field) {
