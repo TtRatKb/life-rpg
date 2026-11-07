@@ -97,8 +97,8 @@ for (const file of ['kirishima-visual-map.js','story-ui.js','companion-moments.j
   assert.ok(sw.includes(`./${file}?v=${prefix}`), `PWA must refresh ${file}`);
   assert.ok(html.includes(`${file}?v=${prefix}`), `HTML must refresh ${file}`);
 }
-assert.ok(sw.includes('./pwa.js?v=0.31.4-journal-v12-preview1'));
-assert.ok(html.includes('pwa.js?v=0.31.4-journal-v12-preview1'));
+assert.ok(sw.includes('./pwa.js?v=0.31.4-journal-v12-preview2'));
+assert.ok(html.includes('pwa.js?v=0.31.4-journal-v12-preview2'));
 assert.ok(!sw.includes('./living-companion.js?'), 'The retired task-oriented companion must not be precached');
 assert.ok(!html.includes('src="living-companion.js?'), 'The retired task-oriented companion must not start');
 assert.ok(content('pwa.js').includes(`companion-moments-v2.js?v=${prefix}`));
