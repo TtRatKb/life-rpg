@@ -245,3 +245,29 @@
  .bj-book-week-days{gap:6px}
  .bj-book-chapter-tabs button{font-size:.74rem;padding:6px 10px}
 }
+
+/* 2026 Journal refresh: bright paper, cozy lilac accents and personal handwriting. */
+.bj-book-shell{color:#42384a}
+.bj-book-spread{background:#fffaff;border-color:#e9dce9;border-radius:14px;box-shadow:0 14px 38px rgba(64,44,75,.12)}
+.bj-book-spread:after{background:linear-gradient(90deg,transparent,rgba(139,111,151,.08) 49%,rgba(139,111,151,.1) 51%,transparent)}
+.bj-book-page,.bj-book-recorded{background-color:#fffaff;background-image:none;box-shadow:none}
+.bj-book-recorded{background-color:#fbf7ff}
+.bj-book-date-heading{border-bottom-color:#e6d9eb}
+.bj-book-date-heading>small,.bj-book-page-inner>small{color:#96739f}
+.app-shell .bj-book-date-heading>h1,.app-shell .bj-book-recorded .bj-book-page-inner>h2,.bj-book-weekly-spread .bj-book-date-heading h1,.bj-book-weekly-spread .bj-book-recorded h2.bj-book-week-right-title{
+ font-family:"Avenir Next","Trebuchet MS",system-ui,sans-serif!important;font-weight:700!important;color:#604769!important
+}
+.bj-book-nav,.bj-book-footer,.bj-book-quiet,.bj-book-events h4,.bj-book-chapter-tabs button,.bj-book-week-note,.bj-book-week-intro p{font-family:"Avenir Next","Trebuchet MS",system-ui,sans-serif!important}
+.bj-book-writing textarea,.bj-book-answer p{
+ font-family:"Noteworthy","Segoe Print","Bradley Hand","Chalkboard SE","Comic Sans MS",cursive!important;
+ font-size:clamp(1.02rem,1.25vw,1.2rem);line-height:1.8;color:#4d405c
+}
+.bj-book-writing textarea::placeholder{color:#a897b2}
+.bj-book-answer{border-left-color:#c6a6d5}
+.bj-book-answer small{color:#8b689e}
+.bj-book-events,.bj-book-actions{border-color:#e9dfed}
+.bj-book-nav button,.bj-book-nav input,.bj-book-chapter-tabs button{background:#fff!important;border-color:#e5d8eb!important;color:#71527c!important}
+.bj-book-chapter-tabs button[aria-current="page"]{background:#f5eafb!important;border-color:#cbaed9!important;box-shadow:0 2px 0 #e5d2ec}
+.bj-book-metrics span{background:#f7effb;border-color:#eadbed;color:#654c6f}
+.bj-book-week-intro{background:#f8f0fd;border-left-color:#c6a6d5}
+@media(max-width:750px){.bj-book-recorded{border-top:2px solid #e9dbef}}
