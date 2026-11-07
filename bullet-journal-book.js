@@ -20,6 +20,8 @@
   const noteFor = key => typeof entryFor(key).bookNote==="string" ? entryFor(key).bookNote : "";
   let bookView=null,activeDay="",activeWeek="",activeMonth="",chapter="daily",savedNote="",dirty=false,saveTimer=null;
   const pendingPrompts=new Map();
+  const pendingExtras=new Map();
+  const EXTRA_FIELDS=["focusText","intentionText","happyMomentsText"];
   const PROMPTS=[
     ["gratitude","🌸","One thing I'm grateful for","Even the tiniest thing counts…"],
     ["smallWin","✦","Something that went well","A little win is still a win…"],
@@ -87,35 +89,45 @@
         '<div class="bj-book-entry"><button type="button" data-bj-action="close" class="bj-book-back">← Journal overview</button>'+
         '<span aria-hidden="true">✦ MY LITTLE NOTEBOOK ✦</span></div>'+
         '<div class="bj-book-spread" id="bjBookDailySpread">'+
-          '<section class="bj-book-page bj-book-writing">'+
+          '<section class="bj-book-page bj-book-writing bj-daily-left">'+
             '<div class="bj-book-page-inner">'+
-              '<div class="bj-book-date-heading"><small>MY BULLET JOURNAL · DAILY PAGE</small>'+
-              '<nav class="bj-book-chapter-tabs" aria-label="Notebook chapters">'+
-                '<button type="button" data-bj-chapter="daily" aria-current="page">✦ Days</button>'+
-                '<button type="button" data-bj-chapter="weekly">▦ Weeks</button>'+
-                '<button type="button" data-bj-chapter="monthly">☾ Months</button><button type="button" data-bj-chapter="collections">✧ Collections</button></nav>'+
-              '<h1 id="bjBookDayTitle"></h1>'+
-              '<nav class="bj-book-nav" aria-label="Turn journal pages">'+
-                '<button type="button" data-bj-action="prev" aria-label="Previous day">‹</button>'+
-                '<input id="bjBookDate" type="date" aria-label="Choose journal date">'+
-                '<button type="button" data-bj-action="next" aria-label="Next day">›</button>'+
-                '<button type="button" data-bj-action="today">Today</button></nav>'+
+              '<div class="bj-book-date-heading"><small>MY LITTLE NOTEBOOK · DAILY PAGE</small>'+
+                '<nav class="bj-book-chapter-tabs" aria-label="Notebook chapters">'+
+                  '<button type="button" data-bj-chapter="daily" aria-current="page">✦ Days</button>'+
+                  '<button type="button" data-bj-chapter="weekly">▦ Weeks</button>'+
+                  '<button type="button" data-bj-chapter="monthly">☾ Months</button>'+
+                  '<button type="button" data-bj-chapter="collections">✧ Collections</button></nav>'+
+                '<h1 id="bjBookDayTitle">daily journal</h1>'+
+                '<nav class="bj-book-nav" aria-label="Turn journal pages">'+
+                  '<button type="button" data-bj-action="prev" aria-label="Previous day">‹</button>'+
+                  '<input id="bjBookDate" type="date" aria-label="Choose journal date">'+
+                  '<button type="button" data-bj-action="next" aria-label="Next day">›</button>'+
+                  '<button type="button" data-bj-action="today">Today</button></nav>'+
               '</div>'+
-              '<label for="bjBookText">Free writing</label>'+
-              '<textarea id="bjBookText" spellcheck="true" placeholder="Anything on your mind…"></textarea>'+
-              '<div class="bj-book-actions"><span id="bjBookStatus" role="status" aria-live="polite"></span>'+
-              '<button type="button" class="secondary-button" data-bj-action="save">Save page</button></div>'+
-            '</div>'+
-          '</section>'+
-          '<section class="bj-book-page bj-book-recorded">'+
-            '<div class="bj-book-page-inner"><small>YOUR EVERYDAY PAGES</small><h2>Little reflections</h2>'+
-            '<p class="bj-book-reflection-intro">A few lines, a whole page, or nothing today. All yours. ♡</p>'+
-            '<div id="bjBookPrompts" class="bj-book-prompts" aria-label="Daily journal prompts"></div>'+
-            '<div id="bjAtelierMount" class="bj-atelier-mount" aria-label="Journal decoration atelier"></div>'+
-            '<details class="bj-book-recorded-details"><summary>✦ Recorded moments</summary>'+
-            '<div id="bjBookRecorded" class="bj-book-records"></div></details>'+
-            '<div id="bjBookDailyMini" class="bj-book-daily-mini" aria-label="Daily Mini Habit Tracker"></div>'+
-            '<button type="button" class="bj-book-edit" data-bj-action="reflect">Edit saved reflections ↗</button>'+
+              '<p class="bj-daily-intro">small steps · big dreams ♡</p>'+
+              '<div id="bjBookPrompts" class="bj-book-prompts" aria-label="Daily journal prompts"></div>'+
+            '</div></section>'+
+          '<section class="bj-book-page bj-book-recorded bj-daily-right">'+
+            '<div class="bj-book-page-inner">'+
+              '<section class="bj-daily-mood" aria-label="Mood today"><h3>Mood today ♡</h3>'+
+                '<p id="bjBookMoodText">However today feels, it belongs here.</p>'+
+                '<button type="button" data-bj-action="mood">Update check-in ↗</button></section>'+
+              '<section class="bj-daily-note"><h2>Notes &amp; thoughts</h2>'+
+                '<label for="bjBookText" class="bj-book-reflection-intro">A little space for whatever is on your mind.</label>'+
+                '<textarea id="bjBookText" spellcheck="true" placeholder="Write your day in your own words…"></textarea>'+
+                '<div class="bj-book-actions"><span id="bjBookStatus" role="status" aria-live="polite"></span>'+
+                  '<button type="button" class="secondary-button" data-bj-action="save">Save page</button></div>'+
+              '</section>'+
+              '<div class="bj-extra-grid" aria-label="Extra personal notes">'+
+                '<section class="bj-extra-note"><label for="bjExtra-focusText">Focus for today</label><textarea id="bjExtra-focusText" data-bj-extra="focusText" placeholder="One gentle intention…"></textarea><small data-bj-extra-status="focusText">Just for you · no extra rewards</small></section>'+
+                '<section class="bj-extra-note"><label for="bjExtra-intentionText">Today I will…</label><textarea id="bjExtra-intentionText" data-bj-extra="intentionText" placeholder="A little thing I would like to do…"></textarea><small data-bj-extra-status="intentionText">Personal note, not a task</small></section>'+
+                '<section class="bj-extra-note"><label for="bjExtra-happyMomentsText">Little moments that made me happy</label><textarea id="bjExtra-happyMomentsText" data-bj-extra="happyMomentsText" placeholder="Tiny joys deserve a place, too…"></textarea><small data-bj-extra-status="happyMomentsText">No streaks or obligations</small></section>'+
+              '</div>'+
+              '<div id="bjAtelierMount" class="bj-atelier-mount" aria-label="Journal decoration atelier"></div>'+
+              '<div id="bjBookDailyMini" class="bj-book-daily-mini" aria-label="Daily Mini Habit Tracker"></div>'+
+              '<details class="bj-book-recorded-details"><summary>✦ Recorded moments</summary>'+
+                '<div id="bjBookRecorded" class="bj-book-records"></div></details>'+
+              '<button type="button" class="bj-book-edit" data-bj-action="reflect">Edit check-in &amp; reflections ↗</button>'+
             '</div></section>'+
         '</div>'+
         '<div class="bj-book-spread bj-book-weekly-spread" id="bjBookWeeklySpread" hidden>'+
@@ -210,6 +222,10 @@
       else if(action==="prev")changeDate(shifted(activeDay,-1));
       else if(action==="next")changeDate(shifted(activeDay,1));
       else if(action==="today")changeDate(today());
+      else if(action==="mood"){
+        const selected=activeDay;
+        if(close())journal.openDayEditor?.(selected);
+      }
       else if(action==="reflect"){
         const selected=activeDay;
         if(close())journal.openDayEditor?.(selected);
@@ -217,6 +233,8 @@
     });
     bookView.querySelector("#bjBookDate").addEventListener("change",e=>changeDate(e.target.value));
     bookView.addEventListener("input",event=>{
+      const extraArea=event.target.closest?.("[data-bj-extra]");
+      if(extraArea){queueExtra(extraArea.dataset.bjExtra,activeDay,extraArea.value);return;}
       const area=event.target.closest?.("[data-bj-prompt]");
       if(!area)return;
       const field=area.dataset.bjPrompt,day=activeDay;
@@ -224,12 +242,15 @@
       if(prior?.timer)clearTimeout(prior.timer);
       const status=bookView.querySelector('[data-bj-prompt-status="'+field+'"]');
       if(status)status.textContent="Writing…";
+      updatePromptPreview(field,area.value,day);
       const timer=setTimeout(()=>savePrompt(field),850);
       pendingPrompts.set(field,{day,value:area.value,timer});
     });
     bookView.addEventListener("focusout",event=>{
       const area=event.target.closest?.("[data-bj-prompt]");
       if(area)savePrompt(area.dataset.bjPrompt);
+      const extraArea=event.target.closest?.("[data-bj-extra]");
+      if(extraArea)saveExtra(extraArea.dataset.bjExtra);
     });
     bookView.querySelector("#bjBookText").addEventListener("input",()=>{
       dirty=true;noteStatus("Unsaved changes");
@@ -237,6 +258,79 @@
     });
     main.appendChild(bookView);
     return bookView;
+  }
+  function extraValues(day) {
+    const data=entryFor(day).dailySpreadV1;
+    return data&&typeof data==="object"&&!Array.isArray(data)?data:{};
+  }
+  function renderExtras(day) {
+    const values=extraValues(day);
+    for(const field of EXTRA_FIELDS){
+      const input=get("bjExtra-"+field);
+      if(input)input.value=typeof values[field]==="string"?values[field]:"";
+      const status=bookView?.querySelector('[data-bj-extra-status="'+field+'"]');
+      if(status)status.textContent=(String(values[field]||"").trim().length)+" characters · personal note";
+    }
+  }
+  function queueExtra(field,day,value) {
+    if(!EXTRA_FIELDS.includes(field))return;
+    const old=pendingExtras.get(field);
+    if(old?.timer)clearTimeout(old.timer);
+    const status=bookView?.querySelector('[data-bj-extra-status="'+field+'"]');
+    if(status)status.textContent=value.trim().length+" characters · writing…";
+    pendingExtras.set(field,{day,value,timer:setTimeout(()=>saveExtra(field),900)});
+  }
+  function saveExtra(field) {
+    const pending=pendingExtras.get(field);
+    if(!pending)return true;
+    clearTimeout(pending.timer);
+    const state=app.getState();
+    const journalData=state.journal;
+    if(!journalData?.entries)return false;
+    const prior=journalData.entries[pending.day];
+    const hadEntry=Boolean(prior);
+    const entry=prior||{date:pending.day,createdAt:Date.now()};
+    const oldValue=entry.dailySpreadV1?{...entry.dailySpreadV1}:null;
+    const oldUpdatedAt=entry.updatedAt;
+    const data=entry.dailySpreadV1||{};
+    if(data[field]===pending.value){pendingExtras.delete(field);return true;}
+    journalData.entries[pending.day]=entry;
+    entry.dailySpreadV1={...data,[field]:pending.value};
+    entry.updatedAt=Date.now();
+    const status=bookView?.querySelector('[data-bj-extra-status="'+field+'"]');
+    if(app.saveState({source:"journal-book-extra-"+field,suppressUiRefresh:true})===false){
+      if(hadEntry){if(oldValue)entry.dailySpreadV1=oldValue;else delete entry.dailySpreadV1;entry.updatedAt=oldUpdatedAt;}
+      else delete journalData.entries[pending.day];
+      if(status)status.textContent="Save failed — your text is still here";
+      pending.timer=null;
+      return false;
+    }
+    pendingExtras.delete(field);
+    if(status)status.textContent=pending.value.trim().length+" characters · saved ✓";
+    return true;
+  }
+  function savePendingExtras() {
+    let okay=true;
+    for(const field of [...pendingExtras.keys()])if(!saveExtra(field))okay=false;
+    return okay;
+  }
+  function previewMarkup(field,day,text){
+    const p=journal.getReflectionRewardPreview?.(day,field,text);
+    if(!p)return "";
+    const next=p.historical?"Past-day writing · no backdated bonuses":
+      p.remaining+" characters until next bonus · +"+p.nextReward.xp+" XP / "+p.nextReward.coins+" coins";
+    return '<div class="bj-reward-preview" data-bj-preview="'+field+'">'+
+      '<span><strong>'+p.chars+' characters</strong> · '+p.paid+' bonuses recorded</span>'+
+      '<div class="bj-reward-meter" aria-hidden="true"><i style="width:'+p.progress+'%"></i></div>'+
+      '<span>'+htmlEscape(next)+'</span></div>';
+  }
+  function updatePromptPreview(field,text,day){
+    const status=bookView?.querySelector('[data-bj-preview="'+field+'"]');
+    if(!status)return;
+    const replacement=document.createElement("div");
+    replacement.innerHTML=previewMarkup(field,day,text);
+    const child=replacement.firstElementChild;
+    if(child)status.replaceWith(child);
   }
   function renderPrompts(key) {
     const mount=get("bjBookPrompts");
@@ -252,8 +346,8 @@
       const content=locked
         ? '<div class="bj-book-answer"><p>'+htmlEscape(value)+'</p></div><small>Saved previously · read only</small>'
         : '<textarea id="bjBookPrompt-'+field+'" data-bj-prompt="'+field+'" rows="3" maxlength="2400" spellcheck="true" placeholder="'+htmlEscape(hint)+'">'+htmlEscape(value)+'</textarea>'+
-          '<small data-bj-prompt-status="'+field+'" aria-live="polite">'+(value?'Saved':'Optional · no pressure')+'</small>';
-      return '<section class="bj-book-prompt-card">'+
+          '<small data-bj-prompt-status="'+field+'" aria-live="polite">'+(value?'Saved':'Optional · no pressure')+'</small>'+previewMarkup(field,key,value);
+      return '<section class="bj-book-prompt-card" data-bj-field="'+field+'">'+
         '<label'+(locked?'':' for="bjBookPrompt-'+field+'"')+'><span aria-hidden="true">'+icon+'</span>'+
         '<span>'+htmlEscape(prompt)+'</span></label>'+content+'</section>';
     }).join("");
@@ -264,7 +358,16 @@
     if(pending.timer)clearTimeout(pending.timer);
     const result=journal.saveReflectionInBook?.(pending.day,field,pending.value);
     const status=bookView?.querySelector('[data-bj-prompt-status="'+field+'"]');
-    if(result?.ok){pendingPrompts.delete(field);if(status)status.textContent="Saved ✓";return true;}
+    if(result?.ok){
+      pendingPrompts.delete(field);
+      if(status){
+        const rewards=result.rewards||{};
+        const parts=[rewards.xp?("+"+rewards.xp+" XP"):"",rewards.coins?("+"+rewards.coins+" coins"):""].filter(Boolean);
+        status.textContent=parts.length?"Saved ✓ · "+parts.join(" · "):"Saved ✓";
+      }
+      updatePromptPreview(field,pending.value,pending.day);
+      return true;
+    }
     pending.timer=null;
     if(status)status.textContent="Not saved — please retry";
     return false;
@@ -276,7 +379,7 @@
   }
   function save(showToast=false) {
     clearTimeout(saveTimer);
-    if(!savePendingPrompts())return false;
+    if(!savePendingPrompts()||!savePendingExtras())return false;
     if(!dirty)return true;
     const value=get("bjBookText")?.value;
     if(value===undefined)return false;
@@ -300,11 +403,16 @@
     view.querySelector("#bjBookDate").value=activeDay;
     view.querySelector("#bjBookDate").max=today();
     view.querySelector('[data-bj-action="next"]').disabled=activeDay===today();
-    view.querySelector("#bjBookDayTitle").textContent=dayDate(activeDay).toLocaleDateString(undefined,{weekday:"long",day:"numeric",month:"long",year:"numeric"});
+    const day=dayDate(activeDay);
+    view.querySelector("#bjBookDayTitle").textContent="daily journal";
+    view.querySelector("#bjBookDayTitle").setAttribute("aria-label","Daily journal · "+day.toLocaleDateString(undefined,{dateStyle:"full"}));
+    const mood=entryFor(activeDay).mood;
+    view.querySelector("#bjBookMoodText").textContent=mood ? "Today feels: "+mood+" ♡" : "However today feels, it belongs here. ♡";
     view.querySelector("#bjBookText").value=noteFor(activeDay);
     savedNote=noteFor(activeDay);dirty=false;
     noteStatus(savedNote?"Saved":"Your words stay yours");
     renderPrompts(activeDay);
+    renderExtras(activeDay);
     view.querySelector("#bjBookRecorded").innerHTML=dayContents(activeDay);
     window.LifeRPGBulletJournalDailyTracker?.render?.(activeDay);
     window.LifeRPGJournalAtelier?.render?.(activeDay);
@@ -432,7 +540,7 @@
   }
   // Leaving the book by the sidebar also saves its draft.
   window.addEventListener("life-rpg:view-changed",e=>{
-    if(e?.detail?.view!=="bullet-journal"&&dirty)save();
+    if(e?.detail?.view!=="bullet-journal"&&(dirty||pendingPrompts.size||pendingExtras.size))save();
     if(e?.detail?.view==="bullet-journal"&&!activeDay){
       activeDay=today();activeWeek=monday(activeDay);activeMonth=monthStart(activeDay);renderDay();showChapter("daily");
     }

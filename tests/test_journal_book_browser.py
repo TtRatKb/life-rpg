@@ -67,7 +67,7 @@ class JournalBookBrowserTests(unittest.TestCase):
         origin = f"http://127.0.0.1:{self.server.server_port}/"
         if route.request.url == origin:
             route.fulfill(body=self.html, content_type="text/html")
-        elif route.request.url.startswith(origin):
+        elif route.request.url.startswith(origin) or route.request.url.startswith("https://fonts.googleapis.com/") or route.request.url.startswith("https://fonts.gstatic.com/"):
             route.continue_()
         else:
             route.abort()
@@ -103,3 +103,49 @@ class JournalBookBrowserTests(unittest.TestCase):
         self.page.locator("#view-bullet-journal [data-bj-chapter='weekly']").first.click()
         self.page.locator("#bjBookWeeklySpread [data-bj-chapter='daily']").click()
         self.assertEqual("Synthetic small win",self.page.locator("#bjBookPrompt-smallWin").input_value())
+
+    def test_soft_floral_live_meter_optional_notes_and_screenshots(self):
+        self.page.set_viewport_size({"width": 1440, "height": 950})
+        self.page.add_style_tag(url="/styles.css")
+        self.page.add_style_tag(url="/bullet-journal-book.css")
+        self.page.add_style_tag(url="/journal-daily-spread-v1.css")
+        # Preview uses the same publicly hosted typefaces as the shipped app.
+        self.page.evaluate("""() => {
+          const link=document.createElement('link');
+          link.rel='stylesheet';
+          link.href='https://fonts.googleapis.com/css2?family=Caveat:wght@400;500;600&family=Dancing+Script:wght@500;600;700&family=Nunito+Sans:wght@400;600;700;800&display=swap';
+          document.head.appendChild(link);
+        }""")
+        try:
+            self.page.wait_for_function("document.fonts.check('700 30px \"Dancing Script\"') && document.fonts.check('400 24px Caveat')",timeout=3500)
+        except Exception:
+            pass
+
+        # Isolated browser fixture has no Firebase session. Remove the unrelated sign-in gate from screenshots only.
+        self.page.add_style_tag(content="#mobileCloudGate{display:none!important}")
+        self.page.evaluate("LifeRPGJournal.openReflection()")
+        self.assertEqual(1,self.page.locator("#bjExtra-focusText").count())
+        self.assertEqual(1,self.page.locator("#bjBookMoodText").count())
+        self.assertEqual(1,self.page.locator("[data-bj-preview='gratitude']").count())
+        self.page.locator("#bjBookPrompt-gratitude").fill("g" * 49)
+        self.assertIn("49 characters",self.page.locator("[data-bj-preview='gratitude']").inner_text())
+        self.page.locator("#bjBookPrompt-gratitude").fill("g" * 50)
+        self.assertIn("50 characters",self.page.locator("[data-bj-preview='gratitude']").inner_text())
+        self.page.locator("#bjExtra-focusText").fill("A gentle intention, not a task.")
+        self.page.locator("#bjBookText").click()
+        self.page.wait_for_function("""day => LifeRPGApp.getState().journal.entries[day]?.dailySpreadV1?.focusText === 'A gentle intention, not a task.'""",arg=self.day)
+        count=self.page.evaluate("""day => LifeRPGApp.getState().rewardLedger.events.filter(
+            e => e.source==='journal-reflection-field-effort' && e.sourceId.startsWith(day+':gratitude:')).length""",arg=self.day)
+        self.assertEqual(1,count)
+        self.page.locator("#bjBookPrompt-gratitude").fill("g" * 50)
+        self.page.locator("#bjBookText").click()
+        self.assertEqual(count,self.page.evaluate("""day => LifeRPGApp.getState().rewardLedger.events.filter(
+            e => e.source==='journal-reflection-field-effort' && e.sourceId.startsWith(day+':gratitude:')).length""",arg=self.day))
+        screenshots=ROOT/"test-artifacts"
+        screenshots.mkdir(exist_ok=True)
+        self.page.screenshot(path=str(screenshots/"journal-soft-floral-desktop.png"),full_page=True)
+        self.page.set_viewport_size({"width":390,"height":844})
+        self.page.screenshot(path=str(screenshots/"journal-soft-floral-mobile.png"),full_page=True)
+        self.page.reload(wait_until="domcontentloaded")
+        self.page.evaluate("LifeRPGJournal.openReflection()")
+        self.assertEqual("A gentle intention, not a task.",self.page.locator("#bjExtra-focusText").input_value())

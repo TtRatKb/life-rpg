@@ -239,5 +239,13 @@ jobs:
         run: python -m unittest discover -s tests -p 'test_reading_library_browser.py' -v
       - name: Browser smoke test for direct Journal reflection and lossless reload
         run: python -m unittest discover -s tests -p 'test_journal_book_browser.py' -v
+      - name: Upload actual Soft Floral Journal browser screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: soft-floral-journal-browser-screenshots
+          path: test-artifacts/journal-soft-floral-*.png
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Verify current app hides retired task/companion and preserves Nonogram/Journal wiring
         run: node tests/test_cozy_cleanup_nono_journal.cjs
