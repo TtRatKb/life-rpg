@@ -1,4 +1,4 @@
-const CACHE_NAME = "life-rpg-v0.31.4-cozy-cleanup-nono80-journal3";
+const CACHE_NAME = "life-rpg-v0.31.4-soft-floral-journal1";
 const ASSET_CACHE_NAME = "life-rpg-assets-v6";
 const MAX_RUNTIME_ASSETS = 96;
 const CORE = [
@@ -179,6 +179,10 @@ const CORE = [
   "./journal-rewards.js?v=0.31.4ag",
   "./weekly-review.css?v=0.31.4ag",
   "./bullet-journal-book.css?v=0.31.4-journal-ink1",
+  "./journal-daily-spread-v1.css?v=0.31.4-soft-floral1",
+  "./assets/journal/basic-floral-sprig-v1.svg",
+  "./assets/journal/basic-moon-stars-v1.svg",
+  "./assets/journal/basic-stationery-v1.svg",
   "./bullet-journal-monthly.css?v=0.31.4-monthly-preview1",
   "./bullet-journal-collections.css?v=0.31.4-collection-shelves2",
   "./bullet-journal-habit-tracker.css?v=0.31.4-journalux2b",
@@ -225,8 +229,8 @@ const CORE = [
   "./japanese-practice-library.js?v=0.31.4dz4",
   "./daily.js?v=0.31.4-reading1",
   "./data/year-journal-questions.js?v=0.31.4ar",
-  "./journal.js?v=0.31.4-journal-ink1",
-  "./bullet-journal-book.js?v=0.31.4-journal-ink2",
+  "./journal.js?v=0.31.4-soft-floral1",
+  "./bullet-journal-book.js?v=0.31.4-soft-floral1",
   "./bullet-journal-monthly.js?v=0.31.4-monthly-preview1",
   "./bullet-journal-collections.js?v=0.31.4-collection-shelves2",
   "./story-engine.js?v=0.31.4dz16",
