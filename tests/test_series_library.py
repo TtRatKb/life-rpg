@@ -834,7 +834,7 @@ class SeriesLibraryTests(unittest.TestCase):
             "LifeRPGBulletJournalHabitTracker.isUnlocked()"))
         self.assertTrue(self.page.locator('#bjBookWeeklySpread').evaluate('(x)=>x.hidden'))
         self.assertFalse(self.page.locator('#bjBookDailySpread').evaluate('(x)=>x.hidden'))
-        self.assertIn('A calm day',self.page.locator('#bjBookRecorded').inner_text())
+        self.assertEqual(self.page.locator('#bjBookPrompt-gratitude').input_value(),'A calm day')
         self.assertEqual(self.page.locator('#bjBookText').input_value(),'My own page')
         # The paper-embedded Weeks tab opens an actual, independent double page.
         self.page.locator('#bjBookDailySpread [data-bj-chapter="weekly"]').click()
@@ -864,7 +864,7 @@ class SeriesLibraryTests(unittest.TestCase):
         self.assertIn('2 recorded check-ins',self.page.locator('#bjBookHabitTracker').inner_text())
         self.page.locator('#bjBookWeekDays [data-bj-week-day="2026-10-14"]').click()
         self.assertEqual(self.page.evaluate("LifeRPGBulletJournalBook.getChapter()"),'daily')
-        self.assertIn('A calm day',self.page.locator('#bjBookRecorded').inner_text())
+        self.assertEqual(self.page.locator('#bjBookPrompt-gratitude').input_value(),'A calm day')
         self.assertEqual(self.page.locator('#bjBookText').input_value(),'My own page')
         self.page.locator('#bjBookDailySpread [data-bj-chapter="weekly"]').click()
         self.page.locator('[data-bj-action="week-prev"]').click()
