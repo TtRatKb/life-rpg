@@ -556,6 +556,7 @@
   }
 
   function openReflection(date = todayKey(), companionId = null) {
+    if (window.LifeRPGBulletJournalBook?.openReflection?.(date)) return;
     if (!els.reflectionDialog) return;
     reflectionDate = date;
     reflectionCompanion = companionId && companionAvailable(companionId) ? COMPANIONS[companionId] : companionForDate(date);
