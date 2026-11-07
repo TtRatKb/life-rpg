@@ -2048,11 +2048,12 @@ class SeriesLibraryTests(unittest.TestCase):
           return spread.getBoundingClientRect().width/main.getBoundingClientRect().width;
         }"""),0.9)
         self.assertEqual(self.page.locator('#bjBookDailySpread .bj-book-writing .bj-book-nav').count(),1)
-        self.assertEqual(self.page.locator('#bjBookPrompts .bj-book-prompt-card').count(),4)
+        self.assertEqual(self.page.locator('#bjBookPrompts .bj-book-prompt-card').count()+
+                         self.page.locator('#bjBookYearPrompt .bj-book-prompt-card').count(),4)
         self.page.locator('#bjBookDailySpread .bj-book-recorded-details>summary').click()
         self.assertIn('Played a cozy game',self.page.locator('#bjBookRecorded').inner_text())
         self.assertEqual(self.page.locator('#bjBookPrompt-gratitude').input_value(),'A quiet moment')
-        self.assertIn('A small beautiful thing',self.page.locator('#bjBookPrompts').inner_text())
+        self.assertIn('A small beautiful thing',self.page.locator('#bjBookYearPrompt').inner_text())
         self.assertEqual(self.page.locator('#bjBookText').input_value(),'')
         before=self.page.evaluate("""() => ({
           rewards:LifeRPGApp.getState().rewardLedger.events.length,
@@ -2090,7 +2091,8 @@ class SeriesLibraryTests(unittest.TestCase):
         self.page.add_script_tag(url='/bullet-journal-book.js')
         self.assertTrue(self.page.evaluate("LifeRPGBulletJournalBook.open('2020-04-17')"))
         self.assertEqual(self.page.locator('#bjBookText').input_value(),note)
-        self.assertEqual(self.page.locator('#bjBookPrompts .bj-book-prompt-card').count(),4)
+        self.assertEqual(self.page.locator('#bjBookPrompts .bj-book-prompt-card').count()+
+                         self.page.locator('#bjBookYearPrompt .bj-book-prompt-card').count(),4)
         self.assertEqual(self.page.evaluate(
           "LifeRPGApp.getState().story.bookRegressionMarker"),'keep')
 

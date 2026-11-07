@@ -388,7 +388,7 @@
 
     document.addEventListener("click", event => {
       const open = event.target.closest?.("[data-journal-reflect]");
-      if (open) openReflection(open.dataset.journalReflect || todayKey());
+      if (open) openReflection(open.dataset.journalReflect || todayKey(), null, open.dataset.journalField || null);
     });
 
     window.addEventListener("life-rpg:talent-v2-change", () => {
@@ -555,9 +555,9 @@
     }).join("");
   }
 
-  function openReflection(date = todayKey(), companionId = null) {
+  function openReflection(date = todayKey(), companionId = null, field = null) {
     // Check-in and reflection shortcuts open the dated journal book, not a new text modal.
-    if (window.LifeRPGBulletJournalBook?.openReflection) return window.LifeRPGBulletJournalBook.openReflection(date);
+    if (window.LifeRPGBulletJournalBook?.openReflection) return window.LifeRPGBulletJournalBook.openReflection(date, field);
     if (!els.reflectionDialog) return;
     reflectionDate = date;
     reflectionCompanion = companionId && companionAvailable(companionId) ? COMPANIONS[companionId] : companionForDate(date);
@@ -617,16 +617,26 @@
     if (!REFLECTION_META[field] || !reflectionFieldUnlocked(field) || !/^\d{4}-\d{2}-\d{2}$/.test(String(date))) {
       return {ok:false,reason:"invalid"};
     }
+    const wasPresent=Boolean(app.getState().journal?.entries?.[date]);
     const entry = entryFor(date, true);
     const value = cleanText(rawText);
     if (entry[field] === value || (!entry[field] && !value)) return {ok:true,unchanged:true};
+    const before={value:entry[field],prompt:entry.yearQuestionPrompt,updatedAt:entry.updatedAt};
     entry[field] = value;
     if (field === "yearQuestion" && !entry.yearQuestionPrompt) entry.yearQuestionPrompt = yearQuestionForDate(date);
     entry.updatedAt = Date.now();
-    const rewards = maybeAwardReflectionRewards(date, entry);
+    // Persist the text before the canonical reward call, so a rejected save cannot mint an award.
     if (app.saveState({source:"journal-book-reflection-"+field,suppressUiRefresh:true}) === false) {
+      if (before.value===undefined) delete entry[field];else entry[field]=before.value;
+      if (before.prompt===undefined) delete entry.yearQuestionPrompt;else entry.yearQuestionPrompt=before.prompt;
+      entry.updatedAt=before.updatedAt;
+      if(!wasPresent)delete app.getState().journal.entries[date];
       return {ok:false,reason:"storage"};
     }
+    const rewards = maybeAwardReflectionRewards(date, entry);
+    // Save the ledger changes as well; source/IDs/amounts remain the existing journal ones.
+    if (Number(rewards?.xp||0)||Number(rewards?.coins||0)||Number(rewards?.storyEnergy||0))
+      app.saveState({source:"journal-book-reflection-reward-"+field,suppressUiRefresh:true});
     render();
     return {ok:true,rewards};
   }
@@ -1109,6 +1119,31 @@
     return `<div class="journal-effort-meter-v310 ${historical ? "historical" : ""}"><div class="journal-effort-meter-top-v310"><span><b>${chars}</b> characters in this reflection</span><em>${reached} depth bonuses earned</em></div><i><b style="width:${Math.max(0,width)}%"></b></i><div>${historical ? `<strong>Saved ${esc(label).toLowerCase()} depth</strong><span>Older entries stay editable without creating backdated reward farming.</span>` : nextText}</div></div>`;
   }
 
+  // Read-only reward projection for the book. Only journal.js owns the thresholds and ledger rules.
+  function getReflectionRewardPreview(date,field,rawText) {
+    if(!REFLECTION_META[field])return null;
+    const chars=cleanText(rawText).length, reached=journalReachedTiers(chars);
+    const next=journalWritingTier(reached),previous=reached?journalWritingTier(reached-1).threshold:0;
+    const events=app.getState().rewardLedger?.events||[];
+    const paidEvents=events.filter(event=>event?.source==="journal-reflection-field-effort"&&!event.duplicate&&
+      event.metadata?.field===field&&String(event.sourceId||"").startsWith(String(date)+":"));
+    const paidThresholds=new Set(paidEvents.map(event=>Number(event.metadata?.threshold||0)).filter(Boolean));
+    const today=date===todayKey();
+    let readyToClaim=0;
+    if(today&&reflectionFieldUnlocked(field)){
+      const baseline=app.getState().journal?.migrations?.writingBeyond1000V0314do;
+      const oldChars=baseline?.day===date?Number(baseline.current?.[field]||0):0;
+      for(let n=0;n<reached;n++){
+        const tier=journalWritingTier(n);
+        if(!paidThresholds.has(tier.threshold)&&tier.threshold>oldChars&&
+           !independentTierAlreadyAwarded(date,field,n,tier.threshold))readyToClaim++;
+      }
+    }
+    return {chars,isHistorical:!today,paidTiers:paidThresholds.size,readyToClaim,
+      nextThreshold:next.threshold,remaining:Math.max(0,next.threshold-chars),nextXp:next.xp,nextCoins:next.coins,
+      progressPercent:Math.min(100,Math.max(0,Math.round(100*(chars-previous)/(next.threshold-previous))))};
+  }
+
   function renderReflectionRewardMeter() {
     if (!els.reflectionRewardMeter || !reflectionField) return;
     els.reflectionRewardMeter.innerHTML = rewardMeterMarkup(reflectionDraftCharacterCount(), reflectionDate, reflectionField);
@@ -1313,6 +1348,7 @@
     openReflection,
     openDayEditor,
     saveReflectionInBook,
+    getReflectionRewardPreview,
     isReflectionUnlocked: reflectionFieldUnlocked,
     reflectionPromptFor: (field,date=todayKey()) => field === "yearQuestion"
       ? (entryFor(date,false)?.yearQuestionPrompt || yearQuestionForDate(date))

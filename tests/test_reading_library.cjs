@@ -169,8 +169,9 @@ for (const name of ["library.js", "daily.js", "shop.js"]) {
   assert.ok(html.includes(`${name}?v=${version}`));
   assert.ok(worker.includes(`${name}?v=${version}`));
 }
-assert.ok(html.includes("pwa.js?v=0.31.4-cozy-cleanup-nono80-journal2"));
-assert.ok(worker.includes("pwa.js?v=0.31.4-cozy-cleanup-nono80-journal2"));
+const pwaRef=html.match(/pwa\.js\?v=[^"]+/)?.[0];
+assert.ok(pwaRef, "PWA loader should be versioned");
+assert.ok(worker.includes(pwaRef), "Service worker should precache current PWA loader");
 assert.match(dailySource, /available > 0 && current >= available/);
 assert.match(shopSource, /book\.kind === "fanfiction"/);
 

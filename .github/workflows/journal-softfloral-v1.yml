@@ -1,0 +1,43 @@
+name: Soft Floral Journal V1 · browser QA
+on:
+  pull_request:
+    paths:
+      - "journal-daily-spread-v1.css"
+      - "assets/journal/basic-*.svg"
+      - "bullet-journal-book.js"
+      - "journal.js"
+      - "index.html"
+      - "pwa.js"
+      - "service-worker.js"
+      - "tests/test_journal_softfloral_browser.py"
+      - "tests/test_cozy_cleanup_nono_journal.cjs"
+      - ".github/workflows/journal-softfloral-v1.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify-journal:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Static reward & source regressions
+        run: node tests/test_cozy_cleanup_nono_journal.cjs
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install Playwright and Chromium
+        run: |
+          python -m pip install playwright
+          python -m playwright install --with-deps chromium
+      - name: Journal Save/Reward/Responsive browser tests
+        run: python -m unittest discover -s tests -p 'test_journal_softfloral_browser.py' -v
+      - name: Upload real-browser screenshots (synthetic text)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: journal-softfloral-v1-screenshots
+          path: artifacts/journal-refresh-v1/*.png
+          if-no-files-found: warn

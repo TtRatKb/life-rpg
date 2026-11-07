@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="235" height="212" viewBox="0 0 235 212" fill="none">
+<!-- Original hand-drawn floral vignette: five-petal blossoms and a winding vine. -->
+<g stroke="#63765A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+<path d="M17 198C43 161 56 132 87 104c23-20 36-37 57-74M49 161c13-19 31-24 57-28M83 109C60 101 46 86 42 62M113 75c5 20 21 31 38 38" />
+<path d="M58 151c-13-12-28-13-40-5 13 13 27 15 40 5Zm25-31c-1-22 9-35 24-39 1 19-7 32-24 39Zm-30-32C39 73 26 75 20 81c9 15 21 17 33 7Zm76-28c18 0 29-11 31-27-17-1-28 8-31 27Zm-14 57c22-3 32 5 35 19-19 4-31-2-35-19Z" fill="#A8BEA1"/>
+</g>
+<g stroke="#876C78" stroke-width="1.5" stroke-linejoin="round">
+<g transform="translate(145 27)"><path d="M0-12C-12-24-23-9-12 0-25 2-24 20-7 14 0 26 15 21 14 9 27 4 22-12 9-11 9-25-4-25 0-12Z" fill="#FFFDF8"/><circle r="5" fill="#E8C99B"/><circle r="1.5" fill="#B88B6D"/></g>
+<g transform="translate(83 100) scale(.85)"><path d="M0-12C-12-24-23-9-12 0-25 2-24 20-7 14 0 26 15 21 14 9 27 4 22-12 9-11 9-25-4-25 0-12Z" fill="#FFFDF8"/><circle r="5" fill="#E8C99B"/></g>
+<g transform="translate(157 115) scale(.63)"><path d="M0-12C-12-24-23-9-12 0-25 2-24 20-7 14 0 26 15 21 14 9 27 4 22-12 9-11 9-25-4-25 0-12Z" fill="#FAEBF1"/><circle r="5" fill="#E7C496"/></g>
+<g transform="translate(35 64) scale(.58)"><path d="M0-12C-12-24-23-9-12 0-25 2-24 20-7 14 0 26 15 21 14 9 27 4 22-12 9-11 9-25-4-25 0-12Z" fill="#FFFDF8"/><circle r="5" fill="#E8C99B"/></g>
+</g><path d="m195 44 3 7 7 3-7 3-3 7-3-7-7-3 7-3 3-7ZM197 159l2 5 5 2-5 2-2 5-2-5-5-2 5-2 2-5Z" stroke="#AA8095" stroke-width="1.4" stroke-linejoin="round"/>
+</svg>
