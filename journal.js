@@ -388,7 +388,7 @@
 
     document.addEventListener("click", event => {
       const open = event.target.closest?.("[data-journal-reflect]");
-      if (open) openReflection(open.dataset.journalReflect || todayKey());
+      if (open) openReflection(open.dataset.journalReflect || todayKey(), null, open.dataset.journalField || null);
     });
 
     window.addEventListener("life-rpg:talent-v2-change", () => {
@@ -555,9 +555,9 @@
     }).join("");
   }
 
-  function openReflection(date = todayKey(), companionId = null) {
+  function openReflection(date = todayKey(), companionId = null, field = null) {
     // Check-in and reflection shortcuts open the dated journal book, not a new text modal.
-    if (window.LifeRPGBulletJournalBook?.openReflection) return window.LifeRPGBulletJournalBook.openReflection(date);
+    if (window.LifeRPGBulletJournalBook?.openReflection) return window.LifeRPGBulletJournalBook.openReflection(date, field);
     if (!els.reflectionDialog) return;
     reflectionDate = date;
     reflectionCompanion = companionId && companionAvailable(companionId) ? COMPANIONS[companionId] : companionForDate(date);
