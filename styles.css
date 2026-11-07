@@ -17591,3 +17591,17 @@ body.training-focus-active-v314o > *:not(#trainingFocusView):not(.toast):not(.ac
   .app-shell button, .app-shell input, .app-shell select, .app-shell textarea { font-size: max(0.95rem, 14px); }
   .app-shell small, .app-shell .eyebrow { font-size: max(.78rem, 13px); }
 }
+
+/* Nonogram Journey chapter 2: playable larger grids; scroll instead of shrinking touch targets to dust. */
+.nonogram-board-v314k.is-advanced-v2{--cell:clamp(23px,2.45vw,34px);justify-content:center}
+.nonogram-board-v314k.is-xl-v2{--cell:clamp(23px,2.05vw,30px);justify-content:center}
+.nonogram-grid-v314k button.nonogram-block-right{border-right:2px solid #70586c}
+.nonogram-grid-v314k button.nonogram-block-bottom{border-bottom:2px solid #70586c}
+@media(max-width:620px){
+ .nonogram-board-v314k.is-advanced-v2,
+ .nonogram-board-v314k.is-xl-v2{--cell:27px;justify-content:start;max-width:100%;overflow:auto}
+ .training-focus-mount-v314o .nonogram-board-v314k.is-advanced-v2,
+ .training-focus-mount-v314o .nonogram-board-v314k.is-xl-v2{--cell:27px;justify-content:start;overflow:auto}
+ .nonogram-board-v314k.is-xl-v2 .nonogram-col-clues-v314k>div,
+ .nonogram-board-v314k.is-xl-v2 .nonogram-row-clues-v314k>div{font-size:.67rem}
+}

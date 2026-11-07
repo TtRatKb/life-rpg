@@ -16,7 +16,7 @@
   <link rel="manifest" href="manifest.webmanifest?v=0.30.3a" />
   <link rel="apple-touch-icon" href="assets/app-icon-180.png?v=0.30.3a" />
   <link rel="icon" type="image/png" sizes="192x192" href="assets/app-icon-192.png?v=0.30.3a" />
-  <link rel="stylesheet" href="styles.css?v=0.31.4dz43" />
+  <link rel="stylesheet" href="styles.css?v=0.31.4-nono80a" />
   <link rel="stylesheet" href="health-bridge-dz44.css?v=0.31.4-health-echo1" />
   <link rel="stylesheet" href="play-qol-dz28.css?v=0.31.4dz28" />
   <link rel="stylesheet" href="ui-chrome.css?v=0.31.4dz19" />
@@ -42,7 +42,8 @@
   <link rel="stylesheet" href="relationship-memory.css?v=0.31.4ba" />
   <link rel="stylesheet" href="talks-v2.css?v=0.31.4cy" />
   <link rel="stylesheet" href="weekly-review.css?v=0.31.4ag" />
-  <link rel="stylesheet" href="bullet-journal-book.css?v=0.31.4-collections1" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&display=swap" />
+  <link rel="stylesheet" href="bullet-journal-book.css?v=0.31.4-journal-ink1" />
   <link rel="stylesheet" href="bullet-journal-monthly.css?v=0.31.4-monthly-preview1" />
   <link rel="stylesheet" href="bullet-journal-collections.css?v=0.31.4-collection-shelves2" />
   <link rel="stylesheet" href="bullet-journal-habit-tracker.css?v=0.31.4-journalux2b" />
@@ -67,20 +68,7 @@
   <link rel="stylesheet" href="dashboard-v2.css?v=0.31.4dz18" />
   <link rel="stylesheet" href="knowledge-practice.css?v=0.31.4dz22" />
   <link rel="stylesheet" href="holiday-planner.css?v=0.31.4dz23d" />
-  <link rel="stylesheet" href="todoist-sync.css?v=0.31.4dz28" />
-  <link rel="stylesheet" href="task-projects.css?v=0.31.4-task-projects1" />
-  <link rel="stylesheet" href="task-planning-ui.css?v=0.31.4-task-planning2" />
-  <link rel="stylesheet" href="task-pack-ui.css?v=0.31.4-private-pack1" />
-  <link rel="stylesheet" href="task-work-windows.css?v=0.31.4-work-windows1" />
-  <link rel="stylesheet" href="task-wizard.css?v=0.31.4-wizard1" />
-  <link rel="stylesheet" href="task-free-days.css?v=0.31.4-freedays1" />
-  <link rel="stylesheet" href="task-focus.css?v=0.31.4-focus1" />
-  <link rel="stylesheet" href="living-companion.css?v=0.31.4-lc4" />
-  <link rel="stylesheet" href="task-session-review.css?v=0.31.4-task-time2" />
-  <link rel="stylesheet" href="task-google-calendar.css?v=0.31.4-gcal1" />
   <link rel="stylesheet" href="qol-dz50c.css?v=0.31.4dz50c" />
-  <link rel="stylesheet" href="task-calm.css?v=0.31.4-radar1" />
-  <link rel="stylesheet" href="life-board.css?v=0.31.4-life-board1" />
   <link rel="stylesheet" href="series-library.css?v=0.31.4-series8">
 </head>
 <body>
@@ -212,8 +200,6 @@
             <div id="dailyRewardsList" class="daily-rewards-list-v314cv"></div>
           </section>
         </section>
-        <section id="taskPlanningTodayMount" aria-label="Task Companion · heutige Fristen und Kapazität"></section>
-        <section id="taskProjectTodayMount" aria-label="Alte Task-Companion-Kompatibilität"></section>
         <section id="milestonePanel" class="panel milestone-panel-v314cv" aria-labelledby="milestoneTitle">
           <div class="panel-heading"><div><p class="eyebrow">A LITTLE CLOSER</p><h2 id="milestoneTitle">Next Milestone ✦</h2><p class="muted">Real progress and available activities, not a second reward system.</p></div><label class="milestone-target-control-v314cv"><span>Target</span><select id="milestoneTarget" aria-label="Milestone target"><option value="shop">Current Wish</option><option value="story">Story Energy</option><option value="character">Character level</option><option value="skill">Skill level</option></select></label></div>
           <div id="milestoneContent" aria-live="polite"></div>
@@ -316,18 +302,7 @@
             <div id="socialPulse"></div>
           </section>
 
-          <section class="panel external-task-panel dashboard-external-card-v3 dashboard-context-card-v314au">
-            <div class="panel-heading">
-              <div><p class="eyebrow">REAL-LIFE CLEAR</p><h3>External Task</h3></div>
-              <span class="tiny-badge">Life RPG</span>
-            </div>
-            <div id="externalTaskTodaySummary" class="external-task-summary"></div>
-            <button class="secondary-button external-task-button" id="externalTaskButton" type="button">Manuell loggen</button>
-            <button class="secondary-button external-task-button" data-view-target="tasks" type="button">Meine Aufgaben öffnen →</button>
-            <p class="muted" style="font-size:.74rem">Synchronisierte Aufgaben bitte nicht zusätzlich manuell claimen.</p>
-          </section>
-
-          <section class="panel dashboard-growth-preview-v3 dashboard-context-card-v314au dashboard-growth-compact-v314au">
+<section class="panel dashboard-growth-preview-v3 dashboard-context-card-v314au dashboard-growth-compact-v314au">
             <div class="panel-heading">
               <div><p class="eyebrow">GROWTH</p><h3>What is changing?</h3></div>
               <button class="mini-nav-button" data-view-target="growth" type="button">Profile ›</button>
@@ -1233,7 +1208,7 @@
           </div>
           <div class="training-grounds-grid-v314k">
             <button class="training-card-v314k is-live" data-sudoku-open type="button"><span class="training-card-icon-v314k">🧩</span><div><small>LOGICAL THINKING</small><strong>Sudoku Journey</strong><p>50 fixed levels · Daily + Practice</p><em id="trainingGroundsSudokuStatus">Continue your Journey</em></div><b>›</b></button>
-            <button class="training-card-v314k is-live" data-nonogram-open type="button"><span class="training-card-icon-v314k">◩</span><div><small>LOGIC · PATTERN REASONING</small><strong>Nonogram Journey</strong><p>50 fixed picture-logic levels · 5×5 → 10×10</p><em id="trainingGroundsNonogramStatus">Level 1 / 50</em></div><b>›</b></button>
+            <button class="training-card-v314k is-live" data-nonogram-open type="button"><span class="training-card-icon-v314k">◩</span><div><small>LOGIC · PATTERN REASONING</small><strong>Nonogram Journey</strong><p>80 picture-logic levels · 5×5 → 15×15</p><em id="trainingGroundsNonogramStatus">Level 1 / 50</em></div><b>›</b></button>
             <button class="training-card-v314k is-planned logic-unlock-card-v314ar" data-logic-game="slitherlink" type="button"><span class="training-card-icon-v314k">◫</span><div><small>KNOWLEDGE · TALENT UNLOCK</small><strong>Slitherlink</strong><p>One-loop deduction · Daily + Practice</p><em data-logic-status="slitherlink">Locked · Knowledge Talent Tree</em></div><b>🔒</b></button>
             <button class="training-card-v314k is-planned logic-unlock-card-v314ar" data-logic-game="nurikabe" type="button"><span class="training-card-icon-v314k">▦</span><div><small>KNOWLEDGE · TALENT UNLOCK</small><strong>Nurikabe</strong><p>Islands and walls · Daily + Practice</p><em data-logic-status="nurikabe">Locked · Knowledge Talent Tree</em></div><b>🔒</b></button>
             <button class="training-card-v314k is-planned logic-unlock-card-v314ar" data-logic-game="kakuro" type="button"><span class="training-card-icon-v314k">＋</span><div><small>KNOWLEDGE · TALENT UNLOCK</small><strong>Kakuro</strong><p>Cross-sum deduction · Daily + Practice</p><em data-logic-status="kakuro">Locked · Knowledge Talent Tree</em></div><b>🔒</b></button>
@@ -1257,7 +1232,7 @@
         </section>
 
         <section class="panel nonogram-growth-panel-v314k" aria-labelledby="nonogramGrowthTitle">
-          <div class="nonogram-growth-copy-v314k"><p class="eyebrow">KNOWLEDGE · LOGIC · PATTERN REASONING</p><h2 id="nonogramGrowthTitle">Nonogram Journey</h2><p>Use row and column clues to reveal a hidden pixel pattern. The 50-level Journey starts with compact 5×5 grids and grows into 10×10 deduction puzzles.</p><div id="nonogramGrowthStats" class="sudoku-growth-stats-v314"><span><b>0/50</b> Journey</span><span><b>0</b> solved</span><span>▶ Level 1</span></div></div>
+          <div class="nonogram-growth-copy-v314k"><p class="eyebrow">KNOWLEDGE · LOGIC · PATTERN REASONING</p><h2 id="nonogramGrowthTitle">Nonogram Journey</h2><p>Use row and column clues to reveal a hidden pixel pattern. The 80-level Journey starts with compact 5×5 grids and grows into 10×10 deduction puzzles.</p><div id="nonogramGrowthStats" class="sudoku-growth-stats-v314"><span><b>0/50</b> Journey</span><span><b>0</b> solved</span><span>▶ Level 1</span></div></div>
           <button class="primary-button" data-nonogram-open type="button">◩ Open Nonogram Journey</button>
         </section>
 
@@ -1430,9 +1405,7 @@
         <div id="mealPlannerPageV314dz7"></div>
       </section>
       <!-- ADDITIVE VACATION BOARD: No existing Activity, Quests or Save sections changed. -->
-      <section id="view-tasks" class="view todoist-view"><div id="taskSessionActiveMount"></div><div id="taskProjectMount"></div><div id="taskPackMount"></div><details class="tp-tools"><summary>⚙ Weitere Möglichkeiten · Planung, Zeitfenster & Begleitung</summary><div id="taskWizardMount" class="twd-root"></div><div id="taskFreeDayMount"></div><div id="taskGoogleCalendarMount"></div><div id="taskWorkWindowsMount"></div><div id="taskPlanningPanel"></div></details></section>
       <!-- Removable experimental overview; reads existing sources, owns no save fields. -->
-      <section id="view-lifeboard" class="view life-board-view" aria-label="Life Board – visuelle Alltagsübersicht"><div id="lifeBoardMount"></div></section>
       <section id="view-breaks" class="view break-view"><div id="breakPlannerMount"></div></section>
 
             <!-- FOCUS / TIME / LIFE RHYTHM -->
@@ -2018,8 +1991,6 @@
       <button class="nav-button" data-view="journal"><span>🌸</span><small>Journal</small></button>
       <button class="nav-button" data-view="week"><span>▦</span><small>Meine Woche</small></button>
       <button class="nav-button" data-view="meals"><span>🍲</span><small>Essensplan</small></button>
-      <button class="nav-button" data-view="tasks"><span>☑</span><small>Meine Aufgaben</small></button>
-       <button class="nav-button" data-view="lifeboard"><span>✿</span><small>Life Board</small></button>
       <button class="nav-button" data-view="breaks"><span>🍁</span><small>Ferien & Auszeiten</small></button>
       <button class="nav-button" data-view="rhythm"><span>◷</span><small>Focus & Time</small></button>
       <button class="nav-button" data-view="activity"><span>≡</span><small>Activity</small></button>
@@ -3003,7 +2974,7 @@ League of Legends — PC" required></textarea></label>
       <p id="nonogramMeta" class="muted">Knowledge Realm · Logical Thinking · Chapter 1</p>
       <section id="nonogramDailyCard" class="nonogram-daily-card-v314k" aria-label="Daily Nonogram"></section>
       <section id="nonogramJourneyProgress" class="sudoku-journey-progress-v314h" aria-label="Nonogram Journey progress"></section>
-      <section class="nonogram-level-map-v314k" aria-labelledby="nonogramLevelMapTitle"><div class="sudoku-section-title-v314h"><div><small>LEVEL MAP</small><strong id="nonogramLevelMapTitle">Chapter 1 · Levels 1–50</strong></div><span>5×5 → 7×7 → 10×10 · completed levels can be replayed.</span></div><div id="nonogramLevelGrid" class="nonogram-level-grid-v314k"></div></section>
+      <section class="nonogram-level-map-v314k" aria-labelledby="nonogramLevelMapTitle"><div class="sudoku-section-title-v314h"><div><small>LEVEL MAP</small><strong id="nonogramLevelMapTitle">Journey · Levels 1–80</strong></div><span>5×5 → 7×7 → 10×10 → 12×12 → 15×15 · completed levels can be replayed.</span></div><div id="nonogramLevelGrid" class="nonogram-level-grid-v314k"></div></section>
       <section id="nonogramPlayPanel" class="training-play-panel-v314o nonogram-play-panel-v314o" data-training-play-panel>
         <div id="nonogramTools" class="nonogram-tools-v314k" aria-label="Nonogram drawing mode"><button class="active" data-nonogram-tool="fill" type="button">■ Fill</button><button data-nonogram-tool="cross" type="button">× Mark empty</button><button data-nonogram-tool="clear" type="button">○ Clear</button><small>Tip: right-click a cell to mark ×.</small></div>
         <div class="nonogram-checkpoints-dz28"><button type="button" id="nonogramCheckpointButton">◈ Versuchspunkt setzen</button><button type="button" id="nonogramRestoreButton" disabled>↩ Zum Versuchspunkt</button><small>Rot = dieser Zeile/Spalte widersprechen die Markierungen sicher.</small></div>
@@ -3337,59 +3308,8 @@ League of Legends — PC" required></textarea></label>
   </dialog>
 
   <!-- EXTERNAL TASK CLEAR -->
-  <dialog id="externalTaskDialog" class="rpg-dialog external-task-dialog">
-    <form method="dialog" id="externalTaskForm" class="rpg-dialog-form">
-      <div class="dialog-heading">
-        <div>
-          <p class="eyebrow">EXTERNAL TASK CLEAR</p>
-          <h2>Claim a Todoist reward</h2>
-        </div>
-        <button class="close-button" value="cancel" aria-label="Close">×</button>
-      </div>
 
-      <p class="muted external-dialog-copy">
-        The actual task stays in Todoist. A label is optional and only becomes part of your private Life RPG save.
-      </p>
-
-      <label>
-        Task label (optional)
-        <input id="externalTaskName" maxlength="90" placeholder="e.g. Finish lesson plan" />
-      </label>
-
-      <div class="form-grid">
-        <label>
-          Effort
-          <select id="externalTaskEffort">
-            <option>Low Energy</option>
-            <option selected>Normal</option>
-            <option>Boss</option>
-          </select>
-        </label>
-
-        <label>
-          Realm
-          <select id="externalTaskRealm"></select>
-        </label>
-      </div>
-      <label>
-        Trained Skill (optional — choose for ambiguous tasks)
-        <select id="externalTaskSkill"><option value="">Automatically from task/Realm</option></select>
-      </label>
-
-      <div id="externalTaskChainStatus" class="chain-log-status-v273 hidden" aria-live="polite"></div>
-      <div id="externalTaskPreview" class="reward-preview"></div>
-
-      <p class="muted external-reward-note">Story Energy uses the same diminishing daily schedule as normal quests, so important work helps without making overwork the optimal strategy.</p>
-
-      <menu>
-        <button class="secondary-button" value="cancel">Done</button>
-        <button class="secondary-button" id="confirmExternalTaskDoneButton" type="button">Claim & done</button>
-        <button class="primary-button" id="confirmExternalTaskButton" type="button">Claim & another</button>
-      </menu>
-    </form>
-  </dialog>
-
-  <!-- CLOUD CONFLICT -->
+<!-- CLOUD CONFLICT -->
   <dialog id="cloudConflictDialog" class="cloud-conflict-dialog rpg-dialog">
     <form method="dialog">
       <div class="dialog-heading">
@@ -3629,8 +3549,9 @@ League of Legends — PC" required></textarea></label>
   <script src="inspirations.js?v=0.31.4c"></script>
   <script src="data/sudoku-levels.js?v=0.31.4h"></script>
   <script src="sudoku.js?v=0.31.4dz28"></script>
-  <script src="data/nonogram-levels.js?v=0.31.4k"></script>
-  <script src="nonogram.js?v=0.31.4dz28"></script>
+  <script src="data/nonogram-levels.js?v=0.31.4-nono80a"></script>
+  <script src="data/nonogram-levels-chapter2.js?v=0.31.4-nono80a"></script>
+  <script src="nonogram.js?v=0.31.4-nono80a"></script>
   <script src="data/number-sense-levels.js?v=0.31.4l"></script>
   <script src="number-sense.js?v=0.31.4z"></script>
   <script src="recovery-studio.js?v=0.31.4dz36"></script>
@@ -3642,28 +3563,11 @@ League of Legends — PC" required></textarea></label>
   <script src="smart-action-router.js?v=0.31.4dz4"></script>
   <script src="smart-quests.js?v=0.31.0"></script>
   <script src="japanese-practice-library.js?v=0.31.4dz4"></script>
-  <script src="todoist-sync.js?v=0.31.4dz28"></script>
-  <script src="task-projects-core.js?v=0.31.4-radar1"></script>
-  <script src="task-progress-core.js?v=0.31.4-task-time2"></script>
-  <script src="task-projects.js?v=0.31.4-radar1"></script>
-  <script src="task-planning-core.js?v=0.31.4-calm1"></script>
-  <script src="task-planning-ui.js?v=0.31.4-radar1"></script>
-  <script src="task-pack-core.js?v=0.31.4-calm1"></script>
-  <script src="task-pack-ui.js?v=0.31.4-calm1"></script>
-  <script src="task-work-windows-core.js?v=0.31.4-work-windows1"></script>
-  <script src="task-work-windows.js?v=0.31.4-work-windows1"></script>
-  <script src="task-wizard.js?v=0.31.4-wizard1"></script>
-  <script src="task-free-days-core.js?v=0.31.4-freedays1"></script>
-  <script src="task-google-calendar-core.js?v=0.31.4-gcal1"></script>
-  <script src="task-google-calendar.js?v=0.31.4-gcal1"></script>
-  <script src="task-focus-core.js?v=0.31.4-focus1"></script>
-  <script src="task-free-days.js?v=0.31.4-task-time2"></script>
-  <script src="task-session-review.js?v=0.31.4-task-time2"></script>
   <script src="holiday-planner.js?v=0.31.4dz28"></script>
   <script src="daily.js?v=0.31.4-reading1"></script>
   <script src="data/year-journal-questions.js?v=0.31.4ar"></script>
-  <script src="journal.js?v=0.31.4-book1"></script>
-  <script src="bullet-journal-book.js?v=0.31.4-collections1"></script>
+  <script src="journal.js?v=0.31.4-journal-ink1"></script>
+  <script src="bullet-journal-book.js?v=0.31.4-journal-ink2"></script>
   <script src="bullet-journal-monthly.js?v=0.31.4-monthly-preview1"></script>
   <script src="bullet-journal-collections.js?v=0.31.4-collection-shelves2"></script>
   <script src="bullet-journal-atelier.js?v=0.31.4-atelier-direct-handles1"></script>
@@ -3710,19 +3614,14 @@ League of Legends — PC" required></textarea></label>
   <script type="module" src="cloud-save.js?v=0.31.4dz50c-save-safety1"></script>
   <script src="health-import-core.js?v=0.31.4-healthbatch1"></script>
   <script type="module" src="health-bridge-dz44.js?v=0.31.4-health-echo1"></script>
-  <script src="pwa.js?v=0.31.4-manga-lookup1"></script>
-  <script src="life-hub-v314dk.js?v=0.31.4-life-board-nav1"></script>
+  <script src="pwa.js?v=0.31.4-cozy-cleanup-nono80-journal2"></script>
+  <script src="life-hub-v314dk.js?v=0.31.4-pruned1"></script>
   <script src="creative-hub-v314dl.js?v=0.31.4dz50c"></script>
   <script src="knowledge-workshop.js?v=0.31.4do"></script>
   <script src="knowledge-practice.js?v=0.31.4dz22"></script>
   <script src="work-event-bridge.js?v=0.31.4dz49"></script>
   <script type="module" src="work-event-cloud.js?v=0.31.4dz49"></script>
   <script src="dashboard-v2.js?v=0.31.4dz20"></script>
-  <script src="living-companion-core.js?v=0.31.4-lc3"></script>
-  <script src="living-companion-personality.js?v=0.31.4-lc4"></script>
-  <script src="living-companion.js?v=0.31.4-kirishima-nine1"></script>
-   <script src="life-board-core.js?v=0.31.4-life-board1"></script>
-   <script src="life-board.js?v=0.31.4-life-board1"></script>
   <script>window.addEventListener('DOMContentLoaded',()=>{requestAnimationFrame(()=>requestAnimationFrame(()=>document.documentElement.classList.remove('life-rpg-hydrating')));},{once:true});</script>
 </body>
 </html>

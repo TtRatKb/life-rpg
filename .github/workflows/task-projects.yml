@@ -1,4 +1,4 @@
-name: Task project regression checks
+name: Legacy task source and Life RPG regression checks
 
 on:
   pull_request:
@@ -34,6 +34,7 @@ on:
       - 'shop.js'
       - 'tests/test_reading_library.cjs'
       - 'tests/test_reading_library_browser.py'
+      - 'tests/test_journal_book_browser.py'
       - 'relationship-engine.js'
       - 'companion-moments.js'
       - 'companion-moments-v2.js'
@@ -113,6 +114,7 @@ on:
       - 'shop.js'
       - 'tests/test_reading_library.cjs'
       - 'tests/test_reading_library_browser.py'
+      - 'tests/test_journal_book_browser.py'
       - 'relationship-engine.js'
       - 'companion-moments.js'
       - 'companion-moments-v2.js'
@@ -231,70 +233,11 @@ jobs:
         run: |
           python -m pip install playwright
           python -m playwright install --with-deps chromium
-      - name: Browser smoke test with synthetic tasks
-        run: python -m unittest discover -s tests -p 'test_task_projects_browser.py' -v
+      # Retired task UI must not be brought back by an old smoke test.
+      # The source-level task data/rollback tests above are retained for legacy saves.
       - name: Browser smoke test for reading formats
         run: python -m unittest discover -s tests -p 'test_reading_library_browser.py' -v
-      - name: Confirm assets are wired into document and offline cache
-        run: |
-          node - <<'NODE'
-          const fs = require('node:fs');
-          const html=fs.readFileSync('index.html','utf8'),sw=fs.readFileSync('service-worker.js','utf8');
-          for (const asset of ['task-projects-core.js']) {
-            if (!html.includes(asset+'?v=0.31.4-radar1') || !sw.includes(asset+'?v=0.31.4-radar1')) throw Error('Asset not registered: '+asset);
-          }
-          if (!html.includes('id="taskProjectMount"') || !html.includes('id="taskProjectTodayMount"')) throw Error('Task project mount missing');
-          for (const asset of ['task-planning-core.js']) {
-            if (!html.includes(asset+'?v=0.31.4-calm1') || !sw.includes(asset+'?v=0.31.4-calm1')) throw Error('Asset not registered: '+asset);
-          }
-          if(html.includes('id="todoistPageMount"'))throw Error('Legacy Todoist mount should no longer exist in native task page');
-          if(!html.includes('id="taskPlanningPanel"')||!html.includes('id="taskPlanningTodayMount"'))throw Error('New native task mounts missing');
-          for (const asset of ['task-pack-core.js','task-pack-ui.js']) {
-            if (!html.includes(asset+'?v=0.31.4-calm1') || !sw.includes(asset+'?v=0.31.4-calm1')) throw Error('Private task import asset missing: '+asset);
-          }
-          if(!html.includes('id="taskPackMount"'))throw Error('Private import mount missing');
-          for (const asset of ['task-work-windows-core.js','task-work-windows.js','task-work-windows.css']) {
-            if (!html.includes(asset+'?v=0.31.4-work-windows1') || !sw.includes(asset+'?v=0.31.4-work-windows1')) throw Error('Task window asset missing: '+asset);
-          }
-          for (const asset of ['task-wizard.js','task-wizard.css']) {
-            if (!html.includes(asset+'?v=0.31.4-wizard1') || !sw.includes(asset+'?v=0.31.4-wizard1')) throw Error('Wizard asset missing: '+asset);
-          }
-          for (const id of ['taskWizardMount','taskWorkWindowsMount','taskWorkWindowsWeekMount'])
-            if (!html.includes('id="'+id+'"')) throw Error('Missing UI mount: '+id);
-          for (const [asset,ver] of [
-            ['task-free-days-core.js','0.31.4-freedays1'],['task-free-days.css','0.31.4-freedays1'],
-            ['task-google-calendar-core.js','0.31.4-gcal1'],['task-google-calendar.js','0.31.4-gcal1'],['task-google-calendar.css','0.31.4-gcal1']])
-            if(!html.includes(asset+'?v='+ver)||!sw.includes(asset+'?v='+ver))throw Error('Missing calendar/free-day asset '+asset);
-          for (const id of ['taskFreeDayMount','taskGoogleCalendarMount'])
-            if (!html.includes('id="'+id+'"')) throw Error('Missing companion mount: '+id);
-          for (const [asset,version] of [
-            ['living-companion-personality.js','0.31.4-lc4'],
-            ['living-companion.js','0.31.4-kirishima-nine1'],
-            ['bakugo-visual-map.js','0.31.4-bakugo-hero-seven1'],
-            ['kirishima-visual-map.js','0.31.4-kirishima-nine1'],
-            ['story-ui.js','0.31.4-kirishima-nine1'],
-            ['living-world-v3.js','0.31.4-kirishima-nine1'],
-            ['living-companion.css','0.31.4-lc4'],
-            ['life-hub-v314dk.js','0.31.4-life-board-nav1']
-          ]) {
-            if(!html.includes(asset+'?v='+version)||!sw.includes(asset+'?v='+version))throw Error('Missing Companion/Home asset '+asset);
-          }
-          for (const asset of ['task-focus-core.js','task-focus.css']) {
-            if(!html.includes(asset+'?v=0.31.4-focus1') || !sw.includes(asset+'?v=0.31.4-focus1'))throw Error('Focus companion asset missing: '+asset);
-          }
-          for (const asset of ['task-progress-core.js','task-session-review.js','task-session-review.css',
-            'task-free-days.js','time.js','my-week.js','universal-timers.js','activity-log.js']) {
-            if(!html.includes(asset+'?v=0.31.4-task-time2') || !sw.includes(asset+'?v=0.31.4-task-time2')) throw Error('Task/time asset missing: '+asset);
-          }
-          for (const [asset,ver] of [
-            ['task-projects.js','0.31.4-radar1'],['task-planning-ui.js','0.31.4-radar1'],
-            ['task-planning-core.js','0.31.4-calm1'],['task-pack-ui.js','0.31.4-calm1'],['task-calm.css','0.31.4-radar1']])
-            if(!html.includes(asset+'?v='+ver)||!sw.includes(asset+'?v='+ver))throw Error('Calm Task asset missing: '+asset);
-          for(const asset of ['life-board-core.js','life-board.js','life-board.css']){
-            if(!html.includes(asset+'?v=0.31.4-life-board1')||!sw.includes(asset+'?v=0.31.4-life-board1'))throw Error('Optional Life Board asset missing: '+asset);
-          }
-          if(!html.includes('id="lifeBoardMount"')||!html.includes('id="view-lifeboard"')||
-              !html.includes('data-view="lifeboard"'))throw Error('Optional Life Board route missing');
-          if(!html.includes('id="taskSessionActiveMount"'))throw Error('Task timer status mount missing');
-          console.log('Task project assets and mounts registered');
-          NODE
+      - name: Browser smoke test for direct Journal reflection and lossless reload
+        run: python -m unittest discover -s tests -p 'test_journal_book_browser.py' -v
+      - name: Verify current app hides retired task/companion and preserves Nonogram/Journal wiring
+        run: node tests/test_cozy_cleanup_nono_journal.cjs
