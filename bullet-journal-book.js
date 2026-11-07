@@ -4,7 +4,7 @@
   const app = window.LifeRPGApp;
   const journal = window.LifeRPGJournal;
   if (!app?.getState || !app?.saveState || !journal?.getEntry || window.LifeRPGBulletJournalBook) return;
-  const VERSION = "0.31.4-collections1";
+  const VERSION = "0.31.4-reflection-book1";
   const htmlEscape = value => String(value ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
   const get = id => document.getElementById(id);
   const dateKey = d => [d.getFullYear(), String(d.getMonth()+1).padStart(2,"0"), String(d.getDate()).padStart(2,"0")].join("-");
@@ -49,7 +49,13 @@
     const events=getActivities(key);
     let blocks="";
     if(metrics.length)blocks+='<div class="bj-book-metrics">'+metrics.map(([id,label])=>'<span><strong>'+label+'</strong> '+htmlEscape(entry[id])+'</span>').join("")+'</div>';
-    for(const [id,label] of answered){
+    const reflectionFields=[["gratitude","🌸 Something I'm grateful for"],["smallWin","⭐ Something that went well"],["hardThing","🌧 Something that was hard"]];
+    for(const [id,label] of reflectionFields){
+      blocks+='<section class="bj-book-reflection"><label for="bj-reflect-'+id+'">'+htmlEscape(label)+'</label>'+
+        '<textarea id="bj-reflect-'+id+'" data-bj-reflection="'+id+'" rows="3" placeholder="Write a little something…" spellcheck="true">'+htmlEscape(entry[id]||"")+'</textarea>'+
+        '<button type="button" class="secondary-button" data-bj-reflection-save="'+id+'">Save reflection</button></section>';
+    }
+    for(const [id,label] of answered.filter(([id])=>!["gratitude","smallWin","hardThing"].includes(id))){
       const title=id==="yearQuestion"&&entry.yearQuestionPrompt?entry.yearQuestionPrompt:label;
       blocks+='<section class="bj-book-answer"><small>'+htmlEscape(title)+'</small><p>'+htmlEscape(entry[id])+'</p></section>';
     }
@@ -194,6 +200,8 @@
       if(monthDay){open(monthDay.dataset.bjMonthDay);return;}
       const dayButton=e.target.closest?.("[data-bj-week-day]");
       if(dayButton){open(dayButton.dataset.bjWeekDay);return;}
+      const reflectionSave=e.target.closest?.("[data-bj-reflection-save]");
+      if(reflectionSave){saveReflection(reflectionSave.dataset.bjReflectionSave);return;}
       const button=e.target.closest?.("[data-bj-action]");
       if(!button)return;
       const action=button.dataset.bjAction;
@@ -238,6 +246,32 @@
     }
     savedNote=value;dirty=false;noteStatus("Saved ✓");
     if(showToast)app.showToast?.("📖 Page saved");
+    return true;
+  }
+  function saveReflection(field){
+    if(!["gratitude","smallWin","hardThing"].includes(field)||!activeDay)return false;
+    const el=get("bj-reflect-"+field);
+    if(!el)return false;
+    const root=app.getState();
+    root.journal ||= {schemaVersion:2,entries:{},migrations:{}};
+    root.journal.entries ||= {};
+    const entry=root.journal.entries[activeDay] ||= {date:activeDay,createdAt:Date.now()};
+    const value=String(el.value||"").trim();
+    if(entry[field]===value){app.showToast?.("Already saved ♡");return true;}
+    entry[field]=value;
+    entry.updatedAt=Date.now();
+    if(app.saveState({source:"bullet-journal-reflection",suppressUiRefresh:true})===false){
+      app.showToast?.("Could not save this reflection");return false;
+    }
+    journal.awardPendingReflectionRewards?.(activeDay);
+    app.showToast?.("🌸 Reflection saved in your journal");
+    return true;
+  }
+  function openReflection(target=today()){
+    if(!open(target))return false;
+    const input=get("bj-reflect-gratitude");
+    input?.scrollIntoView?.({block:"center",behavior:"smooth"});
+    input?.focus?.({preventScroll:true});
     return true;
   }
   function renderDay(){
@@ -378,5 +412,5 @@
   });
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",initialize,{once:true});
   else initialize();
-  window.LifeRPGBulletJournalBook={version:VERSION,open,openWeekly,openMonth,openCollections,close,save,changeDate,changeWeek,changeMonth,showChapter,getDate:()=>activeDay,getWeek:()=>activeWeek,getMonth:()=>activeMonth,getChapter:()=>chapter};
+  window.LifeRPGBulletJournalBook={version:VERSION,open,openReflection,openWeekly,openMonth,openCollections,close,save,changeDate,changeWeek,changeMonth,showChapter,getDate:()=>activeDay,getWeek:()=>activeWeek,getMonth:()=>activeMonth,getChapter:()=>chapter};
 })();
