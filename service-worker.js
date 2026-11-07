@@ -1,4 +1,4 @@
-const CACHE_NAME = "life-rpg-v0.31.4-softfloral-v1";
+const CACHE_NAME = "life-rpg-v0.31.4-softfloral-v1fonts";
 const ASSET_CACHE_NAME = "life-rpg-assets-v6";
 const MAX_RUNTIME_ASSETS = 96;
 const CORE = [
@@ -179,10 +179,12 @@ const CORE = [
   "./journal-rewards.js?v=0.31.4ag",
   "./weekly-review.css?v=0.31.4ag",
   "./bullet-journal-book.css?v=0.31.4-journal-ink1",
-  "./journal-daily-spread-v1.css?v=0.31.4-softfloral-v1",
+  "./journal-daily-spread-v1.css?v=0.31.4-softfloral-v1fonts",
   "./assets/journal/basic-floral-sprig.svg",
   "./assets/journal/basic-moon-window.svg",
   "./assets/journal/basic-blossom-doodle.svg",
+  "./assets/journal/fonts/Caveat.ttf",
+  "./assets/journal/fonts/DancingScript.ttf",
   "./bullet-journal-monthly.css?v=0.31.4-monthly-preview1",
   "./bullet-journal-collections.css?v=0.31.4-collection-shelves2",
   "./bullet-journal-habit-tracker.css?v=0.31.4-journalux2b",
