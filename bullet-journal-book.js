@@ -259,6 +259,79 @@
     main.appendChild(bookView);
     return bookView;
   }
+  function extraValues(day) {
+    const data=entryFor(day).dailySpreadV1;
+    return data&&typeof data==="object"&&!Array.isArray(data)?data:{};
+  }
+  function renderExtras(day) {
+    const values=extraValues(day);
+    for(const field of EXTRA_FIELDS){
+      const input=get("bjExtra-"+field);
+      if(input)input.value=typeof values[field]==="string"?values[field]:"";
+      const status=bookView?.querySelector('[data-bj-extra-status="'+field+'"]');
+      if(status)status.textContent=(String(values[field]||"").trim().length)+" characters · personal note";
+    }
+  }
+  function queueExtra(field,day,value) {
+    if(!EXTRA_FIELDS.includes(field))return;
+    const old=pendingExtras.get(field);
+    if(old?.timer)clearTimeout(old.timer);
+    const status=bookView?.querySelector('[data-bj-extra-status="'+field+'"]');
+    if(status)status.textContent=value.trim().length+" characters · writing…";
+    pendingExtras.set(field,{day,value,timer:setTimeout(()=>saveExtra(field),900)});
+  }
+  function saveExtra(field) {
+    const pending=pendingExtras.get(field);
+    if(!pending)return true;
+    clearTimeout(pending.timer);
+    const state=app.getState();
+    const journalData=state.journal;
+    if(!journalData?.entries)return false;
+    const prior=journalData.entries[pending.day];
+    const hadEntry=Boolean(prior);
+    const entry=prior||{date:pending.day,createdAt:Date.now()};
+    const oldValue=entry.dailySpreadV1?{...entry.dailySpreadV1}:null;
+    const oldUpdatedAt=entry.updatedAt;
+    const data=entry.dailySpreadV1||{};
+    if(data[field]===pending.value){pendingExtras.delete(field);return true;}
+    journalData.entries[pending.day]=entry;
+    entry.dailySpreadV1={...data,[field]:pending.value};
+    entry.updatedAt=Date.now();
+    const status=bookView?.querySelector('[data-bj-extra-status="'+field+'"]');
+    if(app.saveState({source:"journal-book-extra-"+field,suppressUiRefresh:true})===false){
+      if(hadEntry){if(oldValue)entry.dailySpreadV1=oldValue;else delete entry.dailySpreadV1;entry.updatedAt=oldUpdatedAt;}
+      else delete journalData.entries[pending.day];
+      if(status)status.textContent="Save failed — your text is still here";
+      pending.timer=null;
+      return false;
+    }
+    pendingExtras.delete(field);
+    if(status)status.textContent=pending.value.trim().length+" characters · saved ✓";
+    return true;
+  }
+  function savePendingExtras() {
+    let okay=true;
+    for(const field of [...pendingExtras.keys()])if(!saveExtra(field))okay=false;
+    return okay;
+  }
+  function previewMarkup(field,day,text){
+    const p=journal.getReflectionRewardPreview?.(day,field,text);
+    if(!p)return "";
+    const next=p.historical?"Past-day writing · no backdated bonuses":
+      p.remaining+" characters until next bonus · +"+p.nextReward.xp+" XP / "+p.nextReward.coins+" coins";
+    return '<div class="bj-reward-preview" data-bj-preview="'+field+'">'+
+      '<span><strong>'+p.chars+' characters</strong> · '+p.paid+' bonuses recorded</span>'+
+      '<div class="bj-reward-meter" aria-hidden="true"><i style="width:'+p.progress+'%"></i></div>'+
+      '<span>'+htmlEscape(next)+'</span></div>';
+  }
+  function updatePromptPreview(field,text,day){
+    const status=bookView?.querySelector('[data-bj-preview="'+field+'"]');
+    if(!status)return;
+    const replacement=document.createElement("div");
+    replacement.innerHTML=previewMarkup(field,day,text);
+    const child=replacement.firstElementChild;
+    if(child)status.replaceWith(child);
+  }
   function renderPrompts(key) {
     const mount=get("bjBookPrompts");
     if(!mount)return;
@@ -273,7 +346,7 @@
       const content=locked
         ? '<div class="bj-book-answer"><p>'+htmlEscape(value)+'</p></div><small>Saved previously · read only</small>'
         : '<textarea id="bjBookPrompt-'+field+'" data-bj-prompt="'+field+'" rows="3" maxlength="2400" spellcheck="true" placeholder="'+htmlEscape(hint)+'">'+htmlEscape(value)+'</textarea>'+
-          '<small data-bj-prompt-status="'+field+'" aria-live="polite">'+(value?'Saved':'Optional · no pressure')+'</small>';
+          '<small data-bj-prompt-status="'+field+'" aria-live="polite">'+(value?'Saved':'Optional · no pressure')+'</small>'+previewMarkup(field,key,value);
       return '<section class="bj-book-prompt-card" data-bj-field="'+field+'">'+
         '<label'+(locked?'':' for="bjBookPrompt-'+field+'"')+'><span aria-hidden="true">'+icon+'</span>'+
         '<span>'+htmlEscape(prompt)+'</span></label>'+content+'</section>';
@@ -285,7 +358,16 @@
     if(pending.timer)clearTimeout(pending.timer);
     const result=journal.saveReflectionInBook?.(pending.day,field,pending.value);
     const status=bookView?.querySelector('[data-bj-prompt-status="'+field+'"]');
-    if(result?.ok){pendingPrompts.delete(field);if(status)status.textContent="Saved ✓";return true;}
+    if(result?.ok){
+      pendingPrompts.delete(field);
+      if(status){
+        const rewards=result.rewards||{};
+        const parts=[rewards.xp?("+"+rewards.xp+" XP"):"",rewards.coins?("+"+rewards.coins+" coins"):""].filter(Boolean);
+        status.textContent=parts.length?"Saved ✓ · "+parts.join(" · "):"Saved ✓";
+      }
+      updatePromptPreview(field,pending.value,pending.day);
+      return true;
+    }
     pending.timer=null;
     if(status)status.textContent="Not saved — please retry";
     return false;
