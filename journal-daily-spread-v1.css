@@ -5,7 +5,7 @@
   --journal-sage:#e8f0e6;--journal-blush:#f9e9f0;--journal-lavender:#efe8f6;
   --journal-outline:rgba(113,96,105,.17);--journal-writing-line:rgba(104,93,106,.12);
   --journal-calligraphy:"Parisienne","Allura","Apple Chancery",cursive;
-  --journal-handwriting:"Sue Ellen Francisco","Shadows Into Light","Noteworthy",sans-serif;
+  --journal-handwriting:"Shadows Into Light","Sue Ellen Francisco","Noteworthy",sans-serif;
   --journal-ui:"Nunito Sans","Avenir Next",system-ui,sans-serif;
 }
 #bjBookDailySpread.bj-book-spread {
