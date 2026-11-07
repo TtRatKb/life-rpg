@@ -121,8 +121,18 @@ class SoftFloralJournalBrowser(unittest.TestCase):
         self.page.screenshot(path=str(ARTIFACTS / "journal-desktop-1440.png"),full_page=True,animations="disabled")
         self.page.set_viewport_size({"width":390,"height":844})
         self.page.screenshot(path=str(ARTIFACTS / "journal-mobile-390.png"),full_page=True,animations="disabled")
-        horizontal=self.page.evaluate("""()=>document.documentElement.scrollWidth>window.innerWidth+2""")
-        self.assertFalse(horizontal,"Mobile should not horizontally overflow")
+        metrics=self.page.evaluate("""() => ({
+            window:window.innerWidth,
+            scroll:document.documentElement.scrollWidth,
+            elements:[...document.querySelectorAll('body *')].filter(e=>{
+                const r=e.getBoundingClientRect();
+                return r.right>window.innerWidth+2 && r.width>0;
+            }).slice(0,12).map(e=>({id:e.id,tag:e.tagName,
+                cls:String(e.className).slice(0,60),right:Math.round(e.getBoundingClientRect().right)}))
+        })""")
+        if metrics["scroll"]>metrics["window"]+2:
+            print("MOBILE_OVERFLOW_DIAGNOSTICS", metrics,flush=True)
+        self.assertLessEqual(metrics["scroll"],metrics["window"]+2,"Mobile should not horizontally overflow")
 
 if __name__=="__main__":
     unittest.main()
