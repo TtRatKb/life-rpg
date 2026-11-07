@@ -271,3 +271,10 @@
 .bj-book-metrics span{background:#f7effb;border-color:#eadbed;color:#654c6f}
 .bj-book-week-intro{background:#f8f0fd;border-left-color:#c6a6d5}
 @media(max-width:750px){.bj-book-recorded{border-top:2px solid #e9dbef}}
+
+/* Inline journal prompts use the same daily entry fields as the original reflection editor. */
+.bj-book-reflection{display:grid;gap:8px;padding:13px 14px;border:1px solid #e8dbef;border-radius:13px;background:#fff;box-shadow:0 3px 12px rgba(84,55,101,.045)}
+.bj-book-reflection label{color:#765584;font-weight:750;font-size:.82rem}
+.bj-book-reflection textarea{resize:vertical;min-height:76px;width:100%;box-sizing:border-box;border:0;border-bottom:1px dashed #e4d6e9;background:transparent;outline-offset:3px;padding:6px 2px 9px;font-family:"Noteworthy","Segoe Print","Bradley Hand","Chalkboard SE","Comic Sans MS",cursive;font-size:1.05rem;line-height:1.6;color:#4d405c}
+.bj-book-reflection textarea::placeholder{color:#b3a4be}
+.bj-book-reflection button{justify-self:end;padding:6px 10px;font-size:.74rem}
