@@ -1308,8 +1308,36 @@
     return esc(value).replaceAll("`", "&#096;");
   }
 
+  // Read-only bridge for the actual Journal Book UI. Reuses the canonical
+  // thresholds and ledger dedupe above; typing must NEVER award rewards.
+  function getReflectionRewardPreview(date,field,draftText) {
+    if(!REFLECTION_META[field]) return null;
+    const chars=cleanText(draftText).length;
+    const reached=journalReachedTiers(chars);
+    const next=journalWritingTier(reached);
+    const previous=reached?journalWritingTier(reached-1).threshold:0;
+    const historical=date!==todayKey();
+    const ledger=app.getState().rewardLedger?.events||[];
+    const issued=ledger.filter(event=>
+      !event?.duplicate && event?.source==="journal-reflection-field-effort" &&
+      (String(event?.sourceId||"").startsWith(date+":"+field+":") ||
+       (String(event?.sourceId||"").startsWith(date+":") && event?.metadata?.field===field))
+    );
+    const earned=issued.reduce((total,event)=>{
+      total.xp+=Number(event.xp||0);
+      total.coins+=Number(event.coins||0);
+      total.storyEnergy+=Number(event.storyEnergy||0);
+      return total;
+    },{xp:0,coins:0,storyEnergy:0});
+    return {chars,reached,paid:issued.length,earned,historical,
+      nextThreshold:next.threshold,remaining:Math.max(0,next.threshold-chars),
+      nextReward:{xp:next.xp,coins:next.coins,storyEnergyBase:next.storyEnergyBase},
+      progress:Math.max(0,Math.min(100,Math.round(100*(chars-previous)/(next.threshold-previous))))};
+  }
+
   window.LifeRPGJournal = {
     render,
+    getReflectionRewardPreview,
     openReflection,
     openDayEditor,
     saveReflectionInBook,
