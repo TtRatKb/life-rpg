@@ -1,0 +1,29 @@
+name: Cozy cleanup, Nonogram and Journal regressions
+on:
+  pull_request:
+    paths:
+      - "index.html"
+      - "life-hub-v314dk.js"
+      - "journal.js"
+      - "bullet-journal-book.js"
+      - "bullet-journal-book.css"
+      - "nonogram.js"
+      - "data/nonogram-levels*.js"
+      - "service-worker.js"
+      - "pwa.js"
+      - "tests/test_cozy_cleanup_nono_journal.cjs"
+      - ".github/workflows/cozy-nonogram-journal.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  focused-regressions:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Test retired task UI, journal and 30 Nonogram levels
+        run: node tests/test_cozy_cleanup_nono_journal.cjs
