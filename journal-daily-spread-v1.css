@@ -4,8 +4,8 @@
   --journal-paper:#fffefd;--journal-paper-alt:#fcfaff;--journal-ink:#463c4d;
   --journal-sage:#e8f0e6;--journal-blush:#f9e9f0;--journal-lavender:#efe8f6;
   --journal-outline:#d9c8d8;--journal-writing-line:#e8dce8;
-  --journal-calligraphy:"Dancing Script","Snell Roundhand","Apple Chancery",cursive;
-  --journal-handwriting:"Caveat","Segoe Print","Bradley Hand",cursive;
+  --journal-calligraphy:"Dancing Script","Snell Roundhand","Apple Chancery","Z003",cursive;
+  --journal-handwriting:"Caveat","Noteworthy","Segoe Print","Bradley Hand","Purisa","Comic Neue",cursive;
   --journal-ui:"Nunito Sans","Avenir Next",system-ui,sans-serif;
 }
 #bjBookDailySpread.bj-book-spread {
