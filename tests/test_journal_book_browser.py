@@ -67,7 +67,7 @@ class JournalBookBrowserTests(unittest.TestCase):
         origin = f"http://127.0.0.1:{self.server.server_port}/"
         if route.request.url == origin:
             route.fulfill(body=self.html, content_type="text/html")
-        elif route.request.url.startswith(origin):
+        elif route.request.url.startswith(origin) or route.request.url.startswith("https://fonts.googleapis.com/") or route.request.url.startswith("https://fonts.gstatic.com/"):
             route.continue_()
         else:
             route.abort()
@@ -109,6 +109,18 @@ class JournalBookBrowserTests(unittest.TestCase):
         self.page.add_style_tag(url="/styles.css")
         self.page.add_style_tag(url="/bullet-journal-book.css")
         self.page.add_style_tag(url="/journal-daily-spread-v1.css")
+        # Preview uses the same publicly hosted typefaces as the shipped app.
+        self.page.evaluate("""() => {
+          const link=document.createElement('link');
+          link.rel='stylesheet';
+          link.href='https://fonts.googleapis.com/css2?family=Caveat:wght@400;500;600&family=Dancing+Script:wght@500;600;700&family=Nunito+Sans:wght@400;600;700;800&display=swap';
+          document.head.appendChild(link);
+        }""")
+        try:
+            self.page.wait_for_function("document.fonts.check('700 30px \"Dancing Script\"') && document.fonts.check('400 24px Caveat')",timeout=3500)
+        except Exception:
+            pass
+
         # Isolated browser fixture has no Firebase session. Remove the unrelated sign-in gate from screenshots only.
         self.page.add_style_tag(content="#mobileCloudGate{display:none!important}")
         self.page.evaluate("LifeRPGJournal.openReflection()")
