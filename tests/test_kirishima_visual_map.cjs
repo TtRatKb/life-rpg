@@ -91,13 +91,13 @@ const sw = content('service-worker.js');
 const prefix = '0.31.4-kirishima-nine1';
 assert.ok(html.indexOf('kirishima-visual-map.js?v=' + prefix) > 0);
 assert.ok(html.indexOf('kirishima-visual-map.js?v=' + prefix) < html.indexOf('story-ui.js?v=' + prefix));
-assert.match(sw, /const CACHE_NAME = "life-rpg-v0\\.31\\.4-[^"]+"/, 'PWA must have a versioned asset cache');
+assert.match(sw, /const CACHE_NAME = "life-rpg-v0\.31\.4-[^"]+"/, 'PWA must have a versioned asset cache');
 for (const file of ['kirishima-visual-map.js','story-ui.js','companion-moments.js',
   'living-world-v3.js','dreamscape.js']) {
   assert.ok(sw.includes(`./${file}?v=${prefix}`), `PWA must refresh ${file}`);
   assert.ok(html.includes(`${file}?v=${prefix}`), `HTML must refresh ${file}`);
 }
-const pwaRef = html.match(/pwa\\.js\\?v=[^"]+/)?.[0];
+const pwaRef = html.match(/pwa\.js\?v=[^"]+/)?.[0];
 assert.ok(pwaRef, 'HTML must version the PWA entry point');
 assert.ok(sw.includes('./'+pwaRef), 'Service worker must precache exactly the current PWA entry point');
 assert.ok(!sw.includes('./living-companion.js?'), 'The retired task-oriented companion must not be precached');
