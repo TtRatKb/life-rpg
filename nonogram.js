@@ -5,9 +5,9 @@
   const LEVELS = Array.isArray(window.LIFE_RPG_NONOGRAM_LEVELS) ? window.LIFE_RPG_NONOGRAM_LEVELS : [];
   if (!app?.getState || !app?.awardActivity || !LEVELS.length) return;
 
-  const VERSION = "0.31.4dz28";
+  const VERSION = "0.31.4-nonogram80";
   const SCHEMA = 1;
-  const TOTAL = 50;
+  const TOTAL = LEVELS.length;
   const REPEAT_SCALES = [1, .75, .5, .35];
   const TIERS = {
     1:{label:"First Patterns",icon:"🌱",xp:16,statXP:10,coins:10,story:.45},
@@ -70,7 +70,7 @@
     if(!els.daily)return;
     const next=nextLevel(),done=todayNonogramCount()>0;
     const streak=escapeHtml(window.LifeRPGDailyStreaks?.shortLabel?.("nonogram")||"Daily consistency bonus ready");
-    if(!next){els.daily.innerHTML=`<div><small>DAILY NONOGRAM</small><strong>Chapter 1 complete 🏆</strong><span>Replay any unlocked level whenever you want. A first replay on a new day can still keep the positive Daily streak going.</span><em class="training-streak-line-v314z">${streak}</em></div><button type="button" data-nonogram-level="50">Replay Level 50</button>`;return;}
+    if(!next){els.daily.innerHTML=`<div><small>DAILY NONOGRAM</small><strong>Chapter 1 complete 🏆</strong><span>Replay any unlocked level whenever you want. A first replay on a new day can still keep the positive Daily streak going.</span><em class="training-streak-line-v314z">${streak}</em></div><button type="button" data-nonogram-level="${TOTAL}">Replay Level ${TOTAL}</button>`;return;}
     els.daily.innerHTML=`<div><small>DAILY NONOGRAM</small><strong>${done?"Today's logic training is already done ✓":`Continue your Journey · Level ${next}`}</strong><span>${levelDef(next).size}×${levelDef(next).size} · ${TIERS[tier(next)].label}. Missing a day never removes rewards; consistency only adds a bonus.</span><em class="training-streak-line-v314z">${streak}</em></div><button type="button" data-nonogram-daily-start>${state().journey.active?.level===next&&!state().journey.active?.completedAt?"Continue":"Start"} Level ${next}</button>`;
   }
   function renderProgress(){if(!els.progress)return;const n=state().journey.completedLevels.length,p=Math.round(n/TOTAL*100);els.progress.innerHTML=`<div><span><strong>${n}/${TOTAL}</strong> completed</span><span>${p}%</span></div><div class="bar"><span style="width:${p}%"></span></div>`;}
