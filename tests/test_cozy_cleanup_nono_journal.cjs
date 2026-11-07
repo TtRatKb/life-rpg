@@ -11,6 +11,18 @@ const read = p => fs.readFileSync(path.join(root,p),'utf8');
 const index=read('index.html'),hub=read('life-hub-v314dk.js'),sw=read('service-worker.js');
 const journal=read('journal.js'),book=read('bullet-journal-book.js'),style=read('bullet-journal-book.css');
 const nonogram=read('nonogram.js');
+const softFloralCss=read('journal-daily-spread-v1.css');
+assert.match(index,/journal-daily-spread-v1\.css\?v=0\.31\.4-softfloral-v1/);
+assert.match(softFloralCss,/basic-floral-sprig\.svg/);
+assert.match(softFloralCss,/basic-moon-window\.svg/);
+assert.match(softFloralCss,/basic-blossom-doodle\.svg/);
+assert.match(journal,/getReflectionRewardPreview/);
+assert.match(book,/dailySpreadV1/);
+for(const name of ['focusText','intentionText','happyMomentsText'])
+  assert.match(book,new RegExp(name));
+for(const name of ['basic-floral-sprig.svg','basic-moon-window.svg','basic-blossom-doodle.svg'])
+  assert.ok(fs.existsSync(path.join(root,'assets/journal',name)),name+' free asset missing');
+
 for(const js of [
  'journal.js','bullet-journal-book.js','life-hub-v314dk.js','nonogram.js',
  'data/nonogram-levels.js','data/nonogram-levels-chapter2.js','pwa.js','service-worker.js'
@@ -35,7 +47,7 @@ assert.match(nonogram,/const TOTAL = LEVELS\.length/);
 assert.match(nonogram,/sourceId=\`journey-l\$\{a\.level\}\`/);
 assert.match(journal,/function saveReflectionInBook\(/);
 assert.match(journal,/maybeAwardReflectionRewards\(date, entry\)/);
-assert.match(journal,/openReflection\(date\)/);
+assert.match(journal,/openReflection\(date, field\)/);
 assert.match(book,/data-bj-prompt/);
 assert.match(book,/savePendingPrompts\(\)/);
 assert.match(book,/journal\.saveReflectionInBook/);
