@@ -38,6 +38,13 @@ assert.match(index,/journal-daily-spread-v1\.css\?v=0\.31\.4-journal-v12-preview
 assert.match(worker,/journal-daily-spread-v1\.css\?v=0\.31\.4-journal-v12-preview1/);
 assert.match(spread,/--journal-calligraphy/);
 assert.match(spread,/--journal-handwriting/);
+assert.match(spread,/Parisienne/);
+assert.match(spread,/Sue Ellen Francisco/);
+assert.match(spread,/17px\/26px/);
+assert.match(spread,/16px\/25px/);
+assert.doesNotMatch(spread,/basic-(floral-sprig|moon-stars|stationery)-v1\.svg/,"Old code-drawn icons must not appear on Daily page");
+assert.doesNotMatch(spread,/Dancing Script|Caveat/,"Old writing fonts removed from Daily page");
+
 assert.match(spread,/repeating-linear-gradient/);
 assert.match(spread,/@media\(max-width:440px\)/);
 for(const file of ['basic-floral-sprig-v1.svg','basic-moon-stars-v1.svg','basic-stationery-v1.svg']){
