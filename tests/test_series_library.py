@@ -2091,7 +2091,8 @@ class SeriesLibraryTests(unittest.TestCase):
         self.page.add_script_tag(url='/bullet-journal-book.js')
         self.assertTrue(self.page.evaluate("LifeRPGBulletJournalBook.open('2020-04-17')"))
         self.assertEqual(self.page.locator('#bjBookText').input_value(),note)
-        self.assertEqual(self.page.locator('#bjBookPrompts .bj-book-prompt-card').count(),4)
+        self.assertEqual(self.page.locator('#bjBookPrompts .bj-book-prompt-card').count()+
+                         self.page.locator('#bjBookYearPrompt .bj-book-prompt-card').count(),4)
         self.assertEqual(self.page.evaluate(
           "LifeRPGApp.getState().story.bookRegressionMarker"),'keep')
 
