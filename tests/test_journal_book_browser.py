@@ -101,5 +101,5 @@ class JournalBookBrowserTests(unittest.TestCase):
         self.page.locator("#bjBookText").click()
         self.page.wait_for_function("""day => LifeRPGApp.getState().journal.entries[day]?.smallWin === 'Synthetic small win'""",arg=self.day)
         self.page.locator("#view-bullet-journal [data-bj-chapter='weekly']").first.click()
-        self.page.locator("#view-bullet-journal [data-bj-chapter='daily']").first.click()
+        self.page.locator("#bjBookWeeklySpread [data-bj-chapter='daily']").click()
         self.assertEqual("Synthetic small win",self.page.locator("#bjBookPrompt-smallWin").input_value())
