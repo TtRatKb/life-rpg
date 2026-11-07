@@ -12,7 +12,7 @@ const index=read('index.html'),hub=read('life-hub-v314dk.js'),sw=read('service-w
 const journal=read('journal.js'),book=read('bullet-journal-book.js'),style=read('bullet-journal-book.css');
 const nonogram=read('nonogram.js');
 const softFloralCss=read('journal-daily-spread-v1.css');
-assert.match(index,/journal-daily-spread-v1\.css\?v=0\.31\.4-softfloral-v1/);
+assert.match(index,/journal-daily-spread-v1\.css\?v=0\.31\.4-softfloral-v1fonts/);
 assert.match(softFloralCss,/basic-floral-sprig\.svg/);
 assert.match(softFloralCss,/basic-moon-window\.svg/);
 assert.match(softFloralCss,/basic-blossom-doodle\.svg/);
