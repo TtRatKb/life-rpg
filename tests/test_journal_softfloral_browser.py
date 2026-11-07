@@ -33,7 +33,7 @@ class SoftFloralJournalBrowser(unittest.TestCase):
             '<link rel="stylesheet" href="/styles.css">'
             '<link rel="stylesheet" href="/bullet-journal-book.css">'
             '<link rel="stylesheet" href="/journal-daily-spread-v1.css">'
-            '<style>.hidden{display:none!important}.view:not(.active){display:none!important}</style>'
+            '<style>.hidden{display:none!important}.view:not(.active){display:none!important}#mobileCloudGate{display:none!important}</style>'
             '<script src="/data/quests.js"></script>'
             '<script src="/pako.min.js"></script>'
             '<script src="/app.js"></script>'
@@ -73,6 +73,8 @@ class SoftFloralJournalBrowser(unittest.TestCase):
         if route.request.url==origin:
             route.fulfill(body=self.html,content_type="text/html")
         elif route.request.url.startswith(origin):
+            route.continue_()
+        elif route.request.url.startswith(("https://fonts.googleapis.com/","https://fonts.gstatic.com/")):
             route.continue_()
         else:
             route.abort()
@@ -115,6 +117,7 @@ class SoftFloralJournalBrowser(unittest.TestCase):
         self.page.locator("#bjBookExtra-intentionText").fill("Make space for rest.")
         self.page.locator("#bjBookDayTitle").click()
         self.page.wait_for_function("""day=>LifeRPGApp.getState().journal.entries[day]?.dailySpreadV1?.intentionText==='Make space for rest.'""",arg=self.day)
+        self.page.evaluate("document.fonts.ready")
         self.page.screenshot(path=str(ARTIFACTS / "journal-desktop-1440.png"),full_page=True,animations="disabled")
         self.page.set_viewport_size({"width":390,"height":844})
         self.page.screenshot(path=str(ARTIFACTS / "journal-mobile-390.png"),full_page=True,animations="disabled")
