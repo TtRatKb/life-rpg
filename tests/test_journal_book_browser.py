@@ -28,8 +28,8 @@ class JournalBookBrowserTests(unittest.TestCase):
         cls.playwright = sync_playwright().start()
         cls.browser = cls.playwright.chromium.launch(headless=True, args=["--no-sandbox"])
         html = (ROOT / "index.html").read_text()
-        html = re.sub(r"<script\\b[^>]*>.*?</script>", "", html, flags=re.S)
-        html = re.sub(r"<link\\b[^>]*>", "", html)
+        html = re.sub(r"<script\b[^>]*>.*?</script>", "", html, flags=re.S)
+        html = re.sub(r"<link\b[^>]*>", "", html)
         cls.html = html.replace("</body>",
             '<style>.hidden{display:none!important}.view:not(.active){display:none!important}</style>'
             '<script src="/data/quests.js"></script>'
