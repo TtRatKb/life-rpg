@@ -544,7 +544,7 @@
   function renderArchive() {
     if (!els.archive) return;
     const entries = Object.values(journalState().entries || {});
-    const months = [...new Set(entries.filter(entry => hasCoreCheckIn(entry) || hasReflection(entry) || Boolean(cleanText(entry.bookNote))).map(entry => entry.date.slice(0, 7)))].sort().reverse();
+    const months = [...new Set(entries.filter(entry => hasCoreCheckIn(entry) || hasReflection(entry) || Boolean(cleanText(entry.bookNote)) || Object.values(entry.dailySpreadV1||{}).some(value=>Boolean(cleanText(value)))).map(entry => entry.date.slice(0, 7)))].sort().reverse();
     if (!months.length) {
       els.archive.innerHTML = `<span class="muted">Your first month will appear here once you check in or save a reflection.</span>`;
       return;
@@ -900,6 +900,10 @@
         if (cleanText(entry.hardThing)) lines.push("", `**What was hard**  `, entry.hardThing);
         if (cleanText(entry.yearQuestion)) lines.push("", `**365 Question** — ${yearQuestionForDate(entry.date || date)}  `, entry.yearQuestion);
         if (cleanText(entry.thoughtUntangler)) lines.push("", `**Legacy Thought Untangler**  `, entry.thoughtUntangler);
+        for(const [field,label] of Object.entries({focusText:"Focus for today",intentionText:"Today I will",happyMomentsText:"Little happy moments"})){
+          const value=cleanText(entry.dailySpreadV1?.[field]);
+          if(value)lines.push("", "**"+label+"**", "",value);
+        }
         lines.push("");
       });
     });
