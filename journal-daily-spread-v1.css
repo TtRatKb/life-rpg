@@ -10,8 +10,8 @@
   --journal-lavender:#efe8f6;
   --journal-outline:#d9c8d8;
   --journal-writing-line:#e8dce8;
-  --journal-script:"Dancing Script","Brush Script MT","Segoe Script",cursive;
-  --journal-writing:"Caveat","Bradley Hand","Segoe Print",cursive;
+  --journal-script:"Dancing Script","Snell Roundhand","Apple Chancery","Segoe Script","Comic Neue",ui-rounded,system-ui,sans-serif;
+  --journal-writing:"Caveat","Noteworthy","Bradley Hand","Segoe Print","Comic Neue",ui-rounded,system-ui,sans-serif;
   --journal-ui:"Avenir Next","Trebuchet MS",ui-rounded,system-ui,sans-serif;
 }
 #view-bullet-journal #bjBookDailySpread.bj-v1-spread{
