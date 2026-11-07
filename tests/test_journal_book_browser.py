@@ -113,11 +113,11 @@ class JournalBookBrowserTests(unittest.TestCase):
         self.page.evaluate("""() => {
           const link=document.createElement('link');
           link.rel='stylesheet';
-          link.href='https://fonts.googleapis.com/css2?family=Caveat:wght@400;500;600&family=Dancing+Script:wght@500;600;700&family=Nunito+Sans:wght@400;600;700;800&display=swap';
+          link.href='https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700;800&family=Parisienne&family=Sue+Ellen+Francisco&display=swap';
           document.head.appendChild(link);
         }""")
         try:
-            self.page.wait_for_function("document.fonts.check('700 30px \"Dancing Script\"') && document.fonts.check('400 24px Caveat')",timeout=3500)
+            self.page.wait_for_function("document.fonts.check('400 28px Parisienne') && document.fonts.check('400 17px \"Sue Ellen Francisco\"')",timeout=3500)
         except Exception:
             pass
 
@@ -127,6 +127,13 @@ class JournalBookBrowserTests(unittest.TestCase):
         self.assertEqual(1,self.page.locator("#bjExtra-focusText").count())
         self.assertEqual(1,self.page.locator("#bjBookMoodText").count())
         self.assertEqual(1,self.page.locator("[data-bj-preview='gratitude']").count())
+        style=self.page.locator("#bjBookPrompt-gratitude").evaluate("""el => {
+          const c=getComputedStyle(el);return {font:c.fontFamily,size:c.fontSize,weight:c.fontWeight,line:c.lineHeight};
+        }""")
+        self.assertIn("Sue Ellen Francisco",style["font"])
+        self.assertEqual("17px",style["size"])
+        self.assertEqual("400",style["weight"])
+        self.assertEqual("26px",style["line"])
         self.page.locator("#bjBookPrompt-gratitude").fill("g" * 49)
         self.assertIn("49 characters",self.page.locator("[data-bj-preview='gratitude']").inner_text())
         self.page.locator("#bjBookPrompt-gratitude").fill("g" * 50)
@@ -144,8 +151,13 @@ class JournalBookBrowserTests(unittest.TestCase):
         screenshots=ROOT/"test-artifacts"
         screenshots.mkdir(exist_ok=True)
         self.page.screenshot(path=str(screenshots/"journal-soft-floral-desktop.png"),full_page=True)
-        self.page.set_viewport_size({"width":390,"height":844})
-        self.page.screenshot(path=str(screenshots/"journal-soft-floral-mobile.png"),full_page=True)
+        for width,height,label in [(768,1024,"tablet"),(390,844,"mobile"),(320,640,"small-mobile")]:
+            self.page.set_viewport_size({"width":width,"height":height})
+            self.page.screenshot(path=str(screenshots/("journal-soft-floral-"+label+".png")),full_page=True)
+            self.assertTrue(self.page.evaluate("document.documentElement.scrollWidth <= innerWidth + 2"),"Horizontal overflow at "+str(width))
+            if width <= 440:
+                size=self.page.locator("#bjBookPrompt-gratitude").evaluate("el=>getComputedStyle(el).fontSize")
+                self.assertEqual("16px",size)
         self.page.reload(wait_until="domcontentloaded")
         self.page.evaluate("LifeRPGJournal.openReflection()")
         self.assertEqual("A gentle intention, not a task.",self.page.locator("#bjExtra-focusText").input_value())
