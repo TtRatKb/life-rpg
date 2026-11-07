@@ -34,6 +34,7 @@ on:
       - 'shop.js'
       - 'tests/test_reading_library.cjs'
       - 'tests/test_reading_library_browser.py'
+      - 'tests/test_journal_book_browser.py'
       - 'relationship-engine.js'
       - 'companion-moments.js'
       - 'companion-moments-v2.js'
@@ -113,6 +114,7 @@ on:
       - 'shop.js'
       - 'tests/test_reading_library.cjs'
       - 'tests/test_reading_library_browser.py'
+      - 'tests/test_journal_book_browser.py'
       - 'relationship-engine.js'
       - 'companion-moments.js'
       - 'companion-moments-v2.js'
@@ -235,5 +237,7 @@ jobs:
       # The source-level task data/rollback tests above are retained for legacy saves.
       - name: Browser smoke test for reading formats
         run: python -m unittest discover -s tests -p 'test_reading_library_browser.py' -v
+      - name: Browser smoke test for direct Journal reflection and lossless reload
+        run: python -m unittest discover -s tests -p 'test_journal_book_browser.py' -v
       - name: Verify current app hides retired task/companion and preserves Nonogram/Journal wiring
         run: node tests/test_cozy_cleanup_nono_journal.cjs
