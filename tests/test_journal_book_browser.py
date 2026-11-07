@@ -113,11 +113,11 @@ class JournalBookBrowserTests(unittest.TestCase):
         self.page.evaluate("""() => {
           const link=document.createElement('link');
           link.rel='stylesheet';
-          link.href='https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700;800&family=Parisienne&family=Sue+Ellen+Francisco&display=swap';
+          link.href='https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700;800&family=Parisienne&family=Shadows+Into+Light&display=swap';
           document.head.appendChild(link);
         }""")
         try:
-            self.page.wait_for_function("document.fonts.check('400 28px Parisienne') && document.fonts.check('400 17px \"Sue Ellen Francisco\"')",timeout=3500)
+            self.page.wait_for_function("document.fonts.check('400 28px Parisienne') && document.fonts.check('400 17px \"Shadows Into Light\"')",timeout=3500)
         except Exception:
             pass
 
@@ -130,7 +130,7 @@ class JournalBookBrowserTests(unittest.TestCase):
         style=self.page.locator("#bjBookPrompt-gratitude").evaluate("""el => {
           const c=getComputedStyle(el);return {font:c.fontFamily,size:c.fontSize,weight:c.fontWeight,line:c.lineHeight};
         }""")
-        self.assertIn("Sue Ellen Francisco",style["font"])
+        self.assertIn("Shadows Into Light",style["font"])
         self.assertEqual("17px",style["size"])
         self.assertEqual("400",style["weight"])
         self.assertEqual("26px",style["line"])
