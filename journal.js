@@ -556,6 +556,8 @@
   }
 
   function openReflection(date = todayKey(), companionId = null) {
+    // Check-in and reflection shortcuts open the dated journal book, not a new text modal.
+    if (window.LifeRPGBulletJournalBook?.openReflection) return window.LifeRPGBulletJournalBook.openReflection(date);
     if (!els.reflectionDialog) return;
     reflectionDate = date;
     reflectionCompanion = companionId && companionAvailable(companionId) ? COMPANIONS[companionId] : companionForDate(date);
@@ -609,6 +611,24 @@
       setTimeout(() => els.reflectionTextarea.focus(), 30);
     }
     renderReflectionCompanion(reflectionCompanion, prompt);
+  }
+
+  function saveReflectionInBook(date, field, rawText) {
+    if (!REFLECTION_META[field] || !reflectionFieldUnlocked(field) || !/^\\d{4}-\\d{2}-\\d{2}$/.test(String(date))) {
+      return {ok:false,reason:"invalid"};
+    }
+    const entry = entryFor(date, true);
+    const value = cleanText(rawText);
+    if (entry[field] === value || (!entry[field] && !value)) return {ok:true,unchanged:true};
+    entry[field] = value;
+    if (field === "yearQuestion" && !entry.yearQuestionPrompt) entry.yearQuestionPrompt = yearQuestionForDate(date);
+    entry.updatedAt = Date.now();
+    const rewards = maybeAwardReflectionRewards(date, entry);
+    if (app.saveState({source:"journal-book-reflection-"+field,suppressUiRefresh:true}) === false) {
+      return {ok:false,reason:"storage"};
+    }
+    render();
+    return {ok:true,rewards};
   }
 
   function saveReflectionField() {
@@ -1292,6 +1312,11 @@
     render,
     openReflection,
     openDayEditor,
+    saveReflectionInBook,
+    isReflectionUnlocked: reflectionFieldUnlocked,
+    reflectionPromptFor: (field,date=todayKey()) => field === "yearQuestion"
+      ? (entryFor(date,false)?.yearQuestionPrompt || yearQuestionForDate(date))
+      : (REFLECTION_META[field]?.label || ""),
     promptAfterCheckIn: (companionId = null, date = todayKey()) => openReflection(date, companionId),
     getEntry: date => ({ ...(entryFor(date, false) || {}) }),
     exportJson: exportJournalJson,
