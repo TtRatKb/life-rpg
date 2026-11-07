@@ -2049,6 +2049,7 @@ class SeriesLibraryTests(unittest.TestCase):
         }"""),0.9)
         self.assertEqual(self.page.locator('#bjBookDailySpread .bj-book-writing .bj-book-nav').count(),1)
         self.assertEqual(self.page.locator('#bjBookPrompts .bj-book-prompt-card').count(),4)
+        self.page.locator('#bjBookDailySpread .bj-book-recorded-details>summary').click()
         self.assertIn('Played a cozy game',self.page.locator('#bjBookRecorded').inner_text())
         self.assertEqual(self.page.locator('#bjBookPrompt-gratitude').input_value(),'A quiet moment')
         self.assertIn('A small beautiful thing',self.page.locator('#bjBookPrompts').inner_text())
