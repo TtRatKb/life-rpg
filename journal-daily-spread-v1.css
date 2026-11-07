@@ -1,3 +1,7 @@
+/* Self-hosted OFL variable fonts; available offline (see assets/journal/fonts/OFL-*.txt). */
+@font-face{font-family:"Dancing Script";src:url("./assets/journal/fonts/DancingScript.ttf") format("truetype");font-style:normal;font-weight:400 700;font-display:swap}
+@font-face{font-family:"Caveat";src:url("./assets/journal/fonts/Caveat.ttf") format("truetype");font-style:normal;font-weight:400 700;font-display:swap}
+
 /* Life RPG · Journal Refresh V1 / Soft Floral Notebook.
    Scoped to daily only: Weekly, Monthly, Collections, Atelier and purchases untouched.
    Optional Google Fonts load from index; local handwriting fallbacks remain functional offline. */
@@ -281,7 +285,12 @@
  #view-bullet-journal #bjBookDailySpread .bj-book-page-inner{padding:17px 17px 24px}
  #view-bullet-journal #bjBookDailySpread .bj-v1-title-area{min-height:106px;padding-left:70px}
  #view-bullet-journal #bjBookDailySpread .bj-v1-floral-sprig{width:95px;height:106px;left:-20px;top:-4px}
- #view-bullet-journal #bjBookDailySpread #bjBookDayTitle{font-size:clamp(2.45rem,11vw,3.5rem)!important}
+ #view-bullet-journal #bjBookDailySpread #bjBookDayTitle{
+  font-size:clamp(2.3rem,9vw,3rem)!important;white-space:normal!important;
+  overflow-wrap:normal;line-height:1.02!important;max-width:100%;
+ }
+ #view-bullet-journal #bjBookDailySpread .bj-v1-title-area{overflow:hidden;min-width:0;min-height:115px}
+ #view-bullet-journal #bjBookDailySpread.bj-v1-spread{box-sizing:border-box;min-width:0;width:100%;max-width:100%;overflow-x:clip}
  #view-bullet-journal #bjBookDailySpread .bj-v1-date{font-size:.7rem}
  #view-bullet-journal #bjBookDailySpread .bj-v1-prompts{display:grid;grid-template-columns:1fr;gap:18px}
  #view-bullet-journal #bjBookDailySpread .bj-v1-prompt-gratitude{grid-column:1}
