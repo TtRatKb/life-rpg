@@ -115,11 +115,8 @@
         targetMinutes: minutes,
         breakMinutes
       });
-      const active=state().active;
-      if(active?.id!==priorTimer && ["focus","school","work_home","life_admin"].includes(active?.categoryId)){
-        app.showView?.("tasks");
-        window.LifeRPGTaskSessionReview?.openPick?.();
-      }
+      // The retired task-planner review must not navigate away from Focus & Time.
+      // The active timer remains visible in this view.
     });
 
     els.startClock?.addEventListener("click", () => {
