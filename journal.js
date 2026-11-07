@@ -617,16 +617,26 @@
     if (!REFLECTION_META[field] || !reflectionFieldUnlocked(field) || !/^\d{4}-\d{2}-\d{2}$/.test(String(date))) {
       return {ok:false,reason:"invalid"};
     }
+    const wasPresent=Boolean(app.getState().journal?.entries?.[date]);
     const entry = entryFor(date, true);
     const value = cleanText(rawText);
     if (entry[field] === value || (!entry[field] && !value)) return {ok:true,unchanged:true};
+    const before={value:entry[field],prompt:entry.yearQuestionPrompt,updatedAt:entry.updatedAt};
     entry[field] = value;
     if (field === "yearQuestion" && !entry.yearQuestionPrompt) entry.yearQuestionPrompt = yearQuestionForDate(date);
     entry.updatedAt = Date.now();
-    const rewards = maybeAwardReflectionRewards(date, entry);
+    // Persist the text before the canonical reward call, so a rejected save cannot mint an award.
     if (app.saveState({source:"journal-book-reflection-"+field,suppressUiRefresh:true}) === false) {
+      if (before.value===undefined) delete entry[field];else entry[field]=before.value;
+      if (before.prompt===undefined) delete entry.yearQuestionPrompt;else entry.yearQuestionPrompt=before.prompt;
+      entry.updatedAt=before.updatedAt;
+      if(!wasPresent)delete app.getState().journal.entries[date];
       return {ok:false,reason:"storage"};
     }
+    const rewards = maybeAwardReflectionRewards(date, entry);
+    // Save the ledger changes as well; source/IDs/amounts remain the existing journal ones.
+    if (Number(rewards?.xp||0)||Number(rewards?.coins||0)||Number(rewards?.storyEnergy||0))
+      app.saveState({source:"journal-book-reflection-reward-"+field,suppressUiRefresh:true});
     render();
     return {ok:true,rewards};
   }
