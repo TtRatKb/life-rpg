@@ -328,18 +328,22 @@
     const pending=pendingExtras.get(field);
     if(!pending)return true;
     if(pending.timer)clearTimeout(pending.timer);
-    const root=app.getState(),entries=root.journal?.entries||{},entry=entries[pending.day];
-    const previous=entry?.dailySpreadV1;
+    const root=app.getState();
+    root.journal ||= {schemaVersion:2,entries:{},migrations:{}};
+    root.journal.entries ||= {};
+    const created=!root.journal.entries[pending.day];
+    const entry=root.journal.entries[pending.day] ||= {date:pending.day,createdAt:Date.now()};
+    const previous=entry.dailySpreadV1;
     const oldValue=previous?.[field]||"",value=pending.value;
     const status=bookView?.querySelector('[data-bj-extra-status="'+field+'"]');
     if(value===oldValue){pendingExtras.delete(field);if(status)status.textContent=value.trim().length+" characters · Saved ✓";return true;}
-    if(!entry){if(status)status.textContent="Could not save — retry";return false;}
     const oldUpdated=entry.updatedAt;
     entry.dailySpreadV1={...(previous||{}),[field]:value};
     entry.updatedAt=Date.now();
     if(app.saveState({source:"bullet-journal-daily-spread-note",suppressUiRefresh:true})===false){
       if(previous===undefined)delete entry.dailySpreadV1;else entry.dailySpreadV1=previous;
       entry.updatedAt=oldUpdated;
+      if(created)delete root.journal.entries[pending.day];
       if(status)status.textContent="Save failed — text kept here";
       pending.timer=null;return false;
     }
