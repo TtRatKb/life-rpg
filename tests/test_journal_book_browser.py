@@ -109,6 +109,8 @@ class JournalBookBrowserTests(unittest.TestCase):
         self.page.add_style_tag(url="/styles.css")
         self.page.add_style_tag(url="/bullet-journal-book.css")
         self.page.add_style_tag(url="/journal-daily-spread-v1.css")
+        # Isolated browser fixture has no Firebase session. Remove the unrelated sign-in gate from screenshots only.
+        self.page.add_style_tag(content="#mobileCloudGate{display:none!important}")
         self.page.evaluate("LifeRPGJournal.openReflection()")
         self.assertEqual(1,self.page.locator("#bjExtra-focusText").count())
         self.assertEqual(1,self.page.locator("#bjBookMoodText").count())
