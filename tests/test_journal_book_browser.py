@@ -79,12 +79,12 @@ class JournalBookBrowserTests(unittest.TestCase):
         self.assertEqual(1,self.page.locator("#bjBookText").count())
         self.page.locator("#bjBookPrompt-gratitude").fill("A synthetic sunshine moment.")
         self.page.locator("#bjBookText").click()
-        self.page.wait_for_function("""day => LifeRPGApp.getState().journal.entries[day]?.gratitude === 'A synthetic sunshine moment.'""",self.day)
+        self.page.wait_for_function("""day => LifeRPGApp.getState().journal.entries[day]?.gratitude === 'A synthetic sunshine moment.'""",arg=self.day)
         self.page.locator("#bjBookText").fill("A private synthetic notebook note.")
-        self.page.locator("#bjBookText").blur()
-        self.page.wait_for_function("""day => LifeRPGApp.getState().journal.entries[day]?.bookNote === 'A private synthetic notebook note.'""",self.day)
+        self.page.locator("#bjBookDayTitle").click()
+        self.page.wait_for_function("""day => LifeRPGApp.getState().journal.entries[day]?.bookNote === 'A private synthetic notebook note.'""",arg=self.day)
         self.assertEqual(1,self.page.evaluate("""day => LifeRPGApp.getState().rewardLedger.events.filter(
-          e => e.source==='journal-reflection-base' && e.sourceId===day+':base-v0310').length""",self.day))
+          e => e.source==='journal-reflection-base' && e.sourceId===day+':base-v0310').length""",arg=self.day))
         self.page.reload(wait_until="domcontentloaded")
         self.page.wait_for_function("window.LifeRPGJournal && window.LifeRPGBulletJournalBook")
         self.page.evaluate("LifeRPGJournal.openReflection()")
@@ -93,13 +93,13 @@ class JournalBookBrowserTests(unittest.TestCase):
         self.page.locator("#bjBookPrompt-gratitude").fill("A synthetic sunshine moment.")
         self.page.locator("#bjBookText").click()
         self.assertEqual(1,self.page.evaluate("""day => LifeRPGApp.getState().rewardLedger.events.filter(
-          e => e.source==='journal-reflection-base' && e.sourceId===day+':base-v0310').length""",self.day))
+          e => e.source==='journal-reflection-base' && e.sourceId===day+':base-v0310').length""",arg=self.day))
 
     def test_journal_book_navigation_does_not_erase_prompt(self):
         self.page.evaluate("LifeRPGJournal.openReflection()")
         self.page.locator("#bjBookPrompt-smallWin").fill("Synthetic small win")
         self.page.locator("#bjBookText").click()
-        self.page.wait_for_function("""day => LifeRPGApp.getState().journal.entries[day]?.smallWin === 'Synthetic small win'""",self.day)
+        self.page.wait_for_function("""day => LifeRPGApp.getState().journal.entries[day]?.smallWin === 'Synthetic small win'""",arg=self.day)
         self.page.locator("#view-bullet-journal [data-bj-chapter='weekly']").first.click()
         self.page.locator("#view-bullet-journal [data-bj-chapter='daily']").first.click()
         self.assertEqual("Synthetic small win",self.page.locator("#bjBookPrompt-smallWin").input_value())
