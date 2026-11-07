@@ -111,9 +111,9 @@
             '<div class="bj-book-page-inner"><small>YOUR EVERYDAY PAGES</small><h2>Little reflections</h2>'+
             '<p class="bj-book-reflection-intro">A few lines, a whole page, or nothing today. All yours. ♡</p>'+
             '<div id="bjBookPrompts" class="bj-book-prompts" aria-label="Daily journal prompts"></div>'+
+            '<div id="bjAtelierMount" class="bj-atelier-mount" aria-label="Journal decoration atelier"></div>'+
             '<details class="bj-book-recorded-details"><summary>✦ Recorded moments</summary>'+
-            '<div id="bjAtelierMount" class="bj-atelier-mount" aria-label="Journal decoration atelier"></div></details>'+
-            '<div id="bjBookRecorded" class="bj-book-records"></div>'+
+            '<div id="bjBookRecorded" class="bj-book-records"></div></details>'+
             '<div id="bjBookDailyMini" class="bj-book-daily-mini" aria-label="Daily Mini Habit Tracker"></div>'+
             '<button type="button" class="bj-book-edit" data-bj-action="reflect">Edit saved reflections ↗</button>'+
             '</div></section>'+
