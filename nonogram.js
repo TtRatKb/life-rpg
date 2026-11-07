@@ -147,7 +147,10 @@
   function sameClue(a,b){return a.length===b.length&&a.every((v,i)=>v===b[i]);}
   function updateStatus(a){if(!els.status)return;if(!a){els.status.textContent="Choose your next Journey level to begin.";return;}const filled=a.marks.filter(v=>v===1).length,totalOn=[...a.solution].filter(v=>v==="1").length;const undoCount=Array.isArray(a.history)?a.history.length:0;els.status.textContent=a.completedAt?`Level ${a.level} complete ✓`:`Level ${a.level} · ${a.size}×${a.size} · ${filled}/${totalOn} filled cells placed · ${undoCount} undo step${undoCount===1?"":"s"}${a.checkpoint?" · ◈ Versuchspunkt gespeichert":""}`;}
 
-  function check(){const a=current();if(!a||a.completedAt)return;const correct=a.marks.every((mark,i)=>(mark===1)===(a.solution[i]==="1"));if(!correct){showLocalResult("error","Not quite yet","At least one filled cell is missing or misplaced. Keep working from the row and column clues — your current grid is saved.");els.board?.classList.add("shake-v314k");setTimeout(()=>els.board?.classList.remove("shake-v314k"),350);return;}complete(a);}
+  function check(){const a=current();if(!a||a.completedAt)return;const filled=a.marks.map(mark=>mark===1?"1":"0").join("");
+    const correct=a.level<=50 ? filled===a.solution :
+      JSON.stringify(computeClues(filled,a.size,true))===JSON.stringify(computeClues(a.solution,a.size,true)) &&
+      JSON.stringify(computeClues(filled,a.size,false))===JSON.stringify(computeClues(a.solution,a.size,false));if(!correct){showLocalResult("error","Not quite yet","At least one filled cell is missing or misplaced. Keep working from the row and column clues — your current grid is saved.");els.board?.classList.add("shake-v314k");setTimeout(()=>els.board?.classList.remove("shake-v314k"),350);return;}complete(a);}
   function complete(a){
     const s=state();
     const live=s.journey.active;
