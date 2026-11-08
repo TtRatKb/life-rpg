@@ -31,7 +31,7 @@ class JournalBookBrowserTests(unittest.TestCase):
         html = re.sub(r"<script\b[^>]*>.*?</script>", "", html, flags=re.S)
         html = re.sub(r"<link\b[^>]*>", "", html)
         cls.html = html.replace("</body>",
-            '<style>.hidden{display:none!important}.view:not(.active){display:none!important}</style>'
+            '<style>.hidden{display:none!important}.view:not(.active){display:none!important}#mobileCloudGate{display:none!important}</style>'
             '<script src="/data/quests.js"></script>'
             '<script src="/pako.min.js"></script>'
             '<script src="/app.js"></script>'
