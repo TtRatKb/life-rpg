@@ -349,7 +349,7 @@
       if(locked&&!value.trim())return "";
       const content=locked
         ? '<div class="bj-book-answer"><p>'+htmlEscape(value)+'</p></div><small>Saved previously · read only</small>'
-        : '<textarea id="bjBookPrompt-'+field+'" data-bj-prompt="'+field+'" rows="3" maxlength="2400" spellcheck="true" placeholder="'+htmlEscape(hint)+'">'+htmlEscape(value)+'</textarea>'+
+        : '<textarea id="bjBookPrompt-'+field+'" data-bj-prompt="'+field+'" rows="3" spellcheck="true" placeholder="'+htmlEscape(hint)+'">'+htmlEscape(value)+'</textarea>'+
           '<small data-bj-prompt-status="'+field+'" aria-live="polite">'+(value?'Saved':'Optional · no pressure')+'</small>'+previewMarkup(field,key,value);
       return '<section class="bj-book-prompt-card" data-bj-field="'+field+'">'+
         '<label'+(locked?'':' for="bjBookPrompt-'+field+'"')+'><span aria-hidden="true">'+icon+'</span>'+

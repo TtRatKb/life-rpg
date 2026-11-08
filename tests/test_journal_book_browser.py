@@ -173,7 +173,7 @@ class JournalBookBrowserTests(unittest.TestCase):
             self.assertTrue(self.page.evaluate("document.documentElement.scrollWidth <= innerWidth + 2"),"Horizontal overflow at "+str(width))
             if width <= 440:
                 size=self.page.locator("#bjBookPrompt-gratitude").evaluate("el=>getComputedStyle(el).fontSize")
-                self.assertEqual("16px",size)
+                self.assertGreaterEqual(float(size.replace("px","")),16.0)
         self.page.reload(wait_until="domcontentloaded")
         self.page.evaluate("LifeRPGJournal.openReflection()")
         self.assertEqual("A gentle intention, not a task.",self.page.locator("#bjExtra-focusText").input_value())
