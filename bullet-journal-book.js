@@ -104,14 +104,16 @@
                   '<button type="button" data-bj-action="next" aria-label="Next day">›</button>'+
                   '<button type="button" data-bj-action="today">Today</button></nav>'+
               '</div>'+
-              '<p class="bj-daily-intro">small steps · big dreams ♡</p>'+
+              '<div class="bj-daily-opening"><p class="bj-daily-intro">small steps · big dreams ♡</p>'+
+                '<img class="bj-daily-illustration bj-illustration-bouquet" alt="" aria-hidden="true" src="assets/journal/illustrations/jasmine-bouquet-v2.webp" width="157" height="200" decoding="async"></div>'+
               '<div id="bjBookPrompts" class="bj-book-prompts" aria-label="Daily journal prompts"></div>'+
             '</div></section>'+
           '<section class="bj-book-page bj-book-recorded bj-daily-right">'+
             '<div class="bj-book-page-inner">'+
-              '<section class="bj-daily-mood" aria-label="Mood today"><h3>Mood today ♡</h3>'+
+              '<div class="bj-daily-topline"><section class="bj-daily-mood" aria-label="Mood today"><h3>Mood today ♡</h3>'+
                 '<p id="bjBookMoodText">However today feels, it belongs here.</p>'+
                 '<button type="button" data-bj-action="mood">Update check-in ↗</button></section>'+
+                '<img class="bj-daily-illustration bj-illustration-window" alt="" aria-hidden="true" src="assets/journal/illustrations/moon-window-v2.webp" width="154" height="200" decoding="async"></div>'+
               '<section class="bj-daily-note"><h2>Notes &amp; thoughts</h2>'+
                 '<label for="bjBookText" class="bj-book-reflection-intro">A little space for whatever is on your mind.</label>'+
                 '<textarea id="bjBookText" spellcheck="true" placeholder="Write your day in your own words…"></textarea>'+
@@ -123,6 +125,7 @@
                 '<section class="bj-extra-note"><label for="bjExtra-intentionText">Today I will…</label><textarea id="bjExtra-intentionText" data-bj-extra="intentionText" placeholder="A little thing I would like to do…"></textarea><small data-bj-extra-status="intentionText">Personal note, not a task</small></section>'+
                 '<section class="bj-extra-note"><label for="bjExtra-happyMomentsText">Little moments that made me happy</label><textarea id="bjExtra-happyMomentsText" data-bj-extra="happyMomentsText" placeholder="Tiny joys deserve a place, too…"></textarea><small data-bj-extra-status="happyMomentsText">No streaks or obligations</small></section>'+
               '</div>'+
+              '<div class="bj-daily-teacup"><img class="bj-daily-illustration bj-illustration-teacup" alt="" aria-hidden="true" src="assets/journal/illustrations/flower-teacup-v2.webp" width="160" height="200" decoding="async"></div>'+
               '<div id="bjAtelierMount" class="bj-atelier-mount" aria-label="Journal decoration atelier"></div>'+
               '<div id="bjBookDailyMini" class="bj-book-daily-mini" aria-label="Daily Mini Habit Tracker"></div>'+
               '<details class="bj-book-recorded-details"><summary>✦ Recorded moments</summary>'+
