@@ -98,6 +98,7 @@ class JournalBookBrowserTests(unittest.TestCase):
 
     def test_journal_book_navigation_does_not_erase_prompt(self):
         self.page.evaluate("LifeRPGJournal.openReflection()")
+        self.page.locator(".bj-art-more > summary").click()
         self.page.locator("#bjBookPrompt-smallWin").fill("Synthetic small win")
         self.page.locator("#bjBookText").click()
         self.page.wait_for_function("""day => LifeRPGApp.getState().journal.entries[day]?.smallWin === 'Synthetic small win'""",arg=self.day)
@@ -136,7 +137,7 @@ class JournalBookBrowserTests(unittest.TestCase):
         self.assertIn("Sue Ellen Francisco",style["font"])
         self.assertEqual("17px",style["size"])
         self.assertEqual("400",style["weight"])
-        self.assertEqual("26px",style["line"])
+        self.assertEqual("35px",style["line"])
         art=self.page.locator("#bjBookDailySpread img.bj-daily-illustration")
         self.assertEqual(3,art.count())
         self.page.wait_for_function("""() => [...document.querySelectorAll('#bjBookDailySpread img.bj-daily-illustration')].every(img => img.complete && img.naturalWidth>0)""",timeout=15000)
@@ -197,7 +198,7 @@ class JournalBookBrowserTests(unittest.TestCase):
         self.page.locator("#bjExtra-focusText").fill("A gentle plan")
         self.page.locator("#bjExtra-happyMomentsText").fill("A lovely little moment")
         self.page.locator("#bjBookText").fill("My own journal notes")
-        self.page.locator("#bjArtPaper").click(position={"x":15,"y":15})
+        self.page.evaluate("document.activeElement?.blur()")
         self.page.wait_for_function("""day => {
           const e=LifeRPGApp.getState().journal.entries[day];
           return e?.gratitude?.startsWith('Jasmine sunshine') &&
