@@ -150,9 +150,9 @@ class JournalBookBrowserTests(unittest.TestCase):
         self.assertFalse(overlaps,"Illustration overlays a writable field")
 
         self.page.locator("#bjBookPrompt-gratitude").fill("g" * 49)
-        self.assertIn("49 characters",self.page.locator("[data-bj-preview='gratitude']").inner_text())
+        self.assertIn("49 characters",self.page.locator("#bjArtSaveStatus").inner_text())
         self.page.locator("#bjBookPrompt-gratitude").fill("g" * 50)
-        self.assertIn("50 characters",self.page.locator("[data-bj-preview='gratitude']").inner_text())
+        self.assertIn("50 characters",self.page.locator("#bjArtSaveStatus").inner_text())
         self.page.locator("#bjExtra-focusText").fill("A gentle intention, not a task.")
         self.page.locator("#bjBookText").click()
         self.page.wait_for_function("""day => LifeRPGApp.getState().journal.entries[day]?.dailySpreadV1?.focusText === 'A gentle intention, not a task.'""",arg=self.day)
