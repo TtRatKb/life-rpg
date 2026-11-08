@@ -89,3 +89,12 @@
  #view-bullet-journal #bjBookDailySpread .bj-art-scroller{box-sizing:border-box!important;width:calc(100vw - 26px)!important;max-width:calc(100vw - 26px)!important;overflow-x:scroll!important;display:block!important}
  #view-bullet-journal #bjArtPaper{width:780px!important;min-width:780px!important;max-width:none!important;flex:none!important}
 }
+
+/* Keep chapter selection and date controls tidy above the artwork. */
+#bjBookDailySpread .bj-art-toolbar{display:grid;grid-template-columns:minmax(0,1fr) max-content;align-items:center}
+#bjBookDailySpread .bj-art-toolbar .bj-art-controls{flex-wrap:nowrap}
+#bjBookDailySpread .bj-art-toolbar input[type="date"]{box-sizing:border-box;width:158px;min-width:0}
+@media(max-width:760px){
+ #bjBookDailySpread .bj-art-toolbar{display:flex;flex-wrap:wrap;justify-content:flex-start}
+ #bjBookDailySpread .bj-art-toolbar .bj-art-controls{flex-wrap:wrap}
+}
