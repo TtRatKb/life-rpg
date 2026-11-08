@@ -98,3 +98,51 @@
  #bjBookDailySpread .bj-art-toolbar{display:flex;flex-wrap:wrap;justify-content:flex-start}
  #bjBookDailySpread .bj-art-toolbar .bj-art-controls{flex-wrap:wrap}
 }
+
+/* Journal Art V2 mobile + integrated reading focus (PR #72 follow-up). */
+body.bj-art-immersive .topbar,
+body.bj-art-immersive .bottom-nav{display:none!important}
+body.bj-art-immersive .app-shell{padding-left:0!important;padding-top:0!important;max-width:none!important}
+body.bj-art-immersive .app-shell>main{width:100%!important;max-width:none!important;margin:0 auto!important;padding:12px clamp(10px,2.5vw,32px) 38px!important;box-sizing:border-box}
+body.bj-art-immersive #view-bullet-journal{max-width:none!important;width:100%!important}
+#bjBookDailySpread.bj-art-enabled .bj-art-toolbar{display:flex!important;justify-content:center!important;flex-wrap:wrap!important;column-gap:12px;row-gap:9px;padding:2px 5px}
+#bjBookDailySpread.bj-art-enabled .bj-art-toolbar .bj-art-controls{flex-wrap:wrap!important;justify-content:center}
+#bjBookDailySpread .bj-art-view-controls{display:flex;align-items:center;justify-content:center;gap:5px;flex-wrap:wrap}
+#bjBookDailySpread .bj-art-view-controls button{background:#f9f3ed;border:1px solid #dfd1c3;border-radius:20px;padding:8px 12px;min-height:38px;white-space:nowrap}
+#bjBookDailySpread .bj-art-view-controls button[aria-pressed="true"]{background:#e7ede3;border-color:#8ca18a;color:#47634f}
+#bjBookDailySpread .bj-art-field-controls{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;max-width:1086px;margin:0 auto 11px}
+#bjBookDailySpread .bj-art-field-controls button{cursor:pointer;min-height:36px;padding:7px 10px;border:1px solid #e5d6c7;border-radius:17px;background:#fff9ef;color:#65564a;font:650 12px/1.15 "Nunito Sans",system-ui,sans-serif}
+#bjBookDailySpread .bj-art-field-controls button:focus-visible{outline:2px solid #718c71;outline-offset:2px}
+#bjBookDailySpread.bj-art-enabled .bj-art-scroller{
+ width:100%!important;max-width:1086px!important;margin:0 auto!important;
+ box-sizing:border-box!important;overflow-x:auto!important;overflow-y:visible!important;
+ overscroll-behavior-x:contain;touch-action:pan-x pan-y;scrollbar-width:thin
+}
+#bjBookDailySpread.bj-art-enabled #bjArtPaper{
+ box-sizing:border-box!important;width:1086px!important;min-width:1086px!important;
+ max-width:1086px!important;margin:0!important;flex:none!important;
+ border:0!important;transform:none!important
+}
+#bjArtPaper .bj-art-decoration-layer{position:absolute;inset:0;z-index:1;pointer-events:none;isolation:isolate}
+#bjArtPaper .bj-art-field{z-index:3!important;text-shadow:0 0 2px rgba(255,249,238,.94),0 0 4px rgba(255,249,238,.6);overflow-wrap:break-word;white-space:pre-wrap}
+#bjArtPaper [data-bj-art="bookNote"]{top:72.9%;height:12.6%;line-height:35px!important}
+#bjBookDailySpread.bj-art-enabled .bj-art-more{max-width:1086px}
+@media(max-width:800px){
+ #bjBookDailySpread.bj-art-enabled .bj-art-scroller{width:100%!important;max-width:100%!important;overflow-x:auto!important}
+ #bjBookDailySpread.bj-art-enabled #bjArtPaper{width:1086px!important;min-width:1086px!important}
+ #bjBookDailySpread.bj-art-enabled[data-bj-view="overview"] #bjArtPaper .bj-art-field{pointer-events:none}
+ #bjBookDailySpread .bj-art-field-controls{flex-wrap:nowrap;justify-content:flex-start;overflow-x:auto;padding:0 3px 7px;scrollbar-width:thin}
+ #bjBookDailySpread .bj-art-field-controls button{flex:none;min-height:42px;font-size:12px}
+ #bjBookDailySpread .bj-art-toolbar{padding:7px 0;margin:0 0 9px}
+ #bjBookDailySpread .bj-art-toolbar .bj-art-controls{gap:5px}
+ #bjBookDailySpread .bj-art-toolbar button{min-height:38px}
+ #bjBookDailySpread .bj-art-toolbar input[type="date"]{max-width:145px;width:145px}
+ #bjArtPaper .bj-art-field{font-size:16px!important;line-height:35px!important}
+ #bjArtPaper [data-bj-art="focusText"],#bjArtPaper [data-bj-art="intentionText"],#bjArtPaper [data-bj-art="happyMomentsText"],#bjArtPaper [data-bj-art="bookNote"]{line-height:35px!important}
+ #bjBookDailySpread .bj-art-status{padding:4px 4px 0}
+}
+@media(max-width:360px){
+ #bjBookDailySpread .bj-art-toolbar button{padding:7px 8px}
+ #bjBookDailySpread .bj-art-view-controls{width:100%}
+ #bjBookDailySpread .bj-art-view-controls button{flex:1}
+}

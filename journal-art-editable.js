@@ -17,7 +17,43 @@
     happyMomentsText:"Little moments that made me happy",
     bookNote:"Notes & thoughts"
   };
-  let root=null,art=null,more=null,status=null,activeDate="";
+  let root=null,art=null,more=null,status=null,activeDate="",viewMode="overview";
+  // Stable, independent art identifiers. The current illustrated paper still
+  // contains its printed motifs; movable additions can use this separate layer
+  // later without cropping the reference art or changing journal save records.
+  const assetCatalog=Object.freeze([
+    Object.freeze({id:"journal-jasmine-bouquet-v2",src:"assets/journal/illustrations/jasmine-bouquet-v2.webp",x:7,y:3,width:22}),
+    Object.freeze({id:"journal-moon-window-v2",src:"assets/journal/illustrations/moon-window-v2.webp",x:65,y:16,width:25}),
+    Object.freeze({id:"journal-flower-teacup-v2",src:"assets/journal/illustrations/flower-teacup-v2.webp",x:36,y:60,width:21})
+  ]);
+  const ART_WIDTH=1086;
+  function setViewMode(mode,focusTarget=null){
+    if(!root||!art)return;
+    viewMode=mode==="writing"?"writing":"overview";
+    const scroller=$(root,".bj-art-scroller");
+    if(!scroller)return;
+    // CSS zoom scales the *layout box*, not just its bitmap; no cropped right half.
+    // Writing uses native-size text, avoiding tiny mobile keyboard input.
+    const fit=Math.min(1,Math.max(.1,(scroller.clientWidth||window.innerWidth)/ART_WIDTH));
+    art.style.zoom=String(viewMode==="overview"?fit:1);
+    const spread=$(root,"#bjBookDailySpread");
+    if(spread)spread.dataset.bjView=viewMode;
+    root.querySelectorAll("[data-bj-mode]").forEach(button=>{
+      button.setAttribute("aria-pressed",String(button.dataset.bjMode===viewMode));
+    });
+    if(viewMode==="overview")scroller.scrollLeft=0;
+    if(focusTarget && viewMode==="writing"){
+      requestAnimationFrame(()=>{
+        const item=focusTarget.getBoundingClientRect(),box=scroller.getBoundingClientRect();
+        scroller.scrollLeft+=item.left-box.left+item.width/2-box.width/2;
+      });
+    }
+  }
+  function synchronizeChrome(event){
+    const active=event?.detail?.view==="bullet-journal";
+    document.body.classList.toggle("bj-art-immersive",active);
+    if(active)requestAnimationFrame(()=>setViewMode(viewMode));
+  }
   function createFieldSlot(field){
     const box=document.createElement("div");
     box.className="bj-art-slot";
@@ -42,6 +78,18 @@
       '<input type="date" id="bjArtDate" aria-label="Choose journal date">'+
       '<button type="button" data-bj-action="next" aria-label="Next day">›</button>'+
       '<button type="button" data-bj-action="today">Today</button></div>';
+    const viewControls=document.createElement("div");
+    viewControls.className="bj-art-view-controls";
+    viewControls.setAttribute("role","group");
+    viewControls.setAttribute("aria-label","Journal page zoom");
+    viewControls.innerHTML='<button type="button" data-bj-mode="overview" aria-pressed="true">▣ Entire page</button>'+
+      '<button type="button" data-bj-mode="writing" aria-pressed="false">✎ Write comfortably</button>';
+    const fieldControls=document.createElement("nav");
+    fieldControls.className="bj-art-field-controls";
+    fieldControls.setAttribute("aria-label","Jump to a writing area");
+    fieldControls.innerHTML=Object.entries(friendly).map(([field,label])=>
+      '<button type="button" data-bj-jump="'+field+'">'+label+'</button>').join("");
+    toolbar.append(viewControls);
     const scroller=document.createElement("div");
     scroller.className="bj-art-scroller";
     art=document.createElement("div");
@@ -51,6 +99,11 @@
       '<span class="bj-art-day" id="bjArtDayText"></span>'+
       '<button type="button" class="bj-art-mood" id="bjArtMood" title="Edit today’s mood" aria-label="Edit today’s mood"></button>'+
       '<span class="bj-art-mood-current" id="bjArtMoodText" aria-live="polite"></span>';
+    const decorationLayer=document.createElement("div");
+    decorationLayer.className="bj-art-decoration-layer";
+    decorationLayer.setAttribute("aria-hidden","true");
+    decorationLayer.dataset.assetKeys=assetCatalog.map(item=>item.id).join(" ");
+    art.appendChild(decorationLayer);
     for(const field of Object.keys(inputTargets)){
       const slot=document.createElement("div");
       slot.className="bj-art-target";
@@ -70,12 +123,23 @@
     more.className="bj-art-more";
     more.innerHTML='<summary>✦ More reflections, rewards & decorations</summary>'+
       '<div class="bj-art-extra-area" id="bjArtExtraArea"></div>';
-    spread.prepend(toolbar,scroller,status,more);
+    spread.prepend(toolbar,fieldControls,scroller,status,more);
     const extras=$(more,"#bjArtExtraArea");
     for(const selector of ["#bjBookPrompts","#bjAtelierMount","#bjBookDailyMini",".bj-book-recorded-details",".bj-book-edit"]){
       const node=$(spread,selector);
       if(node)extras.appendChild(node);
     }
+    viewControls.addEventListener("click",event=>{
+      const button=event.target.closest("[data-bj-mode]");
+      if(button)setViewMode(button.dataset.bjMode);
+    });
+    fieldControls.addEventListener("click",event=>{
+      const button=event.target.closest("[data-bj-jump]");
+      if(button)focusField(button.dataset.bjJump);
+    });
+    window.addEventListener("resize",()=>{if(viewMode==="overview")setViewMode("overview");},{passive:true});
+    if(window.ResizeObserver)new ResizeObserver(()=>{if(viewMode==="overview")setViewMode("overview");}).observe(scroller);
+    window.addEventListener("life-rpg:view-changed",synchronizeChrome);
     const dateInput=$(toolbar,"#bjArtDate");
     dateInput.addEventListener("change",()=>{
       const selected=dateInput.value;
@@ -86,7 +150,10 @@
       window.LifeRPGJournal?.openDayEditor?.(activeDate);
     });
     art.addEventListener("focusin",event=>{
-      if(event.target.matches(".bj-art-field"))updateStatus(event.target,true);
+      if(event.target.matches(".bj-art-field")){
+        if(viewMode!=="writing")setViewMode("writing",event.target);
+        updateStatus(event.target,true);
+      }
     });
     art.addEventListener("input",event=>{
       if(event.target.matches(".bj-art-field"))updateStatus(event.target,true);
@@ -146,14 +213,24 @@
       if(input.tagName==="TEXTAREA")input.placeholder="";
     }
     if(status)status.textContent="Write directly on the page. Entries save automatically. ♡";
+    requestAnimationFrame(()=>setViewMode(viewMode));
   }
   function focusField(field){
     if(!root)return false;
     const target=$(root,field?inputTargets[field]||"#bjBookPrompt-"+field:inputTargets.gratitude);
     if(!target)return false;
     if(!target.closest("#bjArtPaper")&&more)more.open=true;
-    requestAnimationFrame(()=>{target.scrollIntoView({behavior:"smooth",block:"center"});target.focus({preventScroll:true});});
+    if(target.closest("#bjArtPaper"))setViewMode("writing",target);
+    requestAnimationFrame(()=>{
+      target.scrollIntoView({behavior:"smooth",block:"center",inline:"nearest"});
+      target.focus({preventScroll:true});
+      if(target.closest("#bjArtPaper"))setViewMode("writing",target);
+    });
     return true;
   }
-  window.LifeRPGJournalArtSpread={init,render,focusField};
+  window.LifeRPGJournalArtSpread={init,render,focusField,
+    // Asset metadata only: separate artwork layer and stable IDs are ready,
+    // but do not pretend that drag/drop or new save writes are implemented.
+    assets:assetCatalog
+  };
 })();
