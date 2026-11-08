@@ -122,7 +122,7 @@ class JournalBookBrowserTests(unittest.TestCase):
           document.head.appendChild(link);
         }""")
         try:
-            self.page.wait_for_function("document.fonts.check('400 28px Parisienne') && document.fonts.check('400 17px \"Sue Ellen Francisco\"')",timeout=3500)
+            self.page.wait_for_function("""() => document.fonts.check('400 28px Parisienne') && document.fonts.check('400 17px "Sue Ellen Francisco"')""",timeout=3500)
         except Exception:
             pass
 
