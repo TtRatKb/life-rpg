@@ -169,8 +169,8 @@ for (const name of ["library.js", "daily.js", "shop.js"]) {
   assert.ok(html.includes(`${name}?v=${version}`));
   assert.ok(worker.includes(`${name}?v=${version}`));
 }
-assert.ok(html.includes("pwa.js?v=0.31.4-soft-floral-journal1"));
-assert.ok(worker.includes("pwa.js?v=0.31.4-soft-floral-journal1"));
+assert.ok(html.includes("pwa.js?v=0.31.4-journal-v12-artpage1"));
+assert.ok(worker.includes("pwa.js?v=0.31.4-journal-v12-artpage1"));
 assert.match(dailySource, /available > 0 && current >= available/);
 assert.match(shopSource, /book\.kind === "fanfiction"/);
 

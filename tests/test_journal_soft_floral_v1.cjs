@@ -34,15 +34,32 @@ assert.match(journal,/threshold: 600/);
 assert.match(journal,/threshold: 1000/);
 assert.match(book,/dailySpreadV1/);
 assert.doesNotMatch(book,/awardActivity\?\.\(/,'Book must not award directly');
-assert.match(index,/journal-daily-spread-v1\.css\?v=0\.31\.4-soft-floral1/);
-assert.match(worker,/journal-daily-spread-v1\.css\?v=0\.31\.4-soft-floral1/);
+assert.match(index,/journal-daily-spread-v1\.css\?v=0\.31\.4-journal-v12-illustrations1/);
+assert.match(worker,/journal-daily-spread-v1\.css\?v=0\.31\.4-journal-v12-illustrations1/);
 assert.match(spread,/--journal-calligraphy/);
 assert.match(spread,/--journal-handwriting/);
+assert.match(spread,/Parisienne/);
+assert.match(spread,/Sue Ellen Francisco/);
+assert.match(spread,/17px\/26px/);
+assert.match(spread,/16px\/25px/);
+assert.doesNotMatch(spread,/basic-(floral-sprig|moon-stars|stationery)-v1\.svg/,"Old code-drawn icons must not appear on Daily page");
+assert.doesNotMatch(spread,/Dancing Script|Caveat/,"Old writing fonts removed from Daily page");
+
 assert.match(spread,/repeating-linear-gradient/);
 assert.match(spread,/@media\(max-width:440px\)/);
 for(const file of ['basic-floral-sprig-v1.svg','basic-moon-stars-v1.svg','basic-stationery-v1.svg']){
  const asset=read('assets/journal/'+file);
- assert.match(asset,/<svg /);assert.match(worker,new RegExp(file.replaceAll('.','\\.')));
+ assert.match(asset,/<svg /,'Preserve earlier asset for rollback');
+ assert.doesNotMatch(worker,new RegExp(file.replaceAll('.','\\.')),'Retired icon must not be in active PWA precache');
 }
+for(const file of ['jasmine-bouquet-v2.webp','moon-window-v2.webp','flower-teacup-v2.webp']){
+ const bytes=fs.readFileSync(path.join(root,'assets/journal/illustrations',file));
+ assert.ok(bytes.length>3000,'Illustrated WebP asset suspiciously small: '+file);
+ assert.equal(bytes.subarray(0,4).toString(),'RIFF','Invalid WebP asset: '+file);
+ assert.match(book,new RegExp(file.replaceAll('.','\\.')),'Daily layout must display '+file);
+ assert.match(worker,new RegExp(file.replaceAll('.','\\.')),'PWA must cache '+file);
+}
+const manifest=JSON.parse(read('assets/journal/illustrations/visual-source-manifest.json'));
+assert.equal(manifest.assets.length,3);
 assert.doesNotMatch(index,/data-view="tasks"/);
 console.log('Soft Floral Journal V1 syntax, ledger boundaries, optional notes and PWA assets verified.');

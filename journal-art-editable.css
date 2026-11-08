@@ -1,0 +1,100 @@
+/* Life RPG Journal Art V2 — live writing on a genuine illustrated page. */
+#bjBookDailySpread[hidden]{display:none!important}
+#bjBookDailySpread.bj-art-enabled.bj-book-spread{display:block!important;min-height:0;max-width:none;padding:0 0 20px;background:#faf6f0;border:0;box-shadow:none}
+#bjBookDailySpread.bj-art-enabled > .bj-book-page{display:none!important}
+#bjBookDailySpread .bj-art-toolbar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin:5px auto 14px;max-width:1086px;font:600 .8rem "Nunito Sans",system-ui,sans-serif;color:#624e55}
+#bjBookDailySpread .bj-art-toolbar button,#bjBookDailySpread .bj-art-toolbar input{
+ appearance:none;background:#fffdfa;color:#634f57;border:1px solid #dfd1cd;border-radius:10px;
+ padding:7px 11px;font:600 .8rem "Nunito Sans",system-ui,sans-serif;cursor:pointer
+}
+#bjBookDailySpread .bj-art-toolbar button[aria-current="page"]{background:#ebeee6;border-color:#b9c9ba}
+#bjBookDailySpread .bj-art-toolbar button:disabled{opacity:.4;cursor:not-allowed}
+#bjBookDailySpread .bj-art-toolbar .bj-art-controls{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+#bjBookDailySpread .bj-art-scroller{width:100%;overflow-x:auto;overflow-y:hidden;scrollbar-width:thin;scrollbar-color:#cdbeb9 transparent;border-radius:8px}
+#bjArtPaper{
+ position:relative;box-sizing:border-box;margin:0 auto;width:clamp(780px,100%,1086px);
+ aspect-ratio:1086 / 1448;background-color:#fffaf4;background-position:center;background-repeat:no-repeat;
+ background-size:100% 100%;isolation:isolate;box-shadow:0 9px 35px rgba(67,50,43,.11);border:1px solid #e9dfd0;
+}
+#bjArtPaper .bj-art-field{
+ box-sizing:border-box;position:absolute;z-index:2;resize:none;overflow-y:auto;border:0!important;
+ outline:0;background:transparent!important;box-shadow:none!important;border-radius:0!important;
+ color:#37312b;font:400 17px/35px "Sue Ellen Francisco","Shadows Into Light","Noteworthy",cursive!important;
+ letter-spacing:.02em;padding:0 1px!important;min-width:0;min-height:0;scrollbar-width:thin;scrollbar-color:#cabbab transparent;
+}
+#bjArtPaper .bj-art-field::placeholder{color:rgba(68,58,52,.38);font-style:italic}
+#bjArtPaper .bj-art-field:focus-visible{
+ outline:2px dashed #7d9376!important;outline-offset:4px;background:rgba(255,255,255,.20)!important;
+}
+#bjArtPaper [data-bj-art="gratitude"]{left:10.7%;top:27.7%;width:30.1%;height:13.5%}
+#bjArtPaper [data-bj-art="focusText"]{left:51.8%;top:35.5%;width:23.3%;height:12.1%}
+#bjArtPaper [data-bj-art="intentionText"]{left:9.1%;top:47.9%;width:21%;height:11.1%}
+#bjArtPaper [data-bj-art="happyMomentsText"]{left:8.8%;top:66.5%;width:21%;height:10.0%}
+#bjArtPaper [data-bj-art="bookNote"]{left:71.4%;top:73.6%;width:21.9%;height:12.0%}
+#bjArtPaper [data-bj-art="focusText"],#bjArtPaper [data-bj-art="intentionText"],
+#bjArtPaper [data-bj-art="happyMomentsText"]{line-height:34px!important}
+#bjArtPaper [data-bj-art="bookNote"]{line-height:36px!important}
+#bjArtPaper .bj-art-date,#bjArtPaper .bj-art-day{
+ position:absolute;z-index:2;left:78%;width:13%;font:400 17px/1.2 "Sue Ellen Francisco","Shadows Into Light",cursive;
+ color:#40362c;white-space:nowrap;pointer-events:none
+}
+#bjArtPaper .bj-art-date{top:6.3%}
+#bjArtPaper .bj-art-day{top:9.1%}
+#bjArtPaper .bj-art-mood{
+ position:absolute;left:47.9%;top:52.5%;width:32%;height:5.2%;z-index:3;
+ background:transparent;border:0;cursor:pointer;color:transparent;border-radius:7px;
+}
+#bjArtPaper .bj-art-mood:focus-visible{outline:2px dashed #7c8e77;outline-offset:1px}
+#bjArtPaper .bj-art-mood-current{
+ position:absolute;left:50%;top:58.4%;max-width:30%;font:600 11px/1.2 "Nunito Sans",system-ui,sans-serif;
+ color:#6a695a;background:rgba(255,250,242,.85);border-radius:4px;padding:2px 5px;pointer-events:none
+}
+#bjBookDailySpread .bj-art-status{max-width:1086px;margin:8px auto 0;min-height:18px;font:600 .78rem "Nunito Sans",system-ui,sans-serif;color:#725d64;text-align:left}
+#bjBookDailySpread .bj-art-more{max-width:1086px;margin:20px auto 0;border:1px solid #e5d7d0;border-radius:12px;padding:14px 18px;background:#fffefa}
+#bjBookDailySpread .bj-art-more>summary{cursor:pointer;font:700 .91rem "Nunito Sans",system-ui,sans-serif;color:#634e58}
+#bjBookDailySpread .bj-art-extra-area{display:grid;gap:17px;padding:17px 2px}
+#bjBookDailySpread .bj-art-extra-area #bjBookPrompts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}
+#bjBookDailySpread .bj-art-extra-area .bj-book-prompt-card[data-bj-field="gratitude"]{
+ display:block;min-height:0;margin:0;padding:9px 12px;background:#f3f7ee;border-radius:8px;transform:none
+}
+#bjBookDailySpread .bj-art-extra-area .bj-book-prompt-card[data-bj-field="gratitude"] label{font:600 .85rem "Nunito Sans",system-ui,sans-serif}
+#bjBookDailySpread .bj-art-extra-area .bj-book-prompt-card:not([data-bj-field="gratitude"]){
+ display:grid;min-height:0;margin:0;transform:none;border-radius:8px;
+}
+#bjBookDailySpread .bj-art-extra-area .bj-book-prompt-card textarea{
+ font:400 17px/29px "Sue Ellen Francisco","Noteworthy",cursive!important;
+ background:transparent!important
+}
+#bjBookDailySpread .bj-art-extra-area .bj-extra-grid{display:none}
+#bjBookDailySpread .bj-art-extra-area .bj-book-daily-mini,#bjBookDailySpread .bj-art-extra-area .bj-atelier-mount{min-width:0}
+#bjBookDailySpread .bj-art-extra-area .bj-book-actions,#bjBookDailySpread .bj-art-extra-area .bj-book-recorded-details{margin:0}
+@media(max-width:800px){
+ #bjBookDailySpread .bj-art-scroller{border-radius:0}
+ #bjArtPaper .bj-art-field{font-size:16px!important;line-height:26px!important}
+ #bjArtPaper [data-bj-art="focusText"],#bjArtPaper [data-bj-art="intentionText"],
+ #bjArtPaper [data-bj-art="happyMomentsText"],#bjArtPaper [data-bj-art="bookNote"]{line-height:26px!important}
+ #bjBookDailySpread .bj-art-extra-area #bjBookPrompts{grid-template-columns:1fr}
+ #bjBookDailySpread .bj-art-toolbar{margin:10px 7px 12px}
+ #bjBookDailySpread .bj-art-status{padding:0 9px}
+ #bjBookDailySpread .bj-art-more{margin:16px 6px 0}
+}
+
+/* Hidden daily pages must actually disappear when Weeks/Months/Collections is selected. */
+#bjBookDailySpread.bj-art-enabled[hidden]{display:none!important}
+
+/* Small screens retain the original artwork at readable size with horizontal panning. */
+#bjBookDailySpread .bj-art-scroller{max-width:calc(100vw - 26px);min-width:0}
+
+@media(max-width:800px){
+ #view-bullet-journal #bjBookDailySpread .bj-art-scroller{box-sizing:border-box!important;width:calc(100vw - 26px)!important;max-width:calc(100vw - 26px)!important;overflow-x:scroll!important;display:block!important}
+ #view-bullet-journal #bjArtPaper{width:780px!important;min-width:780px!important;max-width:none!important;flex:none!important}
+}
+
+/* Keep chapter selection and date controls tidy above the artwork. */
+#bjBookDailySpread .bj-art-toolbar{display:grid;grid-template-columns:minmax(0,1fr) max-content;align-items:center}
+#bjBookDailySpread .bj-art-toolbar .bj-art-controls{flex-wrap:nowrap}
+#bjBookDailySpread .bj-art-toolbar input[type="date"]{box-sizing:border-box;width:158px;min-width:0}
+@media(max-width:760px){
+ #bjBookDailySpread .bj-art-toolbar{display:flex;flex-wrap:wrap;justify-content:flex-start}
+ #bjBookDailySpread .bj-art-toolbar .bj-art-controls{flex-wrap:wrap}
+}

@@ -91,14 +91,14 @@ const sw = content('service-worker.js');
 const prefix = '0.31.4-kirishima-nine1';
 assert.ok(html.indexOf('kirishima-visual-map.js?v=' + prefix) > 0);
 assert.ok(html.indexOf('kirishima-visual-map.js?v=' + prefix) < html.indexOf('story-ui.js?v=' + prefix));
-assert.match(sw, /const CACHE_NAME = "life-rpg-v0\.31\.4-soft-floral-journal[0-9]+"/, 'Current cache revision must preserve all Kirishima runtime assets');
+assert.match(sw, /const CACHE_NAME = "life-rpg-v0\.31\.4-journal-v12-artpage[0-9]+"/, 'Current cache revision must preserve all Kirishima runtime assets');
 for (const file of ['kirishima-visual-map.js','story-ui.js','companion-moments.js',
   'living-world-v3.js','dreamscape.js']) {
   assert.ok(sw.includes(`./${file}?v=${prefix}`), `PWA must refresh ${file}`);
   assert.ok(html.includes(`${file}?v=${prefix}`), `HTML must refresh ${file}`);
 }
-assert.ok(sw.includes('./pwa.js?v=0.31.4-soft-floral-journal1'));
-assert.ok(html.includes('pwa.js?v=0.31.4-soft-floral-journal1'));
+assert.ok(sw.includes('./pwa.js?v=0.31.4-journal-v12-artpage1'));
+assert.ok(html.includes('pwa.js?v=0.31.4-journal-v12-artpage1'));
 assert.ok(!sw.includes('./living-companion.js?'), 'The retired task-oriented companion must not be precached');
 assert.ok(!html.includes('src="living-companion.js?'), 'The retired task-oriented companion must not start');
 assert.ok(content('pwa.js').includes(`companion-moments-v2.js?v=${prefix}`));

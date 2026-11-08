@@ -8,6 +8,10 @@ on:
       - "bullet-journal-book.js"
       - "bullet-journal-book.css"
       - "journal-daily-spread-v1.css"
+      - "journal-art-background-v2.css"
+      - "journal-art-editable.css"
+      - "journal-art-editable.js"
+      - "tests/test_journal_art_editable.cjs"
       - "assets/journal/basic-*.svg"
       - "tests/test_journal_soft_floral_v1.cjs"
       - "nonogram.js"
@@ -32,3 +36,5 @@ jobs:
         run: node tests/test_cozy_cleanup_nono_journal.cjs
       - name: Test Soft Floral Journal V1 non-regressions
         run: node tests/test_journal_soft_floral_v1.cjs
+      - name: Test editability and safety of original watercolor journal canvas
+        run: node tests/test_journal_art_editable.cjs
