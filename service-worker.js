@@ -1,4 +1,4 @@
-const CACHE_NAME = "life-rpg-v0.31.4-journal-v12-illustrations1";
+const CACHE_NAME = "life-rpg-v0.31.4-journal-v12-artpage1";
 const ASSET_CACHE_NAME = "life-rpg-assets-v6";
 const MAX_RUNTIME_ASSETS = 96;
 const CORE = [
@@ -180,6 +180,9 @@ const CORE = [
   "./weekly-review.css?v=0.31.4ag",
   "./bullet-journal-book.css?v=0.31.4-journal-ink1",
   "./journal-daily-spread-v1.css?v=0.31.4-journal-v12-illustrations1",
+  "./journal-art-background-v2.css?v=0.31.4-artpaper1",
+  "./journal-art-editable.css?v=0.31.4-artpaper1",
+  "./journal-art-editable.js?v=0.31.4-artpaper1",
   "./assets/journal/illustrations/jasmine-bouquet-v2.webp",
   "./assets/journal/illustrations/moon-window-v2.webp",
   "./assets/journal/illustrations/flower-teacup-v2.webp",
@@ -192,7 +195,7 @@ const CORE = [
   "./bullet-journal-daily-tracker.css?v=0.31.4-atelier-preview1",
   "./weekly-review.js?v=0.31.4ag",
   "./manifest.webmanifest?v=0.30.3a",
-  "./pwa.js?v=0.31.4-journal-v12-illustrations1",
+  "./pwa.js?v=0.31.4-journal-v12-artpage1",
   "./focus-dock.css?v=0.31.4dz16",
   "./focus-dock.js?v=0.31.4dz50c",
   "./visual-performance.js?v=0.31.4bu",
@@ -233,7 +236,7 @@ const CORE = [
   "./daily.js?v=0.31.4-reading1",
   "./data/year-journal-questions.js?v=0.31.4ar",
   "./journal.js?v=0.31.4-soft-floral1",
-  "./bullet-journal-book.js?v=0.31.4-journal-v12-illustrations1",
+  "./bullet-journal-book.js?v=0.31.4-journal-v12-artpage1",
   "./bullet-journal-monthly.js?v=0.31.4-monthly-preview1",
   "./bullet-journal-collections.js?v=0.31.4-collection-shelves2",
   "./story-engine.js?v=0.31.4dz16",
