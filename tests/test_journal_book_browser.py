@@ -239,7 +239,7 @@ class JournalBookBrowserTests(unittest.TestCase):
         self.page.locator('[data-bj-jump="bookNote"]').click()
         self.assertEqual("writing",self.page.locator("#bjBookDailySpread").get_attribute("data-bj-view"))
         self.assertTrue(self.page.locator("#bjArtPaper").bounding_box()["width"]>mobile_geometry["client"])
-        self.assertEqual("bjBookText",self.page.evaluate("document.activeElement?.id"))
+        self.page.wait_for_function("document.activeElement?.id==='bjBookText'")
         self.page.locator('[data-bj-mode="overview"]').click()
         screenshots=ROOT/"test-artifacts"
         screenshots.mkdir(exist_ok=True)
