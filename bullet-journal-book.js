@@ -125,7 +125,7 @@
                 '<section class="bj-extra-note"><label for="bjExtra-intentionText">Today I will…</label><textarea id="bjExtra-intentionText" data-bj-extra="intentionText" placeholder="A little thing I would like to do…"></textarea><small data-bj-extra-status="intentionText">Personal note, not a task</small></section>'+
                 '<section class="bj-extra-note"><label for="bjExtra-happyMomentsText">Little moments that made me happy</label><textarea id="bjExtra-happyMomentsText" data-bj-extra="happyMomentsText" placeholder="Tiny joys deserve a place, too…"></textarea><small data-bj-extra-status="happyMomentsText">No streaks or obligations</small></section>'+
               '</div>'+
-              '<div class="bj-daily-teacup"><img class="bj-daily-illustration bj-illustration-teacup" alt="" aria-hidden="true" src="assets/journal/illustrations/flower-teacup-v2.webp" width="160" height="200" decoding="async"></div>'+
+              '<div class="bj-daily-teacup"><img class="bj-daily-illustration bj-illustration-teacup" alt="" aria-hidden="true" src="assets/journal/illustrations/flower-teacup-v2.webp" width="128" height="160" decoding="async"></div>'+
               '<div id="bjAtelierMount" class="bj-atelier-mount" aria-label="Journal decoration atelier"></div>'+
               '<div id="bjBookDailyMini" class="bj-book-daily-mini" aria-label="Daily Mini Habit Tracker"></div>'+
               '<details class="bj-book-recorded-details"><summary>✦ Recorded moments</summary>'+
