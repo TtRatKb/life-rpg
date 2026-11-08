@@ -41,13 +41,22 @@
     root.querySelectorAll("[data-bj-mode]").forEach(button=>{
       button.setAttribute("aria-pressed",String(button.dataset.bjMode===viewMode));
     });
-    if(viewMode==="overview")scroller.scrollLeft=0;
-    if(focusTarget && viewMode==="writing"){
-      requestAnimationFrame(()=>{
-        const item=focusTarget.getBoundingClientRect(),box=scroller.getBoundingClientRect();
-        scroller.scrollLeft+=item.left-box.left+item.width/2-box.width/2;
-      });
+    if(viewMode==="overview"){
+      scroller.scrollLeft=0;
+      const jumps=$(root,".bj-art-field-controls");
+      if(jumps)jumps.scrollLeft=0;
     }
+    if(focusTarget && viewMode==="writing"){
+      requestAnimationFrame(()=>centerWritingField(focusTarget));
+    }
+  }
+  function centerWritingField(field){
+    const scroller=$(root,".bj-art-scroller");
+    if(!scroller||!field?.closest("#bjArtPaper"))return;
+    // Use paper-relative geometry, not a scrollIntoView animation which can
+    // undo the horizontal alignment while the keyboard is opening.
+    const left=field.offsetLeft+(field.offsetWidth-scroller.clientWidth)/2;
+    scroller.scrollLeft=Math.max(0,Math.min(scroller.scrollWidth-scroller.clientWidth,left));
   }
   function synchronizeChrome(event){
     const active=event?.detail?.view==="bullet-journal";
@@ -220,11 +229,12 @@
     const target=$(root,field?inputTargets[field]||"#bjBookPrompt-"+field:inputTargets.gratitude);
     if(!target)return false;
     if(!target.closest("#bjArtPaper")&&more)more.open=true;
-    if(target.closest("#bjArtPaper"))setViewMode("writing",target);
+    const onPaper=Boolean(target.closest("#bjArtPaper"));
+    if(onPaper)setViewMode("writing");
     requestAnimationFrame(()=>{
-      target.scrollIntoView({behavior:"smooth",block:"center",inline:"nearest"});
       target.focus({preventScroll:true});
-      if(target.closest("#bjArtPaper"))setViewMode("writing",target);
+      target.scrollIntoView({behavior:"instant",block:"center",inline:"nearest"});
+      if(onPaper)requestAnimationFrame(()=>centerWritingField(target));
     });
     return true;
   }
