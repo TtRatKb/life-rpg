@@ -260,6 +260,7 @@
       clearTimeout(saveTimer);saveTimer=setTimeout(()=>save(),800);
     });
     main.appendChild(bookView);
+    window.LifeRPGJournalArtSpread?.init?.(bookView);
     return bookView;
   }
   function extraValues(day) {
@@ -416,6 +417,7 @@
     noteStatus(savedNote?"Saved":"Your words stay yours");
     renderPrompts(activeDay);
     renderExtras(activeDay);
+    window.LifeRPGJournalArtSpread?.render?.(activeDay,view);
     view.querySelector("#bjBookRecorded").innerHTML=dayContents(activeDay);
     window.LifeRPGBulletJournalDailyTracker?.render?.(activeDay);
     window.LifeRPGJournalAtelier?.render?.(activeDay);
@@ -528,6 +530,7 @@
   }
   function openReflection(target=today(),field=null){
     if(!open(target))return false;
+    if(window.LifeRPGJournalArtSpread?.focusField?.(field))return true;
     const area=field?get("bjBookPrompt-"+field):get("bjBookPrompt-gratitude");
     requestAnimationFrame(()=>{area?.scrollIntoView?.({behavior:"smooth",block:"center"});area?.focus?.({preventScroll:true});});
     return true;
