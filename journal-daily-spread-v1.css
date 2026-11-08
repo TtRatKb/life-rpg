@@ -5,7 +5,7 @@
   --journal-sage:#e8f0e6;--journal-blush:#f9e9f0;--journal-lavender:#efe8f6;
   --journal-outline:rgba(113,96,105,.17);--journal-writing-line:rgba(104,93,106,.12);
   --journal-calligraphy:"Parisienne","Allura","Apple Chancery",cursive;
-  --journal-handwriting:"Shadows Into Light","Sue Ellen Francisco","Noteworthy",sans-serif;
+  --journal-handwriting:"Sue Ellen Francisco","Shadows Into Light","Noteworthy",sans-serif;
   --journal-ui:"Nunito Sans","Avenir Next",system-ui,sans-serif;
 }
 #bjBookDailySpread.bj-book-spread {
@@ -112,6 +112,56 @@
 #bjBookDailySpread .bj-book-reflection-intro{color:#9a8897;font:500 .77rem var(--journal-ui)}
 #bjBookDailySpread .bj-book-edit {border-top:0;padding:4px 0;margin:0;font:700 .75rem var(--journal-ui)}
 #bjBookDailySpread .bj-atelier-mount,#bjBookDailySpread .bj-book-daily-mini {min-width:0}
+/* Independent watercolor artwork, not code-drawn geometric ornaments.
+   These slots stay in document flow and never cover editable content. */
+#bjBookDailySpread .bj-daily-illustration{
+  display:block;object-fit:contain;max-width:100%;height:auto;flex:none;
+  pointer-events:none;user-select:none;
+}
+#bjBookDailySpread .bj-daily-opening{
+  display:flex;align-items:center;justify-content:space-between;gap:16px;
+  min-width:0;min-height:122px;margin:-5px 0 -7px;
+}
+#bjBookDailySpread .bj-daily-opening .bj-daily-intro{
+  align-self:center;flex:1 1 auto;max-width:18ch;
+}
+#bjBookDailySpread .bj-illustration-bouquet{
+  width:clamp(100px,11vw,145px);height:auto;max-height:168px;
+}
+#bjBookDailySpread .bj-daily-topline{
+  display:grid;grid-template-columns:minmax(0,1fr) minmax(90px,150px);
+  align-items:center;gap:8px;min-width:0;
+}
+#bjBookDailySpread .bj-daily-topline .bj-daily-mood{
+  max-width:none;min-width:0;padding:10px 8px 12px 2px;
+}
+#bjBookDailySpread .bj-illustration-window{
+  width:100%;max-width:150px;max-height:182px;justify-self:end;
+}
+#bjBookDailySpread .bj-daily-teacup{
+  display:flex;justify-content:flex-end;align-items:center;
+  min-height:90px;margin:-3px 10px -12px 0;
+}
+#bjBookDailySpread .bj-illustration-teacup{
+  width:clamp(100px,13vw,160px);max-height:160px;
+}
+#bjBookDailySpread .bj-book-prompt-card[data-bj-field="gratitude"]{
+  border-color:rgba(114,137,110,.18);
+}
+#bjBookDailySpread .bj-book-prompt-card[data-bj-field="smallWin"]{
+  background:#f8edf0;
+}
+#bjBookDailySpread .bj-book-prompt-card[data-bj-field="hardThing"]{
+  background:#f3eef7;
+}
+@media(max-width:600px){
+  #bjBookDailySpread .bj-daily-opening{min-height:84px;gap:8px}
+  #bjBookDailySpread .bj-illustration-bouquet{width:92px;max-height:116px}
+  #bjBookDailySpread .bj-daily-topline{grid-template-columns:minmax(0,1fr) 105px;gap:4px}
+  #bjBookDailySpread .bj-illustration-window{max-width:105px;max-height:139px}
+  #bjBookDailySpread .bj-daily-teacup{min-height:65px;margin:0 0 -9px}
+  #bjBookDailySpread .bj-illustration-teacup{width:104px;max-height:120px}
+}
 @media(max-width:1080px){
  #bjBookDailySpread .bj-book-page-inner{padding:26px 21px}
  #bjBookDailySpread .bj-book-prompt-card[data-bj-field="gratitude"]{margin-right:0}
