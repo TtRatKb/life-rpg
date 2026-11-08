@@ -81,3 +81,6 @@
 
 /* Hidden daily pages must actually disappear when Weeks/Months/Collections is selected. */
 #bjBookDailySpread.bj-art-enabled[hidden]{display:none!important}
+
+/* Small screens retain the original artwork at readable size with horizontal panning. */
+#bjBookDailySpread .bj-art-scroller{max-width:calc(100vw - 26px);min-width:0}
