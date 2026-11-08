@@ -132,8 +132,12 @@
     const next=$(view,".bj-art-toolbar [data-bj-action='next']");
     if(next){const now=new Date(),today=[now.getFullYear(),String(now.getMonth()+1).padStart(2,"0"),String(now.getDate()).padStart(2,"0")].join("-");next.disabled=date>=today;}
     for(const [field,selector] of Object.entries(inputTargets)){
-      const input=$(view,selector),target=$(art,'[data-art-slot="'+field+'"]');
-      if(!input||!target)continue;
+      const target=$(art,'[data-art-slot="'+field+'"]');
+      // renderPrompts() rebuilds its editor, so prefer that fresh element
+      // rather than the old moved input with the same ID in the art slot.
+      const input=field==="gratitude" ? ($(more,selector)||$(view,selector)) : $(view,selector);
+      if(!target)continue;
+      if(!input){target.replaceChildren();continue;}
       // Old field is the actual editor. Never create a second competing save.
       target.replaceChildren(input);
       input.classList.add("bj-art-field");
