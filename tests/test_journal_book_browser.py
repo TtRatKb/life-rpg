@@ -223,6 +223,8 @@ class JournalBookBrowserTests(unittest.TestCase):
                          "Other existing reflection fields must remain available beneath the art page")
         self.page.locator(".bj-art-more > summary").click()
         self.assertTrue(self.page.locator("#bjBookPrompt-smallWin").is_visible())
+        # openReflection() intentionally enters writing mode; select overview before checking fit.
+        self.page.locator('[data-bj-mode="overview"]').click()
         self.page.set_viewport_size({"width":390,"height":844})
         mobile_geometry=self.page.evaluate("""() => {
             const scroller=document.querySelector('.bj-art-scroller'),paper=document.querySelector('#bjArtPaper');
