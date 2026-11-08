@@ -113,11 +113,11 @@ class JournalBookBrowserTests(unittest.TestCase):
         self.page.evaluate("""() => {
           const link=document.createElement('link');
           link.rel='stylesheet';
-          link.href='https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700;800&family=Parisienne&family=Shadows+Into+Light&display=swap';
+          link.href='https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700;800&family=Parisienne&family=Sue+Ellen+Francisco&family=Shadows+Into+Light&display=swap';
           document.head.appendChild(link);
         }""")
         try:
-            self.page.wait_for_function("document.fonts.check('400 28px Parisienne') && document.fonts.check('400 17px \"Shadows Into Light\"')",timeout=3500)
+            self.page.wait_for_function("document.fonts.check('400 28px Parisienne') && document.fonts.check('400 17px \"Sue Ellen Francisco\"')",timeout=3500)
         except Exception:
             pass
 
@@ -130,10 +130,21 @@ class JournalBookBrowserTests(unittest.TestCase):
         style=self.page.locator("#bjBookPrompt-gratitude").evaluate("""el => {
           const c=getComputedStyle(el);return {font:c.fontFamily,size:c.fontSize,weight:c.fontWeight,line:c.lineHeight};
         }""")
-        self.assertIn("Shadows Into Light",style["font"])
+        self.assertIn("Sue Ellen Francisco",style["font"])
         self.assertEqual("17px",style["size"])
         self.assertEqual("400",style["weight"])
         self.assertEqual("26px",style["line"])
+        art=self.page.locator("#bjBookDailySpread img.bj-daily-illustration")
+        self.assertEqual(3,art.count())
+        self.page.wait_for_function("""() => [...document.querySelectorAll('#bjBookDailySpread img.bj-daily-illustration')].every(img => img.complete && img.naturalWidth>0)""",timeout=15000)
+        overlaps=self.page.evaluate("""() => {
+            const imgs=[...document.querySelectorAll('#bjBookDailySpread img.bj-daily-illustration')];
+            const fields=[...document.querySelectorAll('#bjBookDailySpread textarea')];
+            const intersects=(a,b) => a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
+            return imgs.some(img => fields.some(field => intersects(img.getBoundingClientRect(),field.getBoundingClientRect())));
+        }""")
+        self.assertFalse(overlaps,"Illustration overlays a writable field")
+
         self.page.locator("#bjBookPrompt-gratitude").fill("g" * 49)
         self.assertIn("49 characters",self.page.locator("[data-bj-preview='gratitude']").inner_text())
         self.page.locator("#bjBookPrompt-gratitude").fill("g" * 50)
