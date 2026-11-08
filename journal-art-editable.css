@@ -1,7 +1,7 @@
 /* Life RPG Journal Art V2 — live writing on a genuine illustrated page. */
 #bjBookDailySpread[hidden]{display:none!important}
-#bjBookDailySpread.bj-book-spread{display:block!important;min-height:0;max-width:none;padding:0 0 20px;background:#faf6f0;border:0;box-shadow:none}
-#bjBookDailySpread > .bj-book-page{display:none!important}
+#bjBookDailySpread.bj-art-enabled.bj-book-spread{display:block!important;min-height:0;max-width:none;padding:0 0 20px;background:#faf6f0;border:0;box-shadow:none}
+#bjBookDailySpread.bj-art-enabled > .bj-book-page{display:none!important}
 #bjBookDailySpread .bj-art-toolbar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin:5px auto 14px;max-width:1086px;font:600 .8rem "Nunito Sans",system-ui,sans-serif;color:#624e55}
 #bjBookDailySpread .bj-art-toolbar button,#bjBookDailySpread .bj-art-toolbar input{
  appearance:none;background:#fffdfa;color:#634f57;border:1px solid #dfd1cd;border-radius:10px;
