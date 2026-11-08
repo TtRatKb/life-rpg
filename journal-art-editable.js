@@ -146,13 +146,14 @@
     pageControls.innerHTML='<button type="button" data-bj-page="1" aria-current="page">① Illustrated day</button>'+
       '<button type="button" data-bj-page="2" aria-current="false">② Reflections</button>'+
       '<span id="bjArtPageCount">Page 1 of 2 · same day</span>';
-    const inkControls=document.createElement("div");
+    const inkControls=document.createElement("details");
     inkControls.className="bj-art-ink-controls";
-    inkControls.innerHTML='<span>Handwriting</span>'+
+    inkControls.innerHTML='<summary>✎ Handwriting & extra space</summary>'+
+      '<div class="bj-art-ink-buttons"><span>Ink size</span>'+
       '<button type="button" data-bj-ink="-1" aria-label="Write smaller">A−</button>'+
       '<output id="bjArtInkScale" aria-live="polite">Ink 0</output>'+
       '<button type="button" data-bj-ink="1" aria-label="Write larger">A+</button>'+
-      '<button type="button" data-bj-large-editor>✎ Larger writing space</button>';
+      '<button type="button" data-bj-large-editor>↗ Large writing space</button></div>';
     pageControls.append(inkControls);
     const scroller=document.createElement("div");
     scroller.className="bj-art-scroller";

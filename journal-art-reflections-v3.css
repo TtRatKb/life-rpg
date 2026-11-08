@@ -117,3 +117,20 @@
  #bjBookDailySpread .bj-art-large-editor{padding:10px 12px 15px;height:88dvh}
  #bjBookDailySpread .bj-art-large-editor #bjArtLargeMount{height:calc(100% - 115px)}
 }
+
+/* Keep the full two-page toolbar compact on phones while preserving access
+   to writing-size controls and the lossless large writing dialog. */
+#bjBookDailySpread .bj-art-ink-controls{display:block;flex:0 0 auto;background:transparent;border:0;padding:0;min-width:0}
+#bjBookDailySpread .bj-art-ink-controls>summary{
+ display:list-item;list-style:inside disclosure-closed;cursor:pointer;border:1px solid #dfd3c6;
+ border-radius:19px;padding:8px 12px;background:#faf3eb;color:#755e6c;
+ font:700 12px "Nunito Sans",system-ui,sans-serif;white-space:nowrap
+}
+#bjBookDailySpread .bj-art-ink-controls[open]>summary{list-style:inside disclosure-open}
+#bjBookDailySpread .bj-art-ink-buttons{display:flex;align-items:center;flex-wrap:wrap;gap:6px;padding:7px 3px 4px;justify-content:center}
+#bjBookDailySpread .bj-art-ink-buttons>span{font:650 11px "Nunito Sans",sans-serif}
+@media(max-width:800px){
+ #bjBookDailySpread .bj-art-ink-controls{flex:0 1 auto;max-width:100%}
+ #bjBookDailySpread .bj-art-ink-controls>summary{padding:8px 11px}
+ #bjBookDailySpread .bj-art-ink-buttons{width:100%}
+}

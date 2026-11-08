@@ -230,6 +230,7 @@ class JournalBookBrowserTests(unittest.TestCase):
         self.assertTrue(self.page.locator("#bjBookPrompt-hardThing").is_visible())
         self.page.locator("#bjBookPrompt-smallWin").fill("A hundred tiny victories. " * 22)
         self.page.wait_for_function("""() => getComputedStyle(document.querySelector('#bjBookPrompt-smallWin')).fontSize !== '22px'""")
+        self.page.locator('.bj-art-ink-controls > summary').click()
         self.page.locator('[data-bj-large-editor]').click()
         self.assertTrue(self.page.locator("#bjArtLargeEditor").evaluate("el=>el.open"))
         self.assertEqual(1,self.page.locator("#bjBookPrompt-smallWin").count())
@@ -266,6 +267,13 @@ class JournalBookBrowserTests(unittest.TestCase):
         screenshots.mkdir(exist_ok=True)
         self.page.locator('[data-bj-page="2"]').click()
         self.page.screenshot(path=str(screenshots/"journal-art-v3-reflections-mobile.png"),full_page=True)
+        self.page.set_viewport_size({"width":1440,"height":900})
+        self.page.wait_for_function("""() => {
+            const paper=document.querySelector('#bjArtReflectionPaper'),scroller=document.querySelector('.bj-art-scroller');
+            return paper.getBoundingClientRect().width <= scroller.clientWidth + 3;
+        }""")
+        self.page.screenshot(path=str(screenshots/"journal-art-v3-reflections-desktop.png"),full_page=True)
+        self.page.set_viewport_size({"width":390,"height":844})
         self.page.locator('[data-bj-page="1"]').click()
         screenshots.mkdir(exist_ok=True)
         for width,height,label in [(1440,900,"desktop"),(768,1024,"tablet"),
