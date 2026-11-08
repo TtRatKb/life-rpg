@@ -84,3 +84,8 @@
 
 /* Small screens retain the original artwork at readable size with horizontal panning. */
 #bjBookDailySpread .bj-art-scroller{max-width:calc(100vw - 26px);min-width:0}
+
+@media(max-width:800px){
+ #view-bullet-journal #bjBookDailySpread .bj-art-scroller{box-sizing:border-box!important;width:calc(100vw - 26px)!important;max-width:calc(100vw - 26px)!important;overflow-x:scroll!important;display:block!important}
+ #view-bullet-journal #bjArtPaper{width:780px!important;min-width:780px!important;max-width:none!important;flex:none!important}
+}
