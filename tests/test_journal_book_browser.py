@@ -275,6 +275,8 @@ class JournalBookBrowserTests(unittest.TestCase):
             return field.left >= box.left - 3 && field.right <= box.right + 3;
         }""")
         self.page.locator('[data-bj-mode="overview"]').click()
+        self.page.locator('.bj-art-ink-controls').evaluate("el=>el.open=false")
+        self.assertEqual("none",self.page.locator("#bjBookDailySpread").evaluate("el=>getComputedStyle(el,'::after').display"),"Old book seam must not cover the illustrated paper")
         screenshots=ROOT/"test-artifacts"
         screenshots.mkdir(exist_ok=True)
         self.page.locator('[data-bj-page="2"]').click()
