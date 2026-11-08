@@ -229,8 +229,36 @@ class JournalBookBrowserTests(unittest.TestCase):
             return {viewport:innerWidth,client:scroller.clientWidth,scroll:scroller.scrollWidth,
                     sheet:paper.getBoundingClientRect().width,overflow:getComputedStyle(scroller).overflowX};
         }""")
-        self.assertTrue(mobile_geometry["scroll"]>mobile_geometry["client"],
-                        "Mobile needs a readable horizontally scrollable art spread: "+str(mobile_geometry))
+        self.page.wait_for_function("""() => {
+            const paper=document.querySelector('#bjArtPaper'),scroller=document.querySelector('.bj-art-scroller');
+            return paper.getBoundingClientRect().width <= scroller.clientWidth + 2;
+        }""")
+        self.assertEqual("overview",self.page.locator("#bjBookDailySpread").get_attribute("data-bj-view"))
+        self.page.locator('[data-bj-jump="bookNote"]').click()
+        self.assertEqual("writing",self.page.locator("#bjBookDailySpread").get_attribute("data-bj-view"))
+        self.assertTrue(self.page.locator("#bjArtPaper").bounding_box()["width"]>mobile_geometry["client"])
+        self.assertEqual("bjBookText",self.page.evaluate("document.activeElement?.id"))
+        self.page.locator('[data-bj-mode="overview"]').click()
+        screenshots=ROOT/"test-artifacts"
+        screenshots.mkdir(exist_ok=True)
+        for width,height,label in [(1440,900,"desktop"),(768,1024,"tablet"),
+                                   (390,844,"mobile"),(320,640,"small-mobile")]:
+            self.page.set_viewport_size({"width":width,"height":height})
+            self.page.locator(".bj-art-more").evaluate("el=>el.open=false")
+            self.page.wait_for_function("""() => {
+                const paper=document.querySelector('#bjArtPaper'),scroller=document.querySelector('.bj-art-scroller');
+                return paper.getBoundingClientRect().width <= scroller.clientWidth + 3;
+            }""")
+            geometry=self.page.evaluate("""() => ({viewport:innerWidth,
+                pageWidth:document.documentElement.scrollWidth,
+                artWidth:document.querySelector('#bjArtPaper').getBoundingClientRect().width,
+                scrollerWidth:document.querySelector('.bj-art-scroller').clientWidth})""")
+            self.assertLessEqual(geometry["pageWidth"],width+2,str(geometry))
+            self.assertLessEqual(geometry["artWidth"],geometry["scrollerWidth"]+3,str(geometry))
+            self.page.screenshot(path=str(screenshots/("journal-art-v2-"+label+".png")),full_page=True)
+        self.page.set_viewport_size({"width":390,"height":844})
+        self.page.locator('[data-bj-jump="gratitude"]').click()
+        self.page.screenshot(path=str(screenshots/"journal-art-v2-mobile-writing.png"),full_page=True)
         self.page.locator("#bjBookPrompt-gratitude").fill("Another synthetic thought saved after mobile zoom.")
         self.page.evaluate("document.activeElement?.blur()")
         self.page.wait_for_function("""day => LifeRPGApp.getState().journal.entries[day]?.gratitude==='Another synthetic thought saved after mobile zoom.'""",arg=self.day)
