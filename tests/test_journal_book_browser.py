@@ -232,5 +232,5 @@ class JournalBookBrowserTests(unittest.TestCase):
         self.assertTrue(mobile_geometry["scroll"]>mobile_geometry["client"],
                         "Mobile needs a readable horizontally scrollable art spread: "+str(mobile_geometry))
         self.page.locator("#bjBookPrompt-gratitude").fill("Another synthetic thought saved after mobile zoom.")
-        self.page.locator("#bjArtPaper").click(position={"x":15,"y":15})
+        self.page.evaluate("document.activeElement?.blur()")
         self.page.wait_for_function("""day => LifeRPGApp.getState().journal.entries[day]?.gratitude==='Another synthetic thought saved after mobile zoom.'""",arg=self.day)
