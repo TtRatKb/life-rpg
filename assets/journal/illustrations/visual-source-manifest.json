@@ -25,8 +25,8 @@
     {
       "key": "flower-teacup",
       "path": "assets/journal/illustrations/flower-teacup-v2.webp",
-      "width": 160,
-      "height": 200,
+      "width": 128,
+      "height": 160,
       "srcOriginal": "watercolor_jasmine_tea_and_books.png",
       "gitBlobSha": "f52c2c56585e3c37abd093ac054bfb9f449de32a"
     }
