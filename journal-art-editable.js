@@ -348,7 +348,7 @@
     $(reflectionPaper,"#bjReflectionDate").textContent=printedDate+" · "+weekday;
     const next=$(view,".bj-art-toolbar [data-bj-action='next']");
     if(next){const now=new Date(),today=[now.getFullYear(),String(now.getMonth()+1).padStart(2,"0"),String(now.getDate()).padStart(2,"0")].join("-");next.disabled=date>=today;}
-    view.dispatchEvent(new Event("bj-art-before-render"));
+    $(view,"#bjBookDailySpread")?.dispatchEvent(new Event("bj-art-before-render"));
     for(const [field,selector] of Object.entries(inputTargets)){
       if(reflectionFields.includes(field))continue;
       const target=$(art,'[data-art-slot="'+field+'"]');
