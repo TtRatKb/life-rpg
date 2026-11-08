@@ -240,6 +240,11 @@ class JournalBookBrowserTests(unittest.TestCase):
         self.assertEqual("writing",self.page.locator("#bjBookDailySpread").get_attribute("data-bj-view"))
         self.assertTrue(self.page.locator("#bjArtPaper").bounding_box()["width"]>mobile_geometry["client"])
         self.page.wait_for_function("document.activeElement?.id==='bjBookText'")
+        self.page.wait_for_function("""() => {
+            const field=document.querySelector('#bjBookText').getBoundingClientRect();
+            const box=document.querySelector('.bj-art-scroller').getBoundingClientRect();
+            return field.left >= box.left - 3 && field.right <= box.right + 3;
+        }""")
         self.page.locator('[data-bj-mode="overview"]').click()
         screenshots=ROOT/"test-artifacts"
         screenshots.mkdir(exist_ok=True)
@@ -260,6 +265,11 @@ class JournalBookBrowserTests(unittest.TestCase):
             self.page.screenshot(path=str(screenshots/("journal-art-v2-"+label+".png")),full_page=True)
         self.page.set_viewport_size({"width":390,"height":844})
         self.page.locator('[data-bj-jump="gratitude"]').click()
+        self.page.wait_for_function("""() => {
+            const field=document.querySelector('#bjBookPrompt-gratitude').getBoundingClientRect();
+            const box=document.querySelector('.bj-art-scroller').getBoundingClientRect();
+            return field.left >= box.left - 3 && field.right <= box.right + 3;
+        }""")
         self.page.screenshot(path=str(screenshots/"journal-art-v2-mobile-writing.png"),full_page=True)
         self.page.locator("#bjBookPrompt-gratitude").fill("Another synthetic thought saved after mobile zoom.")
         self.page.evaluate("document.activeElement?.blur()")
