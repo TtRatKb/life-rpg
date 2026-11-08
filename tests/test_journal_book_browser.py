@@ -98,9 +98,9 @@ class JournalBookBrowserTests(unittest.TestCase):
 
     def test_journal_book_navigation_does_not_erase_prompt(self):
         self.page.evaluate("LifeRPGJournal.openReflection()")
-        self.page.locator(".bj-art-more > summary").click()
+        self.page.locator('[data-bj-page="2"]').click()
         self.page.locator("#bjBookPrompt-smallWin").fill("Synthetic small win")
-        self.page.locator("#bjBookText").click()
+        self.page.locator('[data-bj-page="1"]').click()
         self.page.wait_for_function("""day => LifeRPGApp.getState().journal.entries[day]?.smallWin === 'Synthetic small win'""",arg=self.day)
         self.page.locator("#view-bullet-journal [data-bj-chapter='weekly']").first.click()
         self.page.locator("#bjBookWeeklySpread [data-bj-chapter='daily']").click()
@@ -113,6 +113,7 @@ class JournalBookBrowserTests(unittest.TestCase):
         self.page.add_style_tag(url="/journal-daily-spread-v1.css")
         self.page.add_style_tag(url="/journal-art-background-v2.css")
         self.page.add_style_tag(url="/journal-art-editable.css")
+        self.page.add_style_tag(url="/journal-art-reflections-v3.css")
         # Preview uses the same publicly hosted typefaces as the shipped app.
         self.page.evaluate("""() => {
           const link=document.createElement('link');
@@ -183,6 +184,7 @@ class JournalBookBrowserTests(unittest.TestCase):
         self.page.add_style_tag(url="/journal-daily-spread-v1.css")
         self.page.add_style_tag(url="/journal-art-background-v2.css")
         self.page.add_style_tag(url="/journal-art-editable.css")
+        self.page.add_style_tag(url="/journal-art-reflections-v3.css")
         self.page.evaluate("LifeRPGJournal.openReflection()")
         self.assertEqual(1,self.page.locator("#bjArtPaper").count())
         for field, selector in {
@@ -213,7 +215,7 @@ class JournalBookBrowserTests(unittest.TestCase):
         # The isolated fixture intentionally strips every CSS link. Reapply the
         # production styles after reload so the mobile geometry is meaningful.
         for stylesheet in ["styles.css","bullet-journal-book.css","journal-daily-spread-v1.css",
-                           "journal-art-background-v2.css","journal-art-editable.css"]:
+                           "journal-art-background-v2.css","journal-art-editable.css","journal-art-reflections-v3.css"]:
             self.page.add_style_tag(url="/"+stylesheet)
         self.page.evaluate("LifeRPGJournal.openReflection()")
         self.assertEqual("A gentle plan",self.page.locator("#bjExtra-focusText").input_value())
@@ -222,13 +224,15 @@ class JournalBookBrowserTests(unittest.TestCase):
         self.assertEqual(1,self.page.locator("#bjBookPrompt-smallWin").count(),
                          "Original reflection editor must remain unique")
         self.page.locator('[data-bj-page="2"]').click()
-        self.assertEqual(2,self.page.locator("#bjArtReflectionPaper .bj-art-reflection-region textarea").count()
-                         + self.page.locator("#bjArtReflectionPaper [data-art-card='yearQuestion'] textarea").count()
-                         - self.page.locator("#bjArtReflectionPaper [data-art-card='yearQuestion'] textarea").count(),
-                         "The existing basic reflection editors are on the second page")
+        self.assertEqual(1,self.page.locator("#bjArtReflectionPaper #bjBookPrompt-smallWin").count())
+        self.assertEqual(1,self.page.locator("#bjArtReflectionPaper #bjBookPrompt-hardThing").count())
         self.assertTrue(self.page.locator("#bjBookPrompt-smallWin").is_visible())
         self.assertTrue(self.page.locator("#bjBookPrompt-hardThing").is_visible())
+        self.page.locator("#bjBookPrompt-smallWin").fill("A hundred tiny victories. " * 22)
+        self.page.wait_for_function("""() => getComputedStyle(document.querySelector('#bjBookPrompt-smallWin')).fontSize !== '22px'""")
+        self.page.locator("#bjBookPrompt-hardThing").fill("A challenging moment that deserves space too.")
         self.page.locator('[data-bj-page="1"]').click()
+        self.page.wait_for_function("""day => LifeRPGApp.getState().journal.entries[day]?.smallWin?.startsWith('A hundred tiny victories.')""",arg=self.day)
         # openReflection() intentionally enters writing mode; select overview before checking fit.
         self.page.locator('[data-bj-mode="overview"]').click()
         self.page.set_viewport_size({"width":390,"height":844})
@@ -253,6 +257,10 @@ class JournalBookBrowserTests(unittest.TestCase):
         }""")
         self.page.locator('[data-bj-mode="overview"]').click()
         screenshots=ROOT/"test-artifacts"
+        screenshots.mkdir(exist_ok=True)
+        self.page.locator('[data-bj-page="2"]').click()
+        self.page.screenshot(path=str(screenshots/"journal-art-v3-reflections-mobile.png"),full_page=True)
+        self.page.locator('[data-bj-page="1"]').click()
         screenshots.mkdir(exist_ok=True)
         for width,height,label in [(1440,900,"desktop"),(768,1024,"tablet"),
                                    (390,844,"mobile"),(320,640,"small-mobile")]:
