@@ -1,0 +1,141 @@
+/* Life RPG Journal · a second real page for the original reflection prompts.
+   Uses existing, independently sourced illustration assets. */
+#bjBookDailySpread.bj-art-enabled .bj-art-page-controls{
+ display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap;
+ margin:0 auto 10px;max-width:1086px;font:650 12px "Nunito Sans",system-ui,sans-serif;color:#73616a;
+}
+#bjBookDailySpread .bj-art-page-controls>button{
+ cursor:pointer;border:1px solid #d9c6be;background:#fffaf5;color:#745a62;
+ padding:9px 16px;border-radius:24px;min-height:40px;font:700 13px "Nunito Sans",system-ui,sans-serif;
+}
+#bjBookDailySpread .bj-art-page-controls>button[aria-current="page"]{background:#eaf0e5;border-color:#99b198;color:#49684a}
+#bjBookDailySpread .bj-art-page-controls>#bjArtPageCount{padding:3px 6px;white-space:nowrap}
+#bjBookDailySpread .bj-art-ink-controls{display:flex;align-items:center;gap:5px;flex-wrap:wrap;padding:4px 6px;border-radius:18px;background:#f6efe9}
+#bjBookDailySpread .bj-art-ink-controls>span{font:650 11px "Nunito Sans",sans-serif;margin:0 4px}
+#bjBookDailySpread .bj-art-ink-controls button{min-height:36px;border:1px solid #d7c8bd;background:#fffdfa;border-radius:11px;padding:5px 12px;cursor:pointer;color:#715962}
+#bjBookDailySpread .bj-art-ink-controls output{min-width:38px;text-align:center;font:650 11px "Nunito Sans",sans-serif}
+#bjBookDailySpread .bj-art-scroller>#bjArtReflectionPaper[hidden]{display:none!important}
+#bjBookDailySpread .bj-art-scroller>#bjArtPaper[hidden]{display:none!important}
+#bjBookDailySpread.bj-art-enabled #bjArtReflectionPaper{
+ position:relative;width:1086px;min-width:1086px;max-width:1086px;
+ aspect-ratio:1086 / 1448;box-sizing:border-box;overflow:hidden;
+ background:
+  radial-gradient(ellipse at 6% 20%,rgba(238,216,224,.42),transparent 31%),
+  radial-gradient(ellipse at 100% 89%,rgba(193,212,177,.26),transparent 34%),
+  linear-gradient(110deg,#f9f0e6 0%,#fffaf2 8%,#fffaf5 95%,#f3e8da 100%);
+ color:#5d4b48;box-shadow:0 9px 35px rgba(67,50,43,.11);
+ isolation:isolate;border:1px solid #e0d5ca;
+}
+#bjArtReflectionPaper:before{content:"";pointer-events:none;position:absolute;inset:0 0 0 2.6%;
+ border-left:1px solid #e3c7ca;opacity:.6}
+#bjArtReflectionPaper:after{content:"";pointer-events:none;position:absolute;inset:0;
+ background-image:repeating-linear-gradient(0deg,rgba(140,106,90,.025) 0,rgba(140,106,90,.025) 1px,transparent 1px,transparent 6px);opacity:.55}
+#bjArtReflectionPaper .bj-reflection-page-caption{
+ position:absolute;top:4.4%;left:7.7%;font:750 16px "Nunito Sans",system-ui,sans-serif;letter-spacing:.14em;color:#907a7c;z-index:2;
+}
+#bjArtReflectionPaper .bj-reflection-page-title{
+ position:absolute;top:5.7%;left:7.6%;margin:0;z-index:2;
+ font:400 64px/1.18 "Parisienne","Apple Chancery",cursive!important;color:#765d6f!important;
+}
+#bjArtReflectionPaper .bj-reflection-page-date{
+ position:absolute;top:11%;left:8%;color:#8f7d78;font:400 22px "Sue Ellen Francisco",cursive;z-index:2;
+}
+#bjArtReflectionPaper .bj-reflection-bouquet{position:absolute;z-index:1;right:6%;top:2%;width:24%;height:16%;object-fit:contain;opacity:.96;pointer-events:none}
+#bjArtReflectionPaper .bj-reflection-teacup{position:absolute;z-index:1;right:2%;bottom:0%;width:18%;height:13%;object-fit:contain;opacity:.88;pointer-events:none}
+#bjArtReflectionPaper .bj-reflection-mood{
+ position:absolute;z-index:2;top:15.1%;left:7.7%;width:84%;height:5.5%;
+ display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:12px 18px;
+ background:rgba(248,239,225,.72);border:1px solid rgba(155,138,130,.19);border-radius:18px;
+ font:700 15px "Nunito Sans",system-ui,sans-serif;color:#816d70;
+}
+#bjArtReflectionPaper .bj-reflection-mood strong{font:400 30px "Sue Ellen Francisco",cursive;color:#6b5668}
+#bjArtReflectionPaper .bj-reflection-mood small{font-size:12px;color:#8c7977}
+#bjArtReflectionPaper .bj-reflection-mood button{margin-left:auto;border:0;background:transparent;color:#816482;cursor:pointer;font:700 13px "Nunito Sans",sans-serif;text-decoration:underline}
+#bjArtReflectionPaper .bj-art-reflection-region{
+ position:absolute;z-index:3;left:8.6%;width:82.6%;height:20.5%;
+}
+#bjArtReflectionPaper [data-art-card="smallWin"]{top:24%}
+#bjArtReflectionPaper [data-art-card="hardThing"]{top:47%}
+#bjArtReflectionPaper [data-art-card="yearQuestion"]{top:70%;height:22.3%}
+#bjArtReflectionPaper .bj-art-reflection-region>.bj-book-prompt-card{
+ display:flex!important;flex-direction:column;gap:6px;width:100%;height:100%;
+ padding:9px 10px!important;margin:0!important;transform:none!important;
+ border:0!important;border-radius:0!important;box-shadow:none!important;background:transparent!important;
+}
+#bjArtReflectionPaper .bj-book-prompt-card label{
+ font:400 31px/1.19 "Parisienne","Apple Chancery",cursive!important;
+ color:#695765!important;margin:0 0 4px;letter-spacing:0;
+}
+#bjArtReflectionPaper .bj-book-prompt-card label>span:first-child{
+ font:26px/1 "Nunito Sans",sans-serif;margin-right:8px;vertical-align:middle;
+}
+#bjArtReflectionPaper .bj-art-reflection-region textarea.bj-art-field{
+ display:block!important;position:static!important;flex:1 1 auto;
+ box-sizing:border-box!important;width:100%!important;height:100%!important;
+ min-height:0!important;max-height:none!important;padding:3px 6px!important;resize:none!important;
+ background-color:rgba(255,253,247,.16)!important;
+ background-image:repeating-linear-gradient(to bottom,transparent 0,transparent calc(var(--bj-ink-line,34px) - 1px),rgba(127,104,100,.24) calc(var(--bj-ink-line,34px) - 1px),rgba(127,104,100,.24) var(--bj-ink-line,34px))!important;
+ background-size:100% var(--bj-ink-line,34px)!important;
+ font:400 var(--bj-ink-size,22px)/var(--bj-ink-line,34px) "Sue Ellen Francisco","Noteworthy",cursive!important;
+ color:#4d3e42!important;letter-spacing:.01em;overflow-y:auto;scrollbar-width:thin;
+}
+#bjArtReflectionPaper .bj-book-prompt-card small{font:600 11px "Nunito Sans",sans-serif;color:#a18b8c;margin-top:2px}
+#bjArtReflectionPaper .bj-book-prompt-card .bj-reward-preview{display:none!important}
+#bjArtReflectionPaper .bj-book-answer{flex:1 1 auto;overflow-y:auto;font:400 22px/1.45 "Sue Ellen Francisco",cursive;white-space:pre-wrap}
+#bjArtReflectionPaper .bj-book-answer p{margin:0}
+#bjArtReflectionPaper .bj-reflection-locked{font:400 22px/1.5 "Sue Ellen Francisco",cursive;padding:24px;color:#8b727f}
+#bjArtReflectionPaper .bj-reflection-page-footer{
+ position:absolute;left:9%;bottom:2.7%;z-index:2;margin:0;max-width:72%;
+ font:400 20px "Sue Ellen Francisco",cursive;color:#9d7f85;
+}
+#bjArtPaper .bj-art-field{font-size:var(--bj-ink-size,17px)!important}
+#bjBookDailySpread .bj-art-field{scrollbar-width:thin}
+#bjBookDailySpread .bj-art-large-editor{
+ width:min(760px,calc(100vw - 30px));max-width:none;height:min(85dvh,960px);max-height:none;
+ margin:auto;padding:18px 20px 24px;box-sizing:border-box;overflow:hidden;border:1px solid #d9c6be;
+ border-radius:20px;background:linear-gradient(165deg,#fdf8f1,#fffdf8);box-shadow:0 18px 80px rgba(32,21,29,.24);
+ color:#674f5c;
+}
+#bjBookDailySpread .bj-art-large-editor::backdrop{background:rgba(31,25,31,.56)}
+#bjBookDailySpread .bj-art-large-toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px}
+#bjBookDailySpread .bj-art-large-toolbar strong{font:400 33px "Parisienne",cursive}
+#bjBookDailySpread .bj-art-large-toolbar button{border:1px solid #d5c2b4;border-radius:12px;padding:9px 16px;background:#ecf2e6;color:#517055;cursor:pointer}
+#bjBookDailySpread .bj-art-large-editor p{font:600 12px "Nunito Sans",sans-serif}
+#bjBookDailySpread .bj-art-large-editor #bjArtLargeMount{height:calc(100% - 95px)}
+#bjBookDailySpread .bj-art-large-editor .bj-art-field{
+ display:block!important;position:static!important;box-sizing:border-box!important;width:100%!important;height:100%!important;
+ min-height:0!important;max-height:none!important;margin:0!important;overflow-y:auto;resize:none!important;
+ font:400 var(--bj-ink-size,22px)/1.65 "Sue Ellen Francisco","Noteworthy",cursive!important;
+ padding:14px 15px!important;border:0!important;border-radius:10px!important;
+ background:repeating-linear-gradient(to bottom,#fffdf8 0px,#fffdf8 33px,#e6d6d1 34px,#fffdf8 35px)!important;
+ color:#4a3c44!important;
+}
+@media(max-width:800px){
+ #bjBookDailySpread .bj-art-page-controls{justify-content:center;padding:0 7px}
+ #bjBookDailySpread .bj-art-page-controls>button{flex:1 1 125px}
+ #bjBookDailySpread .bj-art-ink-controls{flex:1 1 100%;justify-content:center}
+ #bjBookDailySpread .bj-art-large-editor{padding:10px 12px 15px;height:88dvh}
+ #bjBookDailySpread .bj-art-large-editor #bjArtLargeMount{height:calc(100% - 115px)}
+}
+
+/* Keep the full two-page toolbar compact on phones while preserving access
+   to writing-size controls and the lossless large writing dialog. */
+#bjBookDailySpread .bj-art-ink-controls{display:block;flex:0 0 auto;background:transparent;border:0;padding:0;min-width:0}
+#bjBookDailySpread .bj-art-ink-controls>summary{
+ display:list-item;list-style:inside disclosure-closed;cursor:pointer;border:1px solid #dfd3c6;
+ border-radius:19px;padding:8px 12px;background:#faf3eb;color:#755e6c;
+ font:700 12px "Nunito Sans",system-ui,sans-serif;white-space:nowrap
+}
+#bjBookDailySpread .bj-art-ink-controls[open]>summary{list-style:inside disclosure-open}
+#bjBookDailySpread .bj-art-ink-buttons{display:flex;align-items:center;flex-wrap:wrap;gap:6px;padding:7px 3px 4px;justify-content:center}
+#bjBookDailySpread .bj-art-ink-buttons>span{font:650 11px "Nunito Sans",sans-serif}
+@media(max-width:800px){
+ #bjBookDailySpread .bj-art-ink-controls{flex:0 1 auto;max-width:100%}
+ #bjBookDailySpread .bj-art-ink-controls>summary{padding:8px 11px}
+ #bjBookDailySpread .bj-art-ink-buttons{width:100%}
+}
+
+/* The old two-column notebook binding shadow should never slice an individual
+   illustrated page down the middle. */
+#bjBookDailySpread.bj-art-enabled::after{display:none!important}
+#bjBookDailySpread .bj-art-ink-controls:not([open]) .bj-art-ink-buttons{display:none!important}

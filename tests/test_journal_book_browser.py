@@ -31,7 +31,7 @@ class JournalBookBrowserTests(unittest.TestCase):
         html = re.sub(r"<script\b[^>]*>.*?</script>", "", html, flags=re.S)
         html = re.sub(r"<link\b[^>]*>", "", html)
         cls.html = html.replace("</body>",
-            '<style>.hidden{display:none!important}.view:not(.active){display:none!important}</style>'
+            '<style>.hidden{display:none!important}.view:not(.active){display:none!important}#mobileCloudGate{display:none!important}</style>'
             '<script src="/data/quests.js"></script>'
             '<script src="/pako.min.js"></script>'
             '<script src="/app.js"></script>'
@@ -98,9 +98,9 @@ class JournalBookBrowserTests(unittest.TestCase):
 
     def test_journal_book_navigation_does_not_erase_prompt(self):
         self.page.evaluate("LifeRPGJournal.openReflection()")
-        self.page.locator(".bj-art-more > summary").click()
+        self.page.locator('[data-bj-page="2"]').click()
         self.page.locator("#bjBookPrompt-smallWin").fill("Synthetic small win")
-        self.page.locator("#bjBookText").click()
+        self.page.locator('[data-bj-page="1"]').click()
         self.page.wait_for_function("""day => LifeRPGApp.getState().journal.entries[day]?.smallWin === 'Synthetic small win'""",arg=self.day)
         self.page.locator("#view-bullet-journal [data-bj-chapter='weekly']").first.click()
         self.page.locator("#bjBookWeeklySpread [data-bj-chapter='daily']").click()
@@ -113,6 +113,7 @@ class JournalBookBrowserTests(unittest.TestCase):
         self.page.add_style_tag(url="/journal-daily-spread-v1.css")
         self.page.add_style_tag(url="/journal-art-background-v2.css")
         self.page.add_style_tag(url="/journal-art-editable.css")
+        self.page.add_style_tag(url="/journal-art-reflections-v3.css")
         # Preview uses the same publicly hosted typefaces as the shipped app.
         self.page.evaluate("""() => {
           const link=document.createElement('link');
@@ -121,7 +122,7 @@ class JournalBookBrowserTests(unittest.TestCase):
           document.head.appendChild(link);
         }""")
         try:
-            self.page.wait_for_function("document.fonts.check('400 28px Parisienne') && document.fonts.check('400 17px \"Sue Ellen Francisco\"')",timeout=3500)
+            self.page.wait_for_function("""() => document.fonts.check('400 28px Parisienne') && document.fonts.check('400 17px "Sue Ellen Francisco"')""",timeout=3500)
         except Exception:
             pass
 
@@ -172,7 +173,7 @@ class JournalBookBrowserTests(unittest.TestCase):
             self.assertTrue(self.page.evaluate("document.documentElement.scrollWidth <= innerWidth + 2"),"Horizontal overflow at "+str(width))
             if width <= 440:
                 size=self.page.locator("#bjBookPrompt-gratitude").evaluate("el=>getComputedStyle(el).fontSize")
-                self.assertEqual("16px",size)
+                self.assertGreaterEqual(float(size.replace("px","")),16.0)
         self.page.reload(wait_until="domcontentloaded")
         self.page.evaluate("LifeRPGJournal.openReflection()")
         self.assertEqual("A gentle intention, not a task.",self.page.locator("#bjExtra-focusText").input_value())
@@ -183,6 +184,19 @@ class JournalBookBrowserTests(unittest.TestCase):
         self.page.add_style_tag(url="/journal-daily-spread-v1.css")
         self.page.add_style_tag(url="/journal-art-background-v2.css")
         self.page.add_style_tag(url="/journal-art-editable.css")
+        self.page.add_style_tag(url="/journal-art-reflections-v3.css")
+        # The real app loads these licensed web typefaces. The isolated test
+        # fixture strips head links, so add them back for truthful art previews.
+        self.page.evaluate("""() => {
+          const link=document.createElement('link');
+          link.rel='stylesheet';
+          link.href='https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700;800&family=Parisienne&family=Sue+Ellen+Francisco&display=swap';
+          document.head.appendChild(link);
+        }""")
+        try:
+            self.page.wait_for_function("""() => document.fonts.check('400 28px Parisienne') && document.fonts.check('400 17px "Sue Ellen Francisco"')""",timeout=3500)
+        except Exception:
+            pass
         self.page.evaluate("LifeRPGJournal.openReflection()")
         self.assertEqual(1,self.page.locator("#bjArtPaper").count())
         for field, selector in {
@@ -213,24 +227,92 @@ class JournalBookBrowserTests(unittest.TestCase):
         # The isolated fixture intentionally strips every CSS link. Reapply the
         # production styles after reload so the mobile geometry is meaningful.
         for stylesheet in ["styles.css","bullet-journal-book.css","journal-daily-spread-v1.css",
-                           "journal-art-background-v2.css","journal-art-editable.css"]:
+                           "journal-art-background-v2.css","journal-art-editable.css","journal-art-reflections-v3.css"]:
             self.page.add_style_tag(url="/"+stylesheet)
         self.page.evaluate("LifeRPGJournal.openReflection()")
         self.assertEqual("A gentle plan",self.page.locator("#bjExtra-focusText").input_value())
         self.assertEqual("My own journal notes",self.page.locator("#bjBookText").input_value())
         self.assertTrue(self.page.locator("#bjArtPaper").is_visible())
         self.assertEqual(1,self.page.locator("#bjBookPrompt-smallWin").count(),
-                         "Other existing reflection fields must remain available beneath the art page")
-        self.page.locator(".bj-art-more > summary").click()
+                         "Original reflection editor must remain unique")
+        self.page.locator('[data-bj-page="2"]').click()
+        self.assertEqual(1,self.page.locator("#bjArtReflectionPaper #bjBookPrompt-smallWin").count())
+        self.assertEqual(1,self.page.locator("#bjArtReflectionPaper #bjBookPrompt-hardThing").count())
         self.assertTrue(self.page.locator("#bjBookPrompt-smallWin").is_visible())
+        self.assertTrue(self.page.locator("#bjBookPrompt-hardThing").is_visible())
+        self.page.locator("#bjBookPrompt-smallWin").fill("A hundred tiny victories. " * 22)
+        self.page.wait_for_function("""() => getComputedStyle(document.querySelector('#bjBookPrompt-smallWin')).fontSize !== '22px'""")
+        self.page.locator('.bj-art-ink-controls > summary').click()
+        self.page.locator('[data-bj-large-editor]').click()
+        self.assertTrue(self.page.locator("#bjArtLargeEditor").evaluate("el=>el.open"))
+        self.assertEqual(1,self.page.locator("#bjBookPrompt-smallWin").count())
+        self.page.locator("#bjBookPrompt-smallWin").fill("Expanded editor, original field and saved data.")
+        self.page.locator('[data-bj-large-close]').click()
+        self.assertEqual(1,self.page.locator("#bjArtReflectionPaper #bjBookPrompt-smallWin").count())
+        self.page.locator("#bjBookPrompt-hardThing").fill("A challenging moment that deserves space too.")
+        self.page.locator('[data-bj-page="1"]').click()
+        self.page.wait_for_function("""day => LifeRPGApp.getState().journal.entries[day]?.smallWin==='Expanded editor, original field and saved data.'""",arg=self.day)
+        # openReflection() intentionally enters writing mode; select overview before checking fit.
+        self.page.locator('[data-bj-mode="overview"]').click()
         self.page.set_viewport_size({"width":390,"height":844})
         mobile_geometry=self.page.evaluate("""() => {
             const scroller=document.querySelector('.bj-art-scroller'),paper=document.querySelector('#bjArtPaper');
             return {viewport:innerWidth,client:scroller.clientWidth,scroll:scroller.scrollWidth,
                     sheet:paper.getBoundingClientRect().width,overflow:getComputedStyle(scroller).overflowX};
         }""")
-        self.assertTrue(mobile_geometry["scroll"]>mobile_geometry["client"],
-                        "Mobile needs a readable horizontally scrollable art spread: "+str(mobile_geometry))
+        self.page.wait_for_function("""() => {
+            const paper=document.querySelector('#bjArtPaper'),scroller=document.querySelector('.bj-art-scroller');
+            return paper.getBoundingClientRect().width <= scroller.clientWidth + 2;
+        }""")
+        self.assertEqual("overview",self.page.locator("#bjBookDailySpread").get_attribute("data-bj-view"))
+        self.page.locator('[data-bj-jump="bookNote"]').click()
+        self.assertEqual("writing",self.page.locator("#bjBookDailySpread").get_attribute("data-bj-view"))
+        self.assertTrue(self.page.locator("#bjArtPaper").bounding_box()["width"]>mobile_geometry["client"])
+        self.page.wait_for_function("document.activeElement?.id==='bjBookText'")
+        self.page.wait_for_function("""() => {
+            const field=document.querySelector('#bjBookText').getBoundingClientRect();
+            const box=document.querySelector('.bj-art-scroller').getBoundingClientRect();
+            return field.left >= box.left - 3 && field.right <= box.right + 3;
+        }""")
+        self.page.locator('[data-bj-mode="overview"]').click()
+        self.page.locator('.bj-art-ink-controls').evaluate("el=>el.open=false")
+        self.assertEqual("none",self.page.locator("#bjBookDailySpread").evaluate("el=>getComputedStyle(el,'::after').display"),"Old book seam must not cover the illustrated paper")
+        screenshots=ROOT/"test-artifacts"
+        screenshots.mkdir(exist_ok=True)
+        self.page.locator('[data-bj-page="2"]').click()
+        self.page.screenshot(path=str(screenshots/"journal-art-v3-reflections-mobile.png"),full_page=True)
+        self.page.set_viewport_size({"width":1440,"height":900})
+        self.page.wait_for_function("""() => {
+            const paper=document.querySelector('#bjArtReflectionPaper'),scroller=document.querySelector('.bj-art-scroller');
+            return paper.getBoundingClientRect().width <= scroller.clientWidth + 3;
+        }""")
+        self.page.screenshot(path=str(screenshots/"journal-art-v3-reflections-desktop.png"),full_page=True)
+        self.page.set_viewport_size({"width":390,"height":844})
+        self.page.locator('[data-bj-page="1"]').click()
+        screenshots.mkdir(exist_ok=True)
+        for width,height,label in [(1440,900,"desktop"),(768,1024,"tablet"),
+                                   (390,844,"mobile"),(320,640,"small-mobile")]:
+            self.page.set_viewport_size({"width":width,"height":height})
+            self.page.locator(".bj-art-more").evaluate("el=>el.open=false")
+            self.page.wait_for_function("""() => {
+                const paper=document.querySelector('#bjArtPaper'),scroller=document.querySelector('.bj-art-scroller');
+                return paper.getBoundingClientRect().width <= scroller.clientWidth + 3;
+            }""")
+            geometry=self.page.evaluate("""() => ({viewport:innerWidth,
+                pageWidth:document.documentElement.scrollWidth,
+                artWidth:document.querySelector('#bjArtPaper').getBoundingClientRect().width,
+                scrollerWidth:document.querySelector('.bj-art-scroller').clientWidth})""")
+            self.assertLessEqual(geometry["pageWidth"],width+2,str(geometry))
+            self.assertLessEqual(geometry["artWidth"],geometry["scrollerWidth"]+3,str(geometry))
+            self.page.screenshot(path=str(screenshots/("journal-art-v2-"+label+".png")),full_page=True)
+        self.page.set_viewport_size({"width":390,"height":844})
+        self.page.locator('[data-bj-jump="gratitude"]').click()
+        self.page.wait_for_function("""() => {
+            const field=document.querySelector('#bjBookPrompt-gratitude').getBoundingClientRect();
+            const box=document.querySelector('.bj-art-scroller').getBoundingClientRect();
+            return field.left >= box.left - 3 && field.right <= box.right + 3;
+        }""")
+        self.page.screenshot(path=str(screenshots/"journal-art-v2-mobile-writing.png"),full_page=True)
         self.page.locator("#bjBookPrompt-gratitude").fill("Another synthetic thought saved after mobile zoom.")
         self.page.evaluate("document.activeElement?.blur()")
         self.page.wait_for_function("""day => LifeRPGApp.getState().journal.entries[day]?.gratitude==='Another synthetic thought saved after mobile zoom.'""",arg=self.day)
