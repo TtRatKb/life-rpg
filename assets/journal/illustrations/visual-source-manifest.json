@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "collection": "soft-jasmine-daily-v12",
+  "purpose": "Default, free-to-use daily journal illustration set; no Talent purchase or unlock",
+  "source": "Three separate OpenAI-generated original watercolor illustrations, created from user-provided aesthetic references; not copied or cropped from reference screenshots",
+  "reviewStatus": "integrated-on-draft-branch-awaiting-user-visual-approval",
+  "originals": "High-resolution transparent PNG originals included in conversation artifact Life_RPG_Journal_V1.2_Illustrationen.zip",
+  "assets": [
+    {
+      "key": "jasmine-bouquet",
+      "path": "assets/journal/illustrations/jasmine-bouquet-v2.webp",
+      "width": 157,
+      "height": 200,
+      "srcOriginal": "watercolor_jasmine_bouquet_with_ribbon.png",
+      "gitBlobSha": "dfa9d28b4159f5f2341a3b363defb434d2aae2eb"
+    },
+    {
+      "key": "moon-window",
+      "path": "assets/journal/illustrations/moon-window-v2.webp",
+      "width": 154,
+      "height": 200,
+      "srcOriginal": "moonlit_jasmine_window_garden.png",
+      "gitBlobSha": "7d74f87b3eea9bec296db5b13339df0ae9eb4fbf"
+    },
+    {
+      "key": "flower-teacup",
+      "path": "assets/journal/illustrations/flower-teacup-v2.webp",
+      "width": 160,
+      "height": 200,
+      "srcOriginal": "watercolor_jasmine_tea_and_books.png",
+      "gitBlobSha": "f52c2c56585e3c37abd093ac054bfb9f449de32a"
+    }
+  ]
+}
