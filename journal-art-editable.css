@@ -78,3 +78,6 @@
  #bjBookDailySpread .bj-art-status{padding:0 9px}
  #bjBookDailySpread .bj-art-more{margin:16px 6px 0}
 }
+
+/* Hidden daily pages must actually disappear when Weeks/Months/Collections is selected. */
+#bjBookDailySpread.bj-art-enabled[hidden]{display:none!important}
