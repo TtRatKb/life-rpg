@@ -134,3 +134,8 @@
  #bjBookDailySpread .bj-art-ink-controls>summary{padding:8px 11px}
  #bjBookDailySpread .bj-art-ink-buttons{width:100%}
 }
+
+/* The old two-column notebook binding shadow should never slice an individual
+   illustrated page down the middle. */
+#bjBookDailySpread.bj-art-enabled::after{display:none!important}
+#bjBookDailySpread .bj-art-ink-controls:not([open]) .bj-art-ink-buttons{display:none!important}

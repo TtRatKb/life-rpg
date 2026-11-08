@@ -185,6 +185,18 @@ class JournalBookBrowserTests(unittest.TestCase):
         self.page.add_style_tag(url="/journal-art-background-v2.css")
         self.page.add_style_tag(url="/journal-art-editable.css")
         self.page.add_style_tag(url="/journal-art-reflections-v3.css")
+        # The real app loads these licensed web typefaces. The isolated test
+        # fixture strips head links, so add them back for truthful art previews.
+        self.page.evaluate("""() => {
+          const link=document.createElement('link');
+          link.rel='stylesheet';
+          link.href='https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700;800&family=Parisienne&family=Sue+Ellen+Francisco&display=swap';
+          document.head.appendChild(link);
+        }""")
+        try:
+            self.page.wait_for_function("document.fonts.check('400 28px Parisienne') && document.fonts.check('400 17px \\"Sue Ellen Francisco\\"')",timeout=3500)
+        except Exception:
+            pass
         self.page.evaluate("LifeRPGJournal.openReflection()")
         self.assertEqual(1,self.page.locator("#bjArtPaper").count())
         for field, selector in {
