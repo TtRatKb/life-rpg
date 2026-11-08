@@ -37,6 +37,7 @@ class JournalBookBrowserTests(unittest.TestCase):
             '<script src="/app.js"></script>'
             '<script src="/journal.js"></script>'
             '<script src="/bullet-journal-book.js"></script>'
+            '<script src="/journal-art-editable.js"></script>'
             '</body>')
 
     @classmethod
@@ -109,6 +110,8 @@ class JournalBookBrowserTests(unittest.TestCase):
         self.page.add_style_tag(url="/styles.css")
         self.page.add_style_tag(url="/bullet-journal-book.css")
         self.page.add_style_tag(url="/journal-daily-spread-v1.css")
+        self.page.add_style_tag(url="/journal-art-background-v2.css")
+        self.page.add_style_tag(url="/journal-art-editable.css")
         # Preview uses the same publicly hosted typefaces as the shipped app.
         self.page.evaluate("""() => {
           const link=document.createElement('link');
@@ -172,3 +175,51 @@ class JournalBookBrowserTests(unittest.TestCase):
         self.page.reload(wait_until="domcontentloaded")
         self.page.evaluate("LifeRPGJournal.openReflection()")
         self.assertEqual("A gentle intention, not a task.",self.page.locator("#bjExtra-focusText").input_value())
+
+    def test_original_art_page_uses_canonical_live_editors_and_rewards(self):
+        self.page.add_style_tag(url="/styles.css")
+        self.page.add_style_tag(url="/bullet-journal-book.css")
+        self.page.add_style_tag(url="/journal-daily-spread-v1.css")
+        self.page.add_style_tag(url="/journal-art-background-v2.css")
+        self.page.add_style_tag(url="/journal-art-editable.css")
+        self.page.evaluate("LifeRPGJournal.openReflection()")
+        self.assertEqual(1,self.page.locator("#bjArtPaper").count())
+        for field, selector in {
+            "gratitude":"#bjBookPrompt-gratitude",
+            "focusText":"#bjExtra-focusText",
+            "intentionText":"#bjExtra-intentionText",
+            "happyMomentsText":"#bjExtra-happyMomentsText",
+            "bookNote":"#bjBookText",
+        }.items():
+            self.assertEqual(1,self.page.locator("#bjArtPaper "+selector).count(),field)
+            self.assertEqual(field,self.page.locator("#bjArtPaper "+selector).get_attribute("data-bj-art"))
+        self.page.locator("#bjBookPrompt-gratitude").fill("Jasmine sunshine and a calm morning, just for my synthetic test.")
+        self.page.locator("#bjExtra-focusText").fill("A gentle plan")
+        self.page.locator("#bjExtra-happyMomentsText").fill("A lovely little moment")
+        self.page.locator("#bjBookText").fill("My own journal notes")
+        self.page.locator("#bjArtPaper").click(position={"x":15,"y":15})
+        self.page.wait_for_function("""day => {
+          const e=LifeRPGApp.getState().journal.entries[day];
+          return e?.gratitude?.startsWith('Jasmine sunshine') &&
+            e?.dailySpreadV1?.focusText==='A gentle plan' &&
+            e?.dailySpreadV1?.happyMomentsText==='A lovely little moment' &&
+            e?.bookNote==='My own journal notes';
+        }""",arg=self.day)
+        self.assertEqual(1,self.page.evaluate("""day => LifeRPGApp.getState().rewardLedger.events.filter(
+          e => e.source==='journal-reflection-base' && e.sourceId===day+':base-v0310').length""",arg=self.day))
+        self.page.reload(wait_until="domcontentloaded")
+        self.page.wait_for_function("window.LifeRPGBulletJournalBook && window.LifeRPGJournalArtSpread")
+        self.page.evaluate("LifeRPGJournal.openReflection()")
+        self.assertEqual("A gentle plan",self.page.locator("#bjExtra-focusText").input_value())
+        self.assertEqual("My own journal notes",self.page.locator("#bjBookText").input_value())
+        self.assertTrue(self.page.locator("#bjArtPaper").is_visible())
+        self.assertEqual(1,self.page.locator("#bjBookPrompt-smallWin").count(),
+                         "Other existing reflection fields must remain available beneath the art page")
+        self.page.locator(".bj-art-more > summary").click()
+        self.assertTrue(self.page.locator("#bjBookPrompt-smallWin").is_visible())
+        self.page.set_viewport_size({"width":390,"height":844})
+        self.assertTrue(self.page.evaluate("document.querySelector('.bj-art-scroller').scrollWidth > document.querySelector('.bj-art-scroller').clientWidth"),
+                        "Mobile needs a readable horizontally scrollable art spread")
+        self.page.locator("#bjBookPrompt-gratitude").fill("Another synthetic thought saved after mobile zoom.")
+        self.page.locator("#bjArtPaper").click(position={"x":15,"y":15})
+        self.page.wait_for_function("""day => LifeRPGApp.getState().journal.entries[day]?.gratitude==='Another synthetic thought saved after mobile zoom.'""",arg=self.day)
