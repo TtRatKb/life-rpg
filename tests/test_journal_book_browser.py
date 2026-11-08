@@ -219,8 +219,13 @@ class JournalBookBrowserTests(unittest.TestCase):
         self.page.locator(".bj-art-more > summary").click()
         self.assertTrue(self.page.locator("#bjBookPrompt-smallWin").is_visible())
         self.page.set_viewport_size({"width":390,"height":844})
-        self.assertTrue(self.page.evaluate("document.querySelector('.bj-art-scroller').scrollWidth > document.querySelector('.bj-art-scroller').clientWidth"),
-                        "Mobile needs a readable horizontally scrollable art spread")
+        mobile_geometry=self.page.evaluate("""() => {
+            const scroller=document.querySelector('.bj-art-scroller'),paper=document.querySelector('#bjArtPaper');
+            return {viewport:innerWidth,client:scroller.clientWidth,scroll:scroller.scrollWidth,
+                    sheet:paper.getBoundingClientRect().width,overflow:getComputedStyle(scroller).overflowX};
+        }""")
+        self.assertTrue(mobile_geometry["scroll"]>mobile_geometry["client"],
+                        "Mobile needs a readable horizontally scrollable art spread: "+str(mobile_geometry))
         self.page.locator("#bjBookPrompt-gratitude").fill("Another synthetic thought saved after mobile zoom.")
         self.page.locator("#bjArtPaper").click(position={"x":15,"y":15})
         self.page.wait_for_function("""day => LifeRPGApp.getState().journal.entries[day]?.gratitude==='Another synthetic thought saved after mobile zoom.'""",arg=self.day)
