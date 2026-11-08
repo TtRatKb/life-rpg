@@ -210,6 +210,11 @@ class JournalBookBrowserTests(unittest.TestCase):
           e => e.source==='journal-reflection-base' && e.sourceId===day+':base-v0310').length""",arg=self.day))
         self.page.reload(wait_until="domcontentloaded")
         self.page.wait_for_function("window.LifeRPGBulletJournalBook && window.LifeRPGJournalArtSpread")
+        # The isolated fixture intentionally strips every CSS link. Reapply the
+        # production styles after reload so the mobile geometry is meaningful.
+        for stylesheet in ["styles.css","bullet-journal-book.css","journal-daily-spread-v1.css",
+                           "journal-art-background-v2.css","journal-art-editable.css"]:
+            self.page.add_style_tag(url="/"+stylesheet)
         self.page.evaluate("LifeRPGJournal.openReflection()")
         self.assertEqual("A gentle plan",self.page.locator("#bjExtra-focusText").input_value())
         self.assertEqual("My own journal notes",self.page.locator("#bjBookText").input_value())
