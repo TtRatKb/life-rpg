@@ -220,9 +220,15 @@ class JournalBookBrowserTests(unittest.TestCase):
         self.assertEqual("My own journal notes",self.page.locator("#bjBookText").input_value())
         self.assertTrue(self.page.locator("#bjArtPaper").is_visible())
         self.assertEqual(1,self.page.locator("#bjBookPrompt-smallWin").count(),
-                         "Other existing reflection fields must remain available beneath the art page")
-        self.page.locator(".bj-art-more > summary").click()
+                         "Original reflection editor must remain unique")
+        self.page.locator('[data-bj-page="2"]').click()
+        self.assertEqual(2,self.page.locator("#bjArtReflectionPaper .bj-art-reflection-region textarea").count()
+                         + self.page.locator("#bjArtReflectionPaper [data-art-card='yearQuestion'] textarea").count()
+                         - self.page.locator("#bjArtReflectionPaper [data-art-card='yearQuestion'] textarea").count(),
+                         "The existing basic reflection editors are on the second page")
         self.assertTrue(self.page.locator("#bjBookPrompt-smallWin").is_visible())
+        self.assertTrue(self.page.locator("#bjBookPrompt-hardThing").is_visible())
+        self.page.locator('[data-bj-page="1"]').click()
         # openReflection() intentionally enters writing mode; select overview before checking fit.
         self.page.locator('[data-bj-mode="overview"]').click()
         self.page.set_viewport_size({"width":390,"height":844})
