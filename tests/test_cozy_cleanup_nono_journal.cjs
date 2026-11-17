@@ -115,6 +115,33 @@ function countSolutions(puzzle,limit=2){
  }
  return search(R,C);
 }
+function lineLogicRounds(p){
+ const n=p.size,s=p.solution,R=[],C=[],full=(1<<n)-1;
+ for(let r=0;r<n;r++){let m=0;for(let c=0;c<n;c++)if(s[r*n+c]==='1')m|=(1<<c);R.push(candidates(n,getClues(m,n)));}
+ for(let c=0;c<n;c++){let m=0;for(let r=0;r<n;r++)if(s[r*n+c]==='1')m|=(1<<r);C.push(candidates(n,getClues(m,n)));}
+ for(let round=1;round<=100;round++){
+  let changed=false;
+  for(let r=0;r<n;r++){
+   let fixed=full,possible=0;for(const m of R[r]){fixed&=m;possible|=m;}
+   for(let c=0;c<n;c++)if((fixed&(1<<c))||!(possible&(1<<c))){
+    const on=Boolean(fixed&(1<<c)),next=C[c].filter(m=>Boolean(m&(1<<r))===on);
+    if(next.length!==C[c].length){C[c]=next;changed=true;}
+   }
+  }
+  for(let c=0;c<n;c++){
+   let fixed=full,possible=0;for(const m of C[c]){fixed&=m;possible|=m;}
+   for(let r=0;r<n;r++)if((fixed&(1<<r))||!(possible&(1<<r))){
+    const on=Boolean(fixed&(1<<r)),next=R[r].filter(m=>Boolean(m&(1<<c))===on);
+    if(next.length!==R[r].length){R[r]=next;changed=true;}
+   }
+  }
+  if([...R,...C].some(x=>!x.length))return 0;
+  if([...R,...C].every(x=>x.length===1))return round;
+  if(!changed)return 0;
+ }
+ return 0;
+}
+const puzzleRounds=[];
 for(let i=50;i<80;i++){
  const p=levels[i];
  assert.equal(p.level,i+1);
@@ -122,5 +149,14 @@ for(let i=50;i<80;i++){
  assert.equal(p.solution.length,p.size*p.size,'Bad solution dimensions for '+p.level);
  assert.match(p.solution,/^[01]+$/,'Bad cell encoding for '+p.level);
  assert.equal(countSolutions(p),1,'Puzzle is not uniquely solvable: '+p.level);
+ const clues=[];
+ for(let r=0;r<p.size;r++){let m=0;for(let c=0;c<p.size;c++)if(p.solution[r*p.size+c]==='1')m|=1<<c;clues.push(getClues(m,p.size).split(',').map(Number));}
+ for(let c=0;c<p.size;c++){let m=0;for(let r=0;r<p.size;r++)if(p.solution[r*p.size+c]==='1')m|=1<<r;clues.push(getClues(m,p.size).split(',').map(Number));}
+ assert(clues.every(c=>c[0]!==0),'Empty clue line: '+p.level);
+ assert(clues.filter(c=>c.length===1).length<=1,'Too many single-run lines: '+p.level);
+ assert(clues.reduce((sum,c)=>sum+c.length,0)/clues.length>=2.5,'Too little clue diversity: '+p.level);
+ const rounds=lineLogicRounds(p);assert(rounds>=2,'Puzzle needs guessing or is trivial: '+p.level);puzzleRounds.push(rounds);
 }
-console.log('OK: retired task/companion runtime, journal wiring, syntax, all 30 unique puzzles, 50 old levels unchanged.');
+assert.match(nonogram,/index%a\.size\+1/,'5-cell separators reset at each new row');
+assert.match(nonogram,/const played=Number\(a\.level\)>50/,'Existing active chapter 2 marks stay on their saved board');
+console.log('OK: 30 unique, logic-only, varied chapter-2 puzzles ('+Math.min(...puzzleRounds)+'–'+Math.max(...puzzleRounds)+' deduction rounds), old 50 and reward IDs untouched.');
