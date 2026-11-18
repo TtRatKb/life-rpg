@@ -733,7 +733,9 @@
     }
     if(creative){creative=false;updateMode();}
     const input=$(view,E[key].selector);if(!input)return false;
-    requestAnimationFrame(()=>{input.scrollIntoView({behavior:"smooth",block:"center"});input.focus({preventScroll:true});});
+    const card=$(fieldStage(layout.cards[key].side),'[data-bj-field="'+key+'"]');
+    const target=$(card,".bj-layer-line-input")||input;
+    requestAnimationFrame(()=>{target.scrollIntoView({behavior:"smooth",block:"center"});target.focus({preventScroll:true});});
     return true;
   }
   window.LifeRPGJournalArtSpread={
