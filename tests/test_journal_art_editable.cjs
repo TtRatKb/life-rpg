@@ -30,7 +30,7 @@ assert.match(art,/schemaVersion:2,daily/,'Versioned per-day layouts');
 assert.match(art,/input\.readOnly=creative/,'Writing fields cannot be accidentally edited while dragging');
 assert.match(art,/app\.saveState\(\{source:"journal-book-layout-v2",suppressUiRefresh:true\}\)/);
 assert.match(art,/if\(previous===undefined\)delete state\.journalBookLayoutV2/,'Failed write needs rollback');
-assert.match(art,/item\.visible=false/,'Hiding must be reversible, not delete text');
+assert.match(art,/layout\.cards\[key\]\.visible=false/,'Hiding must be reversible, not delete text');
 assert.match(art,/moveOriginalNodes/,'Old canonical editors must be moved, not mirrored');
 assert.match(art,/if\(newer&&newer!==input\)input\.remove\(\)/,'Rebuilt prompts may not leave duplicate stale editor IDs');
 assert.doesNotMatch(art,/awardActivity|awardPendingReflectionRewards/,'Layout code is never allowed to issue rewards');
