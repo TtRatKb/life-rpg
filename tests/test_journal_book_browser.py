@@ -1,6 +1,5 @@
-"""Isolated browser regression: daily check-in reflection -> the actual book.
-
-Uses synthetic localStorage only; no cloud connection, HealthKit or personal data.
+"""Life RPG Illustrated Journal real-browser regression (synthetic data only).
+Never accesses account saves, HealthKit, Firebase, external purchases or personal records.
 """
 import functools
 import http.server
@@ -10,227 +9,191 @@ import threading
 import unittest
 from playwright.sync_api import sync_playwright
 
-ROOT = pathlib.Path(__file__).resolve().parents[1]
-
+ROOT=pathlib.Path(__file__).resolve().parents[1]
 
 class SilentHandler(http.server.SimpleHTTPRequestHandler):
-    def log_message(self, *args):
-        pass
-
+    def log_message(self,*args):pass
 
 class JournalBookBrowserTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        handler = functools.partial(SilentHandler, directory=str(ROOT))
-        cls.server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), handler)
-        cls.thread = threading.Thread(target=cls.server.serve_forever, daemon=True)
+        handler=functools.partial(SilentHandler,directory=str(ROOT))
+        cls.server=http.server.ThreadingHTTPServer(("127.0.0.1",0),handler)
+        cls.thread=threading.Thread(target=cls.server.serve_forever,daemon=True)
         cls.thread.start()
-        cls.playwright = sync_playwright().start()
-        cls.browser = cls.playwright.chromium.launch(headless=True, args=["--no-sandbox"])
-        html = (ROOT / "index.html").read_text()
-        html = re.sub(r"<script\b[^>]*>.*?</script>", "", html, flags=re.S)
-        html = re.sub(r"<link\b[^>]*>", "", html)
-        cls.html = html.replace("</body>",
-            '<style>.hidden{display:none!important}.view:not(.active){display:none!important}</style>'
-            '<script src="/data/quests.js"></script>'
-            '<script src="/pako.min.js"></script>'
-            '<script src="/app.js"></script>'
-            '<script src="/journal.js"></script>'
-            '<script src="/bullet-journal-book.js"></script>'
-            '<script src="/journal-art-editable.js"></script>'
-            '</body>')
+        cls.playwright=sync_playwright().start()
+        cls.browser=cls.playwright.chromium.launch(headless=True,args=["--no-sandbox"])
+        html=(ROOT/"index.html").read_text()
+        html=re.sub(r"<script\b[^>]*>.*?</script>","",html,flags=re.S)
+        html=re.sub(r"<link\b[^>]*>","",html)
+        html=html.replace("</head>",
+           '<link rel="stylesheet" href="/journal-art-background-v2.css"></head>')
+        cls.html=html.replace("</body>",
+          '<style>.hidden{display:none!important}.view:not(.active){display:none!important}</style>'+
+          '<script src="/data/quests.js"></script>'+
+          '<script src="/pako.min.js"></script>'+
+          '<script src="/app.js"></script>'+
+          '<script src="/journal.js"></script>'+
+          '<script src="/bullet-journal-book.js"></script>'+
+          '<script src="/journal-art-editable.js"></script>'+
+          '<script src="/bullet-journal-atelier.js"></script>'+
+          '</body>')
 
     @classmethod
     def tearDownClass(cls):
-        cls.browser.close()
-        cls.playwright.stop()
-        cls.server.shutdown()
-        cls.server.server_close()
+        cls.browser.close();cls.playwright.stop()
+        cls.server.shutdown();cls.server.server_close()
 
     def setUp(self):
-        self.context = self.browser.new_context(service_workers="block")
+        self.context=self.browser.new_context(service_workers="block",viewport={"width":1440,"height":970})
         self.addCleanup(self.context.close)
-        self.context.route("**/*", self.route)
-        self.page = self.context.new_page()
-        self.errors = []
-        self.page.on("pageerror", lambda error: self.errors.append(str(error)))
-        self.page.goto(f"http://127.0.0.1:{self.server.server_port}/", wait_until="domcontentloaded")
-        self.page.wait_for_function("window.LifeRPGApp && window.LifeRPGJournal && window.LifeRPGBulletJournalBook")
-        self.day = self.page.evaluate("""() => {
-           const d=new Date();
-           return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-')
+        self.context.route("**/*",self.route)
+        self.page=self.context.new_page()
+        self.errors=[]
+        self.page.on("pageerror",lambda error:self.errors.append(str(error)))
+        self.page.goto(f"http://127.0.0.1:{self.server.server_port}/",wait_until="domcontentloaded")
+        self.page.wait_for_function("window.LifeRPGJournalArtSpread && window.LifeRPGBulletJournalBook")
+        self.day=self.page.evaluate("""() => {
+          const d=new Date();return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');
         }""")
+        for name in ("styles.css","bullet-journal-book.css","journal-daily-spread-v1.css",
+                     "bullet-journal-atelier.css","journal-art-editable.css"):
+            self.page.add_style_tag(url="/"+name)
+        self.page.add_style_tag(content="#mobileCloudGate{display:none!important}")
+        self.page.evaluate("LifeRPGJournal.openReflection()")
+        self.assertEqual(1,self.page.locator("#view-bullet-journal.active").count())
 
     def tearDown(self):
-        self.assertEqual([], self.errors, "Uncaught browser errors")
+        self.assertEqual([],self.errors,"Uncaught browser errors")
 
-    def route(self, route):
-        origin = f"http://127.0.0.1:{self.server.server_port}/"
-        if route.request.url == origin:
-            route.fulfill(body=self.html, content_type="text/html")
-        elif route.request.url.startswith(origin) or route.request.url.startswith("https://fonts.googleapis.com/") or route.request.url.startswith("https://fonts.gstatic.com/"):
+    def route(self,route):
+        origin=f"http://127.0.0.1:{self.server.server_port}/"
+        if route.request.url==origin:
+            route.fulfill(body=self.html,content_type="text/html")
+        elif route.request.url.startswith(origin):
             route.continue_()
         else:
             route.abort()
 
-    def test_daily_prompt_writes_same_entry_and_survives_reload_without_duplicate_reward(self):
+    def test_two_a4_pages_use_original_watercolor_not_rectangles(self):
+        self.assertTrue(self.page.locator("#bjBookDailySpread").is_visible())
+        self.assertEqual(2,self.page.locator("#bjBookDailySpread > .bj-layer-page:visible").count())
+        self.assertEqual(5,self.page.locator("#bjBookDailySpread .bj-layer-original-frame").count())
+        self.assertEqual(8,self.page.locator("#bjBookDailySpread .bj-layer-art-piece").count())
+        self.assertEqual(1,self.page.locator("#bjArtPaper").count(),"Original atlas stays hidden, not shown as one flattened page")
+        data=self.page.evaluate("""() => {
+          const a=document.querySelector('#bjBookDailySpread');
+          const l=a.querySelector('[data-bj-page="left"]').getBoundingClientRect();
+          const r=a.querySelector('[data-bj-page="right"]').getBoundingClientRect();
+          const frame=a.querySelector('.bj-layer-frame-crop');
+          return {l:{x:l.x,y:l.y,w:l.width,h:l.height},r:{x:r.x,w:r.width,h:r.height},
+              src:getComputedStyle(frame).backgroundImage,
+              art:a.style.getPropertyValue('--bj-original-atlas'),
+              border:getComputedStyle(frame.parentElement).borderStyle};
+        }""")
+        self.assertGreater(data["l"]["w"],300)
+        self.assertGreater(data["r"]["x"],data["l"]["x"]+data["l"]["w"]-2)
+        self.assertAlmostEqual(data["l"]["h"]/data["l"]["w"],297/210,delta=.08)
+        self.assertAlmostEqual(data["r"]["h"],data["l"]["h"],delta=3)
+        self.assertIn("data:image/webp;base64",data["src"])
+        self.assertIn("data:image/webp;base64",data["art"])
+        self.assertEqual("none",data["border"],"Frames are actual watercolor crops, not CSS rectangles")
+        self.assertFalse(self.page.locator('[data-bj-mode="create"]').count())
+        for field in ("gratitude","focusText","intentionText","happyMomentsText","bookNote"):
+            self.assertEqual(1,self.page.locator('[data-bj-field="'+field+'"] .bj-layer-field').count())
+        self.assertEqual(1,self.page.locator("#bjBookPrompt-gratitude").count())
+        shots=ROOT/"test-artifacts";shots.mkdir(exist_ok=True)
+        self.page.screenshot(path=str(shots/"journal-soft-floral-desktop.png"),full_page=True)
+
+    def test_writing_and_reward_idempotency_survive_reload(self):
+        self.page.locator("#bjBookPrompt-gratitude").fill("A synthetic beautiful morning.")
+        self.page.locator("#bjBookText").click()
+        self.page.wait_for_function("""d => LifeRPGApp.getState().journal.entries[d]?.gratitude==='A synthetic beautiful morning.'""",arg=self.day)
+        self.page.locator("#bjExtra-focusText").fill("Rest when it feels right")
+        self.page.locator("#bjBookText").fill("My original synthetic thoughts.")
+        self.page.evaluate("document.activeElement?.blur()")
+        self.page.wait_for_function("""d => {
+          const e=LifeRPGApp.getState().journal.entries[d];
+          return e?.bookNote==='My original synthetic thoughts.' && e?.dailySpreadV1?.focusText==='Rest when it feels right';
+        }""",arg=self.day)
+        initial=self.page.evaluate("""d => LifeRPGApp.getState().rewardLedger.events.filter(
+          e => e.source==='journal-reflection-base' && e.sourceId===d+':base-v0310').length""",arg=self.day)
+        self.assertEqual(1,initial)
+        self.page.reload(wait_until="domcontentloaded")
+        for name in ("styles.css","bullet-journal-book.css","journal-daily-spread-v1.css",
+                     "bullet-journal-atelier.css","journal-art-editable.css"):
+            self.page.add_style_tag(url="/"+name)
         self.page.evaluate("LifeRPGJournal.openReflection()")
-        self.assertTrue(self.page.locator("#view-bullet-journal.active").count()==1)
+        self.assertEqual("A synthetic beautiful morning.",self.page.locator("#bjBookPrompt-gratitude").input_value())
+        self.assertEqual("My original synthetic thoughts.",self.page.locator("#bjBookText").input_value())
+        self.assertEqual(1,self.page.locator("#bjBookPrompt-gratitude").count())
+        self.assertEqual(initial,self.page.evaluate("""d => LifeRPGApp.getState().rewardLedger.events.filter(
+          e => e.source==='journal-reflection-base' && e.sourceId===d+':base-v0310').length""",arg=self.day))
+
+    def test_creative_hide_restore_move_and_original_decoration_survive(self):
+        self.page.locator("#bjExtra-focusText").fill("Never delete this text.")
+        self.page.evaluate("document.activeElement?.blur()")
+        self.page.wait_for_function("""d => LifeRPGApp.getState().journal.entries[d]?.dailySpreadV1?.focusText==='Never delete this text.'""",arg=self.day)
+        reward_before=self.page.evaluate("JSON.stringify(LifeRPGApp.getState().rewardLedger.events)")
+        self.page.locator('[data-bj-layer-mode="create"]').click()
+        self.assertTrue(self.page.locator(".bj-layer-shelf").is_visible())
+        self.assertEqual(1,self.page.locator("#bjBookDailySpread > .bj-layer-page:visible").count())
+        self.page.locator('[data-bj-choose-side="right"]').click()
+        self.assertTrue(self.page.locator('[data-bj-page="right"]').is_visible())
+        self.page.locator('[data-bj-add-card="focusText"]').click()
+        self.page.locator('[data-bj-action-card="remove"]').click()
+        self.assertEqual(0,self.page.locator('[data-bj-field="focusText"]').count())
+        self.assertEqual("Never delete this text.",self.page.locator("#bjExtra-focusText").input_value())
+        self.assertFalse(self.page.evaluate("""d => LifeRPGApp.getState().journalPageLayoutV3.daily[d].cards.focusText.visible""",self.day))
+        self.page.locator('[data-bj-add-card="focusText"]').click()
+        self.assertEqual(1,self.page.locator('[data-bj-field="focusText"]').count())
+        self.assertEqual("Never delete this text.",self.page.locator("#bjExtra-focusText").input_value())
+        before=self.page.evaluate("""d => LifeRPGApp.getState().journalPageLayoutV3.daily[d].cards.focusText.x""",self.day)
+        grip=self.page.locator('[data-bj-handle="focusText"]')
+        grip.focus();grip.press("ArrowRight")
+        after=self.page.evaluate("""d => LifeRPGApp.getState().journalPageLayoutV3.daily[d].cards.focusText.x""",self.day)
+        self.assertGreater(after,before)
+        # Old, separately saved stickers have not been deleted during layout changes.
+        self.assertEqual(reward_before,self.page.evaluate("JSON.stringify(LifeRPGApp.getState().rewardLedger.events)"))
+        self.page.locator('[data-bj-layer-mode="write"]').click()
+        self.assertEqual(2,self.page.locator("#bjBookDailySpread > .bj-layer-page:visible").count())
+        self.assertFalse(self.page.locator("#bjExtra-focusText").evaluate("el=>el.readOnly"))
+        self.page.reload(wait_until="domcontentloaded")
+        for name in ("styles.css","bullet-journal-book.css","journal-daily-spread-v1.css",
+                     "bullet-journal-atelier.css","journal-art-editable.css"):
+            self.page.add_style_tag(url="/"+name)
+        self.page.evaluate("LifeRPGJournal.openReflection()")
+        self.assertEqual("Never delete this text.",self.page.locator("#bjExtra-focusText").input_value())
+        self.assertGreater(self.page.evaluate("""d => LifeRPGApp.getState().journalPageLayoutV3.daily[d].cards.focusText.x""",self.day),before)
+
+    def test_navigation_and_mobile_do_not_duplicate_or_erase(self):
+        self.page.locator(".bj-layer-extras > summary").click()
+        self.page.locator("#bjBookPrompt-smallWin").fill("A synthetic little win.")
+        self.page.evaluate("document.activeElement?.blur()")
+        self.page.wait_for_function("""d => LifeRPGApp.getState().journal.entries[d]?.smallWin==='A synthetic little win.'""",arg=self.day)
+        self.page.locator("#bjBookDailySpread [data-bj-chapter='weekly']").click()
+        self.assertTrue(self.page.locator("#bjBookWeeklySpread").is_visible())
+        self.assertFalse(self.page.locator(".bj-layer-extras").is_visible())
+        self.page.locator("#bjBookWeeklySpread [data-bj-chapter='daily']").click()
+        self.assertEqual("A synthetic little win.",self.page.locator("#bjBookPrompt-smallWin").input_value())
+        yesterday=self.page.evaluate("""() => {
+          const d=new Date();d.setDate(d.getDate()-1);
+          return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');
+        }""")
+        self.page.evaluate("(d)=>LifeRPGBulletJournalBook.changeDate(d)",yesterday)
+        self.page.evaluate("(d)=>LifeRPGBulletJournalBook.changeDate(d)",self.day)
         self.assertEqual(1,self.page.locator("#bjBookPrompt-gratitude").count())
         self.assertEqual(1,self.page.locator("#bjBookText").count())
-        self.page.locator("#bjBookPrompt-gratitude").fill("A synthetic sunshine moment.")
-        self.page.locator("#bjBookText").click()
-        self.page.wait_for_function("""day => LifeRPGApp.getState().journal.entries[day]?.gratitude === 'A synthetic sunshine moment.'""",arg=self.day)
-        self.page.locator("#bjBookText").fill("A private synthetic notebook note.")
-        self.page.locator("#bjBookDayTitle").click()
-        self.page.wait_for_function("""day => LifeRPGApp.getState().journal.entries[day]?.bookNote === 'A private synthetic notebook note.'""",arg=self.day)
-        self.assertEqual(1,self.page.evaluate("""day => LifeRPGApp.getState().rewardLedger.events.filter(
-          e => e.source==='journal-reflection-base' && e.sourceId===day+':base-v0310').length""",arg=self.day))
-        self.page.reload(wait_until="domcontentloaded")
-        self.page.wait_for_function("window.LifeRPGJournal && window.LifeRPGBulletJournalBook")
-        self.page.evaluate("LifeRPGJournal.openReflection()")
-        self.assertEqual("A synthetic sunshine moment.",self.page.locator("#bjBookPrompt-gratitude").input_value())
-        self.assertEqual("A private synthetic notebook note.",self.page.locator("#bjBookText").input_value())
-        self.page.locator("#bjBookPrompt-gratitude").fill("A synthetic sunshine moment.")
-        self.page.locator("#bjBookText").click()
-        self.assertEqual(1,self.page.evaluate("""day => LifeRPGApp.getState().rewardLedger.events.filter(
-          e => e.source==='journal-reflection-base' && e.sourceId===day+':base-v0310').length""",arg=self.day))
+        for width in (768,390,320):
+            self.page.set_viewport_size({"width":width,"height":850})
+            info=self.page.evaluate("""() => {
+              const el=document.querySelector('#bjBookDailySpread');
+              return {doc:document.documentElement.scrollWidth,viewport:innerWidth,
+                      client:el.clientWidth,scroll:el.scrollWidth}
+            }""")
+            self.assertLessEqual(info["doc"],info["viewport"]+2,str(info))
+            self.assertGreater(info["scroll"],info["client"],str(info))
+        shots=ROOT/"test-artifacts";shots.mkdir(exist_ok=True)
+        self.page.screenshot(path=str(shots/"journal-soft-floral-mobile.png"),full_page=True)
 
-    def test_journal_book_navigation_does_not_erase_prompt(self):
-        self.page.evaluate("LifeRPGJournal.openReflection()")
-        self.page.locator(".bj-art-more > summary").click()
-        self.page.locator("#bjBookPrompt-smallWin").fill("Synthetic small win")
-        self.page.locator("#bjBookText").click()
-        self.page.wait_for_function("""day => LifeRPGApp.getState().journal.entries[day]?.smallWin === 'Synthetic small win'""",arg=self.day)
-        self.page.locator("#view-bullet-journal [data-bj-chapter='weekly']").first.click()
-        self.page.locator("#bjBookWeeklySpread [data-bj-chapter='daily']").click()
-        self.assertEqual("Synthetic small win",self.page.locator("#bjBookPrompt-smallWin").input_value())
-
-    def test_soft_floral_live_meter_optional_notes_and_screenshots(self):
-        self.page.set_viewport_size({"width": 1440, "height": 950})
-        self.page.add_style_tag(url="/styles.css")
-        self.page.add_style_tag(url="/bullet-journal-book.css")
-        self.page.add_style_tag(url="/journal-daily-spread-v1.css")
-        self.page.add_style_tag(url="/journal-art-background-v2.css")
-        self.page.add_style_tag(url="/journal-art-editable.css")
-        # Preview uses the same publicly hosted typefaces as the shipped app.
-        self.page.evaluate("""() => {
-          const link=document.createElement('link');
-          link.rel='stylesheet';
-          link.href='https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700;800&family=Parisienne&family=Sue+Ellen+Francisco&family=Shadows+Into+Light&display=swap';
-          document.head.appendChild(link);
-        }""")
-        try:
-            self.page.wait_for_function("document.fonts.check('400 28px Parisienne') && document.fonts.check('400 17px \"Sue Ellen Francisco\"')",timeout=3500)
-        except Exception:
-            pass
-
-        # Isolated browser fixture has no Firebase session. Remove the unrelated sign-in gate from screenshots only.
-        self.page.add_style_tag(content="#mobileCloudGate{display:none!important}")
-        self.page.evaluate("LifeRPGJournal.openReflection()")
-        self.assertEqual(1,self.page.locator("#bjExtra-focusText").count())
-        self.assertEqual(1,self.page.locator("#bjBookMoodText").count())
-        self.assertEqual(1,self.page.locator("[data-bj-preview='gratitude']").count())
-        style=self.page.locator("#bjBookPrompt-gratitude").evaluate("""el => {
-          const c=getComputedStyle(el);return {font:c.fontFamily,size:c.fontSize,weight:c.fontWeight,line:c.lineHeight};
-        }""")
-        self.assertIn("Sue Ellen Francisco",style["font"])
-        self.assertEqual("17px",style["size"])
-        self.assertEqual("400",style["weight"])
-        self.assertEqual("35px",style["line"])
-        art=self.page.locator("#bjBookDailySpread img.bj-daily-illustration")
-        self.assertEqual(3,art.count())
-        self.page.wait_for_function("""() => [...document.querySelectorAll('#bjBookDailySpread img.bj-daily-illustration')].every(img => img.complete && img.naturalWidth>0)""",timeout=15000)
-        overlaps=self.page.evaluate("""() => {
-            const imgs=[...document.querySelectorAll('#bjBookDailySpread img.bj-daily-illustration')];
-            const fields=[...document.querySelectorAll('#bjBookDailySpread textarea')];
-            const intersects=(a,b) => a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
-            return imgs.some(img => fields.some(field => intersects(img.getBoundingClientRect(),field.getBoundingClientRect())));
-        }""")
-        self.assertFalse(overlaps,"Illustration overlays a writable field")
-
-        self.page.locator("#bjBookPrompt-gratitude").fill("g" * 49)
-        self.assertIn("49 characters",self.page.locator("#bjArtSaveStatus").inner_text())
-        self.page.locator("#bjBookPrompt-gratitude").fill("g" * 50)
-        self.assertIn("50 characters",self.page.locator("#bjArtSaveStatus").inner_text())
-        self.page.locator("#bjExtra-focusText").fill("A gentle intention, not a task.")
-        self.page.locator("#bjBookText").click()
-        self.page.wait_for_function("""day => LifeRPGApp.getState().journal.entries[day]?.dailySpreadV1?.focusText === 'A gentle intention, not a task.'""",arg=self.day)
-        count=self.page.evaluate("""day => LifeRPGApp.getState().rewardLedger.events.filter(
-            e => e.source==='journal-reflection-field-effort' && e.sourceId.startsWith(day+':gratitude:')).length""",arg=self.day)
-        self.assertEqual(1,count)
-        self.page.locator("#bjBookPrompt-gratitude").fill("g" * 50)
-        self.page.locator("#bjBookText").click()
-        self.assertEqual(count,self.page.evaluate("""day => LifeRPGApp.getState().rewardLedger.events.filter(
-            e => e.source==='journal-reflection-field-effort' && e.sourceId.startsWith(day+':gratitude:')).length""",arg=self.day))
-        screenshots=ROOT/"test-artifacts"
-        screenshots.mkdir(exist_ok=True)
-        self.page.screenshot(path=str(screenshots/"journal-soft-floral-desktop.png"),full_page=True)
-        for width,height,label in [(768,1024,"tablet"),(390,844,"mobile"),(320,640,"small-mobile")]:
-            self.page.set_viewport_size({"width":width,"height":height})
-            self.page.screenshot(path=str(screenshots/("journal-soft-floral-"+label+".png")),full_page=True)
-            self.assertTrue(self.page.evaluate("document.documentElement.scrollWidth <= innerWidth + 2"),"Horizontal overflow at "+str(width))
-            if width <= 440:
-                size=self.page.locator("#bjBookPrompt-gratitude").evaluate("el=>getComputedStyle(el).fontSize")
-                self.assertEqual("16px",size)
-        self.page.reload(wait_until="domcontentloaded")
-        self.page.evaluate("LifeRPGJournal.openReflection()")
-        self.assertEqual("A gentle intention, not a task.",self.page.locator("#bjExtra-focusText").input_value())
-
-    def test_original_art_page_uses_canonical_live_editors_and_rewards(self):
-        self.page.add_style_tag(url="/styles.css")
-        self.page.add_style_tag(url="/bullet-journal-book.css")
-        self.page.add_style_tag(url="/journal-daily-spread-v1.css")
-        self.page.add_style_tag(url="/journal-art-background-v2.css")
-        self.page.add_style_tag(url="/journal-art-editable.css")
-        self.page.evaluate("LifeRPGJournal.openReflection()")
-        self.assertEqual(1,self.page.locator("#bjArtPaper").count())
-        for field, selector in {
-            "gratitude":"#bjBookPrompt-gratitude",
-            "focusText":"#bjExtra-focusText",
-            "intentionText":"#bjExtra-intentionText",
-            "happyMomentsText":"#bjExtra-happyMomentsText",
-            "bookNote":"#bjBookText",
-        }.items():
-            self.assertEqual(1,self.page.locator("#bjArtPaper "+selector).count(),field)
-            self.assertEqual(field,self.page.locator("#bjArtPaper "+selector).get_attribute("data-bj-art"))
-        self.page.locator("#bjBookPrompt-gratitude").fill("Jasmine sunshine and a calm morning, just for my synthetic test.")
-        self.page.locator("#bjExtra-focusText").fill("A gentle plan")
-        self.page.locator("#bjExtra-happyMomentsText").fill("A lovely little moment")
-        self.page.locator("#bjBookText").fill("My own journal notes")
-        self.page.evaluate("document.activeElement?.blur()")
-        self.page.wait_for_function("""day => {
-          const e=LifeRPGApp.getState().journal.entries[day];
-          return e?.gratitude?.startsWith('Jasmine sunshine') &&
-            e?.dailySpreadV1?.focusText==='A gentle plan' &&
-            e?.dailySpreadV1?.happyMomentsText==='A lovely little moment' &&
-            e?.bookNote==='My own journal notes';
-        }""",arg=self.day)
-        self.assertEqual(1,self.page.evaluate("""day => LifeRPGApp.getState().rewardLedger.events.filter(
-          e => e.source==='journal-reflection-base' && e.sourceId===day+':base-v0310').length""",arg=self.day))
-        self.page.reload(wait_until="domcontentloaded")
-        self.page.wait_for_function("window.LifeRPGBulletJournalBook && window.LifeRPGJournalArtSpread")
-        # The isolated fixture intentionally strips every CSS link. Reapply the
-        # production styles after reload so the mobile geometry is meaningful.
-        for stylesheet in ["styles.css","bullet-journal-book.css","journal-daily-spread-v1.css",
-                           "journal-art-background-v2.css","journal-art-editable.css"]:
-            self.page.add_style_tag(url="/"+stylesheet)
-        self.page.evaluate("LifeRPGJournal.openReflection()")
-        self.assertEqual("A gentle plan",self.page.locator("#bjExtra-focusText").input_value())
-        self.assertEqual("My own journal notes",self.page.locator("#bjBookText").input_value())
-        self.assertTrue(self.page.locator("#bjArtPaper").is_visible())
-        self.assertEqual(1,self.page.locator("#bjBookPrompt-smallWin").count(),
-                         "Other existing reflection fields must remain available beneath the art page")
-        self.page.locator(".bj-art-more > summary").click()
-        self.assertTrue(self.page.locator("#bjBookPrompt-smallWin").is_visible())
-        self.page.set_viewport_size({"width":390,"height":844})
-        mobile_geometry=self.page.evaluate("""() => {
-            const scroller=document.querySelector('.bj-art-scroller'),paper=document.querySelector('#bjArtPaper');
-            return {viewport:innerWidth,client:scroller.clientWidth,scroll:scroller.scrollWidth,
-                    sheet:paper.getBoundingClientRect().width,overflow:getComputedStyle(scroller).overflowX};
-        }""")
-        self.assertTrue(mobile_geometry["scroll"]>mobile_geometry["client"],
-                        "Mobile needs a readable horizontally scrollable art spread: "+str(mobile_geometry))
-        self.page.locator("#bjBookPrompt-gratitude").fill("Another synthetic thought saved after mobile zoom.")
-        self.page.evaluate("document.activeElement?.blur()")
-        self.page.wait_for_function("""day => LifeRPGApp.getState().journal.entries[day]?.gratitude==='Another synthetic thought saved after mobile zoom.'""",arg=self.day)
+if __name__=="__main__":unittest.main()
