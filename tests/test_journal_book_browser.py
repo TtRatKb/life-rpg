@@ -137,6 +137,8 @@ class JournalBookBrowserTests(unittest.TestCase):
         self.page.wait_for_function("""d => LifeRPGApp.getState().journal.entries[d]?.dailySpreadV1?.focusText==='Never delete this text.'""",arg=self.day)
         reward_before=self.page.evaluate("JSON.stringify(LifeRPGApp.getState().rewardLedger.events)")
         self.page.locator('[data-bj-layer-mode="create"]').click()
+        shots=ROOT/"test-artifacts";shots.mkdir(exist_ok=True)
+        self.page.screenshot(path=str(shots/"journal-soft-floral-create.png"),full_page=True)
         self.assertTrue(self.page.locator(".bj-layer-shelf").is_visible())
         self.assertEqual(1,self.page.locator("#bjBookDailySpread > .bj-layer-page:visible").count())
         self.page.locator('[data-bj-choose-side="right"]').click()
