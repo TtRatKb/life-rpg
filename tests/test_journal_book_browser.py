@@ -87,7 +87,7 @@ class JournalBookBrowserTests(unittest.TestCase):
         self.page.locator("#bjBookText").click()
         self.page.wait_for_function("""day => LifeRPGApp.getState().journal.entries[day]?.gratitude === 'A synthetic sunshine moment.'""",arg=self.day)
         self.page.locator("#bjBookText").fill("A private synthetic notebook note.")
-        self.page.locator("#bjArtDateText").click()
+        self.page.evaluate("document.activeElement?.blur()")
         self.page.wait_for_function("""day => LifeRPGApp.getState().journal.entries[day]?.bookNote === 'A private synthetic notebook note.'""",arg=self.day)
         self.assertEqual(1,self.page.evaluate("""day => LifeRPGApp.getState().rewardLedger.events.filter(
           e => e.source==='journal-reflection-base' && e.sourceId===day+':base-v0310').length""",arg=self.day))
@@ -181,7 +181,7 @@ class JournalBookBrowserTests(unittest.TestCase):
         self.styles();self.open_book()
         self.page.locator(".bj-art-more > summary").click()
         self.page.locator("#bjBookPrompt-smallWin").fill("A small synthetic win")
-        self.page.locator("#bjArtDateText").click()
+        self.page.evaluate("document.activeElement?.blur()")
         self.page.wait_for_function("""day => LifeRPGApp.getState().journal.entries[day]?.smallWin==='A small synthetic win'""",arg=self.day)
         self.page.locator("#bjBookDailySpread [data-bj-chapter='weekly']").click()
         self.assertTrue(self.page.locator("#bjBookWeeklySpread").is_visible())
