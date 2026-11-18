@@ -13,9 +13,9 @@
   const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
   const E={
     gratitude:{title:"Today I'm grateful for…",selector:"#bjBookPrompt-gratitude",side:"left",x:46,y:35,defaultScale:.92,angle:-1.8,scale:1.60,crop:[50,281,382,249],write:[.195,.255,.725,.64],line:29},
-    intentionText:{title:"Today I will…",selector:"#bjExtra-intentionText",side:"left",x:59,y:60,defaultScale:.83,angle:1.8,scale:1.60,crop:[45,526,410,213],write:[.132,.295,.44,.62],line:28},
+    intentionText:{title:"Today I will…",selector:"#bjExtra-intentionText",side:"left",x:29,y:69,defaultScale:.70,angle:1.4,scale:1.60,crop:[45,526,410,213],write:[.132,.295,.44,.62],line:28},
     focusText:{title:"Focus for today",selector:"#bjExtra-focusText",side:"right",x:40,y:36,defaultScale:1.07,angle:1.6,scale:1.45,crop:[429,380,311,226],write:[.18,.265,.74,.64],line:28},
-    happyMomentsText:{title:"Little moments that made me happy",selector:"#bjExtra-happyMomentsText",side:"left",x:34,y:83,defaultScale:.95,angle:-2.3,scale:1.45,crop:[59,727,285,225],write:[.15,.33,.76,.61],line:29},
+    happyMomentsText:{title:"Little moments that made me happy",selector:"#bjExtra-happyMomentsText",side:"left",x:77,y:75,defaultScale:.82,angle:-2.1,scale:1.45,crop:[59,727,285,225],write:[.15,.33,.76,.61],line:29},
     bookNote:{title:"Notes & thoughts",selector:"#bjBookText",side:"right",x:65,y:69,defaultScale:1.06,angle:-1.5,scale:1.45,crop:[630,807,264,259],write:[.15,.255,.76,.66],line:30}
   };
   const ORDER=Object.keys(E);
