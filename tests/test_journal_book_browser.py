@@ -342,6 +342,11 @@ class JournalBookBrowserTests(unittest.TestCase):
         self.assertEqual("checklist",modes["intentionText"]["mode"])
         self.assertEqual("plain",modes["gratitude"]["mode"])
         self.assertEqual("plain",modes["focusText"]["mode"])
+        # The initial book can render while its tab is hidden; its actual
+        # pixel geometry is resolved on the first visible browser frame.
+        self.page.wait_for_function("""()=>
+          document.querySelector('[data-bj-field="intentionText"]')?.getBoundingClientRect().width>30
+          && document.querySelectorAll('[data-bj-field="intentionText"] .bj-layer-line-row').length>=3""",timeout=7000)
         listrows=self.page.locator('[data-bj-field="intentionText"] .bj-layer-line-row')
         diagnostics=self.page.evaluate("""() => ({
           card:LifeRPGJournalArtSpread.getLayout().cards.intentionText,
