@@ -79,7 +79,7 @@
     const view=document.getElementById("view-bullet-journal");
     if(!view)return;
     for(const [side,section] of [["left",".bj-book-writing"],["right",".bj-book-recorded"]]){
-      const parent=view.querySelector("#bjBookDailySpread "+section+" .bj-book-page-inner");
+      const parent=view.querySelector('#bjBookDailySpread [data-bj-page="'+side+'"]') || view.querySelector("#bjBookDailySpread "+section+" .bj-book-page-inner");
       if(!parent)continue;
       let stage=stageFor(side);
       if(!stage){
