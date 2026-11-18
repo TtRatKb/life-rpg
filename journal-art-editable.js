@@ -427,6 +427,7 @@
     version:"0.31.4-journal-pages3",
     init,render,focusField,
     getLayout:()=>layout?JSON.parse(JSON.stringify(layout)):null,
-    isCreative:()=>creative
+    isCreative:()=>creative,
+    _test:{normalize,read}
   };
 })();
