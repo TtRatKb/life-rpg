@@ -85,6 +85,23 @@
             return 230;
           };
           const backdrop=hist.map(median);
+          // Calculate the original paper cut-out just once per sprite,
+          // not millions of times inside the pixel loop.
+          const maskKey=task.key.startsWith("frame:")?task.key.slice(6):null;
+          const masks={
+            gratitude:[.105,.92,.255,.87],
+            intentionText:[.108,.566,.275,.96],
+            focusText:[.108,.91,.28,.93],
+            happyMomentsText:[.092,.94,.345,.93],
+            bookNote:[.11,.94,.29,.935]
+          };
+          const flowerRegions={
+            gratitude:[.84,.77,.205,.225],
+            focusText:[.865,.765,.165,.215],
+            happyMomentsText:[.865,.80,.16,.20],
+            bookNote:[.865,.76,.17,.22]
+          };
+          const mask=masks[maskKey],flower=flowerRegions[maskKey];
           for(let iy=0;iy<height;iy++){
             for(let ix=0;ix<width;ix++){
               const p=(iy*width+ix)*4;
@@ -102,31 +119,18 @@
               if(task.key==="frame:intentionText"&&sx>403&&sy>674)opacity=0;
               if(task.key==="frame:intentionText"&&sx>145&&sy>725)opacity=0;
               if(task.key==="frame:happyMomentsText"&&sx>337)opacity=0;
-              if(task.key.startsWith("frame:")){
-                const field=task.key.slice(6),nx=ix/width,ny=iy/height;
-                // Erase ONLY the pre-printed writing area from the original
-                // raster: the watercolor border, title and flowers stay.
-                // We draw genuine interactive lines/checkmarks above clean
-                // paper instead. Plain starts with no marks whatsoever.
-                const masks={
-                  gratitude:[.105,.92,.255,.87],
-                  intentionText:[.108,.566,.275,.96],
-                  focusText:[.108,.91,.28,.93],
-                  happyMomentsText:[.092,.94,.345,.93],
-                  bookNote:[.11,.94,.29,.935]
-                };
-                const m=masks[field];
-                if(m){
-                  const edge=Math.min(nx-m[0],m[1]-nx,ny-m[2],m[3]-ny);
-                  let fade=clamp(edge/.015,0,1);
-                  let keepArt=false;
-                  if(field==="gratitude"&&nx>.68&&ny>.70)keepArt=true;
-                  if(field==="focusText"&&nx>.70&&ny>.64)keepArt=true;
-                  if(field==="happyMomentsText"&&nx>.73&&ny>.76)keepArt=true;
-                  if(field==="bookNote"&&nx>.72&&ny>.74)keepArt=true;
-                  if(keepArt)fade=0;
-                  opacity*=1-fade;
+              if(mask){
+                // Remove the baked-in lines, bullets and heart icons while
+                // preserving the irregular ink frame and flower illustrations.
+                const nx=ix/width,ny=iy/height;
+                const edge=Math.min(nx-mask[0],mask[1]-nx,ny-mask[2],mask[3]-ny);
+                const fade=clamp(edge/.015,0,1);
+                let flowerKeep=0;
+                if(flower){
+                  const fx=(nx-flower[0])/flower[2],fy=(ny-flower[1])/flower[3];
+                  flowerKeep=clamp((1-Math.hypot(fx,fy))/.1,0,1);
                 }
+                opacity*=1-fade*(1-flowerKeep);
               }
               a[p+3]=Math.round(255*opacity);
             }
