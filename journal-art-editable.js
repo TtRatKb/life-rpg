@@ -470,7 +470,9 @@
     if(!spread||!layout)return;
     for(const side of ["left","right"]){
       const page=paper(side);if(!page)continue;
-      const width=page.getBoundingClientRect().width;if(!width)return;
+      const width=page.getBoundingClientRect().width||
+        spread.getBoundingClientRect().width/2;
+      if(!width)continue;
       for(const item of DECOR.filter(d=>d.side===side)){
         const node=$(page,'[data-bj-deco="'+item.key+'"]');
         if(node){
@@ -487,7 +489,9 @@
       if(!f||!pos)continue;
       const box=$(fieldStage(pos.side),'[data-bj-field="'+field+'"]');
       if(!box)continue;
-      const width=paper(pos.side).getBoundingClientRect().width;
+      const width=paper(pos.side).getBoundingClientRect().width||
+        spread.getBoundingClientRect().width/2;
+      if(!width)continue;
       const px=srcCrop($(box,".bj-layer-frame-crop"),f.crop,f.scale*pos.scale,width).px;
       const c=screenCrop(f.crop),w=c.w*px,h=c.h*px;
       box.style.width=w+"px";box.style.height=h+"px";
