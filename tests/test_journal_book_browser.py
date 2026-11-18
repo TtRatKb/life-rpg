@@ -156,7 +156,7 @@ class JournalBookBrowserTests(unittest.TestCase):
         self.page.wait_for_function("document.querySelector(\'#bjBookDailySpread\')?.classList.contains(\'bj-layer-sprites-ready\')",timeout=15000)
         self.page.wait_for_function("""() => {
           const art=document.querySelector('#bjBookDailySpread .bj-layer-frame-crop');
-          return art && getComputedStyle(art).backgroundImage.includes('data:image/webp;base64');
+          return art && getComputedStyle(art).backgroundImage.includes('blob:');
         }""",timeout=10000)
         self.assertTrue(self.page.locator("#bjBookDailySpread").is_visible())
         self.assertEqual(2,self.page.locator("#bjBookDailySpread > .bj-layer-page:visible").count())
@@ -177,10 +177,12 @@ class JournalBookBrowserTests(unittest.TestCase):
         self.assertGreater(data["r"]["x"],data["l"]["x"]+data["l"]["w"]-2)
         self.assertAlmostEqual(data["l"]["h"]/data["l"]["w"],297/210,delta=.08)
         self.assertAlmostEqual(data["r"]["h"],data["l"]["h"],delta=3)
-        self.assertIn("data:image/webp;base64",data["src"])
-        self.assertIn("data:image/webp;base64",data["art"])
-        self.assertIn("data:image/webp;base64",data["src"])
+        self.assertIn("blob:",data["src"])
+        self.assertIn("data:image/svg+xml",data["art"])
+        self.assertIn("blob:",data["src"])
         self.assertGreater(self.page.evaluate("""()=>Object.keys(LifeRPGJournalCanvasLayers.assets).length"""),15)
+        self.assertTrue(self.page.evaluate("""()=>LifeRPGJournalCanvasLayers.version===2"""))
+        self.assertTrue(self.page.evaluate("""()=>LifeRPGJournalCanvasLayers.source.includes('jasmine-canva-magic-layers.svg')"""))
         self.assertEqual("none",self.page.locator("#bjBookDailySpread .bj-layer-frame-crop").first.evaluate(
             "el=>getComputedStyle(el).maskImage"),"Transparent sprite must not be cropped by old elliptical masks")
         self.assertEqual("none",data["border"],"Frames are actual watercolor crops, not CSS rectangles")
