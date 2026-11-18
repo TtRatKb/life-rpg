@@ -117,6 +117,8 @@ class JournalBookBrowserTests(unittest.TestCase):
           const e=LifeRPGApp.getState().journal.entries[d];
           return e?.bookNote==='My original synthetic thoughts.' && e?.dailySpreadV1?.focusText==='Rest when it feels right';
         }""",arg=self.day)
+        shots=ROOT/"test-artifacts";shots.mkdir(exist_ok=True)
+        self.page.screenshot(path=str(shots/"journal-soft-floral-filled.png"),full_page=True)
         initial=self.page.evaluate("""d => LifeRPGApp.getState().rewardLedger.events.filter(
           e => e.source==='journal-reflection-base' && e.sourceId===d+':base-v0310').length""",arg=self.day)
         self.assertEqual(1,initial)
