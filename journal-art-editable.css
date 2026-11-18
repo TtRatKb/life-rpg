@@ -118,7 +118,7 @@
 }
 #bjBookDailySpread .bj-layer-unavailable{font:650 .77rem "Nunito Sans",sans-serif;color:#755e61}
 #bjBookDailySpread .bj-layer-mood{
-  position:absolute;z-index:6;right:7%;top:5%;
+  position:absolute;z-index:6;left:8%;right:auto;top:54%;
   max-width:40%;min-height:30px;padding:5px 12px!important;
   border:1px solid rgba(194,153,125,.38)!important;border-radius:25px!important;
   background:rgba(255,249,236,.85)!important;box-shadow:0 2px 7px rgba(78,50,46,.08)!important;
