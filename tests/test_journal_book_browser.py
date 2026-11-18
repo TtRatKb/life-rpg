@@ -194,6 +194,14 @@ class JournalBookBrowserTests(unittest.TestCase):
             }""")
             self.assertLessEqual(info["doc"],info["viewport"]+2,str(info))
             self.assertGreater(info["scroll"],info["client"],str(info))
+            # Mode switching must NOT be cropped off-screen on a narrow phone.
+            controls=self.page.locator('[data-bj-layer-mode="create"]').evaluate("""el => {
+              const r=el.getBoundingClientRect();
+              return {left:r.left,right:r.right,viewport:innerWidth,visible:getComputedStyle(el).display!=='none'};
+            }""")
+            self.assertTrue(controls["visible"],str(controls))
+            self.assertGreaterEqual(controls["left"],-1,str(controls))
+            self.assertLessEqual(controls["right"],controls["viewport"]+1,str(controls))
         shots=ROOT/"test-artifacts";shots.mkdir(exist_ok=True)
         self.page.screenshot(path=str(shots/"journal-soft-floral-mobile.png"),full_page=True)
 
