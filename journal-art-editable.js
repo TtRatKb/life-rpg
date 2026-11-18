@@ -187,6 +187,16 @@
       const paperButton=e.target.closest?.("[data-bj-paper]");
       if(paperButton&&layout){layout.paper[activeSide]=paperButton.dataset.bjPaper==="plain"?"plain":"jasmine";if(saveLayout())updateMode();}
     });
+    spread.addEventListener("input",event=>{
+      const field=event.target.closest?.(".bj-layer-field");
+      if(!field)return;
+      const n=field.value.length,key=field.dataset.bjArt||"";
+      const preview=key==="gratitude"?window.LifeRPGJournal?.getReflectionRewardPreview?.(day,key,field.value):null;
+      status(n+" characters"+(preview?(" · "+preview.remaining+" until next writing reward"):"")+" · writing…");
+    });
+    spread.addEventListener("focusout",event=>{
+      if(event.target.closest?.(".bj-layer-field"))status("Saved through the original Journal fields ♡");
+    });
     spread.classList.add("bj-layer-enabled");
     ready=true;
     // Keep crops crisp at all viewport sizes; downscale original artwork,
@@ -217,6 +227,7 @@
       input.classList.add("bj-layer-field");
       input.dataset.bjArt=field;input.setAttribute("aria-label",f.title);
       if(input.tagName==="TEXTAREA")input.placeholder="";
+      if(!input.__bjLayerOriginalParent)input.__bjLayerOriginalParent=input.parentElement;
       input.readOnly=creative;
       body.appendChild(input);
     }else{body.textContent="Saved reflection unavailable to edit";body.classList.add("bj-layer-unavailable");}
@@ -245,9 +256,14 @@
     for(const card of spread.querySelectorAll(".bj-layer-original-frame")){
       const input=$(card,"textarea");
       if(!input)continue;
-      const fresher=input.id==="bjBookPrompt-gratitude"?$(more,"#bjBookPrompt-gratitude"):null;
-      if(fresher&&fresher!==input)input.remove();
-      else $(more,"#bjLayerExtras").appendChild(input);
+      const fresher=input.id==="bjBookPrompt-gratitude"?$(more,'#bjBookPrompts #bjBookPrompt-gratitude'):null;
+      if(fresher&&fresher!==input){input.remove();continue;}
+      const original=input.__bjLayerOriginalParent;
+      if(original?.isConnected)original.appendChild(input);
+      else {
+        const prompt=input.id==="bjBookPrompt-gratitude"?$(more,'#bjBookPrompts [data-bj-field="gratitude"]'):null;
+        (prompt||$(more,"#bjLayerExtras")).appendChild(input);
+      }
     }
     for(const side of ["left","right"]){
       const stage=fieldStage(side);if(stage)stage.replaceChildren();
