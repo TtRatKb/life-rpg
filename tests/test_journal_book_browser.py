@@ -203,6 +203,8 @@ class JournalBookBrowserTests(unittest.TestCase):
         self.page.locator('[data-bj-layer-mode="write"]').click()
         lines=self.page.locator('[data-bj-field="focusText"] .bj-layer-line-input')
         self.assertGreaterEqual(lines.count(),5)
+        shots=ROOT/"test-artifacts";shots.mkdir(exist_ok=True)
+        self.page.screenshot(path=str(shots/"journal-soft-floral-lined.png"),full_page=True)
         self.assertEqual(existing.split("\n"),
                          [lines.nth(i).input_value() for i in range(5)])
         self.assertTrue(self.page.locator("#bjExtra-focusText").evaluate("el=>getComputedStyle(el).display==='none'"))
@@ -225,6 +227,7 @@ class JournalBookBrowserTests(unittest.TestCase):
         self.page.locator('[data-bj-box-mode="plain"]').click()
         self.page.locator('[data-bj-layer-mode="write"]').click()
         self.assertEqual(0,self.page.locator('[data-bj-field="focusText"] .bj-layer-line-row').count())
+        self.page.screenshot(path=str(shots/"journal-soft-floral-blank.png"),full_page=True)
         self.assertEqual(
             "First line\nThe edited second line\nThird line\nFourth line\nFifth line",
             self.page.locator("#bjExtra-focusText").input_value())
@@ -299,6 +302,8 @@ class JournalBookBrowserTests(unittest.TestCase):
         self.assertGreaterEqual(lines.count(),3)
         lines.nth(0).fill("My entirely independent writing")
         lines.nth(1).fill("Another little note")
+        shots=ROOT/"test-artifacts";shots.mkdir(exist_ok=True)
+        self.page.screenshot(path=str(shots/"journal-soft-floral-resized-copies.png"),full_page=True)
         lines.nth(1).blur()
         self.page.wait_for_function(
             """k=>LifeRPGApp.getState().journalPageLayoutV3?.daily?.[LifeRPGBulletJournalBook.getDate()]?.cards?.[k]?.text?.includes('Another little note')""",
