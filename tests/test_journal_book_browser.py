@@ -231,7 +231,7 @@ class JournalBookBrowserTests(unittest.TestCase):
         self.assertTrue(self.page.locator(".bj-layer-shelf").is_visible())
         preview=self.page.locator('[data-bj-preview-frame="gratitude"]').evaluate(
             "el=>getComputedStyle(el).backgroundImage")
-        self.assertIn("data:image/",preview,"The palette must show an actual original painted frame, not a placeholder")
+        self.assertIn("blob:",preview,"The palette must display a real independent original SVG layer, not a placeholder")
         self.assertEqual(1,self.page.locator("#bjBookDailySpread > .bj-layer-page:visible").count())
         self.page.locator('[data-bj-choose-side="right"]').click()
         self.assertTrue(self.page.locator('[data-bj-page="right"]').is_visible())
