@@ -101,7 +101,7 @@
           sheet.getContext("2d").putImageData(pixels,0,0);
           transparentOriginals.set(task.key,sheet.toDataURL("image/webp",.95));
         }
-        if(spread){spread.classList.add("bj-layer-sprites-ready");updateArtworkSizes();}
+        if(spread){spread.classList.add("bj-layer-sprites-ready");updateArtworkSizes();updateLibrary();}
       }catch(error){
         console.warn("Jasmine artwork layers unavailable; preserving original atlas fallback.",error);
       }
@@ -408,9 +408,17 @@
     holder.innerHTML=ORDER.map(key=>{
       const f=E[key],pos=layout.cards[key];
       return '<button type="button" class="bj-layer-library-item" data-bj-add-card="'+key+'">'+
-        '<span class="bj-layer-library-mini" aria-hidden="true">✿</span><span>'+esc(f.title)+'</span>'+
+        '<span class="bj-layer-library-preview" data-bj-preview-frame="'+key+'" aria-hidden="true">✿</span><span>'+esc(f.title)+'</span>'+
         '<small>'+(pos.visible?"On "+pos.side+" page":"Add original box")+'</small></button>';
     }).join("");
+    for(const field of ORDER){
+      const preview=$(holder,'[data-bj-preview-frame="'+field+'"]');
+      const art=transparentOriginals.get("frame:"+field);
+      if(preview&&art){
+        preview.textContent="";
+        preview.style.backgroundImage='url("'+art+'")';
+      }
+    }
     const f=E[selected],panel=$(sideBar,"#bjLayerSelected");
     panel.innerHTML=(creative&&f)?'<div class="bj-layer-selected"><strong>'+esc(f.title)+'</strong>'+
       '<button type="button" data-bj-action-card="other-side">Move to other page</button>'+
