@@ -26,8 +26,8 @@ class JournalBookBrowserTests(unittest.TestCase):
         html=(ROOT/"index.html").read_text()
         html=re.sub(r"<script\b[^>]*>.*?</script>","",html,flags=re.S)
         html=re.sub(r"<link\b[^>]*>","",html)
-        html=html.replace("</head>",
-           '<link rel="stylesheet" href="/journal-art-background-v2.css"></head>')
+        # The background is a genuinely separate watercolor paper asset now.
+        # No giant original screenshot stylesheet is loaded into this test.
         cls.html=html.replace("</body>",
           '<style>.hidden{display:none!important}.view:not(.active){display:none!important}</style>'+
           '<script src="/data/quests.js"></script>'+
@@ -35,6 +35,7 @@ class JournalBookBrowserTests(unittest.TestCase):
           '<script src="/app.js"></script>'+
           '<script src="/journal.js"></script>'+
           '<script src="/bullet-journal-book.js"></script>'+
+          '<script src="/journal-canva-isolated-layers.js"></script>'+
           '<script src="/journal-art-editable.js"></script>'+
           '<script src="/bullet-journal-atelier.js"></script>'+
           '</body>')
@@ -157,7 +158,7 @@ class JournalBookBrowserTests(unittest.TestCase):
         self.assertEqual(2,self.page.locator("#bjBookDailySpread > .bj-layer-page:visible").count())
         self.assertEqual(5,self.page.locator("#bjBookDailySpread .bj-layer-original-frame").count())
         self.assertEqual(8,self.page.locator("#bjBookDailySpread .bj-layer-art-piece").count())
-        self.assertEqual(1,self.page.locator("#bjArtPaper").count(),"Original atlas stays hidden, not shown as one flattened page")
+        self.assertEqual(0,self.page.locator("#bjArtPaper").count(),"No screenshot atlas exists anywhere in the new Journal")
         data=self.page.evaluate("""() => {
           const a=document.querySelector('#bjBookDailySpread');
           const l=a.querySelector('[data-bj-page="left"]').getBoundingClientRect();
@@ -165,7 +166,7 @@ class JournalBookBrowserTests(unittest.TestCase):
           const frame=a.querySelector('.bj-layer-frame-crop');
           return {l:{x:l.x,y:l.y,w:l.width,h:l.height},r:{x:r.x,w:r.width,h:r.height},
               src:getComputedStyle(frame).backgroundImage,
-              art:a.style.getPropertyValue('--bj-original-atlas'),
+              art:a.style.getPropertyValue('--bj-clean-paper'),
               border:getComputedStyle(frame.parentElement).borderStyle};
         }""")
         self.assertGreater(data["l"]["w"],300)
@@ -174,6 +175,10 @@ class JournalBookBrowserTests(unittest.TestCase):
         self.assertAlmostEqual(data["r"]["h"],data["l"]["h"],delta=3)
         self.assertIn("data:image/webp;base64",data["src"])
         self.assertIn("data:image/webp;base64",data["art"])
+        self.assertIn("data:image/webp;base64",data["src"])
+        self.assertGreater(self.page.evaluate("""()=>Object.keys(LifeRPGJournalCanvasLayers.assets).length"""),15)
+        self.assertEqual("none",self.page.locator("#bjBookDailySpread .bj-layer-frame-crop").first.evaluate(
+            "el=>getComputedStyle(el).maskImage"),"Transparent sprite must not be cropped by old elliptical masks")
         self.assertEqual("none",data["border"],"Frames are actual watercolor crops, not CSS rectangles")
         self.assertFalse(self.page.locator('[data-bj-mode="create"]').count())
         for field in ("gratitude","focusText","intentionText","happyMomentsText","bookNote"):
