@@ -390,15 +390,19 @@
       box.style.width=w+"px";box.style.height=h+"px";
       box.style.left=pos.x+"%";box.style.top=pos.y+"%";
       const edit=$(box,".bj-layer-write-zone");
+      const step=f.line*SOURCE.h/SOURCE.screenH*px;
       if(edit){
-        edit.style.left=f.write[0]*100+"%";edit.style.top=f.write[1]*100+"%";
-        edit.style.width=f.write[2]*100+"%";edit.style.height=f.write[3]*100+"%";
+        // The original painted dotted line marks the handwriting baseline,
+        // not the top of the textarea. Compensate for native font ascenders.
+        const top=f.write[1]*h-step*.21;
+        edit.style.left=f.write[0]*100+"%";edit.style.top=top+"px";
+        edit.style.width=f.write[2]*100+"%";
+        edit.style.height=(f.write[3]*h+step*.21)+"px";
       }
       const t=$(box,"textarea");
       if(t){
-        const step=f.line*SOURCE.h/SOURCE.screenH*px;
         t.style.lineHeight=step+"px";
-        t.style.fontSize=clamp(step*.78,14,25)+"px";
+        t.style.fontSize=clamp(step*.70,14,23)+"px";
       }
     }
   }
