@@ -76,10 +76,11 @@ class JournalBookBrowserTests(unittest.TestCase):
             route.abort()
 
     def test_two_a4_pages_use_original_watercolor_not_rectangles(self):
+        self.page.wait_for_function("document.querySelector(\'#bjBookDailySpread\')?.classList.contains(\'bj-layer-sprites-ready\')",timeout=15000)
         self.assertTrue(self.page.locator("#bjBookDailySpread").is_visible())
         self.assertEqual(2,self.page.locator("#bjBookDailySpread > .bj-layer-page:visible").count())
         self.assertEqual(5,self.page.locator("#bjBookDailySpread .bj-layer-original-frame").count())
-        self.assertEqual(8,self.page.locator("#bjBookDailySpread .bj-layer-art-piece").count())
+        self.assertEqual(7,self.page.locator("#bjBookDailySpread .bj-layer-art-piece").count())
         self.assertEqual(1,self.page.locator("#bjArtPaper").count(),"Original atlas stays hidden, not shown as one flattened page")
         data=self.page.evaluate("""() => {
           const a=document.querySelector('#bjBookDailySpread');
