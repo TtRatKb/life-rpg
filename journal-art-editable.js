@@ -37,6 +37,74 @@
     w:c[2]*SOURCE.w/SOURCE.screenW,
     h:c[3]*SOURCE.h/SOURCE.screenH
   });
+  const transparentOriginals=new Map();
+  function extractTransparentOriginals(cssAtlas){
+    // The original flattened watercolor is read ONCE. Per-element transparent
+    // art is then reconstructed entirely in memory: no new third-party image
+    // or low-resolution substitute is fetched or saved to player data.
+    const match=String(cssAtlas||"").match(/url\(["']?(data:image\/[^"')]+)["']?\)/i);
+    if(!match)return;
+    const img=new Image();
+    img.onerror=()=>{status("Original Jasmine art could not be decoded.");};
+    img.onload=()=>{
+      try{
+        const canvas=document.createElement("canvas");
+        canvas.width=img.naturalWidth;canvas.height=img.naturalHeight;
+        const ctx=canvas.getContext("2d",{willReadFrequently:true});
+        if(!ctx)return;
+        ctx.drawImage(img,0,0,canvas.width,canvas.height);
+        const tasks=[
+          ...ORDER.map(key=>({key:"frame:"+key,crop:E[key].crop})),
+          ...DECOR.map(d=>({key:"deco:"+d.key,crop:d.crop}))
+        ];
+        for(const task of tasks){
+          const c=screenCrop(task.crop);
+          const x=clamp(Math.floor(c.x),0,canvas.width-1);
+          const y=clamp(Math.floor(c.y),0,canvas.height-1);
+          const width=clamp(Math.ceil(c.w),1,canvas.width-x);
+          const height=clamp(Math.ceil(c.h),1,canvas.height-y);
+          const pixels=ctx.getImageData(x,y,width,height);
+          const a=pixels.data,hist=[new Uint32Array(256),new Uint32Array(256),new Uint32Array(256)];
+          let samples=0;
+          for(let p=0;p<a.length;p+=16){
+            hist[0][a[p]]++;hist[1][a[p+1]]++;hist[2][a[p+2]]++;samples++;
+          }
+          const median=h=>{
+            let seen=0;
+            for(let k=0;k<256;k++){seen+=h[k];if(seen>=samples/2)return k;}
+            return 230;
+          };
+          const backdrop=hist.map(median);
+          for(let iy=0;iy<height;iy++){
+            for(let ix=0;ix<width;ix++){
+              const p=(iy*width+ix)*4;
+              const dr=a[p]-backdrop[0],dg=a[p+1]-backdrop[1],db=a[p+2]-backdrop[2];
+              const distance=Math.hypot(dr,dg,db);
+              let opacity=clamp((distance-12)/52,0,1);
+              // A few neighboring objects were partially visible behind
+              // the original printed frame: mask THOSE parts, not its outline.
+              const sx=SOURCE.screenX+(x+ix)*SOURCE.screenW/canvas.width;
+              const sy=SOURCE.screenY+(y+iy)*SOURCE.screenH/canvas.height;
+              if(task.key==="frame:focusText"&&sx>665&&sy<419)opacity=0;
+              if(task.key==="deco:moon-window"&&sx<635&&sy>384)opacity=0;
+              if(task.key==="deco:tea-and-flowers"&&sx>444&&sy<768)opacity=0;
+              if(task.key==="frame:intentionText"&&sx>441&&sy>682)opacity=0;
+              a[p+3]=Math.round(255*opacity);
+            }
+          }
+          const sheet=document.createElement("canvas");
+          sheet.width=width;sheet.height=height;
+          sheet.getContext("2d").putImageData(pixels,0,0);
+          transparentOriginals.set(task.key,sheet.toDataURL("image/webp",.95));
+        }
+        if(spread){spread.classList.add("bj-layer-sprites-ready");updateArtworkSizes();}
+      }catch(error){
+        console.warn("Jasmine artwork layers unavailable; preserving original atlas fallback.",error);
+      }
+    };
+    img.src=match[1];
+  }
+
   const defaults=()=>{
     const cards={};
     for(const [key,f] of Object.entries(E))cards[key]={side:f.side,x:f.x,y:f.y,visible:true};
@@ -65,8 +133,18 @@
   function srcCrop(el,screenRect,scale,pageWidth){
     const c=screenCrop(screenRect),px=pageWidth/SOURCE.w*scale;
     el.style.width=(c.w*px)+"px";el.style.height=(c.h*px)+"px";
-    el.style.backgroundSize=(SOURCE.w*px)+"px "+(SOURCE.h*px)+"px";
-    el.style.backgroundPosition=(-c.x*px)+"px "+(-c.y*px)+"px";
+    const isolated=transparentOriginals.get(el.dataset.bjSprite);
+    if(isolated){
+      el.style.backgroundImage='url("'+isolated+'")';
+      el.style.backgroundSize="100% 100%";
+      el.style.backgroundPosition="center center";
+      el.style.webkitMaskImage="none";el.style.maskImage="none";
+    }else{
+      el.style.backgroundImage="";
+      el.style.backgroundSize=(SOURCE.w*px)+"px "+(SOURCE.h*px)+"px";
+      el.style.backgroundPosition=(-c.x*px)+"px "+(-c.y*px)+"px";
+      el.style.webkitMaskImage="";el.style.maskImage="";
+    }
     return {c,px};
   }
   function paper(side){return $(spread,'[data-bj-page="'+side+'"]');}
@@ -198,6 +276,7 @@
     });
     spread.classList.add("bj-layer-enabled");
     ready=true;
+    extractTransparentOriginals(atlas);
     // Keep crops crisp at all viewport sizes; downscale original artwork,
     // never enlarge tiny thumbnail files.
     if(typeof ResizeObserver!=="undefined"){
@@ -219,6 +298,7 @@
     card.dataset.bjField=field;
     card.setAttribute("aria-label",f.title);
     const visual=document.createElement("div");visual.className="bj-layer-frame-crop";
+    visual.dataset.bjSprite="frame:"+field;
     visual.setAttribute("aria-hidden","true");card.appendChild(visual);
     const body=document.createElement("div");body.className="bj-layer-write-zone";
     const input=originalInput(field);
@@ -244,6 +324,7 @@
   function originalDecor(item){
     const node=document.createElement("div");node.className="bj-layer-art-piece";
     node.dataset.bjDeco=item.key;
+    node.dataset.bjSprite="deco:"+item.key;
     node.dataset.bjOriginalCrop=item.key;node.setAttribute("aria-hidden","true");
     node.style.left=item.x+"%";node.style.top=item.y+"%";
     return node;
