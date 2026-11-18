@@ -161,11 +161,11 @@
     more=document.createElement("details");more.className="bj-layer-extras";
     more.innerHTML='<summary>✧ More reflections, tracker & recorded moments</summary><div id="bjLayerExtras"></div>';
     spread.insertAdjacentElement("afterend",more);
-    const extras=$("#bjLayerExtras",more);
+    const extras=$(more,"#bjLayerExtras");
     // Leave the original form and bookkeeping nodes mounted. Book.renderDay
     // continues to query/update the same IDs; only the editor moves.
     for(const node of [...spread.querySelectorAll(".bj-book-page")])extras.appendChild(node);
-    const atelier=$("#bjAtelierMount",extras);
+    const atelier=$(extras,"#bjAtelierMount");
     if(atelier)$(sideBar,"#bjLayerAtelier").appendChild(atelier);
     const dateInput=$(tool,"#bjLayerDate");
     dateInput.addEventListener("change",()=>{
