@@ -164,7 +164,7 @@
 #bjBookDailySpread.bj-layer-creative[data-bj-edit-side="left"]>[data-bj-page="right"]{display:none!important}
 #bjBookDailySpread.bj-layer-creative[data-bj-edit-side="left"] .bj-layer-shelf{grid-column:2}
 #bjBookDailySpread.bj-layer-creative[data-bj-edit-side="right"]>[data-bj-page="left"]{display:none!important}
-#bjBookDailySpread.bj-layer-creative[data-bj-edit-side="right"]>[data-bj-page="right"]{grid-column:2}
+#bjBookDailySpread.bj-layer-creative[data-bj-edit-side="right"]>[data-bj-page="right"]{grid-column:2;display:block!important}
 #bjBookDailySpread.bj-layer-creative[data-bj-edit-side="right"] .bj-layer-shelf{
   grid-column:1;border-right:1px solid #e4cabf;border-left:0
 }
