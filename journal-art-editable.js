@@ -21,6 +21,9 @@
   const ORDER=Object.keys(E);
   const BOX_MODES=["plain","lined","checklist"];
   const defaultMode=key=>key==="intentionText"?"checklist":"plain";
+  const descriptor=key=>E[key]||E[layout?.cards?.[key]?.template];
+  const fieldSelector=key=>E[key]?.selector||'[data-bj-custom-source="'+key+'"]';
+  const cardKeys=()=>layout?Object.keys(layout.cards):ORDER;
   const clampScale=n=>clamp(Number.isFinite(Number(n))?Number(n):1,.45,1.55);
   const splitText=value=>String(value??"").split("\n");
   const compactLines=lines=>lines.map(v=>String(v??"")).join("\n").replace(/\n+$/g,"");
@@ -162,12 +165,29 @@
         checks:Array.isArray(c.checks)?c.checks.slice(0,maxLines).map(v=>v===true):[]
       };
     }
+    if(raw?.cards&&typeof raw.cards==="object"){
+      for(const [key,c] of Object.entries(raw.cards).slice(0,90)){
+        if(!/^custom-[a-z0-9-]{1,56}$/.test(key)||!c||!ORDER.includes(c.template))continue;
+        const model=E[c.template];
+        p.cards[key]={
+          template:c.template,custom:true,
+          side:c.side==="left"||c.side==="right"?c.side:"left",
+          x:clamp(Number.isFinite(+c.x)?+c.x:50,12,88),
+          y:clamp(Number.isFinite(+c.y)?+c.y:50,10,90),
+          visible:c.visible!==false,
+          scale:clampScale(c.scale),
+          mode:BOX_MODES.includes(c.mode)?c.mode:defaultMode(c.template),
+          checks:Array.isArray(c.checks)?c.checks.slice(0,maxLines).map(v=>v===true):[],
+          text:typeof c.text==="string"?c.text.slice(0,10000):""
+        };
+      }
+    }
     return p;
   }
   function stored(day){return normalize(app.getState().journalPageLayoutV3?.daily?.[day]);}
   let view=null,spread=null,tool=null,sideBar=null,more=null,source=null;
   let day="",layout=null,creative=false,activeSide="left",selected="",drag=null;
-  const lineDrafts=new Map(); // Content remains in the canonical textarea; drafts contain no duplicate persisted data.
+  let customSaveTimer=null,cardIdCounter=0;
   let resizeObserver=null,ready=false;
 
   function srcCrop(el,screenRect,scale,pageWidth){
@@ -191,6 +211,7 @@
   function fieldStage(side){return $(paper(side),".bj-layer-card-stage");}
   function saveLayout(){
     if(!day||!layout)return false;
+    if(customSaveTimer){clearTimeout(customSaveTimer);customSaveTimer=null;}
     const state=app.getState(),before=state.journalPageLayoutV3;
     const daily={...(before?.daily||{})};
     daily[day]=JSON.parse(JSON.stringify(layout));
@@ -296,6 +317,8 @@
     sideBar.addEventListener("click",e=>{
       const side=e.target.closest?.("[data-bj-choose-side]");
       if(side){activeSide=side.dataset.bjChooseSide==="right"?"right":"left";selected="";updateMode();return;}
+      const create=e.target.closest?.("[data-bj-create-card]");
+      if(create){createExtraCard(create.dataset.bjCreateCard);return;}
       const card=e.target.closest?.("[data-bj-add-card]");
       if(card){restoreCard(card.dataset.bjAddCard);return;}
       const act=e.target.closest?.("[data-bj-action-card]");
@@ -339,6 +362,19 @@
     }
   }
   function originalInput(field){
+    if(!E[field]){
+      const p=layout.cards[field];
+      if(!p?.custom)return null;
+      const ta=document.createElement("textarea");
+      ta.id="bjLayerCustom-"+field;
+      ta.dataset.bjCustomSource=field;
+      ta.value=p.text||"";
+      ta.spellcheck=true;
+      ta.maxLength=10000;
+      ta.addEventListener("input",()=>queueExtraText(field,ta.value));
+      ta.addEventListener("focusout",()=>{if(customSaveTimer)saveLayout();});
+      return ta;
+    }
     if(field==="gratitude"){
       // The book regenerates this prompt on each date, so the *new* original
       // must be preferred over a detached old textarea.
@@ -347,7 +383,7 @@
     return $(view,E[field].selector);
   }
   function cardNode(field){
-    const f=E[field],card=document.createElement("section");
+    const f=descriptor(field),card=document.createElement("section");
     card.className="bj-layer-original-frame";
     card.dataset.bjField=field;
     card.setAttribute("aria-label",f.title);
@@ -404,6 +440,11 @@
     for(const card of spread.querySelectorAll(".bj-layer-original-frame")){
       const input=$(card,"textarea");
       if(!input)continue;
+      if(input.dataset.bjCustomSource){
+        const p=layout.cards[input.dataset.bjCustomSource];
+        if(p)p.text=input.value;
+        input.remove();continue;
+      }
       const fresher=input.id==="bjBookPrompt-gratitude"?$(more,'#bjBookPrompts #bjBookPrompt-gratitude'):null;
       if(fresher&&fresher!==input){input.remove();continue;}
       const original=input.__bjLayerOriginalParent;
@@ -418,9 +459,9 @@
       const backdrop=$(paper(side),".bj-layer-decor");
       if(backdrop){backdrop.replaceChildren();for(const item of DECOR.filter(d=>d.side===side))backdrop.appendChild(originalDecor(item));}
     }
-    for(const field of ORDER){
+    for(const field of cardKeys()){
       const pos=layout.cards[field];
-      if(!pos.visible)continue;
+      if(!pos.visible||!descriptor(field))continue;
       fieldStage(pos.side)?.appendChild(cardNode(field));
     }
     updateArtworkSizes();updateSelection();
@@ -441,8 +482,10 @@
         }
       }
     }
-    for(const [field,f] of Object.entries(E)){
-      const pos=layout.cards[field],box=$(fieldStage(pos.side),'[data-bj-field="'+field+'"]');
+    for(const field of cardKeys()){
+      const f=descriptor(field),pos=layout.cards[field];
+      if(!f||!pos)continue;
+      const box=$(fieldStage(pos.side),'[data-bj-field="'+field+'"]');
       if(!box)continue;
       const width=paper(pos.side).getBoundingClientRect().width;
       const px=srcCrop($(box,".bj-layer-frame-crop"),f.crop,f.scale*pos.scale,width).px;
@@ -469,8 +512,31 @@
     }
   }
 
+  function queueExtraText(field,text){
+    const p=layout?.cards[field];
+    if(!p?.custom)return;
+    p.text=text;
+    if(customSaveTimer)clearTimeout(customSaveTimer);
+    const savedDay=day;
+    customSaveTimer=setTimeout(()=>{
+      if(day===savedDay)saveLayout();
+    },700);
+  }
+  function createExtraCard(template){
+    if(!creative||!E[template]||cardKeys().length>=45)return;
+    let key;
+    do{key="custom-"+Date.now().toString(36)+"-"+(++cardIdCounter).toString(36);}
+    while(layout.cards[key]);
+    layout.cards[key]={
+      template,custom:true,side:activeSide,x:50,y:54,
+      scale:.65,mode:defaultMode(template),checks:[],visible:true,text:""
+    };
+    if(!saveLayout()){delete layout.cards[key];return;}
+    selected=key;renderCards();updateMode();
+  }
+
   function setBoxMode(field,mode){
-    if(!creative||!E[field]||!BOX_MODES.includes(mode))return;
+    if(!creative||!descriptor(field)||!BOX_MODES.includes(mode))return;
     if(!window.LifeRPGBulletJournalBook?.save?.())return;
     const old=layout.cards[field].mode;
     layout.cards[field].mode=mode;
@@ -480,7 +546,7 @@
 
   function syncLinesToSource(field,stack){
     const host=stack.closest(".bj-layer-original-frame");
-    const source=$(host,E[field].selector);
+    const source=$(host,fieldSelector(field));
     if(!source)return;
     const rendered=[...stack.querySelectorAll(".bj-layer-line-input")].map(node=>node.value);
     const leftover=splitText(source.value).slice(rendered.length);
@@ -501,7 +567,7 @@
     if(mode==="checklist"){
       const check=document.createElement("input");
       check.type="checkbox";check.className="bj-layer-checkbox";
-      check.setAttribute("aria-label","Check off line "+(index+1)+" of "+E[field].title);
+      check.setAttribute("aria-label","Check off line "+(index+1)+" of "+descriptor(field).title);
       check.checked=layout.cards[field].checks[index]===true;check.disabled=creative;
       check.addEventListener("change",()=>{
         const p=layout.cards[field];p.checks[index]=check.checked;
@@ -513,11 +579,11 @@
     input.type="text";input.className="bj-layer-line-input";
     input.value=content;input.maxLength=2400;
     input.readOnly=creative;
-    input.setAttribute("aria-label",E[field].title+" · line "+(index+1));
+    input.setAttribute("aria-label",descriptor(field).title+" · line "+(index+1));
     input.autocomplete="off";input.spellcheck=true;
     input.addEventListener("input",()=>syncLinesToSource(field,stack));
     input.addEventListener("focusout",()=>{
-      const canonical=$(stack.closest(".bj-layer-original-frame"),E[field].selector);
+      const canonical=$(stack.closest(".bj-layer-original-frame"),fieldSelector(field));
       canonical?.dispatchEvent(new FocusEvent("focusout",{bubbles:true}));
     });
     input.addEventListener("keydown",event=>{
@@ -540,7 +606,7 @@
     const frame=$(fieldStage(p.side),'[data-bj-field="'+field+'"]');
     if(!frame)return;
     const host=$(frame,".bj-layer-write-zone");
-    const source=$(host,E[field].selector);
+    const source=$(host,fieldSelector(field));
     if(!source)return;
     let stack=$(host,".bj-layer-line-stack");
     source.classList.toggle("bj-layer-source-hidden",p.mode!=="plain");
@@ -583,9 +649,17 @@
     const holder=$(sideBar,"#bjLayerLibrary");
     holder.innerHTML=ORDER.map(key=>{
       const f=E[key],pos=layout.cards[key];
-      return '<button type="button" class="bj-layer-library-item" data-bj-add-card="'+key+'">'+
+      return '<div class="bj-layer-library-tile">'+
+        '<button type="button" class="bj-layer-library-item" data-bj-add-card="'+key+'">'+
         '<span class="bj-layer-library-preview" data-bj-preview-frame="'+key+'" aria-hidden="true">✿</span><span>'+esc(f.title)+'</span>'+
-        '<small>'+(pos.visible?"On "+pos.side+" page":"Add original box")+'</small></button>';
+        '<small>'+(pos.visible?"Select original":"Restore original")+'</small></button>'+
+        '<button type="button" class="bj-layer-library-clone" data-bj-create-card="'+key+'">+ Add another</button></div>';
+    }).join("")+
+    cardKeys().filter(key=>layout.cards[key].custom).map(key=>{
+      const p=layout.cards[key],f=descriptor(key);
+      return '<button type="button" class="bj-layer-library-item" data-bj-add-card="'+key+'">'+
+        '<span class="bj-layer-library-mini">✿</span><span>'+esc(f.title)+' · extra</span>'+
+        '<small>'+(p.visible?"Select box":"Restore hidden box")+'</small></button>';
     }).join("");
     for(const field of ORDER){
       const preview=$(holder,'[data-bj-preview-frame="'+field+'"]');
@@ -595,7 +669,7 @@
         preview.style.backgroundImage='url("'+art+'")';
       }
     }
-    const f=E[selected],panel=$(sideBar,"#bjLayerSelected");
+    const f=descriptor(selected),panel=$(sideBar,"#bjLayerSelected");
     panel.innerHTML=(creative&&f)?'<div class="bj-layer-selected"><strong>'+esc(f.title)+'</strong>'+
       '<div class="bj-layer-modes" role="group" aria-label="Writing style">'+
       BOX_MODES.map(mode=>'<button type="button" data-bj-box-mode="'+mode+'" aria-pressed="'+(layout.cards[selected].mode===mode)+'">'+
@@ -629,20 +703,20 @@
     if(creative)atelier?.render?.(day);
   }
   function restoreCard(key){
-    if(!E[key]||!creative)return;
-    const pos=layout.cards[key],f=E[key];
+    if(!descriptor(key)||!creative)return;
+    const pos=layout.cards[key],f=descriptor(key);
     if(pos.visible){selected=key;activeSide=pos.side;updateMode();return;}
     pos.visible=true;pos.side=activeSide;pos.x=f.x;pos.y=f.y;
     if(saveLayout()){selected=key;renderCards();updateMode();}
   }
   function hideCard(key){
-    if(!creative||!E[key]||!layout.cards[key].visible)return;
+    if(!creative||!descriptor(key)||!layout.cards[key].visible)return;
     if(!window.LifeRPGBulletJournalBook?.save?.())return;
     layout.cards[key].visible=false;selected="";
     if(saveLayout()){renderCards();updateMode();}
   }
   function editSelected(action){
-    if(!creative||!E[selected])return;
+    if(!creative||!descriptor(selected))return;
     if(action==="remove"){hideCard(selected);return;}
     if(action!=="other-side")return;
     const pos=layout.cards[selected];
