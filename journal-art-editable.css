@@ -235,7 +235,16 @@
     overscroll-behavior-x:contain
   }
   #bjBookDailySpread .bj-layer-page{min-width:390px}
-  #bjBookDailySpread .bj-layer-toolbar{min-width:780px}
+  #bjBookDailySpread.bj-layer-enabled:after{display:none}
+  #bjBookDailySpread .bj-layer-toolbar{
+    position:sticky;left:0;top:0;z-index:10;grid-column:1/-1;justify-self:start;
+    box-sizing:border-box;min-width:0!important;width:calc(100vw - 25px);
+    max-width:none;justify-content:flex-start;gap:6px;
+    padding:9px 10px;flex-wrap:wrap
+  }
+  #bjBookDailySpread .bj-layer-nav-group{width:auto;max-width:100%;flex-wrap:wrap}
+  #bjBookDailySpread .bj-layer-nav-group:first-child{width:100%}
+  #bjBookDailySpread #bjLayerStatus{white-space:normal;font-size:.64rem}
   #bjBookDailySpread .bj-layer-shelf{min-width:390px}
 }
 @media print{
