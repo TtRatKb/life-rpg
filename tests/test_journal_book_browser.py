@@ -140,6 +140,9 @@ class JournalBookBrowserTests(unittest.TestCase):
         shots=ROOT/"test-artifacts";shots.mkdir(exist_ok=True)
         self.page.screenshot(path=str(shots/"journal-soft-floral-create.png"),full_page=True)
         self.assertTrue(self.page.locator(".bj-layer-shelf").is_visible())
+        preview=self.page.locator('[data-bj-preview-frame="gratitude"]').evaluate(
+            "el=>getComputedStyle(el).backgroundImage")
+        self.assertIn("data:image/",preview,"The palette must show an actual original painted frame, not a placeholder")
         self.assertEqual(1,self.page.locator("#bjBookDailySpread > .bj-layer-page:visible").count())
         self.page.locator('[data-bj-choose-side="right"]').click()
         self.assertTrue(self.page.locator('[data-bj-page="right"]').is_visible())
