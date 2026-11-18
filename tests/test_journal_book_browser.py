@@ -75,6 +75,77 @@ class JournalBookBrowserTests(unittest.TestCase):
         else:
             route.abort()
 
+    def test_suggested_collage_is_immediately_usable_and_every_box_remains_customizable(self):
+        # Three offset original watercolor frames on the left, two on the
+        # right, with subtly different angles and nonuniform sizes. This is
+        # the STARTING page, no drag or crafting required.
+        layout=self.page.evaluate("LifeRPGJournalArtSpread.getLayout()")
+        self.assertEqual(5,len(layout["cards"]))
+        self.assertEqual(3,len([p for p in layout["cards"].values() if p["side"]=="left"]))
+        self.assertEqual(2,len([p for p in layout["cards"].values() if p["side"]=="right"]))
+        for field in ("gratitude","intentionText","happyMomentsText","focusText","bookNote"):
+            self.assertGreater(abs(layout["cards"][field]["rotation"]),1)
+            self.assertLess(abs(layout["cards"][field]["rotation"]),4)
+        self.assertNotEqual(layout["cards"]["gratitude"]["x"],layout["cards"]["intentionText"]["x"])
+        self.assertNotEqual(layout["cards"]["happyMomentsText"]["x"],layout["cards"]["intentionText"]["x"])
+        self.assertNotEqual(layout["cards"]["focusText"]["x"],layout["cards"]["bookNote"]["x"])
+        self.assertNotEqual(layout["cards"]["focusText"]["scale"],layout["cards"]["bookNote"]["scale"])
+        self.assertEqual(-1.8,layout["cards"]["gratitude"]["rotation"])
+        self.page.wait_for_function("""() =>
+           [...document.querySelectorAll('#bjBookDailySpread .bj-layer-original-frame')]
+            .every(card=>card.getBoundingClientRect().width>50)""")
+        # Check that actual letter-writing areas do not overlap one another,
+        # even when the decorative illustrated frame edges gently overlap.
+        artwork=self.page.evaluate("""() => {
+          const out={};
+          for(const box of document.querySelectorAll('#bjBookDailySpread .bj-layer-original-frame')){
+            const zone=box.querySelector('.bj-layer-write-zone');
+            const rect=zone.getBoundingClientRect();
+            out[box.dataset.bjField]={side:box.closest('[data-bj-page]').dataset.bjPage,
+              x:rect.x,y:rect.y,w:rect.width,h:rect.height,
+              transform:getComputedStyle(box).transform};
+          }
+          return out;
+        }""")
+        for i,(left,a) in enumerate(artwork.items()):
+            self.assertNotEqual("none",a["transform"])
+            for right,b in list(artwork.items())[i+1:]:
+                if a["side"]!=b["side"]:continue
+                intersection=max(0,min(a["x"]+a["w"],b["x"]+b["w"])-max(a["x"],b["x"]))*max(
+                  0,min(a["y"]+a["h"],b["y"]+b["h"])-max(a["y"],b["y"]))
+                self.assertLess(intersection,min(a["w"]*a["h"],b["w"]*b["h"])*.06,
+                                f"Writing areas must stay readable: {left} / {right}")
+        old=self.page.locator("#bjExtra-focusText")
+        old.fill("Keep this written sentence while rearranging.")
+        self.page.evaluate("document.activeElement?.blur()")
+        self.page.wait_for_function("""d =>
+          LifeRPGApp.getState().journal.entries[d]?.dailySpreadV1?.focusText?.startsWith('Keep this written')""",arg=self.day)
+        self.page.locator('[data-bj-layer-mode="create"]').click()
+        self.page.locator('[data-bj-choose-side="right"]').click()
+        self.page.locator('[data-bj-add-card="focusText"]').click()
+        slider=self.page.locator("#bjLayerAngle")
+        slider.evaluate("""el=>{el.value='-5';el.dispatchEvent(new Event('input',{bubbles:true}));
+          el.dispatchEvent(new Event('change',{bubbles:true}));}""")
+        self.assertAlmostEqual(-5,self.page.evaluate("""d =>
+          LifeRPGApp.getState().journalPageLayoutV3.daily[d].cards.focusText.rotation""",self.day),delta=.1)
+        self.page.locator('[data-bj-action-card="default"]').click()
+        restored=self.page.evaluate("""d =>
+          LifeRPGApp.getState().journalPageLayoutV3.daily[d].cards.focusText""",self.day)
+        self.assertEqual("right",restored["side"])
+        self.assertAlmostEqual(1.6,restored["rotation"],delta=.1)
+        self.assertAlmostEqual(1.07,restored["scale"],delta=.01)
+        self.assertEqual("Keep this written sentence while rearranging.",old.input_value())
+        self.page.locator('[data-bj-layer-mode="write"]').click()
+        self.assertEqual(2,self.page.locator("#bjBookDailySpread > .bj-layer-page:visible").count())
+        self.page.reload(wait_until="domcontentloaded")
+        for css in ("styles.css","bullet-journal-book.css","journal-daily-spread-v1.css",
+                    "bullet-journal-atelier.css","journal-art-editable.css"):
+            self.page.add_style_tag(url="/"+css)
+        self.page.evaluate("LifeRPGJournal.openReflection()")
+        self.assertEqual("Keep this written sentence while rearranging.",self.page.locator("#bjExtra-focusText").input_value())
+        self.assertAlmostEqual(1.6,self.page.evaluate("""d =>
+          LifeRPGApp.getState().journalPageLayoutV3.daily[d].cards.focusText.rotation""",self.day),delta=.1)
+
     def test_two_a4_pages_use_original_watercolor_not_rectangles(self):
         self.page.wait_for_function("document.querySelector(\'#bjBookDailySpread\')?.classList.contains(\'bj-layer-sprites-ready\')",timeout=15000)
         self.assertTrue(self.page.locator("#bjBookDailySpread").is_visible())
