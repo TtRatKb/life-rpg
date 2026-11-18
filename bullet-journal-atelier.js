@@ -341,5 +341,7 @@
   else init();
   window.LifeRPGJournalAtelier={version:VERSION,render,isPreview:()=>preview,getPlacements:()=>working.map(p=>({...p})),
     open:()=>{book.open?.();opened=true;render();return true;},
-    discardPreview:exitPreview};
+    discardPreview:exitPreview,
+    setPageSide:side=>{if(side!=="left"&&side!=="right")return;addSide=side;render();}
+  };
 })();
