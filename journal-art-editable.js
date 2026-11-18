@@ -22,6 +22,7 @@
   // Each illustration is an independent crop of the same original approved
   // composition; none is stretched from the tiny prior "preview" WebPs.
   const DECOR=[
+    {key:"date-tag",side:"right",x:30,y:10,scale:1.18,crop:[618,27,258,158]},
     {key:"jasmine-bouquet",side:"left",x:24,y:14,scale:1.17,crop:[43,20,270,267]},
     {key:"journal-title",side:"left",x:67,y:12,scale:1.25,crop:[305,29,288,192]},
     {key:"jasmine-wrap",side:"left",x:19,y:91,scale:1.03,crop:[53,941,195,188]},
@@ -85,6 +86,7 @@
               // the original printed frame: mask THOSE parts, not its outline.
               const sx=SOURCE.screenX+(x+ix)*SOURCE.screenW/canvas.width;
               const sy=SOURCE.screenY+(y+iy)*SOURCE.screenH/canvas.height;
+              if(task.key==="deco:date-tag"&&sx>705&&sx<838&&sy>84&&sy<154)opacity=0;
               if(task.key==="frame:focusText"&&sx>665&&sy<419)opacity=0;
               if(task.key==="deco:moon-window"&&sx<635&&sy>384)opacity=0;
               if(task.key==="deco:tea-and-flowers"&&sx>444&&sy<768)opacity=0;
@@ -173,8 +175,7 @@
     box.innerHTML='<div class="bj-layer-paper-grain" aria-hidden="true"></div>'+
       '<div class="bj-layer-decor" aria-hidden="true"></div>'+
       '<div class="bj-layer-card-stage"></div>'+
-      (side==="right"?'<button type="button" id="bjLayerMood" class="bj-layer-mood" aria-label="Edit the day check-in">mood today ♡ <span id="bjLayerMoodText"></span></button>':
-      '<div class="bj-layer-date"><span id="bjLayerPrintedDate"></span><span id="bjLayerWeekday"></span></div>');
+      (side==="right"?'<button type="button" id="bjLayerMood" class="bj-layer-mood" aria-label="Edit the day check-in">mood today ♡ <span id="bjLayerMoodText"></span></button>':'');
     const stage=$(box,".bj-layer-card-stage");
     stage.addEventListener("pointerdown",startDrag);
     stage.addEventListener("pointermove",moveDrag);
@@ -325,7 +326,12 @@
     const node=document.createElement("div");node.className="bj-layer-art-piece";
     node.dataset.bjDeco=item.key;
     node.dataset.bjSprite="deco:"+item.key;
-    node.dataset.bjOriginalCrop=item.key;node.setAttribute("aria-hidden","true");
+    node.dataset.bjOriginalCrop=item.key;
+    if(item.key==="date-tag"){
+      node.classList.add("bj-layer-date-piece");
+      node.innerHTML='<span class="bj-layer-date-entries"><span id="bjLayerPrintedDate"></span><span id="bjLayerWeekday"></span></span>';
+      node.setAttribute("aria-label","Journal date and weekday");
+    }else node.setAttribute("aria-hidden","true");
     node.style.left=item.x+"%";node.style.top=item.y+"%";
     return node;
   }
@@ -364,7 +370,13 @@
       const width=page.getBoundingClientRect().width;if(!width)return;
       for(const item of DECOR.filter(d=>d.side===side)){
         const node=$(page,'[data-bj-deco="'+item.key+'"]');
-        if(node)srcCrop(node,item.crop,item.scale,width);
+        if(node){
+          const art=srcCrop(node,item.crop,item.scale,width);
+          if(item.key==="date-tag"){
+            const entries=$(node,".bj-layer-date-entries");
+            if(entries)entries.style.fontSize=clamp(19*art.px,13,23)+"px";
+          }
+        }
       }
     }
     for(const [field,f] of Object.entries(E)){
@@ -498,10 +510,11 @@
     const today=new Date(),nowKey=[today.getFullYear(),String(today.getMonth()+1).padStart(2,"0"),String(today.getDate()).padStart(2,"0")].join("-");
     dateInput.max=nowKey;
     const next=$(tool,"[data-bj-action='next']");if(next)next.disabled=day>=nowKey;
+    renderCards();
     $(spread,"#bjLayerPrintedDate").textContent=new Intl.DateTimeFormat("en",{month:"short",day:"numeric",year:"numeric"}).format(dateObj);
     $(spread,"#bjLayerWeekday").textContent=new Intl.DateTimeFormat("en",{weekday:"long"}).format(dateObj);
     $(spread,"#bjLayerMoodText").textContent=String(window.LifeRPGJournal?.getEntry?.(day)?.mood||"choose");
-    renderCards();updateMode();status("Your words save automatically ♡");
+    updateMode();status("Your words save automatically ♡");
   }
   function focusField(field){
     if(!ready)return false;
