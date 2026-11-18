@@ -34,6 +34,7 @@ class JournalBookBrowserTests(unittest.TestCase):
             '<script src="/journal.js"></script>'
             '<script src="/bullet-journal-book.js"></script>'
             '<script src="/journal-art-editable.js"></script>'
+            '<script src="/bullet-journal-atelier.js"></script>'
             '</body>')
 
     @classmethod
@@ -213,6 +214,27 @@ class JournalBookBrowserTests(unittest.TestCase):
         self.page.screenshot(path=str(shots/"journal-soft-floral-create.png"),full_page=True)
         self.page.set_viewport_size({"width":390,"height":844})
         self.page.screenshot(path=str(shots/"journal-soft-floral-mobile.png"),full_page=True)
+
+    def test_existing_illustrations_can_be_added_as_free_independent_stickers(self):
+        self.styles();self.open_book()
+        self.page.locator('[data-bj-mode="create"]').click()
+        self.page.locator('[data-bj-side="right"]').click()
+        self.page.locator(".bj-art-decorations > summary").click()
+        self.page.locator("[data-bj-atelier-toggle]").click()
+        self.assertEqual(1,self.page.locator('[data-bj-atelier-asset="jasmine-bouquet-v2"]').count())
+        self.assertEqual(1,self.page.locator('[data-bj-atelier-asset="moon-window-v2"]').count())
+        self.assertEqual(1,self.page.locator('[data-bj-atelier-asset="flower-teacup-v2"]').count())
+        self.page.locator('[data-bj-atelier-asset="jasmine-bouquet-v2"]').click()
+        item=self.page.evaluate("""day => LifeRPGApp.getState().journalAtelierV1?.daily?.[day]?.find(p=>p.assetKey==='jasmine-bouquet-v2')""",arg=self.day)
+        self.assertEqual("jasmine-bouquet-v2",item["assetKey"])
+        self.assertEqual("right",item["pageSide"])
+        self.assertTrue(self.page.locator("#bjAtelierStage [data-bj-deco-id]").count()>=1)
+        # The initial approved art can be reused without any SP transaction.
+        self.assertIsNone(self.page.evaluate("LifeRPGApp.getState().journalBookLayoutV2 || null"))
+        self.page.reload(wait_until="domcontentloaded")
+        self.styles();self.open_book()
+        item=self.page.evaluate("""day => LifeRPGApp.getState().journalAtelierV1?.daily?.[day]?.find(p=>p.assetKey==='jasmine-bouquet-v2')""",arg=self.day)
+        self.assertEqual("right",item["pageSide"])
 
 if __name__=="__main__":
     unittest.main()
