@@ -78,6 +78,19 @@
   mask-image:radial-gradient(ellipse 82% 84% at center,#000 78%,rgba(0,0,0,.99) 83%,transparent 100%);
 }
 #bjBookDailySpread .bj-layer-art-piece{transform:translate(-50%,-50%);filter:drop-shadow(0 2px 3px rgba(67,47,39,.02))}
+#bjBookDailySpread .bj-layer-date-piece .bj-layer-date-entries{
+  position:absolute;box-sizing:border-box;left:38%;top:36%;width:53%;height:48%;
+  display:flex;flex-direction:column;align-items:stretch;justify-content:space-between;
+  color:#5e4e43;pointer-events:none;transform:none;
+  font-family:"Sue Ellen Francisco","Shadows Into Light",cursive;
+  font-weight:400;line-height:1.05;white-space:nowrap
+}
+#bjBookDailySpread .bj-layer-date-piece .bj-layer-date-entries>span{
+  display:block;box-sizing:border-box;height:44%;padding:0 1px 1px;
+  border-bottom:1px solid rgba(112,89,74,.72);
+  font:inherit;overflow:visible
+}
+
 #bjBookDailySpread .bj-layer-original-frame{
   box-sizing:border-box;position:absolute;z-index:3;
   transform:translate(-50%,-50%);pointer-events:auto;
