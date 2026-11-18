@@ -55,7 +55,22 @@ assert.equal(def.cards.gratitude.side,"left");
 assert.equal(def.cards.focusText.side,"right");
 assert.equal(def.cards.gratitude.mode,"plain",'Original boxes open as blank paper');
 assert.equal(def.cards.intentionText.mode,"checklist",'Today I will retains real checklist behavior');
-assert.equal(def.cards.focusText.scale,1);
+assert.equal(def.cards.focusText.scale,1.07);
+assert.equal(def.cards.gratitude.x,46);
+assert.equal(def.cards.gratitude.y,35);
+assert.equal(def.cards.gratitude.rotation,-1.8);
+assert.equal(def.cards.intentionText.rotation,1.8);
+assert.equal(def.cards.happyMomentsText.side,"left");
+assert.equal(def.cards.happyMomentsText.x,34);
+assert.equal(def.cards.happyMomentsText.y,83);
+assert.equal(def.cards.bookNote.side,"right");
+assert.equal(def.cards.bookNote.rotation,-1.5);
+assert.equal(Object.values(def.cards).filter(c=>c.side==="left").length,3);
+assert.equal(Object.values(def.cards).filter(c=>c.side==="right").length,2);
+assert.equal(api._test.clampAngle(99),8);
+assert.equal(api._test.clampAngle(-99),-8);
+assert.match(art,/data-bj-card-angle/,'Creative mode lets the user vary the original artistic tilt');
+assert.match(art,/action==="default"/,'Suggested layout can be restored without changing journal text');
 assert.equal(api._test.clampScale(.05),.45,'Minimum size prevents unusable tiny writing boxes');
 assert.equal(api._test.clampScale(10),1.55,'Maximum size is bounded');
 assert.equal(api._test.compactLines(["hello","","world",""]),["hello","","world"].join("\n"));
@@ -78,15 +93,21 @@ assert.equal(normalized.paper.right,"jasmine");
 assert.equal(normalized.cards.bookNote.visible,false);
 assert.equal(normalized.cards.bookNote.x,88);
 assert.equal(normalized.cards.bookNote.y,10);
+assert.equal(normalized.cards.bookNote.rotation,0,'Old layouts without saved angles remain unrotated');
+assert.equal(normalized.cards.focusText.x,37);
+assert.equal(normalized.cards.focusText.y,44);
+assert.equal(normalized.cards.focusText.rotation,0);
+assert.equal(normalized.cards.focusText.scale,1,'Legacy positions and sizes are not silently overwritten');
 assert.equal(Object.keys(normalized.cards).length,5);
 const withExtra=api._test.normalize({cards:{
   "custom-test-1":{template:"focusText",custom:true,side:"left",x:40,y:60,scale:.65,
-                   mode:"lined",checks:[],visible:true,text:"Never overwrite this new text"},
+                   mode:"lined",rotation:-4,checks:[],visible:true,text:"Never overwrite this new text"},
   "custom-malicious":{template:"not-a-template",text:"ignore"}
 }});
 assert.equal(Object.keys(withExtra.cards).length,6);
 assert.equal(withExtra.cards["custom-test-1"].text,"Never overwrite this new text");
 assert.equal(withExtra.cards["custom-test-1"].template,"focusText");
+assert.equal(withExtra.cards["custom-test-1"].rotation,-4);
 assert.equal(withExtra.cards.focusText.custom,undefined);
 assert.match(art,/createExtraCard/,'Users must be able to place additional painted boxes side by side');
 assert.match(art,/queueExtraText/,'Additional free-text boxes save independently');
