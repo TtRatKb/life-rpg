@@ -8,24 +8,29 @@ const root=path.resolve(__dirname,'..'),read=p=>fs.readFileSync(path.join(root,p
 const index=read('index.html'),sw=read('service-worker.js');
 const art=read('journal-art-editable.js'),css=read('journal-art-editable.css');
 const book=read('bullet-journal-book.js'),sticker=read('bullet-journal-atelier.js');
-const atlas=read('journal-art-background-v2.css');
+const layers=read('journal-canva-isolated-layers.js');
 for(const p of ['journal-art-editable.js','bullet-journal-book.js','bullet-journal-atelier.js','journal.js','service-worker.js','pwa.js']){
  const run=cp.spawnSync(process.execPath,['--check',path.join(root,p)],{encoding:'utf8'});
  assert.equal(run.status,0,p+': '+run.stderr);
 }
-assert.ok(atlas.length>200000,'Original high-resolution illustration atlas must remain available');
-assert.match(atlas,/data:image\/webp;base64/);
-assert.match(index,/journal-art-background-v2\.css\?v=0\.31\.4-artpaper1/);
-for(const name of ['journal-art-editable.js','journal-art-editable.css'])
- for(const file of [index,sw])assert.match(file,new RegExp(name.replace('.','\\.')+'\\?v=0\\.31\\.4-illustrated-layers3'));
-assert.match(art,/getComputedStyle\(source\)\.backgroundImage/,'Must use original art asset, not recreate boxes as rectangles');
-assert.match(art,/screenCrop/);
-assert.match(art,/frame-crop/,'Each frame must be a moveable slice of the original watercolor');
-assert.match(art,/style\.backgroundPosition/,'Cropping source art, not a flattened paper image');
+assert.ok(layers.length>400000,'Full transparent Canva-separated art asset bundle must be present');
+assert.match(layers,/data:image\/webp;base64/);
+assert.match(layers,/"frame:gratitude"/);
+assert.match(layers,/"frame:bookNote"/);
+assert.match(layers,/"paper:clean"/);
+assert.match(index,/journal-canva-isolated-layers\.js\?v=0\.31\.4-true-layers1/);
+assert.doesNotMatch(index,/href="journal-art-background-v2\.css/,'Do not load the rejected screenshot image atlas');
+for(const name of ['journal-art-editable.js','journal-art-editable.css','journal-canva-isolated-layers.js'])
+ for(const file of [index,sw])assert.match(file,new RegExp(name.replace('.','\\.')+'\\?v=0\\.31\\.4-true-layers1'));
+assert.match(art,/LifeRPGJournalCanvasLayers/,'New art comes from actual Canva separated element assets');
+assert.doesNotMatch(art,/extractTransparentOriginals|screenCrop|const masks=/,'Rejected screenshot segmentation must be removed entirely');
+assert.match(art,/frame-crop/,'Transparent original-painted frame is independently movable');
+assert.match(art,/backgroundPosition="center center"/,'Each isolated image has its own full transparent canvas');
 assert.match(art,/data-bj-page/,'Two independent actual book pages must exist');
 assert.match(css,/aspect-ratio:210 \/ 297/,'Both pages retain A4 proportions');
 assert.match(css,/grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/,'Open book, side by side');
-assert.match(css,/background-image:var\(--bj-original-atlas\)/,'No small blurry thumbnails for the art');
+assert.match(css,/background-image:var\(--bj-clean-paper\)/,'Each page has freshly cleaned original parchment');
+assert.match(css,/mask-image:none!important/,'No radial crop clipping may cut off original flowers');
 assert.doesNotMatch(css,/\.bj-layer-original-frame\s*\{[^}]*border-radius:\s*1[246]px/s,
   'Do not replace original irregular illustrated frames with CSS rectangle cards');
 assert.match(css,/\.bj-layer-shelf/,'In creative mode the other page is the palette');
@@ -46,6 +51,7 @@ const state={
 };
 const before=JSON.stringify(state);
 const environment={LifeRPGApp:{getState:()=>state,saveState:()=>true}};
+vm.runInNewContext(layers,{window:environment,console});
 vm.runInNewContext(art,{window:environment,console});
 const api=environment.LifeRPGJournalArtSpread;
 assert(api&&api._test,'Pure layout helpers must be available for regression');
@@ -84,7 +90,7 @@ assert.match(art,/makeLineRow/,'One actual DOM input for each writing line');
 assert.match(art,/source.dispatchEvent\(new Event\("input"/,'Rows must update original canonical form through the existing autosave');
 assert.match(art,/data-bj-resize/,'User can drag a resize handle');
 assert.match(art,/data-bj-card-scale/,'Slider allows precise resizing');
-assert.match(art,/const masks=/,'Old hardcoded bitmap lines and hearts are removed from clean paper');
+assert.match(art,/sourceAssets\[el\?\.dataset\?\.bjSprite\]/,'Every frame is sourced from its real isolated transparent graphic');
 assert.match(css,/\.bj-layer-line-row/,'Real separate line geometry, not a fake textarea repeating image');
 assert.match(css,/\.bj-layer-source-hidden/,'Canonical textarea is preserved but hidden in lined mode');
 assert.match(css,/\.bj-layer-resize/,'Resizing controls must be visible only in creative mode');
