@@ -88,6 +88,11 @@ class JournalBookBrowserTests(unittest.TestCase):
             self.assertLess(abs(layout["cards"][field]["rotation"]),4)
         self.assertNotEqual(layout["cards"]["gratitude"]["x"],layout["cards"]["intentionText"]["x"])
         self.assertNotEqual(layout["cards"]["happyMomentsText"]["x"],layout["cards"]["intentionText"]["x"])
+        # The two compact lower cards intentionally sit NEXT TO each other.
+        self.assertLess(layout["cards"]["intentionText"]["x"],40)
+        self.assertGreater(layout["cards"]["happyMomentsText"]["x"],70)
+        self.assertLess(abs(layout["cards"]["happyMomentsText"]["y"]-
+                            layout["cards"]["intentionText"]["y"]),10)
         self.assertNotEqual(layout["cards"]["focusText"]["x"],layout["cards"]["bookNote"]["x"])
         self.assertNotEqual(layout["cards"]["focusText"]["scale"],layout["cards"]["bookNote"]["scale"])
         self.assertEqual(-1.8,layout["cards"]["gratitude"]["rotation"])
