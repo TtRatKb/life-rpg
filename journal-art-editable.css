@@ -282,7 +282,7 @@
 #bjBookDailySpread .bj-art-decorations .bj-atelier-page-choice{display:none}
 #bjBookDailySpread .bj-art-decorations .bj-atelier-assets{gap:5px}
 #bjBookDailySpread .bj-art-decorations .bj-atelier-pick{width:75px;min-height:76px}
-#bjBookDailySpread .bj-art-more{
+#view-bullet-journal .bj-art-more{
   box-sizing:border-box;width:100%;max-width:1380px;margin:14px auto 10px;
   padding:12px 17px;border:1px solid #e3d2c6;border-radius:13px;
   background:#fffcf8;color:#755c66
@@ -327,4 +327,14 @@
  #bjBookDailySpread .bj-art-toolbar,#bjBookDailySpread .bj-art-sidebar,#view-bullet-journal .bj-art-more{display:none!important}
  #view-bullet-journal #bjBookDailySpread.bj-art-enabled{box-shadow:none;overflow:visible}
  #bjBookDailySpread.bj-art-creative>.bj-art-page{display:block!important}
+}
+
+/* Only Daily shows its extras; the other three chapters keep their own spreads. */
+#bjBookDailySpread[hidden]+.bj-art-more{display:none!important}
+#bjBookDailySpread .bj-art-save-status{
+  flex:1 1 100%;font:600 .68rem/1.2 "Nunito Sans",sans-serif;
+  color:#907986;text-align:right
+}
+@media(min-width:1050px){
+  #bjBookDailySpread .bj-art-save-status{flex:0 1 auto}
 }
