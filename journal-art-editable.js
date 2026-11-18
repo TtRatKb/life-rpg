@@ -118,7 +118,7 @@
                 const m=masks[field];
                 if(m){
                   const edge=Math.min(nx-m[0],m[1]-nx,ny-m[2],m[3]-ny);
-                  const fade=clamp(edge/.015,0,1);
+                  let fade=clamp(edge/.015,0,1);
                   let keepArt=false;
                   if(field==="gratitude"&&nx>.68&&ny>.70)keepArt=true;
                   if(field==="focusText"&&nx>.70&&ny>.64)keepArt=true;
