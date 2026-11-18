@@ -7,17 +7,12 @@
   "use strict";
   const app=window.LifeRPGApp,book=window.LifeRPGBulletJournalBook;
   if(!app?.getState||!app?.saveState||!book?.getDate||window.LifeRPGJournalAtelier)return;
-  const VERSION="0.31.4-atelier-journal-pages3",LIMIT=12;
+  const VERSION="0.31.4-atelier-direct-handles1",LIMIT=12;
   // Sakura anime v2: five *independent* assets, not a cropped collage.
   // Existing asset keys stay stable; the rejected letter-tag is not offered.
   // Entire Sakura collection remains preview-only until explicit in-app signoff.
   const assets=[
     {key:"paperclip-ink",group:"free",label:"Ink paperclip",src:"assets/journal/paperclip-ink.svg",width:37},
-    // Original approved illustration files now also exist as independent,
-    // reusable free elements. None is a crop from the baked journal page.
-    {key:"jasmine-bouquet-v2",group:"free",label:"Jasmine bouquet",src:"assets/journal/illustrations/jasmine-bouquet-v2.webp",width:140},
-    {key:"moon-window-v2",group:"free",label:"Moonlit window",src:"assets/journal/illustrations/moon-window-v2.webp",width:166},
-    {key:"flower-teacup-v2",group:"free",label:"Floral teacup",src:"assets/journal/illustrations/flower-teacup-v2.webp",width:122},
     {key:"sakura-branch",group:"pilot",label:"Anime sakura branch",src:"assets/journal/sakura-anime-branch.svg",width:138},
     {key:"sakura-washi",group:"pilot",label:"Sakura washi tape",src:"assets/journal/sakura-anime-washi.svg",width:204},
     {key:"sakura-divider",group:"pilot",label:"Sakura floral divider",src:"assets/journal/sakura-anime-divider.svg",width:212},
@@ -317,7 +312,7 @@
     document.addEventListener("keydown",removeUsingKeyboard);
     mount.addEventListener("click",event=>{
       const toggle=event.target.closest?.("[data-bj-atelier-toggle]");
-      if(toggle){opened=!opened;selectedId="";render();return;}
+      if(toggle){opened=!opened;selectedId="";if(opened)addSide="left";render();return;}
       if(event.target.closest?.("[data-bj-atelier-exit]")){exitPreview();return;}
       const page=event.target.closest?.("[data-bj-atelier-side]");
       if(page){addSide=page.dataset.bjAtelierSide==="left"?"left":"right";
@@ -341,7 +336,5 @@
   else init();
   window.LifeRPGJournalAtelier={version:VERSION,render,isPreview:()=>preview,getPlacements:()=>working.map(p=>({...p})),
     open:()=>{book.open?.();opened=true;render();return true;},
-    discardPreview:exitPreview,
-    setPageSide:side=>{if(side!=="left"&&side!=="right")return;addSide=side;render();}
-  };
+    discardPreview:exitPreview};
 })();
