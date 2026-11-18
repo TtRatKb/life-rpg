@@ -305,8 +305,14 @@ class JournalBookBrowserTests(unittest.TestCase):
           el.dispatchEvent(new Event("input",{bubbles:true}));
           el.dispatchEvent(new Event("change",{bubbles:true}));
         }""")
+        # In creative mode the original right paper is intentionally hidden.
+        # Compare the actual visible boxes after returning to the open spread,
+        # then reselect the custom frame for its writing-style change.
+        self.page.locator('[data-bj-layer-mode="write"]').click()
         self.assertLess(extra.evaluate("el=>el.getBoundingClientRect().width"),
                         original.evaluate("el=>el.getBoundingClientRect().width")*.7)
+        self.page.locator('[data-bj-layer-mode="create"]').click()
+        self.page.locator('[data-bj-add-card="'+key+'"]').click()
         self.page.locator('[data-bj-box-mode="lined"]').click()
         self.page.locator('[data-bj-layer-mode="write"]').click()
         lines=extra.locator(".bj-layer-line-input")
