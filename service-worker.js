@@ -1,4 +1,4 @@
-const CACHE_NAME = "life-rpg-v0.31.4-true-layers1";
+const CACHE_NAME = "life-rpg-v0.31.4-svg-master2";
 const ASSET_CACHE_NAME = "life-rpg-assets-v6";
 const MAX_RUNTIME_ASSETS = 96;
 const CORE = [
@@ -180,9 +180,10 @@ const CORE = [
   "./weekly-review.css?v=0.31.4ag",
   "./bullet-journal-book.css?v=0.31.4-journal-ink1",
   "./journal-daily-spread-v1.css?v=0.31.4-journal-v12-illustrations1",
-  "./journal-art-editable.css?v=0.31.4-true-layers1",
-  "./journal-canva-isolated-layers.js?v=0.31.4-true-layers1",
-  "./journal-art-editable.js?v=0.31.4-true-layers1",
+  "./journal-art-editable.css?v=0.31.4-svg-master2",
+  "./journal-canva-isolated-layers.js?v=0.31.4-svg-master2",
+  "./assets/journal/source/jasmine-canva-magic-layers.svg",
+  "./journal-art-editable.js?v=0.31.4-svg-master2",
   "./assets/journal/illustrations/jasmine-bouquet-v2.webp",
   "./assets/journal/illustrations/moon-window-v2.webp",
   "./assets/journal/illustrations/flower-teacup-v2.webp",
