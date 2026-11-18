@@ -279,7 +279,7 @@
 #bjBookDailySpread .bj-art-decorations summary{cursor:pointer;color:#755567;font-weight:750}
 #bjBookDailySpread .bj-art-shelf-note{font-size:.71rem;color:#8b777b;margin:9px 0}
 #bjBookDailySpread .bj-art-decorations .bj-atelier-controls{padding:8px;margin-top:10px}
-#bjBookDailySpread .bj-art-decorations .bj-atelier-page-choice{display:none}
+/* Existing sticker editor retains its own “Place on” controls for moving a selected sticker between pages. */
 #bjBookDailySpread .bj-art-decorations .bj-atelier-assets{gap:5px}
 #bjBookDailySpread .bj-art-decorations .bj-atelier-pick{width:75px;min-height:76px}
 #view-bullet-journal .bj-art-more{
