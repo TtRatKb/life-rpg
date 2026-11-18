@@ -1,4 +1,4 @@
-const CACHE_NAME = "life-rpg-v0.31.4-illustrated-layers3";
+const CACHE_NAME = "life-rpg-v0.31.4-true-layers1";
 const ASSET_CACHE_NAME = "life-rpg-assets-v6";
 const MAX_RUNTIME_ASSETS = 96;
 const CORE = [
@@ -180,9 +180,9 @@ const CORE = [
   "./weekly-review.css?v=0.31.4ag",
   "./bullet-journal-book.css?v=0.31.4-journal-ink1",
   "./journal-daily-spread-v1.css?v=0.31.4-journal-v12-illustrations1",
-  "./journal-art-background-v2.css?v=0.31.4-artpaper1",
-  "./journal-art-editable.css?v=0.31.4-illustrated-layers3",
-  "./journal-art-editable.js?v=0.31.4-illustrated-layers3",
+  "./journal-art-editable.css?v=0.31.4-true-layers1",
+  "./journal-canva-isolated-layers.js?v=0.31.4-true-layers1",
+  "./journal-art-editable.js?v=0.31.4-true-layers1",
   "./assets/journal/illustrations/jasmine-bouquet-v2.webp",
   "./assets/journal/illustrations/moon-window-v2.webp",
   "./assets/journal/illustrations/flower-teacup-v2.webp",
@@ -195,7 +195,7 @@ const CORE = [
   "./bullet-journal-daily-tracker.css?v=0.31.4-atelier-preview1",
   "./weekly-review.js?v=0.31.4ag",
   "./manifest.webmanifest?v=0.30.3a",
-  "./pwa.js?v=0.31.4-illustrated-layers3",
+  "./pwa.js?v=0.31.4-true-layers1",
   "./focus-dock.css?v=0.31.4dz16",
   "./focus-dock.js?v=0.31.4dz50c",
   "./visual-performance.js?v=0.31.4bu",
