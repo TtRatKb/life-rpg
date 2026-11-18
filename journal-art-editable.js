@@ -1,15 +1,15 @@
-/* Life RPG | layered illustrated daily journal v3.
-   The ORIGINAL Jasmine watercolor atlas supplies the authentic hand-drawn
-   card frames and illustrations. Crops are separate moveable objects on clean
-   paper; the full flattened image is never used as the page background.
-   Real existing textarea nodes are moved, never cloned: no extra rewards.
+/* Life RPG | true layered Jasmine journal v3.
+   Real independent transparent graphics extracted from the supplied Canva SVG.
+   No flattened Pinterest screenshot crops. Canonical journal text stays intact.
 */
 (() => {
   "use strict";
   const app=window.LifeRPGApp;
   if(!app?.getState||!app?.saveState||window.LifeRPGJournalArtSpread)return;
   const $=(root,s)=>root?.querySelector(s);
-  const SOURCE={w:1086,h:1448,screenX:35,screenY:20,screenW:870,screenH:1142};
+  const sourceAssets=window.LifeRPGJournalCanvasLayers?.assets||{};
+  const paperAsset=sourceAssets["paper:clean"];
+  const ART_WIDTH=920;
   const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
   const E={
     gratitude:{title:"Today I'm grateful for…",selector:"#bjBookPrompt-gratitude",side:"left",x:46,y:35,defaultScale:.92,angle:-1.8,scale:1.60,crop:[50,281,382,249],write:[.195,.255,.725,.64],line:29},
@@ -42,111 +42,14 @@
     {key:"hanging-jasmine",side:"right",x:83,y:56,scale:.85,crop:[750,433,151,351]}
   ];
   const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-  const screenCrop=(c)=>({
-    x:(c[0]-SOURCE.screenX)*SOURCE.w/SOURCE.screenW,
-    y:(c[1]-SOURCE.screenY)*SOURCE.h/SOURCE.screenH,
-    w:c[2]*SOURCE.w/SOURCE.screenW,
-    h:c[3]*SOURCE.h/SOURCE.screenH
-  });
-  const transparentOriginals=new Map();
-  function extractTransparentOriginals(cssAtlas){
-    // The original flattened watercolor is read ONCE. Per-element transparent
-    // art is then reconstructed entirely in memory: no new third-party image
-    // or low-resolution substitute is fetched or saved to player data.
-    const match=String(cssAtlas||"").match(/url\(["']?(data:image\/[^"')]+)["']?\)/i);
-    if(!match)return;
-    const img=new Image();
-    img.onerror=()=>{status("Original Jasmine art could not be decoded.");};
-    img.onload=()=>{
-      try{
-        const canvas=document.createElement("canvas");
-        canvas.width=img.naturalWidth;canvas.height=img.naturalHeight;
-        const ctx=canvas.getContext("2d",{willReadFrequently:true});
-        if(!ctx)return;
-        ctx.drawImage(img,0,0,canvas.width,canvas.height);
-        const tasks=[
-          ...ORDER.map(key=>({key:"frame:"+key,crop:E[key].crop})),
-          ...DECOR.map(d=>({key:"deco:"+d.key,crop:d.crop}))
-        ];
-        for(const task of tasks){
-          const c=screenCrop(task.crop);
-          const x=clamp(Math.floor(c.x),0,canvas.width-1);
-          const y=clamp(Math.floor(c.y),0,canvas.height-1);
-          const width=clamp(Math.ceil(c.w),1,canvas.width-x);
-          const height=clamp(Math.ceil(c.h),1,canvas.height-y);
-          const pixels=ctx.getImageData(x,y,width,height);
-          const a=pixels.data,hist=[new Uint32Array(256),new Uint32Array(256),new Uint32Array(256)];
-          let samples=0;
-          for(let p=0;p<a.length;p+=16){
-            hist[0][a[p]]++;hist[1][a[p+1]]++;hist[2][a[p+2]]++;samples++;
-          }
-          const median=h=>{
-            let seen=0;
-            for(let k=0;k<256;k++){seen+=h[k];if(seen>=samples/2)return k;}
-            return 230;
-          };
-          const backdrop=hist.map(median);
-          // Calculate the original paper cut-out just once per sprite,
-          // not millions of times inside the pixel loop.
-          const maskKey=task.key.startsWith("frame:")?task.key.slice(6):null;
-          const masks={
-            gratitude:[.105,.92,.255,.87],
-            intentionText:[.108,.566,.275,.96],
-            focusText:[.108,.91,.28,.93],
-            happyMomentsText:[.092,.94,.345,.93],
-            bookNote:[.11,.94,.29,.935]
-          };
-          const flowerRegions={
-            gratitude:[.84,.77,.205,.225],
-            focusText:[.865,.765,.165,.215],
-            happyMomentsText:[.865,.80,.16,.20],
-            bookNote:[.865,.76,.17,.22]
-          };
-          const mask=masks[maskKey],flower=flowerRegions[maskKey];
-          for(let iy=0;iy<height;iy++){
-            for(let ix=0;ix<width;ix++){
-              const p=(iy*width+ix)*4;
-              const dr=a[p]-backdrop[0],dg=a[p+1]-backdrop[1],db=a[p+2]-backdrop[2];
-              const distance=Math.hypot(dr,dg,db);
-              let opacity=clamp((distance-12)/52,0,1);
-              // A few neighboring objects were partially visible behind
-              // the original printed frame: mask THOSE parts, not its outline.
-              const sx=SOURCE.screenX+(x+ix)*SOURCE.screenW/canvas.width;
-              const sy=SOURCE.screenY+(y+iy)*SOURCE.screenH/canvas.height;
-              if(task.key==="deco:date-tag"&&sx>705&&sx<838&&sy>84&&sy<154)opacity=0;
-              if(task.key==="frame:focusText"&&sx>665&&sy<419)opacity=0;
-              if(task.key==="deco:moon-window"&&sx<635&&sy>384)opacity=0;
-              if(task.key==="deco:tea-and-flowers"&&sx>430&&sy<770)opacity=0;
-              if(task.key==="frame:intentionText"&&sx>403&&sy>674)opacity=0;
-              if(task.key==="frame:intentionText"&&sx>145&&sy>725)opacity=0;
-              if(task.key==="frame:happyMomentsText"&&sx>337)opacity=0;
-              if(mask){
-                // Remove the baked-in lines, bullets and heart icons while
-                // preserving the irregular ink frame and flower illustrations.
-                const nx=ix/width,ny=iy/height;
-                const edge=Math.min(nx-mask[0],mask[1]-nx,ny-mask[2],mask[3]-ny);
-                const fade=clamp(edge/.015,0,1);
-                let flowerKeep=0;
-                if(flower){
-                  const fx=(nx-flower[0])/flower[2],fy=(ny-flower[1])/flower[3];
-                  flowerKeep=clamp((1-Math.hypot(fx,fy))/.1,0,1);
-                }
-                opacity*=1-fade*(1-flowerKeep);
-              }
-              a[p+3]=Math.round(255*opacity);
-            }
-          }
-          const sheet=document.createElement("canvas");
-          sheet.width=width;sheet.height=height;
-          sheet.getContext("2d").putImageData(pixels,0,0);
-          transparentOriginals.set(task.key,sheet.toDataURL("image/webp",.95));
-        }
-        if(spread){spread.classList.add("bj-layer-sprites-ready");updateArtworkSizes();updateLibrary();}
-      }catch(error){
-        console.warn("Jasmine artwork layers unavailable; preserving original atlas fallback.",error);
-      }
-    };
-    img.src=match[1];
+  function prepareOriginalArtwork(){
+    if(!sourceAssets["frame:gratitude"]||!sourceAssets["frame:bookNote"]||!paperAsset){
+      status("Jasmine illustration layers unavailable. Your writing is safe.");
+      return false;
+    }
+    spread.style.setProperty("--bj-clean-paper",'url("'+paperAsset.url+'")');
+    spread.classList.add("bj-layer-sprites-ready");
+    return true;
   }
 
   const defaults=()=>{
@@ -198,27 +101,22 @@
     return p;
   }
   function stored(day){return normalize(app.getState().journalPageLayoutV3?.daily?.[day]);}
-  let view=null,spread=null,tool=null,sideBar=null,more=null,source=null;
+  let view=null,spread=null,tool=null,sideBar=null,more=null;
   let day="",layout=null,creative=false,activeSide="left",selected="",drag=null;
   let customSaveTimer=null,cardIdCounter=0;
   let resizeObserver=null,ready=false;
 
-  function srcCrop(el,screenRect,scale,pageWidth){
-    const c=screenCrop(screenRect),px=pageWidth/SOURCE.w*scale;
-    el.style.width=(c.w*px)+"px";el.style.height=(c.h*px)+"px";
-    const isolated=transparentOriginals.get(el.dataset.bjSprite);
-    if(isolated){
-      el.style.backgroundImage='url("'+isolated+'")';
-      el.style.backgroundSize="100% 100%";
-      el.style.backgroundPosition="center center";
-      el.style.webkitMaskImage="none";el.style.maskImage="none";
-    }else{
-      el.style.backgroundImage="";
-      el.style.backgroundSize=(SOURCE.w*px)+"px "+(SOURCE.h*px)+"px";
-      el.style.backgroundPosition=(-c.x*px)+"px "+(-c.y*px)+"px";
-      el.style.webkitMaskImage="";el.style.maskImage="";
-    }
-    return {c,px};
+  function srcCrop(el,_unused,scale,pageWidth){
+    const sprite=sourceAssets[el?.dataset?.bjSprite];
+    if(!el||!sprite){if(el)el.style.visibility="hidden";return {w:0,h:0,px:0,write:null};}
+    const px=pageWidth/ART_WIDTH*scale,w=sprite.w*px,h=sprite.h*px;
+    el.style.visibility="";
+    el.style.width=w+"px";el.style.height=h+"px";
+    el.style.backgroundImage='url("'+sprite.url+'")';
+    el.style.backgroundSize="100% 100%";
+    el.style.backgroundPosition="center center";
+    el.style.webkitMaskImage="none";el.style.maskImage="none";
+    return {w,h,px,write:sprite.write||null};
   }
   function paper(side){return $(spread,'[data-bj-page="'+side+'"]');}
   function fieldStage(side){return $(paper(side),".bj-layer-card-stage");}
@@ -270,14 +168,8 @@
     if(ready||!host)return;
     view=host;spread=$(view,"#bjBookDailySpread");
     if(!spread||spread.classList.contains("bj-layer-enabled"))return;
-    source=document.createElement("div");
-    source.id="bjArtPaper";source.className="bj-layer-asset-source";
-    source.setAttribute("aria-hidden","true");spread.appendChild(source);
-    // journal-art-background-v2.css contains the original high-quality
-    // watercolor artwork, which we reuse as a single cropped asset atlas.
-    const atlas=getComputedStyle(source).backgroundImage;
-    if(!atlas||atlas==="none"){source.remove();return;}
-    spread.style.setProperty("--bj-original-atlas",atlas);
+    // The original Canva SVG's transparent real objects are bundled locally.
+    if(!prepareOriginalArtwork())return;
     tool=document.createElement("nav");tool.className="bj-layer-toolbar";
     tool.setAttribute("aria-label","Journal navigation and modes");
     tool.innerHTML='<div class="bj-layer-nav-group">'+
@@ -375,7 +267,7 @@
     });
     spread.classList.add("bj-layer-enabled");
     ready=true;
-    extractTransparentOriginals(atlas);
+    updateArtworkSizes();updateLibrary();
     // Keep crops crisp at all viewport sizes; downscale original artwork,
     // never enlarge tiny thumbnail files.
     if(typeof ResizeObserver!=="undefined"){
@@ -514,20 +406,19 @@
       const width=paper(pos.side).getBoundingClientRect().width||
         spread.getBoundingClientRect().width/2;
       if(!width)continue;
-      const px=srcCrop($(box,".bj-layer-frame-crop"),f.crop,f.scale*pos.scale,width).px;
-      const c=screenCrop(f.crop),w=c.w*px,h=c.h*px;
+      const sprite=srcCrop($(box,".bj-layer-frame-crop"),f.crop,f.scale*pos.scale,width);
+      const {px,w,h}=sprite;
       box.style.width=w+"px";box.style.height=h+"px";
       box.style.left=pos.x+"%";box.style.top=pos.y+"%";
       box.style.transform="translate(-50%,-50%) rotate("+clampAngle(pos.rotation)+"deg)";
       const edit=$(box,".bj-layer-write-zone");
-      const step=f.line*SOURCE.h/SOURCE.screenH*px;
+      const step=f.line*px;
       if(edit){
-        // The original painted dotted line marks the handwriting baseline,
-        // not the top of the textarea. Compensate for native font ascenders.
-        const top=f.write[1]*h-step*.21;
-        edit.style.left=f.write[0]*100+"%";edit.style.top=top+"px";
-        edit.style.width=f.write[2]*100+"%";
-        edit.style.height=(f.write[3]*h+step*.21)+"px";
+        // Lines and checkmarks are real DOM controls, not printed into pictures.
+        const write=sprite.write||f.write,top=write[1]*h-step*.08;
+        edit.style.left=write[0]*100+"%";edit.style.top=top+"px";
+        edit.style.width=write[2]*100+"%";
+        edit.style.height=(write[3]*h+step*.08)+"px";
       }
       const t=$(box,"textarea");
       if(t){
@@ -860,6 +751,7 @@
     version:"0.31.4-illustrated-layers3",init,render,focusField,
     getLayout:()=>layout?JSON.parse(JSON.stringify(layout)):null,
     isCreative:()=>creative,
-    _test:{normalize,screenCrop,splitText,compactLines,clampScale,clampAngle}
+    _test:{normalize,assetInfo:key=>sourceAssets[key]&&{w:sourceAssets[key].w,h:sourceAssets[key].h},
+           splitText,compactLines,clampScale,clampAngle}
   };
 })();
