@@ -260,3 +260,80 @@
   #view-bullet-journal .bj-layer-extras{display:none!important}
   #view-bullet-journal #bjBookDailySpread.bj-layer-enabled{box-shadow:none;overflow:visible}
 }
+
+/* The watercolor frame is visually unchanged; only its PREPRINTED interior
+   is cleared. A blank frame starts without lines, hearts or bullet marks.
+   For the other styles every line has its OWN input and an exactly aligned
+   border; text never relies on textarea Enter/line-height matching a bitmap. */
+#bjBookDailySpread .bj-layer-write-zone .bj-layer-source-hidden{
+  display:none!important;visibility:hidden!important;pointer-events:none!important
+}
+#bjBookDailySpread .bj-layer-line-stack{
+  box-sizing:border-box;width:100%;height:100%;
+  display:flex;flex-direction:column;
+  overflow-x:hidden;overflow-y:auto;scrollbar-width:thin;
+  padding:0 1px 0 0;
+  background:transparent
+}
+#bjBookDailySpread .bj-layer-line-row{
+  box-sizing:border-box;display:flex;align-items:flex-end;flex:0 0 auto;gap:6px;
+  min-width:0;position:relative;border-bottom:1px solid rgba(119,96,79,.53);
+}
+#bjBookDailySpread .bj-layer-line-input{
+  box-sizing:border-box;position:static!important;display:block;
+  min-width:0!important;width:100%!important;height:calc(100% - 2px)!important;
+  flex:1;margin:0!important;padding:0 2px 3px!important;
+  border:0!important;border-radius:0!important;outline:0!important;
+  background:transparent!important;background-image:none!important;
+  box-shadow:none!important;color:#3b312c!important;
+  font:400 var(--bj-line-font)/1.15 "Sue Ellen Francisco","Shadows Into Light","Noteworthy",cursive!important;
+  letter-spacing:.01em!important;white-space:nowrap;overflow-x:auto;
+  text-overflow:clip;
+}
+#bjBookDailySpread .bj-layer-line-input:focus-visible{
+  outline:1px dotted #8f7782!important;outline-offset:-1px
+}
+#bjBookDailySpread .bj-layer-checkbox{
+  position:static!important;display:block;flex:0 0 auto;
+  appearance:none;box-sizing:border-box;
+  width:calc(var(--bj-line-height) * .46)!important;
+  height:calc(var(--bj-line-height) * .46)!important;
+  min-width:10px;min-height:10px;
+  margin:0 2px calc(var(--bj-line-height) * .28) 0!important;
+  border:1px solid #786e63!important;border-radius:3px!important;
+  background:rgba(255,252,243,.30)!important;box-shadow:none!important;
+  cursor:pointer
+}
+#bjBookDailySpread .bj-layer-checkbox:checked{
+  background-color:#819580!important;border-color:#738c72!important;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 18'%3E%3Cpath d='M4 9l3.2 3L14 5' fill='none' stroke='%23fffaf2' stroke-width='2.3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")!important;
+  background-position:center;background-repeat:no-repeat;background-size:cover
+}
+#bjBookDailySpread.bj-layer-creative .bj-layer-line-stack{
+  pointer-events:none;user-select:none;opacity:.85
+}
+#bjBookDailySpread .bj-layer-resize{
+  display:none;box-sizing:border-box;position:absolute;z-index:10;bottom:6px;right:5px;
+  width:36px;height:36px;min-height:36px;
+  padding:0!important;align-items:center;justify-content:center;
+  border-radius:50%!important;border:1px solid #9f7b80!important;
+  box-shadow:0 2px 9px rgba(64,43,50,.15)!important;
+  background:#fffbf5!important;color:#664a55!important;
+  font:700 19px/1 "Nunito Sans",sans-serif!important;
+  cursor:nwse-resize;touch-action:none;user-select:none;pointer-events:auto
+}
+#bjBookDailySpread.bj-layer-creative .bj-layer-resize{display:flex}
+#bjBookDailySpread .bj-layer-modes{
+  display:flex;flex-wrap:wrap;gap:5px;width:100%
+}
+#bjBookDailySpread .bj-layer-modes button{
+  flex:1 1 auto;white-space:nowrap;
+  padding:7px 8px!important
+}
+#bjBookDailySpread .bj-layer-scale-label{
+  display:flex;align-items:center;justify-content:space-between;width:100%;gap:9px;
+  font-size:.76rem;color:#725863
+}
+#bjBookDailySpread #bjLayerScale{
+  width:100%;min-height:28px;accent-color:#8b9a7f;cursor:pointer
+}
