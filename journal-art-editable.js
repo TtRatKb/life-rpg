@@ -19,6 +19,12 @@
     bookNote:{title:"Notes & thoughts",selector:"#bjBookText",side:"right",x:54,y:82,scale:1.45,crop:[630,807,264,259],write:[.15,.255,.76,.66],line:30}
   };
   const ORDER=Object.keys(E);
+  const BOX_MODES=["plain","lined","checklist"];
+  const defaultMode=key=>key==="intentionText"?"checklist":"plain";
+  const clampScale=n=>clamp(Number.isFinite(Number(n))?Number(n):1,.45,1.55);
+  const splitText=value=>String(value??"").split("\n");
+  const compactLines=lines=>lines.map(v=>String(v??"")).join("\n").replace(/\n+$/g,"");
+  const maxLines=24;
   // Each illustration is an independent crop of the same original approved
   // composition; none is stretched from the tiny prior "preview" WebPs.
   const DECOR=[
@@ -93,6 +99,32 @@
               if(task.key==="frame:intentionText"&&sx>403&&sy>674)opacity=0;
               if(task.key==="frame:intentionText"&&sx>145&&sy>725)opacity=0;
               if(task.key==="frame:happyMomentsText"&&sx>337)opacity=0;
+              if(task.key.startsWith("frame:")){
+                const field=task.key.slice(6),nx=ix/width,ny=iy/height;
+                // Erase ONLY the pre-printed writing area from the original
+                // raster: the watercolor border, title and flowers stay.
+                // We draw genuine interactive lines/checkmarks above clean
+                // paper instead. Plain starts with no marks whatsoever.
+                const masks={
+                  gratitude:[.105,.92,.255,.87],
+                  intentionText:[.108,.566,.275,.96],
+                  focusText:[.108,.91,.28,.93],
+                  happyMomentsText:[.092,.94,.345,.93],
+                  bookNote:[.11,.94,.29,.935]
+                };
+                const m=masks[field];
+                if(m){
+                  const edge=Math.min(nx-m[0],m[1]-nx,ny-m[2],m[3]-ny);
+                  const fade=clamp(edge/.015,0,1);
+                  let keepArt=false;
+                  if(field==="gratitude"&&nx>.68&&ny>.70)keepArt=true;
+                  if(field==="focusText"&&nx>.70&&ny>.64)keepArt=true;
+                  if(field==="happyMomentsText"&&nx>.73&&ny>.76)keepArt=true;
+                  if(field==="bookNote"&&nx>.72&&ny>.74)keepArt=true;
+                  if(keepArt)fade=0;
+                  opacity*=1-fade;
+                }
+              }
               a[p+3]=Math.round(255*opacity);
             }
           }
@@ -111,7 +143,7 @@
 
   const defaults=()=>{
     const cards={};
-    for(const [key,f] of Object.entries(E))cards[key]={side:f.side,x:f.x,y:f.y,visible:true};
+    for(const [key,f] of Object.entries(E))cards[key]={side:f.side,x:f.x,y:f.y,visible:true,scale:1,mode:defaultMode(key),checks:[]};
     return {schemaVersion:3,paper:{left:"jasmine",right:"jasmine"},cards};
   };
   function normalize(raw){
@@ -124,7 +156,10 @@
         side:c.side==="left"||c.side==="right"?c.side:f.side,
         x:clamp(Number.isFinite(+c.x)?+c.x:f.x,12,88),
         y:clamp(Number.isFinite(+c.y)?+c.y:f.y,10,90),
-        visible:c.visible!==false
+        visible:c.visible!==false,
+        scale:clampScale(c.scale),
+        mode:BOX_MODES.includes(c.mode)?c.mode:defaultMode(key),
+        checks:Array.isArray(c.checks)?c.checks.slice(0,maxLines).map(v=>v===true):[]
       };
     }
     return p;
@@ -132,6 +167,7 @@
   function stored(day){return normalize(app.getState().journalPageLayoutV3?.daily?.[day]);}
   let view=null,spread=null,tool=null,sideBar=null,more=null,source=null;
   let day="",layout=null,creative=false,activeSide="left",selected="",drag=null;
+  const lineDrafts=new Map(); // Content remains in the canonical textarea; drafts contain no duplicate persisted data.
   let resizeObserver=null,ready=false;
 
   function srcCrop(el,screenRect,scale,pageWidth){
@@ -264,8 +300,23 @@
       if(card){restoreCard(card.dataset.bjAddCard);return;}
       const act=e.target.closest?.("[data-bj-action-card]");
       if(act){editSelected(act.dataset.bjActionCard);return;}
+      const modeButton=e.target.closest?.("[data-bj-box-mode]");
+      if(modeButton){setBoxMode(selected,modeButton.dataset.bjBoxMode);return;}
+      const scaleInput=e.target.closest?.("[data-bj-card-scale]");
+      if(scaleInput&&e.type==="click")return;
       const paperButton=e.target.closest?.("[data-bj-paper]");
       if(paperButton&&layout){layout.paper[activeSide]=paperButton.dataset.bjPaper==="plain"?"plain":"jasmine";if(saveLayout())updateMode();}
+    });
+    sideBar.addEventListener("input",e=>{
+      const slider=e.target.closest?.("[data-bj-card-scale]");
+      if(!slider||!E[selected]||!layout)return;
+      const p=layout.cards[selected];
+      p.scale=clampScale(Number(slider.value)/100);
+      updateArtworkSizes();
+      const value=$(sideBar,"#bjLayerScaleValue");if(value)value.textContent=Math.round(p.scale*100)+"%";
+    });
+    sideBar.addEventListener("change",e=>{
+      if(e.target.closest?.("[data-bj-card-scale]"))saveLayout();
     });
     spread.addEventListener("input",event=>{
       const field=event.target.closest?.(".bj-layer-field");
@@ -304,6 +355,7 @@
     visual.dataset.bjSprite="frame:"+field;
     visual.setAttribute("aria-hidden","true");card.appendChild(visual);
     const body=document.createElement("div");body.className="bj-layer-write-zone";
+    body.dataset.bjLineHost=field;
     const input=originalInput(field);
     if(input){
       input.classList.add("bj-layer-field");
@@ -312,6 +364,10 @@
       if(!input.__bjLayerOriginalParent)input.__bjLayerOriginalParent=input.parentElement;
       input.readOnly=creative;
       body.appendChild(input);
+      if(layout.cards[field].mode!=="plain"){
+        const rows=document.createElement("div");rows.className="bj-layer-line-stack";
+        rows.dataset.bjLines=field;body.appendChild(rows);
+      }
     }else{body.textContent="Saved reflection unavailable to edit";body.classList.add("bj-layer-unavailable");}
     card.appendChild(body);
     const handle=document.createElement("button");handle.type="button";
@@ -322,6 +378,10 @@
     hide.className="bj-layer-hide";hide.dataset.bjHideCard=field;
     hide.setAttribute("aria-label","Hide "+f.title);hide.textContent="×";
     card.appendChild(hide);
+    const size=document.createElement("button");size.type="button";
+    size.className="bj-layer-resize";size.dataset.bjResize=field;
+    size.setAttribute("aria-label","Resize "+f.title+" with drag or shift and arrow keys");
+    size.textContent="↘";card.appendChild(size);
     return card;
   }
   function originalDecor(item){
@@ -385,7 +445,7 @@
       const pos=layout.cards[field],box=$(fieldStage(pos.side),'[data-bj-field="'+field+'"]');
       if(!box)continue;
       const width=paper(pos.side).getBoundingClientRect().width;
-      const px=srcCrop($(box,".bj-layer-frame-crop"),f.crop,f.scale,width).px;
+      const px=srcCrop($(box,".bj-layer-frame-crop"),f.crop,f.scale*pos.scale,width).px;
       const c=screenCrop(f.crop),w=c.w*px,h=c.h*px;
       box.style.width=w+"px";box.style.height=h+"px";
       box.style.left=pos.x+"%";box.style.top=pos.y+"%";
@@ -402,8 +462,10 @@
       const t=$(box,"textarea");
       if(t){
         t.style.lineHeight=step+"px";
-        t.style.fontSize=clamp(step*.70,14,23)+"px";
+        t.style.fontSize=clamp(step*.70,9,33)+"px";
+        t.classList.toggle("bj-layer-source-hidden",pos.mode!=="plain");
       }
+      updateLineRows(field,step);
     }
   }
   function updateLibrary(){
@@ -425,6 +487,11 @@
     }
     const f=E[selected],panel=$(sideBar,"#bjLayerSelected");
     panel.innerHTML=(creative&&f)?'<div class="bj-layer-selected"><strong>'+esc(f.title)+'</strong>'+
+      '<div class="bj-layer-modes" role="group" aria-label="Writing style">'+
+      BOX_MODES.map(mode=>'<button type="button" data-bj-box-mode="'+mode+'" aria-pressed="'+(layout.cards[selected].mode===mode)+'">'+
+        ({plain:"Blank",lined:"Lines",checklist:"Checklist"}[mode])+'</button>').join("")+'</div>'+
+      '<label class="bj-layer-scale-label" for="bjLayerScale">Size <strong id="bjLayerScaleValue">'+Math.round(layout.cards[selected].scale*100)+'%</strong></label>'+
+      '<input id="bjLayerScale" type="range" data-bj-card-scale min="45" max="155" step="1" value="'+Math.round(layout.cards[selected].scale*100)+'">'+
       '<button type="button" data-bj-action-card="other-side">Move to other page</button>'+
       '<button type="button" data-bj-action-card="remove">Remove this box</button></div>':"";
     for(const btn of sideBar.querySelectorAll("[data-bj-choose-side]"))
@@ -445,6 +512,8 @@
     for(const btn of tool.querySelectorAll("[data-bj-layer-mode]"))
       btn.setAttribute("aria-pressed",String((btn.dataset.bjLayerMode==="create")===creative));
     for(const textarea of spread.querySelectorAll(".bj-layer-field"))textarea.readOnly=creative;
+    for(const row of spread.querySelectorAll(".bj-layer-line-input"))row.readOnly=creative;
+    for(const check of spread.querySelectorAll(".bj-layer-checkbox"))check.disabled=creative;
     updateSelection();
     const atelier=window.LifeRPGJournalAtelier;
     if(creative)atelier?.render?.(day);
@@ -472,11 +541,13 @@
   }
   function startDrag(e){
     if(!creative||e.button!==0)return;
-    const grip=e.target.closest?.("[data-bj-handle]");if(!grip)return;
-    const field=grip.dataset.bjHandle,pos=layout.cards[field];
+    const grip=e.target.closest?.("[data-bj-handle],[data-bj-resize]");if(!grip)return;
+    const resizing=Boolean(grip.dataset.bjResize);
+    const field=grip.dataset.bjHandle||grip.dataset.bjResize,pos=layout.cards[field];
     const page=paper(pos.side);if(!page)return;
     const rect=page.getBoundingClientRect();
-    drag={id:e.pointerId,field,x:pos.x,y:pos.y,clientX:e.clientX,clientY:e.clientY,
+    drag={id:e.pointerId,field,x:pos.x,y:pos.y,scale:pos.scale,resizing,
+      clientX:e.clientX,clientY:e.clientY,
       rect,moved:false,element:grip.closest(".bj-layer-original-frame")};
     selected=field;activeSide=pos.side;grip.setPointerCapture?.(e.pointerId);
     updateSelection();e.preventDefault();
@@ -485,7 +556,14 @@
     if(!drag||e.pointerId!==drag.id)return;
     const dx=e.clientX-drag.clientX,dy=e.clientY-drag.clientY;
     if(Math.abs(dx)+Math.abs(dy)>3)drag.moved=true;
-    const p=layout.cards[drag.field],w=drag.element.offsetWidth,h=drag.element.offsetHeight;
+    const p=layout.cards[drag.field];
+    if(drag.resizing){
+      const relative=Math.max(dx/Math.max(1,drag.element.offsetWidth),dy/Math.max(1,drag.element.offsetHeight));
+      p.scale=clampScale(drag.scale*(1+relative));
+      updateArtworkSizes();
+      return;
+    }
+    const w=drag.element.offsetWidth,h=drag.element.offsetHeight;
     const left=w/Math.max(1,drag.rect.width)*50+1,top=h/Math.max(1,drag.rect.height)*50+1;
     p.x=clamp(drag.x+dx/Math.max(1,drag.rect.width)*100,left,100-left);
     p.y=clamp(drag.y+dy/Math.max(1,drag.rect.height)*100,top,100-top);
@@ -498,13 +576,18 @@
   }
   function keyMove(e){
     if(!creative)return;
-    const grip=e.target.closest?.("[data-bj-handle]");if(!grip)return;
+    const grip=e.target.closest?.("[data-bj-handle],[data-bj-resize]");if(!grip)return;
     const directions={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]};
-    const delta=directions[e.key];if(!delta&&e.key!=="Delete"&&e.key!=="Backspace")return;
+    const delta=directions[e.key];if(!delta&&e.key!=="Delete"&&e.key!=="Backspace"&&e.key!=="+"&&e.key!=="-")return;
     e.preventDefault();e.stopPropagation();
-    const key=grip.dataset.bjHandle;
-    if(!delta){hideCard(key);return;}
+    const key=grip.dataset.bjHandle||grip.dataset.bjResize;
     const p=layout.cards[key],node=grip.closest(".bj-layer-original-frame");
+    if(e.key==="Delete"||e.key==="Backspace"){hideCard(key);return;}
+    if(e.key==="+"||e.key==="-"||e.shiftKey||grip.dataset.bjResize){
+      const change=e.key==="+"?1:e.key==="-"?-1:(delta?.[1]||delta?.[0]||0);
+      p.scale=clampScale(p.scale+change*.05);
+      selected=key;activeSide=p.side;updateArtworkSizes();saveLayout();updateSelection();grip.focus();return;
+    }
     const bounds=paper(p.side).getBoundingClientRect();
     const mx=node.offsetWidth/Math.max(1,bounds.width)*50+1,my=node.offsetHeight/Math.max(1,bounds.height)*50+1;
     p.x=clamp(p.x+delta[0],mx,100-mx);p.y=clamp(p.y+delta[1],my,100-my);
@@ -547,6 +630,6 @@
     version:"0.31.4-illustrated-layers3",init,render,focusField,
     getLayout:()=>layout?JSON.parse(JSON.stringify(layout)):null,
     isCreative:()=>creative,
-    _test:{normalize,screenCrop}
+    _test:{normalize,screenCrop,splitText,compactLines,clampScale}
   };
 })();
