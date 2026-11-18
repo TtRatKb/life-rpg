@@ -24,9 +24,9 @@
   const DECOR=[
     {key:"date-tag",side:"right",x:30,y:10,scale:1.18,crop:[618,27,258,158]},
     {key:"jasmine-bouquet",side:"left",x:24,y:14,scale:1.17,crop:[43,20,270,267]},
-    {key:"journal-title",side:"left",x:67,y:12,scale:1.25,crop:[305,29,288,192]},
+    {key:"journal-title",side:"left",x:67,y:12,scale:1.25,crop:[305,29,288,180]},
     {key:"jasmine-wrap",side:"left",x:19,y:91,scale:1.03,crop:[53,941,195,188]},
-    {key:"moon-window",side:"right",x:80,y:11,scale:.97,crop:[586,173,261,253]},
+    {key:"moon-window",side:"right",x:83,y:10,scale:.94,crop:[586,173,261,253]},
     {key:"tea-and-flowers",side:"right",x:22,y:79,scale:1.05,crop:[337,682,195,220]},
     {key:"postcards",side:"right",x:70,y:96,scale:.80,crop:[344,893,186,196]},
     {key:"hanging-jasmine",side:"right",x:83,y:56,scale:.85,crop:[750,433,151,351]}
@@ -89,8 +89,10 @@
               if(task.key==="deco:date-tag"&&sx>705&&sx<838&&sy>84&&sy<154)opacity=0;
               if(task.key==="frame:focusText"&&sx>665&&sy<419)opacity=0;
               if(task.key==="deco:moon-window"&&sx<635&&sy>384)opacity=0;
-              if(task.key==="deco:tea-and-flowers"&&sx>444&&sy<768)opacity=0;
-              if(task.key==="frame:intentionText"&&sx>441&&sy>682)opacity=0;
+              if(task.key==="deco:tea-and-flowers"&&sx>430&&sy<770)opacity=0;
+              if(task.key==="frame:intentionText"&&sx>403&&sy>674)opacity=0;
+              if(task.key==="frame:intentionText"&&sx>145&&sy>725)opacity=0;
+              if(task.key==="frame:happyMomentsText"&&sx>337)opacity=0;
               a[p+3]=Math.round(255*opacity);
             }
           }
