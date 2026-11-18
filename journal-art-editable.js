@@ -13,7 +13,7 @@
   const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
   const E={
     gratitude:{title:"Today I'm grateful for…",selector:"#bjBookPrompt-gratitude",side:"left",x:50,y:41,scale:1.60,crop:[50,281,382,249],write:[.195,.255,.725,.64],line:29},
-    intentionText:{title:"Today I will…",selector:"#bjExtra-intentionText",side:"left",x:51,y:75,scale:1.60,crop:[47,529,280,213],write:[.205,.275,.63,.655],line:28},
+    intentionText:{title:"Today I will…",selector:"#bjExtra-intentionText",side:"left",x:51,y:75,scale:1.60,crop:[45,526,410,213],write:[.132,.295,.44,.62],line:28},
     focusText:{title:"Focus for today",selector:"#bjExtra-focusText",side:"right",x:52,y:27,scale:1.45,crop:[429,380,311,226],write:[.18,.265,.74,.64],line:28},
     happyMomentsText:{title:"Little moments that made me happy",selector:"#bjExtra-happyMomentsText",side:"right",x:46,y:54,scale:1.45,crop:[59,727,285,225],write:[.15,.33,.76,.61],line:29},
     bookNote:{title:"Notes & thoughts",selector:"#bjBookText",side:"right",x:54,y:82,scale:1.45,crop:[630,807,264,259],write:[.15,.255,.76,.66],line:30}
@@ -23,13 +23,12 @@
   // composition; none is stretched from the tiny prior "preview" WebPs.
   const DECOR=[
     {key:"jasmine-bouquet",side:"left",x:24,y:14,scale:1.17,crop:[43,20,270,267]},
-    {key:"journal-title",side:"left",x:67,y:12,scale:1.25,crop:[305,29,288,212]},
-    {key:"floral-books",side:"left",x:80,y:62,scale:.92,crop:[280,534,163,157]},
+    {key:"journal-title",side:"left",x:67,y:12,scale:1.25,crop:[305,29,288,192]},
     {key:"jasmine-wrap",side:"left",x:19,y:91,scale:1.03,crop:[53,941,195,188]},
-    {key:"moon-window",side:"right",x:75,y:13,scale:1.08,crop:[586,173,261,253]},
-    {key:"tea-and-flowers",side:"right",x:22,y:79,scale:1.05,crop:[346,689,187,212]},
+    {key:"moon-window",side:"right",x:80,y:11,scale:.97,crop:[586,173,261,253]},
+    {key:"tea-and-flowers",side:"right",x:22,y:79,scale:1.05,crop:[337,682,195,220]},
     {key:"postcards",side:"right",x:70,y:96,scale:.80,crop:[344,893,186,196]},
-    {key:"hanging-jasmine",side:"right",x:90,y:56,scale:.95,crop:[751,433,112,351]}
+    {key:"hanging-jasmine",side:"right",x:83,y:56,scale:.85,crop:[750,433,151,351]}
   ];
   const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   const screenCrop=(c)=>({
