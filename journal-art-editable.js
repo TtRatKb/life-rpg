@@ -701,6 +701,11 @@
     updateSelection();
     const atelier=window.LifeRPGJournalAtelier;
     if(creative)atelier?.render?.(day);
+    // The opposite page had display:none in the design mode. Its last
+    // measured width was 0; force a fresh geometry pass after revealing it,
+    // instead of relying on ResizeObserver timing.
+    updateArtworkSizes();
+    requestAnimationFrame(()=>{if(spread?.isConnected)updateArtworkSizes();});
   }
   function restoreCard(key){
     if(!descriptor(key)||!creative)return;
