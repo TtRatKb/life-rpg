@@ -581,7 +581,7 @@
     }).join("");
     for(const field of ORDER){
       const preview=$(holder,'[data-bj-preview-frame="'+field+'"]');
-      const art=transparentOriginals.get("frame:"+field);
+      const art=sourceAssets["frame:"+field]?.url;
       if(preview&&art){
         preview.textContent="";
         preview.style.backgroundImage='url("'+art+'")';
