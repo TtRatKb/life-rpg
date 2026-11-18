@@ -58,7 +58,7 @@ assert.equal(def.cards.intentionText.mode,"checklist",'Today I will retains real
 assert.equal(def.cards.focusText.scale,1);
 assert.equal(api._test.clampScale(.05),.45,'Minimum size prevents unusable tiny writing boxes');
 assert.equal(api._test.clampScale(10),1.55,'Maximum size is bounded');
-assert.equal(api._test.compactLines(["hello","","world",""]),"hello\\n\\nworld".replaceAll("\\\\n","\\n"));
+assert.equal(api._test.compactLines(["hello","","world",""]),["hello","","world"].join("\n"));
 assert.match(art,/makeLineRow/,'One actual DOM input for each writing line');
 assert.match(art,/source.dispatchEvent\(new Event\("input"/,'Rows must update original canonical form through the existing autosave');
 assert.match(art,/data-bj-resize/,'User can drag a resize handle');
