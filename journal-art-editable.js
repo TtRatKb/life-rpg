@@ -307,7 +307,10 @@
     renderLibrary();renderSelection();
     const live=window.LifeRPGJournalAtelier;
     // The decoration module continues using its own stable save and asset IDs.
-    if(creative)live?.render?.(activeDate);
+    if(creative){
+      if(live?.setPageSide)live.setPageSide(activeSide);
+      else live?.render?.(activeDate);
+    }
   }
   function render(date,host=view){
     if(!host)return;
