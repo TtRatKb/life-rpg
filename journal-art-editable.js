@@ -276,6 +276,8 @@
     if(typeof ResizeObserver!=="undefined"){
       resizeObserver=new ResizeObserver(()=>{if(layout)updateArtworkSizes();});
       resizeObserver.observe(paper("left"));resizeObserver.observe(paper("right"));
+      resizeObserver.observe(spread);
+      resizeObserver.observe(view);
     }
   }
   function originalInput(field){
@@ -734,6 +736,7 @@
     $(spread,"#bjLayerWeekday").textContent=new Intl.DateTimeFormat("en",{weekday:"long"}).format(dateObj);
     $(spread,"#bjLayerMoodText").textContent=String(window.LifeRPGJournal?.getEntry?.(day)?.mood||"choose");
     updateMode();status("Your words save automatically ♡");
+    requestAnimationFrame(()=>{if(spread?.isConnected)updateArtworkSizes();});
   }
   function focusField(field){
     if(!ready)return false;
