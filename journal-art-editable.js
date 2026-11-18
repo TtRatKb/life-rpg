@@ -36,10 +36,10 @@
     {key:"jasmine-bouquet",side:"left",x:24,y:14,scale:1.17,crop:[43,20,270,267]},
     {key:"journal-title",side:"left",x:67,y:12,scale:1.25,crop:[305,29,288,180]},
     {key:"jasmine-wrap",side:"left",x:19,y:91,scale:1.03,crop:[53,941,195,188]},
-    {key:"moon-window",side:"right",x:83,y:10,scale:.94,crop:[586,173,261,253]},
+    {key:"moon-window",side:"right",x:83,y:13,scale:.94,crop:[586,173,261,253]},
     {key:"tea-and-flowers",side:"right",x:22,y:79,scale:1.05,crop:[337,682,195,220]},
-    {key:"postcards",side:"right",x:70,y:96,scale:.80,crop:[344,893,186,196]},
-    {key:"hanging-jasmine",side:"right",x:83,y:56,scale:.85,crop:[750,433,151,351]}
+    {key:"postcards",side:"right",x:70,y:90,scale:.80,crop:[344,893,186,196]},
+    {key:"hanging-jasmine",side:"right",x:91,y:56,scale:.85,crop:[750,433,151,351]}
   ];
   const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   function prepareOriginalArtwork(){
@@ -112,7 +112,10 @@
     const px=pageWidth/ART_WIDTH*scale,w=sprite.w*px,h=sprite.h*px;
     el.style.visibility="";
     el.style.width=w+"px";el.style.height=h+"px";
-    el.style.backgroundImage='url("'+sprite.url+'")';
+    if(el.dataset.bjSpriteLoaded!==el.dataset.bjSprite){
+      el.style.backgroundImage='url("'+sprite.url+'")';
+      el.dataset.bjSpriteLoaded=el.dataset.bjSprite;
+    }
     el.style.backgroundSize="100% 100%";
     el.style.backgroundPosition="center center";
     el.style.webkitMaskImage="none";el.style.maskImage="none";
