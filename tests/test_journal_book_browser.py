@@ -289,8 +289,11 @@ class JournalBookBrowserTests(unittest.TestCase):
         self.assertEqual(existing.split("\n"),
                          [lines.nth(i).input_value() for i in range(5)])
         self.assertTrue(self.page.locator("#bjExtra-focusText").evaluate("el=>getComputedStyle(el).display==='none'"))
+        # Geometry must be checked in the box's own coordinate system:
+        # the entire illustrated box (including its lines) is intentionally
+        # rotated, so screen-aligned rectangles have different AABBs.
         geometry=self.page.locator('[data-bj-field="focusText"] .bj-layer-line-row').evaluate_all(
-            "els=>els.slice(0,3).map(el=>({top:el.getBoundingClientRect().top,height:el.getBoundingClientRect().height}))")
+            "els=>els.slice(0,3).map(el=>({top:el.offsetTop,height:el.offsetHeight}))")
         self.assertAlmostEqual(geometry[1]["top"]-geometry[0]["top"],geometry[0]["height"],delta=1)
         lines.nth(1).fill("The edited second line")
         lines.nth(2).focus()
@@ -330,7 +333,18 @@ class JournalBookBrowserTests(unittest.TestCase):
         self.assertEqual("plain",modes["gratitude"]["mode"])
         self.assertEqual("plain",modes["focusText"]["mode"])
         listrows=self.page.locator('[data-bj-field="intentionText"] .bj-layer-line-row')
-        self.assertGreaterEqual(listrows.count(),3)
+        diagnostics=self.page.evaluate("""() => ({
+          card:LifeRPGJournalArtSpread.getLayout().cards.intentionText,
+          frames:[...document.querySelectorAll('[data-bj-field="intentionText"]')].map(n=>({
+            tag:n.tagName,cls:n.className,
+            inner:n.querySelector('.bj-layer-write-zone')?.innerHTML?.slice(0,1100),
+            width:n.getBoundingClientRect().width
+          })),
+          source:!!document.querySelector('#bjExtra-intentionText'),
+          sourceParent:document.querySelector('#bjExtra-intentionText')?.parentElement?.className,
+          rows:document.querySelectorAll('[data-bj-field="intentionText"] .bj-layer-line-row').length
+        })""")
+        self.assertGreaterEqual(listrows.count(),3,str(diagnostics))
         self.assertEqual(listrows.count(),self.page.locator(
             '[data-bj-field="intentionText"] .bj-layer-line-input').count())
         self.assertEqual(listrows.count(),self.page.locator(
