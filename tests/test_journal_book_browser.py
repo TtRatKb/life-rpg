@@ -187,6 +187,7 @@ class JournalBookBrowserTests(unittest.TestCase):
         self.page.locator('[data-bj-layer-mode="create"]').click()
         self.page.locator('[data-bj-choose-side="right"]').click()
         self.page.locator('[data-bj-add-card="focusText"]').click()
+        self.page.wait_for_function("""() => document.querySelector('[data-bj-field="focusText"]')?.getBoundingClientRect().width>20""")
         self.page.locator('[data-bj-box-mode="lined"]').click()
         before=self.page.locator('[data-bj-field="focusText"]').evaluate(
             "el => el.getBoundingClientRect().width")
@@ -286,6 +287,7 @@ class JournalBookBrowserTests(unittest.TestCase):
         self.page.locator('[data-bj-create-card="focusText"]').click()
         extra=self.page.locator('[data-bj-field^="custom-"]')
         self.assertEqual(1,extra.count())
+        self.page.wait_for_function("""() => document.querySelector('[data-bj-field^="custom-"]')?.getBoundingClientRect().width>20""")
         key=extra.get_attribute("data-bj-field")
         self.assertGreaterEqual(len(key),9)
         original=self.page.locator('[data-bj-field="focusText"]')
