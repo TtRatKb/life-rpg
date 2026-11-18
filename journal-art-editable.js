@@ -468,6 +468,116 @@
       updateLineRows(field,step);
     }
   }
+
+  function setBoxMode(field,mode){
+    if(!creative||!E[field]||!BOX_MODES.includes(mode))return;
+    if(!window.LifeRPGBulletJournalBook?.save?.())return;
+    const old=layout.cards[field].mode;
+    layout.cards[field].mode=mode;
+    if(!saveLayout()){layout.cards[field].mode=old;return;}
+    renderCards();updateMode();
+  }
+
+  function syncLinesToSource(field,stack){
+    const host=stack.closest(".bj-layer-original-frame");
+    const source=$(host,E[field].selector);
+    if(!source)return;
+    const rendered=[...stack.querySelectorAll(".bj-layer-line-input")].map(node=>node.value);
+    const leftover=splitText(source.value).slice(rendered.length);
+    const content=compactLines([...rendered,...leftover]);
+    // Original textarea is the ONLY place the actual journal text is saved.
+    // Its existing input listener handles pending writes, rewards, and
+    // idempotency exactly as before; this UI has no second write pipeline.
+    if(source.value!==content){
+      source.value=content;
+      source.dispatchEvent(new Event("input",{bubbles:true}));
+    }
+    stack.dataset.bjSourceValue=content;
+  }
+  function makeLineRow(field,stack,index,content,step){
+    const row=document.createElement("div");row.className="bj-layer-line-row";
+    row.dataset.bjRow=String(index);
+    const mode=layout.cards[field].mode;
+    if(mode==="checklist"){
+      const check=document.createElement("input");
+      check.type="checkbox";check.className="bj-layer-checkbox";
+      check.setAttribute("aria-label","Check off line "+(index+1)+" of "+E[field].title);
+      check.checked=layout.cards[field].checks[index]===true;check.disabled=creative;
+      check.addEventListener("change",()=>{
+        const p=layout.cards[field];p.checks[index]=check.checked;
+        if(!saveLayout())check.checked=!check.checked;
+      });
+      row.appendChild(check);
+    }
+    const input=document.createElement("input");
+    input.type="text";input.className="bj-layer-line-input";
+    input.value=content;input.maxLength=2400;
+    input.readOnly=creative;
+    input.setAttribute("aria-label",E[field].title+" · line "+(index+1));
+    input.autocomplete="off";input.spellcheck=true;
+    input.addEventListener("input",()=>syncLinesToSource(field,stack));
+    input.addEventListener("focusout",()=>{
+      const canonical=$(stack.closest(".bj-layer-original-frame"),E[field].selector);
+      canonical?.dispatchEvent(new FocusEvent("focusout",{bubbles:true}));
+    });
+    input.addEventListener("keydown",event=>{
+      if(event.key!=="Enter")return;
+      event.preventDefault();
+      let next=row.nextElementSibling?.querySelector(".bj-layer-line-input");
+      if(!next&&stack.children.length<maxLines){
+        stack.appendChild(makeLineRow(field,stack,stack.children.length,"",step));
+        next=stack.lastElementChild.querySelector(".bj-layer-line-input");
+      }
+      if(next){next.focus();next.scrollIntoView({block:"nearest"});}
+      else status("This box is full. Choose a larger box or Blank mode to write more.");
+    });
+    row.appendChild(input);
+    row.style.height=step+"px";
+    return row;
+  }
+  function updateLineRows(field,step){
+    const p=layout.cards[field];
+    const frame=$(fieldStage(p.side),'[data-bj-field="'+field+'"]');
+    if(!frame)return;
+    const host=$(frame,".bj-layer-write-zone");
+    const source=$(host,E[field].selector);
+    if(!source)return;
+    let stack=$(host,".bj-layer-line-stack");
+    source.classList.toggle("bj-layer-source-hidden",p.mode!=="plain");
+    if(p.mode==="plain"){
+      if(stack)stack.remove();
+      source.readOnly=creative;return;
+    }
+    if(!stack){
+      stack=document.createElement("div");
+      stack.className="bj-layer-line-stack";
+      stack.dataset.bjLines=field;host.appendChild(stack);
+    }
+    stack.classList.toggle("is-checklist",p.mode==="checklist");
+    stack.style.setProperty("--bj-line-height",step+"px");
+    stack.style.setProperty("--bj-line-font",clamp(step*.70,9,33)+"px");
+    const height=Number.parseFloat(host.style.height)||host.getBoundingClientRect().height||step*3;
+    const visible=Math.max(1,Math.floor(height/Math.max(step,1)));
+    const text=splitText(source.value);
+    const count=Math.min(maxLines,Math.max(visible,Math.min(text.length,maxLines)));
+    const mode=stack.dataset.bjMode;
+    const oldCount=stack.querySelectorAll(".bj-layer-line-row").length;
+    if(mode!==p.mode||oldCount!==count||stack.dataset.bjSourceValue!==source.value){
+      stack.replaceChildren();
+      for(let i=0;i<count;i++)stack.appendChild(makeLineRow(field,stack,i,text[i]||"",step));
+      stack.dataset.bjMode=p.mode;
+      stack.dataset.bjSourceValue=source.value;
+    }else{
+      for(const row of stack.querySelectorAll(".bj-layer-line-row")){
+        row.style.height=step+"px";
+        const input=$(row,".bj-layer-line-input");
+        if(input)input.readOnly=creative;
+        const check=$(row,".bj-layer-checkbox");
+        if(check)check.disabled=creative;
+      }
+    }
+  }
+
   function updateLibrary(){
     if(!sideBar||!layout)return;
     const holder=$(sideBar,"#bjLayerLibrary");
