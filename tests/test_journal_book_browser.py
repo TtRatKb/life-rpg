@@ -271,6 +271,54 @@ class JournalBookBrowserTests(unittest.TestCase):
         self.assertTrue(self.page.locator(
             '[data-bj-field="intentionText"] .bj-layer-checkbox').nth(0).is_checked())
 
+    def test_extra_illustrated_boxes_have_independent_text_and_can_fit_side_by_side(self):
+        self.page.locator("#bjExtra-focusText").fill("The original focus remains original")
+        self.page.evaluate("document.activeElement?.blur()")
+        self.page.wait_for_function(
+            """d=>LifeRPGApp.getState().journal.entries[d]?.dailySpreadV1?.focusText==='The original focus remains original'""",
+            arg=self.day
+        )
+        old_rewards=self.page.evaluate("JSON.stringify(LifeRPGApp.getState().rewardLedger.events)")
+        self.page.locator('[data-bj-layer-mode="create"]').click()
+        self.page.locator('[data-bj-create-card="focusText"]').click()
+        extra=self.page.locator('[data-bj-field^="custom-"]')
+        self.assertEqual(1,extra.count())
+        key=extra.get_attribute("data-bj-field")
+        self.assertGreaterEqual(len(key),9)
+        original=self.page.locator('[data-bj-field="focusText"]')
+        self.page.locator("#bjLayerScale").evaluate("""el=>{
+          el.value="50";
+          el.dispatchEvent(new Event("input",{bubbles:true}));
+          el.dispatchEvent(new Event("change",{bubbles:true}));
+        }""")
+        self.assertLess(extra.evaluate("el=>el.getBoundingClientRect().width"),
+                        original.evaluate("el=>el.getBoundingClientRect().width")*.7)
+        self.page.locator('[data-bj-box-mode="lined"]').click()
+        self.page.locator('[data-bj-layer-mode="write"]').click()
+        lines=extra.locator(".bj-layer-line-input")
+        self.assertGreaterEqual(lines.count(),3)
+        lines.nth(0).fill("My entirely independent writing")
+        lines.nth(1).fill("Another little note")
+        lines.nth(1).blur()
+        self.page.wait_for_function(
+            """k=>LifeRPGApp.getState().journalPageLayoutV3?.daily?.[LifeRPGBulletJournalBook.getDate()]?.cards?.[k]?.text?.includes('Another little note')""",
+            arg=key
+        )
+        self.assertEqual("The original focus remains original",
+                         self.page.locator("#bjExtra-focusText").input_value())
+        self.assertEqual(old_rewards,self.page.evaluate("JSON.stringify(LifeRPGApp.getState().rewardLedger.events)"))
+        self.page.reload(wait_until="domcontentloaded")
+        for name in ("styles.css","bullet-journal-book.css","journal-daily-spread-v1.css",
+                     "bullet-journal-atelier.css","journal-art-editable.css"):
+            self.page.add_style_tag(url="/"+name)
+        self.page.evaluate("LifeRPGJournal.openReflection()")
+        extra=self.page.locator('[data-bj-field="'+key+'"]')
+        self.assertEqual(1,extra.count())
+        self.assertEqual("My entirely independent writing",extra.locator(".bj-layer-line-input").nth(0).input_value())
+        self.assertEqual("Another little note",extra.locator(".bj-layer-line-input").nth(1).input_value())
+        self.assertEqual("The original focus remains original",
+                         self.page.locator("#bjExtra-focusText").input_value())
+
     def test_navigation_and_mobile_do_not_duplicate_or_erase(self):
         self.page.locator(".bj-layer-extras > summary").click()
         self.page.locator("#bjBookPrompt-smallWin").fill("A synthetic little win.")
