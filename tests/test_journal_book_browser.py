@@ -174,6 +174,103 @@ class JournalBookBrowserTests(unittest.TestCase):
         self.assertEqual("Never delete this text.",self.page.locator("#bjExtra-focusText").input_value())
         self.assertGreater(self.page.evaluate("""d => LifeRPGApp.getState().journalPageLayoutV3.daily[d].cards.focusText.x""",self.day),before)
 
+    def test_original_frames_resize_and_per_line_inputs_save_every_character(self):
+        # Load an existing multi-line canonical reflection BEFORE switching
+        # visual layouts, exactly like an older save.
+        existing="First line\nSecond line\nThird line\nFourth line\nFifth line"
+        self.page.locator("#bjExtra-focusText").fill(existing)
+        self.page.evaluate("document.activeElement?.blur()")
+        self.page.wait_for_function(
+            """d => LifeRPGApp.getState().journal.entries[d]?.dailySpreadV1?.focusText?.startsWith('First line')""",
+            arg=self.day
+        )
+        self.page.locator('[data-bj-layer-mode="create"]').click()
+        self.page.locator('[data-bj-choose-side="right"]').click()
+        self.page.locator('[data-bj-add-card="focusText"]').click()
+        self.page.locator('[data-bj-box-mode="lined"]').click()
+        before=self.page.locator('[data-bj-field="focusText"]').evaluate(
+            "el => el.getBoundingClientRect().width")
+        self.page.locator("#bjLayerScale").evaluate("""el => {
+          el.value='55';
+          el.dispatchEvent(new Event('input',{bubbles:true}));
+          el.dispatchEvent(new Event('change',{bubbles:true}));
+        }""")
+        after=self.page.locator('[data-bj-field="focusText"]').evaluate(
+            "el => el.getBoundingClientRect().width")
+        self.assertLess(after,before*.65)
+        size=self.page.evaluate("""d=>LifeRPGApp.getState().journalPageLayoutV3.daily[d].cards.focusText.scale""",self.day)
+        self.assertAlmostEqual(.55,size,delta=.02)
+        self.page.locator('[data-bj-layer-mode="write"]').click()
+        lines=self.page.locator('[data-bj-field="focusText"] .bj-layer-line-input')
+        self.assertGreaterEqual(lines.count(),5)
+        self.assertEqual(existing.split("\n"),
+                         [lines.nth(i).input_value() for i in range(5)])
+        self.assertTrue(self.page.locator("#bjExtra-focusText").evaluate("el=>getComputedStyle(el).display==='none'"))
+        geometry=self.page.locator('[data-bj-field="focusText"] .bj-layer-line-row').evaluate_all(
+            "els=>els.slice(0,3).map(el=>({top:el.getBoundingClientRect().top,height:el.getBoundingClientRect().height}))")
+        self.assertAlmostEqual(geometry[1]["top"]-geometry[0]["top"],geometry[0]["height"],delta=1)
+        lines.nth(1).fill("The edited second line")
+        lines.nth(2).focus()
+        self.page.wait_for_function(
+            """d=>LifeRPGApp.getState().journal.entries[d]?.dailySpreadV1?.focusText?.includes('The edited second line')""",
+            arg=self.day
+        )
+        self.assertEqual(
+            "First line\nThe edited second line\nThird line\nFourth line\nFifth line",
+            self.page.locator("#bjExtra-focusText").input_value())
+        # Changes to layout never change saved writing; a switch back to a
+        # completely blank frame must show the original textarea verbatim.
+        self.page.locator('[data-bj-layer-mode="create"]').click()
+        self.page.locator('[data-bj-add-card="focusText"]').click()
+        self.page.locator('[data-bj-box-mode="plain"]').click()
+        self.page.locator('[data-bj-layer-mode="write"]').click()
+        self.assertEqual(0,self.page.locator('[data-bj-field="focusText"] .bj-layer-line-row').count())
+        self.assertEqual(
+            "First line\nThe edited second line\nThird line\nFourth line\nFifth line",
+            self.page.locator("#bjExtra-focusText").input_value())
+        self.page.reload(wait_until="domcontentloaded")
+        for name in ("styles.css","bullet-journal-book.css","journal-daily-spread-v1.css",
+                     "bullet-journal-atelier.css","journal-art-editable.css"):
+            self.page.add_style_tag(url="/"+name)
+        self.page.evaluate("LifeRPGJournal.openReflection()")
+        self.assertAlmostEqual(.55,self.page.evaluate(
+            """d=>LifeRPGApp.getState().journalPageLayoutV3.daily[d].cards.focusText.scale""",self.day),delta=.02)
+        self.assertEqual(
+            "First line\nThe edited second line\nThird line\nFourth line\nFifth line",
+            self.page.locator("#bjExtra-focusText").input_value())
+
+    def test_checklist_has_a_real_text_input_per_row_and_independent_checkmarks(self):
+        # "Today I will" starts as a checklist; other fields start BLANK.
+        modes=self.page.evaluate("""()=>LifeRPGJournalArtSpread.getLayout().cards""")
+        self.assertEqual("checklist",modes["intentionText"]["mode"])
+        self.assertEqual("plain",modes["gratitude"]["mode"])
+        self.assertEqual("plain",modes["focusText"]["mode"])
+        listrows=self.page.locator('[data-bj-field="intentionText"] .bj-layer-line-row')
+        self.assertGreaterEqual(listrows.count(),3)
+        self.assertEqual(listrows.count(),self.page.locator(
+            '[data-bj-field="intentionText"] .bj-layer-line-input').count())
+        self.assertEqual(listrows.count(),self.page.locator(
+            '[data-bj-field="intentionText"] .bj-layer-checkbox').count())
+        entry=listrows.nth(0).locator(".bj-layer-line-input")
+        entry.fill("Make a tiny cup of tea")
+        entry.press("Enter")
+        second=listrows.nth(1).locator(".bj-layer-line-input")
+        second.fill("Read something cozy")
+        self.page.locator('[data-bj-field="intentionText"] .bj-layer-checkbox').nth(0).check()
+        self.page.evaluate("document.activeElement?.blur()")
+        self.page.wait_for_function("""d => LifeRPGApp.getState().journal.entries[d]?.dailySpreadV1?.intentionText?.includes('Read something cozy')""",arg=self.day)
+        self.assertTrue(self.page.evaluate("""d => LifeRPGApp.getState().journalPageLayoutV3.daily[d].cards.intentionText.checks[0]""",self.day))
+        old=self.page.locator("#bjExtra-intentionText").input_value()
+        self.assertIn("Make a tiny cup of tea",old)
+        self.page.reload(wait_until="domcontentloaded")
+        for name in ("styles.css","bullet-journal-book.css","journal-daily-spread-v1.css",
+                     "bullet-journal-atelier.css","journal-art-editable.css"):
+            self.page.add_style_tag(url="/"+name)
+        self.page.evaluate("LifeRPGJournal.openReflection()")
+        self.assertEqual(old,self.page.locator("#bjExtra-intentionText").input_value())
+        self.assertTrue(self.page.locator(
+            '[data-bj-field="intentionText"] .bj-layer-checkbox').nth(0).is_checked())
+
     def test_navigation_and_mobile_do_not_duplicate_or_erase(self):
         self.page.locator(".bj-layer-extras > summary").click()
         self.page.locator("#bjBookPrompt-smallWin").fill("A synthetic little win.")
