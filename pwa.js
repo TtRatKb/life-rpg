@@ -1,6 +1,6 @@
 (() => {
   "use strict";
-  const VERSION = "0.31.4-journal-pages3";
+  const VERSION = "0.31.4-nono80b";
   const FOCUS_VERSION = "0.31.4dz50c";
   const standalone = window.matchMedia?.("(display-mode: standalone)")?.matches || window.navigator.standalone === true;
   if (standalone) document.body.classList.add("is-standalone-v251");
