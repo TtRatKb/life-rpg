@@ -22,7 +22,7 @@
   const dayKey=()=>new Date().toLocaleDateString("sv-SE");
   let view=null,spread=null,toolbar=null,shelf=null,more=null;
   let activeDate="",creative=false,activeSide="left",selected="",layout=null,drag=null;
-  let statusTimer=null;
+   
 
   function page(side){return $(spread,side==="left"?".bj-daily-left":".bj-daily-right");}
   function stage(side){return $(page(side),".bj-art-card-layer");}
@@ -153,7 +153,8 @@
       '<button type="button" data-bj-action="today">Today</button></div>'+
       '<div class="bj-art-controls bj-art-modes" role="group" aria-label="Journal editing mode">'+
       '<button type="button" data-bj-mode="write" aria-pressed="true">✎ Write</button>'+
-      '<button type="button" data-bj-mode="create" aria-pressed="false">✦ Create</button></div>';
+      '<button type="button" data-bj-mode="create" aria-pressed="false">✦ Create</button></div>'+
+      '<span id="bjArtSaveStatus" class="bj-art-save-status" role="status" aria-live="polite"></span>';
     spread.prepend(toolbar);
     shelf=document.createElement("aside");shelf.id="bjArtSidebar";shelf.className="bj-art-sidebar";
     shelf.setAttribute("aria-label","Creative journal element library");
@@ -243,7 +244,13 @@
         const old=$(container,'[data-bj-card="'+f.key+'"]');
         if(old){
           const input=$(old,f.selector);
-          if(input)$(more,"#bjArtMoreFields").appendChild(input);
+          if(input){
+            const newer=f.key==="gratitude"?$(more,"#bjBookPrompts #bjBookPrompt-gratitude"):null;
+            // renderPrompts rebuilds its original editor on every date change.
+            // Do not leave a second, stale ID/editor in the book.
+            if(newer&&newer!==input)input.remove();
+            else $(more,"#bjArtMoreFields").appendChild(input);
+          }
         }
       }
       container.replaceChildren();
