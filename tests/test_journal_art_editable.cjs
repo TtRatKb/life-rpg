@@ -9,19 +9,28 @@ const index=read('index.html'),sw=read('service-worker.js');
 const art=read('journal-art-editable.js'),css=read('journal-art-editable.css');
 const book=read('bullet-journal-book.js'),sticker=read('bullet-journal-atelier.js');
 const layers=read('journal-canva-isolated-layers.js');
+const original=read('assets/journal/source/jasmine-canva-magic-layers.svg');
 for(const p of ['journal-art-editable.js','bullet-journal-book.js','bullet-journal-atelier.js','journal.js','service-worker.js','pwa.js']){
  const run=cp.spawnSync(process.execPath,['--check',path.join(root,p)],{encoding:'utf8'});
  assert.equal(run.status,0,p+': '+run.stderr);
 }
-assert.ok(layers.length>400000,'Full transparent Canva-separated art asset bundle must be present');
-assert.match(layers,/data:image\/webp;base64/);
+assert.ok(original.length>3000000,'Complete original Canva SVG must be bundled locally');
+assert.match(original,/<mask\b/,'Actual transparency masks preserved');
+assert.match(original,/<clipPath\b/,'Individual element clip paths preserved');
+assert.match(original,/data:image\/png;base64/,'Original image data retained');
+assert.ok(layers.length<15000,'Loader is only a thin manifest, no guessed crop bitmaps');
+assert.match(layers,/jasmine-canva-magic-layers\.svg/);
+assert.match(layers,/DOMParser/);
+assert.match(layers,/createObjectURL/);
+assert.doesNotMatch(layers,/data:image\/webp;base64/,'Rejected heuristic crop assets removed');
 assert.match(layers,/"frame:gratitude"/);
 assert.match(layers,/"frame:bookNote"/);
 assert.match(layers,/"paper:clean"/);
-assert.match(index,/journal-canva-isolated-layers\.js\?v=0\.31\.4-true-layers1/);
+assert.match(index,/journal-canva-isolated-layers\.js\?v=0\.31\.4-svg-master2/);
+assert.match(sw,/assets\/journal\/source\/jasmine-canva-magic-layers\.svg/);
 assert.doesNotMatch(index,/href="journal-art-background-v2\.css/,'Do not load the rejected screenshot image atlas');
 for(const name of ['journal-art-editable.js','journal-art-editable.css','journal-canva-isolated-layers.js'])
- for(const file of [index,sw])assert.match(file,new RegExp(name.replace('.','\\.')+'\\?v=0\\.31\\.4-true-layers1'));
+ for(const file of [index,sw])assert.match(file,new RegExp(name.replace('.','\\.')+'\\?v=0\\.31\\.4-svg-master2'));
 assert.match(art,/LifeRPGJournalCanvasLayers/,'New art comes from actual Canva separated element assets');
 assert.doesNotMatch(art,/extractTransparentOriginals|screenCrop|const masks=/,'Rejected screenshot segmentation must be removed entirely');
 assert.match(art,/frame-crop/,'Transparent original-painted frame is independently movable');
@@ -51,7 +60,7 @@ const state={
 };
 const before=JSON.stringify(state);
 const environment={LifeRPGApp:{getState:()=>state,saveState:()=>true}};
-vm.runInNewContext(layers,{window:environment,console});
+environment.LifeRPGJournalCanvasLayers={assets:{},ready:Promise.resolve(null)};
 vm.runInNewContext(art,{window:environment,console});
 const api=environment.LifeRPGJournalArtSpread;
 assert(api&&api._test,'Pure layout helpers must be available for regression');
