@@ -186,6 +186,15 @@ class JournalBookBrowserTests(unittest.TestCase):
         )
         self.page.locator('[data-bj-layer-mode="create"]').click()
         self.page.locator('[data-bj-choose-side="right"]').click()
+        detail=self.page.evaluate("""() => {
+          const p=document.querySelector('[data-bj-page="right"]');
+          const s=document.querySelector('#bjBookDailySpread');
+          const r=p.getBoundingClientRect();
+          return {active:s.dataset.bjEditSide,creative:s.classList.contains('bj-layer-creative'),
+                  paperWidth:r.width,paperDisplay:getComputedStyle(p).display,
+                  spreadWidth:s.getBoundingClientRect().width};
+        }""")
+        self.assertGreater(detail["paperWidth"],250,str(detail))
         self.page.locator('[data-bj-add-card="focusText"]').click()
         self.page.wait_for_function("""() => document.querySelector('[data-bj-field="focusText"]')?.getBoundingClientRect().width>20""")
         self.page.locator('[data-bj-box-mode="lined"]').click()
