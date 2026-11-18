@@ -1,100 +1,232 @@
-/* Life RPG Journal Art V2 — live writing on a genuine illustrated page. */
-#bjBookDailySpread[hidden]{display:none!important}
-#bjBookDailySpread.bj-art-enabled.bj-book-spread{display:block!important;min-height:0;max-width:none;padding:0 0 20px;background:#faf6f0;border:0;box-shadow:none}
-#bjBookDailySpread.bj-art-enabled > .bj-book-page{display:none!important}
-#bjBookDailySpread .bj-art-toolbar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin:5px auto 14px;max-width:1086px;font:600 .8rem "Nunito Sans",system-ui,sans-serif;color:#624e55}
-#bjBookDailySpread .bj-art-toolbar button,#bjBookDailySpread .bj-art-toolbar input{
- appearance:none;background:#fffdfa;color:#634f57;border:1px solid #dfd1cd;border-radius:10px;
- padding:7px 11px;font:600 .8rem "Nunito Sans",system-ui,sans-serif;cursor:pointer
+/* Life RPG: original Jasmine-watercolor collage, genuinely separate layers.
+ * The original illustration atlas is used only for cropped, movable elements;
+ * no flattened image or generic replacement rectangles are shown as pages.
+ */
+#view-bullet-journal #bjBookDailySpread.bj-layer-enabled{
+  box-sizing:border-box;display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:auto auto;
+  height:auto;min-height:0;max-width:1470px;width:100%;margin:0 auto;
+  padding:0;overflow:hidden;background:#faeee2;
+  border:1px solid #ceb99f;border-radius:8px 16px 16px 8px;
+  box-shadow:0 15px 44px rgba(79,51,50,.18),inset 0 0 0 1px #ead8c6
 }
-#bjBookDailySpread .bj-art-toolbar button[aria-current="page"]{background:#ebeee6;border-color:#b9c9ba}
-#bjBookDailySpread .bj-art-toolbar button:disabled{opacity:.4;cursor:not-allowed}
-#bjBookDailySpread .bj-art-toolbar .bj-art-controls{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
-#bjBookDailySpread .bj-art-scroller{width:100%;overflow-x:auto;overflow-y:hidden;scrollbar-width:thin;scrollbar-color:#cdbeb9 transparent;border-radius:8px}
-#bjArtPaper{
- position:relative;box-sizing:border-box;margin:0 auto;width:clamp(780px,100%,1086px);
- aspect-ratio:1086 / 1448;background-color:#fffaf4;background-position:center;background-repeat:no-repeat;
- background-size:100% 100%;isolation:isolate;box-shadow:0 9px 35px rgba(67,50,43,.11);border:1px solid #e9dfd0;
+#view-bullet-journal #bjBookDailySpread.bj-layer-enabled[hidden]{display:none!important}
+#bjBookDailySpread.bj-layer-enabled>.bj-book-page{display:none!important}
+#bjBookDailySpread.bj-layer-enabled:after{
+  top:57px;bottom:0;z-index:7;width:25px;left:calc(50% - 12px);
+  background:linear-gradient(90deg,transparent,rgba(79,53,48,.08) 30%,rgba(75,47,44,.19) 49%,rgba(250,238,226,.16) 60%,transparent)
 }
-#bjArtPaper .bj-art-field{
- box-sizing:border-box;position:absolute;z-index:2;resize:none;overflow-y:auto;border:0!important;
- outline:0;background:transparent!important;box-shadow:none!important;border-radius:0!important;
- color:#37312b;font:400 17px/35px "Sue Ellen Francisco","Shadows Into Light","Noteworthy",cursive!important;
- letter-spacing:.02em;padding:0 1px!important;min-width:0;min-height:0;scrollbar-width:thin;scrollbar-color:#cabbab transparent;
+#bjBookDailySpread .bj-layer-asset-source{
+  position:absolute!important;width:1086px;height:1448px;top:-99999px;left:-99999px;
+  visibility:hidden;pointer-events:none;z-index:-1
 }
-#bjArtPaper .bj-art-field::placeholder{color:rgba(68,58,52,.38);font-style:italic}
-#bjArtPaper .bj-art-field:focus-visible{
- outline:2px dashed #7d9376!important;outline-offset:4px;background:rgba(255,255,255,.20)!important;
+#bjBookDailySpread .bj-layer-toolbar{
+  box-sizing:border-box;grid-column:1/-1;grid-row:1;position:relative;z-index:10;
+  display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;
+  min-height:57px;padding:8px clamp(9px,1.6vw,21px);background:#fff9f5;
+  border-bottom:1px solid #e5d5c8;color:#745c63;
+  font:750 .71rem/1.25 "Nunito Sans",sans-serif
 }
-#bjArtPaper [data-bj-art="gratitude"]{left:10.7%;top:27.7%;width:30.1%;height:13.5%}
-#bjArtPaper [data-bj-art="focusText"]{left:51.8%;top:35.5%;width:23.3%;height:12.1%}
-#bjArtPaper [data-bj-art="intentionText"]{left:9.1%;top:47.9%;width:21%;height:11.1%}
-#bjArtPaper [data-bj-art="happyMomentsText"]{left:8.8%;top:66.5%;width:21%;height:10.0%}
-#bjArtPaper [data-bj-art="bookNote"]{left:71.4%;top:73.6%;width:21.9%;height:12.0%}
-#bjArtPaper [data-bj-art="focusText"],#bjArtPaper [data-bj-art="intentionText"],
-#bjArtPaper [data-bj-art="happyMomentsText"]{line-height:34px!important}
-#bjArtPaper [data-bj-art="bookNote"]{line-height:36px!important}
-#bjArtPaper .bj-art-date,#bjArtPaper .bj-art-day{
- position:absolute;z-index:2;left:78%;width:13%;font:400 17px/1.2 "Sue Ellen Francisco","Shadows Into Light",cursive;
- color:#40362c;white-space:nowrap;pointer-events:none
+#bjBookDailySpread .bj-layer-nav-group{display:flex;align-items:center;flex-wrap:wrap;gap:4px;min-width:0}
+#bjBookDailySpread .bj-layer-toolbar button,
+#bjBookDailySpread .bj-layer-toolbar input{
+  box-sizing:border-box;appearance:none;min-height:33px;border-radius:9px!important;
+  border:1px solid transparent!important;
+  background:transparent!important;box-shadow:none!important;
+  padding:7px 9px!important;font:750 .71rem/1.15 "Nunito Sans",sans-serif!important;
+  color:#745c63!important;cursor:pointer
 }
-#bjArtPaper .bj-art-date{top:6.3%}
-#bjArtPaper .bj-art-day{top:9.1%}
-#bjArtPaper .bj-art-mood{
- position:absolute;left:47.9%;top:52.5%;width:32%;height:5.2%;z-index:3;
- background:transparent;border:0;cursor:pointer;color:transparent;border-radius:7px;
+#bjBookDailySpread .bj-layer-toolbar input{width:128px;background:#fffdfb!important;border-color:#dbcabe!important}
+#bjBookDailySpread .bj-layer-toolbar button:disabled{opacity:.45;cursor:default}
+#bjBookDailySpread .bj-layer-toolbar button:hover{background:#f7ece6!important}
+#bjBookDailySpread .bj-layer-toolbar button[aria-pressed="true"],
+#bjBookDailySpread .bj-layer-toolbar [data-bj-chapter="daily"]{
+  background:#e9eee1!important;border-color:#c5cfb9!important;color:#65735f!important
 }
-#bjArtPaper .bj-art-mood:focus-visible{outline:2px dashed #7c8e77;outline-offset:1px}
-#bjArtPaper .bj-art-mood-current{
- position:absolute;left:50%;top:58.4%;max-width:30%;font:600 11px/1.2 "Nunito Sans",system-ui,sans-serif;
- color:#6a695a;background:rgba(255,250,242,.85);border-radius:4px;padding:2px 5px;pointer-events:none
+#bjBookDailySpread .bj-layer-mode-switch{border:1px solid #e5d6cd;border-radius:11px;padding:2px;background:#f7eee9}
+#bjBookDailySpread #bjLayerStatus{font:.68rem/1.4 "Nunito Sans",sans-serif;color:#987c86;white-space:nowrap}
+#bjBookDailySpread .bj-layer-page{
+  box-sizing:border-box;grid-row:2;position:relative;aspect-ratio:210 / 297;
+  min-width:0;min-height:0;width:100%;overflow:hidden;
+  padding:0;border:0;
+  background:radial-gradient(ellipse at 32% 20%,rgba(255,251,242,.9),transparent 65%),
+    radial-gradient(ellipse at 86% 82%,rgba(239,218,193,.63),transparent 57%),#fae9db;
+  isolation:isolate
 }
-#bjBookDailySpread .bj-art-status{max-width:1086px;margin:8px auto 0;min-height:18px;font:600 .78rem "Nunito Sans",system-ui,sans-serif;color:#725d64;text-align:left}
-#bjBookDailySpread .bj-art-more{max-width:1086px;margin:20px auto 0;border:1px solid #e5d7d0;border-radius:12px;padding:14px 18px;background:#fffefa}
-#bjBookDailySpread .bj-art-more>summary{cursor:pointer;font:700 .91rem "Nunito Sans",system-ui,sans-serif;color:#634e58}
-#bjBookDailySpread .bj-art-extra-area{display:grid;gap:17px;padding:17px 2px}
-#bjBookDailySpread .bj-art-extra-area #bjBookPrompts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}
-#bjBookDailySpread .bj-art-extra-area .bj-book-prompt-card[data-bj-field="gratitude"]{
- display:block;min-height:0;margin:0;padding:9px 12px;background:#f3f7ee;border-radius:8px;transform:none
+#bjBookDailySpread .bj-layer-page[data-bj-page="left"]{grid-column:1;box-shadow:inset -8px 0 18px rgba(119,80,63,.06)}
+#bjBookDailySpread .bj-layer-page[data-bj-page="right"]{grid-column:2;box-shadow:inset 8px 0 18px rgba(119,80,63,.06)}
+#bjBookDailySpread .bj-layer-page[data-bj-paper="plain"]{
+  background:radial-gradient(circle at 70% 17%,#fffefa,#f7e9df)
 }
-#bjBookDailySpread .bj-art-extra-area .bj-book-prompt-card[data-bj-field="gratitude"] label{font:600 .85rem "Nunito Sans",system-ui,sans-serif}
-#bjBookDailySpread .bj-art-extra-area .bj-book-prompt-card:not([data-bj-field="gratitude"]){
- display:grid;min-height:0;margin:0;transform:none;border-radius:8px;
+#bjBookDailySpread .bj-layer-paper-grain{
+  position:absolute;inset:0;z-index:0;pointer-events:none;opacity:.7;
+  background-image:radial-gradient(circle,rgba(163,121,104,.36) .55px,transparent .85px);
+  background-size:16px 16px
 }
-#bjBookDailySpread .bj-art-extra-area .bj-book-prompt-card textarea{
- font:400 17px/29px "Sue Ellen Francisco","Noteworthy",cursive!important;
- background:transparent!important
+#bjBookDailySpread .bj-layer-page[data-bj-paper="plain"] .bj-layer-paper-grain{opacity:.33}
+#bjBookDailySpread .bj-layer-decor,
+#bjBookDailySpread .bj-layer-card-stage{position:absolute;inset:0;overflow:hidden}
+#bjBookDailySpread .bj-layer-decor{z-index:1;pointer-events:none}
+#bjBookDailySpread .bj-layer-card-stage{z-index:3;pointer-events:none}
+#bjBookDailySpread .bj-layer-page[data-bj-paper="plain"] .bj-layer-decor{opacity:.12}
+#bjBookDailySpread .bj-layer-art-piece,
+#bjBookDailySpread .bj-layer-frame-crop{
+  position:absolute;box-sizing:border-box;background-image:var(--bj-original-atlas);
+  background-repeat:no-repeat;background-origin:border-box;
+  background-color:transparent;pointer-events:none;user-select:none;
+  -webkit-mask-image:radial-gradient(ellipse 82% 84% at center,#000 78%,rgba(0,0,0,.99) 83%,transparent 100%);
+  mask-image:radial-gradient(ellipse 82% 84% at center,#000 78%,rgba(0,0,0,.99) 83%,transparent 100%);
 }
-#bjBookDailySpread .bj-art-extra-area .bj-extra-grid{display:none}
-#bjBookDailySpread .bj-art-extra-area .bj-book-daily-mini,#bjBookDailySpread .bj-art-extra-area .bj-atelier-mount{min-width:0}
-#bjBookDailySpread .bj-art-extra-area .bj-book-actions,#bjBookDailySpread .bj-art-extra-area .bj-book-recorded-details{margin:0}
-@media(max-width:800px){
- #bjBookDailySpread .bj-art-scroller{border-radius:0}
- #bjArtPaper .bj-art-field{font-size:16px!important;line-height:26px!important}
- #bjArtPaper [data-bj-art="focusText"],#bjArtPaper [data-bj-art="intentionText"],
- #bjArtPaper [data-bj-art="happyMomentsText"],#bjArtPaper [data-bj-art="bookNote"]{line-height:26px!important}
- #bjBookDailySpread .bj-art-extra-area #bjBookPrompts{grid-template-columns:1fr}
- #bjBookDailySpread .bj-art-toolbar{margin:10px 7px 12px}
- #bjBookDailySpread .bj-art-status{padding:0 9px}
- #bjBookDailySpread .bj-art-more{margin:16px 6px 0}
+#bjBookDailySpread .bj-layer-art-piece{transform:translate(-50%,-50%);filter:drop-shadow(0 2px 3px rgba(67,47,39,.02))}
+#bjBookDailySpread .bj-layer-original-frame{
+  box-sizing:border-box;position:absolute;z-index:3;
+  transform:translate(-50%,-50%);pointer-events:auto;
+  border:0!important;background:transparent!important;box-shadow:none!important;
 }
-
-/* Hidden daily pages must actually disappear when Weeks/Months/Collections is selected. */
-#bjBookDailySpread.bj-art-enabled[hidden]{display:none!important}
-
-/* Small screens retain the original artwork at readable size with horizontal panning. */
-#bjBookDailySpread .bj-art-scroller{max-width:calc(100vw - 26px);min-width:0}
-
-@media(max-width:800px){
- #view-bullet-journal #bjBookDailySpread .bj-art-scroller{box-sizing:border-box!important;width:calc(100vw - 26px)!important;max-width:calc(100vw - 26px)!important;overflow-x:scroll!important;display:block!important}
- #view-bullet-journal #bjArtPaper{width:780px!important;min-width:780px!important;max-width:none!important;flex:none!important}
+#bjBookDailySpread .bj-layer-frame-crop{inset:0;width:100%;height:100%}
+#bjBookDailySpread .bj-layer-write-zone{
+  box-sizing:border-box;position:absolute!important;z-index:4;
+  overflow:hidden;border:0!important;background:transparent!important;padding:0!important
 }
-
-/* Keep chapter selection and date controls tidy above the artwork. */
-#bjBookDailySpread .bj-art-toolbar{display:grid;grid-template-columns:minmax(0,1fr) max-content;align-items:center}
-#bjBookDailySpread .bj-art-toolbar .bj-art-controls{flex-wrap:nowrap}
-#bjBookDailySpread .bj-art-toolbar input[type="date"]{box-sizing:border-box;width:158px;min-width:0}
-@media(max-width:760px){
- #bjBookDailySpread .bj-art-toolbar{display:flex;flex-wrap:wrap;justify-content:flex-start}
- #bjBookDailySpread .bj-art-toolbar .bj-art-controls{flex-wrap:wrap}
+#bjBookDailySpread .bj-layer-write-zone textarea{
+  box-sizing:border-box;display:block;position:static!important;
+  width:100%!important;height:100%!important;margin:0!important;padding:0!important;
+  max-height:none!important;min-height:0!important;min-width:0!important;
+  resize:none!important;overflow-y:auto!important;
+  border:0!important;outline:0!important;border-radius:0!important;
+  background:transparent!important;background-image:none!important;box-shadow:none!important;
+  color:#3f322c!important;
+  font-family:"Sue Ellen Francisco","Shadows Into Light","Noteworthy",cursive!important;
+  font-weight:400!important;font-style:normal!important;letter-spacing:.005em!important;
+  scrollbar-color:#ddc4b4 transparent;scrollbar-width:thin;
+}
+#bjBookDailySpread .bj-layer-write-zone textarea:focus-visible{
+  outline:1px dotted rgba(110,94,78,.7)!important;outline-offset:2px
+}
+#bjBookDailySpread .bj-layer-unavailable{font:650 .77rem "Nunito Sans",sans-serif;color:#755e61}
+#bjBookDailySpread .bj-layer-mood{
+  position:absolute;z-index:6;right:7%;top:5%;
+  max-width:40%;min-height:30px;padding:5px 12px!important;
+  border:1px solid rgba(194,153,125,.38)!important;border-radius:25px!important;
+  background:rgba(255,249,236,.85)!important;box-shadow:0 2px 7px rgba(78,50,46,.08)!important;
+  color:#685549!important;
+  font:400 clamp(15px,1.3vw,22px)/1.2 "Sue Ellen Francisco",cursive!important;
+  cursor:pointer
+}
+#bjBookDailySpread .bj-layer-date{
+  position:absolute;top:23%;right:4%;z-index:2;display:flex;flex-direction:column;align-items:flex-end;gap:3px;
+  transform:rotate(-2deg);color:#655345;pointer-events:none;
+  font:400 clamp(15px,1.45vw,21px)/1.25 "Sue Ellen Francisco",cursive
+}
+#bjBookDailySpread .bj-layer-handle,
+#bjBookDailySpread .bj-layer-hide{
+  display:none;position:absolute;z-index:9;
+  width:34px;height:34px;min-height:34px;padding:0!important;
+  align-items:center;justify-content:center;
+  border:1px solid #9f7b80!important;border-radius:50%!important;
+  color:#664a55!important;background:#fffbf5!important;
+  font:700 19px/1 "Nunito Sans",sans-serif!important;
+  box-shadow:0 2px 9px rgba(64,43,50,.15)!important;
+  touch-action:none;user-select:none;cursor:grab;pointer-events:auto
+}
+#bjBookDailySpread .bj-layer-handle{top:4px;right:39px}
+#bjBookDailySpread .bj-layer-hide{top:4px;right:3px;cursor:pointer}
+#bjBookDailySpread.bj-layer-creative .bj-layer-handle,
+#bjBookDailySpread.bj-layer-creative .bj-layer-hide{display:flex}
+#bjBookDailySpread.bj-layer-creative .bj-layer-write-zone textarea{
+  pointer-events:none;user-select:none
+}
+#bjBookDailySpread.bj-layer-creative .bj-layer-original-frame.is-selected:after{
+  content:"";position:absolute;inset:8px;z-index:2;border:2px dashed #9b6486;
+  border-radius:14px;pointer-events:none;box-shadow:0 0 0 2px rgba(255,251,242,.7)
+}
+#bjBookDailySpread .bj-layer-shelf{
+  display:none;box-sizing:border-box;grid-row:2;
+  min-width:0;max-height:100%;overflow-y:auto;overscroll-behavior:contain;
+  padding:clamp(18px,3vw,35px);
+  border-left:1px solid #e4cabf;background:#fff8ef;
+  font:600 .82rem/1.5 "Nunito Sans",sans-serif;color:#6e575d
+}
+#bjBookDailySpread.bj-layer-creative .bj-layer-shelf{display:block}
+#bjBookDailySpread.bj-layer-creative[data-bj-edit-side="left"]>[data-bj-page="right"]{display:none!important}
+#bjBookDailySpread.bj-layer-creative[data-bj-edit-side="left"] .bj-layer-shelf{grid-column:2}
+#bjBookDailySpread.bj-layer-creative[data-bj-edit-side="right"]>[data-bj-page="left"]{display:none!important}
+#bjBookDailySpread.bj-layer-creative[data-bj-edit-side="right"]>[data-bj-page="right"]{grid-column:2}
+#bjBookDailySpread.bj-layer-creative[data-bj-edit-side="right"] .bj-layer-shelf{
+  grid-column:1;border-right:1px solid #e4cabf;border-left:0
+}
+#bjBookDailySpread .bj-layer-shelf>h2{
+  margin:4px 0;font:400 clamp(26px,2.6vw,38px)/1.2 "Parisienne",cursive;color:#765462
+}
+#bjBookDailySpread .bj-layer-shelf>p{margin:4px 0 13px;color:#887275;font-size:.76rem}
+#bjBookDailySpread .bj-layer-shelf h3{
+  margin:16px 0 9px;font-size:.73rem;font-weight:800;color:#805f6a;letter-spacing:.06em
+}
+#bjBookDailySpread .bj-layer-shelf button{
+  border:1px solid #dac6bb!important;border-radius:12px!important;
+  background:#fffdf9!important;color:#6f5863!important;cursor:pointer;
+  font:700 .73rem/1.25 "Nunito Sans",sans-serif!important;
+  padding:8px 9px!important;min-height:35px
+}
+#bjBookDailySpread .bj-layer-shelf button[aria-pressed="true"]{
+  background:#ecf1e7!important;border-color:#acbca2!important
+}
+#bjBookDailySpread .bj-layer-page-choice,
+#bjBookDailySpread .bj-layer-papers{display:flex;flex-wrap:wrap;gap:6px}
+#bjBookDailySpread .bj-layer-library{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+#bjBookDailySpread .bj-layer-library-item{
+  display:flex;flex-direction:column;align-items:flex-start;justify-content:center;
+  gap:4px;text-align:left;min-width:0;min-height:94px;padding:11px!important
+}
+#bjBookDailySpread .bj-layer-library-mini{font:400 21px/1 Georgia,serif;color:#8eaa88}
+#bjBookDailySpread .bj-layer-library-item small{font-size:.63rem;color:#aa8d95}
+#bjBookDailySpread .bj-layer-selected{
+  display:flex;flex-wrap:wrap;gap:7px;
+  padding:12px;margin-top:12px;border:1px dashed #ba9bad;border-radius:13px;background:#f9eff1
+}
+#bjBookDailySpread .bj-layer-selected strong{width:100%}
+#bjBookDailySpread .bj-layer-shelf .bj-layer-tip{margin-top:17px;color:#967b7e;font-size:.7rem}
+#bjBookDailySpread .bj-layer-more-stickers{margin-top:17px;padding:10px;border:1px solid #e3ccc2;border-radius:12px}
+#bjBookDailySpread .bj-layer-more-stickers summary{cursor:pointer;font-weight:800;color:#866579}
+#view-bullet-journal .bj-layer-extras{
+  box-sizing:border-box;width:100%;max-width:1470px;margin:16px auto 10px;
+  padding:14px 18px;border:1px solid #e7d0c4;border-radius:13px;
+  background:#fffdfa;color:#795966
+}
+#view-bullet-journal .bj-layer-extras>summary{cursor:pointer;font:800 .86rem "Nunito Sans",sans-serif}
+#view-bullet-journal .bj-layer-extras #bjLayerExtras{display:grid;gap:12px;padding:14px 0}
+#view-bullet-journal .bj-layer-extras .bj-book-page{
+  display:block!important;min-width:0;min-height:0;height:auto;
+  background:none!important;border:0!important;box-shadow:none!important
+}
+#view-bullet-journal .bj-layer-extras .bj-book-page-inner{min-height:0!important;padding:6px!important;display:block}
+#view-bullet-journal .bj-layer-extras .bj-book-date-heading,
+#view-bullet-journal .bj-layer-extras .bj-daily-opening,
+#view-bullet-journal .bj-layer-extras .bj-daily-topline,
+#view-bullet-journal .bj-layer-extras .bj-daily-teacup,
+#view-bullet-journal .bj-layer-extras .bj-extra-grid{display:none!important}
+#view-bullet-journal .bj-layer-extras .bj-daily-note{margin:0;padding:0;border:0}
+#view-bullet-journal .bj-layer-extras .bj-daily-note>h2,
+#view-bullet-journal .bj-layer-extras .bj-daily-note>label{display:none!important}
+#view-bullet-journal .bj-layer-extras .bj-book-prompts{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px
+}
+#view-bullet-journal .bj-layer-extras [data-bj-field="gratitude"]{display:none!important}
+#view-bullet-journal .bj-layer-extras .bj-book-actions{margin:4px 0;padding:0;border:0}
+#view-bullet-journal .bj-layer-extras .bj-book-recorded-details{margin:0;padding:8px 0}
+#view-bullet-journal #bjBookDailySpread[hidden] + .bj-layer-extras{display:none!important}
+@media(max-width:1000px){
+  #view-bullet-journal #bjBookDailySpread.bj-layer-enabled{
+    grid-template-columns:repeat(2,minmax(390px,1fr));
+    max-width:calc(100vw - 20px);overflow-x:auto;overflow-y:hidden;
+    overscroll-behavior-x:contain
+  }
+  #bjBookDailySpread .bj-layer-page{min-width:390px}
+  #bjBookDailySpread .bj-layer-toolbar{min-width:780px}
+  #bjBookDailySpread .bj-layer-shelf{min-width:390px}
+}
+@media print{
+  #bjBookDailySpread .bj-layer-toolbar,#bjBookDailySpread .bj-layer-shelf,
+  #view-bullet-journal .bj-layer-extras{display:none!important}
+  #view-bullet-journal #bjBookDailySpread.bj-layer-enabled{box-shadow:none;overflow:visible}
 }
