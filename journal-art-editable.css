@@ -352,3 +352,20 @@
   border:1px solid #ced7c6!important;border-radius:9px!important;
   font-size:.69rem!important
 }
+
+/* Exact Canva-exported transparent flowers, painted frames and paper.
+   No screenshot atlas, no clipping masks or edge-faded rectangular crops. */
+#view-bullet-journal #bjBookDailySpread.bj-layer-enabled .bj-layer-page[data-bj-paper="jasmine"]{
+  background-image:var(--bj-clean-paper);
+  background-position:center;background-size:100% 100%;background-repeat:no-repeat;
+  background-color:#f8e9dc
+}
+#bjBookDailySpread.bj-layer-sprites-ready .bj-layer-art-piece,
+#bjBookDailySpread.bj-layer-sprites-ready .bj-layer-frame-crop{
+  mask-image:none!important;-webkit-mask-image:none!important;
+  background-repeat:no-repeat
+}
+#bjBookDailySpread.bj-layer-sprites-ready .bj-layer-original-frame{
+  border:0!important;box-shadow:none!important;
+  background:transparent!important;overflow:visible
+}
