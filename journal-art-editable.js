@@ -12,11 +12,11 @@
   const SOURCE={w:1086,h:1448,screenX:35,screenY:20,screenW:870,screenH:1142};
   const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
   const E={
-    gratitude:{title:"Today I'm grateful for…",selector:"#bjBookPrompt-gratitude",side:"left",x:50,y:41,scale:1.60,crop:[50,281,382,249],write:[.195,.255,.725,.64],line:29},
-    intentionText:{title:"Today I will…",selector:"#bjExtra-intentionText",side:"left",x:51,y:75,scale:1.60,crop:[45,526,410,213],write:[.132,.295,.44,.62],line:28},
-    focusText:{title:"Focus for today",selector:"#bjExtra-focusText",side:"right",x:52,y:27,scale:1.45,crop:[429,380,311,226],write:[.18,.265,.74,.64],line:28},
-    happyMomentsText:{title:"Little moments that made me happy",selector:"#bjExtra-happyMomentsText",side:"right",x:46,y:54,scale:1.45,crop:[59,727,285,225],write:[.15,.33,.76,.61],line:29},
-    bookNote:{title:"Notes & thoughts",selector:"#bjBookText",side:"right",x:54,y:82,scale:1.45,crop:[630,807,264,259],write:[.15,.255,.76,.66],line:30}
+    gratitude:{title:"Today I'm grateful for…",selector:"#bjBookPrompt-gratitude",side:"left",x:46,y:35,defaultScale:.92,angle:-1.8,scale:1.60,crop:[50,281,382,249],write:[.195,.255,.725,.64],line:29},
+    intentionText:{title:"Today I will…",selector:"#bjExtra-intentionText",side:"left",x:59,y:60,defaultScale:.83,angle:1.8,scale:1.60,crop:[45,526,410,213],write:[.132,.295,.44,.62],line:28},
+    focusText:{title:"Focus for today",selector:"#bjExtra-focusText",side:"right",x:40,y:36,defaultScale:1.07,angle:1.6,scale:1.45,crop:[429,380,311,226],write:[.18,.265,.74,.64],line:28},
+    happyMomentsText:{title:"Little moments that made me happy",selector:"#bjExtra-happyMomentsText",side:"left",x:34,y:83,defaultScale:.95,angle:-2.3,scale:1.45,crop:[59,727,285,225],write:[.15,.33,.76,.61],line:29},
+    bookNote:{title:"Notes & thoughts",selector:"#bjBookText",side:"right",x:65,y:69,defaultScale:1.06,angle:-1.5,scale:1.45,crop:[630,807,264,259],write:[.15,.255,.76,.66],line:30}
   };
   const ORDER=Object.keys(E);
   const BOX_MODES=["plain","lined","checklist"];
@@ -25,6 +25,7 @@
   const fieldSelector=key=>E[key]?.selector||'[data-bj-custom-source="'+key+'"]';
   const cardKeys=()=>layout?Object.keys(layout.cards):ORDER;
   const clampScale=n=>clamp(Number.isFinite(Number(n))?Number(n):1,.45,1.55);
+  const clampAngle=n=>clamp(Number.isFinite(Number(n))?Number(n):0,-8,8);
   const splitText=value=>String(value??"").split("\n");
   const compactLines=lines=>lines.map(v=>String(v??"")).join("\n").replace(/\n+$/g,"");
   const maxLines=24;
@@ -150,7 +151,12 @@
 
   const defaults=()=>{
     const cards={};
-    for(const [key,f] of Object.entries(E))cards[key]={side:f.side,x:f.x,y:f.y,visible:true,scale:1,mode:defaultMode(key),checks:[]};
+    // Art-directed paper collage: an intentional offset stack, not a vertical
+    // set of generic cards. Only NEW days receive these suggested positions.
+    for(const [key,f] of Object.entries(E))cards[key]={
+      side:f.side,x:f.x,y:f.y,visible:true,scale:f.defaultScale,
+      rotation:f.angle,mode:defaultMode(key),checks:[]
+    };
     return {schemaVersion:3,paper:{left:"jasmine",right:"jasmine"},cards};
   };
   function normalize(raw){
@@ -165,6 +171,8 @@
         y:clamp(Number.isFinite(+c.y)?+c.y:f.y,10,90),
         visible:c.visible!==false,
         scale:clampScale(c.scale),
+        // Existing saved layouts from before rotation must look unchanged.
+        rotation:clampAngle(c.rotation),
         mode:BOX_MODES.includes(c.mode)?c.mode:defaultMode(key),
         checks:Array.isArray(c.checks)?c.checks.slice(0,maxLines).map(v=>v===true):[]
       };
@@ -180,6 +188,7 @@
           y:clamp(Number.isFinite(+c.y)?+c.y:50,10,90),
           visible:c.visible!==false,
           scale:clampScale(c.scale),
+          rotation:clampAngle(c.rotation),
           mode:BOX_MODES.includes(c.mode)?c.mode:defaultMode(c.template),
           checks:Array.isArray(c.checks)?c.checks.slice(0,maxLines).map(v=>v===true):[],
           text:typeof c.text==="string"?c.text:""
@@ -329,21 +338,30 @@
       if(act){editSelected(act.dataset.bjActionCard);return;}
       const modeButton=e.target.closest?.("[data-bj-box-mode]");
       if(modeButton){setBoxMode(selected,modeButton.dataset.bjBoxMode);return;}
-      const scaleInput=e.target.closest?.("[data-bj-card-scale]");
+      const scaleInput=e.target.closest?.("[data-bj-card-scale],[data-bj-card-angle]");
       if(scaleInput&&e.type==="click")return;
       const paperButton=e.target.closest?.("[data-bj-paper]");
       if(paperButton&&layout){layout.paper[activeSide]=paperButton.dataset.bjPaper==="plain"?"plain":"jasmine";if(saveLayout())updateMode();}
     });
     sideBar.addEventListener("input",e=>{
-      const slider=e.target.closest?.("[data-bj-card-scale]");
-      if(!slider||!E[selected]||!layout)return;
+      const slider=e.target.closest?.("[data-bj-card-scale],[data-bj-card-angle]");
+      if(!slider||!descriptor(selected)||!layout)return;
       const p=layout.cards[selected];
-      p.scale=clampScale(Number(slider.value)/100);
-      updateArtworkSizes();
-      const value=$(sideBar,"#bjLayerScaleValue");if(value)value.textContent=Math.round(p.scale*100)+"%";
+      if(slider.hasAttribute("data-bj-card-scale")){
+        p.scale=clampScale(Number(slider.value)/100);
+        updateArtworkSizes();
+        const value=$(sideBar,"#bjLayerScaleValue");
+        if(value)value.textContent=Math.round(p.scale*100)+"%";
+      }else{
+        p.rotation=clampAngle(Number(slider.value));
+        const frame=$(fieldStage(p.side),'[data-bj-field="'+selected+'"]');
+        if(frame)frame.style.transform="translate(-50%,-50%) rotate("+p.rotation+"deg)";
+        const value=$(sideBar,"#bjLayerAngleValue");
+        if(value)value.textContent=p.rotation.toFixed(1)+"°";
+      }
     });
     sideBar.addEventListener("change",e=>{
-      if(e.target.closest?.("[data-bj-card-scale]"))saveLayout();
+      if(e.target.closest?.("[data-bj-card-scale],[data-bj-card-angle]"))saveLayout();
     });
     spread.addEventListener("input",event=>{
       const field=event.target.closest?.(".bj-layer-field");
@@ -500,6 +518,7 @@
       const c=screenCrop(f.crop),w=c.w*px,h=c.h*px;
       box.style.width=w+"px";box.style.height=h+"px";
       box.style.left=pos.x+"%";box.style.top=pos.y+"%";
+      box.style.transform="translate(-50%,-50%) rotate("+clampAngle(pos.rotation)+"deg)";
       const edit=$(box,".bj-layer-write-zone");
       const step=f.line*SOURCE.h/SOURCE.screenH*px;
       if(edit){
@@ -537,7 +556,7 @@
     while(layout.cards[key]);
     layout.cards[key]={
       template,custom:true,side:activeSide,x:50,y:54,
-      scale:.65,mode:defaultMode(template),checks:[],visible:true,text:""
+      scale:.65,rotation:0,mode:defaultMode(template),checks:[],visible:true,text:""
     };
     if(!saveLayout()){delete layout.cards[key];return;}
     selected=key;renderCards();updateMode();
@@ -684,6 +703,9 @@
         ({plain:"Blank",lined:"Lines",checklist:"Checklist"}[mode])+'</button>').join("")+'</div>'+
       '<label class="bj-layer-scale-label" for="bjLayerScale">Size <strong id="bjLayerScaleValue">'+Math.round(layout.cards[selected].scale*100)+'%</strong></label>'+
       '<input id="bjLayerScale" type="range" data-bj-card-scale min="45" max="155" step="1" value="'+Math.round(layout.cards[selected].scale*100)+'">'+
+      '<label class="bj-layer-scale-label" for="bjLayerAngle">Tilt <strong id="bjLayerAngleValue">'+clampAngle(layout.cards[selected].rotation).toFixed(1)+'°</strong></label>'+
+      '<input id="bjLayerAngle" type="range" data-bj-card-angle min="-8" max="8" step=".1" value="'+clampAngle(layout.cards[selected].rotation)+'">'+
+      (!layout.cards[selected].custom?'<button type="button" data-bj-action-card="default">Restore suggested position & size</button>':'')+
       '<button type="button" data-bj-action-card="other-side">Move to other page</button>'+
       '<button type="button" data-bj-action-card="remove">Remove this box</button></div>':"";
     for(const btn of sideBar.querySelectorAll("[data-bj-choose-side]"))
@@ -731,6 +753,12 @@
   function editSelected(action){
     if(!creative||!descriptor(selected))return;
     if(action==="remove"){hideCard(selected);return;}
+    if(action==="default"&&!layout.cards[selected].custom){
+      const f=E[selected],p=layout.cards[selected];
+      Object.assign(p,{side:f.side,x:f.x,y:f.y,scale:f.defaultScale,rotation:f.angle,visible:true});
+      if(saveLayout()){activeSide=p.side;renderCards();updateMode();}
+      return;
+    }
     if(action!=="other-side")return;
     const pos=layout.cards[selected];
     pos.side=pos.side==="left"?"right":"left";activeSide=pos.side;pos.x=50;pos.y=50;
@@ -832,6 +860,6 @@
     version:"0.31.4-illustrated-layers3",init,render,focusField,
     getLayout:()=>layout?JSON.parse(JSON.stringify(layout)):null,
     isCreative:()=>creative,
-    _test:{normalize,screenCrop,splitText,compactLines,clampScale}
+    _test:{normalize,screenCrop,splitText,compactLines,clampScale,clampAngle}
   };
 })();
