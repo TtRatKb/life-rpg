@@ -337,3 +337,18 @@
 #bjBookDailySpread #bjLayerScale{
   width:100%;min-height:28px;accent-color:#8b9a7f;cursor:pointer
 }
+
+/* Every original painted frame may be added again as an independent box.
+   Copies own their text and stable IDs; none steals the five canonical fields. */
+#bjBookDailySpread .bj-layer-library-tile{
+  display:flex;flex-direction:column;min-width:0;gap:3px
+}
+#bjBookDailySpread .bj-layer-library-tile .bj-layer-library-item{
+  flex:1 1 auto;width:100%;min-width:0
+}
+#bjBookDailySpread .bj-layer-library-tile .bj-layer-library-clone{
+  min-height:28px!important;width:100%;padding:5px 7px!important;
+  background:#eef1e8!important;color:#596d58!important;
+  border:1px solid #ced7c6!important;border-radius:9px!important;
+  font-size:.69rem!important
+}
