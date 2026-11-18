@@ -178,7 +178,7 @@
           scale:clampScale(c.scale),
           mode:BOX_MODES.includes(c.mode)?c.mode:defaultMode(c.template),
           checks:Array.isArray(c.checks)?c.checks.slice(0,maxLines).map(v=>v===true):[],
-          text:typeof c.text==="string"?c.text.slice(0,10000):""
+          text:typeof c.text==="string"?c.text:""
         };
       }
     }
@@ -370,7 +370,7 @@
       ta.dataset.bjCustomSource=field;
       ta.value=p.text||"";
       ta.spellcheck=true;
-      ta.maxLength=10000;
+      // Never truncate pre-existing custom writing on a template resize or reload.
       ta.addEventListener("input",()=>queueExtraText(field,ta.value));
       ta.addEventListener("focusout",()=>{if(customSaveTimer)saveLayout();});
       return ta;
