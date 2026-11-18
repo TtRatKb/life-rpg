@@ -79,6 +79,19 @@ assert.equal(normalized.cards.bookNote.visible,false);
 assert.equal(normalized.cards.bookNote.x,88);
 assert.equal(normalized.cards.bookNote.y,10);
 assert.equal(Object.keys(normalized.cards).length,5);
+const withExtra=api._test.normalize({cards:{
+  "custom-test-1":{template:"focusText",custom:true,side:"left",x:40,y:60,scale:.65,
+                   mode:"lined",checks:[],visible:true,text:"Never overwrite this new text"},
+  "custom-malicious":{template:"not-a-template",text:"ignore"}
+}});
+assert.equal(Object.keys(withExtra.cards).length,6);
+assert.equal(withExtra.cards["custom-test-1"].text,"Never overwrite this new text");
+assert.equal(withExtra.cards["custom-test-1"].template,"focusText");
+assert.equal(withExtra.cards.focusText.custom,undefined);
+assert.match(art,/createExtraCard/,'Users must be able to place additional painted boxes side by side');
+assert.match(art,/queueExtraText/,'Additional free-text boxes save independently');
+assert.match(art,/customSaveTimer/,'Custom text drafts are flushed before changing day');
+
 assert.equal(state.journal.entries["2026-11-18"].bookNote,"My own thoughts");
 assert.equal(state.journalAtelierV1.daily["2026-11-18"][0].id,"vintage-sticker");
 console.log("OK: original framed illustrations, two A4 pages, canonical save continuity, no ID/reward changes.");
