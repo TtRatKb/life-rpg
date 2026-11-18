@@ -8,7 +8,7 @@
   if(!app?.getState||!app?.saveState||window.LifeRPGJournalArtSpread)return;
   const $=(root,s)=>root?.querySelector(s);
   const sourceAssets=window.LifeRPGJournalCanvasLayers?.assets||{};
-  const paperAsset=sourceAssets["paper:clean"];
+  const sourceReady=window.LifeRPGJournalCanvasLayers?.ready;
   const ART_WIDTH=920;
   const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
   const E={
@@ -43,10 +43,8 @@
   ];
   const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   function prepareOriginalArtwork(){
-    if(!sourceAssets["frame:gratitude"]||!sourceAssets["frame:bookNote"]||!paperAsset){
-      status("Jasmine illustration layers unavailable. Your writing is safe.");
-      return false;
-    }
+    const paperAsset=sourceAssets["paper:clean"];
+    if(!sourceAssets["frame:gratitude"]||!sourceAssets["frame:bookNote"]||!paperAsset)return false;
     spread.style.setProperty("--bj-clean-paper",'url("'+paperAsset.url+'")');
     spread.classList.add("bj-layer-sprites-ready");
     return true;
@@ -104,7 +102,7 @@
   let view=null,spread=null,tool=null,sideBar=null,more=null;
   let day="",layout=null,creative=false,activeSide="left",selected="",drag=null;
   let customSaveTimer=null,cardIdCounter=0;
-  let resizeObserver=null,ready=false;
+  let resizeObserver=null,ready=false,layerLoadQueued=false,pendingDay="";
 
   function srcCrop(el,_unused,scale,pageWidth){
     const sprite=sourceAssets[el?.dataset?.bjSprite];
@@ -171,8 +169,24 @@
     if(ready||!host)return;
     view=host;spread=$(view,"#bjBookDailySpread");
     if(!spread||spread.classList.contains("bj-layer-enabled"))return;
-    // The original Canva SVG's transparent real objects are bundled locally.
-    if(!prepareOriginalArtwork())return;
+    // The original user-exported SVG is fetched from this app only. Wait for
+    // its independent vector-masked layers before moving canonical textareas.
+    // Never replace an existing working book with blank or broken images.
+    if(!prepareOriginalArtwork()){
+      if(sourceReady&&!layerLoadQueued){
+        layerLoadQueued=true;
+        sourceReady.then(result=>{
+          layerLoadQueued=false;
+          if(!result)return;
+          init(host);
+          if(ready&&pendingDay)render(pendingDay,host);
+        }).catch(error=>{
+          layerLoadQueued=false;
+          console.warn("Jasmine layers unavailable; old Journal untouched",error);
+        });
+      }
+      return;
+    }
     tool=document.createElement("nav");tool.className="bj-layer-toolbar";
     tool.setAttribute("aria-label","Journal navigation and modes");
     tool.innerHTML='<div class="bj-layer-nav-group">'+
@@ -717,6 +731,7 @@
     saveLayout();updateSelection();grip.focus();
   }
   function render(nextDay,host=view){
+    if(!ready&&nextDay)pendingDay=nextDay;
     if(!ready&&host)init(host);
     if(!ready||!nextDay)return;
     const changed=day!==nextDay;
@@ -754,7 +769,7 @@
     return true;
   }
   window.LifeRPGJournalArtSpread={
-    version:"0.31.4-illustrated-layers3",init,render,focusField,
+    version:"0.31.4-canva-real-svg2",init,render,focusField,
     getLayout:()=>layout?JSON.parse(JSON.stringify(layout)):null,
     isCreative:()=>creative,
     _test:{normalize,assetInfo:key=>sourceAssets[key]&&{w:sourceAssets[key].w,h:sourceAssets[key].h},
