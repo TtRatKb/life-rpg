@@ -388,7 +388,7 @@
     card.dataset.bjField=field;
     card.setAttribute("aria-label",f.title);
     const visual=document.createElement("div");visual.className="bj-layer-frame-crop";
-    visual.dataset.bjSprite="frame:"+field;
+    visual.dataset.bjSprite="frame:"+(E[field]?field:layout.cards[field].template);
     visual.setAttribute("aria-hidden","true");card.appendChild(visual);
     const body=document.createElement("div");body.className="bj-layer-write-zone";
     body.dataset.bjLineHost=field;
@@ -783,6 +783,9 @@
     if(!ready&&host)init(host);
     if(!ready||!nextDay)return;
     const changed=day!==nextDay;
+    // Flush independent additional-box drafts before changing dates.
+    // The legacy book.save() handles canonical fields separately.
+    if(changed&&customSaveTimer)saveLayout();
     day=nextDay;
     if(changed||!layout){layout=stored(day);creative=false;selected="";activeSide="left";}
     const dateObj=new Date(nextDay+"T12:00:00");
